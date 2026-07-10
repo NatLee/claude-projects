@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本福特定律 · 數字的隱形指紋</title>
+<style>
+  :root{
+    --paper:#f4efe5;
+    --paper-2:#fbf8f1;
+    --card:#fffdf8;
+    --ink:#211f1a;
+    --ink-soft:#4a463d;
+    --muted:#7c766a;
+    --line:#e0d8c7;
+    --line-strong:#cdc2ab;
+    --accent:#c8431f;
+    --accent-2:#13635c;
+    --gold:#b98a2d;
+    --good:#3f7d4f;
+    --warn:#c8431f;
+    --shadow:0 1px 2px rgba(40,30,10,.06),0 8px 28px rgba(40,30,10,.07);
+    --serif:Georgia,"Songti TC","Times New Roman",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--sans);line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(circle at 12% -8%,rgba(200,67,31,.06),transparent 42%),
+                     radial-gradient(circle at 90% 0%,rgba(19,99,92,.06),transparent 38%);
+  }
+  .wrap{max-width:940px;margin:0 auto;padding:0 22px;}
+  ::selection{background:var(--accent);color:#fff;}
+
+  header.hero{padding:74px 0 38px;text-align:center;position:relative;}
+  .kicker{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.42em;
+    text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:20px;
+  }
+  .kicker span{color:var(--muted);}
+  h1{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(33px,6.4vw,60px);line-height:1.08;margin:0 0 18px;letter-spacing:-.5px;
+  }
+  h1 em{font-style:italic;color:var(--accent);}
+  .lede{font-size:clamp(16px,2.3vw,19px);color:var(--ink-soft);max-width:600px;margin:0 auto;}
+  .lede b{color:var(--ink);font-weight:600;border-bottom:2px solid rgba(200,67,31,.3);}
+  .scrollcue{margin-top:40px;font-size:12px;letter-spacing:.3em;color:var(--muted);
+    font-family:var(--mono);text-transform:uppercase;animation:bob 2.4s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(6px);opacity:1}}
+
+  section{padding:30px 0;}
+  .sec-tag{font-family:var(--mono);font-size:12px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--accent-2);font-weight:600;margin-bottom:10px;}
+  h2{font-family:var(--serif);font-size:clamp(24px,4vw,33px);font-weight:700;margin:0 0 14px;letter-spacing:-.3px;}
+  p.body{font-size:16.5px;color:var(--ink-soft);margin:0 0 16px;}
+  p.body b{color:var(--ink);}
+
+  .lab{background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px 26px 30px;box-shadow:var(--shadow);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px;}
+  .chip{font-family:var(--sans);font-size:14px;font-weight:500;padding:8px 15px;border-radius:999px;cursor:pointer;
+    background:var(--paper-2);border:1px solid var(--line-strong);color:var(--ink-soft);transition:all .18s ease;white-space:nowrap;}
+  .chip:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px);}
+  .chip.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .chip.counter{border-style:dashed;}
+  .chip.counter.active{background:var(--warn);border-color:var(--warn);}
+
+  .lab-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin:18px 0 4px;}
+  .ds-title{font-family:var(--serif);font-size:21px;font-weight:700;}
+  .ds-title .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:2px 8px;border-radius:6px;
+    background:rgba(19,99,92,.1);color:var(--accent-2);margin-left:8px;vertical-align:middle;font-weight:600;}
+  .ds-title .tag.counter{background:rgba(200,67,31,.1);color:var(--warn);}
+  .ds-desc{font-size:14px;color:var(--muted);margin:2px 0 0;min-height:20px;}
+
+  .chart-shell{position:relative;margin-top:8px;}
+  svg.chart{width:100%;height:auto;display:block;overflow:visible;}
+  .bar{fill:url(#barGrad);}
+  .bar.counter{fill:url(#barGradC);}
+  .bar.hot{filter:brightness(1.08);}
+  .grid{stroke:var(--line);stroke-width:1;}
+  .axis-lbl{fill:var(--muted);font-family:var(--mono);font-size:12px;}
+  .digit-lbl{fill:var(--ink);font-family:var(--mono);font-size:17px;font-weight:600;text-anchor:middle;}
+  .val-lbl{fill:var(--ink-soft);font-family:var(--mono);font-size:12.5px;text-anchor:middle;font-weight:600;}
+  .pred-line{fill:none;stroke:var(--accent-2);stroke-width:2;stroke-dasharray:2 5;stroke-linecap:round;opacity:.85;}
+  .pred-dot{fill:var(--paper-2);stroke:var(--accent-2);stroke-width:2.2;}
+
+  .legend{display:flex;gap:20px;flex-wrap:wrap;margin-top:12px;font-size:13.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .sw{width:15px;height:15px;border-radius:4px;}
+  .sw.obs{background:linear-gradient(180deg,#e0653f,#c8431f);}
+  .sw.pred{background:none;border-bottom:2.5px dashed var(--accent-2);height:8px;border-radius:0;width:18px;}
+
+  .verdict{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+    border:1px solid var(--line);border-radius:13px;overflow:hidden;margin-top:20px;}
+  .vcell{background:var(--card);padding:15px 16px;}
+  .vcell .k{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);}
+  .vcell .v{font-family:var(--mono);font-size:25px;font-weight:700;margin-top:3px;letter-spacing:-.5px;}
+  .badge{display:inline-block;padding:3px 11px;border-radius:999px;font-size:13px;font-weight:600;margin-top:7px;}
+  .badge.good{background:rgba(63,125,79,.13);color:var(--good);}
+  .badge.mid{background:rgba(185,138,45,.16);color:#9a6f1c;}
+  .badge.bad{background:rgba(200,67,31,.13);color:var(--warn);}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  button.btn{font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;padding:9px 17px;border-radius:10px;
+    border:1px solid var(--line-strong);background:var(--paper-2);color:var(--ink);transition:all .16s;}
+  button.btn:hover{border-color:var(--ink);transform:translateY(-1px);}
+  button.btn.solid{background:var(--accent);border-color:var(--accent);color:#fff;}
+  button.btn.solid:hover{background:#a8360f;}
+
+  .ruler{margin:20px 0 6px;}
+  .ruler-bar{display:flex;width:100%;height:74px;border-radius:12px;overflow:hidden;
+    border:1px solid var(--line-strong);box-shadow:var(--shadow);}
+  .seg{display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff;
+    font-family:var(--mono);position:relative;transition:flex-grow .5s,filter .2s;cursor:default;min-width:0;}
+  .seg .d{font-size:18px;font-weight:700;line-height:1;}
+  .seg .p{font-size:11px;opacity:.92;margin-top:3px;}
+  .seg:hover{filter:brightness(1.12);}
+  .ruler-axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:8px;}
+
+  .ftable{width:100%;border-collapse:collapse;margin-top:8px;font-family:var(--mono);}
+  .ftable th,.ftable td{padding:9px 6px;text-align:center;border-bottom:1px solid var(--line);font-size:14px;}
+  .ftable th{color:var(--muted);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;}
+  .ftable td.d{color:var(--accent);font-weight:700;font-size:16px;}
+  .ftable tr:hover td{background:var(--paper-2);}
+  .minibar{height:9px;border-radius:5px;background:linear-gradient(90deg,#e0653f,#c8431f);display:inline-block;vertical-align:middle;}
+  .formula{font-family:var(--mono);background:var(--paper-2);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;font-size:15px;color:var(--ink);text-align:center;margin:14px 0;letter-spacing:.5px;}
+  .formula b{color:var(--accent);}
+
+  textarea{width:100%;min-height:96px;font-family:var(--mono);font-size:14px;line-height:1.6;padding:14px;
+    border-radius:12px;border:1px solid var(--line-strong);background:var(--paper-2);color:var(--ink);resize:vertical;}
+  textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(200,67,31,.12);}
+  .hint{font-size:13px;color:var(--muted);margin-top:8px;}
+
+  .cases{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:8px;}
+  .case{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 18px;box-shadow:var(--shadow);}
+  .case .ic{font-size:24px;}
+  .case h3{font-family:var(--serif);font-size:18px;margin:8px 0 6px;}
+  .case p{font-size:14px;color:var(--ink-soft);margin:0;}
+  .note{background:rgba(185,138,45,.09);border:1px solid rgba(185,138,45,.3);border-radius:12px;
+    padding:14px 16px;font-size:14px;color:#7a5a18;margin-top:16px;}
+  .note b{color:#5e4512;}
+
+  footer{padding:46px 0 60px;text-align:center;color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:30px;}
+  footer .mono{font-family:var(--mono);}
+
+  @media(max-width:560px){
+    .verdict{grid-template-columns:1fr;}
+    header.hero{padding:54px 0 28px;}
+    .seg .p{display:none;}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none!important;scroll-behavior:auto!important;}
+    .bar,.seg{transition:none!important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">每日小專案 · 學習新知 <span>/ 2026.06.27</span></div>
+    <h1>數字 <em>1</em> 的<br>隱形特權</h1>
+    <p class="lede">隨手抓一堆真實世界的數字 —— 國家面積、股價、帳單金額 ——
+      它們的<b>開頭數字</b>不是平均分配的。<b>1</b> 出現的機率高達三成，是 9 的足足六倍。
+      這個違反直覺的規律，叫做<b>本福特定律</b>，而且它真的被拿來抓假帳。</p>
+    <div class="scrollcue">↓ 往下捲動，親手驗證</div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section id="lab">
+    <div class="sec-tag">互動實驗室</div>
+    <h2>挑一組數據，看它的「首位數字」分佈</h2>
+    <p class="body">下面每一組都是真實或精確生成的數字。長條是<b>實際出現的比例</b>，
+      墨綠虛線是<b>本福特定律的預測</b>。看看它們有多吻合 —— 或者，故意不吻合。</p>
+
+    <div class="lab">
+      <div class="chips" id="chips"></div>
+
+      <div class="lab-head">
+        <div class="ds-title" id="dsTitle">—</div>
+      </div>
+      <div class="ds-desc" id="dsDesc">—</div>
+
+      <div class="chart-shell">
+        <svg class="chart" viewBox="0 0 720 380" id="chart" role="img" aria-label="首位數字分佈長條圖">
+          <defs>
+            <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#e0653f"/><stop offset="1" stop-color="#c8431f"/>
+            </linearGradient>
+            <linearGradient id="barGradC" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#9aa0a6"/><stop offset="1" stop-color="#6f757b"/>
+            </linearGradient>
+          </defs>
+          <g id="grid"></g>
+          <g id="bars"></g>
+          <g id="pred"></g>
+          <g id="axis"></g>
+        </svg>
+      </div>
+
+      <div class="legend">
+        <span><i class="sw obs"></i>實際分佈</span>
+        <span><i class="sw pred"></i>本福特預測</span>
+        <span style="color:var(--muted)">滑過長條可看精確數值</span>
+      </div>
+
+      <div class="verdict">
+        <div class="vcell"><div class="k">樣本數 N</div><div class="v" id="statN">—</div></div>
+        <div class="vcell"><div class="k">平均絕對偏差 MAD</div><div class="v" id="statMad">—</div></div>
+        <div class="vcell"><div class="k">契合判定</div><div class="badge" id="statBadge">—</div></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnReroll" style="display:none">🎲 重新隨機生成</button>
+        <button class="btn" id="btnToggle">隱藏／顯示預測線</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="why">
+    <div class="sec-tag">為什麼會這樣？</div>
+    <h2>關鍵：把數線「對數化」</h2>
+    <p class="body">想像一把尺，從 1 標到 10，但刻度是<b>對數</b>的（每放大十倍才走一格，就像地震規模或分貝）。
+      在這把尺上，從 1 到 2 的距離，竟然比 8 到 9 寬得多。把每個「開頭數字」佔據的長度算出來，
+      <b>它的比例正好就是本福特定律的數字</b>。底下這條尺，每一段的寬度就是該數字成為首位的機率：</p>
+
+    <div class="ruler">
+      <div class="ruler-bar" id="ruler"></div>
+      <div class="ruler-axis"><span>1</span><span>對數刻度（log scale）</span><span>10</span></div>
+    </div>
+    <p class="body" style="margin-top:18px">只要一組數據<b>橫跨好幾個數量級</b>（從幾十、幾百到幾百萬），
+      而且不是人為設限的，它在對數尺上就會攤得相當平均 —— 於是首位數字就自動服從這個分佈。
+      這也解釋了反例：<b>成人身高</b>全擠在 1xx 公分，只佔對數尺的一小段，當然不服從。</p>
+  </section>
+
+  <section id="formula">
+    <div class="sec-tag">精確的數字</div>
+    <h2>一條對數公式說了算</h2>
+    <div class="formula">P(d) = log₁₀( 1 + <b>1</b>⁄<b>d</b> )　　<span style="color:var(--muted)">d 為首位數字，1 到 9</span></div>
+    <table class="ftable" id="ftable">
+      <thead><tr><th>首位數字 d</th><th>出現機率</th><th>視覺比例</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section id="try">
+    <div class="sec-tag">換你出題</div>
+    <h2>貼上你自己的數字</h2>
+    <p class="body">把任何一串真實數字貼進來 —— 你的記帳金額、城市人口、檔案大小都行。
+      用逗號、空格或換行隔開都可以。資料越「自然」、跨越的數量級越多，越會貼合本福特定律。</p>
+    <div class="lab" style="padding:20px">
+      <textarea id="userInput" spellcheck="false"></textarea>
+      <div class="actions" style="margin-top:12px">
+        <button class="btn solid" id="btnAnalyze">分析這串數字</button>
+        <button class="btn" id="btnSample">換一組範例</button>
+      </div>
+      <div class="hint" id="userHint">提示：至少 30 個數字，結果才比較穩定。</div>
+    </div>
+  </section>
+
+  <section id="uses">
+    <div class="sec-tag">這不只是趣味</div>
+    <h2>它被拿來抓假帳、查選舉</h2>
+    <p class="body">當有人「捏造」數字時，往往會不自覺地讓首位數字太平均 —— 於是露出馬腳。
+      會計學者 <b>Mark Nigrini</b> 把本福特定律帶進鑑識會計，成為稽核的標準工具之一。</p>
+    <div class="cases">
+      <div class="case"><div class="ic">🧾</div><h3>鑑識會計</h3>
+        <p>偵測虛報費用、薪資灌水、逃漏稅與財報造假，曾用於分析 Enron、AIG 等公司的數據。</p></div>
+      <div class="case"><div class="ic">🗳️</div><h3>選舉鑑識</h3>
+        <p>用於檢視 2009 年伊朗總統大選等計票數據的異常；但用於選舉一直有爭議，只能當警訊。</p></div>
+      <div class="case"><div class="ic">💸</div><h3>金融詐騙</h3>
+        <p>分析龐氏騙局（如馬多夫案）與可疑交易，作為大量數據的第一道篩網。</p></div>
+    </div>
+    <div class="note">⚠️ <b>重要：</b>不符合本福特定律，<b>不等於</b>造假；符合也<b>不保證</b>清白。
+      它是一支「異常偵測的探照燈」，指出值得進一步查的地方，而非定罪的證據。</div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div style="font-family:var(--serif);font-size:17px;color:var(--ink);margin-bottom:6px">數字也有它的脾氣。</div>
+    <div class="mono">每日小專案 · 學習新知 · 2026-06-27</div>
+    <div style="margin-top:8px">公式與數據查證：本福特定律 P(d)=log₁₀(1+1/d)　·　契合判定採 Nigrini MAD 標準</div>
+  </div>
+</footer>
+
+<script>
+"use strict";
+(function(){
+  function leadFromNum(x){
+    x = Math.abs(Number(x));
+    if(!isFinite(x) || x===0) return 0;
+    var d = parseInt(x.toExponential()[0],10);
+    return (d>=1 && d<=9) ? d : 0;
+  }
+  function leadFromBig(b){
+    var s = b.toString();
+    if(s[0]==='-') s = s.slice(1);
+    var d = s.charCodeAt(0)-48;
+    return (d>=1 && d<=9) ? d : 0;
+  }
+  function tally(leads){
+    var c=[0,0,0,0,0,0,0,0,0,0];
+    for(var i=0;i<leads.length;i++){var d=leads[i]; if(d>=1&&d<=9){c[d]++;}}
+    return c;
+  }
+  var BENF=[0]; for(var d=1;d<=9;d++){ BENF[d]=Math.log10(1+1/d); }
+
+  function genFib(n){var a=1n,b=1n,out=[];for(var i=0;i<n;i++){out.push(leadFromBig(a));var t=a+b;a=b;b=t;}return out;}
+  function genPow(base,n){var b=BigInt(base),v=1n,out=[];for(var i=1;i<=n;i++){v=v*b;out.push(leadFromBig(v));}return out;}
+  function genFact(n){var v=1n,out=[];for(var i=1;i<=n;i++){v=v*BigInt(i);out.push(leadFromBig(v));}return out;}
+  function genRandMul(n){
+    var out=[];
+    for(var i=0;i<n;i++){var p=1;for(var k=0;k<8;k++){p*=(1+Math.random()*9);}out.push(leadFromNum(p));}
+    return out;
+  }
+  function genUniform(n){var out=[];for(var i=0;i<n;i++){out.push(leadFromNum(100+Math.floor(Math.random()*900)));}return out;}
+  function genHeights(n){
+    var out=[];for(var i=0;i<n;i++){
+      var u=0;for(var k=0;k<6;k++)u+=Math.random();u=(u-3)/3;
+      out.push(leadFromNum(170+u*9));}
+    return out;
+  }
+  // 真實資料：世界各國國土面積（km²，採各國官方／通用數據；面積穩定且精確，是本福特的經典範例）
+  var AREA=[17098242,9984670,9596961,9833517,8515767,7692024,3287263,2780400,2724900,2381741,2344858,2149690,1964375,1904569,1861484,1759540,1648195,1564110,1285216,1284000,1267000,1246700,1240192,1221037,1141748,1104300,1098581,1030700,1002450,945087,923768,916445,825615,801590,881913,783562,756102,752618,676578,652230,643801,637657,622984,603500,587041,581730,580367,527968,513120,505992,488100,475442,462840,450295,447400,446550,438317,406752,390757,377930,357114,342000,338424,331212,330803,323802,322463,312696,309500,301340,300000,276841,274222,270467,267668,245857,243610,241550,238533,238397,236800,214969,207600,199951,196722,185180,181035,176215,163820,163610,147570,147181,143100,131957,130373,120538,118484,117600,112622,112090,111369,110879,109884,108889,103000,100210,93028,92090,89342,86600,83871,83600,78865,75417,71740,70273,69700,65610,65300,64559,56785,56594,51197,51100,49037,48671,45227,43094,41850,41284,38394,36125,33846,30528,30355,29743,28896,28748,28051,27834,27750,26338,25713,23200,22966,21041,20770,20273,18272,17818,17364,14874,13943,13812,12189,11586,11295,10991,10452,9251,5765,5130,4033,2842,2586,2235,2040,1104,728,765,702,747,751,811,616,468,452,442,430,389,344,316,300,261,160,61,26,21,2,0.49];
+  function genArea(){var out=[];for(var i=0;i<AREA.length;i++){out.push(leadFromNum(AREA[i]));}return out;}
+
+  var DATASETS={
+    pop:    {name:'世界各國面積',  tag:'真實資料', desc:'190 國的國土面積（km²），從梵蒂岡 0.49 到俄羅斯 1,700 萬，橫跨八個數量級。', kind:'real',  gen:genArea},
+    fib:    {name:'費氏數列',      tag:'精確生成', desc:'1,1,2,3,5,8,13,21… 前 300 項。大自然最愛的數列，也乖乖服從。', kind:'math', gen:function(){return genFib(300);}},
+    pow2:   {name:'2 的次方',      tag:'精確生成', desc:'2,4,8,16,32… 一路到 2 的 900 次方（用大整數精算）。', kind:'math', gen:function(){return genPow(2,900);}},
+    pow3:   {name:'3 的次方',      tag:'精確生成', desc:'3,9,27,81… 到 3 的 600 次方。換個底數，照樣服從。', kind:'math', gen:function(){return genPow(3,600);}},
+    fact:   {name:'階乘 n!',       tag:'精確生成', desc:'1!,2!,6!,24!… 到 300!，數字大到天文等級。', kind:'math', gen:function(){return genFact(300);}},
+    randmul:{name:'隨機連乘',      tag:'精確生成', desc:'每筆是 8 個隨機數的乘積，共 3000 筆 — 機率論保證它趨近本福特。', kind:'rand', gen:function(){return genRandMul(3000);}},
+    uniform:{name:'平坦亂數（反例）', tag:'反例', desc:'2000 個 100–999 的均勻亂數。只佔一個數量級 → 各數字幾乎一樣多。', kind:'rand', counter:true, gen:function(){return genUniform(2000);}},
+    height: {name:'成人身高（反例）', tag:'反例', desc:'2000 筆模擬身高(cm)，全擠在 1xx → 被數字 1 壟斷，不服從。', kind:'rand', counter:true, gen:function(){return genHeights(2000);}},
+    user:   {name:'你貼上的數字',  tag:'真實資料', desc:'來自下方輸入框的資料。', kind:'real', counter:false, gen:function(){return USER_LEADS.slice();}, hidden:true}
+  };
+  var ORDER=['pop','fib','pow2','pow3','fact','randmul','uniform','height'];
+  var USER_LEADS=[];
+
+  var SVGNS='http://www.w3.org/2000/svg';
+  var PLOT={L:52,R:706,T:24,B:322,MAXY:35};
+  var plotW=PLOT.R-PLOT.L, plotH=PLOT.B-PLOT.T, slot=plotW/9;
+  function yOf(pct){ return PLOT.B - (pct/PLOT.MAXY)*plotH; }
+  function cx(d){ return PLOT.L + slot*(d-0.5); }
+  var showPred=true;
+
+  function el(tag,attrs){var e=document.createElementNS(SVGNS,tag);for(var k in attrs){e.setAttribute(k,attrs[k]);}return e;}
+
+  function drawStatic(){
+    var grid=document.getElementById('grid'), axis=document.getElementById('axis'), pred=document.getElementById('pred');
+    grid.innerHTML='';axis.innerHTML='';pred.innerHTML='';
+    [0,10,20,30].forEach(function(p){
+      var y=yOf(p);
+      grid.appendChild(el('line',{x1:PLOT.L,y1:y,x2:PLOT.R,y2:y,'class':'grid'}));
+      var t=el('text',{x:PLOT.L-10,y:y+4,'class':'axis-lbl','text-anchor':'end'});t.textContent=p+'%';axis.appendChild(t);
+    });
+    for(var d=1;d<=9;d++){
+      var t=el('text',{x:cx(d),y:PLOT.B+26,'class':'digit-lbl'});t.textContent=d;axis.appendChild(t);
+    }
+    var pts='';
+    for(var d=1;d<=9;d++){pts+=cx(d)+','+yOf(BENF[d]*100)+' ';}
+    var poly=el('polyline',{points:pts.trim(),'class':'pred-line'});pred.appendChild(poly);
+    for(var d=1;d<=9;d++){
+      var c=el('circle',{cx:cx(d),cy:yOf(BENF[d]*100),r:4,'class':'pred-dot'});c.classList.add('pdot');pred.appendChild(c);
+    }
+  }
+
+  var barEls=[], valEls=[];
+  function buildBars(){
+    var bars=document.getElementById('bars');bars.innerHTML='';barEls=[];valEls=[];
+    var bw=slot*0.56;
+    for(var d=1;d<=9;d++){
+      var x=cx(d)-bw/2;
+      var r=el('rect',{x:x,y:PLOT.T,width:bw,height:plotH,'class':'bar',rx:4});
+      r.style.transformBox='fill-box';r.style.transformOrigin='center bottom';
+      r.style.transform='scaleY(0)';r.style.transition='transform .7s cubic-bezier(.2,.85,.25,1), fill .3s';
+      bars.appendChild(r);barEls.push(r);
+      var v=el('text',{x:cx(d),y:PLOT.B-6,'class':'val-lbl'});v.textContent='';bars.appendChild(v);valEls.push(v);
+      (function(dd,rect){
+        var hit=el('rect',{x:cx(dd)-slot/2,y:PLOT.T,width:slot,height:plotH,fill:'transparent'});
+        hit.style.cursor='pointer';
+        hit.addEventListener('mouseenter',function(){rect.classList.add('hot');});
+        hit.addEventListener('mouseleave',function(){rect.classList.remove('hot');});
+        bars.appendChild(hit);
+      })(d,r);
+    }
+  }
+
+  function render(counts){
+    var N=0; for(var d=1;d<=9;d++)N+=counts[d];
+    for(var d=1;d<=9;d++){
+      var pct = N? counts[d]/N*100 : 0;
+      var frac = Math.min(pct/PLOT.MAXY,1);
+      var r=barEls[d-1];
+      r.style.transform='scaleY('+frac+')';
+      var v=valEls[d-1];
+      v.textContent = N? (pct.toFixed(1)+'%') : '';
+      v.setAttribute('y', Math.max(yOf(pct)-8, PLOT.T+12));
+    }
+    return N;
+  }
+  function setBarColor(counter){
+    for(var i=0;i<barEls.length;i++){ barEls[i].classList.toggle('counter',!!counter); }
+  }
+
+  function madVerdict(counts,N){
+    if(!N) return {mad:0,label:'—',cls:'mid'};
+    var s=0; for(var d=1;d<=9;d++){ s+=Math.abs(counts[d]/N - BENF[d]); }
+    var mad=s/9;
+    var label,cls;
+    if(mad<0.006){label='高度服從';cls='good';}
+    else if(mad<0.012){label='可接受地服從';cls='good';}
+    else if(mad<0.015){label='勉強服從';cls='mid';}
+    else {label='不服從';cls='bad';}
+    return {mad:mad,label:label,cls:cls};
+  }
+
+  var current='pop';
+  function activate(key){
+    current=key;
+    var ds=DATASETS[key];
+    var leads=ds.gen();
+    var counts=tally(leads);
+    var N=render(counts);
+    setBarColor(ds.counter);
+    document.getElementById('dsTitle').innerHTML = ds.name +
+      ' <span class="tag'+(ds.counter?' counter':'')+'">'+ds.tag+'</span>';
+    document.getElementById('dsDesc').textContent = ds.desc;
+    document.getElementById('statN').textContent = N.toLocaleString('en-US');
+    var mv=madVerdict(counts,N);
+    document.getElementById('statMad').textContent = mv.mad.toFixed(4);
+    var badge=document.getElementById('statBadge');
+    badge.textContent=mv.label;badge.className='badge '+mv.cls;
+    var cs=document.querySelectorAll('.chip');
+    cs.forEach(function(c){c.classList.toggle('active',c.dataset.key===key);});
+    document.getElementById('btnReroll').style.display = (ds.kind==='rand')?'inline-block':'none';
+  }
+
+  (function(){
+    var box=document.getElementById('chips');
+    ORDER.forEach(function(key){
+      var ds=DATASETS[key];
+      var b=document.createElement('button');
+      b.className='chip'+(ds.counter?' counter':'');
+      b.textContent=ds.name; b.dataset.key=key;
+      b.addEventListener('click',function(){activate(key);});
+      box.appendChild(b);
+    });
+  })();
+
+  (function(){
+    var ruler=document.getElementById('ruler');
+    for(var d=1;d<=9;d++){
+      var seg=document.createElement('div');
+      seg.className='seg';
+      seg.style.flexGrow=BENF[d];
+      var t=(d-1)/8;
+      var col=mix([200,67,31],[19,99,92],t);
+      seg.style.background='rgb('+col[0]+','+col[1]+','+col[2]+')';
+      seg.innerHTML='<span class="d">'+d+'</span><span class="p">'+(BENF[d]*100).toFixed(1)+'%</span>';
+      ruler.appendChild(seg);
+    }
+  })();
+  function mix(a,b,t){return [Math.round(a[0]+(b[0]-a[0])*t),Math.round(a[1]+(b[1]-a[1])*t),Math.round(a[2]+(b[2]-a[2])*t)];}
+
+  (function(){
+    var tb=document.querySelector('#ftable tbody');
+    for(var d=1;d<=9;d++){
+      var pct=BENF[d]*100;
+      var tr=document.createElement('tr');
+      tr.innerHTML='<td class="d">'+d+'</td><td>'+pct.toFixed(1)+'%</td>'+
+        '<td><span class="minibar" style="width:'+(pct*5)+'px"></span></td>';
+      tb.appendChild(tr);
+    }
+  })();
+
+  var SAMPLES=[
+    {label:'我的記帳（跨數量級的自然消費）',
+     text:'88, 12, 350, 1280, 45, 7, 2100, 36, 9, 158, 470, 23, 6500, 19, 254, 3, 91, 1200, 47, 8, 159, 26, 480, 73, 130, 2, 560, 31, 1100, 67, 14, 390, 5, 88, 210, 1750, 42, 305, 16, 640, 27, 95, 1, 175, 38'},
+    {label:'各國 GDP（十億美元，跨度大 → 很貼合）',
+     text:'27360, 17790, 4410, 4250, 3550, 3340, 2940, 2330, 2170, 2120, 1810, 1740, 1710, 1660, 1560, 1130, 720, 510, 430, 410, 360, 300, 250, 210, 110, 90, 70, 55, 40, 28, 19, 12, 8, 5, 3, 2, 1.4, 0.9, 0.5'},
+    {label:'班上 40 人的身高（cm，反例 → 幾乎全是 1）',
+     text:'162,158,171,169,175,180,166,159,173,168,177,182,160,165,170,174,156,163,178,185,167,172,161,169,176,164,158,181,170,166,173,179,160,168,175,162,171,167,184,159'}
+  ];
+  var sampleIdx=0;
+  function loadSample(i){document.getElementById('userInput').value=SAMPLES[i].text;}
+  function parseUser(){
+    var raw=document.getElementById('userInput').value;
+    var toks=raw.split(/[^0-9.\-]+/).filter(function(s){return s.length;});
+    var leads=[];
+    toks.forEach(function(t){
+      var num=parseFloat(t);
+      if(isFinite(num)&&num!==0){var d=leadFromNum(num); if(d){leads.push(d);}}
+    });
+    return leads;
+  }
+
+  document.getElementById('btnReroll').addEventListener('click',function(){activate(current);});
+  document.getElementById('btnToggle').addEventListener('click',function(){
+    showPred=!showPred;
+    document.getElementById('pred').style.display=showPred?'':'none';
+  });
+  document.getElementById('btnAnalyze').addEventListener('click',function(){
+    var leads=parseUser();
+    var hint=document.getElementById('userHint');
+    if(leads.length<5){hint.textContent='⚠️ 抓不到足夠的數字（至少要 5 個）。請確認有貼上以逗號或空白分隔的數字。';hint.style.color='var(--warn)';return;}
+    hint.style.color='var(--muted)';
+    hint.textContent='✓ 已分析 '+leads.length+' 個數字，圖表已更新到上方「你貼上的數字」。'+(leads.length<30?'（樣本偏少，誤差會比較大）':'');
+    USER_LEADS=leads;
+    DATASETS.user.desc='來自你的輸入框，共 '+leads.length+' 個有效數字。';
+    activate('user');
+    var labEl=document.getElementById('lab'); if(labEl&&labEl.scrollIntoView){labEl.scrollIntoView({behavior:'smooth'});}
+  });
+  document.getElementById('btnSample').addEventListener('click',function(){
+    sampleIdx=(sampleIdx+1)%SAMPLES.length;loadSample(sampleIdx);
+    document.getElementById('userHint').textContent='已載入範例：'+SAMPLES[sampleIdx].label+'。按「分析這串數字」看結果。';
+    document.getElementById('userHint').style.color='var(--muted)';
+  });
+
+  drawStatic();
+  buildBars();
+  loadSample(0);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){activate('pop');});});
+})();
+</script>
+</body>
+</html>

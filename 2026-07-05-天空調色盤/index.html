@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>天空調色盤 · 為什麼天空是藍的？</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#12161f; --panel2:#171c28;
+    --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.14);
+    --ink:#eef2f8; --ink-dim:#aeb7c6; --ink-faint:#7b8698;
+    --accent:#ffb457; --blue:#6fb4ff; --red:#ff7a6b; --green:#83e0a0;
+    --serif:"Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"PMingLiU",serif;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Segoe UI",system-ui,sans-serif;
+    --mono:"SFMono-Regular",Menlo,Consolas,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 620px at 78% -8%, #1a2233 0%, rgba(26,34,51,0) 60%),
+      radial-gradient(900px 520px at 6% 108%, #17202e 0%, rgba(23,32,46,0) 55%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    line-height:1.7; letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px; margin:0 auto; padding:38px 22px 80px}
+
+  header.top{margin-bottom:22px}
+  .kicker{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12.5px; letter-spacing:.22em; color:var(--ink-faint);
+    text-transform:uppercase; margin-bottom:12px;
+  }
+  .kicker .dot{width:7px;height:7px;border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--red)); box-shadow:0 0 12px var(--accent)}
+  h1{
+    font-family:var(--serif); font-weight:700;
+    font-size:clamp(30px,5.4vw,50px); line-height:1.14; margin:0 0 10px;
+    letter-spacing:.01em;
+  }
+  h1 .thin{color:var(--ink-dim); font-weight:500}
+  .lede{max-width:640px; color:var(--ink-dim); font-size:16px; margin:0}
+
+  /* ---- 天空舞台 ---- */
+  .stage-card{
+    margin-top:26px; border:1px solid var(--line); border-radius:20px;
+    overflow:hidden; background:var(--panel);
+    box-shadow:0 30px 70px -40px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .sky-holder{position:relative; width:100%; aspect-ratio:16/9; min-height:320px; touch-action:none; cursor:grab}
+  .sky-holder.grabbing{cursor:grabbing}
+  #sky{display:block; width:100%; height:100%}
+  .hint{
+    position:absolute; left:16px; top:14px; z-index:3;
+    display:flex; align-items:center; gap:8px;
+    padding:7px 12px; border-radius:999px;
+    background:rgba(10,12,18,.42); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.16);
+    font-size:12.5px; color:#fff; pointer-events:none;
+    text-shadow:0 1px 4px rgba(0,0,0,.5); transition:opacity .5s;
+  }
+  .hint svg{width:15px;height:15px}
+  .readout{
+    position:absolute; right:14px; bottom:14px; z-index:3;
+    width:min(268px,58%); padding:13px 15px; border-radius:14px;
+    background:rgba(9,11,17,.5); backdrop-filter:blur(9px);
+    border:1px solid rgba(255,255,255,.15);
+    font-size:13px; color:#eaeef6;
+  }
+  .readout .row{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+  .readout .k{color:rgba(255,255,255,.62); font-size:12px}
+  .readout .v{font-family:var(--mono); font-size:15px; color:#fff}
+  .bars{margin-top:9px; display:grid; gap:5px}
+  .bar{display:grid; grid-template-columns:20px 1fr 40px; align-items:center; gap:8px; font-size:11px}
+  .bar .lab{color:rgba(255,255,255,.7)}
+  .bar .track{height:7px; border-radius:5px; background:rgba(255,255,255,.13); overflow:hidden}
+  .bar .fill{height:100%; border-radius:5px; transition:width .08s linear}
+  .bar.r .fill{background:linear-gradient(90deg,#ff9d7a,#ff5a49)}
+  .bar.g .fill{background:linear-gradient(90deg,#a7f0bd,#41c86e)}
+  .bar.b .fill{background:linear-gradient(90deg,#a9d2ff,#4a97ff)}
+  .bar .pct{font-family:var(--mono); text-align:right; color:rgba(255,255,255,.85)}
+
+  /* ---- 控制列 ---- */
+  .controls{
+    display:flex; flex-wrap:wrap; align-items:center; gap:14px 18px;
+    padding:16px 20px; border-top:1px solid var(--line); background:var(--panel2);
+  }
+  .slider-wrap{flex:1 1 320px; min-width:240px}
+  .slider-wrap .cap{display:flex; justify-content:space-between; font-size:12px; color:var(--ink-faint); margin-bottom:5px}
+  .slider-wrap .cap b{color:var(--ink-dim); font-weight:600}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px;
+    background:linear-gradient(90deg,#12213b,#2c4c7e 30%,#8fbcff 62%,#ffd08a 84%,#ff7d5c);
+    outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:22px;height:22px;border-radius:50%;
+    background:radial-gradient(circle at 32% 30%,#fff,#ffd98a 48%,#ff9e57);
+    border:2px solid rgba(255,255,255,.85); box-shadow:0 3px 12px rgba(0,0,0,.5), 0 0 16px rgba(255,180,90,.6); cursor:grab}
+  input[type=range]::-moz-range-thumb{
+    width:20px;height:20px;border-radius:50%;border:2px solid #fff;
+    background:radial-gradient(circle at 32% 30%,#fff,#ffd98a 48%,#ff9e57); box-shadow:0 3px 12px rgba(0,0,0,.5)}
+  .btns{display:flex; gap:9px; flex-wrap:wrap}
+  button.act{
+    font-family:var(--sans); font-size:13.5px; color:var(--ink);
+    padding:9px 15px; border-radius:11px; cursor:pointer;
+    background:#1e2534; border:1px solid var(--line2); transition:.16s;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  button.act:hover{background:#26304390; border-color:rgba(255,255,255,.28); transform:translateY(-1px)}
+  button.act:active{transform:translateY(0)}
+  button.act.on{background:linear-gradient(135deg,#3a2a1e,#4a2f26); border-color:#ff9d5c66; color:#ffd3a8}
+  button.act .em{font-size:15px; line-height:1}
+
+  .status{
+    padding:13px 20px 15px; border-top:1px solid var(--line);
+    font-size:14.5px; color:var(--ink-dim); background:var(--panel2);
+    display:flex; gap:10px; align-items:flex-start;
+  }
+  .status .tag{
+    flex:none; margin-top:2px; font-size:11px; letter-spacing:.12em; color:var(--accent);
+    border:1px solid #ffb45733; border-radius:6px; padding:2px 7px;
+  }
+  #statusText b{color:var(--ink)}
+
+  /* ---- 內文區塊 ---- */
+  section{margin-top:44px}
+  .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:16px}
+  .sec-head .no{font-family:var(--mono); font-size:12px; color:var(--ink-faint);
+    border:1px solid var(--line2); border-radius:7px; padding:3px 8px}
+  .sec-head h2{font-family:var(--serif); font-size:23px; margin:0; font-weight:700}
+  p.body{color:var(--ink-dim); font-size:15.5px; margin:0 0 14px}
+  p.body b{color:var(--ink); font-weight:600}
+  .hl{color:var(--blue); font-weight:600}
+  .hl.red{color:var(--red)} .hl.warm{color:var(--accent)}
+
+  /* 散射示意 */
+  .scatter{
+    display:grid; grid-template-columns:1fr; gap:0;
+    border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--panel);
+  }
+  .scatter .lambda{
+    display:grid; grid-template-columns:78px 1fr 66px; align-items:center; gap:14px;
+    padding:15px 18px; border-bottom:1px solid var(--line);
+  }
+  .scatter .lambda:last-child{border-bottom:none}
+  .scatter .name{font-weight:600}
+  .scatter .name small{display:block; color:var(--ink-faint); font-weight:400; font-family:var(--mono); font-size:11.5px}
+  .scatter .meter{height:16px; border-radius:8px; background:rgba(255,255,255,.06); overflow:hidden}
+  .scatter .meter i{display:block; height:100%; border-radius:8px}
+  .scatter .amt{font-family:var(--mono); font-size:13px; text-align:right; color:var(--ink-dim)}
+  .formula{
+    margin:16px 0 4px; text-align:center; font-family:var(--serif);
+    font-size:20px; color:var(--ink); padding:16px; border-radius:14px;
+    background:linear-gradient(180deg,#141a26,#10141d); border:1px solid var(--line);
+  }
+  .formula small{display:block; margin-top:6px; font-family:var(--sans); font-size:13px; color:var(--ink-faint)}
+
+  /* 冷知識卡片 */
+  .cards{display:grid; grid-template-columns:repeat(2,1fr); gap:15px}
+  .card{
+    position:relative; border:1px solid var(--line); border-radius:16px;
+    padding:20px 20px 19px; background:linear-gradient(180deg,var(--panel2),var(--panel));
+    overflow:hidden; transition:.2s;
+  }
+  .card:hover{border-color:var(--line2); transform:translateY(-2px); box-shadow:0 24px 44px -34px rgba(0,0,0,.9)}
+  .card .glyph{font-size:24px; margin-bottom:9px}
+  .card h3{font-family:var(--serif); font-size:17.5px; margin:0 0 8px}
+  .card p{margin:0; font-size:13.8px; color:var(--ink-dim); line-height:1.66}
+  .card p b{color:var(--ink)}
+  .card .edge{position:absolute; inset:0 auto 0 0; width:3px;
+    background:linear-gradient(180deg,var(--c1),var(--c2))}
+  .card.try{cursor:pointer}
+  .card.try .go{margin-top:11px; font-size:12.5px; color:var(--accent); display:inline-flex; align-items:center; gap:6px}
+  .card.try:hover .go{gap:9px}
+
+  footer{margin-top:52px; padding-top:22px; border-top:1px solid var(--line);
+    color:var(--ink-faint); font-size:12.8px; line-height:1.75}
+  footer a{color:var(--ink-dim)}
+  .src{font-family:var(--mono); font-size:11.5px}
+
+  @media (max-width:640px){
+    .cards{grid-template-columns:1fr}
+    .readout{width:64%}
+    .scatter .lambda{grid-template-columns:64px 1fr 54px; gap:10px; padding:13px 14px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="kicker"><span class="dot"></span>學習新知 · 大氣光學</div>
+    <h1>天空調色盤<br><span class="thin">為什麼天空是藍的？</span></h1>
+    <p class="lede">同一束白色的陽光，穿過厚薄不同的大氣，就被拆成了不同的顏色。
+      拖著太陽從正午滑到地平線，看藍光如何一點一點被「散射」走——留下滿天的藍，與燒紅的黃昏。</p>
+  </header>
+
+  <!-- 天空舞台 -->
+  <div class="stage-card">
+    <div class="sky-holder" id="holder">
+      <canvas id="sky"></canvas>
+      <div class="hint" id="hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>
+        拖曳太陽，改變一天的時刻
+      </div>
+      <div class="readout" id="readout">
+        <div class="row"><span class="k">太陽仰角</span><span class="v" id="rElev">—</span></div>
+        <div class="row"><span class="k">大氣路徑長度</span><span class="v" id="rAir">—</span></div>
+        <div class="bars">
+          <div class="bar r"><span class="lab">紅</span><span class="track"><i class="fill" id="fR"></i></span><span class="pct" id="pR">—</span></div>
+          <div class="bar g"><span class="lab">綠</span><span class="track"><i class="fill" id="fG"></i></span><span class="pct" id="pG">—</span></div>
+          <div class="bar b"><span class="lab">藍</span><span class="track"><i class="fill" id="fB"></i></span><span class="pct" id="pB">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="slider-wrap">
+        <div class="cap"><span>地平線 <b>0°</b></span><span><b>太陽仰角</b></span><span><b>90°</b> 正上方</span></div>
+        <input type="range" id="elev" min="-6" max="90" step="0.5" value="55" aria-label="太陽仰角">
+      </div>
+      <div class="btns">
+        <button class="act" id="playBtn"><span class="em">▶</span> 播放一整天</button>
+        <button class="act" id="marsBtn"><span class="em">🔴</span> 火星模式</button>
+        <button class="act" id="resetBtn">↺ 回到正午</button>
+      </div>
+    </div>
+
+    <div class="status">
+      <span class="tag" id="statusTag">此刻</span>
+      <span id="statusText">正午時分，陽光近乎直射……</span>
+    </div>
+  </div>
+
+  <!-- 科學原理 -->
+  <section>
+    <div class="sec-head"><span class="no">原理</span><h2>藍光為什麼「輸」得最慘？</h2></div>
+    <p class="body">陽光其實是七彩混在一起的白光。當它撞上空氣裡比波長還小的氮、氧分子，會被往四面八方彈開——這叫
+      <b>瑞立散射（Rayleigh scattering）</b>。關鍵在於：散射的強度與波長的<b>四次方</b>成反比。</p>
+    <div class="formula">散射強度 &nbsp;∝&nbsp; 1 / λ⁴
+      <small>λ 是光的波長。波長越短（越偏藍紫），被彈開得越厲害。</small></div>
+    <p class="body">波長差一點點，四次方一放大就差很多。以天空最主要的藍光（約 450 奈米）對比紅光（約 650 奈米），
+      散射強度大約是 <span class="hl">(650/450)⁴ ≈ 4.4 倍</span>。於是藍光被散射到整片天空，你不論往哪看，
+      滿天都是被彈來彈去的藍——這就是白天天空是藍色的原因。下面這把尺，是各色光被散射的相對強度：</p>
+
+    <div class="scatter" id="scatterViz">
+      <div class="lambda">
+        <span class="name">藍光<small>~450 nm</small></span>
+        <span class="meter"><i style="width:100%;background:linear-gradient(90deg,#3f78d6,#7db4ff)"></i></span>
+        <span class="amt">100%</span>
+      </div>
+      <div class="lambda">
+        <span class="name">綠光<small>~550 nm</small></span>
+        <span class="meter"><i style="width:45%;background:linear-gradient(90deg,#39a860,#7fe0a1)"></i></span>
+        <span class="amt">≈ 45%</span>
+      </div>
+      <div class="lambda">
+        <span class="name">紅光<small>~650 nm</small></span>
+        <span class="meter"><i style="width:23%;background:linear-gradient(90deg,#c94b3d,#ff8a72)"></i></span>
+        <span class="amt">≈ 23%</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 冷知識 -->
+  <section>
+    <div class="sec-head"><span class="no">冷知識</span><h2>關於天空顏色的四個追問</h2></div>
+    <div class="cards">
+      <div class="card">
+        <div class="edge" style="--c1:#7db4ff;--c2:#b98bff"></div>
+        <div class="glyph">🔵</div>
+        <h3>那為什麼不是紫色的天空？</h3>
+        <p>紫光波長更短，照理應該被散射得<b>更兇</b>。但天空還是藍的，原因有三：陽光本身的<b>紫光就比較少</b>；
+          紫光在半路被反覆散射、消耗掉；而我們眼睛的感色細胞在 <b>440 奈米（藍）</b>最敏感，對紫光反應很弱。
+          三者相加，大腦把這鍋光讀成了「藍」。</p>
+      </div>
+      <div class="card">
+        <div class="edge" style="--c1:#ff9d5c;--c2:#ff5a49"></div>
+        <div class="glyph">🌇</div>
+        <h3>夕陽為什麼是紅的？</h3>
+        <p>太陽貼近地平線時，陽光要<b>斜著穿過厚得多的大氣</b>——路徑最長可達正午的近 <b>38 倍</b>。
+          一路上藍光、綠光幾乎被散射殆盡，能筆直抵達你眼睛的，只剩下最不易被彈開的<b>紅光與橙光</b>。
+          試著把上面的太陽拖到地平線，看藍色的殘留條如何縮到近乎歸零。</p>
+      </div>
+      <div class="card try" id="marsCard">
+        <div class="edge" style="--c1:#ffb457;--c2:#6fb4ff"></div>
+        <div class="glyph">🔴</div>
+        <h3>火星的夕陽，是藍色的</h3>
+        <p>2015 年 NASA「好奇號」在蓋爾撞擊坑拍下火星夕陽：天空整天是黃褐色，太陽落下時周圍卻泛著<b>冷藍色的光暈</b>。
+          因為火星大氣稀薄、滿是<b>細小的鐵質塵埃</b>，這種塵粒讓藍光聚攏在太陽附近——與地球完全相反。</p>
+        <span class="go">切換到火星模式，親眼看看 →</span>
+      </div>
+      <div class="card">
+        <div class="edge" style="--c1:#5ec6c2;--c2:#f2f5ff"></div>
+        <div class="glyph">🌊</div>
+        <h3>海是藍的、雲卻是白的？</h3>
+        <p>海的藍一部分來自天空倒影，一部分是水本身會<b>吸收紅光、散射藍光</b>。至於雲——水滴又大又圓，
+          大到光的各種顏色被<b>一視同仁</b>地散射（這叫米氏散射），紅綠藍等量混合，於是雲是白的。
+          同一片天空，靠不同大小的粒子，畫出了藍與白。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>本頁天空由「大氣路徑長度」即時運算上色：太陽越低，路徑越長（以 Kasten–Young 氣團公式估算），
+      藍、綠、紅三色的殘留量依 1/λ⁴ 加權衰減，因此太陽會自然地由白轉金、轉紅。為求畫面美感，色彩經過藝術化調校，屬示意而非精確光譜模擬。</div>
+    <div class="src" style="margin-top:10px">
+      資料來源：NASA JPL「Curiosity Views Serene Sundown on Mars」(2015)、NASA Science《Sunrises &amp; Sunsets on Mars》、
+      NOAA National Weather Service「Why Is The Sky Blue?」。詳見同資料夾 <b>說明.md</b>。
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  // ---------- 小工具 ----------
+  var clamp=function(v,a,b){return Math.min(b,Math.max(a,v));};
+  var lerp=function(a,b,t){return a+(b-a)*t;};
+  var lerpRGB=function(A,B,t){return [lerp(A[0],B[0],t),lerp(A[1],B[1],t),lerp(A[2],B[2],t)];};
+  var rgb=function(c){return "rgb("+(c[0]|0)+","+(c[1]|0)+","+(c[2]|0)+")";};
+  var rgba=function(c,a){return "rgba("+(c[0]|0)+","+(c[1]|0)+","+(c[2]|0)+","+a+")";};
+
+  // ---------- 物理：氣團（大氣路徑長度） ----------
+  // Kasten & Young (1989) 近似式：仰角越低，路徑越長，正午≈1、地平線≈38
+  function airMass(elevDeg){
+    var e=Math.max(elevDeg,-3);
+    var denom=Math.sin(e*Math.PI/180)+0.50572*Math.pow(e+6.07995,-1.6364);
+    return clamp(1/denom,1,40);
+  }
+  // 各色光的相對瑞立散射權重（∝ 1/λ⁴，以藍光為 1）
+  var wB=1, wG=Math.pow(450/550,4), wR=Math.pow(450/650,4);
+  var K=0.115; // 調校常數
+  function transmittance(AM){
+    return { r:Math.exp(-K*AM*wR), g:Math.exp(-K*AM*wG), b:Math.exp(-K*AM*wB) };
+  }
+  // 由穿透率推算太陽本身的顏色（藍光先流失 → 由白轉紅）
+  function sunColorFromT(T){
+    var r=255*T.r, g=250*T.g, b=236*T.b;
+    var m=Math.max(r,g,b,1), boost=255/m;
+    return [r*boost, g*boost, b*boost];
+  }
+
+  // ---------- 天空色彩關鍵影格（依仰角） ----------
+  var EARTH_SKY=[
+    {e:-6, z:[10,14,32],  h:[26,22,50]},
+    {e:-2, z:[20,28,60],  h:[66,42,74]},
+    {e: 1, z:[42,66,116], h:[233,120,70]},
+    {e: 6, z:[64,104,170],h:[248,168,108]},
+    {e:16, z:[66,124,200],h:[184,206,228]},
+    {e:40, z:[54,116,210],h:[150,192,232]},
+    {e:90, z:[46,110,216],h:[140,188,240]}
+  ];
+  var MARS_SKY=[
+    {e:-6, z:[20,16,20],  h:[40,28,26]},
+    {e:-2, z:[46,34,32],  h:[92,60,44]},
+    {e: 1, z:[92,74,58],  h:[150,96,58]},
+    {e: 6, z:[132,108,80],h:[192,150,102]},
+    {e:16, z:[150,126,92],h:[198,168,120]},
+    {e:40, z:[158,134,96],h:[202,176,128]},
+    {e:90, z:[160,138,98],h:[204,180,130]}
+  ];
+  function skyColors(elev, kf){
+    if(elev<=kf[0].e) return {zenith:kf[0].z.slice(), horizon:kf[0].h.slice()};
+    var last=kf.length-1;
+    if(elev>=kf[last].e) return {zenith:kf[last].z.slice(), horizon:kf[last].h.slice()};
+    for(var i=0;i<last;i++){
+      if(elev>=kf[i].e && elev<=kf[i+1].e){
+        var t=(elev-kf[i].e)/(kf[i+1].e-kf[i].e);
+        return {zenith:lerpRGB(kf[i].z,kf[i+1].z,t), horizon:lerpRGB(kf[i].h,kf[i+1].h,t)};
+      }
+    }
+    return {zenith:kf[last].z.slice(), horizon:kf[last].h.slice()};
+  }
+  // 火星的光暈：太陽越低，暈越藍
+  function marsGlow(elev){
+    var t=clamp((10-elev)/16,0,1);
+    return lerpRGB([214,206,196],[74,142,236],t);
+  }
+
+  // ---------- 畫布 ----------
+  var cvs=document.getElementById('sky'), ctx=cvs.getContext('2d');
+  var holder=document.getElementById('holder');
+  var W=0,H=0,horizonY=0,dpr=1;
+  var sun={x:0.5, y:0.28}; // 以「比例」存放，resize 不失位
+
+  var stars=[];
+  for(var s=0;s<150;s++){stars.push({x:Math.random(), y:Math.random()*0.62, r:Math.random()*1.1+0.3, p:Math.random()*6.283, sp:0.6+Math.random()});}
+
+  function resize(){
+    dpr=Math.min(window.devicePixelRatio||1,2);
+    var rect=holder.getBoundingClientRect();
+    W=rect.width; H=rect.height; horizonY=H*0.72;
+    cvs.width=Math.round(W*dpr); cvs.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+
+  // 仰角 <-> 太陽的垂直比例位置
+  function elevationFromRatio(ry){ return clamp(90*(0.72-ry)/0.72, -6, 90); } // ry: 0(頂)~1
+  function ratioFromElevation(e){ return 0.72 - clamp(e,-6,90)/90*0.72; }
+
+  // ---------- 主繪製 ----------
+  function draw(now){
+    if(!W) return;
+    var elev=elevationFromRatio(sun.y);
+    var mars=state.mars;
+    var AM=airMass(elev);
+    var T=transmittance(AM);
+    var sky=skyColors(elev, mars?MARS_SKY:EARTH_SKY);
+    var sx=sun.x*W, sy=sun.y*H;
+
+    // 1) 天空漸層
+    var g=ctx.createLinearGradient(0,0,0,horizonY);
+    g.addColorStop(0, rgb(sky.zenith));
+    g.addColorStop(1, rgb(sky.horizon));
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,horizonY+1);
+
+    // 2) 星星（夜間漸現）
+    var starA=clamp((3-elev)/9,0,1);
+    if(starA>0.01){
+      for(var i=0;i<stars.length;i++){
+        var st=stars[i];
+        var tw=0.55+0.45*Math.sin((now||0)*0.001*st.sp+st.p);
+        ctx.globalAlpha=starA*tw*0.9;
+        ctx.fillStyle="#fff";
+        ctx.beginPath(); ctx.arc(st.x*W, st.y*horizonY, st.r,0,6.283); ctx.fill();
+      }
+      ctx.globalAlpha=1;
+    }
+
+    // 3) 太陽光暈
+    var glowCol = mars ? marsGlow(elev) : sunColorFromT(T);
+    var glowR = Math.max(W,H)*(0.13+0.17*(1-clamp(elev,0,90)/90));
+    var rgd=ctx.createRadialGradient(sx,sy,0, sx,sy,glowR);
+    rgd.addColorStop(0, rgba(glowCol,0.95));
+    rgd.addColorStop(0.12, rgba(glowCol,0.7));
+    rgd.addColorStop(0.4, rgba(glowCol,0.22));
+    rgd.addColorStop(1, rgba(glowCol,0));
+    var prevOp=ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation='lighter';
+    ctx.fillStyle=rgd; ctx.fillRect(0,0,W,horizonY+2);
+    ctx.globalCompositeOperation=prevOp;
+
+    // 4) 太陽本體（在地平線以上才畫實心盤）
+    if(sy < horizonY+6){
+      var discCol = mars ? lerpRGB(glowCol,[255,250,245],0.35) : glowCol;
+      var rad=Math.max(9, W*0.017);
+      var core=ctx.createRadialGradient(sx,sy,0, sx,sy,rad*1.6);
+      core.addColorStop(0,"#fff");
+      core.addColorStop(0.35, rgb(discCol));
+      core.addColorStop(1, rgba(discCol,0));
+      ctx.fillStyle=core;
+      ctx.beginPath(); ctx.arc(sx,sy,rad*1.6,0,6.283); ctx.fill();
+    }
+
+    // 5) 地面與剪影
+    var dayF=clamp((elev+4)/26,0,1); // 0 夜 ~ 1 日
+    drawGround(sky.horizon, dayF, mars);
+
+    // 6) 更新讀數
+    updateReadout(elev, AM, T);
+
+    // hint 淡出
+    if(interacted && hintEl.style.opacity!=='0'){ hintEl.style.opacity='0'; }
+  }
+
+  function shade(base, dayF, k){
+    // 由地平線色，往夜色（深藍黑 / 火星暗棕）壓暗
+    var night = state.mars ? [26,18,16] : [9,12,20];
+    var c=lerpRGB(night, base, 0.10+0.42*dayF*k);
+    return c;
+  }
+  function drawGround(horizonC, dayF, mars){
+    var gTop=shade(horizonC, dayF, 0.9);
+    var gBot=mars ? [22,13,11] : [6,8,13];
+    var gg=ctx.createLinearGradient(0,horizonY,0,H);
+    gg.addColorStop(0, rgb(gTop));
+    gg.addColorStop(1, rgb(gBot));
+    ctx.fillStyle=gg; ctx.fillRect(0,horizonY,W,H-horizonY+1);
+
+    // 遠山
+    ctx.beginPath(); ctx.moveTo(0,H);
+    for(var x=0;x<=W;x+=10){
+      var y=horizonY+16 + Math.sin(x*0.006+1.2)*13 + Math.sin(x*0.019+0.4)*6;
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W,H); ctx.closePath();
+    ctx.fillStyle=rgb(shade(horizonC, dayF, 0.5)); ctx.fill();
+
+    // 近山
+    ctx.beginPath(); ctx.moveTo(0,H);
+    for(var x2=0;x2<=W;x2+=10){
+      var y2=horizonY+52 + Math.sin(x2*0.010+3.1)*17 + Math.sin(x2*0.028)*8;
+      ctx.lineTo(x2,y2);
+    }
+    ctx.lineTo(W,H); ctx.closePath();
+    ctx.fillStyle=rgb(shade(horizonC, dayF, 0.24)); ctx.fill();
+  }
+
+  // ---------- 讀數面板 ----------
+  var el=function(id){return document.getElementById(id);};
+  var rElev=el('rElev'), rAir=el('rAir'),
+      fR=el('fR'), fG=el('fG'), fB=el('fB'),
+      pR=el('pR'), pG=el('pG'), pB=el('pB'),
+      statusTag=el('statusTag'), statusText=el('statusText');
+  function updateReadout(elev, AM, T){
+    rElev.textContent=Math.round(elev)+"°";
+    rAir.textContent="×"+AM.toFixed(1);
+    fR.style.width=(T.r*100).toFixed(0)+"%"; pR.textContent=(T.r*100).toFixed(0)+"%";
+    fG.style.width=(T.g*100).toFixed(0)+"%"; pG.textContent=(T.g*100).toFixed(0)+"%";
+    fB.style.width=(T.b*100).toFixed(0)+"%"; pB.textContent=(T.b*100).toFixed(0)+"%";
+    var tag, txt;
+    if(state.mars){
+      statusTag.style.color="#ff9d6b"; statusTag.style.borderColor="#ff8a5a44";
+      if(elev>12){tag="火星·白晝"; txt="懸浮的鐵塵把火星天空染成<b>奶油般的黃褐色</b>。";}
+      else if(elev>0){tag="火星·黃昏"; txt="藍光聚攏在太陽四周，形成一圈<b>冷冷的藍暈</b>——與地球恰恰相反。";}
+      else{tag="火星·夜"; txt="稀薄的大氣下，天色沉入暗棕，星子格外分明。";}
+    } else {
+      statusTag.style.color="#ffb457"; statusTag.style.borderColor="#ffb45733";
+      if(elev>60){tag="正午"; txt="陽光近乎<b>直射</b>，藍光被散射到整片天空——於是天空是藍的。";}
+      else if(elev>25){tag="上午／午後"; txt="太陽偏斜，路徑稍長，天空依舊清澈的藍。";}
+      else if(elev>6){tag="接近地平線"; txt="藍光開始流失，天空與太陽一起<b>染上金黃</b>。";}
+      else if(elev>0){tag="日出／日落"; txt="藍、綠幾乎被散射殆盡，只剩<b>紅橙</b>直達你眼。";}
+      else if(elev>-4){tag="曙暮光"; txt="太陽剛沒入地平線，餘暉在天邊漸層開來。";}
+      else{tag="夜"; txt="太陽已落下，換星星上場。";}
+    }
+    statusTag.textContent=tag; statusText.innerHTML=txt;
+  }
+
+  // ---------- 互動 ----------
+  var state={mars:false, playing:false};
+  var interacted=false;
+  var hintEl=el('hint');
+  var slider=el('elev');
+
+  function setFromClientXY(cx, cy){
+    var rect=holder.getBoundingClientRect();
+    sun.x=clamp((cx-rect.left)/rect.width, 0.02, 0.98);
+    sun.y=clamp((cy-rect.top)/rect.height, -0.04, 0.86);
+    slider.value=elevationFromRatio(sun.y).toFixed(1);
+  }
+  var dragging=false;
+  holder.addEventListener('pointerdown', function(e){
+    dragging=true; interacted=true; state.playing=false; setPlayBtn(false);
+    holder.classList.add('grabbing');
+    holder.setPointerCapture(e.pointerId);
+    setFromClientXY(e.clientX, e.clientY);
+  });
+  holder.addEventListener('pointermove', function(e){
+    if(dragging) setFromClientXY(e.clientX, e.clientY);
+  });
+  function endDrag(){ dragging=false; holder.classList.remove('grabbing'); }
+  holder.addEventListener('pointerup', endDrag);
+  holder.addEventListener('pointercancel', endDrag);
+
+  slider.addEventListener('input', function(){
+    interacted=true; state.playing=false; setPlayBtn(false);
+    sun.y=ratioFromElevation(parseFloat(slider.value));
+  });
+
+  // 播放一整天
+  var playT0=0;
+  var playBtn=el('playBtn');
+  function setPlayBtn(on){ state.playing=on; playBtn.innerHTML = on ? '<span class="em">⏸</span> 暫停' : '<span class="em">▶</span> 播放一整天'; }
+  playBtn.addEventListener('click', function(){
+    interacted=true;
+    if(state.playing){ setPlayBtn(false); return; }
+    setPlayBtn(true); playT0=performance.now();
+  });
+
+  // 火星模式
+  var marsBtn=el('marsBtn');
+  function toggleMars(){
+    state.mars=!state.mars;
+    marsBtn.classList.toggle('on', state.mars);
+    marsBtn.innerHTML = state.mars ? '<span class="em">🌍</span> 回到地球' : '<span class="em">🔴</span> 火星模式';
+    interacted=true;
+  }
+  marsBtn.addEventListener('click', toggleMars);
+  var marsCard=el('marsCard');
+  if(marsCard) marsCard.addEventListener('click', function(){
+    if(!state.mars) toggleMars();
+    // 順手把太陽移到黃昏，好看清藍暈
+    sun.y=ratioFromElevation(3); slider.value="3";
+    holder.scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  // 重設
+  el('resetBtn').addEventListener('click', function(){
+    state.playing=false; setPlayBtn(false);
+    if(state.mars) toggleMars();
+    sun.x=0.5; sun.y=ratioFromElevation(55); slider.value="55"; interacted=true;
+  });
+
+  // ---------- 動畫迴圈 ----------
+  function loop(now){
+    if(state.playing){
+      var p=(now-playT0)/17000; // 一天約 17 秒
+      if(p>=1){p=1; setPlayBtn(false);}
+      sun.x=0.08+0.84*p;
+      var e=-5+95*Math.sin(Math.PI*p); // 由 -5° 升到 90° 再落回
+      sun.y=ratioFromElevation(e);
+      slider.value=clamp(e,-6,90).toFixed(1);
+    }
+    draw(now);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- 啟動 ----------
+  function init(){
+    resize();
+    sun.x=0.5; sun.y=ratioFromElevation(55);
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener('resize', resize);
+  init();
+})();
+</script>
+</body>
+</html>

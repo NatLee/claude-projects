@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>咖啡因時鐘 · 今天這杯，會讓你睡不著嗎？</title>
+<style>
+  :root{
+    --cream:#f7f1e8; --cream2:#efe3d2; --paper:#fffdf8;
+    --espresso:#3a271b; --coffee:#5a3d29; --amber:#c47a2c; --amber-d:#a96317;
+    --muted:#8a7a66; --muted2:#9a8a76; --line:#e7dcc9;
+    --ok:#4f8a5b; --warn:#cc8b2e; --bad:#c14a30; --night:#455081;
+    --shadow:0 18px 46px -22px rgba(70,45,20,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--espresso); line-height:1.6;
+    background:
+      radial-gradient(1100px 600px at 82% -8%, #fbe9cf 0%, transparent 55%),
+      radial-gradient(900px 640px at 10% 110%, #e8dcc6 0%, transparent 60%),
+      linear-gradient(158deg,#f8f2ea 0%, #ece0cd 100%);
+    background-attachment:fixed;
+    min-height:100vh; padding:26px 16px 60px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:900px;margin:0 auto}
+
+  /* Header */
+  header{text-align:center;margin:8px 0 22px}
+  .cupmark{display:inline-flex;align-items:center;justify-content:center;position:relative;margin-bottom:6px}
+  .steam{position:absolute;top:-16px;left:50%;transform:translateX(-50%);display:flex;gap:7px}
+  .steam span{width:5px;height:20px;border-radius:6px;background:linear-gradient(#c9b49a,transparent);opacity:.0;animation:steam 3.4s ease-in-out infinite}
+  .steam span:nth-child(2){animation-delay:.7s;height:26px}
+  .steam span:nth-child(3){animation-delay:1.4s}
+  @keyframes steam{
+    0%{opacity:0;transform:translateY(6px) scaleY(.6)}
+    30%{opacity:.55}
+    70%{opacity:.25}
+    100%{opacity:0;transform:translateY(-16px) scaleY(1.2)}
+  }
+  h1{font-size:clamp(26px,5.4vw,38px);letter-spacing:2px;font-weight:800;color:var(--espresso)}
+  h1 .dot{color:var(--amber)}
+  .sub{color:var(--coffee);opacity:.82;font-size:15px;margin-top:6px}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px;margin-bottom:18px}
+
+  /* Verdict hero */
+  .hero{position:relative;overflow:hidden}
+  .hero .badge{display:inline-block;font-size:13px;letter-spacing:1px;padding:4px 12px;border-radius:999px;background:#f3e7d4;color:var(--coffee);font-weight:600}
+  .hero .big{font-size:clamp(34px,8vw,54px);font-weight:800;line-height:1.1;margin:10px 0 2px}
+  .hero .big small{font-size:.42em;font-weight:600;opacity:.7;letter-spacing:0}
+  .hero .verdict{font-size:17px;font-weight:700;margin-top:2px}
+  .hero .expl{color:var(--coffee);opacity:.85;font-size:14.5px;margin-top:8px;max-width:52ch}
+  .stat-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .pill{flex:1;min-width:150px;background:#faf4ea;border:1px solid var(--line);border-radius:14px;padding:11px 14px}
+  .pill .k{font-size:12.5px;color:var(--muted2);letter-spacing:.5px}
+  .pill .v{font-size:19px;font-weight:800;color:var(--espresso);margin-top:2px}
+  .tone-ok{color:var(--ok)!important} .tone-warn{color:var(--warn)!important} .tone-bad{color:var(--bad)!important}
+  .lamp{width:14px;height:14px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:7px;box-shadow:0 0 0 4px rgba(0,0,0,.04)}
+
+  /* Chart */
+  .chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .chart-head h2{font-size:16px;letter-spacing:1px}
+  .chart-head .legend{font-size:12px;color:var(--muted2)}
+  canvas{width:100%;height:300px;display:block}
+
+  /* Add drinks */
+  h2.sec{font-size:16px;letter-spacing:1px;margin-bottom:4px}
+  .hint{font-size:13px;color:var(--muted2);margin-bottom:14px}
+  .timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .timebar label{font-size:13.5px;color:var(--coffee);font-weight:600}
+  input[type=time]{font-family:inherit;font-size:15px;padding:7px 10px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--espresso)}
+  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:9px}
+  .chip{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 11px;cursor:pointer;transition:.15s;text-align:left}
+  .chip:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 10px 20px -12px rgba(150,90,25,.5)}
+  .chip:active{transform:translateY(0)}
+  .swatch{width:11px;height:11px;border-radius:50%;flex:none}
+  .chip .cn{font-size:13.5px;font-weight:600;line-height:1.2}
+  .chip .cm{font-size:11.5px;color:var(--muted2)}
+  .c-coffee{background:#6f4423} .c-tea{background:#5f8f4a} .c-soda{background:#c98b2c} .c-energy{background:#b5462f} .c-decaf{background:#b8a894}
+
+  /* Drink list */
+  .list{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+  .empty{color:var(--muted2);font-size:14px;text-align:center;padding:14px 0}
+  .item{display:flex;align-items:center;gap:11px;background:#faf4ea;border:1px solid var(--line);border-radius:13px;padding:9px 12px}
+  .item .dotc{width:10px;height:10px;border-radius:50%;flex:none}
+  .item .nm{font-weight:600;font-size:14.5px;flex:1;min-width:0}
+  .item .tm{font-size:13px;color:var(--coffee);font-variant-numeric:tabular-nums}
+  .item .mgbox{display:flex;align-items:center;gap:3px}
+  .item input[type=number]{width:56px;font-family:inherit;font-size:14px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;text-align:right;background:#fff;color:var(--espresso)}
+  .item .u{font-size:12px;color:var(--muted2)}
+  .item .rm{border:none;background:none;color:var(--muted2);cursor:pointer;font-size:18px;line-height:1;padding:2px 4px;border-radius:6px}
+  .item .rm:hover{color:var(--bad);background:#f6e7e2}
+
+  /* Settings */
+  .settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+  .field label{display:block;font-size:13.5px;font-weight:600;color:var(--coffee);margin-bottom:7px}
+  .seg{display:flex;background:#f1e7d6;border-radius:12px;padding:4px;gap:4px}
+  .seg button{flex:1;border:none;background:none;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--coffee);padding:8px 4px;border-radius:9px;cursor:pointer;transition:.15s}
+  .seg button.on{background:#fff;color:var(--espresso);box-shadow:0 4px 12px -6px rgba(120,80,30,.5)}
+  .field .fh{font-size:12px;color:var(--muted2);margin-top:6px}
+
+  .toolbar{display:flex;justify-content:flex-end;margin-top:4px}
+  .reset{background:none;border:1px solid var(--line);color:var(--muted2);font-family:inherit;font-size:13px;padding:7px 14px;border-radius:10px;cursor:pointer;transition:.15s}
+  .reset:hover{border-color:var(--bad);color:var(--bad)}
+
+  /* Facts */
+  .facts{background:linear-gradient(160deg,#42301f,#5a3d27);color:#f2e6d5;border:none}
+  .facts h2{font-size:15px;letter-spacing:1px;color:#ffd9a3;margin-bottom:10px}
+  .facts p{font-size:13.5px;opacity:.9;margin-bottom:9px}
+  .facts b{color:#ffd9a3}
+  .facts .src{font-size:11.5px;opacity:.62;margin-top:10px;line-height:1.7}
+  .facts .src a{color:#ffcf95}
+  .disc{font-size:11.5px;color:var(--muted2);text-align:center;margin-top:16px;line-height:1.7}
+  @media(max-width:560px){.card{padding:17px}.stat-row .pill{min-width:calc(50% - 5px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="cupmark">
+      <div class="steam"><span></span><span></span><span></span></div>
+      <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+        <path d="M11 20h26v11a11 11 0 0 1-11 11h-4a11 11 0 0 1-11-11V20z" fill="#5a3d29"/>
+        <path d="M37 23h4a5 5 0 0 1 0 10h-4" stroke="#5a3d29" stroke-width="3" fill="none"/>
+        <rect x="9" y="45" width="30" height="4" rx="2" fill="#c47a2c"/>
+        <ellipse cx="24" cy="20" rx="13" ry="3.4" fill="#c47a2c"/>
+      </svg>
+    </div>
+    <h1>咖啡因時<span class="dot">鐘</span></h1>
+    <p class="sub">記下今天喝的每一杯，看它在你體內慢慢退場 —— 到了睡前，還剩多少在讓你清醒？</p>
+  </header>
+
+  <!-- Verdict hero -->
+  <section class="card hero">
+    <span class="badge" id="bedLabel">就寢時間 23:00</span>
+    <div class="big" id="remainBig">— <small>mg</small></div>
+    <div class="verdict" id="verdictText"><span class="lamp" style="background:#cdbba0"></span>先在下面加一杯，看看結果</div>
+    <p class="expl" id="verdictExpl">這個小工具用咖啡因的「半衰期」推估它在你體內的殘留量。每個人代謝速度不同，結果僅供參考、不是醫療建議。</p>
+    <div class="stat-row">
+      <div class="pill"><div class="k">睡前殘留</div><div class="v" id="pRemain">—</div></div>
+      <div class="pill"><div class="k">今日總攝取</div><div class="v" id="pTotal">0 mg</div></div>
+      <div class="pill"><div class="k">降到門檻的時刻</div><div class="v" id="pClear">—</div></div>
+    </div>
+  </section>
+
+  <!-- Chart -->
+  <section class="card">
+    <div class="chart-head">
+      <h2>體內咖啡因曲線</h2>
+      <span class="legend">縱軸 = 殘留 mg　·　橫軸 = 一天的時刻</span>
+    </div>
+    <canvas id="chart"></canvas>
+  </section>
+
+  <!-- Add drinks -->
+  <section class="card">
+    <h2 class="sec">加一杯</h2>
+    <p class="hint">先選好「喝的時間」，再點下面的飲品。含量是常見估值，點進清單可自行微調。</p>
+    <div class="timebar">
+      <label for="drinkTime">喝的時間</label>
+      <input type="time" id="drinkTime">
+      <button class="reset" id="nowBtn" style="border-color:var(--amber);color:var(--amber-d)">設為現在</button>
+    </div>
+    <div class="chips" id="chips"></div>
+
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- Settings -->
+  <section class="card">
+    <h2 class="sec">設定</h2>
+    <p class="hint">依你的作息與體質微調，推估會更貼近你。</p>
+    <div class="settings">
+      <div class="field">
+        <label for="bedtime">今晚就寢時間</label>
+        <input type="time" id="bedtime" value="23:00">
+        <div class="fh">睡前殘留量會以這個時刻計算。</div>
+      </div>
+      <div class="field">
+        <label>代謝速度（半衰期）</label>
+        <div class="seg" id="segHalf">
+          <button data-h="3">快 · 3h</button>
+          <button data-h="5" class="on">一般 · 5h</button>
+          <button data-h="7">慢 · 7h</button>
+        </div>
+        <div class="fh">成人平均約 5 小時，個體差異大（1.5–9.5h）。</div>
+      </div>
+      <div class="field">
+        <label>睡眠敏感度（殘留門檻）</label>
+        <div class="seg" id="segThr">
+          <button data-t="25">敏感 · 25mg</button>
+          <button data-t="50" class="on">一般 · 50mg</button>
+          <button data-t="100">遲鈍 · 100mg</button>
+        </div>
+        <div class="fh">低於這個殘留量，通常較不影響睡眠。</div>
+      </div>
+    </div>
+    <div class="toolbar"><button class="reset" id="resetBtn">清空今天</button></div>
+  </section>
+
+  <!-- Facts -->
+  <section class="card facts">
+    <h2>為什麼要在意「睡前那杯」？</h2>
+    <p>咖啡因走的是<b>一級動力學（指數衰減）</b>：每過一個半衰期，體內殘留就少一半。以平均 <b>5 小時</b>計，下午 3 點喝的一杯 150mg 美式，到晚上 11 點還剩約 <b>50mg</b> 在你血液裡打轉。</p>
+    <p>一份經典研究（Drake 等，2013，《臨床睡眠醫學期刊》）讓受試者在睡前 0、3、甚至 <b>6 小時</b>服下 400mg 咖啡因，結果三種時機都明顯干擾睡眠：<b>總睡眠時間少約 1 小時</b>、更難入睡、最深層的慢波睡眠也變少 —— 而且有人「自覺睡得還好」，儀器卻拆穿了真相。</p>
+    <p>所以，重點不只是「今天喝幾杯」，而是<b>最後一杯離就寢多近</b>。專家一般建議健康成人每日不超過 <b>400mg</b>，並讓午後那杯提早退場。</p>
+    <p class="src">
+      資料來源：Mayo Clinic〈Caffeine content for coffee, tea, soda and more〉；
+      Drake C. et al. (2013)〈Caffeine Effects on Sleep Taken 0, 3, or 6 Hours before Going to Bed〉, <i>J Clin Sleep Med</i>；
+      News-Medical〈Caffeine Pharmacology〉（半衰期約 5 小時，範圍 1.5–9.5h）。
+    </p>
+  </section>
+
+  <p class="disc">☕ 純屬趣味與衛教用途，數值為估算，並非醫療或營養建議。咖啡因代謝受基因、年齡、藥物、懷孕、抽菸等影響，個體差異很大。</p>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+
+  const PRESETS = [
+    {name:"美式咖啡（大杯）", mg:150, cls:"c-coffee"},
+    {name:"手沖／濾掛（1 杯）", mg:95, cls:"c-coffee"},
+    {name:"濃縮 Espresso（1 shot）", mg:64, cls:"c-coffee"},
+    {name:"拿鐵／卡布（2 shot）", mg:128, cls:"c-coffee"},
+    {name:"即溶咖啡（1 杯）", mg:62, cls:"c-coffee"},
+    {name:"紅茶（1 杯）", mg:47, cls:"c-tea"},
+    {name:"綠茶（1 杯）", mg:28, cls:"c-tea"},
+    {name:"奶茶／手搖（中杯）", mg:100, cls:"c-tea"},
+    {name:"可樂（1 罐）", mg:34, cls:"c-soda"},
+    {name:"能量飲料（1 罐）", mg:80, cls:"c-energy"},
+    {name:"無咖啡因 Decaf", mg:3, cls:"c-decaf"}
+  ];
+
+  const KEY = "caffeine-clock-v1";
+  const todayStr = () => new Date().toISOString().slice(0,10);
+
+  let state = {
+    date: todayStr(),
+    drinks: [],            // {id, name, mg, min}  min = minutes from midnight
+    bedtime: 23*60,        // minutes
+    halfH: 5,
+    thr: 50
+  };
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(raw){
+        const s = JSON.parse(raw);
+        // keep settings across days, reset drinks each new day
+        state.bedtime = (typeof s.bedtime==="number")? s.bedtime : state.bedtime;
+        state.halfH = s.halfH || state.halfH;
+        state.thr = s.thr || state.thr;
+        if(s.date === todayStr() && Array.isArray(s.drinks)) state.drinks = s.drinks;
+      }
+    }catch(e){}
+    state.date = todayStr();
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+  // ---- time helpers ----
+  const pad = n => String(n).padStart(2,"0");
+  function minToHM(m){ m=((Math.round(m)%1440)+1440)%1440; return pad(Math.floor(m/60))+":"+pad(m%60); }
+  function minToLabelDay(m){        // handles >1440 -> 隔日
+    const next = m>=1440;
+    return (next?"隔日 ":"")+minToHM(m);
+  }
+  function hmToMin(v){ const [h,mm]=v.split(":").map(Number); return h*60+mm; }
+  function nowMin(){ const d=new Date(); return d.getHours()*60+d.getMinutes(); }
+
+  // ---- pharmacokinetics ----
+  function caffeineAt(absMin){
+    const hl = state.halfH*60;
+    let sum=0;
+    for(const d of state.drinks){
+      if(absMin>=d.min) sum += d.mg*Math.pow(0.5,(absMin-d.min)/hl);
+    }
+    return sum;
+  }
+  function bedtimeAbs(){
+    let b = state.bedtime;
+    const latest = state.drinks.length? Math.max(...state.drinks.map(d=>d.min)) : nowMin();
+    if(b < latest) b += 1440;      // bedtime after midnight relative to last drink
+    if(b < nowMin()) b += 1440;
+    return b;
+  }
+  // first time (>= reference) caffeine drops to <= threshold
+  function clearTimeAbs(){
+    if(!state.drinks.length) return null;
+    const start = Math.max(nowMin(), Math.max(...state.drinks.map(d=>d.min)));
+    if(caffeineAt(start) <= state.thr) return start; // already below
+    for(let t=start; t<=start+40*60; t+=5){
+      if(caffeineAt(t) <= state.thr) return t;
+    }
+    return null;
+  }
+
+  // ---- rendering ----
+  function toneFor(remain){
+    if(remain <= state.thr) return "ok";
+    if(remain <= state.thr*2) return "warn";
+    return "bad";
+  }
+  const LAMP = {ok:"#4f8a5b", warn:"#cc8b2e", bad:"#c14a30", none:"#cdbba0"};
+
+  function renderVerdict(){
+    const bAbs = bedtimeAbs();
+    const remain = caffeineAt(bAbs);
+    const total = state.drinks.reduce((a,d)=>a+(+d.mg||0),0);
+
+    $("#bedLabel").textContent = "就寢時間 " + minToHM(state.bedtime);
+    $("#pTotal").textContent = Math.round(total)+" mg";
+    $("#pTotal").className = "v"+(total>400?" tone-bad":"");
+
+    if(!state.drinks.length){
+      $("#remainBig").innerHTML = '— <small>mg</small>';
+      $("#verdictText").innerHTML = '<span class="lamp" style="background:'+LAMP.none+'"></span>今天還沒喝，先加一杯吧';
+      $("#verdictExpl").textContent = "這個小工具用咖啡因的「半衰期」推估它在你體內的殘留量。每個人代謝速度不同，結果僅供參考、不是醫療建議。";
+      $("#pRemain").textContent = "—"; $("#pRemain").className="v";
+      $("#pClear").textContent = "—";
+      drawChart(remain,bAbs); return;
+    }
+
+    const tone = toneFor(remain);
+    $("#remainBig").innerHTML = Math.round(remain)+' <small>mg</small>';
+    $("#remainBig").className = "big tone-"+tone;
+    $("#pRemain").textContent = Math.round(remain)+" mg";
+    $("#pRemain").className = "v tone-"+tone;
+
+    const msg = {
+      ok:  ["應該能睡得安穩", "睡前殘留低於你設定的門檻，咖啡因大致退場了。"],
+      warn:["可能會有點淺眠", "睡前還有一些咖啡因在活動，敏感的話入睡與深睡可能受影響。"],
+      bad: ["很可能影響入睡與深睡", "睡前殘留偏高（約相當於一杯咖啡仍在體內），建議把最後一杯提早，或今晚少一杯。"]
+    }[tone];
+    $("#verdictText").innerHTML = '<span class="lamp" style="background:'+LAMP[tone]+'"></span>'+msg[0];
+    $("#verdictExpl").textContent = msg[1];
+
+    const ct = clearTimeAbs();
+    $("#pClear").textContent = ct==null ? "當晚難降到門檻" : minToLabelDay(ct);
+
+    drawChart(remain,bAbs);
+  }
+
+  function renderList(){
+    const el = $("#list");
+    if(!state.drinks.length){ el.innerHTML = '<div class="empty">還沒有任何飲品 —— 點上面的杯子加進來。</div>'; return; }
+    const sorted = [...state.drinks].sort((a,b)=>a.min-b.min);
+    el.innerHTML = "";
+    for(const d of sorted){
+      const p = PRESETS.find(x=>x.name===d.name);
+      const cls = p? p.cls : "c-coffee";
+      const row = document.createElement("div");
+      row.className="item";
+      row.innerHTML =
+        '<span class="dotc '+cls+'"></span>'+
+        '<span class="nm">'+d.name+'</span>'+
+        '<span class="tm">'+minToHM(d.min)+'</span>'+
+        '<span class="mgbox"><input type="number" min="0" max="600" value="'+Math.round(d.mg)+'" data-id="'+d.id+'"><span class="u">mg</span></span>'+
+        '<button class="rm" data-id="'+d.id+'" title="移除">×</button>';
+      el.appendChild(row);
+    }
+    el.querySelectorAll('input[type=number]').forEach(inp=>{
+      inp.addEventListener("input", e=>{
+        const d = state.drinks.find(x=>x.id===e.target.dataset.id);
+        if(d){ d.mg = Math.max(0, Math.min(600, +e.target.value||0)); save(); renderVerdict(); }
+      });
+    });
+    el.querySelectorAll('.rm').forEach(btn=>{
+      btn.addEventListener("click", e=>{
+        state.drinks = state.drinks.filter(x=>x.id!==e.currentTarget.dataset.id);
+        save(); renderList(); renderVerdict();
+      });
+    });
+  }
+
+  // ---- canvas chart ----
+  const canvas = $("#chart");
+  const ctx = canvas.getContext("2d");
+  let anim = 0, animRAF = null;
+
+  function drawChart(remainAtBed, bAbs){
+    const dpr = window.devicePixelRatio||1;
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    canvas.width = cssW*dpr; canvas.height = cssH*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,cssW,cssH);
+
+    const padL=44, padR=16, padT=16, padB=30;
+    const W=cssW-padL-padR, H=cssH-padT-padB;
+
+    // x range
+    const nm = nowMin();
+    const drinkMins = state.drinks.map(d=>d.min);
+    let x0 = state.drinks.length? Math.min(nm, Math.min(...drinkMins)) : nm;
+    x0 -= 30;
+    let x1 = bAbs + 75;
+    if(x1 - x0 < 240) x1 = x0 + 240;
+
+    // y range
+    let peak = 10;
+    for(let t=x0;t<=x1;t+=6) peak=Math.max(peak, caffeineAt(t));
+    peak=Math.max(peak, state.thr*1.4, remainAtBed*1.2);
+    const yMax = niceCeil(peak);
+
+    const X = m => padL + (m-x0)/(x1-x0)*W;
+    const Y = v => padT + (1 - v/yMax)*H;
+
+    // grid + y labels
+    ctx.font="11px 'Noto Sans TC',sans-serif"; ctx.textBaseline="middle";
+    const yticks=4;
+    for(let i=0;i<=yticks;i++){
+      const val=yMax*i/yticks, yy=Y(val);
+      ctx.strokeStyle= i===0? "#e0d3bf" : "#efe6d6";
+      ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(padL+W,yy); ctx.stroke();
+      ctx.fillStyle="#a2917b"; ctx.textAlign="right";
+      ctx.fillText(Math.round(val), padL-8, yy);
+    }
+    // x ticks every 3h aligned
+    ctx.textAlign="center"; ctx.textBaseline="top";
+    const startH=Math.ceil(x0/180)*180;
+    for(let m=startH;m<=x1;m+=180){
+      const xx=X(m);
+      ctx.strokeStyle="#f1e8d8"; ctx.beginPath(); ctx.moveTo(xx,padT); ctx.lineTo(xx,padT+H); ctx.stroke();
+      ctx.fillStyle="#a2917b";
+      ctx.fillText(minToHM(m), xx, padT+H+7);
+    }
+
+    // threshold line
+    const yThr=Y(state.thr);
+    ctx.save(); ctx.setLineDash([5,5]); ctx.strokeStyle="#c9a15f"; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(padL,yThr); ctx.lineTo(padL+W,yThr); ctx.stroke(); ctx.restore();
+    ctx.fillStyle="#b98a3d"; ctx.textAlign="left"; ctx.textBaseline="bottom";
+    ctx.fillText("門檻 "+state.thr+"mg", padL+4, yThr-3);
+
+    // build curve points
+    const pts=[];
+    const step=Math.max(2,(x1-x0)/260);
+    for(let m=x0;m<=x1;m+=step) pts.push([m,caffeineAt(m)]);
+    const nShow=Math.max(1, Math.floor(pts.length*anim));
+
+    // area
+    if(pts.length>1){
+      const grad=ctx.createLinearGradient(0,padT,0,padT+H);
+      grad.addColorStop(0,"rgba(196,122,44,.30)");
+      grad.addColorStop(1,"rgba(196,122,44,.02)");
+      ctx.beginPath(); ctx.moveTo(X(pts[0][0]),Y(0));
+      for(let i=0;i<nShow;i++) ctx.lineTo(X(pts[i][0]),Y(pts[i][1]));
+      ctx.lineTo(X(pts[nShow-1][0]),Y(0)); ctx.closePath();
+      ctx.fillStyle=grad; ctx.fill();
+      // curve
+      ctx.beginPath(); ctx.moveTo(X(pts[0][0]),Y(pts[0][1]));
+      for(let i=1;i<nShow;i++) ctx.lineTo(X(pts[i][0]),Y(pts[i][1]));
+      ctx.strokeStyle="#b5701f"; ctx.lineWidth=2.6; ctx.lineJoin="round"; ctx.stroke();
+    }
+
+    // now line
+    if(nm>=x0 && nm<=x1){
+      const xn=X(nm);
+      ctx.save(); ctx.setLineDash([2,4]); ctx.strokeStyle="#b7a58c"; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(xn,padT); ctx.lineTo(xn,padT+H); ctx.stroke(); ctx.restore();
+      ctx.fillStyle="#a2917b"; ctx.textAlign="center"; ctx.textBaseline="top";
+      ctx.fillText("現在", xn, padT-1);
+    }
+
+    // bedtime line + marker
+    if(bAbs>=x0 && bAbs<=x1){
+      const xb=X(bAbs);
+      ctx.strokeStyle="#5a6396"; ctx.lineWidth=1.6;
+      ctx.beginPath(); ctx.moveTo(xb,padT); ctx.lineTo(xb,padT+H); ctx.stroke();
+      // moon
+      ctx.fillStyle="#5a6396"; ctx.beginPath(); ctx.arc(xb,padT+9,6,0,7); ctx.fill();
+      ctx.fillStyle="#fffdf8"; ctx.beginPath(); ctx.arc(xb+3,padT+7,5,0,7); ctx.fill();
+      // remaining dot on curve
+      const yb=Y(remainAtBed*anim);
+      ctx.fillStyle="#455081"; ctx.beginPath(); ctx.arc(xb,yb,4.5,0,7); ctx.fill();
+      ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // drink markers
+    for(const d of state.drinks){
+      if(d.min<x0||d.min>x1) continue;
+      const xx=X(d.min), yy=Y(caffeineAt(d.min)*anim);
+      ctx.fillStyle="#6f4423"; ctx.beginPath(); ctx.arc(xx,yy,3.6,0,7); ctx.fill();
+      ctx.strokeStyle="#fffdf8"; ctx.lineWidth=1.6; ctx.stroke();
+    }
+  }
+  function niceCeil(v){
+    const pow=Math.pow(10,Math.floor(Math.log10(v)));
+    const n=v/pow;
+    const step = n<=1?1:n<=2?2:n<=5?5:10;
+    return step*pow;
+  }
+  function animateChart(remain,bAbs){
+    cancelAnimationFrame(animRAF);
+    anim=0; const t0=performance.now(), dur=480;
+    (function frame(t){
+      anim=Math.min(1,(t-t0)/dur);
+      anim = 1-Math.pow(1-anim,3); // easeOutCubic
+      drawChart(remain,bAbs);
+      if(anim<1) animRAF=requestAnimationFrame(frame);
+    })(performance.now());
+  }
+
+  // ---- wire up ----
+  function buildChips(){
+    const el=$("#chips"); el.innerHTML="";
+    PRESETS.forEach(p=>{
+      const b=document.createElement("button");
+      b.className="chip";
+      b.innerHTML='<span class="swatch '+p.cls+'"></span><span><span class="cn">'+p.name+'</span><br><span class="cm">'+p.mg+' mg</span></span>';
+      b.addEventListener("click",()=>{
+        const tv=$("#drinkTime").value || minToHM(nowMin());
+        state.drinks.push({id:"d"+Date.now()+Math.random().toString(36).slice(2,6), name:p.name, mg:p.mg, min:hmToMin(tv)});
+        save(); renderList(); refresh();
+      });
+      el.appendChild(b);
+    });
+  }
+  function refresh(){
+    const bAbs=bedtimeAbs();
+    const remain=caffeineAt(bAbs);
+    renderVerdict();
+    animateChart(remain,bAbs);
+  }
+
+  function initControls(){
+    $("#drinkTime").value = minToHM(nowMin());
+    $("#nowBtn").addEventListener("click",()=>{ $("#drinkTime").value=minToHM(nowMin()); });
+
+    $("#bedtime").value = minToHM(state.bedtime);
+    $("#bedtime").addEventListener("input",e=>{ if(e.target.value){ state.bedtime=hmToMin(e.target.value); save(); refresh(); }});
+
+    $("#segHalf").querySelectorAll("button").forEach(b=>{
+      if(+b.dataset.h===state.halfH) b.classList.add("on"); else b.classList.remove("on");
+      b.addEventListener("click",()=>{
+        state.halfH=+b.dataset.h; save();
+        $("#segHalf").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+        refresh();
+      });
+    });
+    $("#segThr").querySelectorAll("button").forEach(b=>{
+      if(+b.dataset.t===state.thr) b.classList.add("on"); else b.classList.remove("on");
+      b.addEventListener("click",()=>{
+        state.thr=+b.dataset.t; save();
+        $("#segThr").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));
+        refresh();
+      });
+    });
+    $("#resetBtn").addEventListener("click",()=>{
+      if(confirm("要清空今天的所有飲品紀錄嗎？")){ state.drinks=[]; save(); renderList(); refresh(); }
+    });
+  }
+
+  let rTimer=null;
+  window.addEventListener("resize",()=>{ clearTimeout(rTimer); rTimer=setTimeout(()=>{ anim=1; const b=bedtimeAbs(); drawChart(caffeineAt(b),b); },120); });
+
+  // boot
+  load();
+  buildChips();
+  initControls();
+  renderList();
+  refresh();
+})();
+</script>
+</body>
+</html>

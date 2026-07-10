@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>此刻的世界 · 即時計數器</title>
+<style>
+  :root{
+    --bg0:#070b1a; --bg1:#0d1530; --ink:#eaf0ff; --muted:#8da0c9;
+    --card:rgba(255,255,255,.045); --stroke:rgba(255,255,255,.10);
+    --human:#ff8fab; --digital:#67e8f9; --earth:#86efac; --you:#fcd34d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
+    color:var(--ink); background:var(--bg0); overflow-x:hidden;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  #stars{position:fixed; inset:0; z-index:0; display:block}
+  .glow{position:fixed; z-index:0; filter:blur(80px); opacity:.5; pointer-events:none}
+  .glow.a{width:520px;height:520px;left:-160px;top:-160px;background:radial-gradient(circle,#3b4ea8,transparent 70%)}
+  .glow.b{width:480px;height:480px;right:-150px;top:30%;background:radial-gradient(circle,#7a3ba8,transparent 70%)}
+  .wrap{position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:48px 20px 64px}
+
+  header{text-align:center; margin-bottom:14px}
+  .kicker{font-size:13px; letter-spacing:.32em; color:var(--muted); text-transform:uppercase}
+  h1{font-size:clamp(34px,7vw,60px); font-weight:800; letter-spacing:.04em;
+     background:linear-gradient(120deg,#fff,#9fc4ff 60%,#c9a3ff);
+     -webkit-background-clip:text; background-clip:text; color:transparent; margin:6px 0 2px}
+  .sub{color:var(--muted); font-size:clamp(14px,2.4vw,17px)}
+
+  .ticker{display:flex; justify-content:center; gap:26px; flex-wrap:wrap; margin:26px 0 8px}
+  .ticker .blk{text-align:center}
+  .ticker .lab{font-size:11px; letter-spacing:.18em; color:var(--muted); text-transform:uppercase}
+  .ticker .val{font-size:30px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:.04em}
+  .lead{text-align:center; color:#cdd9ff; margin:18px auto 4px; max-width:640px; min-height:24px; font-size:15px}
+
+  .section-title{display:flex; align-items:center; gap:12px; margin:38px 4px 14px; font-size:15px;
+    letter-spacing:.22em; color:var(--muted); text-transform:uppercase}
+  .section-title::after{content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--stroke),transparent)}
+  .dot{width:9px;height:9px;border-radius:50%}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px}
+  .card{position:relative; background:var(--card); border:1px solid var(--stroke); border-radius:18px;
+    padding:22px 22px 20px; overflow:hidden; backdrop-filter:blur(8px);
+    opacity:0; transform:translateY(16px); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards;
+    transition:transform .25s ease, border-color .25s ease}
+  .card:hover{transform:translateY(-4px); border-color:rgba(255,255,255,.22)}
+  .card .bar{position:absolute; left:0; top:0; bottom:0; width:4px; opacity:.9}
+  .card .emoji{font-size:26px; line-height:1}
+  .card .num{font-size:clamp(30px,4.4vw,40px); font-weight:800; font-variant-numeric:tabular-nums;
+    letter-spacing:.02em; margin:10px 0 2px; word-break:break-all}
+  .card .unit{font-size:14px; font-weight:600; color:var(--muted); margin-left:4px}
+  .card .label{font-size:15px; color:#dbe5ff; font-weight:600}
+  .card .rate{font-size:12.5px; color:var(--muted); margin-top:6px}
+  @keyframes rise{to{opacity:1; transform:translateY(0)}}
+
+  .heart{display:inline-block; animation:beat 0.8s ease-in-out infinite}
+  @keyframes beat{0%,28%,100%{transform:scale(1)} 14%{transform:scale(1.28)} 21%{transform:scale(1.05)}}
+
+  footer{margin-top:46px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.9}
+  footer a{color:#9fc4ff; text-decoration:none}
+  .btn{margin-top:22px; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    background:rgba(255,255,255,.06); color:var(--ink); border:1px solid var(--stroke);
+    padding:11px 20px; border-radius:999px; font-size:14px; font-family:inherit; transition:.2s}
+  .btn:hover{background:rgba(255,255,255,.13); transform:translateY(-1px)}
+  .center{text-align:center}
+</style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+  <div class="glow a"></div><div class="glow b"></div>
+
+  <div class="wrap">
+    <header>
+      <div class="kicker">REAL-TIME · 此刻的世界</div>
+      <h1>此刻的世界</h1>
+      <p class="sub">自你打開這個頁面的那一刻起，世界正在發生這些事——</p>
+
+      <div class="ticker">
+        <div class="blk"><div class="lab">你停留了</div><div class="val" id="elapsed">00:00</div></div>
+        <div class="blk"><div class="lab">現在時間</div><div class="val" id="clock">--:--:--</div></div>
+      </div>
+      <p class="lead" id="lead">深呼吸一下，看看這短短的時間裡，地球有多忙。</p>
+    </header>
+
+    <div id="board"></div>
+
+    <div class="center">
+      <button class="btn" id="reset">↻ 重新開始計時</button>
+    </div>
+
+    <footer>
+      所有數字都是「自你打開頁面起」依全球平均速率即時推算，屬估計值而非逐筆實測。<br>
+      資料來源：Worldometer／聯合國（出生・死亡）、Statista／Radicati（Email）、Google 搜尋統計（≈8.5 億次／日）、
+      NASA／維基百科（閃電）、Global Carbon Budget 2024（CO₂）、Tubular Labs／Statista（YouTube）、天文常數（地球公轉 29.78 km/s）。<br>
+      心跳・呼吸・眨眼採成人靜止狀態平均值估算。 · 每日小專案 · 2026-06-25
+    </footer>
+  </div>
+
+<script>
+// —— 計數器設定：rate = 每秒發生次數 —— //
+const SECTIONS = [
+  { name:"人類", color:"var(--human)", items:[
+    { e:"👶", label:"新生兒誕生", rate:4.3,  unit:"人", dec:0, rate_txt:"每秒約 4.3 個寶寶來到世界" },
+    { e:"🕊️", label:"與世界告別", rate:1.9,  unit:"人", dec:0, rate_txt:"每秒約 1.9 人離開人世" },
+    { e:"🌍", label:"淨增加人口", rate:2.4,  unit:"人", dec:0, rate_txt:"出生減去死亡，每秒約 +2.4 人" },
+  ]},
+  { name:"數位生活", color:"var(--digital)", items:[
+    { e:"🔍", label:"Google 搜尋", rate:99000, unit:"次", dec:0, rate_txt:"每秒約 99,000 次查詢（≈8.5 億／日）" },
+    { e:"📧", label:"Email 寄出", rate:4356481, unit:"封", dec:0, rate_txt:"每天約 3,764 億封，換算每秒 436 萬封" },
+    { e:"▶️", label:"YouTube 影片上傳", rate:8.333, unit:"小時", dec:1, rate_txt:"每分鐘 500 小時，等於每秒 8.3 小時" },
+  ]},
+  { name:"地球與宇宙", color:"var(--earth)", items:[
+    { e:"⚡", label:"閃電擊中地球", rate:44, unit:"道", dec:0, rate_txt:"全球平均每秒約 44 道閃電" },
+    { e:"🏭", label:"CO₂ 排入大氣", rate:1185, unit:"公噸", dec:0, rate_txt:"每年 374 億公噸，換算每秒約 1,185 公噸" },
+    { e:"🚀", label:"地球帶你飛行", rate:29.78, unit:"公里", dec:0, rate_txt:"地球繞太陽公轉，每秒前進 29.78 公里" },
+  ]},
+  { name:"你自己", color:"var(--you)", items:[
+    { e:"❤️", label:"你的心跳", rate:1.25, unit:"下", dec:0, rate_txt:"以靜止心率約 75 下／分鐘估算", beat:true },
+    { e:"🌬️", label:"你的呼吸", rate:0.2667, unit:"次", dec:0, rate_txt:"成人靜止約 16 次／分鐘" },
+    { e:"👁️", label:"你的眨眼", rate:0.2833, unit:"次", dec:0, rate_txt:"平均約 17 次／分鐘" },
+  ]},
+];
+
+// —— 建立畫面 —— //
+const board = document.getElementById("board");
+const cells = [];
+let delay = 0;
+SECTIONS.forEach(sec=>{
+  const h = document.createElement("div");
+  h.className = "section-title";
+  h.innerHTML = `<span class="dot" style="background:${sec.color}"></span>${sec.name}`;
+  board.appendChild(h);
+  const g = document.createElement("div"); g.className = "grid";
+  sec.items.forEach(it=>{
+    const c = document.createElement("div");
+    c.className = "card"; c.style.animationDelay = (delay+=0.06).toFixed(2)+"s";
+    c.innerHTML = `
+      <div class="bar" style="background:${sec.color}"></div>
+      <div class="emoji ${it.beat?'heart':''}">${it.e}</div>
+      <div class="num"><span class="n">0</span><span class="unit">${it.unit}</span></div>
+      <div class="label">${it.label}</div>
+      <div class="rate">${it.rate_txt}</div>`;
+    g.appendChild(c);
+    cells.push({ el:c.querySelector(".n"), it });
+  });
+  board.appendChild(g);
+});
+
+// —— 數字格式 —— //
+function fmt(v, dec){
+  if(dec>0) return v.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+  return Math.floor(v).toLocaleString("en-US");
+}
+function pad(n){return String(n).padStart(2,"0");}
+
+const leadLines = [
+  "深呼吸一下，看看這短短的時間裡，地球有多忙。",
+  "你眨一次眼的時間，全球就寄出了好幾百萬封 Email。",
+  "在你讀這句話的同時，有人正展開全新的人生。",
+  "你並沒有靜止——此刻地球正載著你以每秒近 30 公里飛馳。",
+  "每一秒都有 44 道閃電在地球某處劃過天空。",
+];
+
+let start = Date.now();
+const clockEl = document.getElementById("clock");
+const elapsedEl = document.getElementById("elapsed");
+const leadEl = document.getElementById("lead");
+let leadIdx = 0;
+
+function tick(){
+  const now = Date.now();
+  const secs = (now - start) / 1000;
+
+  // 計數器
+  for(const {el,it} of cells){
+    el.textContent = fmt(it.rate * secs, it.dec);
+  }
+  // 停留時間
+  const t = Math.floor(secs);
+  elapsedEl.textContent = `${pad(Math.floor(t/60))}:${pad(t%60)}`;
+  // 現在時間
+  const d = new Date();
+  clockEl.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+
+  requestAnimationFrame(tick);
+}
+tick();
+
+// 每 6 秒換一句引導語
+setInterval(()=>{
+  leadIdx = (leadIdx+1) % leadLines.length;
+  leadEl.style.opacity = 0;
+  setTimeout(()=>{ leadEl.textContent = leadLines[leadIdx]; leadEl.style.opacity = 1; }, 320);
+}, 6000);
+leadEl.style.transition = "opacity .35s";
+
+document.getElementById("reset").addEventListener("click", ()=>{ start = Date.now(); });
+
+// —— 背景星空 —— //
+const cv = document.getElementById("stars"), cx = cv.getContext("2d");
+let stars = [];
+function resize(){
+  cv.width = innerWidth; cv.height = innerHeight;
+  stars = Array.from({length:130}, ()=>({
+    x:Math.random()*cv.width, y:Math.random()*cv.height,
+    r:Math.random()*1.4+0.2, a:Math.random(), s:Math.random()*0.02+0.004,
+    vy:Math.random()*0.12+0.02
+  }));
+}
+resize(); addEventListener("resize", resize);
+function sky(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  for(const st of stars){
+    st.a += st.s; const tw = 0.5 + Math.sin(st.a)*0.5;
+    st.y += st.vy; if(st.y > cv.height) st.y = 0;
+    cx.globalAlpha = 0.15 + tw*0.75;
+    cx.fillStyle = "#cfe0ff";
+    cx.beginPath(); cx.arc(st.x, st.y, st.r, 0, 6.283); cx.fill();
+  }
+  cx.globalAlpha = 1;
+  requestAnimationFrame(sky);
+}
+sky();
+</script>
+</body>
+</html>

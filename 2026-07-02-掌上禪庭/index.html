@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>掌上禪庭 · 枯山水</title>
+<style>
+  :root{
+    --ink:#2b2620;
+    --ink-soft:#6a6055;
+    --paper:#f4efe4;
+    --line:rgba(60,50,38,.14);
+    --sans:"PingFang TC","Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;
+    --serif:"Noto Serif TC","Songti TC","Songti SC","Source Han Serif TC","STSong","PMingLiU","MingLiU",serif;
+    --seal:#b1432f;
+    --panel:rgba(248,244,236,.82);
+    --shadow:0 8px 30px rgba(40,30,20,.18),0 2px 8px rgba(40,30,20,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(120% 100% at 50% -10%, #8a7a63 0%, #6f6150 45%, #574b3d 100%);
+    overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* 外框：木質畫框感 */
+  #frame{
+    position:relative;
+    width:min(96vw, calc(96vh * 1.6));
+    height:min(96vh, calc(96vw / 1.6));
+    border-radius:14px;
+    padding:clamp(8px,1.4vmin,18px);
+    background:linear-gradient(155deg,#6b5a45,#4c3f30);
+    box-shadow:
+      0 26px 60px rgba(0,0,0,.42),
+      inset 0 1px 0 rgba(255,255,255,.14),
+      inset 0 -2px 6px rgba(0,0,0,.35);
+  }
+  #frame::before{ /* 框內細金邊 */
+    content:"";position:absolute;inset:clamp(5px,1vmin,12px);
+    border:1px solid rgba(214,190,150,.35);border-radius:8px;pointer-events:none;z-index:5;
+  }
+  #stage{
+    position:relative;width:100%;height:100%;border-radius:7px;overflow:hidden;
+    box-shadow:inset 0 2px 10px rgba(0,0,0,.35);
+    opacity:0;transform:scale(.985);
+    transition:opacity 1.1s ease,transform 1.1s ease;
+  }
+  #stage.ready{opacity:1;transform:scale(1);}
+  canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;}
+
+  /* 標題 */
+  #title{
+    position:absolute;left:clamp(14px,2.4vmin,30px);top:clamp(12px,2.2vmin,26px);
+    z-index:10;pointer-events:none;user-select:none;
+    display:flex;align-items:center;gap:10px;
+    text-shadow:0 1px 8px rgba(0,0,0,.28);
+  }
+  #title .seal{
+    width:clamp(30px,4.6vmin,44px);height:clamp(30px,4.6vmin,44px);
+    background:var(--seal);border-radius:6px;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:clamp(16px,2.6vmin,24px);font-weight:700;
+    box-shadow:0 3px 10px rgba(120,30,20,.5),inset 0 0 0 1px rgba(255,255,255,.25);
+    letter-spacing:.02em;
+  }
+  #title h1{
+    font-family:var(--serif);color:#fbf6ea;font-weight:700;
+    font-size:clamp(19px,3.2vmin,30px);letter-spacing:.16em;line-height:1;
+  }
+  #title p{
+    font-family:var(--serif);color:rgba(251,246,234,.82);
+    font-size:clamp(10px,1.5vmin,13px);letter-spacing:.28em;margin-top:5px;
+  }
+
+  /* 主題切換（右上） */
+  #themes{
+    position:absolute;right:clamp(12px,2.2vmin,26px);top:clamp(12px,2.2vmin,26px);
+    z-index:10;display:flex;gap:8px;align-items:center;
+  }
+  .swatch{
+    width:clamp(20px,3.1vmin,28px);height:clamp(20px,3.1vmin,28px);border-radius:50%;
+    cursor:pointer;border:2px solid rgba(255,255,255,.55);
+    box-shadow:0 2px 7px rgba(0,0,0,.3);transition:transform .18s ease,border-color .18s ease;
+    position:relative;
+  }
+  .swatch:hover{transform:scale(1.12);}
+  .swatch.active{border-color:#fff;transform:scale(1.16);}
+  .swatch.active::after{content:"";position:absolute;inset:-5px;border:1px solid rgba(255,255,255,.5);border-radius:50%;}
+
+  /* 工具列（底部浮島） */
+  #dock{
+    position:absolute;left:50%;bottom:clamp(12px,2.4vmin,26px);transform:translateX(-50%);
+    z-index:10;display:flex;gap:clamp(3px,.8vmin,7px);align-items:stretch;
+    padding:clamp(5px,1vmin,9px);border-radius:16px;
+    background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.5);
+    max-width:94%;flex-wrap:wrap;justify-content:center;
+  }
+  .tool{
+    border:none;background:transparent;cursor:pointer;color:var(--ink);
+    font-family:var(--sans);border-radius:11px;
+    padding:clamp(5px,1vmin,9px) clamp(7px,1.3vmin,13px);
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    transition:background .16s ease,color .16s ease,transform .1s ease;min-width:46px;
+  }
+  .tool .ic{font-size:clamp(15px,2.4vmin,21px);line-height:1;}
+  .tool .lb{font-size:clamp(9px,1.35vmin,12px);letter-spacing:.06em;color:var(--ink-soft);white-space:nowrap;}
+  .tool:hover{background:rgba(120,100,75,.12);}
+  .tool:active{transform:translateY(1px);}
+  .tool.active{background:var(--ink);}
+  .tool.active .lb,.tool.active .ic{color:var(--paper);}
+  .divider{width:1px;background:var(--line);margin:5px 2px;align-self:stretch;}
+
+  /* 冷知識面板 */
+  #veil{
+    position:absolute;inset:0;z-index:20;background:rgba(30,24,18,.42);
+    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    display:none;align-items:center;justify-content:center;padding:5%;
+  }
+  #veil.show{display:flex;animation:fade .3s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  #info{
+    max-width:560px;max-height:88%;overflow:auto;
+    background:var(--paper);border-radius:16px;padding:clamp(22px,3.4vmin,38px);
+    box-shadow:0 30px 70px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.6);
+    position:relative;
+  }
+  #info h2{font-family:var(--serif);font-size:clamp(20px,3vmin,26px);letter-spacing:.12em;margin-bottom:4px;}
+  #info .sub{font-family:var(--serif);color:var(--seal);letter-spacing:.24em;font-size:13px;margin-bottom:18px;}
+  #info h3{font-family:var(--serif);font-size:clamp(15px,2vmin,17px);margin:18px 0 6px;color:var(--ink);
+    padding-left:11px;border-left:3px solid var(--seal);letter-spacing:.06em;}
+  #info p{font-size:clamp(13px,1.7vmin,14.5px);line-height:1.95;color:#4c453b;margin-bottom:4px;}
+  #info .k{color:var(--seal);font-weight:600;}
+  #info .close{
+    position:absolute;right:16px;top:14px;width:34px;height:34px;border-radius:50%;
+    border:none;background:rgba(60,50,40,.08);cursor:pointer;font-size:19px;color:var(--ink-soft);
+    transition:background .15s;
+  }
+  #info .close:hover{background:rgba(60,50,40,.16);}
+  #info .foot{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
+    font-size:11.5px;color:#8c8272;line-height:1.7;}
+
+  /* 提示 toast */
+  #toast{
+    position:absolute;left:50%;top:clamp(58px,10vmin,90px);transform:translateX(-50%) translateY(-8px);
+    z-index:15;background:rgba(43,38,32,.92);color:#f4efe4;font-family:var(--serif);
+    padding:9px 20px;border-radius:22px;font-size:13px;letter-spacing:.1em;
+    opacity:0;pointer-events:none;transition:opacity .3s ease,transform .3s ease;
+    box-shadow:0 8px 24px rgba(0,0,0,.3);white-space:nowrap;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  #hint{
+    position:absolute;left:50%;bottom:clamp(78px,13vmin,120px);transform:translateX(-50%);
+    z-index:9;font-family:var(--serif);color:rgba(255,255,255,.72);font-size:13px;
+    letter-spacing:.2em;text-shadow:0 1px 6px rgba(0,0,0,.4);pointer-events:none;
+    transition:opacity .6s ease;text-align:center;
+  }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="stage">
+    <canvas id="c"></canvas>
+    <div id="title">
+      <div class="seal">禪</div>
+      <div><h1>掌上禪庭</h1><p>枯 山 水</p></div>
+    </div>
+    <div id="themes"></div>
+    <div id="hint">輕觸沙面 · 落石成島 · 砂紋自生</div>
+    <div id="toast"></div>
+    <div id="dock"></div>
+  </div>
+</div>
+
+<div id="veil">
+  <div id="info">
+    <button class="close" id="infoClose" aria-label="關閉">✕</button>
+    <h2>枯山水 · 一方靜庭</h2>
+    <div class="sub">KARESANSUI</div>
+
+    <h3>何謂「枯山水」</h3>
+    <p><span class="k">枯</span>是乾涸，<span class="k">山水</span>是山與水——以砂、石、苔表現「沒有水的山水」。耙過的白砂象徵流動的河海與<span class="k">波紋</span>，石頭則代表山巒，或大海中的<span class="k">島嶼</span>。此式定型於日本室町時代（1336–1573），是禪院冥想的一方天地。</p>
+
+    <h3>龍安寺石庭之謎</h3>
+    <p>京都龍安寺的方丈南庭約 70 坪，只有石與苔。<span class="k">十五顆石</span>分為五組，妙處在於：無論你站在哪個角度，總有一顆被其他石擋住，永遠<span class="k">看不齊十五顆</span>。</p>
+    <p>十五對應十五夜的滿月，象徵「圓滿」。但世上並無真正的圓滿，物極則衰——刻意讓人只見其十四，正是<span class="k">「不完滿之美」</span>。</p>
+
+    <h3>余白之美</h3>
+    <p>大片留白的砂，不是空無，而是留給想像的風景。美在暗示，不在填滿——這就是日本美學裡的<span class="k">「余白之美」</span>。放石不必多，疏可走馬，密不容針。</p>
+
+    <h3>怎麼玩</h3>
+    <p>選「落石」點沙面放下石頭，四周會自動生出漣漪般的砂紋；「鋪苔」點綴青苔；「耙紋」切換橫／直／斜的耙痕；「造境」一鍵生成一方新庭；滿意了就「收藏」成一張圖。再點一次石頭可移走它。快捷鍵：R 造境、空白鍵換耙紋、1–4 換配色。</p>
+
+    <div class="foot">
+      資料來源：Nippon.com《Karesansui: Japan's Dry Landscape Gardens》、Wikipedia「Japanese dry garden」、庭園ガイド・京都観光案内 龍安寺石庭解說。內容經查證整理。
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ============ 工具函式 ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ============ 配色主題 ============ */
+const THEMES={
+  morning:{name:"晨",dot:"#ecdcbf",
+    sand:"#ece0cc", grooveDark:"rgba(150,126,92,.55)", grooveLight:"rgba(255,250,240,.62)",
+    stoneA:"#8f887b", stoneB:"#514b43", stoneHi:"rgba(255,250,238,.55)",
+    mossA:"#8aa05e", mossB:"#6a7f45", ao:"rgba(70,52,32,.30)", stoneShadow:"rgba(60,44,26,.32)",
+    grain:.05, vignette:"rgba(45,32,18,.20)", rim:null,
+    light:{x:.24,y:.16,radius:.72,color:"rgba(255,246,225,.30)"} },
+  day:{name:"晝",dot:"#f3efe3",
+    sand:"#f1ece0", grooveDark:"rgba(148,138,118,.50)", grooveLight:"rgba(255,255,255,.72)",
+    stoneA:"#868a8b", stoneB:"#4a4d4f", stoneHi:"rgba(255,255,255,.60)",
+    mossA:"#7c9a55", mossB:"#5d7a3f", ao:"rgba(50,55,55,.26)", stoneShadow:"rgba(45,48,52,.30)",
+    grain:.045, vignette:"rgba(40,40,45,.16)", rim:null,
+    light:{x:.5,y:.1,radius:.8,color:"rgba(255,255,255,.28)"} },
+  moss:{name:"苔",dot:"#e2e2cf",
+    sand:"#e5e4d3", grooveDark:"rgba(120,124,88,.52)", grooveLight:"rgba(252,252,238,.60)",
+    stoneA:"#79806e", stoneB:"#454a3c", stoneHi:"rgba(248,250,232,.52)",
+    mossA:"#7fa346", mossB:"#5a7e2f", ao:"rgba(45,52,30,.30)", stoneShadow:"rgba(40,48,28,.32)",
+    grain:.05, vignette:"rgba(35,45,28,.22)", rim:null,
+    light:{x:.3,y:.2,radius:.72,color:"rgba(244,248,220,.24)"} },
+  night:{name:"夜",dot:"#2c3446",
+    sand:"#2b3140", grooveDark:"rgba(9,13,22,.62)", grooveLight:"rgba(196,210,238,.50)",
+    stoneA:"#454e60", stoneB:"#1d222c", stoneHi:"rgba(198,214,245,.42)",
+    mossA:"#4d5f38", mossB:"#374a26", ao:"rgba(0,0,0,.42)", stoneShadow:"rgba(0,0,0,.5)",
+    grain:.07, vignette:"rgba(3,6,14,.5)", rim:"rgba(150,180,235,.55)",
+    light:{x:.78,y:.12,radius:.66,color:"rgba(180,200,240,.22)"} }
+};
+const THEME_ORDER=["morning","day","moss","night"];
+const RIPPLE_F=2.7;
+
+/* ============ 狀態 ============ */
+const state={stones:[],mosses:[],rakeAngle:0,theme:"morning",sound:true};
+const RAKE_ANGLES=[0,Math.PI/2,Math.PI/4,-Math.PI/4];
+let tool="stone";
+let undoStack=[];
+
+/* ============ 畫布 ============ */
+const canvas=document.getElementById("c");
+const ctx=canvas.getContext("2d");
+let W=0,H=0,DPR=1,grainPat=null;
+
+function makeGrain(){
+  const s=150,cn=document.createElement("canvas");cn.width=cn.height=s;
+  const g=cn.getContext("2d"),img=g.createImageData(s,s),d=img.data;
+  for(let i=0;i<d.length;i+=4){const v=Math.random()<.5?255:0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=Math.random()*26;}
+  g.putImageData(img,0,0);grainPat=ctx.createPattern(cn,"repeat");
+}
+
+function resize(){
+  const r=canvas.getBoundingClientRect();
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=r.width;H=r.height;
+  canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  render();
+}
+
+/* ============ 幾何：石頭外形 ============ */
+function stonePath(px,py,pr,seed){
+  const rng=mulberry32(seed|0);
+  const p1=rng()*6.28,p2=rng()*6.28,p3=rng()*6.28;
+  const a1=.10+rng()*.06,a2=.05+rng()*.05,a3=.07+rng()*.05;
+  const squash=0.80+rng()*0.18;
+  const path=new Path2D();const STEP=64;
+  for(let i=0;i<=STEP;i++){
+    const t=i/STEP*6.2831853;
+    const rr=pr*(1+a1*Math.sin(t+p1)+a2*Math.sin(2*t+p2)+a3*Math.sin(3*t+p3));
+    const x=px+Math.cos(t)*rr, y=py+Math.sin(t)*rr*squash;
+    if(i===0)path.moveTo(x,y);else path.lineTo(x,y);
+  }
+  path.closePath();return path;
+}
+
+/* ============ 繪製元件 ============ */
+function drawParallelGrooves(gap,angle,th){
+  ctx.save();ctx.translate(W/2,H/2);ctx.rotate(angle);
+  const diag=Math.hypot(W,H)/2+gap*2;ctx.lineCap="round";
+  const lwD=Math.max(1.1,gap*.10),lwL=Math.max(.8,gap*.06),off=gap*.30;
+  for(let y=-diag;y<=diag;y+=gap){
+    ctx.beginPath();ctx.moveTo(-diag,y);ctx.lineTo(diag,y);
+    ctx.lineWidth=lwD;ctx.strokeStyle=th.grooveDark;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(-diag,y-off);ctx.lineTo(diag,y-off);
+    ctx.lineWidth=lwL;ctx.strokeStyle=th.grooveLight;ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawRipples(s,gap,th){
+  ctx.save();
+  const disc=new Path2D();disc.arc(s.px,s.py,s.hole,0,6.2831853);ctx.clip(disc);
+  const rng=mulberry32((s.seed*7+11)|0);
+  const start=s.pr*1.06+gap*.55,end=s.hole-gap*.25;
+  const lwD=Math.max(1.1,gap*.10),lwL=Math.max(.8,gap*.06),off=gap*.30;
+  for(let rad=start;rad<=end;rad+=gap){
+    const r=rad+(rng()-.5)*gap*.22;
+    ctx.beginPath();ctx.arc(s.px,s.py,r,0,6.2831853);
+    ctx.lineWidth=lwD;ctx.strokeStyle=th.grooveDark;ctx.stroke();
+    ctx.beginPath();ctx.arc(s.px,s.py,Math.max(0,r-off),0,6.2831853);
+    ctx.lineWidth=lwL;ctx.strokeStyle=th.grooveLight;ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawMoss(px,py,r,seed,th){
+  const rng=mulberry32((seed*13+3)|0);
+  ctx.save();
+  const g=ctx.createRadialGradient(px,py,r*.15,px,py,r);
+  g.addColorStop(0,th.mossA);g.addColorStop(.7,th.mossB);g.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.globalAlpha=.55;ctx.fillStyle=g;
+  ctx.beginPath();ctx.ellipse(px,py,r,r*.82,0,0,6.2831853);ctx.fill();
+  ctx.globalAlpha=1;
+  for(let k=0;k<46;k++){
+    const a=rng()*6.2831853,rad=Math.sqrt(rng())*r*.95;
+    const sx=px+Math.cos(a)*rad,sy=py+Math.sin(a)*rad*.82;
+    ctx.fillStyle=k%3?th.mossB:th.mossA;ctx.globalAlpha=.35+rng()*.45;
+    ctx.beginPath();ctx.arc(sx,sy,r*.05*(.6+rng()*.9),0,6.2831853);ctx.fill();
+  }
+  ctx.restore();
+}
+function drawStone(s,th){
+  const px=s.px,py=s.py,pr=s.pr;
+  // 接地陰影
+  ctx.save();
+  const ao=ctx.createRadialGradient(px,py+pr*.12,pr*.2,px,py+pr*.14,pr*1.55);
+  ao.addColorStop(0,th.ao);ao.addColorStop(1,"rgba(0,0,0,0)");
+  ctx.fillStyle=ao;ctx.beginPath();ctx.ellipse(px,py+pr*.16,pr*1.5,pr*1.05,0,0,6.2831853);ctx.fill();
+  ctx.restore();
+  const path=stonePath(px,py,pr,s.seed);
+  // 投影
+  ctx.save();ctx.shadowColor=th.stoneShadow;ctx.shadowBlur=pr*.5;
+  ctx.shadowOffsetX=pr*.12;ctx.shadowOffsetY=pr*.2;
+  ctx.fillStyle=th.stoneB;ctx.fill(path);ctx.restore();
+  // 本體漸層
+  const g=ctx.createRadialGradient(px-pr*.34,py-pr*.4,pr*.12,px+pr*.12,py+pr*.22,pr*1.3);
+  g.addColorStop(0,th.stoneA);g.addColorStop(1,th.stoneB);
+  ctx.fillStyle=g;ctx.fill(path);
+  // 邊緣輪廓
+  ctx.save();ctx.clip(path);
+  if(th.rim){
+    ctx.globalCompositeOperation="screen";
+    const rg=ctx.createRadialGradient(px-pr*.42,py-pr*.5,pr*.2,px-pr*.42,py-pr*.5,pr*1.25);
+    rg.addColorStop(0,th.rim);rg.addColorStop(.55,"rgba(0,0,0,0)");
+    ctx.fillStyle=rg;ctx.fillRect(px-pr*2,py-pr*2,pr*4,pr*4);
+    ctx.globalCompositeOperation="source-over";
+  }
+  const hl=ctx.createRadialGradient(px-pr*.36,py-pr*.42,0,px-pr*.36,py-pr*.42,pr*.85);
+  hl.addColorStop(0,th.stoneHi);hl.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.fillStyle=hl;ctx.fillRect(px-pr*2,py-pr*2,pr*4,pr*4);
+  ctx.restore();
+}
+
+/* ============ 主繪製 ============ */
+function render(extra){
+  const th=THEMES[state.theme],minD=Math.min(W,H);
+  const gap=clamp(minD/24,11,22);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=th.sand;ctx.fillRect(0,0,W,H);
+  if(th.light){const L=th.light;
+    const lg=ctx.createRadialGradient(L.x*W,L.y*H,0,L.x*W,L.y*H,Math.hypot(W,H)*L.radius);
+    lg.addColorStop(0,L.color);lg.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=lg;ctx.fillRect(0,0,W,H);}
+  if(grainPat){ctx.save();ctx.globalAlpha=th.grain;ctx.fillStyle=grainPat;ctx.fillRect(0,0,W,H);ctx.restore();}
+
+  const S=state.stones.map(s=>({...s,px:s.x*W,py:s.y*H,pr:s.r*minD,hole:s.r*minD*RIPPLE_F}));
+
+  // 直耙紋（避開漣漪圈）
+  ctx.save();
+  const region=new Path2D();region.rect(-2,-2,W+4,H+4);
+  for(const s of S){region.moveTo(s.px+s.hole,s.py);region.arc(s.px,s.py,s.hole,0,6.2831853);}
+  ctx.clip(region,"evenodd");
+  drawParallelGrooves(gap,state.rakeAngle,th);
+  ctx.restore();
+
+  // 石周漣漪
+  for(const s of S)drawRipples(s,gap,th);
+  // 苔
+  for(const m of state.mosses)drawMoss(m.x*W,m.y*H,m.r*minD,m.seed,th);
+  // 石
+  for(const s of S)drawStone(s,th);
+
+  // 放置動畫漣漪
+  if(extra){
+    ctx.save();ctx.globalAlpha=extra.alpha;ctx.strokeStyle=th.grooveDark;
+    ctx.lineWidth=Math.max(1.4,gap*.12);
+    ctx.beginPath();ctx.arc(extra.x*W,extra.y*H,extra.r,0,6.2831853);ctx.stroke();
+    ctx.restore();
+  }
+  // 暗角
+  ctx.save();
+  const vg=ctx.createRadialGradient(W/2,H/2,minD*.32,W/2,H/2,Math.hypot(W,H)*.62);
+  vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,th.vignette);
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);ctx.restore();
+}
+
+/* ============ 放置動畫 ============ */
+let anim=null;
+function playPlace(x,y,pr){
+  const minD=Math.min(W,H),maxR=pr*minD*RIPPLE_F*1.05;
+  const t0=performance.now(),dur=560;
+  if(anim)cancelAnimationFrame(anim);
+  (function step(now){
+    const k=clamp((now-t0)/dur,0,1),ease=1-Math.pow(1-k,2);
+    render({x,y,r:pr*minD*1.0+ease*(maxR-pr*minD),alpha:.5*(1-k)});
+    if(k<1)anim=requestAnimationFrame(step);else{anim=null;render();}
+  })(t0);
+}
+
+/* ============ 互動 ============ */
+function pushUndo(){undoStack.push(JSON.stringify({stones:state.stones,mosses:state.mosses}));if(undoStack.length>40)undoStack.shift();}
+function hitStone(nx,ny){const minD=Math.min(W,H);
+  for(let i=state.stones.length-1;i>=0;i--){const s=state.stones[i];
+    const dx=(nx-s.x)*W,dy=(ny-s.y)*H;if(Math.hypot(dx,dy)<s.r*minD*1.05)return i;}return -1;}
+function hitMoss(nx,ny){const minD=Math.min(W,H);
+  for(let i=state.mosses.length-1;i>=0;i--){const m=state.mosses[i];
+    const dx=(nx-m.x)*W,dy=(ny-m.y)*H;if(Math.hypot(dx,dy)<m.r*minD)return i;}return -1;}
+
+function placeAt(nx,ny){
+  if(tool==="stone"){
+    const hit=hitStone(nx,ny);
+    if(hit>=0){pushUndo();state.stones.splice(hit,1);save();render();beep(150,.05);return;}
+    pushUndo();
+    const r=0.045+Math.random()*0.04;
+    const m=r*RIPPLE_F+0.015;
+    const s={x:clamp(nx,m,1-m),y:clamp(ny,m,1-m),r,seed:Math.floor(Math.random()*1e9)};
+    state.stones.push(s);save();beep(230,.09);playPlace(s.x,s.y,s.r);
+  }else if(tool==="moss"){
+    const hit=hitMoss(nx,ny);
+    if(hit>=0){pushUndo();state.mosses.splice(hit,1);save();render();beep(150,.05);return;}
+    pushUndo();
+    const r=0.03+Math.random()*0.03;
+    state.mosses.push({x:clamp(nx,r,1-r),y:clamp(ny,r,1-r),r,seed:Math.floor(Math.random()*1e9)});
+    save();render();beep(320,.05);
+  }
+  hideHint();
+}
+canvas.addEventListener("pointerdown",e=>{
+  const r=canvas.getBoundingClientRect();
+  placeAt((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+});
+
+/* ============ 造境 / 清空 / 復原 ============ */
+function autoGarden(){
+  pushUndo();
+  const rng=Math.random;
+  state.stones=[];state.mosses=[];
+  state.rakeAngle=RAKE_ANGLES[Math.floor(rng()*RAKE_ANGLES.length)];
+  const groups=2+Math.floor(rng()*2);           // 2~3 組
+  const anchors=[[.30,.36],[.68,.34],[.5,.62],[.32,.68],[.72,.66],[.5,.3]];
+  shuffle(anchors);
+  for(let gi=0;gi<groups;gi++){
+    const[ax,ay]=anchors[gi];const cnt=1+Math.floor(rng()*3);   // 每組 1~3 石
+    let bigR=0;
+    for(let k=0;k<cnt;k++){
+      const r=(0.04+rng()*0.05)*(k===0?1:0.72);
+      const ox=(rng()-.5)*0.11,oy=(rng()-.5)*0.09;
+      const m=r*RIPPLE_F+0.015;
+      state.stones.push({x:clamp(ax+ox,m,1-m),y:clamp(ay+oy,m,1-m),r,seed:Math.floor(rng()*1e9)});
+      bigR=Math.max(bigR,r);
+    }
+    if(rng()<.55)state.mosses.push({x:clamp(ax+(rng()-.5)*.12,.05,.95),y:clamp(ay+bigR+0.02+(rng()-.3)*.05,.05,.95),r:0.028+rng()*0.03,seed:Math.floor(rng()*1e9)});
+  }
+  save();render();
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
+function clearGarden(){pushUndo();state.stones=[];state.mosses=[];save();render();toast("已抹平沙面");}
+function undo(){if(!undoStack.length){toast("沒有可復原的步驟");return;}const p=JSON.parse(undoStack.pop());state.stones=p.stones;state.mosses=p.mosses;save();render();}
+function cycleRake(){const i=RAKE_ANGLES.indexOf(state.rakeAngle);state.rakeAngle=RAKE_ANGLES[(i+1)%RAKE_ANGLES.length];save();render();updateRakeLabel();}
+
+/* ============ 匯出 PNG ============ */
+function exportPNG(){
+  render();                                   // 確保主畫布為最新一幀（無動畫殘影）
+  const src=canvas, ar=src.width/src.height;
+  const iw=1520, ih=Math.round(iw/ar);
+  const padS=60, padB=96;
+  const EW=iw+padS*2, EH=ih+padS+padB;
+  const ex=document.createElement("canvas");ex.width=EW;ex.height=EH;
+  const g=ex.getContext("2d");
+  const bg=g.createLinearGradient(0,0,EW,EH);bg.addColorStop(0,"#6b5a45");bg.addColorStop(1,"#453a2c");
+  g.fillStyle=bg;g.fillRect(0,0,EW,EH);
+  g.drawImage(src,padS,padS,iw,ih);           // 貼上庭園
+  // 細框
+  g.strokeStyle="rgba(20,14,8,.55)";g.lineWidth=2;g.strokeRect(padS-1,padS-1,iw+2,ih+2);
+  g.strokeStyle="rgba(214,190,150,.5)";g.lineWidth=1;g.strokeRect(padS+7,padS+7,iw-14,ih-14);
+  // 落款
+  const baseY=padS+ih+54;
+  g.fillStyle="#b1432f";g.fillRect(EW-padS-40,padS+ih+26,36,36);
+  g.fillStyle="#fff";g.textAlign="center";g.textBaseline="middle";g.font="24px 'Noto Serif TC',serif";
+  g.fillText("禪",EW-padS-40+18,padS+ih+26+19);
+  g.fillStyle="#efe7d7";g.textAlign="left";g.textBaseline="alphabetic";g.font="24px 'Noto Serif TC',serif";
+  g.fillText("掌上禪庭",padS+2,baseY);
+  g.font="15px sans-serif";g.fillStyle="#c9bda6";
+  g.fillText("枯山水 · "+dateStr(),padS+134,baseY);
+  const a=document.createElement("a");
+  a.download="掌上禪庭_"+dateStr("")+".png";a.href=ex.toDataURL("image/png");a.click();
+  toast("已收藏為圖片");
+}
+
+function dateStr(sep="-"){const d=new Date();const p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+sep+p(d.getMonth()+1)+sep+p(d.getDate());}
+
+/* ============ 音效（Web Audio） ============ */
+let AC=null;
+function beep(freq,dur){
+  if(!state.sound)return;
+  try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type="sine";o.frequency.value=freq;
+    o.connect(g);g.connect(AC.destination);
+    const t=AC.currentTime;g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(.18,t+.01);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur+.25);
+    o.start(t);o.stop(t+dur+.3);
+  }catch(e){}
+}
+
+/* ============ 儲存 ============ */
+function save(){try{localStorage.setItem("zen-garden-v1",JSON.stringify(state));}catch(e){}}
+function load(){try{const s=localStorage.getItem("zen-garden-v1");if(s){const o=JSON.parse(s);
+  if(o&&o.stones){state.stones=o.stones;state.mosses=o.mosses||[];state.rakeAngle=o.rakeAngle||0;
+  state.theme=THEMES[o.theme]?o.theme:"morning";state.sound=o.sound!==false;return true;}}}catch(e){}return false;}
+
+/* ============ UI 建構 ============ */
+const toastEl=document.getElementById("toast");let toastT=null;
+function toast(msg){toastEl.textContent=msg;toastEl.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>toastEl.classList.remove("show"),1600);}
+let hintShown=true;
+function hideHint(){if(hintShown){hintShown=false;const h=document.getElementById("hint");h.style.opacity="0";}}
+
+function buildThemes(){
+  const box=document.getElementById("themes");box.innerHTML="";
+  THEME_ORDER.forEach(key=>{
+    const b=document.createElement("div");b.className="swatch"+(state.theme===key?" active":"");
+    b.style.background=THEMES[key].dot;b.title=THEMES[key].name;
+    b.onclick=()=>{state.theme=key;save();render();buildThemes();};
+    box.appendChild(b);
+  });
+}
+let rakeBtn;
+function updateRakeLabel(){if(rakeBtn){const names=["橫","直","斜","斜"];const i=RAKE_ANGLES.indexOf(state.rakeAngle);rakeBtn.querySelector(".lb").textContent="耙紋 "+names[i<0?0:i];}}
+function buildDock(){
+  const dock=document.getElementById("dock");dock.innerHTML="";
+  const mk=(ic,lb,fn,id)=>{const b=document.createElement("button");b.className="tool";b.id=id||"";
+    b.innerHTML=`<span class="ic">${ic}</span><span class="lb">${lb}</span>`;b.onclick=fn;dock.appendChild(b);return b;};
+  const sep=()=>{const d=document.createElement("div");d.className="divider";dock.appendChild(d);};
+  const stoneBtn=mk("🪨","落石",()=>setTool("stone"));
+  const mossBtn=mk("🌱","鋪苔",()=>setTool("moss"));
+  sep();
+  rakeBtn=mk("〰️","耙紋 橫",cycleRake);
+  mk("🎐","造境",()=>{autoGarden();toast("一方新庭");});
+  sep();
+  mk("↩︎","復原",undo);
+  mk("🍃","抹平",clearGarden);
+  mk("🖼️","收藏",exportPNG);
+  sep();
+  const sBtn=mk("🔔","聲音",()=>{state.sound=!state.sound;save();updateSound();if(state.sound)beep(300,.06);});
+  const infoBtn=mk("☯","禪",()=>document.getElementById("veil").classList.add("show"));
+  window.__stoneBtn=stoneBtn;window.__mossBtn=mossBtn;window.__sBtn=sBtn;
+  updateRakeLabel();updateTool();updateSound();
+}
+function setTool(t){tool=t;updateTool();}
+function updateTool(){window.__stoneBtn.classList.toggle("active",tool==="stone");window.__mossBtn.classList.toggle("active",tool==="moss");}
+function updateSound(){const b=window.__sBtn;if(!b)return;b.querySelector(".ic").textContent=state.sound?"🔔":"🔕";b.querySelector(".lb").textContent=state.sound?"聲音":"靜音";}
+
+/* ============ 快捷鍵 ============ */
+window.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  if(e.key==="r"||e.key==="R"){autoGarden();toast("一方新庭");}
+  else if(e.key===" "){e.preventDefault();cycleRake();}
+  else if(e.key==="Backspace"){e.preventDefault();undo();}
+  else if(["1","2","3","4"].includes(e.key)){state.theme=THEME_ORDER[+e.key-1];save();render();buildThemes();}
+  else if(e.key==="Escape")document.getElementById("veil").classList.remove("show");
+});
+document.getElementById("infoClose").onclick=()=>document.getElementById("veil").classList.remove("show");
+document.getElementById("veil").onclick=e=>{if(e.target.id==="veil")document.getElementById("veil").classList.remove("show");};
+
+/* ============ 啟動 ============ */
+function boot(){
+  makeGrain();
+  const had=load();
+  buildThemes();buildDock();
+  resize();
+  if(!had||state.stones.length===0){autoGarden();hintShown=true;}
+  else{hideHint();}
+  requestAnimationFrame(()=>document.getElementById("stage").classList.add("ready"));
+}
+window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(resize,120);});
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>冷知識扭蛋機 · 每日一顆小驚喜</title>
+<style>
+  :root{
+    --bg1:#fdf6ec; --bg2:#f3e7d8; --ink:#3a2e28; --muted:#8f7f73;
+    --card:#fffdf9; --line:rgba(58,46,40,.10); --line2:rgba(58,46,40,.16);
+    --accent:#e8623d; --accent2:#f2a33d;
+    --r-common:#7c8a99; --r-rare:#3d84c6; --r-legend:#e0a52a;
+    --shadow:0 18px 40px -18px rgba(58,46,40,.45);
+    --c-動物:#4a9d6f; --c-太空:#6a5acd; --c-人體:#d9607a;
+    --c-歷史:#b5793a; --c-食物:#e0863c; --c-自然:#3aa6a0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:"PingFang TC","Microsoft JhengHei","Noto Sans TC","Hiragino Sans GB",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #fff5e6 0%, transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, #ffe9d6 0%, transparent 55%),
+      linear-gradient(160deg,var(--bg1),var(--bg2));
+    min-height:100vh; line-height:1.7; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px; margin:0 auto; padding:34px 20px 70px}
+
+  header.hero{text-align:center; margin-bottom:22px}
+  .badge{display:inline-block; font-size:.8rem; letter-spacing:.14em;
+    color:var(--accent); background:#fff0e6; border:1px solid #ffd9c2;
+    padding:5px 14px; border-radius:999px; margin-bottom:12px}
+  h1{margin:0; font-size:clamp(1.9rem,4.6vw,2.9rem); letter-spacing:.02em}
+  h1 .em{color:var(--accent)}
+  .subtitle{color:var(--muted); margin-top:8px; font-size:1.02rem}
+
+  /* 統計列 */
+  .stats{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:22px 0 8px}
+  .stat{background:var(--card); border:1px solid var(--line); border-radius:16px;
+    padding:12px 20px; min-width:120px; text-align:center; box-shadow:0 6px 18px -14px rgba(58,46,40,.5)}
+  .stat b{display:block; font-size:1.5rem; line-height:1.2; color:var(--ink)}
+  .stat span{font-size:.82rem; color:var(--muted)}
+  .progress{height:9px; border-radius:999px; background:#ecdfce; overflow:hidden; margin:16px auto 0; max-width:520px}
+  .progress > i{display:block; height:100%; width:0;
+    background:linear-gradient(90deg,var(--accent2),var(--accent)); border-radius:999px;
+    transition:width .8s cubic-bezier(.22,1,.36,1)}
+
+  /* 主要區塊：扭蛋機 + 抽卡結果 */
+  .stage{display:grid; grid-template-columns:minmax(0,340px) minmax(0,1fr); gap:30px; align-items:center;
+    margin:30px 0 10px}
+  @media(max-width:760px){ .stage{grid-template-columns:1fr; gap:20px} }
+
+  .machine-col{display:flex; flex-direction:column; align-items:center; gap:18px}
+  .machine{width:100%; max-width:300px; filter:drop-shadow(0 24px 30px rgba(58,46,40,.28))}
+  .machine .knob{transform-box:fill-box; transform-origin:center; transition:transform .7s cubic-bezier(.34,1.56,.64,1)}
+  .machine.turning .knob{transform:rotate(220deg)}
+
+  .btn{appearance:none; border:none; cursor:pointer; font-family:inherit;
+    font-size:1.18rem; font-weight:700; color:#fff; letter-spacing:.06em;
+    padding:15px 40px; border-radius:16px;
+    background:linear-gradient(180deg,#ef7350,var(--accent));
+    box-shadow:0 12px 22px -10px rgba(232,98,61,.8), inset 0 1px 0 rgba(255,255,255,.4);
+    transition:transform .12s ease, box-shadow .2s ease, opacity .2s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn:active{transform:translateY(1px) scale(.99)}
+  .btn:disabled{opacity:.55; cursor:default; transform:none}
+  .btn .coin{margin-right:8px}
+
+  /* 抽卡結果卡片 */
+  .result{min-height:280px; display:flex; align-items:center; justify-content:center}
+  .placeholder{color:var(--muted); text-align:center; padding:24px; border:2px dashed var(--line2);
+    border-radius:22px; width:100%; background:rgba(255,255,255,.4)}
+  .placeholder .big{font-size:2.4rem; margin-bottom:6px}
+
+  .card{position:relative; width:100%; background:var(--card);
+    border:1px solid var(--line); border-radius:24px; padding:26px 26px 22px;
+    box-shadow:var(--shadow); overflow:hidden}
+  .card.pop{animation:pop .55s cubic-bezier(.22,1.4,.4,1)}
+  @keyframes pop{0%{transform:scale(.6) translateY(20px); opacity:0}
+    60%{transform:scale(1.03)} 100%{transform:scale(1); opacity:1}}
+  .card::before{content:""; position:absolute; inset:0; border-radius:24px; padding:2px;
+    background:linear-gradient(135deg,var(--edge,transparent),transparent 55%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none}
+  .card .toprow{display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap}
+  .tag{font-size:.78rem; padding:3px 11px; border-radius:999px; font-weight:600; color:#fff}
+  .rarity{font-size:.76rem; padding:3px 11px; border-radius:999px; font-weight:700;
+    border:1px solid currentColor; background:#fff}
+  .newflag{margin-left:auto; font-size:.76rem; font-weight:800; color:var(--accent);
+    background:#fff0e6; border:1px solid #ffd0b8; padding:3px 11px; border-radius:999px;
+    animation:blink 1.1s ease-in-out infinite}
+  @keyframes blink{50%{opacity:.45}}
+  .card .emoji{font-size:3.3rem; line-height:1; margin:6px 0 2px}
+  .card h2{margin:.1em 0 .35em; font-size:1.5rem}
+  .card p.fact{margin:0; font-size:1.06rem; color:#4a3b33}
+  .card .src{margin-top:14px; font-size:.8rem; color:var(--muted); border-top:1px dashed var(--line2); padding-top:10px}
+  .card .src b{color:#6f5f54; font-weight:600}
+  .card.lgnd{box-shadow:0 0 0 1px #f1cd78, var(--shadow), 0 0 34px -6px rgba(224,165,42,.55)}
+
+  .sparkles{position:absolute; inset:0; pointer-events:none; overflow:hidden}
+  .sparkles i{position:absolute; width:8px; height:8px; border-radius:50%;
+    background:radial-gradient(circle,#ffe9a8,#eab64a); opacity:0; animation:spk 1.1s ease-out forwards}
+  @keyframes spk{0%{transform:translateY(10px) scale(.3); opacity:0}
+    30%{opacity:1} 100%{transform:translateY(-46px) scale(1); opacity:0}}
+
+  /* 圖鑑 */
+  .album{margin-top:46px}
+  .album-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    border-bottom:2px solid var(--line); padding-bottom:10px; margin-bottom:20px}
+  .album-head h3{margin:0; font-size:1.35rem}
+  .album-head .hint{color:var(--muted); font-size:.86rem}
+  .cat-block{margin-bottom:26px}
+  .cat-title{display:flex; align-items:center; gap:9px; font-weight:700; margin:0 0 12px; font-size:1.05rem}
+  .cat-dot{width:11px; height:11px; border-radius:50%}
+  .cat-count{font-size:.8rem; color:var(--muted); font-weight:500}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:13px}
+  .slot{position:relative; border-radius:16px; padding:15px 14px; min-height:118px;
+    border:1px solid var(--line); background:var(--card); transition:transform .15s ease, box-shadow .2s ease;
+    display:flex; flex-direction:column; gap:5px}
+  .slot.got{cursor:pointer}
+  .slot.got:hover{transform:translateY(-3px); box-shadow:0 12px 22px -14px rgba(58,46,40,.6)}
+  .slot .s-emoji{font-size:1.8rem; line-height:1}
+  .slot .s-title{font-weight:700; font-size:.98rem}
+  .slot .s-rarity{font-size:.72rem; font-weight:700; margin-top:auto}
+  .slot .s-count{position:absolute; top:9px; right:11px; font-size:.72rem; color:var(--muted)}
+  .slot.locked{background:repeating-linear-gradient(135deg,#f4ece0,#f4ece0 9px,#efe5d6 9px,#efe5d6 18px);
+    color:#c9b9a6; align-items:center; justify-content:center; text-align:center}
+  .slot.locked .q{font-size:2rem; font-weight:800}
+  .slot.locked .s-locktxt{font-size:.78rem}
+
+  /* Modal */
+  .overlay{position:fixed; inset:0; background:rgba(40,30,25,.5); backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center; padding:20px; z-index:50}
+  .overlay.show{display:flex; animation:fade .2s ease}
+  @keyframes fade{from{opacity:0}}
+  .modal{max-width:440px; width:100%}
+  .modal .card{animation:pop .4s cubic-bezier(.22,1.4,.4,1)}
+  .modal-close{position:absolute; top:12px; right:14px; border:none; background:transparent;
+    font-size:1.5rem; color:var(--muted); cursor:pointer; line-height:1; z-index:2}
+
+  footer{margin-top:44px; text-align:center; color:var(--muted); font-size:.86rem}
+  .linkbtn{background:none; border:none; color:var(--accent); cursor:pointer; font:inherit;
+    text-decoration:underline; padding:0}
+  .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+    background:var(--ink); color:#fff; padding:11px 20px; border-radius:12px; font-size:.9rem;
+    opacity:0; pointer-events:none; transition:all .3s ease; z-index:60}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <span class="badge">每日小專案 · 網路趣聞・冷知識</span>
+    <h1>冷知識<span class="em">扭蛋機</span></h1>
+    <p class="subtitle">投一枚硬幣，轉出一則經過查證的冷知識，慢慢收集屬於你的圖鑑。</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><b id="st-collected">0/24</b><span>已收集</span></div>
+    <div class="stat"><b id="st-percent">0%</b><span>完成度</span></div>
+    <div class="stat"><b id="st-pulls">0</b><span>轉蛋次數</span></div>
+  </div>
+  <div class="progress"><i id="bar"></i></div>
+
+  <section class="stage">
+    <div class="machine-col">
+      <svg class="machine" id="machine" viewBox="0 0 240 300" xmlns="http://www.w3.org/2000/svg" aria-label="扭蛋機">
+        <!-- 玻璃圓罩 -->
+        <circle cx="120" cy="96" r="80" fill="#ffffff" opacity="0.55"/>
+        <circle cx="120" cy="96" r="80" fill="none" stroke="#d9c9b5" stroke-width="3"/>
+        <!-- 罩內扭蛋 -->
+        <g>
+          <circle cx="96" cy="118" r="16" fill="#4a9d6f"/><path d="M80 118 h32" stroke="#fff" stroke-width="2" opacity=".6"/>
+          <circle cx="130" cy="124" r="16" fill="#6a5acd"/><path d="M114 124 h32" stroke="#fff" stroke-width="2" opacity=".6"/>
+          <circle cx="112" cy="92" r="16" fill="#d9607a"/><path d="M96 92 h32" stroke="#fff" stroke-width="2" opacity=".6"/>
+          <circle cx="146" cy="98" r="15" fill="#e0863c"/><path d="M131 98 h30" stroke="#fff" stroke-width="2" opacity=".6"/>
+          <circle cx="84" cy="86" r="14" fill="#3aa6a0"/><path d="M70 86 h28" stroke="#fff" stroke-width="2" opacity=".6"/>
+          <circle cx="120" cy="66" r="14" fill="#b5793a"/><path d="M106 66 h28" stroke="#fff" stroke-width="2" opacity=".6"/>
+          <circle cx="150" cy="128" r="12" fill="#f2a33d"/>
+        </g>
+        <ellipse cx="96" cy="66" rx="26" ry="16" fill="#fff" opacity=".35"/>
+        <!-- 機身 -->
+        <path d="M52 176 h136 a10 10 0 0 1 10 10 v88 a12 12 0 0 1 -12 12 H54 a12 12 0 0 1 -12 -12 v-88 a10 10 0 0 1 10 -10 Z"
+              fill="#ef7350"/>
+        <path d="M52 176 h136 a10 10 0 0 1 10 10 v14 H42 v-14 a10 10 0 0 1 10 -10 Z" fill="#e8623d"/>
+        <!-- 投幣旋鈕 -->
+        <g class="knob">
+          <circle cx="120" cy="224" r="24" fill="#fbe6d2" stroke="#d9c9b5" stroke-width="3"/>
+          <rect x="117" y="204" width="6" height="40" rx="3" fill="#c9a06a"/>
+          <rect x="100" y="221" width="40" height="6" rx="3" fill="#c9a06a"/>
+          <circle cx="120" cy="224" r="5" fill="#a97e4a"/>
+        </g>
+        <!-- 出蛋口 -->
+        <rect x="92" y="258" width="56" height="26" rx="7" fill="#7a3322"/>
+        <rect x="99" y="264" width="42" height="14" rx="5" fill="#5c2417"/>
+      </svg>
+
+      <button class="btn" id="pullBtn"><span class="coin">🪙</span>轉蛋！</button>
+    </div>
+
+    <div class="result" id="result">
+      <div class="placeholder" id="placeholder">
+        <div class="big">🥚</div>
+        按下「轉蛋！」，看看今天會掉出哪一則冷知識。<br>越稀有的知識越難抽到喔。
+      </div>
+    </div>
+  </section>
+
+  <section class="album">
+    <div class="album-head">
+      <h3>📔 冷知識圖鑑</h3>
+      <span class="hint">點一下已收集的卡片可再讀一次；灰色的還沒抽到。</span>
+    </div>
+    <div id="albumBody"></div>
+  </section>
+
+  <footer>
+    <p>共 24 張卡片 · 全部內容皆經查證，來源見 <b>說明.md</b>。資料只存在你自己電腦的 <code>gacha.db</code>。</p>
+    <p><button class="linkbtn" id="resetBtn">清空收藏，重新收集</button></p>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal"><div id="modalCard"></div></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const RARITY = {
+  "普通": {cls:"var(--r-common)", label:"普通"},
+  "稀有": {cls:"var(--r-rare)",   label:"稀有 ✦"},
+  "傳說": {cls:"var(--r-legend)", label:"傳說 ★"}
+};
+const CATS = ["動物","太空","人體","歷史","食物","自然"];
+const catColor = c => getComputedStyle(document.documentElement).getPropertyValue("--c-"+c).trim() || "#999";
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const $ = id => document.getElementById(id);
+
+let busy = false;
+
+function rarityColor(r){
+  if(r==="傳說") return "var(--r-legend)";
+  if(r==="稀有") return "var(--r-rare)";
+  return "var(--r-common)";
+}
+
+function cardHTML(card, opts){
+  opts = opts || {};
+  const rc = rarityColor(card.rarity);
+  const cc = catColor(card.category);
+  const isL = card.rarity==="傳說";
+  const newflag = opts.isNew ? '<span class="newflag">NEW ✦ 新卡片</span>' : '';
+  const sparkles = isL ? '<div class="sparkles">'+Array.from({length:7},(_,i)=>
+     `<i style="left:${10+i*12}%; animation-delay:${i*0.08}s"></i>`).join('')+'</div>' : '';
+  return `
+    <div class="card ${isL?'lgnd':''} ${opts.pop?'pop':''}" style="--edge:${rc}">
+      ${sparkles}
+      <div class="toprow">
+        <span class="tag" style="background:${cc}">${card.category}</span>
+        <span class="rarity" style="color:${rc}">${RARITY[card.rarity].label}</span>
+        ${newflag}
+      </div>
+      <div class="emoji">${card.emoji}</div>
+      <h2>${card.title}</h2>
+      <p class="fact">${card.fact}</p>
+      <div class="src">📎 來源：<b>${card.source}</b></div>
+    </div>`;
+}
+
+async function loadAlbum(){
+  const res = await fetch("/api/album");
+  const data = await res.json();
+  renderStats(data.stats);
+  renderAlbum(data.cards);
+}
+
+function renderStats(s){
+  $("st-collected").textContent = s.unique_collected + "/" + s.total_cards;
+  $("st-percent").textContent = s.percent + "%";
+  $("st-pulls").textContent = s.total_pulls;
+  $("bar").style.width = s.percent + "%";
+}
+
+function renderAlbum(cards){
+  const body = $("albumBody");
+  body.innerHTML = "";
+  CATS.forEach(cat => {
+    const group = cards.filter(c => c.category===cat);
+    if(!group.length) return;
+    const got = group.filter(c=>c.collected).length;
+    const block = document.createElement("div");
+    block.className = "cat-block";
+    block.innerHTML = `<div class="cat-title">
+        <span class="cat-dot" style="background:${catColor(cat)}"></span>${cat}
+        <span class="cat-count">${got}/${group.length}</span></div>
+      <div class="grid"></div>`;
+    const grid = block.querySelector(".grid");
+    group.forEach(c => grid.appendChild(slotEl(c)));
+    body.appendChild(block);
+  });
+}
+
+function slotEl(c){
+  const el = document.createElement("div");
+  if(c.collected){
+    const rc = rarityColor(c.rarity);
+    el.className = "slot got";
+    el.style.borderColor = catColor(c.category);
+    el.innerHTML = `
+      ${c.pull_count>1 ? `<span class="s-count">×${c.pull_count}</span>`:''}
+      <div class="s-emoji">${c.emoji}</div>
+      <div class="s-title">${c.title}</div>
+      <div class="s-rarity" style="color:${rc}">${RARITY[c.rarity].label}</div>`;
+    el.addEventListener("click", () => openModal(c));
+  } else {
+    el.className = "slot locked";
+    el.innerHTML = `<div class="q">？</div><div class="s-locktxt">尚未收集</div>`;
+  }
+  return el;
+}
+
+function openModal(card){
+  $("modalCard").innerHTML = cardHTML(card, {pop:true}) +
+    '<button class="modal-close" id="mClose">×</button>';
+  $("mClose").addEventListener("click", closeModal);
+  $("overlay").classList.add("show");
+}
+function closeModal(){ $("overlay").classList.remove("show"); }
+$("overlay").addEventListener("click", e => { if(e.target.id==="overlay") closeModal(); });
+document.addEventListener("keydown", e => { if(e.key==="Escape") closeModal(); });
+
+function toast(msg){
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+
+async function doPull(){
+  if(busy) return;
+  busy = true;
+  const btn = $("pullBtn");
+  btn.disabled = true;
+  $("machine").classList.add("turning");
+
+  let data;
+  try{
+    const [res] = await Promise.all([
+      fetch("/api/pull", {method:"POST"}),
+      sleep(750)
+    ]);
+    data = await res.json();
+  }catch(err){
+    toast("咦，扭蛋機卡住了，請確認伺服器有在執行");
+    busy=false; btn.disabled=false; $("machine").classList.remove("turning");
+    return;
+  }
+
+  $("machine").classList.remove("turning");
+  $("placeholder") && ($("placeholder").style.display="none");
+
+  const card = data.card;
+  $("result").innerHTML = cardHTML(card, {isNew:data.is_new, pop:true});
+  renderStats(data.stats);
+  loadAlbum();
+
+  if(data.is_new && card.rarity==="傳說") toast("✦ 傳說級新卡片！太幸運了！");
+  else if(data.is_new) toast("獲得新卡片，已收進圖鑑！");
+  else toast("這張已經收集過囉（收藏 +1）");
+
+  busy = false;
+  btn.disabled = false;
+}
+
+async function resetAll(){
+  if(!confirm("確定要清空所有收藏、重新開始收集嗎？")) return;
+  await fetch("/api/reset", {method:"POST"});
+  $("result").innerHTML = '<div class="placeholder" id="placeholder">'+
+    '<div class="big">🥚</div>圖鑑已清空，重新開始收集吧！</div>';
+  loadAlbum();
+  toast("已清空收藏");
+}
+
+$("pullBtn").addEventListener("click", doPull);
+$("resetBtn").addEventListener("click", resetAll);
+loadAlbum();
+</script>
+</body>
+</html>

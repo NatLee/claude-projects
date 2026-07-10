@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>訂閱體檢所 · 把每月帳單裡的訂閱攤開來看</title>
+<style>
+  :root{
+    --bg1:#eef1fb; --bg2:#f6f1f9;
+    --ink:#1c2342; --muted:#737b9c; --soft:#9aa1bd;
+    --card:#ffffff; --line:#ebedf6;
+    --accent:#6366f1; --accent2:#8b5cf6;
+    --good:#10b981; --warn:#f43f6f; --gold:#f5b73d;
+    --c-stream:#6366f1; --c-music:#ec4899; --c-cloud:#0ea5e9; --c-tool:#14b8a6;
+    --c-news:#f59e0b; --c-game:#8b5cf6; --c-health:#ef4444; --c-other:#64748b;
+    --shadow:0 10px 30px -12px rgba(31,38,80,.22);
+    --shadow-sm:0 2px 10px -4px rgba(31,38,80,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei","Noto Sans TC","Segoe UI",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1100px 600px at 12% -8%, #e7ecff 0%, transparent 55%),
+      radial-gradient(900px 520px at 105% 0%, #f6e9fb 0%, transparent 50%),
+      linear-gradient(160deg,var(--bg1),var(--bg2));
+    background-attachment:fixed;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.6;
+    padding:34px 18px 70px;
+  }
+  .wrap{max-width:1060px;margin:0 auto}
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  /* Header */
+  header.top{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+  .logo{
+    width:50px;height:50px;border-radius:15px;flex:none;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;font-size:25px;
+    box-shadow:0 8px 20px -6px rgba(99,102,241,.6);
+  }
+  .top h1{font-size:23px;letter-spacing:.5px;font-weight:800}
+  .top p{color:var(--muted);font-size:13.5px;margin-top:1px}
+  .cur-pick{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted)}
+  .cur-pick select{
+    font:inherit;font-size:13px;color:var(--ink);border:1px solid var(--line);
+    background:var(--card);border-radius:9px;padding:6px 9px;cursor:pointer;
+  }
+
+  /* Hero */
+  .hero{
+    position:relative;overflow:hidden;border-radius:22px;padding:26px 28px;
+    background:linear-gradient(135deg,#211c52 0%,#3b32a3 52%,#4f46e5 100%);
+    color:#fff;box-shadow:0 24px 50px -22px rgba(40,34,110,.85);
+    margin-bottom:16px;
+  }
+  .hero::before{
+    content:"";position:absolute;width:340px;height:340px;border-radius:50%;
+    right:-90px;top:-150px;background:radial-gradient(circle,rgba(255,255,255,.16),transparent 65%);
+  }
+  .hero::after{
+    content:"";position:absolute;width:240px;height:240px;border-radius:50%;
+    left:-80px;bottom:-130px;background:radial-gradient(circle,rgba(245,183,61,.18),transparent 65%);
+  }
+  .hero .lab{font-size:13px;letter-spacing:2px;color:#c7c9f7;text-transform:uppercase;position:relative}
+  .hero-main{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;position:relative;margin-top:4px}
+  .big-amt{font-size:52px;font-weight:800;line-height:1.05;letter-spacing:.5px;text-shadow:0 4px 18px rgba(0,0,0,.25)}
+  .big-amt small{font-size:21px;font-weight:600;opacity:.8;margin-right:3px}
+  .hero-sub{display:flex;gap:24px;flex-wrap:wrap;color:#dcdcfb;font-size:14px;padding-bottom:6px}
+  .hero-sub b{color:#fff;font-weight:700}
+  .verdict{
+    position:relative;margin-top:18px;display:inline-flex;align-items:center;gap:9px;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+    padding:9px 15px;border-radius:12px;font-size:13.5px;backdrop-filter:blur(4px);
+  }
+  .verdict .dot{width:9px;height:9px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 4px rgba(245,183,61,.25)}
+
+  /* Equivalents */
+  .equiv{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+  .eq{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 14px 13px;
+    box-shadow:var(--shadow-sm);text-align:center;transition:transform .18s ease, box-shadow .18s;
+  }
+  .eq:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .eq .em{font-size:25px}
+  .eq .n{font-size:21px;font-weight:800;margin-top:2px;letter-spacing:.3px}
+  .eq .t{font-size:12px;color:var(--muted);margin-top:1px}
+  .equiv-cap{grid-column:1/-1;font-size:12.5px;color:var(--soft);text-align:center;margin-top:-3px}
+
+  /* Grid */
+  .grid2{display:grid;grid-template-columns:1.05fr .95fr;gap:16px;margin-bottom:16px;align-items:stretch}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm)}
+  .card h2{font-size:15px;font-weight:800;padding:16px 18px 0;display:flex;align-items:center;gap:8px}
+  .card h2 .pill{font-size:11px;font-weight:700;color:var(--muted);background:#f1f2f9;border-radius:20px;padding:2px 9px;margin-left:auto}
+
+  /* Donut */
+  .donut-wrap{display:flex;gap:18px;align-items:center;padding:14px 18px 20px;flex-wrap:wrap}
+  .donut{position:relative;width:178px;height:178px;flex:none;margin:0 auto}
+  .donut svg{transform:rotate(-90deg);overflow:visible}
+  .donut .center{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .donut .center .c1{font-size:12px;color:var(--muted)}
+  .donut .center .c2{font-size:24px;font-weight:800;letter-spacing:.3px}
+  .donut .center .c3{font-size:11.5px;color:var(--soft)}
+  .donut path,.donut circle.seg{transition:opacity .15s ease}
+  .legend{flex:1;min-width:170px;display:flex;flex-direction:column;gap:4px}
+  .lg{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:10px;cursor:default;transition:background .15s}
+  .lg:hover{background:#f7f8fc}
+  .lg .sw{width:11px;height:11px;border-radius:4px;flex:none}
+  .lg .nm{font-size:13.5px;font-weight:600}
+  .lg .em{font-size:13px}
+  .lg .amt{margin-left:auto;font-size:13px;font-weight:700}
+  .lg .pct{font-size:11.5px;color:var(--soft);width:38px;text-align:right}
+
+  /* Insight */
+  .insight{padding:14px 18px 18px;font-size:13.6px;color:#414a6e}
+  .insight .quote{
+    border-left:3px solid var(--accent);background:#f6f7ff;border-radius:0 12px 12px 0;
+    padding:11px 14px;color:#3a4168;margin-bottom:13px;
+  }
+  .insight .quote b{color:var(--accent)}
+  .stat-row{display:flex;gap:10px;margin-bottom:13px}
+  .stat-box{flex:1;background:#fafbff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:center}
+  .stat-box .v{font-size:21px;font-weight:800;color:var(--ink)}
+  .stat-box .v.warn{color:var(--warn)}
+  .stat-box .l{font-size:11.5px;color:var(--muted);margin-top:1px}
+  .insight .tip{font-size:12.8px;color:var(--muted)}
+
+  /* Upcoming */
+  .up-list{padding:6px 14px 16px;display:flex;flex-direction:column;gap:8px}
+  .up{
+    display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:13px;
+    background:linear-gradient(100deg,#fff6f8,#fffafb);border:1px solid #fbe0e7;
+  }
+  .up .em{font-size:20px}
+  .up .nm{font-weight:700;font-size:14px}
+  .up .meta{font-size:12px;color:var(--muted)}
+  .up .when{margin-left:auto;text-align:right}
+  .up .when .d{font-weight:800;color:var(--warn);font-size:14px}
+  .up .when .s{font-size:11px;color:var(--soft)}
+
+  /* List card */
+  .toolbar{display:flex;gap:9px;align-items:center;padding:14px 18px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .toolbar .grow{flex:1}
+  select.sort,button.btn{font:inherit;border-radius:11px;cursor:pointer;border:1px solid var(--line);transition:all .16s}
+  select.sort{font-size:13px;background:#fafbff;color:var(--ink);padding:9px 11px}
+  button.btn{padding:9px 15px;font-size:13.5px;font-weight:700;background:#fafbff;color:var(--ink)}
+  button.btn:hover{border-color:#cfd3ea;background:#fff;transform:translateY(-1px)}
+  button.btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;box-shadow:0 8px 18px -8px rgba(99,102,241,.7)}
+  button.btn.primary:hover{filter:brightness(1.05)}
+  button.btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:9px 10px}
+  button.btn.ghost:hover{color:var(--warn);background:#fff2f5}
+
+  .rows{padding:8px 12px 14px;display:flex;flex-direction:column;gap:7px}
+  .row{
+    display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:14px;border:1px solid var(--line);
+    background:#fff;transition:box-shadow .16s,transform .16s,border-color .16s;animation:pop .28s ease both;
+  }
+  .row:hover{box-shadow:var(--shadow-sm);border-color:#dfe2f1}
+  @keyframes pop{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:21px;flex:none;color:#fff}
+  .row .info{min-width:0;flex:1}
+  .row .info .nm{font-weight:700;font-size:14.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .tag{font-size:11px;font-weight:700;padding:1px 8px;border-radius:20px;background:#f1f2f9;color:var(--muted)}
+  .row .info .meta{font-size:12px;color:var(--muted);margin-top:1px}
+  .row .price{text-align:right;flex:none}
+  .row .price .m{font-weight:800;font-size:15px}
+  .row .price .y{font-size:11.5px;color:var(--soft)}
+  .row .act{display:flex;gap:2px;flex:none}
+  .iconbtn{border:none;background:none;cursor:pointer;color:var(--soft);width:32px;height:32px;border-radius:9px;font-size:15px;transition:.15s}
+  .iconbtn:hover{background:#f1f2f9;color:var(--ink)}
+  .iconbtn.del:hover{background:#fff2f5;color:var(--warn)}
+
+  /* Empty */
+  .empty{padding:46px 20px;text-align:center;color:var(--muted)}
+  .empty .e{font-size:46px}
+  .empty h3{color:var(--ink);font-size:17px;margin:8px 0 4px}
+  .empty p{font-size:13.5px;margin-bottom:16px}
+
+  footer{margin-top:26px;text-align:center;color:var(--soft);font-size:12px;line-height:1.8}
+  footer b{color:var(--muted)}
+
+  /* Modal */
+  .modal{position:fixed;inset:0;background:rgba(24,28,55,.45);backdrop-filter:blur(5px);display:none;place-items:center;z-index:50;padding:18px}
+  .modal.show{display:grid;animation:fade .2s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .sheet{
+    width:100%;max-width:430px;background:var(--card);border-radius:20px;box-shadow:var(--shadow);
+    padding:22px 22px 20px;animation:rise .26s cubic-bezier(.2,.8,.2,1) both;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+  .sheet h3{font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:9px}
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:700;color:var(--muted);margin-bottom:5px}
+  .field input,.field select{
+    width:100%;font:inherit;font-size:14px;color:var(--ink);border:1px solid var(--line);
+    background:#fafbff;border-radius:11px;padding:10px 12px;transition:.15s;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(99,102,241,.13)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .catbtn{border:1px solid var(--line);background:#fafbff;border-radius:11px;padding:8px 4px;cursor:pointer;text-align:center;font:inherit;transition:.14s}
+  .catbtn .ce{font-size:18px;display:block}
+  .catbtn .cn{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .catbtn.on{border-color:var(--accent);background:#eef0ff;box-shadow:0 0 0 2px rgba(99,102,241,.12)}
+  .catbtn.on .cn{color:var(--accent);font-weight:700}
+  .sheet-act{display:flex;gap:10px;margin-top:18px}
+  .sheet-act .btn{flex:1;justify-content:center;text-align:center}
+  .err{color:var(--warn);font-size:12px;margin-top:8px;min-height:15px;font-weight:600}
+
+  @media (max-width:780px){
+    body{padding:22px 13px 60px}
+    .grid2{grid-template-columns:1fr}
+    .equiv{grid-template-columns:repeat(2,1fr)}
+    .big-amt{font-size:42px}
+    .hero{padding:22px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="logo">🩺</div>
+    <div>
+      <h1>訂閱體檢所</h1>
+      <p>把藏在每月帳單裡的訂閱，一次攤開來看清楚</p>
+    </div>
+    <div class="cur-pick">
+      幣別
+      <select id="curSel" title="切換顯示幣別符號">
+        <option value="NT$">NT$ 台幣</option>
+        <option value="$">$ 美元</option>
+        <option value="¥">¥ 日圓</option>
+        <option value="€">€ 歐元</option>
+        <option value="HK$">HK$ 港幣</option>
+        <option value="RM ">RM 馬幣</option>
+      </select>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="lab">一年下來，你的訂閱共花了</div>
+    <div class="hero-main">
+      <div class="big-amt"><small id="curMark">NT$</small><span id="yearTotal" class="tnum">0</span></div>
+      <div class="hero-sub">
+        <div>每月 <b id="monthTotal" class="tnum">—</b></div>
+        <div>平均每天 <b id="dayTotal" class="tnum">—</b></div>
+        <div>共 <b id="countTotal">0</b> 項訂閱</div>
+      </div>
+    </div>
+    <div class="verdict"><span class="dot"></span><span id="verdict">載入範例，或新增你的第一筆訂閱開始體檢。</span></div>
+  </section>
+
+  <!-- Equivalents -->
+  <section class="equiv" id="equiv"></section>
+
+  <!-- Donut + Insight -->
+  <div class="grid2">
+    <section class="card">
+      <h2>💸 開銷分布<span class="pill" id="donutPill">依分類</span></h2>
+      <div class="donut-wrap">
+        <div class="donut">
+          <svg viewBox="0 0 200 200" width="178" height="178" id="donutSvg"></svg>
+          <div class="center">
+            <div class="c1">每月合計</div>
+            <div class="c2 tnum" id="donutCenter">—</div>
+            <div class="c3" id="donutCenterSub"></div>
+          </div>
+        </div>
+        <div class="legend" id="legend"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>🔍 訂閱體檢報告</h2>
+      <div class="insight">
+        <div class="quote">
+          C+R Research 調查發現：人們<b>以為</b>自己每月訂閱花 US$86，<b>實際</b>卻高達 US$219 — 足足是想像的 2.5 倍。
+        </div>
+        <div class="stat-row">
+          <div class="stat-box"><div class="v">8.2</div><div class="l">平均同時養著的訂閱數</div></div>
+          <div class="stat-box"><div class="v warn">42%</div><div class="l">忘了自己還在付的人</div></div>
+        </div>
+        <div class="tip" id="insightTip">小提醒：把上面這份清單和你的信用卡帳單核對一次，常會抓到「殭屍訂閱」。</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Upcoming -->
+  <section class="card" id="upcomingCard" style="display:none;margin-bottom:16px">
+    <h2>⏰ 即將扣款<span class="pill" id="upPill"></span></h2>
+    <div class="up-list" id="upList"></div>
+  </section>
+
+  <!-- List -->
+  <section class="card">
+    <div class="toolbar">
+      <button class="btn primary" id="addBtn">＋ 新增訂閱</button>
+      <span class="grow"></span>
+      <select class="sort" id="sortSel">
+        <option value="month-desc">月費（高 → 低）</option>
+        <option value="month-asc">月費（低 → 高）</option>
+        <option value="name">名稱</option>
+        <option value="next">下次扣款日</option>
+      </select>
+      <button class="btn" id="sampleBtn">載入範例</button>
+      <button class="btn" id="exportBtn" title="匯出成 JSON 備份">匯出</button>
+      <button class="btn" id="importBtn" title="從 JSON 還原">匯入</button>
+      <button class="btn ghost" id="clearBtn">清空</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
+
+  <footer>
+    🔒 你的資料只存在這台電腦的瀏覽器（localStorage），不會上傳到任何地方。<br>
+    資料來源：<b>C+R Research</b>〈Subscription Service Statistics〉、<b>CNBC</b>（2022 年報導）。每日小專案 · 2026-06-30
+  </footer>
+</div>
+
+<!-- Modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3 id="sheetTitle">＋ 新增訂閱</h3>
+    <div class="field">
+      <label>名稱</label>
+      <input id="fName" placeholder="例如：Netflix、Spotify、健身房…" maxlength="40">
+    </div>
+    <div class="two">
+      <div class="field">
+        <label>金額</label>
+        <input id="fPrice" type="number" min="0" step="1" inputmode="decimal" placeholder="0">
+      </div>
+      <div class="field">
+        <label>扣款週期</label>
+        <select id="fCycle">
+          <option value="monthly">每月</option>
+          <option value="yearly">每年</option>
+          <option value="quarterly">每季</option>
+          <option value="weekly">每週</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>分類</label>
+      <div class="cat-grid" id="catGrid"></div>
+    </div>
+    <div class="field">
+      <label>下次扣款日（選填，可用來提醒）</label>
+      <input id="fDate" type="date">
+    </div>
+    <div class="err" id="formErr"></div>
+    <div class="sheet-act">
+      <button class="btn" id="cancelBtn">取消</button>
+      <button class="btn primary" id="saveBtn">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ===== 資料定義 =====
+  var CATS = {
+    stream:{name:"影音串流",emoji:"🎬",color:"#6366f1"},
+    music:{name:"音樂",emoji:"🎵",color:"#ec4899"},
+    cloud:{name:"雲端・儲存",emoji:"☁️",color:"#0ea5e9"},
+    tool:{name:"軟體・工具",emoji:"🛠️",color:"#14b8a6"},
+    news:{name:"新聞・閱讀",emoji:"📰",color:"#f59e0b"},
+    game:{name:"遊戲",emoji:"🎮",color:"#8b5cf6"},
+    health:{name:"健身・健康",emoji:"💪",color:"#ef4444"},
+    other:{name:"其他",emoji:"📦",color:"#64748b"}
+  };
+  var CAT_ORDER = ["stream","music","cloud","tool","news","game","health","other"];
+  var CYCLES = {
+    weekly:{name:"每週",perYear:52},
+    monthly:{name:"每月",perYear:12},
+    quarterly:{name:"每季",perYear:4},
+    yearly:{name:"每年",perYear:1}
+  };
+  var EQUIV = [
+    {emoji:"🧋",unit:"杯手搖飲",each:60},
+    {emoji:"🍱",unit:"個便當",each:100},
+    {emoji:"🎬",unit:"張電影票",each:320},
+    {emoji:"✈️",unit:"趟東京來回機票",each:12000}
+  ];
+  var STORE_KEY = "sub-clinic-v1";
+
+  // ===== 狀態 =====
+  var subs = [];
+  var currency = "NT$";
+  var sortMode = "month-desc";
+  var editingId = null;
+  var pickedCat = "stream";
+  var firstPaint = true;
+
+  // ===== 工具函式 =====
+  function $(id){ return document.getElementById(id); }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function annualOf(s){ return (Number(s.price)||0) * CYCLES[s.cycle].perYear; }
+  function monthlyOf(s){ return annualOf(s)/12; }
+  function money(n){ return currency + Math.round(n).toLocaleString("en-US"); }
+  function money1(n){ // 一位小數（用於機票等大單位）
+    var r = Math.round(n*10)/10;
+    return (r % 1 === 0) ? r.toLocaleString("en-US") : r.toFixed(1);
+  }
+  function todayISO(off){
+    var d = new Date(); d.setHours(0,0,0,0);
+    if(off) d.setDate(d.getDate()+off);
+    return d.toISOString().slice(0,10);
+  }
+
+  // 把過去的扣款日往後滾到下一次（依週期），回傳 Date 或 null
+  function nextOccurrence(s){
+    if(!s.nextDate) return null;
+    var d = new Date(s.nextDate + "T00:00:00");
+    if(isNaN(d.getTime())) return null;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var guard = 0;
+    while(d < today && guard < 600){
+      if(s.cycle==="weekly") d.setDate(d.getDate()+7);
+      else if(s.cycle==="monthly") d.setMonth(d.getMonth()+1);
+      else if(s.cycle==="quarterly") d.setMonth(d.getMonth()+3);
+      else d.setFullYear(d.getFullYear()+1);
+      guard++;
+    }
+    return d;
+  }
+  function daysUntil(d){
+    var today = new Date(); today.setHours(0,0,0,0);
+    return Math.round((d - today)/86400000);
+  }
+
+  // ===== 儲存 =====
+  function save(){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify({subs:subs,currency:currency})); }catch(e){}
+  }
+  function load(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if(raw){
+        var o = JSON.parse(raw);
+        if(o && Array.isArray(o.subs)) subs = o.subs;
+        if(o && o.currency) currency = o.currency;
+      }
+    }catch(e){ subs = []; }
+  }
+
+  // ===== 範例資料 =====
+  function sampleData(){
+    return [
+      {id:uid(),name:"Netflix 標準版",price:390,cycle:"monthly",category:"stream",nextDate:todayISO(3)},
+      {id:uid(),name:"Spotify Premium",price:149,cycle:"monthly",category:"music",nextDate:todayISO(9)},
+      {id:uid(),name:"YouTube Premium",price:179,cycle:"monthly",category:"stream",nextDate:todayISO(18)},
+      {id:uid(),name:"iCloud+ 200GB",price:90,cycle:"monthly",category:"cloud",nextDate:todayISO(1)},
+      {id:uid(),name:"ChatGPT Plus",price:640,cycle:"monthly",category:"tool",nextDate:todayISO(25)},
+      {id:uid(),name:"Disney+ 年訂",price:2790,cycle:"yearly",category:"stream",nextDate:todayISO(118)},
+      {id:uid(),name:"健身房會籍",price:1280,cycle:"monthly",category:"health",nextDate:todayISO(6)},
+      {id:uid(),name:"天下雜誌 數位",price:340,cycle:"monthly",category:"news",nextDate:todayISO(14)}
+    ];
+  }
+
+  // ===== 圓環圖（純 SVG，離線可用）=====
+  function polar(cx,cy,r,deg){
+    var a = (deg-90)*Math.PI/180;
+    return {x: cx + r*Math.cos(a), y: cy + r*Math.sin(a)};
+  }
+  function arcPath(cx,cy,r,start,end){
+    var s = polar(cx,cy,r,end), e = polar(cx,cy,r,start);
+    var large = (end-start) <= 180 ? 0 : 1;
+    return "M "+s.x.toFixed(2)+" "+s.y.toFixed(2)+" A "+r+" "+r+" 0 "+large+" 0 "+e.x.toFixed(2)+" "+e.y.toFixed(2);
+  }
+  function renderDonut(catData, totalMonthly){
+    var svg = $("donutSvg");
+    svg.innerHTML = "";
+    var ns = "http://www.w3.org/2000/svg";
+    // 背景軌道
+    var track = document.createElementNS(ns,"circle");
+    track.setAttribute("cx","100"); track.setAttribute("cy","100"); track.setAttribute("r","80");
+    track.setAttribute("fill","none"); track.setAttribute("stroke","#eef0f7"); track.setAttribute("stroke-width","26");
+    svg.appendChild(track);
+
+    if(!catData.length || totalMonthly<=0) return;
+
+    if(catData.length===1){
+      var c = document.createElementNS(ns,"circle");
+      c.setAttribute("cx","100"); c.setAttribute("cy","100"); c.setAttribute("r","80");
+      c.setAttribute("fill","none"); c.setAttribute("stroke",catData[0].color); c.setAttribute("stroke-width","26");
+      c.setAttribute("class","seg"); c.setAttribute("data-cat",catData[0].key);
+      svg.appendChild(c);
+      return;
+    }
+    var acc = 0;
+    catData.forEach(function(d){
+      var frac = d.month/totalMonthly;
+      var start = acc*360, end = (acc+frac)*360;
+      var gap = 1.2; // 區段間留白
+      var p = document.createElementNS(ns,"path");
+      p.setAttribute("d", arcPath(100,100,80, start+gap, Math.max(start+gap, end-gap)));
+      p.setAttribute("fill","none"); p.setAttribute("stroke",d.color);
+      p.setAttribute("stroke-width","26"); p.setAttribute("stroke-linecap","round");
+      p.setAttribute("class","seg"); p.setAttribute("data-cat",d.key);
+      svg.appendChild(p);
+      acc += frac;
+    });
+  }
+  function dimSegments(catKey){
+    var segs = document.querySelectorAll("#donutSvg .seg");
+    for(var i=0;i<segs.length;i++){
+      segs[i].style.opacity = (catKey===null || segs[i].getAttribute("data-cat")===catKey) ? "1" : "0.25";
+    }
+  }
+
+  // ===== 數字動畫 =====
+  function animateNum(el, to, fmt){
+    var from = 0, dur = 850, start = null;
+    function tick(ts){
+      if(start===null) start = ts;
+      var p = Math.min(1,(ts-start)/dur);
+      var e = 1 - Math.pow(1-p,3);
+      el.textContent = fmt(from + (to-from)*e);
+      if(p<1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ===== 主渲染 =====
+  function render(){
+    var totalMonth = 0, totalYear = 0;
+    subs.forEach(function(s){ totalMonth += monthlyOf(s); totalYear += annualOf(s); });
+
+    // Hero
+    $("curMark").textContent = currency;
+    $("countTotal").textContent = subs.length;
+    var fmtY = function(v){ return Math.round(v).toLocaleString("en-US"); };
+    if(firstPaint && totalYear>0){
+      animateNum($("yearTotal"), totalYear, fmtY);
+    } else {
+      $("yearTotal").textContent = fmtY(totalYear);
+    }
+    $("monthTotal").textContent = money(totalMonth);
+    $("dayTotal").textContent = money(totalMonth*12/365);
+    $("verdict").textContent = verdictText(totalYear, subs.length);
+
+    // Equivalents
+    renderEquiv(totalYear);
+
+    // Donut by category
+    var byCat = {};
+    subs.forEach(function(s){ byCat[s.category] = (byCat[s.category]||0) + monthlyOf(s); });
+    var catData = CAT_ORDER.filter(function(k){ return byCat[k]>0; }).map(function(k){
+      return {key:k, name:CATS[k].name, emoji:CATS[k].emoji, color:CATS[k].color, month:byCat[k]};
+    }).sort(function(a,b){ return b.month - a.month; });
+
+    renderDonut(catData, totalMonth);
+    $("donutCenter").textContent = totalMonth>0 ? money(totalMonth) : "—";
+    $("donutCenterSub").textContent = totalMonth>0 ? (catData.length + " 類") : "";
+    $("donutPill").textContent = catData.length ? (catData.length + " 類") : "依分類";
+    renderLegend(catData, totalMonth);
+
+    // Upcoming
+    renderUpcoming();
+
+    // Rows
+    renderRows();
+
+    firstPaint = false;
+    save();
+  }
+
+  function verdictText(year, n){
+    if(n===0) return "載入範例，或新增你的第一筆訂閱開始體檢。";
+    if(year < 6000) return "輕量級訂閱族，荷包控制得很好 👍";
+    if(year < 18000) return "中度訂閱，記得每季檢視一次有沒有忘了取消的。";
+    if(year < 36000) return "偏重的訂閱量，挑一兩個最少用的停掉，立刻有感。";
+    return "重度訂閱族！一年超過 " + money(36000) + "，很值得來一波斷捨離。";
+  }
+
+  function renderEquiv(year){
+    var box = $("equiv");
+    if(year<=0){ box.innerHTML = ""; box.style.display="none"; return; }
+    box.style.display = "grid";
+    var html = "";
+    EQUIV.forEach(function(eq){
+      var cnt = year/eq.each;
+      var shown = (eq.each>=5000) ? money1(cnt) : Math.round(cnt).toLocaleString("en-US");
+      html += '<div class="eq"><div class="em">'+eq.emoji+'</div><div class="n tnum">'+shown+'</div><div class="t">'+eq.unit+'</div></div>';
+    });
+    html += '<div class="equiv-cap">同樣這筆錢，一年可以換成上面這些 ☝️</div>';
+    box.innerHTML = html;
+  }
+
+  function renderLegend(catData, total){
+    var box = $("legend");
+    if(!catData.length){ box.innerHTML = '<div style="color:var(--soft);font-size:13px;padding:8px">尚無資料</div>'; return; }
+    var html = "";
+    catData.forEach(function(d){
+      var pct = total>0 ? Math.round(d.month/total*100) : 0;
+      html += '<div class="lg" data-cat="'+d.key+'">'+
+        '<span class="sw" style="background:'+d.color+'"></span>'+
+        '<span class="em">'+d.emoji+'</span>'+
+        '<span class="nm">'+d.name+'</span>'+
+        '<span class="amt tnum">'+money(d.month)+'</span>'+
+        '<span class="pct tnum">'+pct+'%</span></div>';
+    });
+    box.innerHTML = html;
+    var rows = box.querySelectorAll(".lg");
+    for(var i=0;i<rows.length;i++){
+      (function(el){
+        el.addEventListener("mouseenter", function(){ dimSegments(el.getAttribute("data-cat")); });
+        el.addEventListener("mouseleave", function(){ dimSegments(null); });
+      })(rows[i]);
+    }
+  }
+
+  function renderUpcoming(){
+    var card = $("upcomingCard"), list = $("upList");
+    var items = [];
+    subs.forEach(function(s){
+      var d = nextOccurrence(s);
+      if(d){ var du = daysUntil(d); if(du>=0 && du<=14) items.push({s:s,d:d,du:du}); }
+    });
+    items.sort(function(a,b){ return a.du - b.du; });
+    if(!items.length){ card.style.display="none"; return; }
+    card.style.display="block";
+    $("upPill").textContent = items.length + " 筆 14 天內";
+    var html = "";
+    items.forEach(function(it){
+      var c = CATS[it.s.category];
+      var whenTxt = it.du===0 ? "今天" : (it.du===1 ? "明天" : "還有 "+it.du+" 天");
+      var dateTxt = (it.d.getMonth()+1) + "/" + it.d.getDate();
+      html += '<div class="up"><span class="em">'+c.emoji+'</span>'+
+        '<div><div class="nm">'+esc(it.s.name)+'</div>'+
+        '<div class="meta">'+CYCLES[it.s.cycle].name+'扣 '+money(it.s.price)+'</div></div>'+
+        '<div class="when"><div class="d">'+whenTxt+'</div><div class="s">'+dateTxt+' 扣款</div></div></div>';
+    });
+    list.innerHTML = html;
+  }
+
+  function sortedSubs(){
+    var arr = subs.slice();
+    if(sortMode==="month-desc") arr.sort(function(a,b){ return monthlyOf(b)-monthlyOf(a); });
+    else if(sortMode==="month-asc") arr.sort(function(a,b){ return monthlyOf(a)-monthlyOf(b); });
+    else if(sortMode==="name") arr.sort(function(a,b){ return a.name.localeCompare(b.name,"zh-Hant"); });
+    else if(sortMode==="next"){
+      arr.sort(function(a,b){
+        var da=nextOccurrence(a), db=nextOccurrence(b);
+        if(!da && !db) return 0; if(!da) return 1; if(!db) return -1;
+        return da - db;
+      });
+    }
+    return arr;
+  }
+
+  function renderRows(){
+    var box = $("rows");
+    if(!subs.length){
+      box.innerHTML = '<div class="empty"><div class="e">🧾</div>'+
+        '<h3>還沒有任何訂閱</h3>'+
+        '<p>新增你正在付的服務，或先載入一份範例看看效果。</p>'+
+        '<button class="btn primary" id="emptyAdd">＋ 新增第一筆訂閱</button>'+
+        '<button class="btn" id="emptySample" style="margin-left:8px">載入範例</button></div>';
+      $("emptyAdd").addEventListener("click", openAdd);
+      $("emptySample").addEventListener("click", loadSample);
+      return;
+    }
+    var html = "";
+    sortedSubs().forEach(function(s){
+      var c = CATS[s.category] || CATS.other;
+      var m = monthlyOf(s), y = annualOf(s);
+      var cycleTag = CYCLES[s.cycle].name;
+      var nextTxt = "";
+      var nd = nextOccurrence(s);
+      if(nd){ nextTxt = " · 下次 " + (nd.getMonth()+1) + "/" + nd.getDate(); }
+      var perMonthNote = (s.cycle==="monthly") ? "" : ("（≈ 每月 "+money(m)+"）");
+      html += '<div class="row">'+
+        '<div class="ic" style="background:linear-gradient(135deg,'+c.color+','+shade(c.color)+')">'+c.emoji+'</div>'+
+        '<div class="info"><div class="nm">'+esc(s.name)+' <span class="tag">'+c.name+'</span></div>'+
+        '<div class="meta">'+cycleTag+' '+money(s.price)+' '+perMonthNote+nextTxt+'</div></div>'+
+        '<div class="price"><div class="m tnum">'+money(m)+'</div><div class="y tnum">一年 '+money(y)+'</div></div>'+
+        '<div class="act">'+
+        '<button class="iconbtn" data-edit="'+s.id+'" title="編輯">✏️</button>'+
+        '<button class="iconbtn del" data-del="'+s.id+'" title="刪除">🗑️</button>'+
+        '</div></div>';
+    });
+    box.innerHTML = html;
+    bindRowActions();
+  }
+
+  function bindRowActions(){
+    var eb = document.querySelectorAll("[data-edit]");
+    for(var i=0;i<eb.length;i++){
+      (function(b){ b.addEventListener("click", function(){ openEdit(b.getAttribute("data-edit")); }); })(eb[i]);
+    }
+    var db = document.querySelectorAll("[data-del]");
+    for(var j=0;j<db.length;j++){
+      (function(b){ b.addEventListener("click", function(){
+        var id = b.getAttribute("data-del");
+        var s = subs.filter(function(x){ return x.id===id; })[0];
+        if(s && confirm("確定刪除「"+s.name+"」？")){
+          subs = subs.filter(function(x){ return x.id!==id; });
+          render();
+        }
+      }); })(db[j]);
+    }
+  }
+
+  // 小工具：把顏色加深一點做漸層
+  function shade(hex){
+    var h = hex.replace("#","");
+    var r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+    r = Math.round(r*0.78); g = Math.round(g*0.78); b = Math.round(b*0.78);
+    return "rgb("+r+","+g+","+b+")";
+  }
+  function esc(str){
+    return String(str).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // ===== 表單 / Modal =====
+  function buildCatGrid(){
+    var g = $("catGrid"); var html = "";
+    CAT_ORDER.forEach(function(k){
+      html += '<button type="button" class="catbtn" data-cat="'+k+'"><span class="ce">'+CATS[k].emoji+'</span><span class="cn">'+CATS[k].name+'</span></button>';
+    });
+    g.innerHTML = html;
+    var bs = g.querySelectorAll(".catbtn");
+    for(var i=0;i<bs.length;i++){
+      (function(b){ b.addEventListener("click", function(){ pickCat(b.getAttribute("data-cat")); }); })(bs[i]);
+    }
+  }
+  function pickCat(k){
+    pickedCat = k;
+    var bs = $("catGrid").querySelectorAll(".catbtn");
+    for(var i=0;i<bs.length;i++){
+      bs[i].classList.toggle("on", bs[i].getAttribute("data-cat")===k);
+    }
+  }
+  function openAdd(){
+    editingId = null;
+    $("sheetTitle").textContent = "＋ 新增訂閱";
+    $("fName").value = ""; $("fPrice").value = ""; $("fCycle").value = "monthly";
+    $("fDate").value = ""; $("formErr").textContent = "";
+    pickCat("stream");
+    showModal();
+  }
+  function openEdit(id){
+    var s = subs.filter(function(x){ return x.id===id; })[0];
+    if(!s) return;
+    editingId = id;
+    $("sheetTitle").textContent = "編輯訂閱";
+    $("fName").value = s.name; $("fPrice").value = s.price; $("fCycle").value = s.cycle;
+    $("fDate").value = s.nextDate || ""; $("formErr").textContent = "";
+    pickCat(s.category);
+    showModal();
+  }
+  function showModal(){ $("modal").classList.add("show"); setTimeout(function(){ $("fName").focus(); },50); }
+  function hideModal(){ $("modal").classList.remove("show"); }
+
+  function saveForm(){
+    var name = $("fName").value.trim();
+    var price = parseFloat($("fPrice").value);
+    if(!name){ $("formErr").textContent = "請輸入名稱"; return; }
+    if(isNaN(price) || price<0){ $("formErr").textContent = "請輸入有效的金額"; return; }
+    var data = {
+      name:name, price:price, cycle:$("fCycle").value,
+      category:pickedCat, nextDate:$("fDate").value || ""
+    };
+    if(editingId){
+      subs = subs.map(function(x){ return x.id===editingId ? Object.assign({}, x, data) : x; });
+    } else {
+      data.id = uid(); subs.push(data);
+    }
+    hideModal();
+    render();
+  }
+
+  function loadSample(){
+    subs = sampleData();
+    firstPaint = true;
+    render();
+  }
+
+  // ===== 匯出 / 匯入 =====
+  function exportJSON(){
+    var blob = new Blob([JSON.stringify({subs:subs,currency:currency},null,2)],{type:"application/json"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = "訂閱體檢備份.json"; a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  }
+  function importJSON(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try{
+        var o = JSON.parse(e.target.result);
+        if(o && Array.isArray(o.subs)){
+          subs = o.subs.map(function(s){ if(!s.id) s.id = uid(); return s; });
+          if(o.currency){ currency = o.currency; $("curSel").value = currency; }
+          firstPaint = true; render();
+        } else { alert("檔案格式不正確"); }
+      }catch(err){ alert("無法讀取此檔案"); }
+    };
+    reader.readAsText(file);
+  }
+
+  // ===== 綁定事件 =====
+  function bind(){
+    $("addBtn").addEventListener("click", openAdd);
+    $("sampleBtn").addEventListener("click", loadSample);
+    $("clearBtn").addEventListener("click", function(){
+      if(subs.length && confirm("確定要清空全部訂閱嗎？")){ subs = []; render(); }
+    });
+    $("saveBtn").addEventListener("click", saveForm);
+    $("cancelBtn").addEventListener("click", hideModal);
+    $("modal").addEventListener("click", function(e){ if(e.target === $("modal")) hideModal(); });
+    document.addEventListener("keydown", function(e){
+      if(e.key==="Escape") hideModal();
+      if(e.key==="Enter" && $("modal").classList.contains("show")) saveForm();
+    });
+    $("sortSel").addEventListener("change", function(){ sortMode = this.value; renderRows(); });
+    $("curSel").addEventListener("change", function(){ currency = this.value; render(); });
+    $("exportBtn").addEventListener("click", exportJSON);
+    $("importBtn").addEventListener("click", function(){ $("importFile").click(); });
+    $("importFile").addEventListener("change", function(e){ if(e.target.files[0]) importJSON(e.target.files[0]); this.value=""; });
+  }
+
+  // ===== 啟動 =====
+  function init(){
+    buildCatGrid();
+    bind();
+    load();
+    $("curSel").value = currency;
+    render();
+  }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", init);
+  else init();
+
+  // 對外（給測試用）
+  window.__clinic = {
+    annualOf:annualOf, monthlyOf:monthlyOf, nextOccurrence:nextOccurrence,
+    sampleData:sampleData, get subs(){ return subs; }, CATS:CATS, CYCLES:CYCLES
+  };
+})();
+</script>
+</body>
+</html>

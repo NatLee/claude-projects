@@ -411,7 +411,8 @@
   function todayISO(off){
     var d = new Date(); d.setHours(0,0,0,0);
     if(off) d.setDate(d.getDate()+off);
-    return d.toISOString().slice(0,10);
+    var m = d.getMonth()+1, day = d.getDate();
+    return d.getFullYear() + "-" + (m<10?"0":"") + m + "-" + (day<10?"0":"") + day;
   }
 
   // 把過去的扣款日往後滾到下一次（依週期），回傳 Date 或 null
@@ -630,7 +631,7 @@
     $("upPill").textContent = items.length + " 筆 14 天內";
     var html = "";
     items.forEach(function(it){
-      var c = CATS[it.s.category];
+      var c = CATS[it.s.category] || CATS.other;
       var whenTxt = it.du===0 ? "今天" : (it.du===1 ? "明天" : "還有 "+it.du+" 天");
       var dateTxt = (it.d.getMonth()+1) + "/" + it.d.getDate();
       html += '<div class="up"><span class="em">'+c.emoji+'</span>'+
@@ -800,7 +801,9 @@
       try{
         var o = JSON.parse(e.target.result);
         if(o && Array.isArray(o.subs)){
-          subs = o.subs.map(function(s){ if(!s.id) s.id = uid(); return s; });
+          subs = o.subs.filter(function(s){
+            return s && CYCLES[s.cycle];
+          }).map(function(s){ if(!s.id) s.id = uid(); return s; });
           if(o.currency){ currency = o.currency; $("curSel").value = currency; }
           firstPaint = true; render();
         } else { alert("檔案格式不正確"); }

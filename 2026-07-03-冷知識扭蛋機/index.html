@@ -216,7 +216,7 @@
   </section>
 
   <footer>
-    <p>共 24 張卡片 · 全部內容皆經查證，來源見 <b>說明.md</b>。資料只存在你自己電腦的 <code>gacha.db</code>。</p>
+    <p>共 24 張卡片 · 全部內容皆經查證，來源見 <b>說明.md</b>。資料只存在你自己瀏覽器的 <code>localStorage</code>。</p>
     <p><button class="linkbtn" id="resetBtn">清空收藏，重新收集</button></p>
   </footer>
 </div>
@@ -227,6 +227,189 @@
 <div class="toast" id="toast"></div>
 
 <script>
+/* ------------------------------------------------------------------------
+   卡片資料：24 則冷知識，全部經過查證（來源見 說明.md）
+   欄位：id, 類別, emoji, 標題, 內容, 來源, 稀有度
+------------------------------------------------------------------------ */
+const CARDS = [
+  // 動物 🐾
+  {id:1, category:"動物", emoji:"🐙", title:"章魚有三顆心臟",
+   fact:"章魚有三顆心臟，血液還是藍色的——因為牠們用含銅的「血藍蛋白」運送氧氣，而不是含鐵的血紅素。",
+   source:"Smithsonian Ocean", rarity:"稀有"},
+  {id:2, category:"動物", emoji:"🦦", title:"海獺睡覺會牽手",
+   fact:"海獺睡覺時會手牽手，甚至用海帶把自己纏住，避免在睡夢中被海流沖散、彼此走失。",
+   source:"Vancouver Aquarium", rarity:"稀有"},
+  {id:3, category:"動物", emoji:"🐝", title:"蜜蜂認得出人臉",
+   fact:"蜜蜂能被訓練分辨不同的人臉，靠的是記住五官的相對位置，準確率高達八九成——而牠的腦袋比針頭還小。",
+   source:"Journal of Experimental Biology, 2010", rarity:"傳說"},
+  {id:4, category:"動物", emoji:"🦥", title:"樹懶消化最慢",
+   fact:"樹懶是消化最慢的哺乳動物，一片葉子最慢要花上約一個月才能消化完，牠也因此大約一週才下樹排便一次。",
+   source:"The Sloth Conservation Foundation", rarity:"普通"},
+
+  // 太空 🚀
+  {id:5, category:"太空", emoji:"🪐", title:"金星的一天比一年長",
+   fact:"金星自轉一圈要 243 個地球日，繞太陽一圈卻只要 225 個地球日——所以在金星上，「一天」比「一年」還要漫長。",
+   source:"NASA Solar System", rarity:"傳說"},
+  {id:6, category:"太空", emoji:"✨", title:"一茶匙重十億噸",
+   fact:"一茶匙的中子星物質，拿到地球上大約重十億噸，比全世界所有人加起來還重——因為它幾乎是一整顆被壓碎的原子核。",
+   source:"BBC Sky at Night / SpaceDaily", rarity:"傳說"},
+  {id:7, category:"太空", emoji:"☀️", title:"太陽獨佔 99.86%",
+   fact:"太陽一個就佔了整個太陽系總質量的 99.86%，八大行星、小行星、彗星全部加起來還不到千分之二。",
+   source:"NASA", rarity:"稀有"},
+  {id:8, category:"太空", emoji:"🌅", title:"一天看 16 次日出",
+   fact:"國際太空站每約 90 分鐘就繞地球一圈，站上的太空人一天可以看見 16 次日出和日落。",
+   source:"NASA ISS", rarity:"普通"},
+
+  // 人體 🫀
+  {id:9, category:"人體", emoji:"🫁", title:"左肺比右肺小",
+   fact:"你的左肺天生就比右肺小一點、少一葉——這是為了在胸腔左側替心臟讓出空間。",
+   source:"Cleveland Clinic", rarity:"普通"},
+  {id:10, category:"人體", emoji:"🌀", title:"胃每幾天換新皮",
+   fact:"胃壁的黏膜每三到四天就更新一次，因為胃酸強到能腐蝕金屬，不常換新的話，胃會把自己給消化掉。",
+   source:"Encyclopaedia Britannica", rarity:"稀有"},
+  {id:11, category:"人體", emoji:"👃", title:"鼻子能分辨一兆種氣味",
+   fact:"2014 年《Science》研究估計，人的鼻子至少能分辨一兆種不同氣味，遠遠超過過去「大約一萬種」的舊說法。",
+   source:"Science, 2014", rarity:"稀有"},
+  {id:12, category:"人體", emoji:"🦴", title:"骨頭比鋼還強",
+   fact:"以相同重量來比，人的骨頭比鋼還要堅固——它在承受壓力時的強度重量比，勝過許多金屬。",
+   source:"PBS / Nova", rarity:"普通"},
+
+  // 歷史 📜
+  {id:13, category:"歷史", emoji:"🦣", title:"金字塔比長毛象晚",
+   fact:"埃及大金字塔蓋好時，長毛象其實還活著——最後一群長毛象在西伯利亞的弗蘭格爾島一直存活到約公元前 1650 年。",
+   source:"Wikipedia: Wrangel Island / Woolly mammoth", rarity:"傳說"},
+  {id:14, category:"歷史", emoji:"👑", title:"埃及豔后離登月更近",
+   fact:"克麗奧佩脫拉（埃及豔后）活著的年代，距離人類登陸月球，竟然比距離金字塔落成還要近。",
+   source:"History / 時間軸推算", rarity:"傳說"},
+  {id:15, category:"歷史", emoji:"🎓", title:"牛津比阿茲提克老",
+   fact:"牛津大學比阿茲提克帝國還古老：牛津早在 1096 年就開始授課，阿茲提克人要到 1325 年才建立首都。",
+   source:"University of Oxford", rarity:"稀有"},
+  {id:16, category:"歷史", emoji:"🐰", title:"拿破崙被兔子擊退",
+   fact:"拿破崙曾被一大群兔子「擊退」——一場慶功狩獵放出上千隻家兔，牠們不怕人，反而朝拿破崙一行人蜂擁而上。",
+   source:"Napoleon.org / History", rarity:"普通"},
+
+  // 食物 🍯
+  {id:17, category:"食物", emoji:"🍯", title:"蜂蜜永不腐壞",
+   fact:"蜂蜜幾乎永遠不會壞。考古學家曾在三千多年前的古埃及墓中，挖出仍然可以食用的蜂蜜。",
+   source:"Smithsonian Magazine", rarity:"傳說"},
+  {id:18, category:"食物", emoji:"🍌", title:"香蕉是漿果，草莓不是",
+   fact:"在植物學上，香蕉才是「漿果（berry）」，而草莓其實不算——真正的漿果要由單一子房發育、種子包在果肉裡。",
+   source:"Encyclopaedia Britannica", rarity:"稀有"},
+  {id:19, category:"食物", emoji:"🍅", title:"番茄醬曾被當藥賣",
+   fact:"1830 年代的美國，番茄醬曾被包成藥丸當「良藥」販賣，宣稱能治腹瀉和消化不良。",
+   source:"Smithsonian Magazine", rarity:"稀有"},
+  {id:20, category:"食物", emoji:"🥕", title:"胡蘿蔔原本不是橘的",
+   fact:"胡蘿蔔原本多是紫色或白色的，我們今天熟悉的橘色，是後來荷蘭人一代代培育出來的品種。",
+   source:"Live Science", rarity:"普通"},
+
+  // 自然・地理 🌍
+  {id:21, category:"自然", emoji:"🏜️", title:"撒哈拉替雨林施肥",
+   fact:"撒哈拉沙漠的沙塵每年飄越大西洋，把富含磷的養分送到亞馬遜雨林——沙漠竟然是雨林的施肥者。",
+   source:"NASA Earth Observatory", rarity:"稀有"},
+  {id:22, category:"自然", emoji:"🌏", title:"澳洲比月亮還寬",
+   fact:"澳洲東西寬約 4000 公里，而月球的直徑只有約 3474 公里——澳洲比整個月亮還要「寬」。",
+   source:"Geoscience Australia / NASA", rarity:"傳說"},
+  {id:23, category:"自然", emoji:"💧", title:"芬蘭有 18 萬個湖",
+   fact:"芬蘭素有「千湖之國」之稱，但實際上它境內的湖泊超過 18 萬個，「千」其實是嚴重低估。",
+   source:"Finland Statistics", rarity:"普通"},
+  {id:24, category:"自然", emoji:"🧭", title:"阿拉斯加同時最北西東",
+   fact:"阿拉斯加同時是全美最北、最西、又最東的州——因為它的阿留申群島一路跨過了東經 180 度線。",
+   source:"USGS", rarity:"稀有"}
+];
+
+// 稀有度抽出權重：越稀有越難抽到（普通:稀有:傳說 = 6:3:1）
+const RARITY_WEIGHT = {"普通":6, "稀有":3, "傳說":1};
+
+/* ------------------------------------------------------------------------
+   本機儲存：收藏紀錄存在瀏覽器 localStorage（key 前綴 gacha.）
+   結構：{ "卡片id": { first_pulled_at, pull_count }, ... }
+------------------------------------------------------------------------ */
+const STORE_KEY = "gacha.collection";
+
+function loadCollection(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return {};
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === "object" && !Array.isArray(obj)) ? obj : {};
+  }catch(err){
+    return {};
+  }
+}
+
+function saveCollection(col){
+  localStorage.setItem(STORE_KEY, JSON.stringify(col));
+}
+
+// 台灣時區（UTC+8）的 ISO 時間字串，純為記錄抽卡時間用
+function nowTW(){
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  return d.toISOString().slice(0, 19) + "+08:00";
+}
+
+function computeStats(col){
+  const total_cards = CARDS.length;
+  const ids = Object.keys(col);
+  const unique_collected = ids.length;
+  let total_pulls = 0;
+  ids.forEach(id => { total_pulls += (col[id].pull_count || 0); });
+  const percent = total_cards ? Math.round(unique_collected / total_cards * 100) : 0;
+  return {total_cards, unique_collected, total_pulls, percent};
+}
+
+// 依稀有度加權隨機抽出一張卡
+function weightedPick(){
+  const weights = CARDS.map(c => RARITY_WEIGHT[c.rarity] || 1);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for(let i = 0; i < CARDS.length; i++){
+    r -= weights[i];
+    if(r < 0) return CARDS[i];
+  }
+  return CARDS[CARDS.length - 1];
+}
+
+// 轉一顆扭蛋：抽出一張卡並記錄進收藏（原 POST /api/pull）
+function apiPull(){
+  const col = loadCollection();
+  const chosen = weightedPick();
+  const key = String(chosen.id);
+  const is_new = !(key in col);
+  if(is_new){
+    col[key] = {first_pulled_at: nowTW(), pull_count: 1};
+  }else{
+    col[key].pull_count = (col[key].pull_count || 0) + 1;
+  }
+  saveCollection(col);
+  return {
+    card: Object.assign({}, chosen, {collected:true, pull_count: col[key].pull_count}),
+    is_new: is_new,
+    stats: computeStats(col)
+  };
+}
+
+// 整本圖鑑：每張卡片與是否已收集，加上統計（原 GET /api/album）
+function apiAlbum(){
+  const col = loadCollection();
+  const cards = CARDS.map(c => {
+    const rec = col[String(c.id)];
+    return Object.assign({}, c, {
+      collected: !!rec,
+      pull_count: rec ? (rec.pull_count || 0) : 0
+    });
+  });
+  return {cards, stats: computeStats(col)};
+}
+
+// 清空收藏，重新開始收集（原 POST /api/reset）
+function apiReset(){
+  localStorage.removeItem(STORE_KEY);
+  return {ok:true, stats: computeStats({})};
+}
+
+/* ------------------------------------------------------------------------
+   介面邏輯
+------------------------------------------------------------------------ */
 const RARITY = {
   "普通": {cls:"var(--r-common)", label:"普通"},
   "稀有": {cls:"var(--r-rare)",   label:"稀有 ✦"},
@@ -268,9 +451,8 @@ function cardHTML(card, opts){
     </div>`;
 }
 
-async function loadAlbum(){
-  const res = await fetch("/api/album");
-  const data = await res.json();
+function loadAlbum(){
+  const data = apiAlbum();
   renderStats(data.stats);
   renderAlbum(data.cards);
 }
@@ -342,18 +524,8 @@ async function doPull(){
   btn.disabled = true;
   $("machine").classList.add("turning");
 
-  let data;
-  try{
-    const [res] = await Promise.all([
-      fetch("/api/pull", {method:"POST"}),
-      sleep(750)
-    ]);
-    data = await res.json();
-  }catch(err){
-    toast("咦，扭蛋機卡住了，請確認伺服器有在執行");
-    busy=false; btn.disabled=false; $("machine").classList.remove("turning");
-    return;
-  }
+  await sleep(750);
+  const data = apiPull();
 
   $("machine").classList.remove("turning");
   $("placeholder") && ($("placeholder").style.display="none");
@@ -371,9 +543,9 @@ async function doPull(){
   btn.disabled = false;
 }
 
-async function resetAll(){
+function resetAll(){
   if(!confirm("確定要清空所有收藏、重新開始收集嗎？")) return;
-  await fetch("/api/reset", {method:"POST"});
+  apiReset();
   $("result").innerHTML = '<div class="placeholder" id="placeholder">'+
     '<div class="big">🥚</div>圖鑑已清空，重新開始收集吧！</div>';
   loadAlbum();

@@ -1,9 +1,14 @@
-/* 推敲 · 前端邏輯 */
+/* 推敲 · 前端邏輯（純靜態版：出題、判定、統計皆在瀏覽器完成） */
 (function () {
   "use strict";
-  const CFG = window.CONFIG || { wordLen: 4, maxAttempts: 6, today: "" };
-  const WL = CFG.wordLen, MAX = CFG.maxAttempts;
+  const WL = 4, MAX = 6;
   const HAN = /[一-鿿]/g;
+  const HAN_RE = /^[一-鿿]{4}$/;
+  const IDIOMS = window.IDIOMS || [];
+
+  // localStorage keys（全站共用網域，一律加前綴 tuiqiao.）
+  const PLAYS_KEY = "tuiqiao.plays";
+  const DAILY_KEY_PREFIX = "tuiqiao.daily.";
 
   const $ = (s) => document.querySelector(s);
   const boardEl = $("#board");
@@ -14,12 +19,131 @@
   let state = null;      // 當前對局
   let composing = false; // IME 組字中
 
+  // ---------- 日期（台灣時間，固定 UTC+8，無夏令時） ----------
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function taipeiNow() { return new Date(Date.now() + 8 * 3600 * 1000); }
+  function taipeiToday() {
+    const d = taipeiNow();
+    return d.getUTCFullYear() + "-" + pad2(d.getUTCMonth() + 1) + "-" + pad2(d.getUTCDate());
+  }
+  function taipeiNowISO() {
+    const d = taipeiNow();
+    return taipeiToday() + "T" + pad2(d.getUTCHours()) + ":" +
+      pad2(d.getUTCMinutes()) + ":" + pad2(d.getUTCSeconds()) + "+08:00";
+  }
+
+  // ---------- 出題 ----------
+  function dailyPid(dateStr) {
+    // 以 YYYY-MM-DD 換算為天數，穩定地對應到題庫索引：同一天所有人同一題。
+    const parts = dateStr.split("-").map(Number);
+    const days = Math.floor(Date.UTC(parts[0], parts[1] - 1, parts[2]) / 86400000);
+    return ((days % IDIOMS.length) + IDIOMS.length) % IDIOMS.length;
+  }
+  function randomPid() {
+    // 練習模式：隨機一題，且避開今日題目
+    const todayPid = dailyPid(taipeiToday());
+    let pid = todayPid;
+    if (IDIOMS.length > 1) {
+      while (pid === todayPid) pid = Math.floor(Math.random() * IDIOMS.length);
+    }
+    return pid;
+  }
+  function validPid(pid) {
+    return Number.isInteger(pid) && pid >= 0 && pid < IDIOMS.length;
+  }
+
+  // ---------- 判定（Wordle 兩階段，正確處理重複字；與原後端演算法等價） ----------
+  function judge(answer, guess) {
+    const result = new Array(WL).fill("absent");
+    const remain = {};
+    for (const ch of answer) remain[ch] = (remain[ch] || 0) + 1;
+    // 第一階段：位置正確
+    for (let i = 0; i < WL; i++) {
+      if (guess[i] === answer[i]) {
+        result[i] = "correct";
+        remain[guess[i]] -= 1;
+      }
+    }
+    // 第二階段：字存在但位置不對
+    for (let i = 0; i < WL; i++) {
+      if (result[i] === "correct") continue;
+      const ch = guess[i];
+      if ((remain[ch] || 0) > 0) {
+        result[i] = "present";
+        remain[ch] -= 1;
+      }
+    }
+    return result;
+  }
+
+  // ---------- 對局紀錄與統計（localStorage） ----------
+  function loadPlays() {
+    try {
+      const v = JSON.parse(localStorage.getItem(PLAYS_KEY) || "[]");
+      return Array.isArray(v) ? v : [];
+    } catch (e) { return []; }
+  }
+  function recordResult(pid, mode, won, guesses) {
+    if (!validPid(pid)) return collectStats();
+    mode = mode === "practice" ? "practice" : "daily";
+    let g = parseInt(guesses, 10);
+    if (!Number.isFinite(g)) g = MAX + 1;
+    g = Math.max(1, Math.min(g, MAX + 1));
+    const plays = loadPlays();
+    plays.push({
+      play_date: taipeiToday(),
+      mode: mode,
+      pid: pid,
+      won: won ? 1 : 0,
+      guesses: g,
+      created_at: taipeiNowISO(),
+    });
+    try { localStorage.setItem(PLAYS_KEY, JSON.stringify(plays)); } catch (e) {}
+    return collectStats();
+  }
+  function statsFor(rows) {
+    const total = rows.length;
+    let won = 0;
+    const dist = {};
+    for (let i = 1; i <= MAX; i++) dist[String(i)] = 0;
+    let streak = 0, bestStreak = 0;
+    const sorted = rows.slice().sort((a, b) =>
+      a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0);
+    sorted.forEach((r) => {
+      if (r.won) {
+        won += 1;
+        if (String(r.guesses) in dist) dist[String(r.guesses)] += 1;
+        streak += 1;
+        if (streak > bestStreak) bestStreak = streak;
+      } else {
+        streak = 0;
+      }
+    });
+    return {
+      total: total,
+      won: won,
+      lost: total - won,
+      winRate: total ? Math.round((won / total) * 100) : 0,
+      distribution: dist,
+      currentStreak: streak,
+      bestStreak: bestStreak,
+    };
+  }
+  function collectStats() {
+    const daily = loadPlays().filter((r) => r.mode === "daily");
+    const today = taipeiToday();
+    return {
+      all: statsFor(daily),
+      today: statsFor(daily.filter((r) => r.play_date === today)),
+    };
+  }
+
   // ---------- 對局狀態 ----------
   function newState(pid, mode) {
     return { pid, mode, row: 0, over: false, won: false, rows: [], locked: false };
   }
 
-  function dailyKey() { return "tuiqiao_daily_" + CFG.today; }
+  function dailyKey() { return DAILY_KEY_PREFIX + taipeiToday(); }
 
   // ---------- 棋盤 ----------
   function buildBoard() {
@@ -82,23 +206,24 @@
   }
 
   // ---------- 提交 ----------
-  async function submitGuess() {
+  function submitGuess() {
     if (!state || state.over || state.locked) return;
     const chars = (inputEl.value.match(HAN) || []);
     if (chars.length < WL) { shake(); toast("請輸入四個中文字"); return; }
     const guess = chars.slice(0, WL).join("");
+    if (!validPid(state.pid)) { shake(); toast("題目不存在"); return; }
+    if (!HAN_RE.test(guess)) { shake(); toast("請輸入四個中文字"); return; }
     state.locked = true;
-    let data;
-    try {
-      data = await postJSON("/api/guess", { guess, pid: state.pid });
-    } catch (e) { state.locked = false; toast("連線發生問題"); return; }
-    if (!data.ok) { state.locked = false; shake(); toast(data.error || "無法判定"); return; }
+
+    const answer = IDIOMS[state.pid].word;
+    const feedback = judge(answer, guess);
+    const solved = feedback.every((s) => s === "correct");
 
     const r = state.row;
     inputEl.value = "";
-    state.rows.push({ guess, feedback: data.feedback });
-    paintRow(r, guess, data.feedback, data.solved, () => {
-      if (data.solved) {
+    state.rows.push({ guess, feedback });
+    paintRow(r, guess, feedback, solved, () => {
+      if (solved) {
         state.over = true; state.won = true;
         finishGame();
       } else if (r + 1 >= MAX) {
@@ -121,7 +246,7 @@
   }
 
   // ---------- 結束 ----------
-  async function finishGame() {
+  function finishGame() {
     markActiveRow();
     const guesses = state.won ? state.rows.length : MAX + 1;
     // 每日對局存檔，避免重複計分
@@ -132,16 +257,11 @@
         }));
       } catch (e) {}
     }
-    let stats = null;
-    try {
-      const res = await postJSON("/api/result", {
-        pid: state.pid, mode: state.mode, won: state.won, guesses,
-      });
-      stats = res.stats;
-    } catch (e) {}
-
-    let answer = null;
-    try { answer = await postJSON("/api/reveal", { pid: state.pid }); } catch (e) {}
+    const stats = recordResult(state.pid, state.mode, state.won, guesses);
+    const item = IDIOMS[state.pid];
+    const answer = item
+      ? { ok: true, answer: item.word, meaning: item.meaning, hint: item.hint }
+      : null;
     setTimeout(() => showResult(stats, answer), state.won ? 900 : 500);
   }
 
@@ -191,20 +311,15 @@
     return '<div class="stat-cell"><b>' + b + "</b><span>" + s + "</span></div>";
   }
 
-  async function openStats() {
-    let stats = null;
-    try { const r = await getJSON("/api/stats"); stats = r.stats; } catch (e) {}
-    renderStats(stats, "#stats-body");
+  function openStats() {
+    renderStats(collectStats(), "#stats-body");
     openModal("#stats-modal");
   }
 
   // ---------- 提示 / 揭曉 ----------
-  async function showHint() {
-    if (!state) return;
-    try {
-      const r = await getJSON("/api/hint?pid=" + state.pid);
-      if (r.ok) hintBox.textContent = "提示：" + r.hint;
-    } catch (e) { toast("提示載入失敗"); }
+  function showHint() {
+    if (!state || !validPid(state.pid)) return;
+    hintBox.textContent = "提示：" + IDIOMS[state.pid].hint;
   }
 
   function giveUp() {
@@ -215,12 +330,9 @@
   }
 
   // ---------- 模式 ----------
-  async function startDaily() {
+  function startDaily() {
     setMode("daily");
-    let info;
-    try { info = await getJSON("/api/puzzle/today"); }
-    catch (e) { toast("題目載入失敗"); return; }
-    state = newState(info.pid, "daily");
+    state = newState(dailyPid(taipeiToday()), "daily");
     hintBox.textContent = "";
     buildBoard();
     // 還原今日已完成的對局
@@ -235,12 +347,9 @@
     }
   }
 
-  async function startPractice() {
+  function startPractice() {
     setMode("practice");
-    let info;
-    try { info = await getJSON("/api/puzzle/random"); }
-    catch (e) { toast("題目載入失敗"); return; }
-    state = newState(info.pid, "practice");
+    state = newState(randomPid(), "practice");
     hintBox.textContent = "";
     buildBoard();
     enableInput(true);
@@ -286,19 +395,6 @@
   function openModal(sel) { $(sel).classList.add("show"); }
   function closeModal(sel) { $(sel).classList.remove("show"); }
 
-  async function getJSON(url) {
-    const r = await fetch(url);
-    return r.json();
-  }
-  async function postJSON(url, body) {
-    const r = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    return r.json();
-  }
-
   // ---------- 事件 ----------
   function bind() {
     inputEl.addEventListener("compositionstart", () => { composing = true; });
@@ -322,6 +418,10 @@
       ov.addEventListener("click", (e) => { if (e.target === ov) ov.classList.remove("show"); })
     );
   }
+
+  // ---------- 頁尾資訊 ----------
+  $("#total-idioms").textContent = IDIOMS.length;
+  $("#today-str").textContent = taipeiToday();
 
   bind();
   startDaily();

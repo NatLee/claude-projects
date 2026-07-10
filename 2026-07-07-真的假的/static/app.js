@@ -1,34 +1,308 @@
 /* ============================================================
-   真偽鑑定所 — 前端邏輯
+   真偽鑑定所 — 前端邏輯（純靜態版）
+   題庫與判定、抽題、統計邏輯皆在前端完成，
+   作答紀錄存於瀏覽器 localStorage（key 前綴 truefalse.）。
    ============================================================ */
 "use strict";
 
 const $ = (id) => document.getElementById(id);
 
+/* ---------- localStorage ---------- */
+const STORE_KEY = "truefalse.answers";   // 作答紀錄（陣列）
+
+function loadAnswers(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){
+    return [];
+  }
+}
+function saveAnswers(arr){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }catch(e){}
+}
+
+/* ---------------------------------------------------------------------------
+   題庫：每則皆經查證。verdict = 1 表示「敘述為真」，0 表示「敘述為假（迷思）」。
+   --------------------------------------------------------------------------- */
+const FACTS = [
+  // ---------- 為真的敘述 ----------
+  {
+    id: 1,
+    claim: "章魚有三顆心臟，而且血液是藍色的。",
+    verdict: 1, category: "動物",
+    explanation: "真的。章魚用含「銅」的血青蛋白（hemocyanin）運送氧氣，氧合時呈藍色；三顆心臟中，兩顆負責把血液送過鰓部充氧，另一顆再把血送往全身。",
+    source: "Smithsonian Magazine",
+    source_url: "https://www.smithsonianmag.com/science-nature/ten-wild-facts-about-octopuses-they-have-three-hearts-big-brains-and-blue-blood-7625828/",
+  },
+  {
+    id: 2,
+    claim: "世界上有一種動物，會拉出方塊狀的大便。",
+    verdict: 1, category: "動物",
+    explanation: "真的，就是澳洲的袋熊（wombat）。牠腸道末段肌肉軟硬交錯，蠕動時把糞便擠壓成立方體，方便堆在石頭上做記號而不會滾走——這項研究還拿下 2019 年搞笑諾貝爾獎。",
+    source: "Science (AAAS)",
+    source_url: "https://www.science.org/content/article/wombats-make-cube-shaped-poop-thanks-unique-intestines",
+  },
+  {
+    id: 3,
+    claim: "海獺睡覺時會手牽手，免得漂散走失。",
+    verdict: 1, category: "動物",
+    explanation: "真的。海獺仰躺在水面成群休息（稱為 raft），會互相牽手或裹上海帶固定位置，以免睡著後被水流沖散。",
+    source: "Discover Magazine",
+    source_url: "https://www.discovermagazine.com/sea-otters-hold-hands-while-sleeping-and-they-even-cuddle-46115",
+  },
+  {
+    id: 4,
+    claim: "考古學家在三千多年前的古埃及墓裡找到的蜂蜜，至今仍然可以吃。",
+    verdict: 1, category: "食物",
+    explanation: "真的。蜂蜜含水量極低、糖分極高又偏酸，還含微量過氧化氫，細菌與黴菌幾乎無法存活，因此密封良好可保存數千年不壞。",
+    source: "History Facts",
+    source_url: "https://historyfacts.com/world-history/fact/archaeologists-have-found-3000-year-old-pots-of-honey-that-are-still-edible/",
+  },
+  {
+    id: 5,
+    claim: "太空是有「味道」的——太空人形容像燒焦的牛排、灼熱金屬與焊接的煙味。",
+    verdict: 1, category: "太空",
+    explanation: "真的。太空人結束太空漫步、回到艙內脫下頭盔時，會聞到殘留在裝備上的特殊氣味，多形容為煎牛排、熱金屬與焊接煙味，可能來自附著的原子氧等粒子。",
+    source: "The Christian Science Monitor",
+    source_url: "https://www.csmonitor.com/Science/2012/0723/Space-smells-like-seared-steak-hot-metal-astronauts-report",
+  },
+  {
+    id: 6,
+    claim: "艾菲爾鐵塔在炎熱的夏天，會比冬天「長高」大約 15 公分。",
+    verdict: 1, category: "建築",
+    explanation: "真的。鐵受熱會膨脹，這座 300 多公尺高的鐵塔在盛夏與寒冬之間，高度大約會差 15 公分左右。",
+    source: "Snopes",
+    source_url: "https://www.snopes.com/fact-check/eiffel-tower-grows-summer-shrinks-winter/",
+  },
+  {
+    id: 7,
+    claim: "史上最短的戰爭，前後只打了大約 38 分鐘。",
+    verdict: 1, category: "歷史",
+    explanation: "真的。1896 年的「英桑戰爭」（英國對尚吉巴）大約 38 至 45 分鐘就結束，是有紀錄以來最短的戰爭。",
+    source: "Britannica",
+    source_url: "https://www.britannica.com/event/Anglo-Zanzibar-War",
+  },
+  {
+    id: 8,
+    claim: "在植物學上，香蕉算是「漿果（berry）」，草莓反而不算。",
+    verdict: 1, category: "植物",
+    explanation: "真的。植物學定義的漿果，是由單一子房發育、種子包在果肉裡；香蕉符合，草莓卻是由花托膨大而成的「聚合果」，所以不算漿果。",
+    source: "Live Science",
+    source_url: "https://www.livescience.com/57477-why-are-bananas-considered-berries.html",
+  },
+  {
+    id: 9,
+    claim: "埃及豔后活著的年代，離人類登月比離金字塔落成還要近。",
+    verdict: 1, category: "歷史",
+    explanation: "真的。吉薩大金字塔約在公元前 2560 年完工，埃及豔后（克麗奧佩脫拉）生於公元前 69 年，相隔約 2500 年；而她距離 1969 年登月只約 2000 年。金字塔對她而言早已是「古蹟」。",
+    source: "WorldAtlas",
+    source_url: "https://www.worldatlas.com/articles/so-cleopatra-lived-closer-in-time-to-the-first-lunar-landing-than-the-great-pyramids.html",
+  },
+  // ---------- 為假（迷思）的敘述 ----------
+  {
+    id: 10,
+    claim: "萬里長城是太空中唯一用肉眼就能看見的人造建築。",
+    verdict: 0, category: "太空",
+    explanation: "假的。NASA 與多位太空人（包括中國首位太空人楊利偉）都證實，在近地軌道用肉眼根本看不到長城——它雖長，最寬處也只有約 9 公尺，且顏色和周遭地表相近。",
+    source: "NASA",
+    source_url: "https://www.nasa.gov/image-article/great-wall/",
+  },
+  {
+    id: 11,
+    claim: "鬥牛時，公牛是被那塊布的「紅色」激怒，才會衝過去。",
+    verdict: 0, category: "動物",
+    explanation: "假的。牛其實是紅綠色盲，看不太出紅色；真正激怒牠、引牠衝刺的是布的「揮動」。《流言終結者》實驗也證實：換成藍色、白色的布照樣衝。",
+    source: "Snopes",
+    source_url: "https://www.snopes.com/fact-check/red-triggers-bulls/",
+  },
+  {
+    id: 12,
+    claim: "拿破崙是個異常矮小的人。",
+    verdict: 0, category: "歷史",
+    explanation: "假的。拿破崙身高約 168–170 公分，在當時的法國男性中屬中等甚至略高。「矮個子」印象來自英國諷刺漫畫的醜化，以及法制與英制「吋」換算的誤差。",
+    source: "Britannica",
+    source_url: "https://www.britannica.com/story/was-napoleon-short",
+  },
+  {
+    id: 13,
+    claim: "人類終其一生，其實只用到大腦的 10%。",
+    verdict: 0, category: "人體",
+    explanation: "假的。fMRI、PET 等腦造影顯示，我們幾乎用到大腦的每一個部位，連睡覺時大腦也在全區運作。大腦只占體重約 2%，卻耗掉約 20% 的能量，不可能大半閒置。",
+    source: "Scientific American",
+    source_url: "https://www.scientificamerican.com/article/do-people-only-use-10-percent-of-their-brains/",
+  },
+  {
+    id: 14,
+    claim: "金魚的記憶只有短短 3 秒。",
+    verdict: 0, category: "動物",
+    explanation: "假的。研究顯示金魚的記憶至少可維持好幾個月，能被訓練走迷宮、認得餵食的主人，甚至會看時間。3 秒記憶純屬都市傳說。",
+    source: "Live Science",
+    source_url: "https://www.livescience.com/goldfish-memory.html",
+  },
+  {
+    id: 15,
+    claim: "舌頭有分區的「味覺地圖」：舌尖嚐甜、兩側嚐酸、舌根嚐苦。",
+    verdict: 0, category: "人體",
+    explanation: "假的。整條舌頭其實都能嚐到各種基本味覺。這張「味覺地圖」源自 1901 年一份德國研究被後人誤讀、誇大成分區圖，早已被推翻。",
+    source: "Smithsonian Magazine",
+    source_url: "https://www.smithsonianmag.com/science-nature/neat-and-tidy-map-tastes-tongue-you-learned-school-all-wrong-180963407/",
+  },
+  {
+    id: 16,
+    claim: "維京人打仗時，頭上戴著有角的頭盔。",
+    verdict: 0, category: "歷史",
+    explanation: "假的。考古上找不到維京人戴角盔的證據。這個經典形象其實出自 1876 年華格納歌劇《尼伯龍根的指環》的服裝設計，之後才被畫進各種插畫流傳開來。",
+    source: "History.com",
+    source_url: "https://www.history.com/articles/did-vikings-really-wear-horned-helmets",
+  },
+  {
+    id: 17,
+    claim: "閃電不會打在同一個地方兩次。",
+    verdict: 0, category: "自然",
+    explanation: "假的。閃電偏好又高又尖又突出的目標，很常重複打在同一處。光是紐約帝國大廈，平均一年就被雷擊中約 20–25 次。",
+    source: "美國國家氣象局（NWS）",
+    source_url: "https://www.weather.gov/safety/lightning-myths",
+  },
+  {
+    id: 18,
+    claim: "蝙蝠是瞎子，什麼都看不見。",
+    verdict: 0, category: "動物",
+    explanation: "假的。所有蝙蝠都看得見，有些種類視力還相當好；牠們在黑暗中主要靠「回聲定位」導航，但那是聽覺的本事，不代表眼睛看不到。",
+    source: "Britannica",
+    source_url: "https://www.britannica.com/story/are-bats-really-blind",
+  },
+];
+
+const FACT_BY_ID = {};
+FACTS.forEach((f) => { FACT_BY_ID[f.id] = f; });
+
+/* ---------- 時間（台灣時區 ISO 字串，等同原後端格式） ---------- */
+function nowTaiwanISO(){
+  const now = new Date();
+  const tw = new Date(now.getTime() + (now.getTimezoneOffset() + 8 * 60) * 60000);
+  const p = (n) => String(n).padStart(2, "0");
+  return tw.getFullYear() + "-" + p(tw.getMonth() + 1) + "-" + p(tw.getDate()) +
+         "T" + p(tw.getHours()) + ":" + p(tw.getMinutes()) + ":" + p(tw.getSeconds()) + "+08:00";
+}
+
+/* ---------- 統計（等同原後端 compute_stats） ---------- */
+function computeStats(answers){
+  const total = answers.length;
+  let correct = 0;
+  answers.forEach((a) => { correct += a.correct ? 1 : 0; });
+
+  // 連勝：最佳連勝、目前連勝（尾端連續答對）
+  let bestStreak = 0, run = 0;
+  for (const a of answers){
+    if (a.correct){ run += 1; if (run > bestStreak) bestStreak = run; }
+    else { run = 0; }
+  }
+  let currentStreak = 0;
+  for (let i = answers.length - 1; i >= 0; i--){
+    if (answers[i].correct) currentStreak += 1;
+    else break;
+  }
+
+  // 各類別（依作答出現順序建立，再依作答數由多到少排序）
+  const cats = new Map();
+  for (const a of answers){
+    const f = FACT_BY_ID[a.fact_id];
+    if (!f) continue;
+    if (!cats.has(f.category)) cats.set(f.category, { total: 0, correct: 0 });
+    const c = cats.get(f.category);
+    c.total += 1;
+    c.correct += a.correct ? 1 : 0;
+  }
+  const categoryStats = [];
+  cats.forEach((d, name) => {
+    const acc = d.total ? Math.round(d.correct / d.total * 100) : 0;
+    categoryStats.push({ category: name, total: d.total, correct: d.correct, accuracy: acc });
+  });
+  categoryStats.sort((a, b) => b.total - a.total);   // 穩定排序，平手維持出現順序
+
+  // 「最容易被騙」的類別：作答數 >= 2 且答對率最低者
+  let fooled = null;
+  const candidates = categoryStats.filter((c) => c.total >= 2);
+  if (candidates.length){
+    let worst = candidates[0];
+    for (const c of candidates){
+      if (c.accuracy < worst.accuracy ||
+          (c.accuracy === worst.accuracy && c.total > worst.total)){
+        worst = c;
+      }
+    }
+    if (worst.accuracy < 100) fooled = worst.category;
+  }
+
+  const seen = new Set();
+  answers.forEach((a) => seen.add(a.fact_id));
+
+  return {
+    total: total,
+    correct: correct,
+    accuracy: total ? Math.round(correct / total * 100) : 0,
+    current_streak: currentStreak,
+    best_streak: bestStreak,
+    category_stats: categoryStats,
+    most_fooled: fooled,
+    total_facts: FACTS.length,
+    seen_facts: seen.size,
+  };
+}
+
+/* ---------- 抽題（等同原後端抽題邏輯）----------
+   優先給作答次數最少的題目，並避開上一題（除非只剩它）。 */
+function pickQuestion(excludeId){
+  const answers = loadAnswers();
+  const counts = {};
+  answers.forEach((a) => { counts[a.fact_id] = (counts[a.fact_id] || 0) + 1; });
+
+  let pool = FACTS.filter((f) => f.id !== excludeId);
+  if (!pool.length) pool = FACTS.slice();
+
+  let minCount = Infinity;
+  pool.forEach((f) => { const c = counts[f.id] || 0; if (c < minCount) minCount = c; });
+  const least = pool.filter((f) => (counts[f.id] || 0) === minCount);
+  const f = least[Math.floor(Math.random() * least.length)];
+  return { id: f.id, claim: f.claim, category: f.category };
+}
+
+/* ---------- 作答（等同原後端判定邏輯） ---------- */
+function recordAnswer(factId, guess){
+  const fact = FACT_BY_ID[factId];
+  if (!fact) return null;
+  const g = (guess === 1 || guess === true) ? 1 : 0;
+  const correct = (g === fact.verdict) ? 1 : 0;
+
+  const answers = loadAnswers();
+  answers.push({ fact_id: factId, guess: g, correct: correct, created_at: nowTaiwanISO() });
+  saveAnswers(answers);
+
+  return {
+    correct: !!correct,
+    verdict: fact.verdict,          // 1=真, 0=假
+    your_guess: g,
+    claim: fact.claim,
+    category: fact.category,
+    explanation: fact.explanation,
+    source: fact.source,
+    source_url: fact.source_url,
+    stats: computeStats(answers),
+  };
+}
+
+/* ---------- 遊戲狀態 ---------- */
 let current = null;     // 目前題目 {id, claim, category}
 let lastId = -1;        // 上一題 id，抽題時避開
 let caseCount = 0;      // 已處理案件數（用於案號）
 let locked = false;     // 揭曉後鎖住按鈕
 
-/* ---------- 工具 ---------- */
-async function getJSON(url){
-  const r = await fetch(url);
-  if(!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}
-async function postJSON(url, body){
-  const r = await fetch(url, {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: body ? JSON.stringify(body) : null,
-  });
-  if(!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
-}
 const pad3 = (n) => String(n).padStart(3, "0");
 
-/* ---------- 抽題 ---------- */
-async function loadQuestion(){
+/* ---------- 抽題（畫面） ---------- */
+function loadQuestion(){
   locked = false;
   // 收起揭曉區、重置印章
   $("reveal").hidden = true;
@@ -39,30 +313,23 @@ async function loadQuestion(){
   $("btnFalse").disabled = false;
   $("verdictButtons").style.display = "grid";
 
-  $("claim").textContent = "正在調閱卷宗……";
-  try{
-    const q = await getJSON("/api/question?exclude=" + lastId);
-    current = q;
-    caseCount += 1;
-    $("caseNo").textContent = "第 " + pad3(caseCount) + " 號案件";
-    $("categoryTag").textContent = q.category;
-    $("claim").textContent = q.claim;
-  }catch(e){
-    $("claim").textContent = "調閱卷宗失敗，請確認伺服器是否啟動。";
-  }
+  const q = pickQuestion(lastId);
+  current = q;
+  caseCount += 1;
+  $("caseNo").textContent = "第 " + pad3(caseCount) + " 號案件";
+  $("categoryTag").textContent = q.category;
+  $("claim").textContent = q.claim;
 }
 
 /* ---------- 送出判斷 ---------- */
-async function submitGuess(guess){
-  if(locked || !current) return;
+function submitGuess(guess){
+  if (locked || !current) return;
   locked = true;
   $("btnTrue").disabled = true;
   $("btnFalse").disabled = true;
 
-  let res;
-  try{
-    res = await postJSON("/api/answer", {fact_id: current.id, guess: guess});
-  }catch(e){
+  const res = recordAnswer(current.id, guess);
+  if (!res){
     locked = false;
     $("btnTrue").disabled = false;
     $("btnFalse").disabled = false;
@@ -80,10 +347,10 @@ async function submitGuess(guess){
 
   // 揭曉內容
   const banner = $("revealBanner");
-  if(res.correct){
+  if (res.correct){
     banner.textContent = "✓ 鑑定正確";
     banner.className = "reveal-banner ok";
-  }else{
+  } else {
     banner.textContent = "✗ 看走眼了";
     banner.className = "reveal-banner no";
   }
@@ -98,12 +365,12 @@ async function submitGuess(guess){
   renderStats(res.stats, true);
 }
 
-/* ---------- 統計 ---------- */
+/* ---------- 統計（畫面） ---------- */
 function renderStats(s, flash){
   const setNum = (id, val) => {
     const el = $(id);
     el.innerHTML = val;
-    if(flash){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+    if (flash){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
   };
   setNum("statStreak", s.current_streak);
   $("statSeen").innerHTML = s.seen_facts + "<i>/" + s.total_facts + "</i>";
@@ -116,18 +383,18 @@ function renderStats(s, flash){
 
 function renderDossier(s){
   const insight = $("insight");
-  if(s.total === 0){
+  if (s.total === 0){
     insight.innerHTML = "先鑑定幾件，這裡會分析你最容易被哪一類冷知識騙倒。";
-  }else if(s.most_fooled){
+  } else if (s.most_fooled){
     insight.innerHTML = "目前你最容易在 <b>「" + s.most_fooled +
       "」</b> 類看走眼——這一類的謠言特別會騙人，多留意！";
-  }else{
+  } else {
     insight.innerHTML = "目前為止火眼金睛，各類都沒被騙倒，繼續保持！";
   }
 
   const bars = $("catBars");
   bars.innerHTML = "";
-  s.category_stats.forEach(c => {
+  s.category_stats.forEach((c) => {
     const row = document.createElement("div");
     row.className = "cat-row";
     row.innerHTML =
@@ -138,8 +405,8 @@ function renderDossier(s){
   });
 }
 
-async function refreshStats(){
-  try{ renderStats(await getJSON("/api/stats"), false); }catch(e){}
+function refreshStats(){
+  renderStats(computeStats(loadAnswers()), false);
 }
 
 /* ---------- 事件 ---------- */
@@ -152,16 +419,16 @@ $("dossierToggle").addEventListener("click", () => {
   body.hidden = !body.hidden;
 });
 
-$("btnReset").addEventListener("click", async () => {
-  await postJSON("/api/reset");
+$("btnReset").addEventListener("click", () => {
+  saveAnswers([]);                 // 清空作答紀錄（保留題庫）
   caseCount = 0;
   lastId = -1;
-  await refreshStats();
-  await loadQuestion();
+  refreshStats();
+  loadQuestion();
 });
 
 /* ---------- 啟動 ---------- */
-(async function init(){
-  await refreshStats();
-  await loadQuestion();
+(function init(){
+  refreshStats();
+  loadQuestion();
 })();

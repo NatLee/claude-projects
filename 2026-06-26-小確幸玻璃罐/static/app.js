@@ -1,7 +1,7 @@
-/* ===== 小確幸玻璃罐 · app.js ===== */
+/* ===== 小確幸玻璃罐 · app.js（純前端版，資料存 localStorage） ===== */
 "use strict";
 
-// 心情對照表（key 必須與後端 app.py 的 MOODS 一致）
+// 心情對照表（原後端 app.py 的 MOODS 已合併於此，五種心情一筆不少）
 const MOODS = {
   warm:     { label: "溫暖",   emoji: "☀️", color: "#f3a45c" },
   calm:     { label: "平靜",   emoji: "🌿", color: "#88bd84" },
@@ -17,17 +17,135 @@ let joys = [];          // 全部小確幸（新到舊）
 let selectedMood = "warm";
 let justAddedId = null; // 剛投入的那則，用來播放掉落動畫
 
-// ---------- 工具 ----------
-async function api(path, opts) {
-  const res = await fetch(path, Object.assign({ headers: { "Content-Type": "application/json" } }, opts));
-  if (!res.ok) {
-    let msg = "操作失敗";
-    try { msg = (await res.json()).error || msg; } catch (e) {}
-    throw new Error(msg);
-  }
-  return res.status === 204 ? null : res.json();
+// ---------- 本機儲存（取代原本的 Flask + SQLite 後端） ----------
+const STORAGE_KEY = "jar.state";
+
+let state = { joys: [], nextId: 1 };
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      if (s && Array.isArray(s.joys)) {
+        const cleaned = s.joys.filter(
+          (j) => j && typeof j.content === "string" && typeof j.created_at === "string"
+        ).map((j) => ({
+          id: Number(j.id) || 0,
+          content: j.content,
+          mood: MOODS[j.mood] ? j.mood : "warm",
+          created_at: j.created_at,
+        }));
+        let maxId = 0;
+        cleaned.forEach((j) => { if (j.id > maxId) maxId = j.id; });
+        state = {
+          joys: cleaned,
+          nextId: Number.isInteger(s.nextId) && s.nextId > maxId ? s.nextId : maxId + 1,
+        };
+        return;
+      }
+    }
+  } catch (e) { /* 資料損毀時視同空罐 */ }
+  state = { joys: [], nextId: 1 };
 }
 
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// 等同 Python 的 datetime.now().isoformat(timespec="seconds")
+function nowIso() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+// 等同原後端「列出全部」：新到舊（時間相同者 id 大的在前）
+function storeList() {
+  return state.joys.slice().sort((a, b) => {
+    if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
+    return b.id - a.id;
+  });
+}
+
+// 等同原後端「新增一則」
+function storeAdd(rawContent, rawMood) {
+  let content = (rawContent || "").trim();
+  let mood = rawMood || "warm";
+  if (!MOODS[mood]) mood = "warm";
+  if (!content) throw new Error("請先寫下一則小確幸 🙂");
+  if (content.length > 200) content = content.slice(0, 200);
+
+  const joy = {
+    id: state.nextId,
+    content: content,
+    mood: mood,
+    created_at: nowIso(),
+  };
+  state.nextId += 1;
+  state.joys.push(joy);
+  saveState();
+  return joy;
+}
+
+// 等同原後端「隨機回味一則」
+function storeRandom() {
+  if (!state.joys.length) throw new Error("罐子還是空的，先投一則進去吧 ✨");
+  return state.joys[Math.floor(Math.random() * state.joys.length)];
+}
+
+// 等同原後端「刪除某一則」
+function storeRemove(id) {
+  state.joys = state.joys.filter((j) => j.id !== id);
+  saveState();
+}
+
+// 等同原後端「統計」：總數、本月、連續天數、最常心情
+function storeStats() {
+  const total = state.joys.length;
+  const now = new Date();
+  let thisMonth = 0;
+  const days = new Set();
+  const moodCount = {};
+
+  state.joys.forEach((j) => {
+    const dayStr = String(j.created_at).slice(0, 10); // YYYY-MM-DD
+    const parts = dayStr.split("-").map(Number);
+    if (parts.length !== 3 || parts.some((n) => isNaN(n))) return;
+    if (parts[0] === now.getFullYear() && parts[1] === now.getMonth() + 1) thisMonth += 1;
+    days.add(dayStr);
+    moodCount[j.mood] = (moodCount[j.mood] || 0) + 1;
+  });
+
+  // 連續天數：從今天（若今天沒有就從最近一筆那天）往回數，連續有紀錄的天數
+  let streak = 0;
+  if (days.size) {
+    const p = (n) => String(n).padStart(2, "0");
+    const key = (d) => `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    let cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (!days.has(key(cursor))) {
+      const latest = Array.from(days).sort().pop();
+      const q = latest.split("-").map(Number);
+      cursor = new Date(q[0], q[1] - 1, q[2]);
+    }
+    while (days.has(key(cursor))) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+  }
+
+  let topMood = null;
+  const moodKeys = Object.keys(moodCount);
+  if (moodKeys.length) {
+    let topKey = moodKeys[0];
+    moodKeys.forEach((k) => { if (moodCount[k] > moodCount[topKey]) topKey = k; });
+    topMood = MOODS[topKey] ? MOODS[topKey].label : topKey;
+  }
+
+  return { total: total, this_month: thisMonth, streak: streak, top_mood: topMood };
+}
+
+// ---------- 工具 ----------
 function fmtDate(iso) {
   const d = new Date(iso);
   if (isNaN(d)) return iso;
@@ -140,9 +258,9 @@ function renderTimeline() {
 }
 
 // ---------- 統計 ----------
-async function refreshStats() {
+function refreshStats() {
   try {
-    const s = await api("/api/stats");
+    const s = storeStats();
     $("statTotal").textContent = s.total;
     $("statMonth").textContent = s.this_month;
     $("statStreak").textContent = s.streak;
@@ -151,29 +269,27 @@ async function refreshStats() {
 }
 
 // ---------- 動作 ----------
-async function loadAll() {
-  joys = await api("/api/joys");
+function loadAll() {
+  loadState();
+  joys = storeList();
   renderJar();
   renderTimeline();
-  await refreshStats();
+  refreshStats();
 }
 
-async function addJoy() {
+function addJoy() {
   const ta = $("content");
   const content = ta.value.trim();
   if (!content) { showToast("先寫下一則小確幸吧 🙂", true); ta.focus(); return; }
   try {
-    const created = await api("/api/joys", {
-      method: "POST",
-      body: JSON.stringify({ content, mood: selectedMood }),
-    });
+    const created = storeAdd(content, selectedMood);
     justAddedId = created.id;
     ta.value = "";
     updateCharCount();
     joys.unshift(created);
     renderJar();
     renderTimeline();
-    await refreshStats();
+    refreshStats();
     wiggleJar();
     showToast("投進罐子了，今天又多了一份美好 ✨");
   } catch (e) {
@@ -181,22 +297,22 @@ async function addJoy() {
   }
 }
 
-async function removeJoy(id) {
+function removeJoy(id) {
   try {
-    await api("/api/joys/" + id, { method: "DELETE" });
+    storeRemove(id);
     joys = joys.filter((j) => j.id !== id);
     renderJar();
     renderTimeline();
-    await refreshStats();
+    refreshStats();
   } catch (e) {
     showToast(e.message, true);
   }
 }
 
-async function shake() {
+function shake() {
   wiggleJar();
   try {
-    const j = await api("/api/joys/random");
+    const j = storeRandom();
     const m = MOODS[j.mood] || MOODS.warm;
     $("featuredText").textContent = j.content;
     $("featuredMeta").textContent = `${m.emoji} ${m.label} · ${fmtDate(j.created_at)}`;
@@ -241,5 +357,9 @@ document.addEventListener("DOMContentLoaded", () => {
   $("content").addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") addJoy();
   });
-  loadAll().catch((e) => showToast("載入失敗：" + e.message, true));
+  try {
+    loadAll();
+  } catch (e) {
+    showToast("載入失敗：" + e.message, true);
+  }
 });

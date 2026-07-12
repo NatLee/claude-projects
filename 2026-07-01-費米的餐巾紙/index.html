@@ -7,15 +7,22 @@
   <link rel="stylesheet" href="static/style.css">
 </head>
 <body>
+  <!-- 紙片彩帶特效層（純裝飾） -->
+  <canvas id="fxCanvas" aria-hidden="true"></canvas>
+
   <div class="paper">
     <!-- 咖啡漬裝飾 -->
     <div class="coffee-ring" aria-hidden="true"></div>
 
+    <nav class="topbar enter" style="--d:0">
+      <a class="home-link" href="../index.html" aria-label="回到首頁"><span class="hl-arrow" aria-hidden="true">←</span> 回首頁</a>
+    </nav>
+
     <header class="masthead">
-      <div class="kicker">FERMI&rsquo;S NAPKIN · 餐巾紙上的數感實驗</div>
-      <h1>費米的餐巾紙</h1>
-      <p class="tagline">「給我一張餐巾紙，我就能估出整個世界的大小。」</p>
-      <button id="aboutToggle" class="about-toggle" type="button">什麼是費米估算？ &darr;</button>
+      <div class="kicker enter" style="--d:1">FERMI&rsquo;S NAPKIN · 餐巾紙上的數感實驗</div>
+      <h1 class="enter" style="--d:2">費米的餐巾紙</h1>
+      <p class="tagline enter" style="--d:3">「給我一張餐巾紙，我就能估出整個世界的大小。」</p>
+      <button id="aboutToggle" class="about-toggle enter" style="--d:4" type="button" aria-expanded="false" aria-controls="aboutBox">什麼是費米估算？ &darr;</button>
       <div id="aboutBox" class="about-box" hidden>
         <p>1945 年第一顆原子彈試爆，物理學家<strong>費米</strong>把碎紙片撒向空中，
         憑紙片被衝擊波吹出的距離，<strong>心算</strong>出爆炸當量——和精密儀器的結果同一個數量級。</p>
@@ -25,89 +32,100 @@
       </div>
     </header>
 
-    <!-- 出題卡 -->
-    <main class="napkin-card" id="quizCard">
-      <div class="card-top">
-        <span class="cat-chip" id="catChip">載入中</span>
-        <span class="q-counter" id="qCounter"></span>
-      </div>
-
-      <h2 class="question" id="questionText">正在從口袋裡掏餐巾紙&hellip;</h2>
-
-      <!-- 估計建構器 -->
-      <section class="estimator" id="estimator">
-        <div class="est-label">你的估計</div>
-
-        <div class="big-readout">
-          <span id="readoutSci" class="readout-sci">1 × 10<sup>0</sup></span>
-          <span id="readoutUnit" class="readout-unit"></span>
-        </div>
-        <div class="readout-cn" id="readoutCN">約 1</div>
-
-        <div class="dials">
-          <label class="dial mantissa-dial">
-            <span class="dial-name">係數</span>
-            <input type="number" id="mantissa" min="1" max="9.9" step="0.1" value="1">
-          </label>
-          <div class="dial exp-dial">
-            <span class="dial-name">數量級　10<sup id="expLabel">0</sup></span>
-            <input type="range" id="exponent" min="0" max="26" step="1" value="0">
-            <div class="ruler">
-              <span>10⁰</span><span>10⁶</span><span>10¹³</span><span>10²⁰</span><span>10²⁶</span>
+    <div class="layout">
+      <!-- 出題卡 -->
+      <main class="main-col enter" style="--d:5">
+        <div class="napkin-card" id="quizCard">
+          <span class="tape" aria-hidden="true"></span>
+          <div class="card-inner" id="cardInner">
+            <div class="card-top">
+              <span class="cat-chip" id="catChip">載入中</span>
+              <span class="q-counter" id="qCounter"></span>
             </div>
+
+            <h2 class="question" id="questionText">正在從口袋裡掏餐巾紙&hellip;</h2>
+
+            <!-- 估計建構器 -->
+            <section class="estimator" id="estimator">
+              <div class="est-label">你的估計</div>
+
+              <div class="big-readout">
+                <span id="readoutSci" class="readout-sci">1 × 10<sup>0</sup></span>
+                <span id="readoutUnit" class="readout-unit"></span>
+              </div>
+              <div class="readout-cn" id="readoutCN">約 1</div>
+
+              <div class="dials">
+                <label class="dial mantissa-dial">
+                  <span class="dial-name">係數</span>
+                  <input type="number" id="mantissa" min="1" max="9.9" step="0.1" value="1" aria-label="係數，1 到 9.9">
+                </label>
+                <div class="dial exp-dial">
+                  <span class="dial-name" id="expName">數量級　10<sup id="expLabel">0</sup></span>
+                  <input type="range" id="exponent" min="0" max="26" step="1" value="0" aria-label="數量級：10 的次方">
+                  <div class="ruler" aria-hidden="true">
+                    <span>10⁰</span><span>10⁶</span><span>10¹³</span><span>10²⁰</span><span>10²⁶</span>
+                  </div>
+                </div>
+              </div>
+
+              <button id="revealBtn" class="reveal-btn" type="button">揭曉答案</button>
+            </section>
+
+            <!-- 結果區 -->
+            <section class="result" id="resultBox" aria-live="polite" hidden>
+              <div class="verdict" id="verdict"></div>
+
+              <div class="scale-track" id="scaleTrack">
+                <div class="scale-axis"></div>
+                <div class="pin pin-you" id="pinYou"><span class="pin-flag">你</span></div>
+                <div class="pin pin-true" id="pinTrue"><span class="pin-flag">正解</span></div>
+              </div>
+              <div class="orders-note" id="ordersNote"></div>
+
+              <div class="answer-grid">
+                <div class="ag-cell">
+                  <div class="ag-label">你的估計</div>
+                  <div class="ag-value" id="yourValue"></div>
+                </div>
+                <div class="ag-cell ag-true">
+                  <div class="ag-label">真正的答案</div>
+                  <div class="ag-value" id="trueValue"></div>
+                </div>
+              </div>
+
+              <div class="explain" id="explainBox"></div>
+              <div class="source" id="sourceBox"></div>
+
+              <button id="nextBtn" class="next-btn" type="button">下一張餐巾紙 &rarr;</button>
+            </section>
           </div>
         </div>
+        <p class="key-hint" aria-hidden="true">小技巧：按 <kbd>Enter</kbd> 揭曉／下一題</p>
+      </main>
 
-        <button id="revealBtn" class="reveal-btn" type="button">揭曉答案</button>
-      </section>
-
-      <!-- 結果區 -->
-      <section class="result" id="resultBox" hidden>
-        <div class="verdict" id="verdict"></div>
-
-        <div class="scale-track" id="scaleTrack">
-          <div class="scale-axis"></div>
-          <div class="pin pin-you" id="pinYou"><span class="pin-flag">你</span></div>
-          <div class="pin pin-true" id="pinTrue"><span class="pin-flag">正解</span></div>
-        </div>
-        <div class="orders-note" id="ordersNote"></div>
-
-        <div class="answer-grid">
-          <div class="ag-cell">
-            <div class="ag-label">你的估計</div>
-            <div class="ag-value" id="yourValue"></div>
+      <!-- 數感檔案 -->
+      <aside class="side-col enter" style="--d:6">
+        <div class="stats-card" id="statsCard">
+          <span class="paperclip" aria-hidden="true"></span>
+          <div class="stats-head">
+            <h3>你的數感檔案</h3>
+            <button id="resetBtn" class="reset-link" type="button" aria-label="清除所有估算紀錄">清除紀錄</button>
           </div>
-          <div class="ag-cell ag-true">
-            <div class="ag-label">真正的答案</div>
-            <div class="ag-value" id="trueValue"></div>
+          <div class="stat-tiles">
+            <div class="tile"><div class="tile-num" id="stTotal">0</div><div class="tile-cap">已估算</div></div>
+            <div class="tile"><div class="tile-num" id="stHit">0%</div><div class="tile-cap">命中數量級率</div></div>
+            <div class="tile"><div class="tile-num" id="stErr">—</div><div class="tile-cap">平均誤差（數量級）</div></div>
+            <div class="tile"><div class="tile-num" id="stStreak">0</div><div class="tile-cap">目前連勝 / 最佳</div></div>
           </div>
+          <ul class="recent" id="recentList">
+            <li class="recent-empty">還沒有紀錄，先估一題看看吧。</li>
+          </ul>
         </div>
+      </aside>
+    </div>
 
-        <div class="explain" id="explainBox"></div>
-        <div class="source" id="sourceBox"></div>
-
-        <button id="nextBtn" class="next-btn" type="button">下一張餐巾紙 &rarr;</button>
-      </section>
-    </main>
-
-    <!-- 數感檔案 -->
-    <aside class="stats-card" id="statsCard">
-      <div class="stats-head">
-        <h3>你的數感檔案</h3>
-        <button id="resetBtn" class="reset-link" type="button">清除紀錄</button>
-      </div>
-      <div class="stat-tiles">
-        <div class="tile"><div class="tile-num" id="stTotal">0</div><div class="tile-cap">已估算</div></div>
-        <div class="tile"><div class="tile-num" id="stHit">0%</div><div class="tile-cap">命中數量級率</div></div>
-        <div class="tile"><div class="tile-num" id="stErr">—</div><div class="tile-cap">平均誤差（數量級）</div></div>
-        <div class="tile"><div class="tile-num" id="stStreak">0</div><div class="tile-cap">目前連勝 / 最佳</div></div>
-      </div>
-      <ul class="recent" id="recentList">
-        <li class="recent-empty">還沒有紀錄，先估一題看看吧。</li>
-      </ul>
-    </aside>
-
-    <footer class="foot">
+    <footer class="foot enter" style="--d:7">
       費米的餐巾紙 · 每日小專案 · 2026-07-01 · 重點不是答對，而是學會用數量級丈量世界
     </footer>
   </div>

@@ -10,6 +10,22 @@ const STORAGE_KEY = "fermi.attempts";
 
 let currentQ = null;          // 目前題目 {id, prompt, unit, category, ...}
 let answered = false;
+let swapping = false;         // 換題動畫進行中
+let prevStats = null;         // 前一次統計（供數字滾動）
+let lastExp = null;           // 前一次的數量級（供讀數彈跳）
+
+/* ── 動態偏好：prefers-reduced-motion（動態監聽） ──── */
+const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+let reducedMotion = motionMq.matches;
+function onMotionPrefChange(e){
+  reducedMotion = e.matches;
+  if (reducedMotion) fxStop();
+}
+if (typeof motionMq.addEventListener === "function"){
+  motionMq.addEventListener("change", onMotionPrefChange);
+} else if (typeof motionMq.addListener === "function"){
+  motionMq.addListener(onMotionPrefChange);
+}
 
 /* ── 題庫：所有數值皆經查證或可直接計算（見 說明.md 的資料來源）
       answer 一律以「題目單位」的數值表示 ───────────────────── */
@@ -284,6 +300,125 @@ function displayMain(x){
   return fmtSci(x);
 }
 
+/* ── 紙片彩帶（費米撒紙片！）── canvas / rAF ──────── */
+const FX_COLORS = ["#fffdf6", "#f6f1e4", "#d9952f", "#3a6ea5", "#b1442f", "#5a7d4f"];
+let fxParts = [];
+let fxRaf = null;
+let fxLast = 0;
+
+function fxCtx(){
+  const c = $("fxCanvas");
+  if (!c) return null;
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.round(window.innerWidth * dpr);
+  const h = Math.round(window.innerHeight * dpr);
+  if (c.width !== w || c.height !== h){ c.width = w; c.height = h; }
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+function fxBurst(x, y, count){
+  if (reducedMotion) return;
+  for (let i = 0; i < count; i++){
+    const ang = -Math.PI / 2 + (Math.random() - 0.5) * 2.0;
+    const spd = 200 + Math.random() * 360;
+    fxParts.push({
+      x, y,
+      vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+      rot: Math.random() * Math.PI * 2, vr: (Math.random() - 0.5) * 10,
+      w: 5 + Math.random() * 7, h: 8 + Math.random() * 10,
+      color: FX_COLORS[(Math.random() * FX_COLORS.length) | 0],
+      life: 0, ttl: 1.2 + Math.random() * 0.7,
+      sway: 2 + Math.random() * 3, phase: Math.random() * Math.PI * 2,
+    });
+  }
+  if (!fxRaf && !document.hidden){
+    fxLast = performance.now();
+    fxRaf = requestAnimationFrame(fxTick);
+  }
+}
+
+function fxTick(now){
+  fxRaf = null;
+  const dt = Math.min(0.05, (now - fxLast) / 1000);
+  fxLast = now;
+  const ctx = fxCtx();
+  if (!ctx){ fxParts = []; return; }
+  ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+  const g = 620;
+  fxParts = fxParts.filter((p) => {
+    p.life += dt;
+    if (p.life > p.ttl) return false;
+    p.vy += g * dt;
+    p.vx *= (1 - 1.5 * dt);
+    p.x += (p.vx + Math.sin(p.life * p.sway * 4 + p.phase) * 26) * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vr * dt;
+    if (p.y > window.innerHeight + 40) return false;
+
+    const fade = Math.max(0, Math.min(1, (p.ttl - p.life) / 0.45));
+    const flip = Math.abs(Math.cos(p.life * 6 + p.phase)) * 0.7 + 0.3; // 翻飛感
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(-p.w / 2, -p.h * flip / 2, p.w, p.h * flip);
+    ctx.restore();
+    return true;
+  });
+
+  if (fxParts.length && !document.hidden){
+    fxRaf = requestAnimationFrame(fxTick);
+  } else if (!fxParts.length){
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  }
+}
+
+function fxStop(){
+  fxParts = [];
+  if (fxRaf){ cancelAnimationFrame(fxRaf); fxRaf = null; }
+  const c = $("fxCanvas");
+  if (c) c.getContext("2d").clearRect(0, 0, c.width, c.height);
+}
+
+// 分頁隱藏時暫停 rAF 迴圈，回來再續跑
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden){
+    if (fxRaf){ cancelAnimationFrame(fxRaf); fxRaf = null; }
+  } else if (fxParts.length && !fxRaf && !reducedMotion){
+    fxLast = performance.now();
+    fxRaf = requestAnimationFrame(fxTick);
+  }
+});
+
+/* ── 動畫小工具 ─────────────────────────────────── */
+// 數字滾動（reduced-motion 時直接落定）
+function animateNumber(el, from, to, fmt, dur){
+  if (reducedMotion || !isFinite(from) || from === to){
+    el.textContent = fmt(to);
+    return;
+  }
+  const t0 = performance.now();
+  function step(now){
+    const p = Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = fmt(from + (to - from) * eased);
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = fmt(to);
+  }
+  requestAnimationFrame(step);
+}
+// 彈一下（重新觸發 CSS 動畫）
+function pulse(el){
+  if (reducedMotion) return;
+  el.classList.remove("pulse");
+  void el.offsetWidth;
+  el.classList.add("pulse");
+}
+
 /* ── 即時讀數 ─────────────────────────────────────── */
 function currentGuess(){
   let m = parseFloat($("mantissa").value);
@@ -296,10 +431,22 @@ function updateReadout(){
   const g = currentGuess();
   const e = parseInt($("exponent").value, 10);
   $("expLabel").textContent = e;
+  $("exponent").setAttribute("aria-valuetext", `10 的 ${e} 次方`);
   $("readoutSci").innerHTML = displayMain(g);
   $("readoutUnit").textContent = currentQ ? currentQ.unit : "";
   const cn = fmtCN(g);
   $("readoutCN").textContent = cn ? `約 ${cn}` : (g >= 1e20 ? "（天文數字！）" : "");
+  if (lastExp !== null && e !== lastExp) pulse($("readoutSci"));
+  lastExp = e;
+}
+// rAF 節流：滑桿快速拖動時每幀最多更新一次
+let readoutRaf = null;
+function scheduleReadout(){
+  if (readoutRaf) return;
+  readoutRaf = requestAnimationFrame(() => {
+    readoutRaf = null;
+    updateReadout();
+  });
 }
 
 /* ── 載入題目 ─────────────────────────────────────── */
@@ -318,7 +465,29 @@ function loadQuestion(exclude){
   $("resultBox").hidden = true;
   $("estimator").style.display = "";
   $("revealBtn").disabled = false;
+  lastExp = null;
   updateReadout();
+}
+
+// 「下一張餐巾紙」：舊卡滑出、新卡滑入
+function nextQuestion(){
+  if (!answered || swapping) return;
+  if (reducedMotion){
+    loadQuestion(currentQ ? currentQ.id : null);
+    return;
+  }
+  swapping = true;
+  const inner = $("cardInner");
+  inner.classList.add("swap-out");
+  setTimeout(() => {
+    loadQuestion(currentQ ? currentQ.id : null);
+    inner.classList.remove("swap-out");
+    inner.classList.add("swap-in");
+    setTimeout(() => {
+      inner.classList.remove("swap-in");
+      swapping = false;
+    }, 430);
+  }, 220);
 }
 
 /* ── 揭曉答案 ─────────────────────────────────────── */
@@ -330,7 +499,7 @@ function reveal(){
   const guess = currentGuess();
   const d = judgeGuess(currentQ, guess);
   renderResult(d);
-  loadStats();
+  loadStats(true);
 }
 
 function renderResult(d){
@@ -338,9 +507,9 @@ function renderResult(d){
   const box = $("resultBox");
   box.hidden = false;
 
-  // 評語
+  // 評語（蓋章）
   const v = $("verdict");
-  v.className = "verdict " + (d.within_order ? (d.ratio < 4 ? "good" : "good") : (d.ratio < 100 ? "mid" : "bad"));
+  v.className = "verdict " + (d.within_order ? "good" : (d.ratio < 100 ? "mid" : "bad"));
   v.innerHTML = `<span class="v-emoji">${d.emoji}</span>${d.verdict}`;
 
   // 對數刻度比較軸
@@ -360,6 +529,14 @@ function renderResult(d){
 
   $("explainBox").innerHTML = d.explanation;
   $("sourceBox").textContent = d.source;
+
+  // 命中：像費米一樣撒紙片慶祝！
+  if (d.within_order && !reducedMotion){
+    setTimeout(() => {
+      const r = $("verdict").getBoundingClientRect();
+      fxBurst(r.left + r.width / 2, r.top + r.height / 2, d.ratio < 2 ? 96 : 60);
+    }, 320);
+  }
 }
 
 // 把「你」與「正解」放到對數軸上
@@ -376,25 +553,44 @@ function positionPins(you, truth){
 }
 
 /* ── 數感檔案 ─────────────────────────────────────── */
-function loadStats(){
+function loadStats(animate){
   const s = computeStats();
-  $("stTotal").textContent  = s.total;
-  $("stHit").textContent    = s.total ? s.hit_rate + "%" : "—";
-  $("stErr").textContent    = s.total ? s.avg_log_error : "—";
-  $("stStreak").textContent = `${s.current_streak} / ${s.best_streak}`;
+  const prev = prevStats;
+
+  if (s.total === 0){
+    $("stTotal").textContent  = "0";
+    $("stHit").textContent    = "—";
+    $("stErr").textContent    = "—";
+    $("stStreak").textContent = "0 / 0";
+  } else {
+    const round2 = (v) => String(Math.round(v * 100) / 100);
+    animateNumber($("stTotal"), prev ? prev.total : 0, s.total,
+      (v) => String(Math.round(v)), 500);
+    animateNumber($("stHit"), (prev && prev.total) ? prev.hit_rate : 0, s.hit_rate,
+      (v) => Math.round(v) + "%", 600);
+    animateNumber($("stErr"), (prev && prev.total) ? prev.avg_log_error : 0, s.avg_log_error,
+      round2, 600);
+    $("stStreak").textContent = `${s.current_streak} / ${s.best_streak}`;
+    if (animate) pulse($("stStreak"));
+  }
 
   const list = $("recentList");
   if (!s.recent.length){
     list.innerHTML = `<li class="recent-empty">還沒有紀錄，先估一題看看吧。</li>`;
-    return;
+  } else {
+    list.innerHTML = s.recent.map(it => {
+      const mark = it.within_order
+        ? `<span class="r-mark hit">✓</span>`
+        : `<span class="r-mark miss">✕</span>`;
+      return `<li>${mark}<span class="r-prompt">${it.prompt}</span>` +
+             `<span class="r-err">差 ${it.log_error} 級</span></li>`;
+    }).join("");
+    if (animate && !reducedMotion && list.firstElementChild){
+      list.firstElementChild.classList.add("fresh");
+    }
   }
-  list.innerHTML = s.recent.map(it => {
-    const mark = it.within_order
-      ? `<span class="r-mark hit">✓</span>`
-      : `<span class="r-mark miss">✕</span>`;
-    return `<li>${mark}<span class="r-prompt">${it.prompt}</span>` +
-           `<span class="r-err">差 ${it.log_error} 級</span></li>`;
-  }).join("");
+
+  prevStats = s;
 }
 
 function resetStats(){
@@ -402,25 +598,37 @@ function resetStats(){
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (e) { /* 忽略 */ }
-  loadStats();
+  prevStats = null;
+  loadStats(false);
 }
 
 /* ── 綁定事件 ─────────────────────────────────────── */
 function bind(){
-  $("mantissa").addEventListener("input", updateReadout);
-  $("exponent").addEventListener("input", updateReadout);
+  $("mantissa").addEventListener("input", scheduleReadout);
+  $("exponent").addEventListener("input", scheduleReadout);
   $("revealBtn").addEventListener("click", reveal);
-  $("nextBtn").addEventListener("click", () => loadQuestion(currentQ ? currentQ.id : null));
+  $("nextBtn").addEventListener("click", nextQuestion);
   $("resetBtn").addEventListener("click", resetStats);
   $("aboutToggle").addEventListener("click", () => {
     const box = $("aboutBox");
     box.hidden = !box.hidden;
-    $("aboutToggle").innerHTML = box.hidden ? "什麼是費米估算？ ↓" : "收合說明 ↑";
+    const btn = $("aboutToggle");
+    btn.innerHTML = box.hidden ? "什麼是費米估算？ ↓" : "收合說明 ↑";
+    btn.setAttribute("aria-expanded", box.hidden ? "false" : "true");
+  });
+
+  // 鍵盤流：Enter 揭曉 / 下一題（按鈕與連結交給原生行為，避免重複觸發）
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    const t = e.target;
+    if (t && (t.tagName === "BUTTON" || t.tagName === "A")) return;
+    if (!answered) reveal();
+    else nextQuestion();
   });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
   bind();
   loadQuestion();
-  loadStats();
+  loadStats(false);
 });

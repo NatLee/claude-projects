@@ -1,7 +1,10 @@
 /* ============================================================
-   真偽鑑定所 — 前端邏輯（純靜態版）
+   真偽鑑定所 — 前端邏輯（純靜態版・工藝重整）
    題庫與判定、抽題、統計邏輯皆在前端完成，
    作答紀錄存於瀏覽器 localStorage（key 前綴 truefalse.）。
+   —— 核心資料與判定邏輯保持不變；本版新增進場、蓋印濺墨、
+      數字滾動、氛圍浮塵等動畫（僅用 transform/opacity，rAF 節流，
+      分頁隱藏或 prefers-reduced-motion 時完整降級）。
    ============================================================ */
 "use strict";
 
@@ -293,6 +296,193 @@ function recordAnswer(factId, guess){
   };
 }
 
+/* ============================================================
+   以下為呈現層與動畫（不影響上方任何資料 / 判定 / 統計邏輯）
+   ============================================================ */
+
+/* ---------- 減少動態偏好（動態監聽，完整降級） ---------- */
+const motionMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
+let reduceMotion = motionMQ.matches;
+function onMotionChange(){
+  reduceMotion = motionMQ.matches;
+  if (reduceMotion){ ambient.stop(); }
+  else if (!document.hidden){ ambient.start(); }
+}
+if (motionMQ.addEventListener) motionMQ.addEventListener("change", onMotionChange);
+else if (motionMQ.addListener) motionMQ.addListener(onMotionChange);
+
+/* ---------- 環境浮塵 canvas（低調氛圍，分頁隱藏即暫停） ---------- */
+const ambient = (function(){
+  const cv = $("ambient");
+  const ctx = cv ? cv.getContext("2d") : null;
+  let W = 0, H = 0, dpr = 1, raf = 0, running = false, motes = [];
+
+  function size(){
+    if (!cv) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function seed(){
+    const n = Math.round(Math.min(46, Math.max(20, (W * H) / 42000)));
+    motes = [];
+    for (let i = 0; i < n; i++){
+      const dark = Math.random() < 0.35;
+      motes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: 0.8 + Math.random() * 2.4,
+        vy: -(0.05 + Math.random() * 0.16),
+        drift: 0.2 + Math.random() * 0.5,
+        ph: Math.random() * Math.PI * 2,
+        a: (dark ? 0.05 : 0.09) + Math.random() * 0.05,
+        dark: dark,
+      });
+    }
+  }
+  let t = 0;
+  function frame(){
+    if (!running) return;
+    t += 0.006;
+    ctx.clearRect(0, 0, W, H);
+    for (const m of motes){
+      m.y += m.vy;
+      const x = m.x + Math.sin(t + m.ph) * m.drift * 6;
+      if (m.y < -8){ m.y = H + 8; m.x = Math.random() * W; }
+      ctx.beginPath();
+      ctx.arc(x, m.y, m.r, 0, Math.PI * 2);
+      ctx.fillStyle = m.dark
+        ? "rgba(70,54,34," + m.a + ")"
+        : "rgba(255,250,235," + m.a + ")";
+      ctx.fill();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  function start(){
+    if (!ctx || running || reduceMotion) return;
+    running = true;
+    raf = requestAnimationFrame(frame);
+  }
+  function stop(){
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+  function init(){
+    if (!ctx) return;
+    size(); seed();
+    if (!reduceMotion && !document.hidden) start();
+  }
+  let rt = 0;
+  window.addEventListener("resize", function(){
+    clearTimeout(rt);
+    rt = setTimeout(function(){ size(); seed(); }, 160);
+  });
+  return { init: init, start: start, stop: stop };
+})();
+
+document.addEventListener("visibilitychange", function(){
+  if (document.hidden){ ambient.stop(); ink.stop(); }
+  else { ambient.start(); }
+});
+
+/* ---------- 蓋印濺墨 canvas（一次性爆發；分頁隱藏或減少動態則跳過） ---------- */
+const ink = (function(){
+  const card = $("card");
+  const cv = $("ink");
+  const ctx = cv ? cv.getContext("2d") : null;
+  let dpr = 1, raf = 0, running = false, parts = [], cx = 0, cy = 0;
+
+  function size(){
+    if (!cv || !card) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = card.clientWidth, h = card.clientHeight;
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    cx = w * 0.5; cy = h * 0.34;   // 對齊朱印中心
+  }
+  function frame(){
+    if (!running) return;
+    const w = cv.width / dpr, h = cv.height / dpr;
+    ctx.clearRect(0, 0, w, h);
+    let alive = 0;
+    for (const p of parts){
+      if (p.life <= 0) continue;
+      alive++;
+      p.life -= 0.018;
+      p.vy += 0.14;            // 微重力
+      p.vx *= 0.985;
+      p.x += p.vx; p.y += p.vy;
+      const a = Math.max(0, p.life) * p.a0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * Math.max(0.2, p.life), 0, Math.PI * 2);
+      ctx.fillStyle = p.color.replace("A", a.toFixed(3));
+      ctx.fill();
+    }
+    if (alive > 0){ raf = requestAnimationFrame(frame); }
+    else { stop(); ctx.clearRect(0, 0, w, h); }
+  }
+  function burst(isGreen){
+    if (!ctx || reduceMotion || document.hidden) return;
+    size();
+    const base = isGreen ? "rgba(63,125,84,A)" : "rgba(181,52,42,A)";
+    const n = 26;
+    parts = [];
+    for (let i = 0; i < n; i++){
+      const ang = (Math.PI * 2 * i) / n + Math.random() * 0.5;
+      const sp = 2.4 + Math.random() * 4.6;
+      parts.push({
+        x: cx, y: cy,
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp - 1.2,
+        r: 1.5 + Math.random() * 4.5,
+        life: 0.75 + Math.random() * 0.4,
+        a0: 0.5 + Math.random() * 0.35,
+        color: base,
+      });
+    }
+    if (!running){ running = true; raf = requestAnimationFrame(frame); }
+  }
+  function stop(){
+    running = false;
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+  }
+  return { burst: burst, stop: stop };
+})();
+
+/* ---------- 數字滾動（rAF；減少動態時直接設值） ---------- */
+function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+function countTo(el, to, opts){
+  opts = opts || {};
+  const suffix = opts.suffix || "";
+  const dur = opts.dur || 650;
+  const from = Number(el.dataset.v || 0);
+  el.dataset.v = String(to);
+  if (reduceMotion || !opts.animate || from === to){
+    el.textContent = to + suffix;
+    return;
+  }
+  const t0 = performance.now();
+  function step(now){
+    const p = Math.min(1, (now - t0) / dur);
+    const v = Math.round(from + (to - from) * easeOutCubic(p));
+    el.textContent = v + suffix;
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = to + suffix;
+  }
+  requestAnimationFrame(step);
+}
+function flashStat(el){
+  if (reduceMotion) return;
+  el.classList.remove("flash");
+  void el.offsetWidth;
+  el.classList.add("flash");
+}
+
 /* ---------- 遊戲狀態 ---------- */
 let current = null;     // 目前題目 {id, claim, category}
 let lastId = -1;        // 上一題 id，抽題時避開
@@ -319,6 +509,15 @@ function loadQuestion(){
   $("caseNo").textContent = "第 " + pad3(caseCount) + " 號案件";
   $("categoryTag").textContent = q.category;
   $("claim").textContent = q.claim;
+
+  // 「發牌／翻卡」進場（純 transform/opacity；減少動態自動略過）
+  if (!reduceMotion){
+    const claim = $("claim");
+    const head = $("cardHead");
+    claim.classList.remove("deal"); head.classList.remove("deal");
+    void claim.offsetWidth;
+    claim.classList.add("deal"); head.classList.add("deal");
+  }
 }
 
 /* ---------- 送出判斷 ---------- */
@@ -337,10 +536,23 @@ function submitGuess(guess){
   }
   lastId = current.id;
 
+  const isGreen = res.verdict === 1;
+
   // 蓋下朱印（顯示「正解」：真=綠印，假=朱印）
   const stamp = $("stamp");
-  $("stampChar").textContent = res.verdict === 1 ? "真" : "假";
-  stamp.className = "stamp show" + (res.verdict === 1 ? " green" : "");
+  $("stampChar").textContent = isGreen ? "真" : "假";
+  stamp.className = "stamp show" + (isGreen ? " green" : "");
+
+  // 蓋印落下的瞬間：濺墨 + 卡片受擊震動（「哇」時刻）
+  if (!reduceMotion){
+    setTimeout(function(){
+      ink.burst(isGreen);
+      const card = $("card");
+      card.classList.remove("impact");
+      void card.offsetWidth;
+      card.classList.add("impact");
+    }, 300);
+  }
 
   // 收起判斷鈕
   $("verdictButtons").style.display = "none";
@@ -367,15 +579,27 @@ function submitGuess(guess){
 
 /* ---------- 統計（畫面） ---------- */
 function renderStats(s, flash){
-  const setNum = (id, val) => {
-    const el = $(id);
-    el.innerHTML = val;
-    if (flash){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
-  };
-  setNum("statStreak", s.current_streak);
-  $("statSeen").innerHTML = s.seen_facts + "<i>/" + s.total_facts + "</i>";
-  $("statAcc").textContent = s.total ? (s.accuracy + "%") : "—";
-  $("statBest").textContent = s.best_streak;
+  const total = Number(s.total) || 0;
+
+  countTo($("statStreak"), s.current_streak, { animate: flash });
+  countTo($("statSeen"), s.seen_facts, { animate: flash });
+  $("statTotal").textContent = "/" + s.total_facts;
+
+  const accEl = $("statAcc");
+  if (total){
+    countTo(accEl, s.accuracy, { animate: flash, suffix: "%" });
+  } else {
+    accEl.dataset.v = "0";
+    accEl.textContent = "—";
+  }
+  countTo($("statBest"), s.best_streak, { animate: flash });
+
+  if (flash){
+    flashStat($("statStreak"));
+    flashStat($("statSeen"));
+    if (total) flashStat(accEl);
+    flashStat($("statBest"));
+  }
 
   // 檔案面板
   renderDossier(s);
@@ -394,15 +618,24 @@ function renderDossier(s){
 
   const bars = $("catBars");
   bars.innerHTML = "";
+  const fills = [];
   s.category_stats.forEach((c) => {
     const row = document.createElement("div");
     row.className = "cat-row";
+    const fillW = Math.max(0, Math.min(100, c.accuracy));
     row.innerHTML =
       '<span class="cat-name">' + c.category + '</span>' +
-      '<span class="cat-track"><span class="cat-fill" style="width:' + c.accuracy + '%"></span></span>' +
+      '<span class="cat-track"><span class="cat-fill" data-w="' + fillW + '"></span></span>' +
       '<span class="cat-val">' + c.correct + '/' + c.total + '（' + c.accuracy + '%）</span>';
     bars.appendChild(row);
+    fills.push(row.querySelector(".cat-fill"));
   });
+  // 長條由左展開（transform:scaleX；減少動態則直接到位）
+  const apply = () => fills.forEach((f) => {
+    f.style.transform = "scaleX(" + (Number(f.dataset.w) / 100) + ")";
+  });
+  if (reduceMotion){ apply(); }
+  else { requestAnimationFrame(() => requestAnimationFrame(apply)); }
 }
 
 function refreshStats(){
@@ -414,9 +647,11 @@ $("btnTrue").addEventListener("click", () => submitGuess(1));
 $("btnFalse").addEventListener("click", () => submitGuess(0));
 $("btnNext").addEventListener("click", loadQuestion);
 
-$("dossierToggle").addEventListener("click", () => {
+$("dossierToggle").addEventListener("click", function(){
   const body = $("dossierBody");
-  body.hidden = !body.hidden;
+  const open = body.hidden;              // 即將展開？
+  body.hidden = !open;
+  this.setAttribute("aria-expanded", open ? "true" : "false");
 });
 
 $("btnReset").addEventListener("click", () => {
@@ -429,6 +664,20 @@ $("btnReset").addEventListener("click", () => {
 
 /* ---------- 啟動 ---------- */
 (function init(){
-  refreshStats();
+  ambient.init();
+  // 招牌一次性反光
+  const seal = $("sealLogo");
+  if (seal && !reduceMotion){
+    setTimeout(function(){ seal.classList.add("sheen"); }, 500);
+  }
+  // 進場數字由 0 滾動到現況（回訪者可見戰績動起來）
+  const s = computeStats(loadAnswers());
+  $("statTotal").textContent = "/" + s.total_facts;   // 先定住分母，避免閃動
+  if (!reduceMotion && s.total > 0){
+    // 首次渲染即以 flash 模式：dataset.v 尚未設定，預設 0 → 滾動至現況
+    setTimeout(function(){ renderStats(s, true); }, 260);
+  } else {
+    renderStats(s, false);
+  }
   loadQuestion();
 })();

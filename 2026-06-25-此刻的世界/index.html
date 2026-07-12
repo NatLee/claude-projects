@@ -4,98 +4,222 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>此刻的世界 · 即時計數器</title>
+<script>try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)document.documentElement.classList.add('rm');}catch(e){}</script>
 <style>
   :root{
-    --bg0:#070b1a; --bg1:#0d1530; --ink:#eaf0ff; --muted:#8da0c9;
+    --bg0:#060915; --bg1:#0c1330; --ink:#eaf0ff; --muted:#8da0c9; --faint:#5d6d96;
     --card:rgba(255,255,255,.045); --stroke:rgba(255,255,255,.10);
     --human:#ff8fab; --digital:#67e8f9; --earth:#86efac; --you:#fcd34d;
+    --accent:#9fc4ff;
+    --h:1.16em; /* odometer digit cell height (single source of truth) */
   }
-  *{box-sizing:border-box;margin:0;padding:0}
+  *{box-sizing:border-box; margin:0; padding:0}
   html,body{height:100%}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Microsoft JhengHei","Noto Sans TC",sans-serif;
-    color:var(--ink); background:var(--bg0); overflow-x:hidden;
-    -webkit-font-smoothing:antialiased; line-height:1.5;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 800px at 50% -10%, #14204a 0%, transparent 60%),
+      radial-gradient(900px 700px at 85% 20%, #1b1240 0%, transparent 55%),
+      var(--bg0);
+    overflow-x:hidden; -webkit-font-smoothing:antialiased; line-height:1.5;
   }
+  ::selection{background:rgba(159,196,255,.28)}
+
+  /* —— background layers —— */
   #stars{position:fixed; inset:0; z-index:0; display:block}
-  .glow{position:fixed; z-index:0; filter:blur(80px); opacity:.5; pointer-events:none}
-  .glow.a{width:520px;height:520px;left:-160px;top:-160px;background:radial-gradient(circle,#3b4ea8,transparent 70%)}
-  .glow.b{width:480px;height:480px;right:-150px;top:30%;background:radial-gradient(circle,#7a3ba8,transparent 70%)}
-  .wrap{position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:48px 20px 64px}
+  .glow{position:fixed; z-index:0; filter:blur(90px); opacity:.5; pointer-events:none; will-change:transform}
+  .glow.a{width:540px;height:540px;left:-170px;top:-170px;background:radial-gradient(circle,#3b4ea8,transparent 70%); animation:driftA 26s ease-in-out infinite}
+  .glow.b{width:500px;height:500px;right:-160px;top:26%;background:radial-gradient(circle,#7a3ba8,transparent 70%); animation:driftB 32s ease-in-out infinite}
+  @keyframes driftA{0%,100%{transform:translate(0,0)}50%{transform:translate(60px,40px)}}
+  @keyframes driftB{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,50px)}}
 
-  header{text-align:center; margin-bottom:14px}
-  .kicker{font-size:13px; letter-spacing:.32em; color:var(--muted); text-transform:uppercase}
-  h1{font-size:clamp(34px,7vw,60px); font-weight:800; letter-spacing:.04em;
-     background:linear-gradient(120deg,#fff,#9fc4ff 60%,#c9a3ff);
-     -webkit-background-clip:text; background-clip:text; color:transparent; margin:6px 0 2px}
-  .sub{color:var(--muted); font-size:clamp(14px,2.4vw,17px)}
+  .wrap{position:relative; z-index:1; max-width:1120px; margin:0 auto; padding:26px 20px 68px}
 
-  .ticker{display:flex; justify-content:center; gap:26px; flex-wrap:wrap; margin:26px 0 8px}
-  .ticker .blk{text-align:center}
-  .ticker .lab{font-size:11px; letter-spacing:.18em; color:var(--muted); text-transform:uppercase}
-  .ticker .val{font-size:30px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:.04em}
-  .lead{text-align:center; color:#cdd9ff; margin:18px auto 4px; max-width:640px; min-height:24px; font-size:15px}
+  /* —— home link —— */
+  .home{display:inline-flex; align-items:center; gap:8px; color:var(--muted); text-decoration:none;
+    font-size:13.5px; letter-spacing:.06em; padding:7px 4px; border-radius:8px;
+    transition:color .25s ease; opacity:0; animation:fadeDown .7s ease forwards}
+  .home .arw{display:inline-block; transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  .home:hover{color:var(--ink)} .home:hover .arw{transform:translateX(-4px)}
+  .home:focus-visible{outline:2px solid var(--accent); outline-offset:3px; color:var(--ink)}
 
-  .section-title{display:flex; align-items:center; gap:12px; margin:38px 4px 14px; font-size:15px;
+  /* —— header —— */
+  header{text-align:center; margin-top:24px}
+  .kicker{display:inline-flex; align-items:center; gap:10px; font-size:12px; letter-spacing:.34em; color:var(--muted);
+    text-transform:uppercase; opacity:0; animation:fadeUp .7s .05s ease forwards}
+  .kicker .k-dot{width:6px;height:6px;border-radius:50%;background:var(--earth);
+    box-shadow:0 0 10px var(--earth); animation:livepulse 2s ease-in-out infinite}
+  h1{font-size:clamp(38px,8vw,68px); font-weight:800; letter-spacing:.03em; line-height:1.02;
+     background:linear-gradient(118deg,#ffffff 0%,#9fc4ff 55%,#c9a3ff 100%);
+     -webkit-background-clip:text; background-clip:text; color:transparent; margin:12px 0 4px;
+     opacity:0; animation:fadeUp .8s .12s cubic-bezier(.2,.8,.2,1) forwards}
+  .sub{color:var(--muted); font-size:clamp(14px,2.4vw,17px); max-width:640px; margin:0 auto;
+    opacity:0; animation:fadeUp .8s .2s ease forwards}
+
+  /* —— session panel (hero centrepiece) —— */
+  .session{position:relative; margin:30px auto 6px; max-width:660px;
+    display:flex; align-items:center; justify-content:center; gap:clamp(20px,5vw,54px);
+    padding:26px 30px; border-radius:24px;
+    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--stroke); backdrop-filter:blur(10px);
+    opacity:0; animation:rise .9s .3s cubic-bezier(.2,.75,.2,1) forwards}
+  .pulse-layer{position:absolute; inset:0; z-index:0; display:grid; place-items:center;
+    pointer-events:none; overflow:visible}
+  .ring{position:absolute; width:150px; height:150px; border-radius:50%;
+    border:1px solid rgba(159,196,255,.55); opacity:0; will-change:transform,opacity}
+  .ring.go{animation:ripple 1.7s cubic-bezier(.2,.7,.2,1)}
+  @keyframes ripple{0%{opacity:.55; transform:scale(.42)} 100%{opacity:0; transform:scale(2.6)}}
+  .s-item{position:relative; z-index:1; text-align:center; min-width:0}
+  .s-lab{font-size:11px; letter-spacing:.2em; color:var(--muted); text-transform:uppercase; margin-bottom:6px}
+  .s-val{font-weight:800; letter-spacing:.02em; line-height:1}
+  .s-val.big{font-size:clamp(42px,9.5vw,74px)}
+  .s-val.small{font-size:clamp(22px,5.2vw,34px); color:#cdd9ff; font-weight:700}
+  .s-val.grad{background:linear-gradient(120deg,#ffffff,#9fc4ff 70%,#c9a3ff);
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .s-div{width:1px; align-self:stretch; background:linear-gradient(180deg,transparent,var(--stroke),transparent); z-index:1}
+  .live{display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:11px; letter-spacing:.14em; color:var(--faint)}
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--earth);box-shadow:0 0 8px var(--earth); animation:livepulse 2s ease-in-out infinite}
+
+  /* —— odometer —— */
+  .odo{display:inline-flex; align-items:center; justify-content:center; font-variant-numeric:tabular-nums}
+  .odo-d{display:inline-block; height:var(--h); overflow:hidden; text-align:center}
+  .odo-reel{display:flex; flex-direction:column; will-change:transform;
+    transition:transform .55s cubic-bezier(.22,.85,.24,1)}
+  .odo-reel>span{display:block; height:var(--h); line-height:var(--h)}
+  .odo-sep{display:inline-block; padding:0 .04em; opacity:.65}
+
+  .lead{text-align:center; color:#cdd9ff; margin:22px auto 4px; max-width:660px; min-height:26px;
+    font-size:15.5px; transition:opacity .38s ease, transform .38s ease;
+    opacity:0; animation:fadeUp .8s .5s ease forwards}
+
+  /* —— sections —— */
+  .section-title{display:flex; align-items:center; gap:12px; margin:44px 4px 16px; font-size:14px;
     letter-spacing:.22em; color:var(--muted); text-transform:uppercase}
   .section-title::after{content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--stroke),transparent)}
-  .dot{width:9px;height:9px;border-radius:50%}
+  .dot{width:9px;height:9px;border-radius:50%; box-shadow:0 0 10px currentColor}
 
-  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(248px,1fr)); gap:16px}
   .card{position:relative; background:var(--card); border:1px solid var(--stroke); border-radius:18px;
-    padding:22px 22px 20px; overflow:hidden; backdrop-filter:blur(8px);
-    opacity:0; transform:translateY(16px); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards;
-    transition:transform .25s ease, border-color .25s ease}
-  .card:hover{transform:translateY(-4px); border-color:rgba(255,255,255,.22)}
-  .card .bar{position:absolute; left:0; top:0; bottom:0; width:4px; opacity:.9}
-  .card .emoji{font-size:26px; line-height:1}
+    padding:22px 22px 20px; overflow:hidden; backdrop-filter:blur(8px); --c:var(--accent);
+    opacity:0; transform:translateY(20px) scale(.985);
+    animation:rise .6s cubic-bezier(.2,.75,.2,1) forwards;
+    transition:transform .3s cubic-bezier(.2,.8,.2,1), border-color .3s ease}
+  .card::after{content:""; position:absolute; inset:0; border-radius:inherit; opacity:0; pointer-events:none;
+    background:radial-gradient(130% 120% at 50% -10%, color-mix(in srgb,var(--c) 22%, transparent), transparent 62%);
+    transition:opacity .3s ease}
+  .card:hover, .card:focus-within{transform:translateY(-6px); border-color:color-mix(in srgb,var(--c) 45%, var(--stroke))}
+  .card:hover::after, .card:focus-within::after{opacity:1}
+  .card .bar{position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--c); opacity:.9}
+  .card .emoji{font-size:27px; line-height:1; display:inline-block; filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
   .card .num{font-size:clamp(30px,4.4vw,40px); font-weight:800; font-variant-numeric:tabular-nums;
-    letter-spacing:.02em; margin:10px 0 2px; word-break:break-all}
+    letter-spacing:.01em; margin:12px 0 2px; word-break:break-all}
   .card .unit{font-size:14px; font-weight:600; color:var(--muted); margin-left:4px}
   .card .label{font-size:15px; color:#dbe5ff; font-weight:600}
-  .card .rate{font-size:12.5px; color:var(--muted); margin-top:6px}
-  @keyframes rise{to{opacity:1; transform:translateY(0)}}
+  .card .rate{font-size:12.5px; color:var(--muted); margin-top:6px; line-height:1.6}
+  @keyframes rise{to{opacity:1; transform:translateY(0) scale(1)}}
 
-  .heart{display:inline-block; animation:beat 0.8s ease-in-out infinite}
+  .heart{animation:beat .9s ease-in-out infinite}
   @keyframes beat{0%,28%,100%{transform:scale(1)} 14%{transform:scale(1.28)} 21%{transform:scale(1.05)}}
+  @keyframes livepulse{0%,100%{transform:scale(1);opacity:.85} 50%{transform:scale(1.55);opacity:.35}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)}}
 
-  footer{margin-top:46px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.9}
-  footer a{color:#9fc4ff; text-decoration:none}
-  .btn{margin-top:22px; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+  /* —— controls —— */
+  .center{text-align:center; margin-top:34px}
+  .btn{display:inline-flex; align-items:center; gap:9px; cursor:pointer; position:relative; overflow:hidden;
     background:rgba(255,255,255,.06); color:var(--ink); border:1px solid var(--stroke);
-    padding:11px 20px; border-radius:999px; font-size:14px; font-family:inherit; transition:.2s}
-  .btn:hover{background:rgba(255,255,255,.13); transform:translateY(-1px)}
-  .center{text-align:center}
+    padding:12px 22px; border-radius:999px; font-size:14px; font-family:inherit; letter-spacing:.02em;
+    transition:background .22s ease, transform .18s cubic-bezier(.2,.8,.2,1), border-color .22s ease}
+  .btn .ico{display:inline-block; transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+  .btn:hover{background:rgba(255,255,255,.13); border-color:rgba(255,255,255,.24); transform:translateY(-2px)}
+  .btn:hover .ico{transform:rotate(-180deg)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
+  .btn.flash{animation:btnflash .5s ease}
+  @keyframes btnflash{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+  footer{margin-top:50px; text-align:center; color:var(--muted); font-size:12.5px; line-height:1.95}
+  footer a{color:#9fc4ff; text-decoration:none}
+  footer a:hover{text-decoration:underline}
+  .foot-src{color:var(--faint)}
+
+  .sr-only{position:absolute!important; width:1px;height:1px; padding:0;margin:-1px; overflow:hidden;
+    clip:rect(0,0,0,0); white-space:nowrap; border:0}
+
+  @media (max-width:560px){
+    .wrap{padding:20px 16px 56px}
+    .session{flex-direction:column; gap:18px; padding:22px 20px}
+    .s-div{width:70%; height:1px; align-self:center; background:linear-gradient(90deg,transparent,var(--stroke),transparent)}
+    .grid{grid-template-columns:1fr}
+    .section-title{margin-top:38px}
+  }
+
+  /* —— reduced motion: full degradation (JS toggles .rm live via matchMedia change) —— */
+  .rm .glow.a, .rm .glow.b{animation:none}
+  .rm .kicker, .rm h1, .rm .sub, .rm .session, .rm .lead, .rm .home,
+  .rm .card{animation:none!important; opacity:1!important; transform:none!important}
+  .rm .odo-reel{transition:none}
+  .rm .ring{animation:none!important; opacity:0!important}
+  .rm .heart, .rm .live-dot, .rm .k-dot{animation:none!important}
+  .rm .lead{transition:none}
+  .rm .btn .ico, .rm .home .arw{transition:none}
+  @media (prefers-reduced-motion: reduce){
+    .glow.a, .glow.b{animation:none}
+    .kicker,h1,.sub,.session,.lead,.home,.card{animation:none; opacity:1; transform:none}
+    .odo-reel{transition:none}
+    .ring{animation:none; opacity:0}
+    .heart,.live-dot,.k-dot{animation:none}
+  }
 </style>
 </head>
 <body>
-  <canvas id="stars"></canvas>
-  <div class="glow a"></div><div class="glow b"></div>
+  <canvas id="stars" aria-hidden="true"></canvas>
+  <div class="glow a" aria-hidden="true"></div><div class="glow b" aria-hidden="true"></div>
 
   <div class="wrap">
+    <a class="home" href="../index.html" aria-label="回到每日小專案首頁"><span class="arw">←</span> 回首頁</a>
+
     <header>
-      <div class="kicker">REAL-TIME · 此刻的世界</div>
+      <div class="kicker"><span class="k-dot"></span>REAL-TIME · 此刻的世界</div>
       <h1>此刻的世界</h1>
       <p class="sub">自你打開這個頁面的那一刻起，世界正在發生這些事——</p>
 
-      <div class="ticker">
-        <div class="blk"><div class="lab">你停留了</div><div class="val" id="elapsed">00:00</div></div>
-        <div class="blk"><div class="lab">現在時間</div><div class="val" id="clock">--:--:--</div></div>
+      <div class="session" role="group" aria-label="計時面板">
+        <div class="pulse-layer" aria-hidden="true">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+        </div>
+        <div class="s-item">
+          <div class="s-lab">你停留了</div>
+          <div class="s-val big grad odo" id="elapsed" aria-hidden="true"></div>
+          <span class="sr-only" id="elapsed-sr"></span>
+        </div>
+        <div class="s-div" aria-hidden="true"></div>
+        <div class="s-item">
+          <div class="s-lab">現在時間</div>
+          <div class="s-val small odo" id="clock" aria-hidden="true"></div>
+          <span class="sr-only" id="clock-sr"></span>
+          <div class="live" aria-hidden="true"><span class="live-dot"></span>即時</div>
+        </div>
       </div>
-      <p class="lead" id="lead">深呼吸一下，看看這短短的時間裡，地球有多忙。</p>
+
+      <p class="lead" id="lead" aria-live="polite">深呼吸一下，看看這短短的時間裡，地球有多忙。</p>
     </header>
 
-    <div id="board"></div>
+    <section id="board" aria-label="即時世界計數器"></section>
 
     <div class="center">
-      <button class="btn" id="reset">↻ 重新開始計時</button>
+      <button class="btn" id="reset" aria-label="重新開始計時，將所有數字歸零">
+        <span class="ico" aria-hidden="true">↻</span> 重新開始計時
+      </button>
     </div>
+    <p class="sr-only" role="status" aria-live="polite" id="status"></p>
 
     <footer>
       所有數字都是「自你打開頁面起」依全球平均速率即時推算，屬估計值而非逐筆實測。<br>
-      資料來源：Worldometer／聯合國（出生・死亡）、Statista／Radicati（Email）、Google 搜尋統計（≈85 億次／日）、
+      <span class="foot-src">資料來源：Worldometer／聯合國（出生・死亡）、Statista／Radicati（Email）、Google 搜尋統計（≈85 億次／日）、
       NASA／維基百科（閃電）、Global Carbon Budget 2024（CO₂）、Tubular Labs／Statista（YouTube）、天文常數（地球公轉 29.78 km/s）。<br>
-      心跳・呼吸・眨眼採成人靜止狀態平均值估算。 · 每日小專案 · 2026-06-25
+      心跳・呼吸・眨眼採成人靜止狀態平均值估算。</span> · 每日小專案 · 2026-06-25
     </footer>
   </div>
 
@@ -124,21 +248,25 @@ const SECTIONS = [
   ]},
 ];
 
+// 每個區塊主色（供 color-mix / accent 使用，對應 :root 變數）
+const COLORVAR = { "人類":"var(--human)", "數位生活":"var(--digital)", "地球與宇宙":"var(--earth)", "你自己":"var(--you)" };
+
 // —— 建立畫面 —— //
 const board = document.getElementById("board");
 const cells = [];
-let delay = 0;
+let delay = 0.36; // 承接 header 進場後開始（末張卡片起始 ≤ ~1.05s）
 SECTIONS.forEach(sec=>{
   const h = document.createElement("div");
   h.className = "section-title";
-  h.innerHTML = `<span class="dot" style="background:${sec.color}"></span>${sec.name}`;
+  h.innerHTML = `<span class="dot" style="background:${sec.color}; color:${sec.color}"></span>${sec.name}`;
   board.appendChild(h);
   const g = document.createElement("div"); g.className = "grid";
   sec.items.forEach(it=>{
     const c = document.createElement("div");
-    c.className = "card"; c.style.animationDelay = (delay+=0.06).toFixed(2)+"s";
+    c.className = "card"; c.style.setProperty("--c", COLORVAR[sec.name] || "var(--accent)");
+    c.style.animationDelay = (delay+=0.055).toFixed(3)+"s";
     c.innerHTML = `
-      <div class="bar" style="background:${sec.color}"></div>
+      <div class="bar"></div>
       <div class="emoji ${it.beat?'heart':''}">${it.e}</div>
       <div class="num"><span class="n">0</span><span class="unit">${it.unit}</span></div>
       <div class="label">${it.label}</div>
@@ -149,7 +277,7 @@ SECTIONS.forEach(sec=>{
   board.appendChild(g);
 });
 
-// —— 數字格式 —— //
+// —— 數字格式（維持原邏輯不變）—— //
 function fmt(v, dec){
   if(dec>0) return v.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
   return Math.floor(v).toLocaleString("en-US");
@@ -164,66 +292,193 @@ const leadLines = [
   "每一秒都有 44 道閃電在地球某處劃過天空。",
 ];
 
+// —— 里程表（odometer）—— //
+function buildOdo(el, template){
+  el.classList.add("odo"); el.textContent = "";
+  const reels = [];
+  for(const ch of template){
+    if(ch >= "0" && ch <= "9"){
+      const d = document.createElement("span"); d.className = "odo-d";
+      const r = document.createElement("span"); r.className = "odo-reel";
+      for(let i=0;i<10;i++){ const s=document.createElement("span"); s.textContent=String(i); r.appendChild(s); }
+      d.appendChild(r); el.appendChild(d); reels.push(r);
+    } else {
+      const sep = document.createElement("span"); sep.className = "odo-sep"; sep.textContent = ch; el.appendChild(sep);
+    }
+  }
+  el._reels = reels; el._digits = reels.length;
+}
+function setOdo(el, str){
+  const digits = (str.match(/\d/g) || []).length;
+  if(el._digits !== digits){ buildOdo(el, str.replace(/\d/g,"0")); }
+  let ci = 0;
+  for(const ch of str){
+    if(ch < "0" || ch > "9") continue;
+    const reel = el._reels[ci++];
+    if(reel) reel.style.transform = "translateY(calc(-" + ch + " * var(--h)))";
+  }
+}
+
 let start = Date.now();
 const clockEl = document.getElementById("clock");
 const elapsedEl = document.getElementById("elapsed");
+const elapsedSr = document.getElementById("elapsed-sr");
+const clockSr = document.getElementById("clock-sr");
 const leadEl = document.getElementById("lead");
+const statusEl = document.getElementById("status");
 let leadIdx = 0;
+let lastT = -1, lastSec = -1;
 
+// —— 減弱動態 / 分頁可見度 —— //
+const rmq = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches:false, addEventListener:function(){} };
+let motionOK = !rmq.matches;
+let pageHidden = document.hidden;
+
+// —— 世界脈動漣漪（每秒一次，貼合「即時」主題的哇時刻）—— //
+const rings = Array.from(document.querySelectorAll(".ring"));
+let ringIdx = 0;
+function pulse(){
+  if(!motionOK || pageHidden || rings.length === 0) return;
+  const r = rings[ringIdx % rings.length]; ringIdx++;
+  r.classList.remove("go"); void r.offsetWidth; r.classList.add("go");
+}
+
+// —— 主迴圈：計數 + 時鐘（以時間差推算，暫停後恢復會自動追上）—— //
+let rafMain = 0;
 function tick(){
   const now = Date.now();
   const secs = (now - start) / 1000;
 
-  // 計數器
   for(const {el,it} of cells){
     el.textContent = fmt(it.rate * secs, it.dec);
   }
-  // 停留時間
+
   const t = Math.floor(secs);
-  elapsedEl.textContent = `${pad(Math.floor(t/60))}:${pad(t%60)}`;
-  // 現在時間
+  if(t !== lastT){
+    lastT = t;
+    const mm = pad(Math.floor(t/60)), ss = pad(t%60);
+    setOdo(elapsedEl, mm + ":" + ss);
+    elapsedSr.textContent = "你已停留 " + Math.floor(t/60) + " 分 " + (t%60) + " 秒";
+  }
+
   const d = new Date();
-  clockEl.textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const s = d.getSeconds();
+  if(s !== lastSec){
+    lastSec = s;
+    const hh = pad(d.getHours()), mi = pad(d.getMinutes()), se = pad(s);
+    setOdo(clockEl, hh + ":" + mi + ":" + se);
+    clockSr.textContent = "現在時間 " + hh + ":" + mi + ":" + se;
+    pulse();
+  }
 
-  requestAnimationFrame(tick);
+  rafMain = requestAnimationFrame(tick);
 }
-tick();
+function startMain(){ if(!rafMain) rafMain = requestAnimationFrame(tick); }
+function stopMain(){ if(rafMain){ cancelAnimationFrame(rafMain); rafMain = 0; } }
 
-// 每 6 秒換一句引導語
+// —— 引導語輪播 —— //
 setInterval(()=>{
+  if(pageHidden) return;
   leadIdx = (leadIdx+1) % leadLines.length;
-  leadEl.style.opacity = 0;
-  setTimeout(()=>{ leadEl.textContent = leadLines[leadIdx]; leadEl.style.opacity = 1; }, 320);
+  if(!motionOK){ leadEl.textContent = leadLines[leadIdx]; return; }
+  leadEl.style.opacity = 0; leadEl.style.transform = "translateY(6px)";
+  setTimeout(()=>{
+    leadEl.textContent = leadLines[leadIdx];
+    leadEl.style.opacity = 1; leadEl.style.transform = "translateY(0)";
+  }, 380);
 }, 6000);
-leadEl.style.transition = "opacity .35s";
 
-document.getElementById("reset").addEventListener("click", ()=>{ start = Date.now(); });
+// —— 重新開始計時 —— //
+const resetBtn = document.getElementById("reset");
+resetBtn.addEventListener("click", ()=>{
+  start = Date.now(); lastT = -1;
+  if(motionOK){ resetBtn.classList.remove("flash"); void resetBtn.offsetWidth; resetBtn.classList.add("flash"); }
+  statusEl.textContent = "已重新開始計時";
+});
 
-// —— 背景星空 —— //
+// —— 背景星空（含視差與偶發流星；分頁隱藏或減弱動態時暫停）—— //
 const cv = document.getElementById("stars"), cx = cv.getContext("2d");
-let stars = [];
+let stars = [], shooters = [];
 function resize(){
   cv.width = innerWidth; cv.height = innerHeight;
-  stars = Array.from({length:130}, ()=>({
-    x:Math.random()*cv.width, y:Math.random()*cv.height,
-    r:Math.random()*1.4+0.2, a:Math.random(), s:Math.random()*0.02+0.004,
-    vy:Math.random()*0.12+0.02
-  }));
+  stars = Array.from({length:130}, ()=>{
+    const depth = Math.random();
+    return {
+      x:Math.random()*cv.width, y:Math.random()*cv.height,
+      r:depth*1.3+0.3, a:Math.random(), s:Math.random()*0.02+0.004,
+      vy:(depth*0.11+0.02)
+    };
+  });
+  if(!motionOK || pageHidden) drawStatic();
 }
-resize(); addEventListener("resize", resize);
+function drawStatic(){
+  cx.clearRect(0,0,cv.width,cv.height);
+  cx.fillStyle = "#cfe0ff";
+  for(const st of stars){ cx.globalAlpha = 0.35 + st.r*0.3; cx.beginPath(); cx.arc(st.x, st.y, st.r, 0, 6.283); cx.fill(); }
+  cx.globalAlpha = 1;
+}
+function spawnShooter(){
+  const fromLeft = Math.random() < 0.5;
+  const y = Math.random()*cv.height*0.5;
+  shooters.push({
+    x: fromLeft ? -40 : cv.width+40, y,
+    vx: (fromLeft?1:-1)*(Math.random()*5+6), vy: Math.random()*2+1.4,
+    life: 1
+  });
+}
+let rafSky = 0;
 function sky(){
   cx.clearRect(0,0,cv.width,cv.height);
+  cx.fillStyle = "#cfe0ff";
   for(const st of stars){
     st.a += st.s; const tw = 0.5 + Math.sin(st.a)*0.5;
-    st.y += st.vy; if(st.y > cv.height) st.y = 0;
+    st.y += st.vy; if(st.y > cv.height){ st.y = 0; st.x = Math.random()*cv.width; }
     cx.globalAlpha = 0.15 + tw*0.75;
-    cx.fillStyle = "#cfe0ff";
     cx.beginPath(); cx.arc(st.x, st.y, st.r, 0, 6.283); cx.fill();
   }
   cx.globalAlpha = 1;
-  requestAnimationFrame(sky);
+
+  if(Math.random() < 0.004 && shooters.length < 2) spawnShooter();
+  for(let i=shooters.length-1;i>=0;i--){
+    const m = shooters[i];
+    m.x += m.vx; m.y += m.vy; m.life -= 0.012;
+    if(m.life <= 0 || m.x < -60 || m.x > cv.width+60){ shooters.splice(i,1); continue; }
+    const tailX = m.x - m.vx*3.2, tailY = m.y - m.vy*3.2;
+    const grad = cx.createLinearGradient(m.x, m.y, tailX, tailY);
+    grad.addColorStop(0, "rgba(207,224,255," + (0.9*m.life).toFixed(3) + ")");
+    grad.addColorStop(1, "rgba(207,224,255,0)");
+    cx.strokeStyle = grad; cx.lineWidth = 1.6; cx.lineCap = "round";
+    cx.beginPath(); cx.moveTo(m.x, m.y); cx.lineTo(tailX, tailY); cx.stroke();
+  }
+
+  rafSky = requestAnimationFrame(sky);
 }
-sky();
+function startSky(){ if(!rafSky && motionOK && !pageHidden) rafSky = requestAnimationFrame(sky); }
+function stopSky(){ if(rafSky){ cancelAnimationFrame(rafSky); rafSky = 0; } }
+
+resize();
+addEventListener("resize", resize);
+
+// —— 生命週期：分頁可見度 —— //
+document.addEventListener("visibilitychange", ()=>{
+  pageHidden = document.hidden;
+  if(pageHidden){ stopMain(); stopSky(); }
+  else{ startMain(); startSky(); if(!motionOK) drawStatic(); }
+});
+
+// —— 減弱動態：matchMedia change 動態監聽 —— //
+function applyMotion(){
+  motionOK = !rmq.matches;
+  document.documentElement.classList.toggle("rm", rmq.matches);
+  if(motionOK){ startSky(); }
+  else{ stopSky(); shooters = []; drawStatic(); }
+}
+if(rmq.addEventListener) rmq.addEventListener("change", applyMotion);
+else if(rmq.addListener) rmq.addListener(applyMotion);
+
+// —— 啟動 —— //
+applyMotion();
+startMain();
 </script>
 </body>
 </html>

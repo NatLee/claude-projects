@@ -182,3 +182,126 @@ footer a{color:var(--ink-soft);cursor:pointer;text-decoration:underline dotted;}
   .tile{width:60px;height:60px;font-size:32px;}
   .title h1{font-size:48px;}
 }
+
+/* ============================================================
+   版面重整（宣紙三段式卷軸 + 側欄）與進場動畫（水墨風）
+   ── 下方為配套視覺，補齊 index.html 引入的新 class ──
+   ============================================================ */
+
+/* 進場動畫：.fx 逐一浮現，行內 --d 控制先後 */
+.fx{opacity:0;animation:fx-rise .7s cubic-bezier(.2,.7,.2,1) both;animation-delay:var(--d,0ms);}
+@keyframes fx-rise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+/* 朱印落款：由大而定，模擬鈐印 */
+.fx-stamp{opacity:0;animation:fx-press .55s cubic-bezier(.18,.9,.3,1.2) both;animation-delay:var(--d,0ms);}
+@keyframes fx-press{
+  0%{opacity:0;transform:rotate(-4deg) scale(1.55);}
+  60%{opacity:1;}
+  100%{opacity:1;transform:rotate(-4deg) scale(1);}
+}
+
+/* 背景：兩團暈開的水墨，緩緩游移 */
+.ink-wash{position:fixed;z-index:0;pointer-events:none;border-radius:50% 46% 54% 48%;
+  filter:blur(46px);mix-blend-mode:multiply;opacity:.10;}
+.wash-a{width:44vmax;height:44vmax;left:-12vmax;top:-14vmax;
+  background:radial-gradient(closest-side,#5d564c,transparent 70%);
+  animation:wash-drift 26s ease-in-out infinite alternate;}
+.wash-b{width:38vmax;height:38vmax;right:-12vmax;bottom:-16vmax;
+  background:radial-gradient(closest-side,#8f6a3a,transparent 70%);
+  animation:wash-drift 32s ease-in-out infinite alternate-reverse;}
+@keyframes wash-drift{from{transform:translate3d(0,0,0) scale(1);}to{transform:translate3d(3vmax,2vmax,0) scale(1.12);}}
+
+/* 回首頁 */
+.back-home{position:fixed;top:14px;left:16px;z-index:20;text-decoration:none;
+  font-size:14px;letter-spacing:.1em;color:var(--ink-soft);
+  background:rgba(245,238,219,.82);border:1px solid var(--line);border-radius:999px;
+  padding:6px 14px;backdrop-filter:blur(3px);transition:.18s;}
+.back-home:hover{color:var(--ink);border-color:var(--ink-faint);}
+
+/* 標題下的一筆墨痕，左而右畫出 */
+.stroke-mask{width:min(240px,72%);height:8px;margin:12px auto 4px;}
+.stroke{display:block;width:100%;height:100%;border-radius:8px;opacity:.75;
+  transform-origin:left center;transform:scaleX(0);
+  background:linear-gradient(90deg,transparent,var(--ink-soft) 20%,var(--ink) 50%,var(--ink-soft) 80%,transparent);
+  animation:stroke-draw 1.1s cubic-bezier(.2,.7,.2,1) .25s both;}
+@keyframes stroke-draw{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+
+/* 主舞台：手機單欄；桌機三段卷軸＋側欄 */
+.stage{width:100%;display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:6px;}
+.playfield{width:100%;min-width:0;}
+
+/* 兩側直書詩條（卷軸），手機隱藏（純裝飾、aria-hidden） */
+.scroll-strip{display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:linear-gradient(180deg,#efe4c8,#e7d9b7);border:1px solid var(--line);border-radius:10px;
+  padding:18px 6px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),var(--shadow);}
+.scroll-strip span{writing-mode:vertical-rl;text-orientation:upright;
+  font-size:22px;letter-spacing:.32em;color:var(--ink-soft);}
+.strip-seal{display:block;width:22px;height:22px;border-radius:6px;
+  background:linear-gradient(145deg,var(--seal),var(--seal-deep));
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.3),var(--shadow);}
+
+/* 側欄 */
+.side-panel{width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;}
+.panel-block{background:linear-gradient(180deg,var(--paper-2),#f0e8d3);
+  border:1px solid var(--line);border-radius:14px;padding:14px 16px;
+  box-shadow:0 6px 18px rgba(60,48,30,.08);}
+.panel-title{margin:0 0 10px;font-size:16px;font-weight:700;letter-spacing:.14em;color:var(--ink);
+  padding-bottom:8px;border-bottom:1px dashed var(--line);}
+
+/* 判讀圖例 */
+.legend{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px;}
+.legend li{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink-soft);letter-spacing:.03em;}
+.chip{flex:none;width:26px;height:26px;border-radius:7px;display:grid;place-content:center;
+  font-size:14px;font-weight:700;}
+.chip.correct{background:var(--correct);color:var(--correct-fg);}
+.chip.present{background:var(--present);color:var(--present-fg);}
+.chip.absent{background:var(--absent);color:var(--absent-fg);}
+
+/* 文房工具在側欄改為直排、滿版 */
+.panel-block .tools{flex-direction:column;align-items:stretch;justify-content:flex-start;margin-top:0;gap:8px;}
+.panel-block .tools .btn{width:100%;}
+
+/* 戰績摘要（由 app.js 寫入） */
+.mini-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.m-cell{text-align:center;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 4px;}
+.m-cell b{display:block;font-size:22px;line-height:1.1;color:var(--ink);}
+.m-cell span{font-size:11.5px;color:var(--ink-faint);letter-spacing:.05em;}
+.mini-stats .empty{grid-column:1/-1;text-align:center;color:var(--ink-faint);font-size:13px;padding:6px 0;letter-spacing:.05em;}
+
+/* 日期資訊 */
+.day-info{margin:2px 0 0;text-align:center;color:var(--ink-faint);font-size:12px;line-height:1.9;letter-spacing:.04em;}
+
+/* 螢幕閱讀器專用（原應隱藏） */
+.visually-hidden{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+
+/* 「得之」朱印：獲勝時鈐下再淡出（純裝飾、aria-hidden） */
+.stamp-layer{position:fixed;inset:0;z-index:30;display:grid;place-content:center;
+  pointer-events:none;opacity:0;}
+.stamp{width:132px;height:132px;border-radius:14px;display:grid;place-content:center;
+  font-size:52px;line-height:1;font-weight:700;letter-spacing:.06em;color:#fff3ec;text-align:center;
+  background:linear-gradient(145deg,var(--seal),var(--seal-deep));
+  box-shadow:inset 0 0 0 4px rgba(255,255,255,.28),0 16px 40px rgba(120,30,20,.35);
+  transform:rotate(-6deg) scale(1.7);}
+.stamp-layer.show{animation:stamp-show 1.4s ease forwards;}
+.stamp-layer.show .stamp{animation:stamp-press .5s cubic-bezier(.2,.8,.25,1.2) forwards;}
+@keyframes stamp-show{0%{opacity:0;}12%{opacity:1;}72%{opacity:1;}100%{opacity:0;}}
+@keyframes stamp-press{0%{transform:rotate(-6deg) scale(1.7);}55%{transform:rotate(-6deg) scale(.92);}100%{transform:rotate(-6deg) scale(1);}}
+
+/* 桌機：展開三段卷軸與側欄 */
+@media (min-width:900px){
+  .wrap{max-width:900px;}
+  .stage{display:grid;grid-template-columns:54px minmax(320px,1fr) 54px 236px;
+    align-items:stretch;gap:22px;}
+  .scroll-strip{display:flex;}
+  .side-panel{max-width:none;}
+}
+
+/* 尊重減少動態偏好 */
+@media (prefers-reduced-motion:reduce){
+  .fx{opacity:1!important;animation:none!important;transform:none!important;}
+  .fx-stamp{opacity:1!important;animation:none!important;}
+  .ink-wash{animation:none!important;}
+  .stroke{transform:scaleX(1)!important;animation:none!important;}
+  .stamp-layer.show{animation:stamp-show 1.2s ease forwards!important;}
+  .stamp-layer.show .stamp{animation:none!important;transform:rotate(-6deg) scale(1)!important;}
+}

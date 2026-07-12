@@ -258,6 +258,8 @@
       } catch (e) {}
     }
     const stats = recordResult(state.pid, state.mode, state.won, guesses);
+    renderMiniStats(stats);
+    if (state.won) showStamp();
     const item = IDIOMS[state.pid];
     const answer = item
       ? { ok: true, answer: item.word, meaning: item.meaning, hint: item.hint }
@@ -309,6 +311,23 @@
   }
   function cell(b, s) {
     return '<div class="stat-cell"><b>' + b + "</b><span>" + s + "</span></div>";
+  }
+
+  // 側欄「戰績一覽」摘要（僅呈現既有 daily 統計，不改變任何計分邏輯）
+  function renderMiniStats(stats) {
+    const el = $("#mini-stats");
+    if (!el) return;
+    const a = stats && stats.all ? stats.all : null;
+    if (!a || !a.total) {
+      el.innerHTML = '<div class="empty">尚無每日戰績，先破今日一題</div>';
+      return;
+    }
+    el.innerHTML =
+      mcell(a.total, "總對局") + mcell(a.won, "猜中") +
+      mcell(a.winRate + "%", "勝率") + mcell(a.currentStreak, "連勝");
+  }
+  function mcell(b, s) {
+    return '<div class="m-cell"><b>' + b + "</b><span>" + s + "</span></div>";
   }
 
   function openStats() {
@@ -394,6 +413,16 @@
   }
   function openModal(sel) { $(sel).classList.add("show"); }
   function closeModal(sel) { $(sel).classList.remove("show"); }
+  // 獲勝時鈐下「得之」朱印，短暫呈現後自動淡出（純視覺）
+  function showStamp() {
+    const layer = $("#stamp-layer");
+    if (!layer) return;
+    layer.classList.remove("show");
+    void layer.offsetWidth; // 強制重排，讓動畫可重播
+    layer.classList.add("show");
+    clearTimeout(showStamp._t);
+    showStamp._t = setTimeout(() => layer.classList.remove("show"), 1500);
+  }
 
   // ---------- 事件 ----------
   function bind() {
@@ -422,6 +451,7 @@
   // ---------- 頁尾資訊 ----------
   $("#total-idioms").textContent = IDIOMS.length;
   $("#today-str").textContent = taipeiToday();
+  renderMiniStats(collectStats());
 
   bind();
   startDaily();

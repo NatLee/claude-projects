@@ -10,6 +10,7 @@
   var SWEEP_MS = 22000;     // 掃頻時長
   var TONE_GAIN = 0.12;     // 音量（保守，避免高頻刺耳）
   var FADE = 0.02;          // 淡入淡出秒數
+  var MOSQUITO_HZ = 17400;  // 蚊子鈴聲頻率（僅供視覺標記）
 
   var CHECKPOINTS = [
     { hz: 8000,  who: "幾乎人人都聽得到" },
@@ -42,6 +43,19 @@
     return n >= 1000 ? Math.floor(n / 1000) + " " + ("000" + (n % 1000)).slice(-3) : String(n);
   }
 
+  // ---------- 動態偏好：prefers-reduced-motion（含 change 監聽） ----------
+  var motionQuery = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var reduceMotion = motionQuery ? motionQuery.matches : false;
+  function onMotionPref(e) {
+    reduceMotion = e.matches;
+    ensureLoop();
+    if (!shouldLoop()) drawWave(performance.now()); // 停下前補一張靜態畫面
+  }
+  if (motionQuery) {
+    if (motionQuery.addEventListener) motionQuery.addEventListener("change", onMotionPref);
+    else if (motionQuery.addListener) motionQuery.addListener(onMotionPref);
+  }
+
   // ---------- 音訊引擎 ----------
   var ctx = null, osc = null, gain = null;
 
@@ -70,6 +84,7 @@
     gain.gain.linearRampToValueAtTime(TONE_GAIN, t + FADE);
     currentHz = hz;
     playing = true;
+    ensureLoop();
   }
 
   function setToneFreq(hz) {
@@ -108,6 +123,11 @@
   var resultCard = $("resultCard"), resultFreq = $("resultFreq"), resultAge = $("resultAge"), resultNote = $("resultNote");
   var againBtn = $("againBtn"), manualToggle = $("manualToggle"), manualPanel = $("manualPanel");
   var bestLine = $("bestLine"), freqGrid = $("freqGrid"), stopManual = $("stopManual");
+  var rulerTrack = $("rulerTrack"), rulerFill = $("rulerFill"), rulerDot = $("rulerDot");
+  var bestValue = $("bestValue");
+  var resultAgeBox = document.querySelector(".result-age");
+
+  function scrollBehavior() { return reduceMotion ? "auto" : "smooth"; }
 
   // ---------- 掃頻 ----------
   function beginSweep() {
@@ -120,22 +140,8 @@
     cantHearBtn.classList.add("armed");
     freqCaption.textContent = "聲音正在往上爬……聽不到時馬上按右邊";
     sweepHint.innerHTML = "專心聽。當聲音<b>消失</b>的瞬間，立刻按「我聽不到了」。";
-  }
-
-  function tickSweep(now) {
-    if (sweeping) {
-      var p = (now - sweepStart) / SWEEP_MS;
-      if (p >= 1) {
-        // 一路聽到頂
-        finishSweep(SWEEP_HIGH, true);
-      } else {
-        var hz = SWEEP_LOW + p * (SWEEP_HIGH - SWEEP_LOW);
-        setToneFreq(hz);
-        freqValue.textContent = formatHz(hz);
-      }
-    }
-    drawWave(now);
-    requestAnimationFrame(tickSweep);
+    updateRuler(SWEEP_LOW);
+    ensureLoop();
   }
 
   function finishSweep(hz, towardsTop) {
@@ -146,17 +152,80 @@
     sweepBtn.textContent = "▶ 開始自動掃頻";
     freqValue.textContent = formatHz(hz);
     freqCaption.textContent = "準備好了就再測一次";
+    updateRuler(hz);
     showResult(hz, towardsTop);
   }
 
-  // ---------- 結果 ----------
+  // ---------- 結果（含揭示儀式） ----------
+  var numAnimToken = 0;
+  function animateNumber(el, target) {
+    numAnimToken++;
+    var token = numAnimToken;
+    if (reduceMotion) { el.textContent = formatHz(target); return; }
+    var from = Math.max(0, target * 0.4);
+    var t0 = performance.now(), DUR = 800;
+    function step(now) {
+      if (token !== numAnimToken) return;
+      var p = Math.min(1, (now - t0) / DUR);
+      var e = 1 - Math.pow(1 - p, 3); // ease-out
+      el.textContent = formatHz(from + (target - from) * e);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function pingRings(host) {
+    if (reduceMotion || !host) return;
+    for (var i = 0; i < 3; i++) {
+      var r = document.createElement("span");
+      r.className = "ping-ring";
+      r.style.animationDelay = (i * 0.18) + "s";
+      r.addEventListener("animationend", function (ev) {
+        var n = ev.currentTarget;
+        if (n && n.parentNode) n.parentNode.removeChild(n);
+      });
+      host.appendChild(r);
+    }
+  }
+
+  var BURST_COLORS = ["#34e0d0", "#48b6ff", "#9b7bff", "#ff7bc8", "#ffe27b"];
+  function celebrate() {
+    if (reduceMotion) return;
+    for (var i = 0; i < 28; i++) {
+      var p = document.createElement("span");
+      p.className = "burst-p";
+      var ang = Math.random() * Math.PI * 2;
+      var dist = 90 + Math.random() * 190;
+      p.style.setProperty("--tx", (Math.cos(ang) * dist).toFixed(1) + "px");
+      p.style.setProperty("--ty", (Math.sin(ang) * dist - 60).toFixed(1) + "px");
+      p.style.background = BURST_COLORS[i % BURST_COLORS.length];
+      p.style.animationDuration = (0.7 + Math.random() * 0.6).toFixed(2) + "s";
+      p.style.animationDelay = (Math.random() * 0.12).toFixed(2) + "s";
+      p.addEventListener("animationend", function (ev) {
+        var n = ev.currentTarget;
+        if (n && n.parentNode) n.parentNode.removeChild(n);
+      });
+      resultCard.appendChild(p);
+    }
+  }
+
+  function updateBestTile() {
+    var b = 0;
+    try { b = parseInt(localStorage.getItem("ear_best_hz") || "0", 10) || 0; } catch (e) {}
+    bestValue.textContent = b ? formatHz(b) : "—";
+  }
+
   function showResult(hz, towardsTop) {
     var info = freqToEar(hz);
-    resultFreq.textContent = formatHz(hz);
+    animateNumber(resultFreq, hz);
     resultAge.textContent = info.age;
     resultNote.textContent = (towardsTop ? "你聽完了整段掃頻，連最高的 20 kHz 都還在！" + info.note : info.note);
     resultCard.classList.remove("hidden");
-    resultCard.scrollIntoView({ behavior: "smooth", block: "center" });
+    resultCard.classList.remove("pop");
+    void resultCard.offsetWidth; // 重新觸發揭示動畫
+    resultCard.classList.add("pop");
+    pingRings(resultAgeBox);
+    resultCard.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
 
     // 個人紀錄（存最高可聽頻率）
     var best = 0;
@@ -164,11 +233,13 @@
     if (hz > best) {
       try { localStorage.setItem("ear_best_hz", String(Math.round(hz))); } catch (e) {}
       bestLine.textContent = "🎉 刷新你的個人紀錄！上次最高是 " + (best ? formatHz(best) + " Hz" : "（無）");
+      celebrate();
     } else if (best) {
       bestLine.textContent = "你的個人最佳紀錄：" + formatHz(best) + " Hz";
     } else {
       bestLine.textContent = "";
     }
+    updateBestTile();
   }
 
   function hideResult() { resultCard.classList.add("hidden"); }
@@ -181,7 +252,8 @@
       cell.type = "button";
       cell.setAttribute("aria-label", "播放 " + c.hz + " 赫茲");
       cell.innerHTML = '<div class="hz">' + formatHz(c.hz) + ' <small>Hz</small></div>' +
-                       '<div class="who">' + c.who + '</div>';
+                       '<div class="who">' + c.who + '</div>' +
+                       (c.hz === MOSQUITO_HZ ? '<span class="mos" aria-hidden="true">🦟</span>' : '');
       cell.addEventListener("click", function () { playCheckpoint(c.hz, cell); });
       freqGrid.appendChild(cell);
     });
@@ -200,6 +272,7 @@
     startTone(hz);
     freqValue.textContent = formatHz(hz);
     freqCaption.textContent = "正在播放 " + formatHz(hz) + " Hz（2 秒）";
+    updateRuler(hz);
     stopManual.disabled = false;
     manualTimer = setTimeout(function () {
       stopTone(false);
@@ -214,6 +287,33 @@
     stopTone(false);
     clearPlayingCells();
     stopManual.disabled = true;
+  }
+
+  // ---------- 頻譜刻度尺 ----------
+  var trackW = 0;
+  function buildRuler() {
+    CHECKPOINTS.forEach(function (c) {
+      var pos = (c.hz - SWEEP_LOW) / (SWEEP_HIGH - SWEEP_LOW) * 100;
+      var tick = document.createElement("span");
+      tick.className = "ruler-tick" + (c.hz === MOSQUITO_HZ ? " ruler-tick-mos" : "");
+      tick.style.left = pos + "%";
+      rulerTrack.appendChild(tick);
+    });
+    var mos = document.createElement("span");
+    mos.className = "ruler-mos";
+    mos.style.left = ((MOSQUITO_HZ - SWEEP_LOW) / (SWEEP_HIGH - SWEEP_LOW) * 100) + "%";
+    mos.textContent = "🦟 蚊子鈴聲";
+    rulerTrack.appendChild(mos);
+  }
+
+  function measureRuler() { trackW = rulerTrack.clientWidth || 0; }
+
+  function updateRuler(hz) {
+    if (!trackW) measureRuler();
+    var norm = (hz - SWEEP_LOW) / (SWEEP_HIGH - SWEEP_LOW);
+    norm = Math.max(0, Math.min(1, norm));
+    rulerFill.style.transform = "scaleX(" + norm + ")";
+    rulerDot.style.transform = "translateX(" + (norm * trackW).toFixed(1) + "px)";
   }
 
   // ---------- 視覺化波形 ----------
@@ -236,8 +336,14 @@
     var norm = (currentHz - SWEEP_LOW) / (SWEEP_HIGH - SWEEP_LOW);
     norm = Math.max(0, Math.min(1, norm));
     var cycles = 5 + norm * 22;
-    var amp = (playing ? 60 : 26) + (playing ? Math.sin(now / 220) * 6 : Math.sin(now / 900) * 4);
-    var phase = now / (playing ? 120 : 600);
+    var amp, phase;
+    if (reduceMotion) { // 降級：畫靜態波形，不隨時間晃動
+      amp = playing ? 56 : 26;
+      phase = 0;
+    } else {
+      amp = (playing ? 60 : 26) + (playing ? Math.sin(now / 220) * 6 : Math.sin(now / 900) * 4);
+      phase = now / (playing ? 120 : 600);
+    }
 
     var grad = cctx.createLinearGradient(0, 0, cw, 0);
     grad.addColorStop(0, "#34e0d0");
@@ -272,6 +378,48 @@
     cctx.shadowBlur = 0;
   }
 
+  // ---------- rAF 迴圈管理：分頁隱藏 / 離屏 / 降級時暫停 ----------
+  var rafId = null;
+  var pageVisible = !document.hidden;
+  var canvasInView = true;
+
+  function shouldLoop() {
+    if (!pageVisible) return false;
+    if (sweeping || playing) return true;   // 播放中一定要更新（掃頻計時）
+    if (reduceMotion) return false;         // 閒置＋降級 → 靜止
+    return canvasInView;                    // 閒置的環境波紋只在可見時跑
+  }
+
+  function ensureLoop() {
+    if (rafId === null && shouldLoop()) rafId = requestAnimationFrame(tick);
+  }
+
+  function tick(now) {
+    rafId = null;
+    if (sweeping) {
+      var p = (now - sweepStart) / SWEEP_MS;
+      if (p >= 1) {
+        // 一路聽到頂
+        finishSweep(SWEEP_HIGH, true);
+      } else {
+        var hz = SWEEP_LOW + p * (SWEEP_HIGH - SWEEP_LOW);
+        setToneFreq(hz);
+        freqValue.textContent = formatHz(hz);
+        updateRuler(hz);
+      }
+    }
+    if (canvasInView) drawWave(now);
+    if (shouldLoop()) rafId = requestAnimationFrame(tick);
+  }
+
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (entries) {
+      canvasInView = entries[0].isIntersecting;
+      ensureLoop();
+    }, { threshold: 0 });
+    io.observe(canvas);
+  }
+
   // ---------- 綁定 ----------
   sweepBtn.addEventListener("click", function () {
     stopManualNow();
@@ -282,29 +430,44 @@
   });
   againBtn.addEventListener("click", function () {
     hideResult();
-    document.querySelector(".stage").scrollIntoView({ behavior: "smooth", block: "center" });
+    document.querySelector(".stage").scrollIntoView({ behavior: scrollBehavior(), block: "center" });
   });
   manualToggle.addEventListener("click", function () {
     manualPanel.classList.toggle("hidden");
-    if (!manualPanel.classList.contains("hidden")) {
-      manualPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    var open = !manualPanel.classList.contains("hidden");
+    manualToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    manualToggle.textContent = open ? "收起逐音檢查 ↑" : "手動逐音檢查 ↓";
+    if (open) {
+      manualPanel.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
     }
   });
   stopManual.addEventListener("click", stopManualNow);
 
-  window.addEventListener("resize", setupCanvas);
+  window.addEventListener("resize", function () {
+    setupCanvas();
+    measureRuler();
+    updateRuler(currentHz);
+    if (!shouldLoop()) drawWave(performance.now());
+  });
   // 切到背景就停聲，避免惱人
   document.addEventListener("visibilitychange", function () {
+    pageVisible = !document.hidden;
     if (document.hidden) { sweeping = false; stopTone(true); stopManualNow();
       cantHearBtn.disabled = true; cantHearBtn.classList.remove("armed");
       sweepBtn.textContent = "▶ 開始自動掃頻"; }
+    ensureLoop();
   });
 
   // ---------- 啟動 ----------
   buildGrid();
+  buildRuler();
   setupCanvas();
+  measureRuler();
   freqValue.textContent = formatHz(SWEEP_LOW);
-  requestAnimationFrame(tickSweep);
+  updateRuler(SWEEP_LOW);
+  updateBestTile();
+  if (shouldLoop()) ensureLoop();
+  else requestAnimationFrame(function (now) { drawWave(now); }); // 降級時仍給一張靜態波形
 
   // 顯示歷史最佳
   try {

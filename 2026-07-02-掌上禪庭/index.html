@@ -41,6 +41,13 @@
       inset 0 1px 0 rgba(255,255,255,.14),
       inset 0 -2px 6px rgba(0,0,0,.35);
   }
+  /* 直向裝置：改用直式庭園比例，善用縱向空間 */
+  @media (orientation:portrait){
+    #frame{
+      width:min(94vw, calc(92vh / 1.4));
+      height:min(92vh, calc(94vw * 1.4));
+    }
+  }
   #frame::before{ /* 框內細金邊 */
     content:"";position:absolute;inset:clamp(5px,1vmin,12px);
     border:1px solid rgba(214,190,150,.35);border-radius:8px;pointer-events:none;z-index:5;
@@ -49,10 +56,63 @@
     position:relative;width:100%;height:100%;border-radius:7px;overflow:hidden;
     box-shadow:inset 0 2px 10px rgba(0,0,0,.35);
     opacity:0;transform:scale(.985);
-    transition:opacity 1.1s ease,transform 1.1s ease;
+    transition:opacity .85s ease,transform .85s ease;
   }
   #stage.ready{opacity:1;transform:scale(1);}
   canvas{display:block;width:100%;height:100%;cursor:crosshair;touch-action:none;}
+
+  /* 光影層：緩慢飄移的雲影（純 transform） */
+  #breeze{
+    position:absolute;inset:-28%;z-index:1;pointer-events:none;
+    background:
+      radial-gradient(42% 34% at 30% 32%, rgba(255,252,240,.10), rgba(255,255,255,0) 70%),
+      radial-gradient(38% 30% at 68% 62%, rgba(40,30,20,.09), rgba(0,0,0,0) 70%);
+    animation:drift 46s ease-in-out infinite alternate;
+    will-change:transform;
+  }
+  @keyframes drift{
+    from{transform:translate3d(-3.5%,-2%,0);}
+    to{transform:translate3d(3.5%,2.6%,0);}
+  }
+  body.tab-hidden #breeze{animation-play-state:paused;}
+
+  /* 主題切換的舊景殘影（淡出交融） */
+  #fx{
+    position:absolute;inset:0;z-index:2;width:100%;height:100%;
+    pointer-events:none;opacity:0;cursor:auto;
+  }
+  /* 光線掃過 */
+  #sweep{
+    position:absolute;top:-22%;bottom:-22%;left:0;width:34%;z-index:3;
+    pointer-events:none;opacity:0;
+    background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,253,244,.30) 50%,rgba(255,255,255,0));
+    transform:translateX(-130%) skewX(-14deg);
+    will-change:transform,opacity;
+  }
+  #sweep.go{animation:sweepGo .9s cubic-bezier(.4,.1,.2,1) forwards;}
+  @keyframes sweepGo{
+    0%{opacity:0;transform:translateX(-130%) skewX(-14deg);}
+    22%{opacity:1;}
+    100%{opacity:0;transform:translateX(400%) skewX(-14deg);}
+  }
+
+  /* 游標殘影：落點預覽環 */
+  #cursor{
+    position:absolute;left:0;top:0;z-index:4;pointer-events:none;
+    width:34px;height:34px;border-radius:50%;
+    border:1.5px solid rgba(255,255,255,.68);
+    box-shadow:0 0 0 1px rgba(40,30,20,.28),inset 0 0 10px rgba(255,255,255,.14);
+    opacity:0;transition:opacity .22s ease;
+    will-change:transform;
+  }
+  #cursor::after{
+    content:"";position:absolute;left:50%;top:50%;width:3px;height:3px;border-radius:50%;
+    background:rgba(255,255,255,.8);transform:translate(-50%,-50%);
+  }
+  #cursor.on{opacity:.75;}
+  #stage[data-tool="moss"] #cursor{
+    width:26px;height:26px;border-style:dashed;border-color:rgba(190,225,150,.85);
+  }
 
   /* 標題 */
   #title{
@@ -60,7 +120,10 @@
     z-index:10;pointer-events:none;user-select:none;
     display:flex;align-items:center;gap:10px;
     text-shadow:0 1px 8px rgba(0,0,0,.28);
+    opacity:0;transform:translateY(-8px);
+    transition:opacity .55s ease .1s,transform .55s cubic-bezier(.22,.8,.3,1) .1s;
   }
+  #stage.ready #title{opacity:1;transform:none;}
   #title .seal{
     width:clamp(30px,4.6vmin,44px);height:clamp(30px,4.6vmin,44px);
     background:var(--seal);border-radius:6px;color:#fff;
@@ -68,7 +131,10 @@
     font-family:var(--serif);font-size:clamp(16px,2.6vmin,24px);font-weight:700;
     box-shadow:0 3px 10px rgba(120,30,20,.5),inset 0 0 0 1px rgba(255,255,255,.25);
     letter-spacing:.02em;
+    opacity:0;transform:scale(.6) rotate(-10deg);
+    transition:opacity .5s ease .22s,transform .5s cubic-bezier(.34,1.5,.5,1) .22s;
   }
+  #stage.ready #title .seal{opacity:1;transform:none;}
   #title h1{
     font-family:var(--serif);color:#fbf6ea;font-weight:700;
     font-size:clamp(19px,3.2vmin,30px);letter-spacing:.16em;line-height:1;
@@ -77,45 +143,140 @@
     font-family:var(--serif);color:rgba(251,246,234,.82);
     font-size:clamp(10px,1.5vmin,13px);letter-spacing:.28em;margin-top:5px;
   }
+  /* 回首頁（低調落於題款下） */
+  #home{
+    display:inline-flex;align-items:center;gap:4px;margin-top:7px;
+    pointer-events:auto;text-decoration:none;
+    font-family:var(--serif);font-size:clamp(10px,1.4vmin,12px);
+    color:rgba(251,246,234,.55);letter-spacing:.18em;
+    opacity:0;transition:opacity .5s ease .6s,color .25s ease;
+  }
+  #stage.ready #home{opacity:1;}
+  #home .ar{display:inline-block;transition:transform .25s ease;}
+  #home:hover{color:rgba(251,246,234,.95);}
+  #home:hover .ar{transform:translateX(-3px);}
+  #home:focus-visible{outline:2px solid rgba(255,255,255,.9);outline-offset:3px;border-radius:3px;}
 
   /* 主題切換（右上） */
   #themes{
     position:absolute;right:clamp(12px,2.2vmin,26px);top:clamp(12px,2.2vmin,26px);
     z-index:10;display:flex;gap:8px;align-items:center;
+    opacity:0;transform:translateY(-6px);
+    transition:opacity .5s ease .2s,transform .5s ease .2s;
   }
+  #stage.ready #themes{opacity:1;transform:none;}
   .swatch{
     width:clamp(20px,3.1vmin,28px);height:clamp(20px,3.1vmin,28px);border-radius:50%;
     cursor:pointer;border:2px solid rgba(255,255,255,.55);
-    box-shadow:0 2px 7px rgba(0,0,0,.3);transition:transform .18s ease,border-color .18s ease;
+    box-shadow:0 2px 7px rgba(0,0,0,.3);
+    padding:0;appearance:none;-webkit-appearance:none;
     position:relative;
+    opacity:0;transform:scale(.5);
+    transition:transform .3s cubic-bezier(.34,1.4,.5,1),border-color .18s ease,opacity .4s ease;
   }
-  .swatch:hover{transform:scale(1.12);}
-  .swatch.active{border-color:#fff;transform:scale(1.16);}
+  #stage.ready .swatch{opacity:1;transform:scale(1);}
+  #stage.ready .swatch:hover{transform:scale(1.12);}
+  #stage.ready .swatch.active{border-color:#fff;transform:scale(1.16);}
   .swatch.active::after{content:"";position:absolute;inset:-5px;border:1px solid rgba(255,255,255,.5);border-radius:50%;}
+  .swatch:focus-visible{outline:2px solid #fff;outline-offset:3px;}
+
+  /* 右緣直書計數 */
+  #tally{
+    position:absolute;right:clamp(12px,2.2vmin,26px);top:50%;
+    z-index:9;pointer-events:none;user-select:none;
+    writing-mode:vertical-rl;display:flex;gap:12px;
+    font-family:var(--serif);font-size:clamp(11px,1.6vmin,14px);
+    color:rgba(255,255,255,.62);letter-spacing:.32em;
+    text-shadow:0 1px 6px rgba(0,0,0,.42);
+    opacity:0;transform:translateY(-46%);
+    transition:opacity .55s ease .62s,transform .55s ease .62s;
+  }
+  #stage.ready #tally{opacity:1;transform:translateY(-50%);}
+  #tally .t{display:inline-block;}
+  #tally .t.roll{animation:tallyRoll .45s ease;}
+  @keyframes tallyRoll{
+    0%{opacity:0;transform:translateX(7px);}
+    100%{opacity:1;transform:none;}
+  }
 
   /* 工具列（底部浮島） */
   #dock{
-    position:absolute;left:50%;bottom:clamp(12px,2.4vmin,26px);transform:translateX(-50%);
+    position:absolute;left:50%;bottom:clamp(12px,2.4vmin,26px);
     z-index:10;display:flex;gap:clamp(3px,.8vmin,7px);align-items:stretch;
     padding:clamp(5px,1vmin,9px);border-radius:16px;
     background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.5);
     max-width:94%;flex-wrap:wrap;justify-content:center;
+    opacity:0;transform:translateX(-50%) translateY(14px);
+    transition:opacity .55s ease .3s,transform .55s cubic-bezier(.22,.8,.3,1) .3s;
   }
+  #stage.ready #dock{opacity:1;transform:translateX(-50%);}
   .tool{
     border:none;background:transparent;cursor:pointer;color:var(--ink);
     font-family:var(--sans);border-radius:11px;
     padding:clamp(5px,1vmin,9px) clamp(7px,1.3vmin,13px);
     display:flex;flex-direction:column;align-items:center;gap:3px;
-    transition:background .16s ease,color .16s ease,transform .1s ease;min-width:46px;
+    transition:background .16s ease,color .16s ease,transform .35s ease,opacity .4s ease;
+    min-width:46px;
+    opacity:0;transform:translateY(9px);
   }
-  .tool .ic{font-size:clamp(15px,2.4vmin,21px);line-height:1;}
+  #stage.ready .tool{opacity:1;transform:none;}
+  .tool .ic{font-size:clamp(15px,2.4vmin,21px);line-height:1;transition:transform .22s ease;}
   .tool .lb{font-size:clamp(9px,1.35vmin,12px);letter-spacing:.06em;color:var(--ink-soft);white-space:nowrap;}
   .tool:hover{background:rgba(120,100,75,.12);}
-  .tool:active{transform:translateY(1px);}
+  #stage.settled .tool:hover .ic{transform:translateY(-2px);}
+  #stage.settled .tool:active{transform:translateY(1px) scale(.96);transition-duration:.1s;}
   .tool.active{background:var(--ink);}
   .tool.active .lb,.tool.active .ic{color:var(--paper);}
-  .divider{width:1px;background:var(--line);margin:5px 2px;align-self:stretch;}
+  .tool:focus-visible{outline:2px solid var(--seal);outline-offset:2px;}
+  .divider{
+    width:1px;background:var(--line);margin:5px 2px;align-self:stretch;
+    opacity:0;transition:opacity .4s ease;
+  }
+  #stage.ready .divider{opacity:1;}
+
+  /* 進場結束後歸零延遲，讓微互動即時 */
+  #stage.settled #title,#stage.settled #title .seal,#stage.settled #themes,
+  #stage.settled #hint,#stage.settled #tally,#stage.settled #home,#stage.settled #dock{
+    transition-delay:0s;
+  }
+
+  /* 收藏落款：朱印 */
+  #stamp{
+    position:absolute;right:9%;bottom:22%;z-index:12;pointer-events:none;
+    width:clamp(64px,10vmin,96px);height:clamp(64px,10vmin,96px);
+    background:var(--seal);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-family:var(--serif);font-weight:700;
+    font-size:clamp(34px,5.4vmin,52px);
+    box-shadow:0 10px 30px rgba(120,30,20,.45),inset 0 0 0 2px rgba(255,255,255,.28);
+    opacity:0;transform:rotate(-6deg);
+    will-change:transform,opacity;
+  }
+  #stamp::after{
+    content:"";position:absolute;inset:-14px;border:2px solid rgba(177,67,47,.55);
+    border-radius:14px;opacity:0;
+  }
+  #stamp.play{animation:stampIn 1.6s cubic-bezier(.2,.9,.3,1) forwards;}
+  #stamp.play::after{animation:inkRing 1s ease-out .14s;}
+  @keyframes stampIn{
+    0%{opacity:0;transform:scale(2.2) rotate(-14deg);}
+    16%{opacity:1;transform:scale(.94) rotate(-6deg);}
+    26%{transform:scale(1.05) rotate(-6deg);}
+    36%{transform:scale(1) rotate(-6deg);}
+    74%{opacity:1;transform:scale(1) rotate(-6deg);}
+    100%{opacity:0;transform:scale(1) rotate(-6deg) translateY(-8px);}
+  }
+  @keyframes inkRing{
+    0%{opacity:.7;transform:scale(.7);}
+    100%{opacity:0;transform:scale(1.28);}
+  }
+  @keyframes stampFade{
+    0%{opacity:0;transform:rotate(-6deg);}
+    15%{opacity:1;}
+    80%{opacity:1;}
+    100%{opacity:0;transform:rotate(-6deg);}
+  }
 
   /* 冷知識面板 */
   #veil{
@@ -131,6 +292,8 @@
     box-shadow:0 30px 70px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.6);
     position:relative;
   }
+  #veil.show #info{animation:rise .38s cubic-bezier(.22,.8,.3,1);}
+  @keyframes rise{from{opacity:0;transform:translateY(12px) scale(.97);}to{opacity:1;transform:none;}}
   #info h2{font-family:var(--serif);font-size:clamp(20px,3vmin,26px);letter-spacing:.12em;margin-bottom:4px;}
   #info .sub{font-family:var(--serif);color:var(--seal);letter-spacing:.24em;font-size:13px;margin-bottom:18px;}
   #info h3{font-family:var(--serif);font-size:clamp(15px,2vmin,17px);margin:18px 0 6px;color:var(--ink);
@@ -143,6 +306,7 @@
     transition:background .15s;
   }
   #info .close:hover{background:rgba(60,50,40,.16);}
+  #info .close:focus-visible{outline:2px solid var(--seal);outline-offset:2px;}
   #info .foot{margin-top:20px;padding-top:14px;border-top:1px solid var(--line);
     font-size:11.5px;color:#8c8272;line-height:1.7;}
 
@@ -160,29 +324,70 @@
     position:absolute;left:50%;bottom:clamp(78px,13vmin,120px);transform:translateX(-50%);
     z-index:9;font-family:var(--serif);color:rgba(255,255,255,.72);font-size:13px;
     letter-spacing:.2em;text-shadow:0 1px 6px rgba(0,0,0,.4);pointer-events:none;
-    transition:opacity .6s ease;text-align:center;
+    opacity:0;
+    transition:opacity .6s ease .55s;text-align:center;
   }
+  #stage.ready #hint{opacity:.92;}
+
+  /* 窄幅微調 */
+  @media (max-width:560px){
+    #dock{gap:2px;padding:5px;}
+    .tool{min-width:40px;padding:5px 6px;}
+    #hint{font-size:11px;letter-spacing:.14em;bottom:clamp(96px,17vmin,140px);}
+    #tally{letter-spacing:.24em;}
+  }
+
+  /* 動效降級 */
+  @media (prefers-reduced-motion:reduce){
+    #stage,#title,#title .seal,#themes,.swatch,#dock,.tool,.divider,#hint,#tally,#home{
+      transition:none !important;
+    }
+    #breeze,#sweep.go,#tally .t.roll{animation:none !important;}
+    #stamp.play{animation:stampFade 1.2s ease forwards;}
+    #stamp.play::after{animation:none;}
+    #veil.show,#veil.show #info{animation:none;}
+  }
+  html.reduce #stage,html.reduce #title,html.reduce #title .seal,html.reduce #themes,
+  html.reduce .swatch,html.reduce #dock,html.reduce .tool,html.reduce .divider,
+  html.reduce #hint,html.reduce #tally,html.reduce #home{transition:none !important;}
+  html.reduce #breeze,html.reduce #sweep.go,html.reduce #tally .t.roll{animation:none !important;}
+  html.reduce #stamp.play{animation:stampFade 1.2s ease forwards;}
+  html.reduce #stamp.play::after{animation:none;}
+  html.reduce #veil.show,html.reduce #veil.show #info{animation:none;}
 </style>
 </head>
 <body>
 <div id="frame">
-  <div id="stage">
-    <canvas id="c"></canvas>
+  <div id="stage" data-tool="stone">
+    <canvas id="c" aria-label="枯山水沙庭：點按沙面以落石或鋪苔"></canvas>
+    <div id="breeze" aria-hidden="true"></div>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div id="sweep" aria-hidden="true"></div>
+    <div id="cursor" aria-hidden="true"></div>
     <div id="title">
-      <div class="seal">禪</div>
-      <div><h1>掌上禪庭</h1><p>枯 山 水</p></div>
+      <div class="seal" aria-hidden="true">禪</div>
+      <div>
+        <h1>掌上禪庭</h1>
+        <p>枯 山 水</p>
+        <a id="home" href="../index.html"><span class="ar" aria-hidden="true">←</span> 回首頁</a>
+      </div>
     </div>
-    <div id="themes"></div>
+    <div id="themes" role="group" aria-label="光線主題"></div>
+    <div id="tally" aria-live="polite">
+      <span class="t" id="tStone">石 〇</span>
+      <span class="t" id="tMoss">苔 〇</span>
+    </div>
     <div id="hint">輕觸沙面 · 落石成島 · 砂紋自生</div>
-    <div id="toast"></div>
-    <div id="dock"></div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <div id="stamp" aria-hidden="true">禪</div>
+    <div id="dock" role="toolbar" aria-label="庭園工具列"></div>
   </div>
 </div>
 
 <div id="veil">
-  <div id="info">
+  <div id="info" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
     <button class="close" id="infoClose" aria-label="關閉">✕</button>
-    <h2>枯山水 · 一方靜庭</h2>
+    <h2 id="infoTitle">枯山水 · 一方靜庭</h2>
     <div class="sub">KARESANSUI</div>
 
     <h3>何謂「枯山水」</h3>
@@ -209,6 +414,17 @@
 /* ============ 工具函式 ============ */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ============ 動效偏好（動態監聽） ============ */
+const mqReduce=window.matchMedia("(prefers-reduced-motion: reduce)");
+let reduced=mqReduce.matches;
+function applyMotionPref(){
+  reduced=mqReduce.matches;
+  document.documentElement.classList.toggle("reduce",reduced);
+}
+applyMotionPref();
+if(mqReduce.addEventListener)mqReduce.addEventListener("change",applyMotionPref);
+else if(mqReduce.addListener)mqReduce.addListener(applyMotionPref);
 
 /* ============ 配色主題 ============ */
 const THEMES={
@@ -249,6 +465,9 @@ let undoStack=[];
 /* ============ 畫布 ============ */
 const canvas=document.getElementById("c");
 const ctx=canvas.getContext("2d");
+const stageEl=document.getElementById("stage");
+const fx=document.getElementById("fx");
+const fxg=fx.getContext("2d");
 let W=0,H=0,DPR=1,grainPat=null;
 
 function makeGrain(){
@@ -264,6 +483,7 @@ function resize(){
   W=r.width;H=r.height;
   canvas.width=Math.round(W*DPR);canvas.height=Math.round(H*DPR);
   ctx.setTransform(DPR,0,0,DPR,0,0);
+  fx.style.opacity="0";
   render();
 }
 
@@ -360,6 +580,7 @@ function drawStone(s,th){
 }
 
 /* ============ 主繪製 ============ */
+let renderAngleOverride=null;   // 耙紋旋轉動畫用（僅顯示，不動 state）
 function render(extra){
   const th=THEMES[state.theme],minD=Math.min(W,H);
   const gap=clamp(minD/24,11,22);
@@ -378,7 +599,7 @@ function render(extra){
   const region=new Path2D();region.rect(-2,-2,W+4,H+4);
   for(const s of S){region.moveTo(s.px+s.hole,s.py);region.arc(s.px,s.py,s.hole,0,6.2831853);}
   ctx.clip(region,"evenodd");
-  drawParallelGrooves(gap,state.rakeAngle,th);
+  drawParallelGrooves(gap,renderAngleOverride==null?state.rakeAngle:renderAngleOverride,th);
   ctx.restore();
 
   // 石周漣漪
@@ -393,6 +614,8 @@ function render(extra){
     ctx.save();ctx.globalAlpha=extra.alpha;ctx.strokeStyle=th.grooveDark;
     ctx.lineWidth=Math.max(1.4,gap*.12);
     ctx.beginPath();ctx.arc(extra.x*W,extra.y*H,extra.r,0,6.2831853);ctx.stroke();
+    ctx.beginPath();ctx.arc(extra.x*W,extra.y*H,extra.r*.68,0,6.2831853);
+    ctx.globalAlpha=extra.alpha*.6;ctx.stroke();
     ctx.restore();
   }
   // 暗角
@@ -400,19 +623,82 @@ function render(extra){
   const vg=ctx.createRadialGradient(W/2,H/2,minD*.32,W/2,H/2,Math.hypot(W,H)*.62);
   vg.addColorStop(0,"rgba(0,0,0,0)");vg.addColorStop(1,th.vignette);
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);ctx.restore();
+
+  updateTally();
+}
+
+/* ============ 直書計數（漢字滾動） ============ */
+const tStone=document.getElementById("tStone"),tMoss=document.getElementById("tMoss");
+let lastStoneN=-1,lastMossN=-1;
+function cnum(n){
+  if(n===0)return "〇";
+  if(n>99)return String(n);
+  const d="〇一二三四五六七八九";
+  if(n<10)return d[n];
+  const t=Math.floor(n/10),o=n%10;
+  return (t===1?"":d[t])+"十"+(o?d[o]:"");
+}
+function bumpTally(el,txt,changed){
+  el.textContent=txt;
+  if(changed&&!reduced){
+    el.classList.remove("roll");void el.offsetWidth;el.classList.add("roll");
+  }
+}
+function updateTally(){
+  const s=state.stones.length,m=state.mosses.length;
+  if(s===lastStoneN&&m===lastMossN)return;
+  const first=lastStoneN<0;
+  bumpTally(tStone,"石 "+cnum(s),!first&&s!==lastStoneN);
+  bumpTally(tMoss,"苔 "+cnum(m),!first&&m!==lastMossN);
+  lastStoneN=s;lastMossN=m;
 }
 
 /* ============ 放置動畫 ============ */
 let anim=null;
 function playPlace(x,y,pr){
+  if(reduced){render();return;}
   const minD=Math.min(W,H),maxR=pr*minD*RIPPLE_F*1.05;
   const t0=performance.now(),dur=560;
   if(anim)cancelAnimationFrame(anim);
   (function step(now){
     const k=clamp((now-t0)/dur,0,1),ease=1-Math.pow(1-k,2);
     render({x,y,r:pr*minD*1.0+ease*(maxR-pr*minD),alpha:.5*(1-k)});
-    if(k<1)anim=requestAnimationFrame(step);else{anim=null;render();}
+    if(k<1&&!document.hidden)anim=requestAnimationFrame(step);else{anim=null;render();}
   })(t0);
+}
+
+/* ============ 耙紋旋轉動畫 ============ */
+let rakeAnim=null;
+function animateRake(from,to){
+  if(reduced){render();return;}
+  const t0=performance.now(),dur=420,diff=to-from;
+  if(rakeAnim)cancelAnimationFrame(rakeAnim);
+  (function step(now){
+    const k=clamp((now-t0)/dur,0,1);
+    const e=k<.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+    renderAngleOverride=from+diff*e;
+    render();
+    if(k<1&&!document.hidden)rakeAnim=requestAnimationFrame(step);
+    else{rakeAnim=null;renderAngleOverride=null;render();}
+  })(t0);
+}
+
+/* ============ 交融轉場（主題／造境／抹平） ============ */
+const sweepEl=document.getElementById("sweep");
+let fxTimer=null;
+function crossfade(apply,withSweep){
+  if(reduced||!W||!canvas.width){apply();render();return;}
+  fx.width=canvas.width;fx.height=canvas.height;
+  fxg.setTransform(1,0,0,1,0,0);
+  fxg.clearRect(0,0,fx.width,fx.height);
+  fxg.drawImage(canvas,0,0);
+  fx.style.transition="none";fx.style.opacity="1";
+  apply();render();
+  void fx.offsetWidth;
+  fx.style.transition="opacity .8s ease";fx.style.opacity="0";
+  clearTimeout(fxTimer);
+  fxTimer=setTimeout(()=>{fx.style.opacity="0";},900);
+  if(withSweep){sweepEl.classList.remove("go");void sweepEl.offsetWidth;sweepEl.classList.add("go");}
 }
 
 /* ============ 互動 ============ */
@@ -448,6 +734,22 @@ canvas.addEventListener("pointerdown",e=>{
   placeAt((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
 });
 
+/* ============ 游標落點環（rAF 節流） ============ */
+const cursorEl=document.getElementById("cursor");
+let curX=0,curY=0,curRaf=null;
+canvas.addEventListener("pointermove",e=>{
+  if(e.pointerType==="touch")return;
+  curX=e.clientX;curY=e.clientY;
+  cursorEl.classList.add("on");
+  if(!curRaf)curRaf=requestAnimationFrame(()=>{
+    curRaf=null;
+    const r=stageEl.getBoundingClientRect();
+    cursorEl.style.transform="translate3d("+(curX-r.left)+"px,"+(curY-r.top)+"px,0) translate(-50%,-50%)";
+  });
+});
+canvas.addEventListener("pointerleave",()=>cursorEl.classList.remove("on"));
+canvas.addEventListener("pointerdown",e=>{if(e.pointerType==="touch")cursorEl.classList.remove("on");});
+
 /* ============ 造境 / 清空 / 復原 ============ */
 function autoGarden(){
   pushUndo();
@@ -469,12 +771,18 @@ function autoGarden(){
     }
     if(rng()<.55)state.mosses.push({x:clamp(ax+(rng()-.5)*.12,.05,.95),y:clamp(ay+bigR+0.02+(rng()-.3)*.05,.05,.95),r:0.028+rng()*0.03,seed:Math.floor(rng()*1e9)});
   }
-  save();render();
+  save();render();updateRakeLabel();
 }
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}}
-function clearGarden(){pushUndo();state.stones=[];state.mosses=[];save();render();toast("已抹平沙面");}
+function clearGarden(){crossfade(()=>{pushUndo();state.stones=[];state.mosses=[];save();},false);toast("已抹平沙面");}
 function undo(){if(!undoStack.length){toast("沒有可復原的步驟");return;}const p=JSON.parse(undoStack.pop());state.stones=p.stones;state.mosses=p.mosses;save();render();}
-function cycleRake(){const i=RAKE_ANGLES.indexOf(state.rakeAngle);state.rakeAngle=RAKE_ANGLES[(i+1)%RAKE_ANGLES.length];save();render();updateRakeLabel();}
+function cycleRake(){
+  const i=RAKE_ANGLES.indexOf(state.rakeAngle);
+  const from=(i<0)?0:state.rakeAngle;
+  state.rakeAngle=RAKE_ANGLES[(i+1)%RAKE_ANGLES.length];
+  save();updateRakeLabel();
+  animateRake(from,state.rakeAngle);
+}
 
 /* ============ 匯出 PNG ============ */
 function exportPNG(){
@@ -502,8 +810,17 @@ function exportPNG(){
   g.fillText("枯山水 · "+dateStr(),padS+134,baseY);
   const a=document.createElement("a");
   a.download="掌上禪庭_"+dateStr("")+".png";a.href=ex.toDataURL("image/png");a.click();
+  playStamp();
+  beep(140,.12);
   toast("已收藏為圖片");
 }
+
+/* ============ 落款朱印動畫 ============ */
+const stampEl=document.getElementById("stamp");
+function playStamp(){
+  stampEl.classList.remove("play");void stampEl.offsetWidth;stampEl.classList.add("play");
+}
+stampEl.addEventListener("animationend",e=>{if(e.target===stampEl)stampEl.classList.remove("play");});
 
 function dateStr(sep="-"){const d=new Date();const p=n=>String(n).padStart(2,"0");
   return d.getFullYear()+sep+p(d.getMonth()+1)+sep+p(d.getDate());}
@@ -535,52 +852,110 @@ function toast(msg){toastEl.textContent=msg;toastEl.classList.add("show");clearT
 let hintShown=true;
 function hideHint(){if(hintShown){hintShown=false;const h=document.getElementById("hint");h.style.opacity="0";}}
 
+const themeBox=document.getElementById("themes");
 function buildThemes(){
-  const box=document.getElementById("themes");box.innerHTML="";
-  THEME_ORDER.forEach(key=>{
-    const b=document.createElement("div");b.className="swatch"+(state.theme===key?" active":"");
-    b.style.background=THEMES[key].dot;b.title=THEMES[key].name;
-    b.onclick=()=>{state.theme=key;save();render();buildThemes();};
-    box.appendChild(b);
+  themeBox.innerHTML="";
+  THEME_ORDER.forEach((key,i)=>{
+    const b=document.createElement("button");
+    b.type="button";b.className="swatch";
+    b.style.background=THEMES[key].dot;
+    b.title=THEMES[key].name;
+    b.dataset.theme=key;
+    b.setAttribute("aria-label","切換光線："+THEMES[key].name);
+    b.style.transitionDelay=(0.22+i*0.06).toFixed(2)+"s";
+    b.addEventListener("click",()=>setTheme(key));
+    themeBox.appendChild(b);
   });
+  syncThemes();
+}
+function syncThemes(){
+  for(const b of themeBox.children){
+    const on=b.dataset.theme===state.theme;
+    b.classList.toggle("active",on);
+    b.setAttribute("aria-pressed",on?"true":"false");
+  }
+}
+function setTheme(key){
+  if(!THEMES[key])return;
+  if(state.theme===key){syncThemes();return;}
+  crossfade(()=>{state.theme=key;save();},true);
+  syncThemes();
 }
 let rakeBtn;
-function updateRakeLabel(){if(rakeBtn){const names=["橫","直","斜","斜"];const i=RAKE_ANGLES.indexOf(state.rakeAngle);rakeBtn.querySelector(".lb").textContent="耙紋 "+names[i<0?0:i];}}
+function updateRakeLabel(){if(rakeBtn){const names=["橫","直","斜↘","斜↗"];const i=RAKE_ANGLES.indexOf(state.rakeAngle);rakeBtn.querySelector(".lb").textContent="耙紋 "+names[i<0?0:i];}}
 function buildDock(){
   const dock=document.getElementById("dock");dock.innerHTML="";
-  const mk=(ic,lb,fn,id)=>{const b=document.createElement("button");b.className="tool";b.id=id||"";
-    b.innerHTML=`<span class="ic">${ic}</span><span class="lb">${lb}</span>`;b.onclick=fn;dock.appendChild(b);return b;};
+  const mk=(ic,lb,fn,aria)=>{const b=document.createElement("button");b.type="button";b.className="tool";
+    b.setAttribute("aria-label",aria||lb);
+    b.innerHTML=`<span class="ic" aria-hidden="true">${ic}</span><span class="lb">${lb}</span>`;
+    b.addEventListener("click",fn);dock.appendChild(b);return b;};
   const sep=()=>{const d=document.createElement("div");d.className="divider";dock.appendChild(d);};
-  const stoneBtn=mk("🪨","落石",()=>setTool("stone"));
-  const mossBtn=mk("🌱","鋪苔",()=>setTool("moss"));
+  const stoneBtn=mk("🪨","落石",()=>setTool("stone"),"落石工具：點沙面放下或移走石頭");
+  const mossBtn=mk("🌱","鋪苔",()=>setTool("moss"),"鋪苔工具：點沙面點綴或移除青苔");
   sep();
-  rakeBtn=mk("〰️","耙紋 橫",cycleRake);
-  mk("🎐","造境",()=>{autoGarden();toast("一方新庭");});
+  rakeBtn=mk("〰️","耙紋 橫",cycleRake,"切換耙紋方向");
+  mk("🎐","造境",()=>{crossfade(autoGarden,false);toast("一方新庭");},"造境：隨機生成一方新庭");
   sep();
-  mk("↩︎","復原",undo);
-  mk("🍃","抹平",clearGarden);
-  mk("🖼️","收藏",exportPNG);
+  mk("↩︎","復原",undo,"復原上一步");
+  mk("🍃","抹平",clearGarden,"抹平沙面");
+  mk("🖼️","收藏",exportPNG,"收藏：匯出落款圖片");
   sep();
-  const sBtn=mk("🔔","聲音",()=>{state.sound=!state.sound;save();updateSound();if(state.sound)beep(300,.06);});
-  const infoBtn=mk("☯","禪",()=>document.getElementById("veil").classList.add("show"));
-  window.__stoneBtn=stoneBtn;window.__mossBtn=mossBtn;window.__sBtn=sBtn;
+  const sBtn=mk("🔔","聲音",()=>{state.sound=!state.sound;save();updateSound();if(state.sound)beep(300,.06);},"切換音效");
+  const infoBtn=mk("☯","禪",openInfo,"打開枯山水冷知識面板");
+  infoBtn.setAttribute("aria-haspopup","dialog");
+  window.__stoneBtn=stoneBtn;window.__mossBtn=mossBtn;window.__sBtn=sBtn;window.__infoBtn=infoBtn;
+  let i=0;
+  for(const el of dock.children){el.style.transitionDelay=(0.32+i*0.03).toFixed(2)+"s";i++;}
   updateRakeLabel();updateTool();updateSound();
 }
 function setTool(t){tool=t;updateTool();}
-function updateTool(){window.__stoneBtn.classList.toggle("active",tool==="stone");window.__mossBtn.classList.toggle("active",tool==="moss");}
-function updateSound(){const b=window.__sBtn;if(!b)return;b.querySelector(".ic").textContent=state.sound?"🔔":"🔕";b.querySelector(".lb").textContent=state.sound?"聲音":"靜音";}
+function updateTool(){
+  window.__stoneBtn.classList.toggle("active",tool==="stone");
+  window.__stoneBtn.setAttribute("aria-pressed",tool==="stone"?"true":"false");
+  window.__mossBtn.classList.toggle("active",tool==="moss");
+  window.__mossBtn.setAttribute("aria-pressed",tool==="moss"?"true":"false");
+  stageEl.dataset.tool=tool;
+}
+function updateSound(){const b=window.__sBtn;if(!b)return;b.querySelector(".ic").textContent=state.sound?"🔔":"🔕";b.querySelector(".lb").textContent=state.sound?"聲音":"靜音";b.setAttribute("aria-pressed",state.sound?"true":"false");}
+
+/* ============ 冷知識面板（含焦點管理） ============ */
+const veil=document.getElementById("veil");
+let lastFocus=null;
+function openInfo(){
+  lastFocus=document.activeElement;
+  veil.classList.add("show");
+  document.getElementById("infoClose").focus();
+}
+function closeInfo(){
+  veil.classList.remove("show");
+  if(lastFocus&&lastFocus.focus)lastFocus.focus();
+  lastFocus=null;
+}
 
 /* ============ 快捷鍵 ============ */
 window.addEventListener("keydown",e=>{
-  if(e.target.tagName==="INPUT")return;
-  if(e.key==="r"||e.key==="R"){autoGarden();toast("一方新庭");}
-  else if(e.key===" "){e.preventDefault();cycleRake();}
+  if(e.target.tagName==="INPUT"||e.target.tagName==="TEXTAREA")return;
+  if(e.key==="r"||e.key==="R"){crossfade(autoGarden,false);toast("一方新庭");}
+  else if(e.key===" "){
+    if(e.target instanceof Element&&e.target.closest("button,a"))return; // 空白鍵留給聚焦中的按鈕
+    e.preventDefault();cycleRake();
+  }
   else if(e.key==="Backspace"){e.preventDefault();undo();}
-  else if(["1","2","3","4"].includes(e.key)){state.theme=THEME_ORDER[+e.key-1];save();render();buildThemes();}
-  else if(e.key==="Escape")document.getElementById("veil").classList.remove("show");
+  else if(["1","2","3","4"].includes(e.key)){setTheme(THEME_ORDER[+e.key-1]);}
+  else if(e.key==="Escape"){if(veil.classList.contains("show"))closeInfo();}
 });
-document.getElementById("infoClose").onclick=()=>document.getElementById("veil").classList.remove("show");
-document.getElementById("veil").onclick=e=>{if(e.target.id==="veil")document.getElementById("veil").classList.remove("show");};
+document.getElementById("infoClose").addEventListener("click",closeInfo);
+veil.addEventListener("click",e=>{if(e.target.id==="veil")closeInfo();});
+
+/* ============ 分頁隱藏：停掉 rAF 迴圈與雲影 ============ */
+document.addEventListener("visibilitychange",()=>{
+  document.body.classList.toggle("tab-hidden",document.hidden);
+  if(document.hidden){
+    if(anim){cancelAnimationFrame(anim);anim=null;}
+    if(rakeAnim){cancelAnimationFrame(rakeAnim);rakeAnim=null;renderAngleOverride=null;}
+    render();
+  }
+});
 
 /* ============ 啟動 ============ */
 function boot(){
@@ -590,7 +965,11 @@ function boot(){
   resize();
   if(!had||state.stones.length===0){autoGarden();hintShown=true;}
   else{hideHint();}
-  requestAnimationFrame(()=>document.getElementById("stage").classList.add("ready"));
+  requestAnimationFrame(()=>stageEl.classList.add("ready"));
+  setTimeout(()=>{
+    stageEl.classList.add("settled");
+    document.querySelectorAll("#dock > *, .swatch").forEach(el=>{el.style.transitionDelay="";});
+  },1500);
 }
 window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(resize,120);});
 boot();

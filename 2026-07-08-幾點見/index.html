@@ -12,6 +12,7 @@
     --good:#66e0b8; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
     --labelw:246px;
     --shadow:0 18px 50px rgba(0,0,0,.5);
+    --ease:cubic-bezier(.22,.9,.3,1);
   }
   *{box-sizing:border-box}
   html,body{margin:0}
@@ -25,9 +26,27 @@
     background-attachment:fixed;
     min-height:100vh;
     -webkit-font-smoothing:antialiased;
-    padding:26px 22px 60px;
+    padding:22px 22px 60px;
   }
-  .wrap{max-width:1120px;margin:0 auto}
+  #sky{position:fixed;inset:0;z-index:0;pointer-events:none}
+  .wrap{max-width:1120px;margin:0 auto;position:relative;z-index:1}
+
+  /* ---------- 聚焦樣式 ---------- */
+  :focus-visible{outline:2px solid rgba(122,162,255,.9);outline-offset:2px;border-radius:6px}
+  .btn:focus-visible,#cityInput:focus-visible,.seg button:focus-visible{outline-offset:1px}
+  .grab:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(122,162,255,.85)}
+  .sr{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+
+  /* ---------- 回首頁 ---------- */
+  .backhome{
+    display:inline-flex;align-items:center;gap:7px;margin-bottom:14px;
+    color:var(--faint);font-size:12.5px;letter-spacing:.5px;text-decoration:none;
+    padding:5px 11px 5px 8px;border:1px solid transparent;border-radius:9px;
+    transition:color .2s,border-color .2s,transform .2s var(--ease);
+  }
+  .backhome .arr{display:inline-block;transition:transform .2s var(--ease)}
+  .backhome:hover{color:var(--gold);border-color:rgba(255,208,114,.28)}
+  .backhome:hover .arr{transform:translateX(-3px)}
 
   /* ---------- header ---------- */
   header{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:20px}
@@ -44,22 +63,24 @@
   .globe::after{width:9px;height:7px;top:8px;left:30px;box-shadow:-4px 22px 0 0 rgba(120,220,170,.4)}
   @keyframes spin{to{filter:hue-rotate(18deg)}}
   h1{font-size:25px;margin:0;letter-spacing:.5px;font-weight:800}
-  h1 .q{color:var(--gold)}
+  h1 .q{color:var(--gold);display:inline-block}
   .sub{color:var(--muted);font-size:13px;margin-top:3px;letter-spacing:.3px}
   .headright{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 
   .btn{
     font:inherit;font-size:13px;color:var(--ink);background:rgba(255,255,255,.05);
     border:1px solid var(--line2);border-radius:11px;padding:8px 13px;cursor:pointer;
-    transition:.15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+    transition:background .16s,border-color .16s,transform .16s var(--ease),filter .16s;
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
   }
   .btn:hover{background:rgba(255,255,255,.11);transform:translateY(-1px)}
-  .btn:active{transform:translateY(0)}
+  .btn:active{transform:translateY(0) scale(.97)}
   .btn.ghost{background:transparent}
-  .btn.gold{background:linear-gradient(180deg,#ffdd8c,#f7b64b);color:#4a2f00;border-color:transparent;font-weight:700}
-  .btn.gold:hover{filter:brightness(1.05)}
+  .btn.gold{background:linear-gradient(180deg,#ffdd8c,#f7b64b);color:#4a2f00;border-color:transparent;font-weight:700;box-shadow:0 6px 18px rgba(247,181,68,.28)}
+  .btn.gold:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn.gold:active{transform:translateY(0) scale(.97)}
   .seg{display:inline-flex;border:1px solid var(--line2);border-radius:11px;overflow:hidden}
-  .seg button{font:inherit;font-size:12.5px;color:var(--muted);background:transparent;border:0;padding:8px 12px;cursor:pointer;transition:.15s}
+  .seg button{font:inherit;font-size:12.5px;color:var(--muted);background:transparent;border:0;padding:8px 12px;cursor:pointer;transition:background .18s,color .18s}
   .seg button.on{background:rgba(122,162,255,.22);color:#fff}
 
   /* ---------- controls ---------- */
@@ -79,17 +100,20 @@
   .addwrap{position:relative}
   #cityInput{
     font:inherit;font-size:13px;color:var(--ink);background:rgba(0,0,0,.28);
-    border:1px solid var(--line2);border-radius:11px;padding:9px 13px;width:230px;outline:none
+    border:1px solid var(--line2);border-radius:11px;padding:9px 13px;width:230px;outline:none;
+    transition:border-color .18s,box-shadow .18s
   }
   #cityInput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(122,162,255,.18)}
   #cityInput::placeholder{color:var(--faint)}
   .dropdown{
     position:absolute;top:46px;left:0;z-index:40;width:290px;max-height:320px;overflow:auto;
     background:#0d1338;border:1px solid var(--line2);border-radius:13px;
-    box-shadow:0 20px 44px rgba(0,0,0,.6);padding:6px;display:none
+    box-shadow:0 20px 44px rgba(0,0,0,.6);padding:6px;display:none;
+    transform-origin:top left;
   }
-  .dropdown.open{display:block}
-  .opt{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer}
+  .dropdown.open{display:block;animation:ddIn .18s var(--ease)}
+  @keyframes ddIn{from{opacity:0;transform:translateY(-6px) scale(.98)}to{opacity:1;transform:none}}
+  .opt{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:background .12s}
   .opt:hover,.opt.active{background:rgba(122,162,255,.18)}
   .opt .fl{font-size:18px;width:22px;text-align:center}
   .opt .nm{font-size:13.5px}
@@ -99,17 +123,24 @@
 
   /* ---------- recommendation ---------- */
   .reco{
-    display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:relative;overflow:hidden;
     background:
       linear-gradient(180deg, rgba(255,208,114,.14), rgba(255,208,114,.04)),
       var(--panel);
     border:1px solid rgba(255,208,114,.34);border-radius:16px;padding:14px 18px;margin-bottom:18px;box-shadow:var(--shadow)
   }
-  .reco .star{font-size:26px;filter:drop-shadow(0 0 10px rgba(255,208,114,.6))}
+  .reco::after{ /* 緩慢流過的金色微光 */
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(100deg,transparent 42%,rgba(255,224,150,.09) 50%,transparent 58%);
+    transform:translateX(-80%);animation:recoShine 6.5s linear infinite;
+  }
+  @keyframes recoShine{to{transform:translateX(80%)}}
+  .reco .star{font-size:26px;filter:drop-shadow(0 0 10px rgba(255,208,114,.6));animation:starFloat 4.2s ease-in-out infinite}
+  @keyframes starFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   .reco .txt{flex:1;min-width:240px}
   .reco .lead{font-size:12px;color:var(--gold-soft);letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
   .reco .big{font-size:20px;font-weight:800}
-  .reco .big b{color:var(--gold)}
+  .reco .big b{color:var(--gold);display:inline-block}
   .reco .note{font-size:12.5px;color:var(--muted);margin-top:3px}
 
   /* ---------- board ---------- */
@@ -130,47 +161,76 @@
   .axis .tick{position:absolute;top:12px;transform:translateX(-50%);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
   .axis .tick.zero{color:var(--muted)}
   .selchip,.nowchip{position:absolute;transform:translateX(-50%);top:-1px;white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
-  .selchip{background:linear-gradient(180deg,#ffdd8c,#f5b544);color:#3a2400;font-weight:800;font-size:12px;padding:3px 9px;border-radius:9px;box-shadow:0 6px 16px rgba(247,181,68,.45);z-index:6}
+  .selchip{background:linear-gradient(180deg,#ffdd8c,#f5b544);color:#3a2400;font-weight:800;font-size:12px;padding:3px 9px;border-radius:9px;box-shadow:0 6px 16px rgba(247,181,68,.45);z-index:6;transition:transform .18s var(--ease)}
   .selchip::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#f5b544;border-bottom:0}
+  body.drag .selchip{transform:translateX(-50%) scale(1.1)}
+  .selchip.pop{animation:chipPop .5s var(--ease)}
+  @keyframes chipPop{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.22)}100%{transform:translateX(-50%) scale(1)}}
   .nowchip{font-size:10px;color:#ff9e9e;top:16px;letter-spacing:1px}
+  .spark{position:absolute;top:6px;width:5px;height:5px;border-radius:50%;background:var(--gold-soft);
+    box-shadow:0 0 8px rgba(255,208,114,.9);pointer-events:none;opacity:0;z-index:7;
+    animation:sparkFly .8s ease-out forwards}
+  @keyframes sparkFly{0%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),var(--dy)) scale(.3)}}
 
   /* rows */
   .row{padding:5px 0}
+  .row.leaving{animation:rowOut .24s ease forwards}
+  @keyframes rowOut{to{opacity:0;transform:translateX(18px)}}
+  .row.arrive{animation:riseIn .5s var(--ease)}
   .info-card{display:flex;align-items:center;gap:9px;width:100%;min-width:0}
   .home{width:26px;height:26px;border-radius:8px;border:1px solid var(--line2);background:transparent;color:var(--faint);
-    cursor:pointer;display:grid;place-items:center;font-size:13px;flex:0 0 auto;transition:.15s}
-  .home:hover{color:var(--gold);border-color:rgba(255,208,114,.5)}
+    cursor:pointer;display:grid;place-items:center;font-size:13px;flex:0 0 auto;transition:color .16s,border-color .16s,background .16s,transform .16s var(--ease)}
+  .home:hover{color:var(--gold);border-color:rgba(255,208,114,.5);transform:scale(1.08)}
+  .home:active{transform:scale(.94)}
   .home.on{background:rgba(255,208,114,.16);border-color:rgba(255,208,114,.6);color:var(--gold)}
+  .home.pulse{animation:homePulse .55s var(--ease)}
+  @keyframes homePulse{0%{transform:scale(1)}40%{transform:scale(1.3)}100%{transform:scale(1)}}
   .flag{font-size:21px;line-height:1;flex:0 0 auto}
   .cityname{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;overflow:hidden}
   .cityname .nm{font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .cityname .now{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .cityname .now b{color:var(--good);font-weight:600}
   .rm{margin-left:auto;width:22px;height:22px;border-radius:7px;border:0;background:transparent;color:var(--faint);
-    cursor:pointer;font-size:15px;flex:0 0 auto;transition:.15s}
-  .rm:hover{color:#ff8f8f;background:rgba(255,80,80,.12)}
+    cursor:pointer;font-size:15px;flex:0 0 auto;transition:color .16s,background .16s,transform .16s var(--ease)}
+  .rm:hover{color:#ff8f8f;background:rgba(255,80,80,.12);transform:scale(1.1)}
+  .rm:active{transform:scale(.9)}
 
   /* strip */
   .strip{position:relative;height:44px;border-radius:9px;overflow:hidden;display:flex;
     box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+  .strip::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.045);opacity:0;
+    transition:opacity .22s;pointer-events:none;z-index:2}
+  .row:hover .strip::after{opacity:1}
   .cell{flex:1 1 0;position:relative}
   .cell + .cell{box-shadow:inset 1px 0 0 rgba(0,0,0,.18)}
   .cell.best::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,208,114,.42),rgba(255,208,114,.12));
     box-shadow:inset 0 2px 0 var(--gold)}
   .cell.dim::after{content:"";position:absolute;inset:0;background:rgba(3,5,15,.30)}
 
+  .sweepband{ /* 「哇」時刻：金色光帶掃過 */
+    position:absolute;inset:0;pointer-events:none;z-index:4;
+    background:linear-gradient(105deg,transparent 32%,rgba(255,224,150,.38) 50%,transparent 68%);
+    transform:translateX(-100%);animation:sweep .9s ease-out forwards;
+  }
+  @keyframes sweep{to{transform:translateX(100%)}}
+
   .sel{position:absolute;top:-2px;bottom:-2px;width:2px;background:linear-gradient(180deg,#ffe6a8,#f5b544);
-    box-shadow:0 0 10px rgba(247,181,68,.8);transform:translateX(-1px);z-index:4;pointer-events:none}
+    box-shadow:0 0 10px rgba(247,181,68,.8);transform:translateX(-1px);z-index:4;pointer-events:none;
+    animation:selGlow 2.8s ease-in-out infinite}
+  @keyframes selGlow{0%,100%{opacity:1}50%{opacity:.66}}
   .nowline{position:absolute;top:0;bottom:0;width:2px;background:repeating-linear-gradient(180deg,#ff8a8a 0 4px,transparent 4px 8px);
     transform:translateX(-1px);z-index:3;pointer-events:none;opacity:.9}
 
   .meet{flex:0 0 128px;padding-left:14px;text-align:left}
   .meet .mt{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:6px}
+  .meet .mt .tm{display:inline-block}
   .meet .mt .em{font-size:15px}
   .meet .bd{font-size:11px;color:var(--muted);margin-top:1px}
   .meet .bd .day{color:var(--gold)}
   .meet.sleep .mt{color:#ff9c9c}
   .meet.ok .mt{color:var(--good)}
+  .roll{animation:numroll .3s var(--ease)}
+  @keyframes numroll{from{opacity:0;transform:translateY(.55em)}to{opacity:1;transform:none}}
 
   .grab{position:absolute;inset:0;cursor:ew-resize;z-index:5}
 
@@ -187,57 +247,92 @@
   .fact .t{color:var(--ink);font-weight:700;font-size:13px;display:block;margin-bottom:4px}
   .hint{color:var(--faint);font-size:11.5px;text-align:center;margin-top:14px;letter-spacing:.3px}
   .empty{padding:44px;text-align:center;color:var(--faint)}
+
+  /* ---------- 進場編排（只在開頁時演出一次） ---------- */
+  @keyframes riseIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  body.intro .backhome{animation:riseIn .5s var(--ease) both}
+  body.intro header{animation:riseIn .55s var(--ease) .05s both}
+  body.intro .controls{animation:riseIn .55s var(--ease) .13s both}
+  body.intro .reco{animation:riseIn .55s var(--ease) .21s both}
+  body.intro .board{animation:riseIn .55s var(--ease) .28s both}
+  body.intro .row{animation:riseIn .48s var(--ease) both;animation-delay:calc(.34s + var(--d,0)*50ms)}
+  body.intro .foot{animation:riseIn .55s var(--ease) .48s both}
+  body.intro .hint{animation:riseIn .55s var(--ease) .58s both}
+
   @media(max-width:640px){
     body{padding:16px 12px 48px}
     :root{--labelw:178px}
     .meet{flex-basis:96px}
     h1{font-size:21px}
   }
+  @media(max-width:560px){
+    header{align-items:flex-start}
+    .controls{flex-direction:column;align-items:stretch}
+    .datectrl{justify-content:center;flex-wrap:wrap}
+    .addwrap,#cityInput,.dropdown{width:100%}
+    .reco{padding:12px 14px}
+    .reco .big{font-size:17px}
+    :root{--labelw:150px}
+    .meet{flex-basis:88px;padding-left:10px}
+    .meet .mt{font-size:13.5px}
+    .foot{flex-direction:column}
+  }
+
+  /* ---------- 動效降級 ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.01ms!important;animation-delay:0ms!important;
+      animation-iteration-count:1!important;transition-duration:.01ms!important;
+    }
+  }
 </style>
 </head>
-<body>
+<body class="intro">
+<canvas id="sky" aria-hidden="true"></canvas>
 <div class="wrap">
+  <a class="backhome" href="../index.html" aria-label="回到首頁"><span class="arr">←</span> 回首頁</a>
   <header>
     <div class="brand">
-      <div class="globe"></div>
+      <div class="globe" aria-hidden="true"></div>
       <div>
         <h1>幾點見<span class="q">？</span></h1>
         <div class="sub">跨時區會議時間規劃器 · 一眼找出大家都清醒的黃金時段</div>
       </div>
     </div>
     <div class="headright">
-      <div class="seg" id="fmtSeg">
-        <button data-h="24" class="on">24 時制</button>
-        <button data-h="12">上午/下午</button>
+      <div class="seg" id="fmtSeg" role="group" aria-label="時間格式">
+        <button data-h="24" class="on" aria-pressed="true">24 時制</button>
+        <button data-h="12" aria-pressed="false">上午/下午</button>
       </div>
-      <button class="btn" id="copyBtn">📋 複製會議摘要</button>
+      <button class="btn" id="copyBtn" aria-label="複製會議摘要到剪貼簿">📋 複製會議摘要</button>
     </div>
   </header>
 
   <div class="controls">
     <div class="datectrl">
-      <button class="btn rounder" id="prevDay" title="前一天">‹</button>
+      <button class="btn rounder" id="prevDay" title="前一天" aria-label="前一天">‹</button>
       <div class="datebox">
         <span class="dow" id="dowLbl">週三</span>
         <span class="dt" id="dtLbl">2026 / 07 / 08</span>
       </div>
-      <button class="btn rounder" id="nextDay" title="後一天">›</button>
+      <button class="btn rounder" id="nextDay" title="後一天" aria-label="後一天">›</button>
       <button class="btn ghost" id="todayBtn">今天</button>
     </div>
     <div class="addwrap">
-      <input id="cityInput" placeholder="＋ 加入城市（打「東京 / paris / 紐約」…）" autocomplete="off">
-      <div class="dropdown" id="dropdown"></div>
+      <input id="cityInput" placeholder="＋ 加入城市（打「東京 / paris / 紐約」…）" autocomplete="off"
+             role="combobox" aria-expanded="false" aria-controls="dropdown" aria-autocomplete="list" aria-label="搜尋並加入城市">
+      <div class="dropdown" id="dropdown" role="listbox" aria-label="城市選項"></div>
     </div>
   </div>
 
-  <div class="reco" id="reco">
-    <div class="star">🌟</div>
+  <div class="reco" id="reco" aria-live="polite">
+    <div class="star" aria-hidden="true">🌟</div>
     <div class="txt">
       <div class="lead">建議會議時段</div>
       <div class="big" id="recoBig">—</div>
       <div class="note" id="recoNote"></div>
     </div>
-    <button class="btn gold" id="jumpBtn">跳到此時段</button>
+    <button class="btn gold" id="jumpBtn" aria-label="把時間軸跳到建議時段">跳到此時段</button>
   </div>
 
   <div class="board">
@@ -263,7 +358,8 @@
       課本說地球分 24 個時區，但實際使用的 UTC 偏移多達 <b>38 種</b>（從 UTC−12:00 到 UTC+14:00）。原因是不少地方採用「半小時」甚至「45 分鐘」的偏移：印度是 <b>UTC+5:30</b>、尼泊爾刻意選 <b>UTC+5:45</b> 以貼近加德滿都經度並與印度區隔、紐西蘭查坦群島更是罕見的 <b>UTC+12:45</b>。試著把「加德滿都」或「查坦群島」加進來，看看那條 45 分鐘的錯位。
     </div>
   </div>
-  <div class="hint">拖曳金色時間軸，或點一下任一色帶，即可挑選會議時刻 · 點城市左側 🏠 設為你的基準時區 · 設定自動存在本機</div>
+  <div class="hint">拖曳金色時間軸，或點一下任一色帶，即可挑選會議時刻（鍵盤：Tab 聚焦色帶後用 ← → 微調）· 點城市左側 🏠 設為你的基準時區 · 設定自動存在本機</div>
+  <span class="sr" id="live" role="status" aria-live="polite"></span>
 </div>
 
 <script>
@@ -329,6 +425,10 @@ const HOURBG = [
   '#31356f','#182352','#101740','#0c1130'    // 20-23 入夜→深夜
 ];
 
+/* ---------- 動效偏好（prefers-reduced-motion，動態監聽） ---------- */
+const motionMQ = matchMedia('(prefers-reduced-motion: reduce)');
+let reduceMotion = motionMQ.matches;
+
 /* ---------- 狀態 ---------- */
 const LS_KEY = 'whattime.meet.v1';
 let state = {
@@ -361,7 +461,7 @@ function offsetLabel(min){
 }
 function fmtHM(min, h12=state.h12){
   min = ((min%1440)+1440)%1440;
-  let h=Math.floor(min/60), m=min%60;
+  let h=Math.floor(min/60), m=Math.floor(min%60);
   if(h12){ const ap=h<12?'上午':'下午'; let hh=h%12; if(hh===0)hh=12; return ap+' '+hh+':'+pad(m); }
   return pad(h)+':'+pad(m);
 }
@@ -449,8 +549,10 @@ function bestHoursSet(deltas){
 const $ = s=>document.querySelector(s);
 const rowsEl=$('#rows'), axisEl=$('#axis');
 let deltas=[];
+let justAdded=null, justAnchored=null;
 
 function render(){
+  cancelSelAnim();
   deltas = computeDeltas();
   const anchorTodays = (curDateStr()===anchorTodayStr());
   const bestH = bestHoursSet(deltas);
@@ -473,7 +575,7 @@ function render(){
     rowsEl.innerHTML=`<div class="empty">尚未加入任何城市 — 在上方搜尋框加一個吧 🌍</div>`;
     updateReco(null); return;
   }
-  let html='';
+  let html=''; let ri=0;
   for(const d of deltas){
     const {c,off,delta}=d;
     const isAnchor = c.id===state.anchorId;
@@ -487,31 +589,45 @@ function render(){
       cells+=`<div class="cell${best}${dim}" style="background:${bg}"></div>`;
     }
     html+=`
-    <div class="row" data-id="${c.id}" data-delta="${delta}">
+    <div class="row" data-id="${c.id}" data-delta="${delta}" style="--d:${ri}">
       <div class="info"><div class="info-card">
-        <button class="home ${isAnchor?'on':''}" title="設為基準時區" data-home="${c.id}">🏠</button>
-        <span class="flag">${c.flag}</span>
+        <button class="home ${isAnchor?'on':''}" title="設為基準時區" aria-label="把${c.zh}設為基準時區" aria-pressed="${isAnchor}" data-home="${c.id}">🏠</button>
+        <span class="flag" aria-hidden="true">${c.flag}</span>
         <span class="cityname">
           <span class="nm">${c.zh} <span style="color:var(--faint);font-weight:400;font-size:11px">${offsetLabel(off)}</span></span>
           <span class="now">此刻 <b class="liveclock" data-tz="${c.tz}">--:--</b></span>
         </span>
-        <button class="rm" title="移除" data-rm="${c.id}">✕</button>
+        <button class="rm" title="移除" aria-label="移除${c.zh}" data-rm="${c.id}">✕</button>
       </div></div>
       <div class="strip-area">
         <div class="strip">
           ${cells}
           ${anchorTodays?`<div class="nowline" data-now></div>`:''}
           <div class="sel" data-sel></div>
-          <div class="grab" data-grab></div>
+          <div class="grab" data-grab tabindex="0" role="slider" aria-orientation="horizontal"
+               aria-valuemin="0" aria-valuemax="1410" aria-label="選擇會議時刻（${c.zh}，左右方向鍵以 30 分鐘微調）"></div>
         </div>
       </div>
       <div class="meet" data-meet>
-        <div class="mt"><span class="tm">--:--</span><span class="em"></span></div>
+        <div class="mt"><span class="tm">--:--</span><span class="em" aria-hidden="true"></span></div>
         <div class="bd"></div>
       </div>
     </div>`;
+    ri++;
   }
   rowsEl.innerHTML=html;
+
+  // 剛加入的城市：入場動畫；剛換基準：🏠 脈衝
+  if(justAdded){
+    const el=rowsEl.querySelector(`.row[data-id="${justAdded}"]`);
+    if(el && !reduceMotion){ el.classList.add('arrive'); setTimeout(()=>el.classList.remove('arrive'),620); }
+    justAdded=null;
+  }
+  if(justAnchored){
+    const hb=rowsEl.querySelector(`.home[data-home="${justAnchored}"]`);
+    if(hb && !reduceMotion){ hb.classList.add('pulse'); setTimeout(()=>hb.classList.remove('pulse'),620); }
+    justAnchored=null;
+  }
 
   paintNow(anchorTodays);
   paintSelection();
@@ -540,7 +656,15 @@ function paintSelection(){
     const loc=((raw%1440)+1440)%1440;
     const shift=Math.floor(raw/1440);
     const meet=row.querySelector('[data-meet]');
-    meet.querySelector('.tm').textContent=fmtHM(loc);
+    const tmEl=meet.querySelector('.tm');
+    const txt=fmtHM(loc);
+    if(tmEl.textContent!==txt){
+      tmEl.textContent=txt;
+      // 數字滾動：拖曳/掃動中不重播，點按與鍵盤調整時演出
+      if(!dragging && !animatingSel && !reduceMotion){
+        tmEl.classList.remove('roll'); void tmEl.offsetWidth; tmEl.classList.add('roll');
+      }
+    }
     meet.querySelector('.em').textContent=emojiFor(loc);
     const cf=comfort(loc);
     meet.classList.toggle('sleep', cf===0);
@@ -549,6 +673,11 @@ function paintSelection(){
                   : shift<0 ? `<span class="day">前一天</span> ${weekdayOf(shift)}`
                             : `<span class="day">隔天</span> ${weekdayOf(shift)}`;
     meet.querySelector('.bd').innerHTML=dayTxt;
+    const g=row.querySelector('[data-grab]');
+    if(g){
+      g.setAttribute('aria-valuenow', Math.round(t));
+      g.setAttribute('aria-valuetext', `基準 ${fmtHM(t)}，當地 ${txt}`);
+    }
   });
 }
 
@@ -556,7 +685,7 @@ function paintSelection(){
 function updateReco(best){
   if(!best){ $('#recoBig').textContent='—'; $('#recoNote').textContent=''; return; }
   const a=byId[state.anchorId];
-  $('#recoBig').innerHTML=`${a.flag} ${a.zh} <b>${fmtHM(best.t)}</b> · ${weekdayOf(0)}`;
+  $('#recoBig').innerHTML=`${a.flag} ${a.zh} <b class="roll">${fmtHM(best.t)}</b> · ${weekdayOf(0)}`;
   let note;
   if(best.mn>=2) note='🎉 所有人都在舒適的清醒時段，放心送出邀請！';
   else if(best.mn>=1) note='👍 大致 OK，個別城市偏早或偏晚一些。';
@@ -573,7 +702,7 @@ function tickClocks(){
     el.textContent=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date());
   });
 }
-setInterval(()=>{ tickClocks(); paintNow(curDateStr()===anchorTodayStr()); }, 1000);
+setInterval(()=>{ if(document.hidden) return; tickClocks(); paintNow(curDateStr()===anchorTodayStr()); }, 1000);
 
 /* ---------- 互動：拖曳選時 ---------- */
 let dragging=false, dragRect=null;
@@ -585,13 +714,30 @@ function setSelFromClientX(x){
 }
 rowsEl.addEventListener('pointerdown',e=>{
   const grab=e.target.closest('[data-grab]'); if(!grab) return;
+  cancelSelAnim();
   dragging=true; dragRect=grab.getBoundingClientRect();
+  document.body.classList.add('drag');
   grab.setPointerCapture(e.pointerId);
   setSelFromClientX(e.clientX);
 });
 rowsEl.addEventListener('pointermove',e=>{ if(dragging) setSelFromClientX(e.clientX); });
-rowsEl.addEventListener('pointerup',()=>{ dragging=false; saveState(); });
-rowsEl.addEventListener('pointercancel',()=>{ dragging=false; });
+rowsEl.addEventListener('pointerup',()=>{ dragging=false; document.body.classList.remove('drag'); saveState(); });
+rowsEl.addEventListener('pointercancel',()=>{ dragging=false; document.body.classList.remove('drag'); });
+
+// 鍵盤選時（色帶聚焦後 ← → 以 30 分鐘微調，Home/End 到頭尾）
+rowsEl.addEventListener('keydown',e=>{
+  if(!e.target.closest || !e.target.closest('[data-grab]')) return;
+  let ns=null;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown') ns=state.sel-30;
+  else if(e.key==='ArrowRight'||e.key==='ArrowUp') ns=state.sel+30;
+  else if(e.key==='Home') ns=0;
+  else if(e.key==='End') ns=1410;
+  if(ns==null) return;
+  e.preventDefault();
+  cancelSelAnim();
+  state.sel=Math.max(0,Math.min(1410,ns));
+  paintSelection(); saveState();
+});
 
 // 設為基準 / 移除
 rowsEl.addEventListener('click',e=>{
@@ -604,13 +750,21 @@ rowsEl.addEventListener('click',e=>{
       const oldOff=offsetMinutes(byId[state.anchorId].tz,ref);
       const newOff=offsetMinutes(byId[id].tz,ref);
       state.sel=(((state.sel+(newOff-oldOff))%1440)+1440)%1440;
-      state.anchorId=id; saveState(); render();
+      state.anchorId=id; justAnchored=id; saveState(); render();
     }
   } else if(r){
     const id=r.dataset.rm;
-    state.cityIds=state.cityIds.filter(x=>x!==id);
-    if(state.anchorId===id && state.cityIds.length) state.anchorId=state.cityIds[0];
-    saveState(); render();
+    const rowEl=r.closest('.row');
+    const doRemove=()=>{
+      state.cityIds=state.cityIds.filter(x=>x!==id);
+      if(state.anchorId===id && state.cityIds.length) state.anchorId=state.cityIds[0];
+      saveState(); render();
+    };
+    if(reduceMotion || !rowEl){ doRemove(); }
+    else if(!rowEl.classList.contains('leaving')){
+      rowEl.classList.add('leaving');
+      setTimeout(doRemove, 230);
+    }
   }
 });
 
@@ -623,12 +777,75 @@ $('#todayBtn').onclick=()=>{ initDate(); render(); };
 $('#fmtSeg').addEventListener('click',e=>{
   const b=e.target.closest('button'); if(!b) return;
   state.h12=(b.dataset.h==='12');
-  document.querySelectorAll('#fmtSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('#fmtSeg button').forEach(x=>{
+    const on=(x===b);
+    x.classList.toggle('on',on); x.setAttribute('aria-pressed',on);
+  });
   saveState(); paintSelection();
 });
 
-/* ---------- 跳到建議時段 ---------- */
-$('#jumpBtn').onclick=()=>{ if(jumpTarget!=null){ state.sel=jumpTarget; paintSelection(); saveState(); } };
+/* ---------- 跳到建議時段：金線滑行 + 光帶掃過（哇時刻） ---------- */
+let selAnim=null, selAnimTo=null, animatingSel=false;
+function cancelSelAnim(){
+  if(selAnim){ cancelAnimationFrame(selAnim); selAnim=null; }
+  if(animatingSel){
+    animatingSel=false;
+    state.sel=Math.max(0,Math.min(1410,Math.round(state.sel/30)*30));
+  }
+  selAnimTo=null;
+}
+function sweepStrips(){
+  document.querySelectorAll('.strip').forEach((s,i)=>{
+    const band=document.createElement('div');
+    band.className='sweepband';
+    band.style.animationDelay=(i*55)+'ms';
+    band.addEventListener('animationend',()=>band.remove());
+    s.appendChild(band);
+  });
+}
+function sparkleAt(pct){
+  const axis=$('#axis'); if(!axis) return;
+  pct=Math.max(3,Math.min(97,pct));
+  for(let i=0;i<10;i++){
+    const s=document.createElement('span');
+    s.className='spark';
+    s.style.left=pct+'%';
+    s.style.setProperty('--dx',(Math.random()*44-22).toFixed(1)+'px');
+    s.style.setProperty('--dy',(Math.random()*24-4).toFixed(1)+'px');
+    s.style.animationDelay=(Math.random()*120|0)+'ms';
+    axis.appendChild(s);
+    setTimeout(()=>s.remove(),1000);
+  }
+}
+function celebrate(){
+  if(reduceMotion) return;
+  sweepStrips();
+  sparkleAt(state.sel/1440*100);
+  const chip=$('#selchip');
+  if(chip){ chip.classList.remove('pop'); void chip.offsetWidth; chip.classList.add('pop'); }
+}
+$('#jumpBtn').onclick=()=>{
+  if(jumpTarget==null) return;
+  const to=jumpTarget;
+  if(reduceMotion){ state.sel=to; paintSelection(); saveState(); return; }
+  cancelSelAnim();
+  const from=state.sel;
+  if(from===to){ celebrate(); return; }
+  const t0=performance.now();
+  const dur=Math.min(900, 380+Math.abs(to-from)*0.45);
+  const ease=x=>1-Math.pow(1-x,3);
+  animatingSel=true; selAnimTo=to;
+  const step=now=>{
+    const p=Math.min(1,(now-t0)/dur);
+    state.sel=Math.round(from+(to-from)*ease(p));
+    if(p<1){ paintSelection(); selAnim=requestAnimationFrame(step); }
+    else{
+      selAnim=null; animatingSel=false; selAnimTo=null;
+      state.sel=to; paintSelection(); saveState(); celebrate();
+    }
+  };
+  selAnim=requestAnimationFrame(step);
+};
 
 /* ---------- 加入城市（搜尋下拉） ---------- */
 const input=$('#cityInput'), dd=$('#dropdown');
@@ -638,22 +855,26 @@ function openDropdown(q=''){
   const ref=refInstant();
   const avail=CITIES.filter(c=>!state.cityIds.includes(c.id));
   ddList=avail.filter(c=> !q || c.zh.includes(q)||c.en.toLowerCase().includes(q)||c.cc.includes(q)||c.tz.toLowerCase().includes(q));
+  input.setAttribute('aria-expanded','true');
   if(state.cityIds.length>=8){ dd.innerHTML=`<div class="noopt">最多同時比較 8 個城市</div>`; dd.classList.add('open'); return; }
   if(ddList.length===0){ dd.innerHTML=`<div class="noopt">找不到「${q}」對應的城市</div>`; dd.classList.add('open'); return; }
   dd.innerHTML=ddList.slice(0,40).map((c,i)=>{
     const off=offsetLabel(offsetMinutes(c.tz,ref));
-    return `<div class="opt${i===ddIndex?' active':''}" data-add="${c.id}">
-      <span class="fl">${c.flag}</span><span class="nm">${c.zh}</span>
+    return `<div class="opt${i===ddIndex?' active':''}" id="opt-${c.id}" role="option" aria-selected="${i===ddIndex}" data-add="${c.id}">
+      <span class="fl" aria-hidden="true">${c.flag}</span><span class="nm">${c.zh}</span>
       <span class="off">${off}</span><span class="cc">${c.cc}</span></div>`;
   }).join('');
   dd.classList.add('open');
+  const act=(ddIndex>=0 && ddList[ddIndex]) ? 'opt-'+ddList[ddIndex].id : '';
+  if(act){ input.setAttribute('aria-activedescendant',act); const el=document.getElementById(act); if(el) el.scrollIntoView({block:'nearest'}); }
+  else input.removeAttribute('aria-activedescendant');
 }
 function addCity(id){
   if(!id||state.cityIds.includes(id)||state.cityIds.length>=8) return;
-  state.cityIds.push(id); saveState();
+  state.cityIds.push(id); justAdded=id; saveState();
   input.value=''; ddIndex=-1; closeDropdown(); render();
 }
-function closeDropdown(){ dd.classList.remove('open'); }
+function closeDropdown(){ dd.classList.remove('open'); input.setAttribute('aria-expanded','false'); input.removeAttribute('aria-activedescendant'); }
 input.addEventListener('focus',()=>openDropdown(input.value));
 input.addEventListener('input',()=>{ ddIndex=-1; openDropdown(input.value); });
 input.addEventListener('keydown',e=>{
@@ -688,6 +909,7 @@ $('#copyBtn').onclick=async()=>{
 let flashTimer=null;
 function flash(msg){
   const b=$('#copyBtn'); const old=b.textContent; b.textContent=msg;
+  const live=$('#live'); if(live) live.textContent=msg;
   clearTimeout(flashTimer); flashTimer=setTimeout(()=>b.textContent=old,1600);
 }
 
@@ -705,9 +927,99 @@ function loadState(){
   }catch(_){}
 }
 
+/* ---------- 星空背景（canvas，分頁隱藏時暫停、reduced-motion 靜態） ---------- */
+const sky=document.getElementById('sky');
+const skx=sky.getContext('2d');
+let stars=[], skyW=0, skyH=0, skyRAF=null, lastFrame=0;
+let shoot=null, nextShoot=performance.now()+8000+Math.random()*8000;
+function makeStars(){
+  const n=Math.min(160, Math.round(skyW*skyH/16000));
+  stars=Array.from({length:n},()=>({
+    x:Math.random()*skyW, y:Math.random()*skyH,
+    r:Math.random()*1.25+.35, p:Math.random()*Math.PI*2, s:Math.random()*1.1+.4
+  }));
+}
+function skySize(){
+  const dpr=Math.min(2, window.devicePixelRatio||1);
+  skyW=window.innerWidth; skyH=window.innerHeight;
+  sky.width=Math.round(skyW*dpr); sky.height=Math.round(skyH*dpr);
+  skx.setTransform(dpr,0,0,dpr,0,0);
+  makeStars();
+  if(reduceMotion) drawSky(performance.now());
+}
+function drawSky(t){
+  skx.clearRect(0,0,skyW,skyH);
+  skx.fillStyle='#cdd8ff';
+  for(const st of stars){
+    const a = reduceMotion ? .42 : .26+.44*(.5+.5*Math.sin(t/1000*st.s+st.p));
+    skx.globalAlpha=a;
+    skx.beginPath(); skx.arc(st.x,st.y,st.r,0,6.2832); skx.fill();
+  }
+  skx.globalAlpha=1;
+  if(!reduceMotion){
+    if(!shoot && t>nextShoot){
+      shoot={x:skyW*(0.25+Math.random()*0.6), y:skyH*0.05+Math.random()*skyH*0.25,
+             vx:-(4.2+Math.random()*3), vy:1.6+Math.random()*1.4, life:1};
+    }
+    if(shoot){
+      shoot.x+=shoot.vx; shoot.y+=shoot.vy; shoot.life-=0.02;
+      if(shoot.life<=0 || shoot.x<-60 || shoot.y>skyH+40){
+        shoot=null; nextShoot=t+9000+Math.random()*14000;
+      }else{
+        skx.globalAlpha=Math.max(0,shoot.life)*.8;
+        skx.strokeStyle='#ffe6a8'; skx.lineWidth=1.4;
+        skx.beginPath();
+        skx.moveTo(shoot.x,shoot.y);
+        skx.lineTo(shoot.x-shoot.vx*9, shoot.y-shoot.vy*9);
+        skx.stroke();
+        skx.globalAlpha=1;
+      }
+    }
+  }
+}
+function skyLoop(t){
+  if(document.hidden || reduceMotion){ skyRAF=null; return; }
+  if(t-lastFrame>=33){ lastFrame=t; drawSky(t); }   // 約 30fps，夠柔也省電
+  skyRAF=requestAnimationFrame(skyLoop);
+}
+function startSky(){
+  if(skyRAF==null && !document.hidden && !reduceMotion) skyRAF=requestAnimationFrame(skyLoop);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){ if(skyRAF){ cancelAnimationFrame(skyRAF); skyRAF=null; } }
+  else startSky();
+});
+window.addEventListener('resize',skySize);
+
+/* 動態監聽 reduced-motion 切換 */
+function onMotionChange(){
+  reduceMotion=motionMQ.matches;
+  if(reduceMotion){
+    if(skyRAF){ cancelAnimationFrame(skyRAF); skyRAF=null; }
+    if(selAnim){
+      const to=selAnimTo;
+      cancelSelAnim();
+      if(to!=null){ state.sel=to; paintSelection(); saveState(); }
+    }
+    drawSky(performance.now());
+  }else{
+    startSky();
+  }
+}
+if(motionMQ.addEventListener) motionMQ.addEventListener('change',onMotionChange);
+else if(motionMQ.addListener) motionMQ.addListener(onMotionChange);
+
 /* ---------- 啟動 ---------- */
-document.querySelectorAll('#fmtSeg button').forEach(x=>x.classList.toggle('on', (x.dataset.h==='12')===state.h12));
+document.querySelectorAll('#fmtSeg button').forEach(x=>{
+  const on=(x.dataset.h==='12')===state.h12;
+  x.classList.toggle('on',on); x.setAttribute('aria-pressed',on);
+});
 render();
+skySize(); startSky();
+// 進場編排結束後移除 intro（動畫總長 ≤1.2s）
+setTimeout(()=>document.body.classList.remove('intro'),1400);
+// 開幕儀式：金色光帶依序掃過每條日夜色帶
+if(!reduceMotion) setTimeout(()=>{ if(!document.hidden) sweepStrips(); },950);
 </script>
 </body>
 </html>

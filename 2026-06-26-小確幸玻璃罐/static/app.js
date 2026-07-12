@@ -17,6 +17,9 @@ let joys = [];          // 全部小確幸（新到舊）
 let selectedMood = "warm";
 let justAddedId = null; // 剛投入的那則，用來播放掉落動畫
 
+// 是否尊重「減少動態」偏好（會依 matchMedia change 動態更新）
+let reduced = false;
+
 // ---------- 本機儲存（取代原本的 Flask + SQLite 後端） ----------
 const STORAGE_KEY = "jar.state";
 
@@ -163,14 +166,47 @@ function showToast(msg, isError) {
   showToast._t = setTimeout(() => t.classList.remove("show"), 2600);
 }
 
+// 數字滾動（尊重 reduced-motion；同元素多次呼叫會自動接手）
+function rollNumber(el, to) {
+  to = Number(to) || 0;
+  const from = parseInt(el.textContent, 10) || 0;
+  if (el._raf) { cancelAnimationFrame(el._raf); el._raf = null; }
+  if (reduced || from === to) {
+    el.textContent = to;
+    if (from !== to) popEl(el);
+    return;
+  }
+  popEl(el);
+  const start = performance.now();
+  const dur = 640;
+  const step = (now) => {
+    const p = Math.min(1, (now - start) / dur);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(from + (to - from) * e);
+    if (p < 1) { el._raf = requestAnimationFrame(step); }
+    else { el.textContent = to; el._raf = null; }
+  };
+  el._raf = requestAnimationFrame(step);
+}
+
+function popEl(el) {
+  if (reduced) return;
+  el.classList.remove("pop");
+  void el.offsetWidth;
+  el.classList.add("pop");
+}
+
 // ---------- 心情按鈕 ----------
 function buildMoodButtons() {
   const row = $("moodRow");
   MOOD_KEYS.forEach((key) => {
     const m = MOODS[key];
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "mood-btn" + (key === selectedMood ? " active" : "");
     btn.dataset.key = key;
+    btn.setAttribute("aria-pressed", key === selectedMood ? "true" : "false");
+    btn.setAttribute("aria-label", "心情：" + m.label);
     btn.innerHTML = `<span class="dot" style="background:${m.color}"></span>${m.emoji} ${m.label}`;
     btn.addEventListener("click", () => selectMood(key));
     row.appendChild(btn);
@@ -181,7 +217,9 @@ function buildMoodButtons() {
 function selectMood(key) {
   selectedMood = key;
   document.querySelectorAll(".mood-btn").forEach((b) => {
-    b.classList.toggle("active", b.dataset.key === key);
+    const on = b.dataset.key === key;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-pressed", on ? "true" : "false");
   });
   applyActiveMoodStyle();
 }
@@ -220,6 +258,20 @@ function renderJar() {
     box.appendChild(slip);
   });
   justAddedId = null;
+  updateJarFill();
+}
+
+// 依收藏數點亮罐底暖光（純視覺，不影響任何資料）
+function updateJarFill(pulse) {
+  const fill = $("jarFill");
+  if (!fill) return;
+  const level = Math.min(1, joys.length / 60);
+  fill.style.opacity = joys.length ? (0.14 + level * 0.62).toFixed(3) : "0";
+  if (pulse && !reduced) {
+    fill.classList.remove("pulse");
+    void fill.offsetWidth;
+    fill.classList.add("pulse");
+  }
 }
 
 // 讓顏色加深一點，做出紙的層次
@@ -233,24 +285,33 @@ function shade(hex, amt) {
 }
 
 // ---------- 時間軸 ----------
-function renderTimeline() {
+function renderTimeline(opts) {
+  opts = opts || {};
   const ul = $("timeline");
   ul.innerHTML = "";
   $("timelineCount").textContent = joys.length ? `共 ${joys.length} 則` : "";
   $("emptyHint").hidden = joys.length > 0;
 
-  joys.forEach((j) => {
+  joys.forEach((j, idx) => {
     const m = MOODS[j.mood] || MOODS.warm;
     const li = document.createElement("li");
     li.className = "t-item";
+    if (!reduced) {
+      if (opts.newId === j.id) {
+        li.classList.add("t-new");
+      } else if (opts.stagger && idx < 12) {
+        li.classList.add("enter");
+        li.style.setProperty("--td", (idx * 0.045).toFixed(3) + "s");
+      }
+    }
     li.style.borderLeftColor = m.color;
     li.innerHTML = `
-      <span class="t-emoji">${m.emoji}</span>
+      <span class="t-emoji" aria-hidden="true">${m.emoji}</span>
       <div class="t-body">
         <p class="t-text"></p>
         <p class="t-date">${fmtDate(j.created_at)} · ${m.label}</p>
       </div>
-      <button class="t-del" title="從罐子裡拿走">×</button>`;
+      <button class="t-del" type="button" title="從罐子裡拿走" aria-label="移除這則小確幸">×</button>`;
     li.querySelector(".t-text").textContent = j.content;
     li.querySelector(".t-del").addEventListener("click", () => removeJoy(j.id));
     ul.appendChild(li);
@@ -261,10 +322,13 @@ function renderTimeline() {
 function refreshStats() {
   try {
     const s = storeStats();
-    $("statTotal").textContent = s.total;
-    $("statMonth").textContent = s.this_month;
-    $("statStreak").textContent = s.streak;
-    $("statMood").textContent = s.top_mood || "—";
+    rollNumber($("statTotal"), s.total);
+    rollNumber($("statMonth"), s.this_month);
+    rollNumber($("statStreak"), s.streak);
+    const moodEl = $("statMood");
+    const nextMood = s.top_mood || "—";
+    if (moodEl.textContent !== nextMood) { moodEl.textContent = nextMood; popEl(moodEl); }
+    rollNumber($("jarCount"), s.total);
   } catch (e) { /* 靜默 */ }
 }
 
@@ -273,7 +337,7 @@ function loadAll() {
   loadState();
   joys = storeList();
   renderJar();
-  renderTimeline();
+  renderTimeline({ stagger: true });
   refreshStats();
 }
 
@@ -288,9 +352,11 @@ function addJoy() {
     updateCharCount();
     joys.unshift(created);
     renderJar();
-    renderTimeline();
+    updateJarFill(true);
+    renderTimeline({ newId: created.id });
     refreshStats();
     wiggleJar();
+    burstSparkles();
     showToast("投進罐子了，今天又多了一份美好 ✨");
   } catch (e) {
     showToast(e.message, true);
@@ -314,30 +380,55 @@ function shake() {
   try {
     const j = storeRandom();
     const m = MOODS[j.mood] || MOODS.warm;
+    const f = $("featured");
+    f.hidden = false; // 先讓 aria-live 區域可見，再更新內容以確保朗讀
     $("featuredText").textContent = j.content;
     $("featuredMeta").textContent = `${m.emoji} ${m.label} · ${fmtDate(j.created_at)}`;
-    const f = $("featured");
-    f.hidden = false;
     // 重新觸發進場動畫
     const inner = f.querySelector(".featured-inner");
     inner.style.animation = "none";
     void inner.offsetWidth;
     inner.style.animation = "";
-    f.scrollIntoView({ behavior: "smooth", block: "center" });
+    f.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "center" });
   } catch (e) {
     showToast(e.message, true);
   }
 }
 
 function wiggleJar() {
+  if (reduced) return;
   const jar = $("jar");
   jar.classList.remove("shaking");
   void jar.offsetWidth;
   jar.classList.add("shaking");
 }
 
+// 投入時：從罐口噴出金色碎屑（純 transform/opacity，播完自動移除）
+function burstSparkles() {
+  if (reduced) return;
+  const layer = $("sparkLayer");
+  if (!layer) return;
+  const n = 12;
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement("span");
+    s.className = "spark";
+    const dx = (Math.random() * 2 - 1) * 62;
+    const dy = -(28 + Math.random() * 74);
+    s.style.left = "50%";
+    s.style.top = "24%";
+    s.style.setProperty("--dx", dx.toFixed(1) + "px");
+    s.style.setProperty("--dy", dy.toFixed(1) + "px");
+    s.style.setProperty("--dur", (720 + Math.random() * 520).toFixed(0) + "ms");
+    s.addEventListener("animationend", () => s.remove());
+    layer.appendChild(s);
+  }
+}
+
 function updateCharCount() {
-  $("charCount").textContent = $("content").value.length;
+  const v = $("content").value.length;
+  $("charCount").textContent = v;
+  const counter = $("charCount").parentElement;
+  if (counter) counter.classList.toggle("near", v >= 180);
 }
 
 function showToday() {
@@ -346,20 +437,140 @@ function showToday() {
   $("today").textContent = `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日 · 星期${w}`;
 }
 
+// ---------- 背景微光粒子（signature「哇」時刻，離屏／分頁隱藏／減少動態時暫停） ----------
+let ambientStart = null, ambientStop = null, ambientClear = null;
+
+function initAmbient() {
+  const canvas = $("ambient");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, dpr = 1;
+  let motes = [];
+  let raf = null, running = false;
+
+  // 預先畫一顆柔光精靈，重複貼上以節省效能
+  const sprite = document.createElement("canvas");
+  sprite.width = sprite.height = 32;
+  const sctx = sprite.getContext("2d");
+  const g = sctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+  g.addColorStop(0, "rgba(246,208,136,.92)");
+  g.addColorStop(0.4, "rgba(240,190,112,.36)");
+  g.addColorStop(1, "rgba(240,190,112,0)");
+  sctx.fillStyle = g;
+  sctx.fillRect(0, 0, 32, 32);
+
+  function seed() {
+    const count = Math.max(16, Math.min(52, Math.round((W * H) / 26000)));
+    motes = [];
+    for (let i = 0; i < count; i++) {
+      motes.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        size: 8 + Math.random() * 16,
+        vy: 0.12 + Math.random() * 0.35,
+        drift: 0.15 + Math.random() * 0.4,
+        phase: Math.random() * Math.PI * 2,
+        tw: 0.5 + Math.random() * 1.1,
+        base: 0.16 + Math.random() * 0.34,
+      });
+    }
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    seed();
+  }
+
+  function frame(t) {
+    ctx.clearRect(0, 0, W, H);
+    for (let i = 0; i < motes.length; i++) {
+      const m = motes[i];
+      m.y -= m.vy;
+      m.x += Math.sin(t * 0.0004 + m.phase) * m.drift;
+      if (m.y < -20) { m.y = H + 20; m.x = Math.random() * W; }
+      const tw = 0.55 + 0.45 * Math.sin(t * 0.001 * m.tw + m.phase);
+      ctx.globalAlpha = m.base * tw;
+      ctx.drawImage(sprite, m.x - m.size / 2, m.y - m.size / 2, m.size, m.size);
+    }
+    ctx.globalAlpha = 1;
+    raf = requestAnimationFrame(frame);
+  }
+
+  function start() {
+    if (running || reduced || document.hidden) return;
+    running = true;
+    raf = requestAnimationFrame(frame);
+  }
+  function stop() {
+    running = false;
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+  }
+  function clear() { ctx.clearRect(0, 0, W, H); }
+
+  ambientStart = start;
+  ambientStop = stop;
+  ambientClear = clear;
+
+  // 視窗縮放：以 rAF 節流
+  let resizeRaf = null;
+  window.addEventListener("resize", () => {
+    if (resizeRaf) return;
+    resizeRaf = requestAnimationFrame(() => { resizeRaf = null; resize(); });
+  });
+
+  // 分頁隱藏時暫停迴圈
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stop();
+    else start();
+  });
+
+  resize();
+  start();
+}
+
 // ---------- 啟動 ----------
 document.addEventListener("DOMContentLoaded", () => {
+  const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+  reduced = mq.matches;
+  // 以 matchMedia change 動態監聽偏好切換
+  const onMotionChange = (e) => {
+    reduced = e.matches;
+    if (reduced) { if (ambientStop) ambientStop(); if (ambientClear) ambientClear(); }
+    else { if (ambientStart) ambientStart(); }
+  };
+  if (mq.addEventListener) mq.addEventListener("change", onMotionChange);
+  else if (mq.addListener) mq.addListener(onMotionChange); // 舊版瀏覽器相容
+
   showToday();
   buildMoodButtons();
+  initAmbient();
+
   $("addBtn").addEventListener("click", addJoy);
   $("shakeBtn").addEventListener("click", shake);
-  $("jar").addEventListener("click", shake);
+  const jar = $("jar");
+  jar.addEventListener("click", shake);
+  jar.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      e.preventDefault();
+      shake();
+    }
+  });
   $("content").addEventListener("input", updateCharCount);
   $("content").addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "Enter") addJoy();
   });
+
   try {
     loadAll();
   } catch (e) {
     showToast("載入失敗：" + e.message, true);
   }
+
+  // 觸發進場 stagger
+  requestAnimationFrame(() => document.body.classList.add("ready"));
 });

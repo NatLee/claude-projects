@@ -1,6 +1,7 @@
 /* ============================================================
-   真偽鑑定所 — 樣式
+   真偽鑑定所 — 樣式（工藝重整版）
    風格：和紙・墨・朱印。暖米色紙面，襯線字，朱紅印章。
+   僅以 transform / opacity 驅動動畫；prefers-reduced-motion 完整降級。
    ============================================================ */
 
 :root{
@@ -8,12 +9,19 @@
   --paper-bg2:#efe4cc;
   --ink:#2b241d;
   --ink-soft:#5b5044;
+  --ink-faint:#8a7c68;
   --line:#c9b892;
+  --line-soft:#dccbaa;
   --vermilion:#b5342a;
   --vermilion-deep:#8f2018;
   --green:#3f7d54;
+  --green-deep:#2f6141;
   --gold:#b98a2e;
   --shadow:rgba(60,45,20,.18);
+  --shadow-strong:rgba(60,45,20,.30);
+  --focus:#8f2018;
+  --ease-out:cubic-bezier(.2,.7,.25,1);
+  --ease-seal:cubic-bezier(.2,1.4,.35,1);
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -31,23 +39,56 @@ body{
   min-height:100%;
   display:flex;
   justify-content:center;
-  padding:32px 16px 48px;
+  padding:30px 16px 46px;
+  -webkit-font-smoothing:antialiased;
 }
 
-/* 紙張顆粒 */
+/* 環境浮塵 canvas（低調氛圍層） */
+#ambient{
+  position:fixed;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* 紙面容器 */
 .paper{
   width:100%;
-  max-width:680px;
+  max-width:720px;
   position:relative;
+  z-index:1;
 }
+/* 紙張顆粒 */
 .paper::before{
   content:"";
   position:fixed;inset:0;
   pointer-events:none;
+  z-index:0;
   opacity:.5;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
   mix-blend-mode:multiply;
 }
+.paper > *{position:relative;z-index:1}
+
+/* -------------------- 回首頁 -------------------- */
+.home-link{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:13.5px;letter-spacing:1px;
+  color:var(--ink-soft);text-decoration:none;
+  margin-bottom:16px;
+  padding:4px 2px;
+  transition:color .25s ease, transform .25s var(--ease-out);
+}
+.home-link .brush{
+  display:inline-block;width:22px;height:1.5px;
+  background:linear-gradient(90deg,var(--vermilion),transparent);
+  transform-origin:right center;
+  transition:transform .3s var(--ease-out);
+}
+.home-link:hover{color:var(--vermilion-deep)}
+.home-link:hover .brush{transform:scaleX(1.5)}
+.home-link:hover .arrow{transform:translateX(-3px)}
+.home-link .arrow{display:inline-block;transition:transform .25s var(--ease-out)}
 
 /* -------------------- 招牌 -------------------- */
 .signboard{
@@ -55,72 +96,96 @@ body{
   margin-bottom:22px;
 }
 .seal-logo{
+  position:relative;
   flex:0 0 auto;
-  width:70px;height:70px;
+  width:72px;height:72px;
   display:flex;align-items:center;justify-content:center;
   font-size:38px;font-weight:900;color:#fff;
   background:linear-gradient(150deg,var(--vermilion),var(--vermilion-deep));
-  border-radius:14px;
-  box-shadow:0 6px 16px rgba(143,32,24,.35), inset 0 0 0 3px rgba(255,255,255,.15);
+  border-radius:15px;
+  box-shadow:0 8px 20px rgba(143,32,24,.38), inset 0 0 0 3px rgba(255,255,255,.15);
   transform:rotate(-4deg);
-  letter-spacing:0;
+  overflow:hidden;
+  transition:transform .35s var(--ease-seal), box-shadow .35s ease;
 }
+.seal-logo::after{
+  content:"";position:absolute;top:0;left:-60%;
+  width:60%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.5),transparent);
+  transform:skewX(-18deg) translateX(0);
+  transition:none;
+}
+.seal-logo.sheen::after{animation:sheen 1s ease .1s 1}
+.signboard:hover .seal-logo{transform:rotate(2deg) scale(1.05);box-shadow:0 12px 26px rgba(143,32,24,.45)}
 .title-block h1{
-  font-size:34px;font-weight:900;letter-spacing:4px;
+  font-size:35px;font-weight:900;letter-spacing:5px;
   line-height:1.1;
 }
 .subtitle{
-  margin-top:6px;font-size:13.5px;color:var(--ink-soft);
+  margin-top:7px;font-size:13.5px;color:var(--ink-soft);
   line-height:1.7;letter-spacing:.5px;
 }
 
 /* -------------------- 統計條 -------------------- */
 .stats-strip{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:10px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:12px;
   margin-bottom:22px;
 }
 .stat{
-  background:rgba(255,252,243,.7);
+  position:relative;
+  background:linear-gradient(180deg,rgba(255,253,246,.85),rgba(255,250,238,.6));
   border:1px solid var(--line);
-  border-radius:10px;
-  padding:12px 6px;text-align:center;
-  box-shadow:0 2px 6px var(--shadow);
+  border-radius:12px;
+  padding:14px 6px 12px;text-align:center;
+  box-shadow:0 3px 10px var(--shadow);
+  transition:transform .3s var(--ease-out), box-shadow .3s ease;
 }
+.stat::before{
+  content:"";position:absolute;inset:3px;border-radius:9px;
+  border:1px solid rgba(201,184,146,.5);
+  pointer-events:none;
+}
+.stat:hover{transform:translateY(-3px);box-shadow:0 8px 18px var(--shadow)}
 .stat-num{
-  display:block;font-size:26px;font-weight:900;color:var(--ink);
-  line-height:1;
+  display:block;font-size:27px;font-weight:900;color:var(--ink);
+  line-height:1;font-variant-numeric:tabular-nums;
 }
 .stat-num i{font-size:15px;font-style:normal;color:var(--ink-soft);}
+.stat.streak .stat-num{color:var(--vermilion-deep)}
 .stat-num.flash{animation:pop .5s ease}
-.stat-label{display:block;margin-top:6px;font-size:11.5px;color:var(--ink-soft);letter-spacing:.5px}
+.stat-label{display:block;margin-top:8px;font-size:11.5px;color:var(--ink-soft);letter-spacing:.5px}
 
 /* -------------------- 鑑定卡 -------------------- */
 .card{
   position:relative;
   background:linear-gradient(180deg,#fffdf6,#fbf4e4);
   border:1px solid var(--line);
-  border-radius:16px;
-  padding:26px 26px 30px;
-  box-shadow:0 10px 30px var(--shadow), inset 0 0 0 4px rgba(255,255,255,.5),
+  border-radius:18px;
+  padding:28px 28px 32px;
+  box-shadow:0 14px 38px var(--shadow), inset 0 0 0 4px rgba(255,255,255,.5),
              inset 0 0 0 5px var(--line);
   overflow:hidden;
-  min-height:300px;
+  min-height:320px;
+  transition:box-shadow .4s ease, transform .4s var(--ease-out);
 }
+.card.impact{animation:cardShake .5s ease}
 .card-watermark{
   position:absolute;right:-16px;bottom:-40px;
-  font-size:230px;font-weight:900;color:rgba(181,52,42,.05);
+  font-size:240px;font-weight:900;color:rgba(181,52,42,.05);
   pointer-events:none;user-select:none;line-height:1;
+  transition:transform .6s var(--ease-out);
 }
+.card:hover .card-watermark{transform:rotate(-4deg) scale(1.03)}
 .card-head{
   display:flex;justify-content:space-between;align-items:center;
   border-bottom:1px dashed var(--line);
-  padding-bottom:12px;margin-bottom:22px;
+  padding-bottom:13px;margin-bottom:22px;
 }
-.case-no{font-size:13px;color:var(--ink-soft);letter-spacing:2px}
+.case-no{font-size:13px;color:var(--ink-soft);letter-spacing:2px;font-variant-numeric:tabular-nums}
 .category-tag{
   font-size:12.5px;color:var(--vermilion-deep);
   border:1px solid var(--vermilion);
-  padding:3px 12px;border-radius:20px;letter-spacing:1px;
+  padding:3px 13px;border-radius:20px;letter-spacing:1px;
   background:rgba(181,52,42,.06);
 }
 .claim{
@@ -130,22 +195,33 @@ body{
   min-height:96px;
   display:flex;align-items:center;
 }
+/* 新案件「翻牌／發牌」進場 */
+.claim.deal{animation:dealIn .5s var(--ease-out) both}
+.card-head.deal .case-no{animation:dealIn .5s var(--ease-out) both}
+.card-head.deal .category-tag{animation:dealIn .5s var(--ease-out) .06s both}
+
+/* 濺墨 canvas（蓋印瞬間） */
+#ink{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;z-index:6;
+}
 
 /* 朱印 */
 .stamp{
   position:absolute;top:34%;left:50%;
-  width:150px;height:150px;
+  width:154px;height:154px;
   transform:translate(-50%,-50%) scale(2.4) rotate(-16deg);
   border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   color:var(--vermilion);
   border:6px double var(--vermilion);
   box-shadow:inset 0 0 0 3px rgba(181,52,42,.35);
-  font-size:78px;font-weight:900;
+  font-size:80px;font-weight:900;
   opacity:0;pointer-events:none;z-index:5;
   filter:contrast(1.1);
 }
-.stamp.show{animation:stampDown .55s cubic-bezier(.2,1.4,.35,1) forwards}
+.stamp.show{animation:stampDown .55s var(--ease-seal) forwards}
 .stamp.green{color:var(--green);border-color:var(--green);box-shadow:inset 0 0 0 3px rgba(63,125,84,.35)}
 @keyframes stampDown{
   0%{opacity:0;transform:translate(-50%,-50%) scale(2.4) rotate(-16deg)}
@@ -161,37 +237,52 @@ body{
   margin-top:26px;
 }
 .vbtn{
+  position:relative;overflow:hidden;
   cursor:pointer;
   border:2px solid var(--ink);
   background:rgba(255,255,255,.55);
-  border-radius:12px;
-  padding:16px 10px;
-  display:flex;flex-direction:column;align-items:center;gap:4px;
+  border-radius:13px;
+  padding:17px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
   font-family:inherit;color:var(--ink);
-  transition:transform .12s ease, background .2s ease, box-shadow .2s ease;
+  transition:transform .14s var(--ease-out), background .2s ease, box-shadow .25s ease, border-color .2s ease;
 }
-.vbtn:hover{transform:translateY(-2px);box-shadow:0 6px 14px var(--shadow)}
-.vbtn:active{transform:translateY(0)}
+.vbtn::before{  /* 墨暈 hover 底光 */
+  content:"";position:absolute;inset:0;z-index:0;
+  background:radial-gradient(120% 90% at 50% 120%, currentColor 0%, transparent 60%);
+  opacity:0;transition:opacity .3s ease;
+}
+.vbtn-true{color:var(--green)}
+.vbtn-false{color:var(--vermilion)}
+.vbtn:hover{transform:translateY(-3px);box-shadow:0 10px 20px var(--shadow)}
+.vbtn:hover::before{opacity:.10}
+.vbtn:active{transform:translateY(-1px) scale(.985)}
+.vbtn > *{position:relative;z-index:1}
 .vbtn-char{
-  font-size:30px;font-weight:900;line-height:1;
-  width:46px;height:46px;border-radius:50%;
+  font-size:30px;font-weight:900;line-height:1;color:#fff;
+  width:48px;height:48px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 10px rgba(0,0,0,.18);
+  transition:transform .2s var(--ease-seal);
 }
-.vbtn-true .vbtn-char{color:#fff;background:var(--green)}
-.vbtn-false .vbtn-char{color:#fff;background:var(--vermilion)}
-.vbtn-text{font-size:15px;letter-spacing:3px}
+.vbtn:hover .vbtn-char{transform:scale(1.1) rotate(-4deg)}
+.vbtn-true .vbtn-char{background:var(--green)}
+.vbtn-false .vbtn-char{background:var(--vermilion)}
+.vbtn-text{font-size:15px;letter-spacing:3px;color:var(--ink)}
 .vbtn:disabled{opacity:.4;cursor:default;transform:none;box-shadow:none}
+.vbtn:disabled::before{opacity:0}
 
 /* 揭曉區 */
 .reveal{
   position:relative;z-index:3;
   margin-top:24px;
-  animation:rise .45s ease both;
+  animation:rise .5s var(--ease-out) both;
 }
 .reveal-banner{
   display:inline-block;
   font-size:17px;font-weight:700;letter-spacing:3px;
   padding:6px 20px;border-radius:24px;margin-bottom:14px;
+  animation:badgePop .5s var(--ease-seal) both;
 }
 .reveal-banner.ok{color:var(--green);background:rgba(63,125,84,.12);border:1px solid var(--green)}
 .reveal-banner.no{color:var(--vermilion-deep);background:rgba(181,52,42,.1);border:1px solid var(--vermilion)}
@@ -201,34 +292,48 @@ body{
   padding-left:14px;margin-bottom:14px;
 }
 .source{font-size:13px;color:var(--ink-soft);margin-bottom:20px}
-.source a{color:var(--vermilion-deep);text-decoration:none;border-bottom:1px dotted var(--vermilion)}
+.source a{color:var(--vermilion-deep);text-decoration:none;border-bottom:1px dotted var(--vermilion);transition:color .2s ease}
 .source a:hover{color:var(--vermilion)}
 .next-btn{
+  position:relative;overflow:hidden;
   cursor:pointer;font-family:inherit;
   background:linear-gradient(150deg,var(--ink),#4a3f31);
-  color:#fbf4e4;border:none;border-radius:10px;
-  padding:13px 26px;font-size:16px;letter-spacing:2px;font-weight:600;
-  box-shadow:0 6px 14px var(--shadow);
-  transition:transform .12s ease, filter .2s ease;
+  color:#fbf4e4;border:none;border-radius:11px;
+  padding:14px 28px;font-size:16px;letter-spacing:2px;font-weight:600;
+  box-shadow:0 6px 16px var(--shadow);
+  transition:transform .14s var(--ease-out), filter .2s ease, box-shadow .25s ease;
 }
-.next-btn:hover{transform:translateY(-2px);filter:brightness(1.1)}
+.next-btn::after{
+  content:"";position:absolute;top:0;left:-60%;width:60%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:skewX(-18deg) translateX(0);
+}
+.next-btn:hover{transform:translateY(-3px);filter:brightness(1.12);box-shadow:0 12px 22px var(--shadow-strong)}
+.next-btn:hover::after{animation:sheen .9s ease 1}
+.next-btn:active{transform:translateY(-1px)}
 
 /* -------------------- 鑑定檔案 -------------------- */
 .dossier{margin-top:24px}
 .dossier-toggle{
   cursor:pointer;font-family:inherit;width:100%;
-  background:rgba(255,252,243,.7);
-  border:1px solid var(--line);border-radius:10px;
-  padding:13px;font-size:15px;color:var(--ink);letter-spacing:2px;
-  transition:background .2s ease;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(180deg,rgba(255,253,246,.85),rgba(255,250,238,.6));
+  border:1px solid var(--line);border-radius:11px;
+  padding:14px;font-size:15px;color:var(--ink);letter-spacing:2px;
+  transition:background .25s ease, box-shadow .25s ease;
 }
-.dossier-toggle:hover{background:rgba(255,252,243,1)}
+.dossier-toggle:hover{background:rgba(255,252,243,1);box-shadow:0 4px 12px var(--shadow)}
+.dossier-toggle .chev{
+  display:inline-block;font-size:12px;color:var(--ink-soft);
+  transition:transform .3s var(--ease-out);
+}
+.dossier-toggle[aria-expanded="true"] .chev{transform:rotate(180deg)}
 .dossier-body{
-  background:rgba(255,252,243,.55);
+  background:rgba(255,252,243,.6);
   border:1px solid var(--line);border-top:none;
-  border-radius:0 0 10px 10px;
+  border-radius:0 0 11px 11px;
   margin-top:-6px;padding:20px 18px;
-  animation:rise .35s ease both;
+  animation:rise .4s var(--ease-out) both;
 }
 .insight{
   font-size:15px;line-height:1.9;color:var(--ink);
@@ -236,20 +341,26 @@ body{
   border-radius:8px;padding:12px 14px;margin-bottom:18px;
 }
 .insight b{color:var(--vermilion-deep)}
-.cat-bars{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.cat-bars{display:flex;flex-direction:column;gap:11px;margin-bottom:20px}
 .cat-row{display:flex;align-items:center;gap:10px;font-size:13.5px}
 .cat-name{flex:0 0 44px;color:var(--ink-soft)}
-.cat-track{flex:1;height:14px;background:rgba(0,0,0,.06);border-radius:8px;overflow:hidden}
-.cat-fill{height:100%;border-radius:8px;background:linear-gradient(90deg,var(--gold),var(--green));transition:width .6s ease}
-.cat-val{flex:0 0 66px;text-align:right;color:var(--ink-soft);font-size:12.5px}
+.cat-track{flex:1;height:15px;background:rgba(60,45,20,.08);border-radius:8px;overflow:hidden;position:relative}
+.cat-fill{
+  height:100%;border-radius:8px;
+  background:linear-gradient(90deg,var(--gold),var(--green));
+  transform-origin:left center;transform:scaleX(0);
+  transition:transform .7s var(--ease-out);
+}
+.cat-val{flex:0 0 66px;text-align:right;color:var(--ink-soft);font-size:12.5px;font-variant-numeric:tabular-nums}
 .reset-btn{
   cursor:pointer;font-family:inherit;
   background:none;border:1px solid var(--vermilion);
   color:var(--vermilion-deep);border-radius:8px;
   padding:9px 16px;font-size:13.5px;letter-spacing:1px;
-  transition:background .2s ease;
+  transition:background .2s ease, transform .14s var(--ease-out);
 }
-.reset-btn:hover{background:rgba(181,52,42,.08)}
+.reset-btn:hover{background:rgba(181,52,42,.08);transform:translateY(-1px)}
+.reset-btn:active{transform:translateY(0)}
 
 /* -------------------- 頁尾 -------------------- */
 .foot{
@@ -257,14 +368,68 @@ body{
   margin-top:26px;font-size:12px;color:var(--ink-soft);
   letter-spacing:.5px;opacity:.8;
 }
+.foot a{color:var(--ink-soft);text-decoration:none;border-bottom:1px dotted var(--line)}
+.foot a:hover{color:var(--vermilion-deep)}
 
-/* -------------------- 動畫 -------------------- */
+/* -------------------- 聚焦樣式（鍵盤） -------------------- */
+:focus-visible{outline:none}
+.home-link:focus-visible,
+.vbtn:focus-visible,
+.next-btn:focus-visible,
+.dossier-toggle:focus-visible,
+.reset-btn:focus-visible,
+.source a:focus-visible{
+  outline:2.5px solid var(--focus);
+  outline-offset:3px;
+  border-radius:8px;
+}
+
+/* -------------------- 進場 stagger -------------------- */
+.reveal-in{animation:enter .6s var(--ease-out) both;animation-delay:calc(var(--i,0) * .11s)}
+
+/* -------------------- keyframes -------------------- */
+@keyframes enter{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.32)}100%{transform:scale(1)}}
+@keyframes badgePop{0%{opacity:0;transform:scale(.8)}60%{transform:scale(1.06)}100%{opacity:1;transform:scale(1)}}
+@keyframes dealIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes sheen{from{transform:skewX(-18deg) translateX(0)}to{transform:skewX(-18deg) translateX(320%)}}
+@keyframes cardShake{
+  0%,100%{transform:translateX(0)}
+  15%{transform:translateX(-5px)}
+  30%{transform:translateX(4px)}
+  45%{transform:translateX(-3px)}
+  60%{transform:translateX(2px)}
+  75%{transform:translateX(-1px)}
+}
 
-@media(max-width:520px){
-  .title-block h1{font-size:27px;letter-spacing:2px}
-  .claim{font-size:20px}
-  .stat-num{font-size:22px}
-  .stamp{width:126px;height:126px;font-size:64px}
+/* -------------------- 響應式 -------------------- */
+@media(max-width:560px){
+  body{padding:22px 12px 40px}
+  .signboard{gap:14px}
+  .seal-logo{width:60px;height:60px;font-size:32px}
+  .title-block h1{font-size:26px;letter-spacing:3px}
+  .subtitle{font-size:12.5px}
+  .stats-strip{gap:8px}
+  .stat{padding:11px 4px 9px}
+  .stat-num{font-size:21px}
+  .stat-label{font-size:10.5px}
+  .card{padding:22px 18px 26px;min-height:290px}
+  .claim{font-size:19.5px;min-height:88px}
+  .stamp{width:128px;height:128px;font-size:66px}
+  .vbtn-char{width:44px;height:44px;font-size:27px}
+}
+@media(max-width:380px){
+  .stats-strip{grid-template-columns:repeat(2,1fr)}
+}
+
+/* -------------------- 減少動態：完整降級 -------------------- */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-delay:0ms !important;
+    transition-duration:.001ms !important;
+  }
+  .cat-fill{transition:none}
+  .seal-logo.sheen::after,.next-btn:hover::after{animation:none}
 }

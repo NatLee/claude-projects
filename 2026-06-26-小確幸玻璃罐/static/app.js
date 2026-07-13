@@ -548,7 +548,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   showToday();
   buildMoodButtons();
-  initAmbient();
+  // 保養 2026-07-14：氛圍動畫是裝飾，就算 canvas 取不到 context 也不該
+  // 讓後面的按鈕接線一起陪葬（原本會整頁失效）。
+  try {
+    initAmbient();
+  } catch (err) {
+    console.warn("氛圍動畫初始化失敗，不影響玻璃罐功能：", err);
+  }
 
   $("addBtn").addEventListener("click", addJoy);
   $("shakeBtn").addEventListener("click", shake);

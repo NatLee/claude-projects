@@ -39,7 +39,8 @@ body{
 [data-anim="5"]{animation-delay:.40s}
 [data-anim="6"]{animation-delay:.48s}
 [data-anim="7"]{animation-delay:.56s}
-[data-anim="8"]{animation-delay:.66s}
+[data-anim="8"]{animation-delay:.64s}
+[data-anim="9"]{animation-delay:.72s}
 @keyframes rise{to{opacity:1;transform:none}}
 
 .home-link{
@@ -90,10 +91,12 @@ body{
 
 .hint{
   position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+  max-width:calc(100% - 24px);                 /* 手機上文案較長 → 允許換行，不要被 .stage 的 overflow:hidden 切掉 */
   background:rgba(8,13,23,.82);border:1px solid var(--line2);
-  padding:7px 15px;border-radius:999px;font-size:13px;color:#cfe0f0;
+  padding:7px 15px;border-radius:14px;font-size:13px;color:#cfe0f0;
+  text-align:center;line-height:1.45;white-space:normal;
   backdrop-filter:blur(8px);pointer-events:none;
-  transition:opacity .4s;white-space:nowrap;
+  transition:opacity .4s;
 }
 .hint.gone{opacity:0}
 
@@ -124,8 +127,21 @@ body{
   display:grid;place-items:center;border-radius:12px;
   background:rgba(227,184,106,.09);border:1px solid var(--gold-dim);
 }
-.ro-name{font-family:var(--serif);font-size:19px;letter-spacing:.02em;line-height:1.3}
+.ro-name{
+  font-family:var(--serif);font-size:19px;letter-spacing:.02em;line-height:1.3;
+  display:flex;align-items:center;gap:7px;
+}
 .ro-lat{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* 位置編號徽章：把「地圖上的第幾個」綁住讀數面板、清單與地圖上的標籤 */
+.ro-slot,.slot-dot{
+  flex:0 0 18px;width:18px;height:18px;border-radius:50%;
+  display:grid;place-items:center;
+  background:var(--slot,var(--gold));color:#0b1220;
+  font-family:var(--sans);font-size:10px;font-weight:700;line-height:1;
+  font-variant-numeric:tabular-nums;
+}
+.ro-slot[hidden]{display:none}
 
 .ratio-box{
   border:1px solid var(--line);border-radius:12px;padding:12px 14px 13px;
@@ -188,7 +204,84 @@ body{
 .btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .btn.primary{background:rgba(227,184,106,.14);border-color:rgba(227,184,106,.42);color:#f2dcb4}
 .btn.primary:hover:not(:disabled){background:rgba(227,184,106,.24)}
-.btn.ghost{flex:0 0 auto;color:var(--muted)}
+.btn.wide{width:100%;margin-top:8px;font-size:12px;color:#bccee0}
+
+/* ---------- 地圖上的國家（多選托盤） ---------- */
+.tray-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.tray-head h2{font-family:var(--serif);font-size:15px;font-weight:600;margin:0;letter-spacing:.03em}
+.tray-count{
+  font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;
+  border:1px solid var(--line);border-radius:99px;padding:1px 8px;
+}
+.tray-clear{
+  margin-left:auto;border:1px solid var(--line);background:transparent;
+  color:var(--muted);font-family:var(--sans);font-size:11px;
+  padding:4px 10px;border-radius:99px;cursor:pointer;
+  transition:color .25s,border-color .25s,background .25s,opacity .25s;
+}
+.tray-clear:hover:not(:disabled){color:var(--lie);border-color:rgba(239,111,108,.45);background:rgba(239,111,108,.08)}
+.tray-clear:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.tray-clear:disabled{opacity:.35;cursor:not-allowed}
+
+.tray-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.tray-item{
+  display:flex;align-items:stretch;gap:4px;
+  border:1px solid var(--line);border-radius:11px;
+  background:rgba(255,255,255,.03);
+  transition:border-color .25s,background .25s,transform .16s;
+}
+.tray-item.is-focus{
+  border-color:var(--slot);                                  /* 舊瀏覽器 fallback */
+  background:rgba(255,255,255,.07);
+  border-color:color-mix(in srgb,var(--slot) 55%,transparent);
+  background:color-mix(in srgb,var(--slot) 10%,transparent);
+}
+.tray-pick{
+  flex:1 1 auto;min-width:0;
+  display:flex;align-items:center;gap:8px;
+  border:0;background:transparent;cursor:pointer;
+  font-family:var(--sans);color:#cddbe9;text-align:left;
+  padding:7px 4px 7px 9px;border-radius:11px 0 0 11px;
+  transition:color .25s;
+}
+.tray-pick:hover{color:#fff}
+.tray-pick:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.tray-emoji{font-size:14px;line-height:1}
+.tray-name{
+  flex:1 1 auto;min-width:0;font-size:12.5px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.tray-ratio{
+  font-size:12px;font-variant-numeric:tabular-nums;font-weight:600;
+  color:var(--gold);flex:0 0 auto;
+  transition:color .4s ease;
+}
+.tray-ratio.is-lie{color:var(--lie)}
+.tray-ratio.is-warn{color:var(--warn)}
+.tray-ratio.is-true{color:var(--truth)}
+.tray-del{
+  flex:0 0 30px;border:0;border-left:1px solid var(--line);
+  background:transparent;color:var(--muted);cursor:pointer;
+  font-size:12px;line-height:1;border-radius:0 11px 11px 0;
+  transition:color .25s,background .25s;
+}
+.tray-del:hover{color:var(--lie);background:rgba(239,111,108,.1)}
+.tray-del:focus-visible{outline:2px solid var(--gold);outline-offset:-2px}
+.tray-note{margin:10px 0 0;font-size:11px;color:var(--muted);line-height:1.55}
+
+/* 想放第 5 個時：托盤抖一下，告訴你「先移掉一個」。
+   ⚠ 抖動一定要掛在 .tray-inner（沒有 data-anim 的內層）上：
+   .tray 本身帶 [data-anim]，靠 `animation:rise ... forwards` 把 opacity 從 0 填到 1；
+   若把 shake 的 animation 簡寫直接掛回 .tray，會覆蓋掉 fill-mode/delay，
+   rise 的填充消失 → 整張卡退回 opacity:0（看不見卻仍吃點擊）。 */
+.tray.is-full .tray-inner{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{
+  0%,100%{transform:none}
+  10%,90%{transform:translateX(-1px)}
+  20%,80%{transform:translateX(2px)}
+  30%,50%,70%{transform:translateX(-4px)}
+  40%,60%{transform:translateX(4px)}
+}
 
 /* shelf */
 .shelf-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
@@ -197,7 +290,7 @@ body{
 .prog-track{height:3px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:13px}
 .prog-fill{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--truth));border-radius:99px;transition:width .6s cubic-bezier(.22,.9,.3,1)}
 
-.chips{display:flex;flex-wrap:wrap;gap:6px;max-height:216px;overflow-y:auto;padding-right:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;max-height:232px;overflow-y:auto;padding-right:4px}
 .chips::-webkit-scrollbar{width:5px}
 .chips::-webkit-scrollbar-thumb{background:var(--line2);border-radius:9px}
 .chip{
@@ -210,9 +303,23 @@ body{
 .chip:hover{transform:translateY(-2px);background:rgba(227,184,106,.12);border-color:var(--gold-dim);color:#fff}
 .chip:active{transform:translateY(0) scale(.96)}
 .chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.chip.is-on{background:rgba(227,184,106,.18);border-color:rgba(227,184,106,.5);color:#f7e6c6}
 .chip.found{border-color:rgba(95,211,196,.4)}
-.chip.found::after{content:"✓";color:var(--truth);font-size:10px;margin-left:1px}
+.chip.found .chip-tag::after{content:"✓";color:var(--truth);font-size:10px}
+
+/* 已在地圖上：染成它的位置色，右邊變成「✕ 再點一次拿掉」 */
+.chip.is-on{
+  border-color:var(--slot);
+  background:rgba(255,255,255,.09);
+  border-color:color-mix(in srgb,var(--slot) 60%,transparent);
+  background:color-mix(in srgb,var(--slot) 14%,transparent);
+  color:#fff;
+}
+.chip.is-on .chip-tag::after{content:"✕";color:var(--slot);font-size:10px;font-weight:700}
+.chip.is-on:hover{
+  border-color:var(--slot);
+  background:color-mix(in srgb,var(--slot) 24%,transparent);
+}
+.chip.is-focus{box-shadow:0 0 0 1px var(--slot) inset}
 .shelf-note{margin:11px 0 0;font-size:11px;color:var(--muted);line-height:1.55}
 
 /* ---------- facts ---------- */
@@ -254,6 +361,7 @@ body{
   .chips{max-height:none}
   .bar-row{grid-template-columns:66px 1fr 56px}
   .ratio-num{font-size:38px}
+  .hint{bottom:10px;font-size:12px;padding:6px 12px;max-width:calc(100% - 16px)}
   .ft{flex-direction:column;gap:8px;text-align:center}
 }
 

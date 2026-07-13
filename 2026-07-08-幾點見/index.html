@@ -155,19 +155,27 @@
   .info{flex:0 0 var(--labelw);padding-right:12px;min-width:0;overflow:hidden}
   .strip-area{flex:1 1 0;position:relative}
 
-  /* axis */
-  .axis-row{height:34px}
+  /* axis
+     時間刻度列分成三條「互不重疊」的橫帶（由上而下）：
+       0–14px  時間刻度（00:00、03:00 …）
+       18–30px 「此刻」小標
+       35–57px 金色時間籤（含往下指的小三角）
+     注意：.axis-row 必須 align-items:stretch，.strip-area 才會撐滿列高，
+     裡面 height:100% 的 .axis 也才量得到高度；否則 .axis 會塌成 0px，
+     刻度會被擠到列外、藏到第一條色帶底下（此頁原本的 bug）。 */
+  .axis-row{height:58px;align-items:stretch}
   .axis{position:relative;height:100%;width:100%}
-  .axis .tick{position:absolute;top:12px;transform:translateX(-50%);font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .axis .tick{position:absolute;top:0;transform:translateX(-50%);font-size:11px;line-height:14px;
+    color:var(--faint);font-variant-numeric:tabular-nums;white-space:nowrap}
   .axis .tick.zero{color:var(--muted)}
-  .selchip,.nowchip{position:absolute;transform:translateX(-50%);top:-1px;white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
-  .selchip{background:linear-gradient(180deg,#ffdd8c,#f5b544);color:#3a2400;font-weight:800;font-size:12px;padding:3px 9px;border-radius:9px;box-shadow:0 6px 16px rgba(247,181,68,.45);z-index:6;transition:transform .18s var(--ease)}
+  .selchip,.nowchip{position:absolute;transform:translateX(-50%);white-space:nowrap;font-variant-numeric:tabular-nums;pointer-events:none}
+  .selchip{bottom:1px;background:linear-gradient(180deg,#ffdd8c,#f5b544);color:#3a2400;font-weight:800;font-size:12px;line-height:16px;padding:3px 9px;border-radius:9px;box-shadow:0 6px 16px rgba(247,181,68,.45);z-index:6;transition:transform .18s var(--ease)}
   .selchip::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);border:5px solid transparent;border-top-color:#f5b544;border-bottom:0}
   body.drag .selchip{transform:translateX(-50%) scale(1.1)}
   .selchip.pop{animation:chipPop .5s var(--ease)}
   @keyframes chipPop{0%{transform:translateX(-50%) scale(1)}40%{transform:translateX(-50%) scale(1.22)}100%{transform:translateX(-50%) scale(1)}}
-  .nowchip{font-size:10px;color:#ff9e9e;top:16px;letter-spacing:1px}
-  .spark{position:absolute;top:6px;width:5px;height:5px;border-radius:50%;background:var(--gold-soft);
+  .nowchip{font-size:10px;line-height:12px;color:#ff9e9e;top:18px;letter-spacing:1px}
+  .spark{position:absolute;bottom:6px;width:5px;height:5px;border-radius:50%;background:var(--gold-soft);
     box-shadow:0 0 8px rgba(255,208,114,.9);pointer-events:none;opacity:0;z-index:7;
     animation:sparkFly .8s ease-out forwards}
   @keyframes sparkFly{0%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),var(--dy)) scale(.3)}}
@@ -340,6 +348,8 @@
       <div class="axis-row">
         <div class="info"></div>
         <div class="strip-area"><div class="axis" id="axis"></div></div>
+        <!-- 與城市列的「會議時刻」欄等寬的留白，刻度才會對齊下方色帶 -->
+        <div class="meet" aria-hidden="true"></div>
       </div>
       <div id="rows"></div>
     </div>

@@ -157,6 +157,10 @@ const SPOTS = [
   { x: 72, y: 88, rot: 2.6 },
 ];
 
+/* 下推論的門檻：至少看過這麼多件證物。
+   注意這是「門檻」不是「上限」——每樁案件有 5～6 件證物，想全部翻開都可以。 */
+const NEED = 3;
+
 const LS = "cold.progress.v1";
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c =>
@@ -252,16 +256,17 @@ function openCase(i, animate = true) {
   wrap.innerHTML = "";
   c.clues.forEach((cl, idx) => {
     const spot = SPOTS[idx % SPOTS.length];
+    const open = st.seen.includes(idx);
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "clue" + (st.seen.includes(idx) ? " open" : "");
+    b.className = "clue" + (open ? " open" : "");
     b.dataset.idx = idx;
     b.style.left = spot.x + "%";
     b.style.top = spot.y + "%";
     b.style.setProperty("--rot", spot.rot + "deg");
     b.style.setProperty("--pd", animate ? (0.62 + idx * 0.07).toFixed(2) + "s" : "0s");
-    b.setAttribute("aria-expanded", String(st.seen.includes(idx)));
-    b.setAttribute("aria-label", `證物 ${idx + 1}：${cl.face}`);
+    b.setAttribute("aria-expanded", String(open));
+    b.setAttribute("aria-label", clueLabel(cl, idx, open));
     b.innerHTML =
       `<span class="c-no">證物 ${String(idx + 1).padStart(2, "0")}</span>` +
       `<span class="c-face"><span class="glyph" aria-hidden="true">${esc(cl.g)}</span>${esc(cl.face)}</span>` +
@@ -288,10 +293,17 @@ function openCase(i, animate = true) {
 }
 
 /* ── 翻證物 ── */
+/* 已翻開的卡就只是一張攤開的紙，點它不會再有事——標籤要說實話 */
+function clueLabel(cl, idx, open) {
+  return open
+    ? `證物 ${idx + 1}：${cl.face}（已翻開）`
+    : `翻開證物 ${idx + 1}：${cl.face}`;
+}
+
 function revealClue(idx) {
   const c = CASES[current];
   const st = state[c.id];
-  if (st.seen.includes(idx)) return;
+  if (st.seen.includes(idx)) return;   /* 同一件重複點不重複計數 */
   st.seen.push(idx);
   save();
 
@@ -299,11 +311,13 @@ function revealClue(idx) {
   if (btn) {
     btn.classList.add("open");
     btn.setAttribute("aria-expanded", "true");
+    btn.setAttribute("aria-label", clueLabel(c.clues[idx], idx, true));
   }
   renderNotes();
   renderDeduce();
   requestAnimationFrame(() => drawStrings(true));
-  announce(`證物 ${idx + 1}：${c.clues[idx].text}`);
+  /* 讀出證物內容，順便報進度——螢幕閱讀器也要聽得到計數在動 */
+  announce(`證物 ${idx + 1}：${c.clues[idx].text}（已看 ${st.seen.length} / ${c.clues.length} 件）`);
 }
 
 /* ── 紅線：由案卷中心連到每一張已翻開的證物 ── */
@@ -370,12 +384,28 @@ function renderDeduce() {
   const box = $("deduce");
   box.hidden = false;
 
-  const enough = st.seen.length >= 3;
-  $("deduceSub").textContent = st.closed
-    ? "本案已結案。你的推論標成紅色，學界最有力的解釋標成綠色。"
-    : enough
-      ? "選一個你相信的假說，然後結案——選錯不會怎樣，但先押下去比較好玩。"
-      : `再翻 ${3 - st.seen.length} 件證物就可以下推論（已看 ${st.seen.length} / 3）。`;
+  const nSeen = st.seen.length;
+  const nAll = c.clues.length;
+  const enough = nSeen >= NEED;
+
+  /* 計數永遠看得見，分母是這樁案件的證物總數（NEED 是門檻，不是上限——
+     以前寫成「已看 x / 3」，讀起來像只能翻三件，翻到第四件時就自相矛盾了）。
+     前 NEED 個點畫上紅圈，一眼看出還差幾件才解鎖推論。 */
+  $("deduceCount").textContent = `已看 ${nSeen} / ${nAll} 件證物`;
+  $("deducePips").innerHTML = c.clues.map((_, i) =>
+    `<i class="pip${i < nSeen ? " on" : ""}${i < NEED ? " need" : ""}"></i>`
+  ).join("");
+
+  let sub;
+  if (st.closed) {
+    sub = "本案已結案。你的推論標成紅色，學界最有力的解釋標成綠色。";
+  } else if (enough) {
+    sub = "可以下推論了。選一個你相信的假說，然後結案——選錯不會怎樣，但先押下去比較好玩。";
+    if (nSeen < nAll) sub += `還有 ${nAll - nSeen} 件證物沒翻，想翻完再押也可以。`;
+  } else {
+    sub = `再翻 ${NEED - nSeen} 件證物就可以下推論。${NEED} 件只是門檻——這樁案子共 ${nAll} 件證物，你想全翻開都行。`;
+  }
+  $("deduceSub").textContent = sub;
 
   const hy = $("hypos");
   hy.innerHTML = "";
@@ -403,7 +433,7 @@ function renderDeduce() {
 $("closeBtn").addEventListener("click", () => {
   const c = CASES[current];
   const st = state[c.id];
-  if (st.guess === null || st.seen.length < 3) return;
+  if (st.guess === null || st.seen.length < NEED) return;
   st.closed = true;
   save();
   renderTabs();

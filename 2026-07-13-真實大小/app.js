@@ -14,6 +14,11 @@
   var SQRT3 = Math.sqrt(3);
   var A1 = 1.340264, A2 = -0.081106, A3 = 0.000893, A4 = 0.003796; // Equal Earth 係數
   var STEP = 1.5;                     // 幾何加密步長（度）
+  var MAX_ON_MAP = 4;                 // 地圖上最多同時比較幾個國家
+  var GRAB_TOL = 14;                  // 抓取容錯半徑（px）。台灣在 900px 寬的地圖上只有 5×9 px，
+                                      // 純多邊形命中判定等於抓不到 → 邊界 14px 內都算抓到它。
+  var TINY_PX = 18;                   // 螢幕上小於這個尺寸的國家＝迷你國家，另外畫抓取環
+  var SLOT_COLORS = ['#7cc4ff', '#c9a7ff', '#ffce6b', '#ff9ecb']; // 每個位置的識別色（① ② ③ ④）
 
   var PIECES = window.TS_PIECES || [];
   var BG = window.TS_BG || [];
@@ -39,15 +44,33 @@
   var roEmoji = $('roEmoji'), roName = $('roName'), roLat = $('roLat');
   var ratioNum = $('ratioNum'), ratioVal = $('ratioVal'), ratioFill = $('ratioFill');
   var barTrue = $('barTrue'), barFake = $('barFake'), valTrue = $('valTrue'), valFake = $('valFake');
-  var truthLine = $('truthLine'), chipsEl = $('chips');
+  var truthLine = $('truthLine'), chipsEl = $('chips'), roSlot = $('roSlot');
   var btnMerc = $('btnMerc'), btnEE = $('btnEE');
   var btnEquator = $('btnEquator'), btnHome = $('btnHome'), btnClear = $('btnClear');
+  var btnAllEquator = $('btnAllEquator');
+  var trayCard = document.querySelector('.tray'), trayInner = $('trayInner');
+  var trayList = $('trayList'), trayNote = $('trayNote'), trayCount = $('trayCount');
   var progEl = $('prog'), progFill = $('progFill');
+
+  // 抖完就把 is-full 拿掉，狀態不黏著（下次再滿才會再抖一次）
+  trayInner.addEventListener('animationend', function (e) {
+    if (e.animationName === 'shake') trayCard.classList.remove('is-full');
+  });
+
+  // 同理：pop 播完收掉 .pulse。updatePanel 已改成不重寫 className，殘留的 class 會一直黏著。
+  ratioNum.addEventListener('animationend', function (e) {
+    if (e.animationName === 'pop') ratioNum.classList.remove('pulse');
+  });
 
   // ---------- 狀態 ----------
   var W = 900, H = 845, DPR = 1;
   var t = 0;                 // 0 = 麥卡托, 1 = Equal Earth（中間值＝變形動畫）
-  var onMap = [];            // {p, lon, lat, ratio, rings(screen px)}
+  // onMap：目前放在地圖上的國家，最多 MAX_ON_MAP 個，可同時比較。
+  //   {p, slot(0..3 識別色/編號), lon, lat, ratio, rings(screen px), pill(標籤命中框), el(清單 DOM)}
+  //   陣列順序＝畫圖與命中判定的 z 序（最後一個在最上層）。
+  // sel：目前的「焦點」國家（方向鍵與「送到赤道 / 送回原位」作用的對象）。
+  //   不變式：sel 永遠是 onMap 的最後一個；onMap 空 ⇔ sel === null。
+  var onMap = [];
   var sel = null;
   var found = load('found', []);
   var drag = null;
@@ -323,10 +346,28 @@
     ctx.textBaseline = 'alphabetic';
   }
 
+  // 形狀顏色＝失真程度（紅＝被吹大、綠＝誠實）。這是本頁的主訊號，不拿來當身分色。
   function color(r) {
     if (r >= 4) return '239,111,108';
     if (r >= 1.8) return '240,163,94';
     return '95,211,196';
+  }
+  function ratioCls(r) {
+    return r >= 4 ? 'is-lie' : r >= 1.8 ? 'is-warn' : 'is-true';
+  }
+  // 身分色（#rrggbb）→ rgba()，用在編號徽章、標籤外框、原位虛線
+  function slotRGBA(slot, a) {
+    var n = parseInt(SLOT_COLORS[slot].slice(1), 16);
+    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function pieceOf(id) {
+    for (var i = 0; i < onMap.length; i++) if (onMap[i].p.id === id) return onMap[i];
+    return null;
+  }
+  function freeSlot() {                 // 拿最小的空號，移除後可以被重複利用
+    var used = onMap.map(function (it) { return it.slot; });
+    for (var i = 0; i < MAX_ON_MAP; i++) if (used.indexOf(i) === -1) return i;
+    return 0;
   }
 
   function roundRect(x, y, w, h, r) {
@@ -343,47 +384,90 @@
     var geo = placedGeo(item.p, item.lon, item.lat);
     var rgb = color(item.ratio);
     var screenRings = [];
-    var i, j;
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    var i, j, k, ring;
 
     ctx.save();
     for (i = 0; i < geo.length; i++) {
       pathRings(geo[i]);
       if (isSel) { ctx.shadowColor = 'rgba(' + rgb + ',.5)'; ctx.shadowBlur = 16; }
-      ctx.fillStyle = 'rgba(' + rgb + ',' + (isSel ? .5 : .34) + ')';
+      ctx.fillStyle = 'rgba(' + rgb + ',' + (isSel ? .5 : .3) + ')';
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(' + rgb + ',' + (isSel ? 1 : .75) + ')';
+      ctx.strokeStyle = 'rgba(' + rgb + ',' + (isSel ? 1 : .68) + ')';
       ctx.lineWidth = isSel ? 1.8 : 1.2;
       ctx.stroke();
       for (j = 0; j < geo[i].length; j++) {
-        screenRings.push(geo[i][j].map(function (pt) { return screenOf(pt[0], pt[1]); }));
+        ring = geo[i][j].map(function (pt) { return screenOf(pt[0], pt[1]); });
+        for (k = 0; k < ring.length; k++) {
+          if (ring[k][0] < x0) x0 = ring[k][0];
+          if (ring[k][0] > x1) x1 = ring[k][0];
+          if (ring[k][1] < y0) y0 = ring[k][1];
+          if (ring[k][1] > y1) y1 = ring[k][1];
+        }
+        screenRings.push(ring);
       }
     }
     ctx.restore();
     item.rings = screenRings;
 
-    // 標籤
     var s = screenOf(item.lon, item.lat);
-    var label = item.p.zh + '  ×' + item.ratio.toFixed(1);
+    var tiny = Math.max(x1 - x0, y1 - y0) < TINY_PX;
+
+    // 迷你國家（台灣在地圖上只有幾個像素）：畫一圈抓取環，讓它看得見、也抓得到
+    if (tiny) {
+      ctx.save();
+      ctx.setLineDash([2, 3]);
+      ctx.strokeStyle = 'rgba(' + rgb + ',' + (isSel ? .9 : .55) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(s[0], s[1], GRAB_TOL, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 標籤：編號徽章（身分色）＋ 國名 ＋ 倍率（失真色）
+    var name = item.p.zh, rt = '×' + item.ratio.toFixed(1);
     ctx.font = '600 12px system-ui, sans-serif';
-    var w = ctx.measureText(label).width + 16;
-    var bx = Math.max(2, Math.min(W - w - 2, s[0] - w / 2)), by = s[1] - 11;
-    ctx.fillStyle = 'rgba(8,13,23,.85)';
-    ctx.strokeStyle = 'rgba(' + rgb + ',.7)';
-    ctx.lineWidth = 1;
+    var wn = ctx.measureText(name).width, wr = ctx.measureText(rt).width;
+    var w = 22 + wn + 6 + wr + 10;
+    var bx = Math.max(2, Math.min(W - w - 2, s[0] - w / 2));
+    // 迷你國家的標籤往上挪開，才不會把它自己蓋住（原本正是台灣被蓋掉的原因）
+    var by = Math.max(2, Math.min(H - 24, s[1] - (tiny ? GRAB_TOL + 25 : 11)));
+
+    ctx.fillStyle = 'rgba(8,13,23,.88)';
+    ctx.strokeStyle = slotRGBA(item.slot, isSel ? .95 : .5);
+    ctx.lineWidth = isSel ? 1.4 : 1;
     roundRect(bx, by, w, 22, 11);
     ctx.fill(); ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(bx + 13, by + 11, 7, 0, Math.PI * 2);
+    ctx.fillStyle = SLOT_COLORS[item.slot];
+    ctx.fill();
+
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0b1220';
+    ctx.font = '700 10px system-ui, sans-serif';
+    ctx.fillText(String(item.slot + 1), bx + 13, by + 11.5);
+
+    ctx.textAlign = 'left';
+    ctx.font = '600 12px system-ui, sans-serif';
+    ctx.fillStyle = isSel ? '#f2f7ff' : '#c3d3e4';
+    ctx.fillText(name, bx + 22, by + 11.5);
     ctx.fillStyle = 'rgba(' + rgb + ',1)';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(label, bx + w / 2, by + 11.5);
-    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(rt, bx + 22 + wn + 6, by + 11.5);
+    ctx.textBaseline = 'alphabetic';
+
+    item.pill = [bx, by, w, 22];   // 標籤本身也是抓取區（尤其對迷你國家）
   }
 
   function drawGhost(item) {
     var geo = placedGeo(item.p, item.p.c[0], item.p.c[1]);
     ctx.save();
     ctx.setLineDash([3, 4]);
-    ctx.strokeStyle = 'rgba(180,205,230,.42)';
+    ctx.strokeStyle = slotRGBA(item.slot, .4);   // 原位虛線用身分色，多國同時在場才分得清誰是誰
     ctx.lineWidth = 1;
     for (var i = 0; i < geo.length; i++) { pathRings(geo[i]); ctx.stroke(); }
     ctx.restore();
@@ -415,41 +499,55 @@
   }
 
   // ---------- 讀數面板 ----------
-  var shownRatio = 1;
+  var shownRatio = 1, rollId = 0;
   function fmtKm(n) {
     if (n >= 1e6) return (n / 1e6).toFixed(2) + ' 百萬 km²';
     return Math.round(n).toLocaleString('en-US') + ' km²';
   }
   function updatePanel(animate) {
+    syncTrayRatios();               // 清單上每個國家的倍率都要跟著動，不只焦點那個
     if (!sel) {
+      rollId++;                     // 作廢還在跑的滾動，別讓它把「—」又蓋回數字（清空地圖時會發生）
       roEmoji.textContent = '🗺️';
+      roSlot.hidden = true;
       roName.textContent = '還沒挑國家';
       roLat.textContent = '從下方清單選一個';
       ratioVal.textContent = '—';
+      ratioNum.className = 'ratio-num';
       ratioFill.style.width = '0%';
       barTrue.style.width = '0%'; barFake.style.width = '0%';
       valTrue.textContent = '—'; valFake.textContent = '—';
       truthLine.innerHTML = '拖到赤道（0°）就會揭曉它的真面目。';
       btnEquator.disabled = true; btnHome.disabled = true;
+      shownRatio = 1;
       return;
     }
     var p = sel.p, r = sel.ratio;
     roEmoji.textContent = p.emoji;
+    roSlot.hidden = false;
+    roSlot.textContent = String(sel.slot + 1);
+    roSlot.style.setProperty('--slot', SLOT_COLORS[sel.slot]);
     roName.textContent = p.zh;
     roLat.textContent = '目前緯度 ' + Math.abs(sel.lat).toFixed(1) + '° ' + (sel.lat >= 0 ? 'N' : 'S') +
       (t >= .5 ? ' · 等積投影' : ' · 麥卡托投影');
     btnEquator.disabled = false; btnHome.disabled = false;
 
-    var from = shownRatio, to = r, t0 = performance.now();
+    // 只有最後一次 updatePanel 開的滾動有效：焦點切走、或別的國家還在飛（每幀都會進來一次）時，
+    // 上一輪滾動要立刻讓位，不然兩輪會搶著寫同一個數字。
+    var from = shownRatio, to = r, t0 = performance.now(), myRoll = ++rollId;
     var dur = (animate && !reduced) ? 260 : 0;
     (function roll() {
+      if (myRoll !== rollId) return;
       var k = dur ? Math.min(1, (performance.now() - t0) / dur) : 1;
       var v = from + (to - from) * (1 - Math.pow(1 - k, 3));
       ratioVal.textContent = v.toFixed(2);
       if (k < 1 && !document.hidden) requestAnimationFrame(roll); else shownRatio = to;
     })();
 
-    ratioNum.className = 'ratio-num ' + (r >= 4 ? 'is-lie' : r >= 1.8 ? 'is-warn' : 'is-true');
+    // 只換失真色，不整個重寫 className——否則會把正在播的 .pulse 洗掉
+    //（揭曉之後，還在飛的另一個國家每一幀都會走到這裡）
+    ratioNum.classList.remove('is-lie', 'is-warn', 'is-true');
+    ratioNum.classList.add(ratioCls(r));
     ratioFill.style.width = Math.min(100, (Math.log(Math.max(r, 1)) / Math.log(18)) * 100).toFixed(1) + '%';
 
     var fake = p.km2 * r;
@@ -480,22 +578,106 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { toastEl.classList.remove('show'); }, 5600);
   }
-  function reveal(item) {
+  function reveal(item) { revealMany([item]); }
+
+  function revealMany(list) {
+    if (!list.length) return;
     if (!reduced) {
-      pulses.push({ lon: item.lon, lat: item.lat, t0: performance.now() });
-      ratioNum.classList.remove('pulse');
-      void ratioNum.offsetWidth;
-      ratioNum.classList.add('pulse');
+      list.forEach(function (it) {
+        pulses.push({ lon: it.lon, lat: it.lat, t0: performance.now() });   // 光環畫在各自的落點，永遠對得上
+      });
+      // 讀數面板此刻顯示的是 sel。使用者若在飛行途中把焦點切到別的國家（chip 新增 / 點托盤某一列），
+      // 面板上那個數字就不是這批被揭曉的國家了 → 不能把 pulse 播在錯的數字上。
+      if (sel && list.indexOf(sel) !== -1) {
+        ratioNum.classList.remove('pulse');
+        void ratioNum.offsetWidth;
+        ratioNum.classList.add('pulse');
+      }
       draw();
     }
-    var p = item.p;
-    toast(LINES[p.id] || genericLine(p));
-    if (found.indexOf(p.id) === -1) {
-      found.push(p.id);
+    if (list.length === 1) {
+      toast(LINES[list[0].p.id] || genericLine(list[0].p));
+    } else {
+      // 多國同時落在赤道：直接排出真實大小的名次，這才是多選的意義
+      var rank = list.slice().sort(function (a, b) { return b.p.km2 - a.p.km2; })
+        .map(function (it, i) { return (i + 1) + '. ' + it.p.zh + ' <b>' + fmtKm(it.p.km2) + '</b>'; })
+        .join('　');
+      toast('<b>赤道上見真章</b>——真實大小排名：<br>' + rank);
+    }
+    var gained = false;
+    list.forEach(function (it) {
+      if (found.indexOf(it.p.id) === -1) { found.push(it.p.id); gained = true; }
+    });
+    if (gained) {
       save('found', found);
       renderProgress();
       markChips();
     }
+  }
+
+  // ---------- 地圖上的國家：加入 / 移除 / 切換焦點 ----------
+  function syncAll() {
+    renderTray();
+    markChips();
+    updatePanel(true);
+    draw();
+  }
+
+  function addPiece(p) {
+    var exist = pieceOf(p.id);
+    if (exist) { focusPiece(exist); return; }
+    if (onMap.length >= MAX_ON_MAP) {
+      trayCard.classList.remove('is-full');
+      void trayCard.offsetWidth;
+      trayCard.classList.add('is-full');
+      toast('地圖上最多同時放 <b>' + MAX_ON_MAP + '</b> 個國家。先到「地圖上的國家」按 ✕ 移掉一個，再挑新的。');
+      return;
+    }
+    // fly：飛行權杖（0 ＝ 沒在飛）。見 glideMany —— 飛行是「一國一張權杖」，不是一場一張。
+    var item = { p: p, slot: freeSlot(), lon: p.c[0], lat: p.c[1], ratio: 1, rings: null, pill: null, el: null, fly: 0 };
+    item.ratio = ratioOf(item);
+    onMap.push(item);
+    sel = item;
+    shownRatio = item.ratio;
+    hint.classList.add('gone');
+    syncAll();
+    if (cv.focus) cv.focus({ preventScroll: true });
+  }
+
+  function removePiece(item) {
+    var i = onMap.indexOf(item);
+    if (i === -1) return;
+    onMap.splice(i, 1);
+    if (sel === item) {
+      drag = null;                                                          // 正在拖的那個被移除 → 別把位移套到下一個
+      cv.classList.remove('dragging');
+      sel = onMap.length ? onMap[onMap.length - 1] : null;                  // 焦點交給最上層那個
+    }
+    if (sel) shownRatio = sel.ratio;
+    syncAll();
+  }
+
+  function focusPiece(item) {
+    var i = onMap.indexOf(item);
+    if (i === -1) return;
+    onMap.splice(i, 1);
+    onMap.push(item);          // 焦點永遠畫在最上層，也永遠最先被抓到
+    sel = item;
+    shownRatio = item.ratio;
+    syncAll();
+  }
+
+  function clearMap() {
+    cancelGlide();              // 飛行中按清空：所有國家一起退出飛行，沒有人會被落地或揭曉
+    onMap = [];
+    sel = null;
+    drag = null;
+    cv.classList.remove('dragging');
+    pulses.length = 0;          // 光環也一起收掉，別在空地圖上擴散
+    shownRatio = 1;
+    hint.textContent = '👉 從右邊挑國家（最多 ' + MAX_ON_MAP + ' 個），把它們拖到赤道比大小';
+    hint.classList.remove('gone');
+    syncAll();
   }
 
   // ---------- 互動 ----------
@@ -510,11 +692,42 @@
     }
     return inside;
   }
-  function pick(x, y) {
-    for (var i = onMap.length - 1; i >= 0; i--) {
-      if (onMap[i].rings && pointIn(onMap[i].rings, x, y)) return onMap[i];
+  function inPill(item, x, y) {          // 標籤也可以抓：迷你國家幾乎只剩標籤看得到
+    var r = item.pill;
+    return !!r && x >= r[0] && x <= r[0] + r[2] && y >= r[1] && y <= r[1] + r[3];
+  }
+  function segDist(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    var u = l2 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l2)) : 0;
+    return Math.hypot(px - (ax + u * dx), py - (ay + u * dy));
+  }
+  function ringDist(rings, x, y) {      // 點到多邊形邊界的最短距離
+    var m = Infinity, i, j, r, d;
+    for (i = 0; i < rings.length; i++) {
+      r = rings[i];
+      for (j = 1; j < r.length; j++) {
+        d = segDist(x, y, r[j - 1][0], r[j - 1][1], r[j][0], r[j][1]);
+        if (d < m) m = d;
+      }
     }
-    return null;
+    return m;
+  }
+  // 命中判定分兩輪：先「真的點在形狀或標籤裡」（上層優先），
+  // 再放寬到 GRAB_TOL 內的最近者——否則台灣那 5×9 px 的形狀永遠抓不到。
+  function pick(x, y) {
+    var i, it, best = null, bestD = Infinity, d;
+    for (i = onMap.length - 1; i >= 0; i--) {
+      it = onMap[i];
+      if (!it.rings) continue;
+      if (inPill(it, x, y) || pointIn(it.rings, x, y)) return it;
+    }
+    for (i = onMap.length - 1; i >= 0; i--) {
+      it = onMap[i];
+      if (!it.rings) continue;
+      d = ringDist(it.rings, x, y);
+      if (d <= GRAB_TOL && d < bestD) { bestD = d; best = it; }
+    }
+    return best;
   }
   function pos(e) {
     var b = cv.getBoundingClientRect();
@@ -524,18 +737,15 @@
   cv.addEventListener('pointerdown', function (e) {
     if (t > 0 && t < 1) return;                 // 變形動畫中不接受拖曳
     var q = pos(e), hitItem = pick(q[0], q[1]);
-    if (!hitItem) return;
+    if (!hitItem) return;                       // 點空海不動任何狀態（不會誤取消選取）
     e.preventDefault();
+    cancelGlide(hitItem);                       // 只有被抓住的這一個交還給使用者（不揭曉）；其餘還在飛的照飛照揭曉
     cv.setPointerCapture(e.pointerId);
     cv.classList.add('dragging');
-    sel = hitItem;
-    onMap.splice(onMap.indexOf(hitItem), 1);
-    onMap.push(hitItem);                        // 拉到最上層
+    focusPiece(hitItem);                        // 抓誰、焦點就跟到誰（並拉到最上層）
     var g = geoOf(q[0], q[1]);
     drag = { dLon: hitItem.lon - g[0], dLat: hitItem.lat - g[1] };
-    shownRatio = hitItem.ratio;
     hint.classList.add('gone');
-    markChips(); updatePanel(false); draw();
   });
 
   cv.addEventListener('pointermove', function (e) {
@@ -566,9 +776,20 @@
   cv.addEventListener('pointerup', endDrag);
   cv.addEventListener('pointercancel', endDrag);
 
-  // 鍵盤操作
+  // 鍵盤操作：方向鍵移動焦點國家、Delete/Backspace 把它從地圖移除、Tab 之外用 1–4 切換焦點
   cv.addEventListener('keydown', function (e) {
     if (!sel) return;
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      removePiece(sel);
+      return;
+    }
+    if (e.key >= '1' && e.key <= String(MAX_ON_MAP)) {
+      var want = null, n = +e.key - 1;
+      onMap.forEach(function (it) { if (it.slot === n) want = it; });
+      if (want) { e.preventDefault(); focusPiece(want); }
+      return;
+    }
     var step = e.shiftKey ? 10 : 2, moved = false;
     var lat = sel.lat, lon = sel.lon, wasZero = sel.lat === 0;
     if (e.key === 'ArrowUp') { lat += step; moved = true; }
@@ -577,6 +798,7 @@
     else if (e.key === 'ArrowRight') { lon += step * 2; moved = true; }
     if (!moved) return;
     e.preventDefault();
+    cancelGlide(sel);                           // 鍵盤接手移動 → 同樣只有焦點這一個退出飛行
     // 經過赤道時先停在赤道（別一步跨過真相）
     if (sel.lat * lat < 0 || Math.abs(lat) <= 1.5) lat = 0;
     lon = ((lon + 180) % 360 + 360) % 360 - 180;
@@ -587,28 +809,79 @@
   });
 
   // ---------- 動畫 ----------
-  function glide(item, targetLat, targetLon, done) {
-    if (reduced || document.hidden) {
-      placeIfValid(item, targetLon, targetLat);
-      updatePanel(true); draw();
-      if (done) done();
-      return;
+  // 飛行中的國家可能被使用者中途移除 / 清空 / 接手拖曳，
+  // 所以每一幀都要重新確認「它還該飛嗎」，落地與 done() 也一樣——
+  // 否則會對已經不存在的國家揭曉、寫進度、畫光環（正是使用者抱怨的那種殘留）。
+  //
+  // 權杖是「每個國家一張」（item.fly），不是整場飛行一張：
+  //   glideMany 發一個新序號給它要搬的每個國家，rAF 迴圈每幀只留下 fly 還等於自己序號的。
+  //   → 使用者抓住其中一個（或用鍵盤推它）時，只有那一個被 cancelGlide 撤掉權杖、退出飛行，
+  //     其餘國家繼續飛完並正常揭曉。整場飛行的 done() 也只收到「真的落地的那幾個」。
+  var flySeq = 0;
+  // 使用者親手接手某一個國家 → 只讓那一個退出飛行；不給 item ＝ 全部退出（清空地圖）
+  function cancelGlide(item) {
+    if (item) { item.fly = 0; return; }
+    onMap.forEach(function (it) { it.fly = 0; });
+  }
+  function onMapStill(it) { return onMap.indexOf(it) !== -1; }
+
+  // 一次搬多個國家（moves: [{it, lat, lon}]），共用同一個 rAF 迴圈。
+  // done(landed) 收到的是「真的飛完並落地」的 item 陣列（可能是空的）。
+  function glideMany(moves, done) {
+    var myId = ++flySeq;
+    var list = moves
+      .filter(function (m) { return onMapStill(m.it); })
+      .map(function (m) {
+        m.it.fly = myId;                              // 換手：它若還在別場飛行裡，那場下一幀就會放掉它
+        return { it: m.it, lat: m.lat, lon: m.lon, fLat: m.it.lat, fLon: m.it.lon };
+      });
+    var i;
+
+    function alive() {                                // 還在地圖上、而且權杖還是我發的
+      list = list.filter(function (m) { return onMapStill(m.it) && m.it.fly === myId; });
+      return list.length;
     }
-    var l0 = item.lat, o0 = item.lon, t0 = performance.now(), dur = 1100;
-    (function step() {
-      if (document.hidden) {
-        placeIfValid(item, targetLon, targetLat);
-        updatePanel(false); draw();
-        if (done) done();
-        return;
+    function selFlying() {                            // 焦點國家是不是這批裡的一員
+      return !!sel && list.some(function (m) { return m.it === sel; });
+    }
+    // 飛行中每一幀的畫面更新。使用者若中途把焦點切到別的國家（chip 新增 / 點托盤某一列 / 抓住另一個），
+    // 焦點就不在這批裡了 → 別再每幀覆寫讀數面板：面板要留給使用者主動選的那個國家（也不會打斷它的數字滾動）。
+    // 但清單上的倍率仍要跟著飛行即時更新，畫面也照畫。
+    function paint() {
+      if (selFlying()) { shownRatio = sel.ratio; updatePanel(false); }
+      else syncTrayRatios();
+      draw();
+    }
+    function finish() {
+      var landed = list.map(function (m) { return m.it; });
+      for (i = 0; i < list.length; i++) list[i].it.fly = 0;   // 飛完了，權杖歸還
+      if (done) done(landed);
+    }
+    function land() {
+      if (alive()) {
+        for (i = 0; i < list.length; i++) placeIfValid(list[i].it, list[i].lon, list[i].lat);
+        paint();
       }
+      finish();
+    }
+    if (!list.length) { if (done) done([]); return; }
+    if (reduced || document.hidden) { land(); return; }   // 降級：不飛，直接落地（這條路徑要保持可用）
+
+    var t0 = performance.now(), dur = 1100;
+    (function step() {
+      // 全被移除 / 被清空 / 被使用者接手 / 被下一場飛行接走 → 這場沒人可飛了，靜靜結束
+      if (!alive()) { paint(); finish(); return; }
+      if (document.hidden) { land(); return; }       // 分頁被切走：直接落地，不空轉
       var k = Math.min(1, (performance.now() - t0) / dur);
       var e = 1 - Math.pow(1 - k, 3);
-      placeIfValid(item, o0 + (targetLon - o0) * e, l0 + (targetLat - l0) * e);
-      updatePanel(false);
-      draw();
+      for (i = 0; i < list.length; i++) {
+        placeIfValid(list[i].it,
+          list[i].fLon + (list[i].lon - list[i].fLon) * e,
+          list[i].fLat + (list[i].lat - list[i].fLat) * e);
+      }
+      paint();
       if (k < 1) requestAnimationFrame(step);
-      else { shownRatio = item.ratio; updatePanel(false); if (done) done(); }
+      else finish();
     })();
   }
 
@@ -641,58 +914,118 @@
   btnEE.addEventListener('click', function () { setProj(1); });
   btnEquator.addEventListener('click', function () {
     if (!sel) return;
-    var it = sel;
-    glide(it, 0, it.lon, function () { reveal(it); });
+    // done 收到的就是「真的落地」的那幾個：飛行途中被移除或被使用者接手的都不在裡面，
+    // 也就不會被揭曉（不能對不在赤道上、或不在地圖上的國家記進度）
+    glideMany([{ it: sel, lat: 0, lon: sel.lon }], revealMany);
   });
   btnHome.addEventListener('click', function () {
     if (!sel) return;
-    glide(sel, sel.p.c[1], sel.p.c[0]);
+    var it = sel;
+    glideMany([{ it: it, lat: it.p.c[1], lon: it.p.c[0] }]);
   });
-  btnClear.addEventListener('click', function () {
-    onMap = [];
-    sel = null;
-    markChips();
-    updatePanel(false);
-    draw();
+  btnAllEquator.addEventListener('click', function () {
+    if (!onMap.length) return;
+    glideMany(onMap.map(function (it) { return { it: it, lat: 0, lon: it.lon }; }), revealMany);
   });
+  btnClear.addEventListener('click', clearMap);
 
-  // ---------- 清單 ----------
-  function addPiece(p) {
-    var exist = null, i;
-    for (i = 0; i < onMap.length; i++) if (onMap[i].p.id === p.id) exist = onMap[i];
-    if (exist) {
-      sel = exist;
-    } else {
-      var item = { p: p, lon: p.c[0], lat: p.c[1], ratio: 1, rings: null };
-      item.ratio = ratioOf(item);
-      onMap.push(item);
-      sel = item;
-    }
-    shownRatio = sel.ratio;
-    hint.classList.add('gone');
-    markChips();
-    updatePanel(true);
-    draw();
-    if (cv.focus) cv.focus({ preventScroll: true });
-  }
-
+  // ---------- 清單（左：可挑的國家；上：已在地圖上的國家） ----------
   function buildChips() {
     PIECES.forEach(function (p) {
       var b = document.createElement('button');
       b.className = 'chip';
+      b.type = 'button';
       b.dataset.id = p.id;
-      b.innerHTML = '<span aria-hidden="true">' + p.emoji + '</span>' + p.zh;
-      b.setAttribute('aria-label', '把 ' + p.zh + ' 放到地圖上');
-      b.addEventListener('click', function () { addPiece(p); });
+      b.dataset.zh = p.zh;
+      b.innerHTML = '<span aria-hidden="true">' + p.emoji + '</span>' + p.zh +
+        '<span class="chip-tag" aria-hidden="true"></span>';
+      // 切換式：不在地圖上→放上去；已在地圖上→拿下來
+      b.addEventListener('click', function () {
+        var it = pieceOf(p.id);
+        if (it) removePiece(it); else addPiece(p);
+      });
       chipsEl.appendChild(b);
     });
   }
   function markChips() {
     [].forEach.call(chipsEl.children, function (b) {
-      var id = b.dataset.id;
-      b.classList.toggle('is-on', !!sel && sel.p.id === id);
+      var id = b.dataset.id, zh = b.dataset.zh, it = pieceOf(id);
+      b.classList.toggle('is-on', !!it);                                // 在地圖上（染成它的位置色）
+      b.classList.toggle('is-focus', !!sel && sel.p.id === id);         // 而且是目前的焦點
       b.classList.toggle('found', found.indexOf(id) !== -1);
+      if (it) b.style.setProperty('--slot', SLOT_COLORS[it.slot]);
+      else b.style.removeProperty('--slot');
+      b.setAttribute('aria-pressed', String(!!it));
+      b.setAttribute('aria-label', it ? '把 ' + zh + ' 從地圖上移除' : '把 ' + zh + ' 放到地圖上');
+      b.title = it ? '再點一次：從地圖移除' : '放到地圖上比大小';
     });
+  }
+
+  // 地圖上的國家：看得到選了誰、切得了焦點、單獨移得掉
+  function renderTray() {
+    trayList.innerHTML = '';
+    onMap.slice()
+      .sort(function (a, b) { return a.slot - b.slot; })   // 列表順序固定（不隨 z 序跳動）
+      .forEach(function (it) {
+        var li = document.createElement('li');
+        li.className = 'tray-item' + (it === sel ? ' is-focus' : '');
+        li.style.setProperty('--slot', SLOT_COLORS[it.slot]);
+
+        var b = document.createElement('button');
+        b.className = 'tray-pick';
+        b.type = 'button';
+        b.setAttribute('aria-pressed', String(it === sel));
+        b.setAttribute('aria-label', '把焦點切到 ' + it.p.zh);
+        b.innerHTML =
+          '<span class="slot-dot" aria-hidden="true">' + (it.slot + 1) + '</span>' +
+          '<span class="tray-emoji" aria-hidden="true">' + it.p.emoji + '</span>' +
+          '<span class="tray-name">' + it.p.zh + '</span>' +
+          '<span class="tray-ratio"></span>';
+        b.addEventListener('click', function () {
+          focusPiece(it);
+          if (cv.focus) cv.focus({ preventScroll: true });
+        });
+
+        var del = document.createElement('button');
+        del.className = 'tray-del';
+        del.type = 'button';
+        del.textContent = '✕';
+        del.setAttribute('aria-label', '把 ' + it.p.zh + ' 從地圖上移除');
+        del.addEventListener('click', function () {
+          removePiece(it);                       // renderTray 會重建整張清單 → 這顆按鈕會被銷毀
+          // 焦點不能掉回 <body>：還有國家就接到清單第一顆 ✕，清單空了就交給地圖
+          var next = trayList.querySelector('.tray-del');
+          if (next) next.focus();
+          else if (cv.focus) cv.focus({ preventScroll: true });
+        });
+
+        li.appendChild(b);
+        li.appendChild(del);
+        trayList.appendChild(li);
+        it.el = { ratio: b.querySelector('.tray-ratio') };
+      });
+
+    // trayCount / trayNote 在 aria-live 區裡（#trayNote），而 renderTray 每次點地圖切焦點都會跑。
+    // 只有內容真的變了才寫回 DOM，否則螢幕閱讀器會被同一句話洗版。
+    var cnt = onMap.length + ' / ' + MAX_ON_MAP;
+    if (trayCount.textContent !== cnt) trayCount.textContent = cnt;
+    var note = onMap.length
+      ? '點一列切換焦點（方向鍵移動的就是它），按 ✕ 單獨移除。'
+      : '還沒有國家在地圖上——從下方清單挑一個放上來。';
+    if (trayNote.textContent !== note) trayNote.textContent = note;
+    btnClear.disabled = onMap.length === 0;
+    btnAllEquator.disabled = onMap.length === 0;
+    syncTrayRatios();
+  }
+  // 倍率會隨拖曳/投影切換即時變 → 只改文字，不重建 DOM
+  function syncTrayRatios() {
+    for (var i = 0; i < onMap.length; i++) {
+      var it = onMap[i];
+      if (!it.el) continue;
+      var s = '×' + it.ratio.toFixed(2), c = 'tray-ratio ' + ratioCls(it.ratio);
+      if (it.el.ratio.textContent !== s) it.el.ratio.textContent = s;
+      if (it.el.ratio.className !== c) it.el.ratio.className = c;
+    }
   }
   function renderProgress() {
     progEl.textContent = '已揭穿 ' + found.length + ' / ' + PIECES.length;
@@ -702,6 +1035,7 @@
   // ---------- 啟動 ----------
   buildChips();
   renderProgress();
+  renderTray();
   markChips();
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
   else window.addEventListener('resize', resize);
@@ -721,7 +1055,7 @@
   if (gl) {
     setTimeout(function () {
       addPiece(gl);
-      hint.textContent = '👉 抓住格陵蘭，把它拖到赤道';
+      hint.textContent = '👉 抓住格陵蘭拖到赤道——也可以再挑幾個國家一起比（最多 ' + MAX_ON_MAP + ' 個）';
       hint.classList.remove('gone');
     }, 950);
   }

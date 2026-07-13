@@ -119,14 +119,20 @@
   .timebar label{font-size:13.5px;color:var(--coffee);font-weight:600}
   input[type=time]{font-family:inherit;font-size:15px;padding:7px 10px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--espresso);transition:border-color .25s,box-shadow .25s}
   input[type=time]:hover{border-color:var(--amber)}
-  .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(126px,1fr));gap:9px}
+  /* 欄寬要放得下最長的品名（濃縮 Espresso）＋左側色點與內距，否則名稱會被擠到換行 */
+  /* grid-auto-rows:1fr 讓每一列等高，一行與兩行的卡片不會參差不齊 */
+  .chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,152px),1fr));grid-auto-rows:1fr;gap:9px}
   .chip{display:flex;align-items:center;gap:9px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:9px 11px;cursor:pointer;text-align:left;font-family:inherit;color:inherit;transition:border-color .22s,transform .22s var(--ease),box-shadow .22s}
   .chip:hover{border-color:var(--amber);transform:translateY(-2px);box-shadow:0 10px 20px -12px rgba(150,90,25,.5)}
   .chip:active{transform:translateY(0) scale(.97)}
   .swatch{width:11px;height:11px;border-radius:50%;flex:none;transition:transform .22s var(--ease)}
   .chip:hover .swatch{transform:scale(1.35)}
-  .chip .cn{font-size:13.5px;font-weight:600;line-height:1.2}
-  .chip .cm{font-size:11.5px;color:var(--muted2)}
+  /* 寬的時候品名與含量並排一行；窄的時候含量整塊掉到第二行（刻意的斷點，不是被擠斷） */
+  .chip .txt{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:7px;row-gap:1px}
+  .chip .cn{font-size:13.5px;font-weight:600;line-height:1.35;white-space:nowrap;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .chip .cm{font-size:11.5px;color:var(--muted2);line-height:1.35;white-space:nowrap}
+  .chip .cm b{font-weight:700;color:var(--coffee);font-variant-numeric:tabular-nums;transition:color .22s}
+  .chip:hover .cm b{color:var(--amber-d)}
   .c-coffee{background:#6f4423} .c-tea{background:#5f8f4a} .c-soda{background:#c98b2c} .c-energy{background:#b5462f} .c-decaf{background:#b8a894}
 
   .fly{position:fixed;z-index:60;pointer-events:none;font-size:12.5px;font-weight:800;color:#fff;background:var(--amber);padding:3px 10px;border-radius:999px;box-shadow:0 8px 18px -8px rgba(150,90,25,.7);transform:translate(-50%,0)}
@@ -134,13 +140,15 @@
   /* ---- drink list ---- */
   .list{margin-top:16px;display:flex;flex-direction:column;gap:8px}
   .empty{color:var(--muted2);font-size:14px;text-align:center;padding:14px 0}
-  .item{display:flex;align-items:center;gap:11px;background:#faf4ea;border:1px solid var(--line);border-radius:13px;padding:9px 12px}
+  /* 窄螢幕時整列可換行：品名一行，時間／毫克／移除自動掉到第二行並靠右 */
+  .item{display:flex;align-items:center;flex-wrap:wrap;gap:11px;row-gap:7px;background:#faf4ea;border:1px solid var(--line);border-radius:13px;padding:9px 12px}
   .item.enter{animation:itemIn .42s var(--ease)}
   @keyframes itemIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   .item .dotc{width:10px;height:10px;border-radius:50%;flex:none}
-  .item .nm{font-weight:600;font-size:14.5px;flex:1;min-width:0}
+  .item .nm{font-weight:600;font-size:14.5px;flex:1 1 165px;min-width:0}
+  .item .qt{font-weight:500;font-size:12px;color:var(--muted2);margin-left:4px;white-space:nowrap}
   .item .tm{font-size:13px;color:var(--coffee);font-variant-numeric:tabular-nums}
-  .item .mgbox{display:flex;align-items:center;gap:3px}
+  .item .mgbox{display:flex;align-items:center;gap:3px;margin-left:auto}
   .item input[type=number]{width:56px;font-family:inherit;font-size:14px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;text-align:right;background:#fff;color:var(--espresso);transition:border-color .25s}
   .item input[type=number]:hover{border-color:var(--amber)}
   .item .u{font-size:12px;color:var(--muted2)}
@@ -182,7 +190,10 @@
     body{padding:16px 12px 48px}
     .card{padding:17px}
     .stat-row .pill{min-width:calc(50% - 5px)}
-    .chips{grid-template-columns:repeat(auto-fill,minmax(118px,1fr))}
+    /* 手機：2 欄（極窄機型自動收成 1 欄），內距收一點讓文字仍有餘裕，不貼邊也不斷字 */
+    .chips{grid-template-columns:repeat(auto-fit,minmax(min(100%,138px),1fr));gap:8px}
+    .chip{padding:9px;gap:8px}
+    .item{padding:9px 10px;gap:9px}
   }
 
   /* ---- reduced motion ---- */
@@ -340,18 +351,20 @@
     else if(rmq.addListener) rmq.addListener(onRM);
   }
 
+  // name = 資料識別（存進 localStorage，不要改）；label / note 只負責顯示：
+  // 把「份量」從品名裡拆出來當註記，品名才不會長到把卡片擠爆。
   const PRESETS = [
-    {name:"美式咖啡（大杯）", mg:150, cls:"c-coffee"},
-    {name:"手沖／濾掛（1 杯）", mg:95, cls:"c-coffee"},
-    {name:"濃縮 Espresso（1 shot）", mg:64, cls:"c-coffee"},
-    {name:"拿鐵／卡布（2 shot）", mg:128, cls:"c-coffee"},
-    {name:"即溶咖啡（1 杯）", mg:62, cls:"c-coffee"},
-    {name:"紅茶（1 杯）", mg:47, cls:"c-tea"},
-    {name:"綠茶（1 杯）", mg:28, cls:"c-tea"},
-    {name:"奶茶／手搖（中杯）", mg:100, cls:"c-tea"},
-    {name:"可樂（1 罐）", mg:34, cls:"c-soda"},
-    {name:"能量飲料（1 罐）", mg:80, cls:"c-energy"},
-    {name:"無咖啡因 Decaf", mg:3, cls:"c-decaf"}
+    {name:"美式咖啡（大杯）",         label:"美式咖啡",      note:"大杯",   mg:150, cls:"c-coffee"},
+    {name:"手沖／濾掛（1 杯）",       label:"手沖／濾掛",    note:"1 杯",   mg:95,  cls:"c-coffee"},
+    {name:"濃縮 Espresso（1 shot）",  label:"濃縮 Espresso", note:"1 shot", mg:64,  cls:"c-coffee"},
+    {name:"拿鐵／卡布（2 shot）",     label:"拿鐵／卡布",    note:"2 shot", mg:128, cls:"c-coffee"},
+    {name:"即溶咖啡（1 杯）",         label:"即溶咖啡",      note:"1 杯",   mg:62,  cls:"c-coffee"},
+    {name:"紅茶（1 杯）",             label:"紅茶",          note:"1 杯",   mg:47,  cls:"c-tea"},
+    {name:"綠茶（1 杯）",             label:"綠茶",          note:"1 杯",   mg:28,  cls:"c-tea"},
+    {name:"奶茶／手搖（中杯）",       label:"奶茶／手搖",    note:"中杯",   mg:100, cls:"c-tea"},
+    {name:"可樂（1 罐）",             label:"可樂",          note:"1 罐",   mg:34,  cls:"c-soda"},
+    {name:"能量飲料（1 罐）",         label:"能量飲料",      note:"1 罐",   mg:80,  cls:"c-energy"},
+    {name:"無咖啡因 Decaf",           label:"無咖啡因",      note:"Decaf",  mg:3,   cls:"c-decaf"}
   ];
 
   const KEY = "caffeine-clock-v1";
@@ -524,11 +537,14 @@
     for(const d of sorted){
       const p = PRESETS.find(x=>x.name===d.name);
       const cls = p? p.cls : "c-coffee";
+      // 清單同樣用「短品名＋份量註記」呈現，窄欄位才不會把名字折成兩三行
+      const nm = p? p.label : d.name;
+      const qt = (p && p.note)? ' <span class="qt">'+p.note+'</span>' : "";   // 前面留一個空白，讀屏／複製時不會黏成一團
       const row = document.createElement("div");
       row.className = "item" + (d.id===lastAddedId && !reduced ? " enter" : "");
       row.innerHTML =
         '<span class="dotc '+cls+'"></span>'+
-        '<span class="nm">'+d.name+'</span>'+
+        '<span class="nm">'+nm+qt+'</span>'+
         '<span class="tm">'+minToHM(d.min)+'</span>'+
         '<span class="mgbox"><input type="number" min="0" max="600" value="'+Math.round(d.mg)+'" data-id="'+d.id+'" aria-label="調整「'+d.name+'」的咖啡因毫克數"><span class="u">mg</span></span>'+
         '<button class="rm" data-id="'+d.id+'" title="移除" aria-label="移除「'+d.name+'」">×</button>';
@@ -775,7 +791,11 @@
       const b=document.createElement("button");
       b.className="chip"; b.type="button";
       b.setAttribute("aria-label","加一杯："+p.name+"，約 "+p.mg+" 毫克");
-      b.innerHTML='<span class="swatch '+p.cls+'"></span><span><span class="cn">'+p.name+'</span><br><span class="cm">'+p.mg+' mg</span></span>';
+      b.innerHTML='<span class="swatch '+p.cls+'"></span>'+
+        '<span class="txt">'+
+          '<span class="cn">'+p.label+'</span>'+
+          '<span class="cm">'+(p.note? p.note+' · ' : '')+'<b>'+p.mg+'</b> mg</span>'+
+        '</span>';
       b.addEventListener("click",()=>{
         const tv=$("#drinkTime").value || minToHM(nowMin());
         const drink={id:"d"+Date.now()+Math.random().toString(36).slice(2,6), name:p.name, mg:p.mg, min:hmToMin(tv)};

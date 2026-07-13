@@ -75,8 +75,17 @@
   .s-val{font-weight:800; letter-spacing:.02em; line-height:1}
   .s-val.big{font-size:clamp(42px,9.5vw,74px)}
   .s-val.small{font-size:clamp(22px,5.2vw,34px); color:#cdd9ff; font-weight:700}
-  .s-val.grad{background:linear-gradient(120deg,#ffffff,#9fc4ff 70%,#c9a3ff);
-    -webkit-background-clip:text; background-clip:text; color:transparent}
+  /* 漸層數字：background-clip:text 必須畫在「真正含文字」的那個元素上（.odo-reel / .odo-sep）。
+     若畫在外層 .odo，內層轉輪帶 transform / will-change 會自成獨立繪製層，
+     不會被外層的文字遮罩取樣 —— 漸層畫不上去，數字又是 transparent，整片消失（原本的 bug）。 */
+  .s-val.grad{color:#eef3ff} /* 後援實色：萬一不支援 background-clip:text 也一定看得到數字 */
+  .s-val.grad .odo-reel, .s-val.grad .odo-sep{
+    background-image:linear-gradient(165deg,#ffffff 0%,#9fc4ff 62%,#c9a3ff 100%);
+    -webkit-background-clip:text; background-clip:text}
+  .s-val.grad .odo-reel{background-size:100% var(--h); background-repeat:repeat-y} /* 每格數字取到相同切片，滾動時不變色 */
+  @supports ((-webkit-background-clip:text) or (background-clip:text)){
+    .s-val.grad .odo-reel, .s-val.grad .odo-sep{color:transparent}
+  }
   .s-div{width:1px; align-self:stretch; background:linear-gradient(180deg,transparent,var(--stroke),transparent); z-index:1}
   .live{display:inline-flex; align-items:center; gap:6px; margin-top:8px; font-size:11px; letter-spacing:.14em; color:var(--faint)}
   .live-dot{width:6px;height:6px;border-radius:50%;background:var(--earth);box-shadow:0 0 8px var(--earth); animation:livepulse 2s ease-in-out infinite}
@@ -192,7 +201,7 @@
         <div class="s-item">
           <div class="s-lab">你停留了</div>
           <div class="s-val big grad odo" id="elapsed" aria-hidden="true"></div>
-          <span class="sr-only" id="elapsed-sr"></span>
+          <span class="sr-only" id="elapsed-sr" role="timer"></span>
         </div>
         <div class="s-div" aria-hidden="true"></div>
         <div class="s-item">
@@ -283,6 +292,15 @@ function fmt(v, dec){
   return Math.floor(v).toLocaleString("en-US");
 }
 function pad(n){return String(n).padStart(2,"0");}
+// 停留時間：未滿一小時用 mm:ss，超過一小時自動變成 h:mm:ss（setOdo 會自行重建位數）
+function fmtElapsed(t){
+  const h = Math.floor(t/3600), m = Math.floor(t/60)%60, s = t%60;
+  return (h>0 ? h + ":" + pad(m) : pad(m)) + ":" + pad(s);
+}
+function spellElapsed(t){
+  const h = Math.floor(t/3600), m = Math.floor(t/60)%60, s = t%60;
+  return (h>0 ? h + " 小時 " : "") + m + " 分 " + s + " 秒";
+}
 
 const leadLines = [
   "深呼吸一下，看看這短短的時間裡，地球有多忙。",
@@ -329,6 +347,16 @@ const statusEl = document.getElementById("status");
 let leadIdx = 0;
 let lastT = -1, lastSec = -1;
 
+// —— 每滿一分鐘用 aria-live 報一次具體數字（螢幕閱讀器也讀得到，不必每秒轟炸）—— //
+const HIGHLIGHTS = ["新生兒誕生", "Email 寄出", "閃電擊中地球"];
+const highlightItems = SECTIONS.reduce((a,s)=>a.concat(s.items), []).filter(it=>HIGHLIGHTS.indexOf(it.label) >= 0);
+let lastMin = 0;
+function announceMilestone(mins){
+  const secs = mins * 60;
+  const parts = highlightItems.map(it => it.label + " " + fmt(it.rate*secs, it.dec) + " " + it.unit);
+  statusEl.textContent = "你已停留 " + mins + " 分鐘，這段時間全球約：" + parts.join("、") + "。";
+}
+
 // —— 減弱動態 / 分頁可見度 —— //
 const rmq = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : { matches:false, addEventListener:function(){} };
 let motionOK = !rmq.matches;
@@ -356,9 +384,11 @@ function tick(){
   const t = Math.floor(secs);
   if(t !== lastT){
     lastT = t;
-    const mm = pad(Math.floor(t/60)), ss = pad(t%60);
-    setOdo(elapsedEl, mm + ":" + ss);
-    elapsedSr.textContent = "你已停留 " + Math.floor(t/60) + " 分 " + (t%60) + " 秒";
+    setOdo(elapsedEl, fmtElapsed(t));
+    elapsedSr.textContent = "你已停留 " + spellElapsed(t);
+    // 用「分鐘數變大」判斷，分頁隱藏後跳號回來也不會漏報
+    const mins = Math.floor(t/60);
+    if(mins > lastMin){ lastMin = mins; announceMilestone(mins); }
   }
 
   const d = new Date();
@@ -391,7 +421,7 @@ setInterval(()=>{
 // —— 重新開始計時 —— //
 const resetBtn = document.getElementById("reset");
 resetBtn.addEventListener("click", ()=>{
-  start = Date.now(); lastT = -1;
+  start = Date.now(); lastT = -1; lastMin = 0;
   if(motionOK){ resetBtn.classList.remove("flash"); void resetBtn.offsetWidth; resetBtn.classList.add("flash"); }
   statusEl.textContent = "已重新開始計時";
 });

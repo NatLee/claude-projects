@@ -61,7 +61,9 @@
 
 8. 順手保養（cowork 精神，時間盒 15 分鐘內）：挑一個「最舊的、最近沒被保養過」的既有子頁面快速健檢——抽 JS 跑 `node --check`、點檢主要互動的接線、看有無明顯 bug。發現小問題就修（不改玩法、不改 localStorage key）；沒有就跳過。在 commit 訊息註明保養了哪個專案。
 
-9. 提交 git：以繁體中文 commit message 提交今天的變更，格式如「新增子頁面：YYYY-MM-DD 專案名（類別）」；只 commit、不 push。
+9. 整理 git 並推送：先 `git status` 檢視所有變更，把它們整理成一個乾淨、有條理的 commit（今天的子頁面、首頁 PROJECTS、README、以及保養修正都納入；若動到不相干的暫存檔或殘留，先排除或清掉再提交）。commit message 用繁體中文，格式如「新增子頁面：YYYY-MM-DD 專案名（類別）」，並在內文條列今天做了什麼（新增專案、掛上首頁、保養了哪個舊專案）。確認 `git status` 乾淨後，`git push` 到 `origin main`。
+   - 若 push 前發現有 `.git/index.lock` 殘留（多為前一次中斷留下），確認沒有 git 程序在跑後移除再提交。
+   - 若 push 被拒（遠端有新 commit），先 `git pull --rebase origin main` 再 push。
 
 10. 呈現：用 present_files 秀出今天子頁面的 `index.html`，一兩句話介紹今天的驚喜；若有保養既有專案，一句話帶過。
 

@@ -3,617 +3,478 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>每日小專案 · 夜空天文台</title>
+<title>每日小專案 · 索引室</title>
 <style>
   :root {
-    --bg: #04060f;
-    --bg-soft: #0a0f22;
-    --ink: #eef1ff;
-    --dim: #a6aed2;
-    --faint: #6d7699;
-    --line: rgba(150, 165, 220, .16);
+    --bg: #070912;
+    --ink: #f0f2fb;
+    --dim: #a6aec9;
+    --faint: #6d7593;
+    --line: rgba(150, 165, 220, .14);
+    --line-soft: rgba(150, 165, 220, .08);
+    --panel: rgba(14, 18, 36, .66);
     --gold: #f0c674;
     --c-trivia: #64b5f6;   /* 網路趣聞・冷知識 */
-    --c-odd:    #f48fb1;   /* 奇聞軼事（玫瑰粉） */
-    --c-sci:    #4dd0e1;   /* 科學趣聞（青碧） */
+    --c-odd:    #f48fb1;   /* 奇聞軼事 */
+    --c-sci:    #4dd0e1;   /* 科學趣聞 */
     --c-learn:  #ffb74d;   /* 學習新知 */
     --c-tool:   #81c784;   /* 生活痛點小工具 */
     --c-fun:    #ba9df1;   /* 創意・娛樂 */
     --serif: "Noto Serif TC", "Songti TC", "PMingLiU", serif;
+    --sans: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    background:
-      radial-gradient(120% 90% at 50% -10%, #0c1330 0%, transparent 60%),
-      var(--bg);
+    background: var(--bg);
     color: var(--ink);
-    font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+    font-family: var(--sans);
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
   }
-  ::selection { background: rgba(240, 198, 116, .3); }
+  ::selection { background: rgba(240, 198, 116, .28); }
   .sr-only {
     position: absolute; width: 1px; height: 1px; margin: -1px;
     overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
   }
+  :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 10px; }
 
-  /* ── 天幕：星塵畫布與星雲 ───────────────────────────
-     星雲不再對整個視窗做即時模糊濾鏡運算，
-     改用「預先柔化」的多段 radial-gradient + 純 transform 動畫。 */
-  #dust { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-  #nebula {
-    position: fixed; inset: -18%; z-index: 0; pointer-events: none;
-    opacity: .8; will-change: transform;
-  }
-  .neb {
-    position: absolute; width: 56vmax; height: 56vmax; border-radius: 50%;
+  /* ── 背景：預先柔化的極光團（只做 transform 動畫，不跑濾鏡） ── */
+  #aurora { position: fixed; inset: -20%; z-index: 0; pointer-events: none; opacity: .75; }
+  .blob {
+    position: absolute; width: 62vmax; height: 62vmax; border-radius: 50%;
     background: radial-gradient(circle at 50% 50%,
-      color-mix(in srgb, var(--nc) 34%, transparent) 0%,
-      color-mix(in srgb, var(--nc) 22%, transparent) 24%,
-      color-mix(in srgb, var(--nc) 9%, transparent) 46%,
-      transparent 68%);
-    mix-blend-mode: screen; opacity: .16; will-change: transform;
-    animation: neb-drift 96s ease-in-out infinite alternate;
+      color-mix(in srgb, var(--nc) 30%, transparent) 0%,
+      color-mix(in srgb, var(--nc) 18%, transparent) 26%,
+      color-mix(in srgb, var(--nc) 7%, transparent) 48%,
+      transparent 70%);
+    mix-blend-mode: screen; opacity: .17;
+    animation: drift 84s ease-in-out infinite alternate;
+    will-change: transform;
   }
-  @keyframes neb-drift {
-    from { transform: translate3d(-2.5%, -2%, 0) scale(1); }
-    to   { transform: translate3d(3%, 3.5%, 0) scale(1.14); }
+  @keyframes drift {
+    from { transform: translate3d(-3%, -2%, 0) scale(1); }
+    to   { transform: translate3d(3%, 4%, 0) scale(1.16); }
+  }
+  #grid-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .35;
+    background-image:
+      linear-gradient(rgba(150, 165, 220, .05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(150, 165, 220, .05) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 0%, transparent 72%);
+    mask-image: radial-gradient(120% 80% at 50% 0%, #000 0%, transparent 72%);
   }
 
-  .wrap { position: relative; z-index: 2; max-width: 1160px; margin: 0 auto; padding: 0 22px 72px; }
+  .wrap { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; padding: 0 24px 80px; }
 
   /* ── 頁首 ─────────────────────────────────────────── */
-  header { text-align: center; padding: 38px 0 2px; }
-  .scope { display: block; margin: 0 auto 6px; opacity: .9; }
-  .scope .glint { animation: glint 3.4s ease-in-out infinite; transform-origin: 106px 7px; }
-  @keyframes glint {
-    0%, 100% { opacity: .5; transform: scale(.85); }
-    50%      { opacity: 1;  transform: scale(1.15); }
-  }
+  .site-head { padding: 56px 0 0; text-align: center; }
+  /* 進場：預設可見，JS 在場時才先藏起來淡入（無 JS／動畫被凍結也讀得到內容） */
+  .rise { transition: opacity .7s ease var(--rd, 0s), transform .7s cubic-bezier(.2,.8,.3,1) var(--rd, 0s); }
+  body.preload .rise { opacity: 0; transform: translateY(14px); }
   .kicker {
     display: inline-flex; align-items: center; gap: 14px;
-    font-size: 12px; letter-spacing: .42em; text-indent: .42em;
-    color: var(--gold); font-family: var(--serif); margin-bottom: 12px;
+    font-family: var(--serif); font-size: 11.5px; color: var(--gold);
+    letter-spacing: .42em; text-indent: .42em; margin-bottom: 16px;
   }
   .kicker::before, .kicker::after {
-    content: ""; width: 44px; height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(240,198,116,.55));
+    content: ""; width: 42px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(240, 198, 116, .55));
   }
-  .kicker::after { background: linear-gradient(270deg, transparent, rgba(240,198,116,.55)); }
+  .kicker::after { background: linear-gradient(270deg, transparent, rgba(240, 198, 116, .55)); }
   h1 {
     font-family: var(--serif); font-weight: 700;
-    font-size: clamp(34px, 6vw, 56px); letter-spacing: .22em; text-indent: .22em;
-    text-shadow: 0 0 34px rgba(140, 165, 255, .35);
+    font-size: clamp(36px, 6.4vw, 60px); letter-spacing: .2em; text-indent: .2em;
+    background: linear-gradient(180deg, #ffffff 8%, #b9c4ee 96%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 30px rgba(140, 165, 255, .28));
   }
-  .subtitle { margin-top: 12px; color: var(--dim); font-size: 15px; line-height: 1.95; }
-  .subtitle .count {
-    color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 14px rgba(240, 198, 116, .5);
-  }
+  .lede { margin-top: 14px; color: var(--dim); font-size: 15px; line-height: 1.9; }
 
-  /* ── 今日之星：鑲金邊的觀測日誌卡 ───────────────── */
-  #hero { max-width: 920px; margin: 28px auto 0; }
-  .h-frame {
-    position: relative; border-radius: 18px; padding: 22px 26px;
+  .stats {
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 10px 34px;
+    margin-top: 22px;
+  }
+  .stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stat b {
+    font-family: var(--serif); font-size: 30px; font-weight: 700; line-height: 1.15;
+    color: var(--gold); font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 20px rgba(240, 198, 116, .35);
+  }
+  .stat span { font-size: 11.5px; color: var(--faint); letter-spacing: .22em; text-indent: .22em; }
+
+  /* ── 今日之星 ─────────────────────────────────────── */
+  #hero { margin: 40px auto 0; max-width: 980px; }
+  .h-card {
+    position: relative; display: block; text-decoration: none; color: inherit;
+    border-radius: 22px; padding: 26px 30px; overflow: hidden;
     background:
-      radial-gradient(130% 170% at 10% -25%, color-mix(in srgb, var(--cc, var(--gold)) 13%, transparent), transparent 55%),
-      linear-gradient(165deg, rgba(20, 27, 54, .9), rgba(8, 12, 28, .93));
-    border: 1px solid rgba(240, 198, 116, .34);
-    box-shadow:
-      inset 0 0 0 1px rgba(240, 198, 116, .08),
-      inset 0 0 60px rgba(4, 6, 15, .5),
-      0 18px 50px rgba(0, 0, 0, .42);
-    transition: border-color .3s, box-shadow .3s, transform .3s;
+      radial-gradient(120% 150% at 6% -30%, color-mix(in srgb, var(--cc) 16%, transparent), transparent 58%),
+      linear-gradient(160deg, rgba(22, 28, 54, .9), rgba(9, 12, 26, .94));
+    border: 1px solid color-mix(in srgb, var(--cc) 32%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 22px 60px rgba(0, 0, 0, .45);
+    transition: transform .35s cubic-bezier(.2,.8,.3,1), box-shadow .35s, border-color .35s;
   }
-  .h-frame::before, .h-frame::after {
-    content: ""; position: absolute; width: 26px; height: 26px; pointer-events: none;
-    border: 1.5px solid rgba(240, 198, 116, .7); transition: border-color .3s;
+  .h-card::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, .07) 48%, transparent 58%);
+    transform: translateX(-120%); transition: transform .9s ease;
   }
-  .h-frame::before { top: 7px; left: 7px; border-right: 0; border-bottom: 0; border-top-left-radius: 12px; }
-  .h-frame::after  { bottom: 7px; right: 7px; border-left: 0; border-top: 0; border-bottom-right-radius: 12px; }
-  #hero:hover .h-frame, #hero:focus-within .h-frame, #hero.star-lit .h-frame {
-    border-color: rgba(240, 198, 116, .62); transform: translateY(-2px);
-    box-shadow:
-      inset 0 0 0 1px rgba(240, 198, 116, .12),
-      inset 0 0 60px rgba(4, 6, 15, .5),
-      0 18px 50px rgba(0, 0, 0, .42),
-      0 0 36px rgba(240, 198, 116, .14);
+  .h-card:hover, .h-card:focus-visible {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--cc) 62%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 26px 70px rgba(0, 0, 0, .5),
+                0 0 44px color-mix(in srgb, var(--cc) 18%, transparent);
   }
-  #hero:hover .h-frame::before, #hero:hover .h-frame::after,
-  #hero.star-lit .h-frame::before, #hero.star-lit .h-frame::after { border-color: rgba(240, 198, 116, 1); }
+  .h-card:hover::after { transform: translateX(120%); }
   .h-kicker {
-    display: flex; align-items: center; gap: 14px;
-    font-family: var(--serif); font-size: 11.5px; letter-spacing: .34em; text-indent: .02em;
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--serif); font-size: 11.5px; letter-spacing: .32em;
     color: var(--gold);
   }
-  .h-kicker .h-date { color: var(--dim); letter-spacing: .18em; font-variant-numeric: tabular-nums; }
-  .h-kicker::after {
-    content: ""; flex: 1; height: 1px;
-    background: linear-gradient(90deg, rgba(240, 198, 116, .4), transparent);
+  .h-kicker .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--gold); flex: none;
+    animation: pulse 2.6s ease-out infinite;
   }
-  .h-body { display: flex; align-items: center; gap: 24px; margin-top: 18px; }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(240, 198, 116, .5); }
+    70%  { box-shadow: 0 0 0 9px rgba(240, 198, 116, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(240, 198, 116, 0); }
+  }
+  .h-kicker .h-date { margin-left: auto; color: var(--faint); letter-spacing: .16em; font-variant-numeric: tabular-nums; }
+  .h-body { display: flex; align-items: center; gap: 26px; margin-top: 20px; }
   .h-emoji {
-    flex: none; width: 86px; height: 86px; display: grid; place-items: center;
-    font-size: 42px; border-radius: 50%;
-    background: radial-gradient(circle at 38% 30%, color-mix(in srgb, var(--cc, var(--gold)) 28%, transparent), rgba(10, 14, 32, .5) 72%);
-    border: 1px solid color-mix(in srgb, var(--cc, var(--gold)) 45%, transparent);
-    box-shadow: 0 0 28px color-mix(in srgb, var(--cc, var(--gold)) 20%, transparent), inset 0 0 18px rgba(0, 0, 0, .35);
+    flex: none; width: 92px; height: 92px; display: grid; place-items: center; font-size: 44px;
+    border-radius: 26px;
+    background: radial-gradient(circle at 36% 28%, color-mix(in srgb, var(--cc) 30%, transparent), rgba(10, 14, 32, .55) 74%);
+    border: 1px solid color-mix(in srgb, var(--cc) 42%, transparent);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--cc) 20%, transparent), inset 0 0 20px rgba(0, 0, 0, .35);
+    transition: transform .35s cubic-bezier(.2,.8,.3,1);
   }
+  .h-card:hover .h-emoji { transform: scale(1.06) rotate(-3deg); }
   .h-main { min-width: 0; flex: 1; }
-  .h-tag {
-    display: inline-block; font-size: 11.5px; padding: 3px 11px; border-radius: 999px;
-    color: var(--cc, var(--gold));
-    border: 1px solid color-mix(in srgb, var(--cc, var(--gold)) 45%, transparent);
-    background: color-mix(in srgb, var(--cc, var(--gold)) 9%, transparent);
-    letter-spacing: 1px;
-  }
   .h-title {
-    font-family: var(--serif); font-weight: 700; margin: 9px 0 6px;
-    font-size: clamp(22px, 3.4vw, 30px); letter-spacing: .1em;
-    text-shadow: 0 0 22px color-mix(in srgb, var(--cc, var(--gold)) 32%, transparent);
+    font-family: var(--serif); font-size: clamp(23px, 3.3vw, 31px); font-weight: 700;
+    letter-spacing: .08em; margin: 8px 0;
+    text-shadow: 0 0 26px color-mix(in srgb, var(--cc) 30%, transparent);
   }
-  .h-desc { color: var(--dim); font-size: 14px; line-height: 1.95; max-width: 62ch; }
+  .h-desc { color: var(--dim); font-size: 14px; line-height: 1.95; max-width: 64ch; }
   .h-cta {
     flex: none; display: inline-flex; align-items: center; gap: 8px;
-    padding: 12px 24px; border-radius: 999px; text-decoration: none;
+    padding: 12px 24px; border-radius: 999px;
     color: #241c06; font-weight: 700; font-size: 14px; letter-spacing: 2px;
     background: linear-gradient(135deg, #f6d795, var(--gold));
-    box-shadow: 0 6px 22px rgba(240, 198, 116, .26);
-    transition: transform .25s, box-shadow .25s;
+    box-shadow: 0 6px 22px rgba(240, 198, 116, .24);
+    transition: transform .3s, box-shadow .3s;
   }
-  .h-cta:hover, .h-cta:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(240, 198, 116, .42); }
+  .h-card:hover .h-cta { transform: translateX(3px); box-shadow: 0 10px 30px rgba(240, 198, 116, .4); }
 
-  /* ── 控制列：模式切換、星座籤與隨機觀星 ─────────── */
-  .controls {
-    display: flex; flex-wrap: wrap; gap: 12px 18px;
-    justify-content: center; align-items: center; margin: 26px 0 4px;
+  /* ── 控制列（吸頂）────────────────────────────────── */
+  .bar {
+    position: sticky; top: 0; z-index: 30; margin-top: 34px; padding: 12px 0;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+    background: linear-gradient(180deg, var(--bg) 62%, rgba(7, 9, 18, 0));
   }
-  .mode {
-    display: inline-flex; padding: 4px; border-radius: 999px;
-    border: 1px solid var(--line); background: rgba(10, 15, 34, .62);
-    backdrop-filter: blur(8px);
+  .bar::before {
+    content: ""; position: absolute; inset: 8px -12px; border-radius: 18px; z-index: -1;
+    background: var(--panel); border: 1px solid var(--line);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
   }
-  .mode button {
-    font-family: inherit; font-size: 13.5px; letter-spacing: 2px;
-    color: var(--dim); background: none; border: 0; cursor: pointer;
-    padding: 7px 18px; border-radius: 999px; transition: color .25s, background .25s, box-shadow .25s;
+  .search { position: relative; flex: 1 1 240px; min-width: 200px; display: flex; align-items: center; }
+  .search .ico { position: absolute; left: 13px; font-size: 13px; opacity: .65; pointer-events: none; }
+  #q {
+    width: 100%; font-family: inherit; font-size: 14px; color: var(--ink);
+    background: rgba(8, 11, 24, .6); border: 1px solid var(--line);
+    border-radius: 999px; padding: 10px 44px 10px 36px;
+    transition: border-color .25s, box-shadow .25s, background .25s;
   }
-  .mode button[aria-pressed="true"] {
-    color: #241c06; font-weight: 700;
-    background: linear-gradient(135deg, #f6d795, var(--gold));
-    box-shadow: 0 0 18px rgba(240, 198, 116, .35);
+  #q::placeholder { color: var(--faint); }
+  #q::-webkit-search-cancel-button { display: none; }
+  #q:focus {
+    outline: none; border-color: rgba(240, 198, 116, .55); background: rgba(10, 14, 30, .8);
+    box-shadow: 0 0 0 3px rgba(240, 198, 116, .1);
   }
-  .mode button:not([aria-pressed="true"]):hover { color: var(--ink); }
+  .search kbd {
+    position: absolute; right: 12px; font-family: var(--sans); font-size: 11px; color: var(--faint);
+    border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; pointer-events: none;
+  }
+  #qx {
+    position: absolute; right: 10px; display: none; cursor: pointer;
+    width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(150, 165, 220, .14);
+    color: var(--dim); font-size: 12px; font-family: inherit;
+    transition: color .2s, background .2s;
+  }
+  #qx:hover { color: var(--ink); background: rgba(150, 165, 220, .26); }
+  body.searching .search kbd { display: none; }
+  body.searching #qx { display: block; }
 
-  .chips { display: inline-flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  /* min-width:0 －flex item 預設 min-width:auto 會以 max-content 撐寬整列 */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; }
   .chip {
-    font-family: inherit; font-size: 13px; letter-spacing: 1px;
-    display: inline-flex; align-items: center; gap: 7px;
-    color: var(--dim); background: rgba(10, 15, 34, .55);
-    border: 1px solid var(--line); border-radius: 999px;
-    padding: 7px 15px; cursor: pointer;
-    transition: color .25s, border-color .25s, box-shadow .25s, background .25s;
+    font-family: inherit; font-size: 12.5px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
+    color: var(--dim); background: rgba(10, 14, 30, .55);
+    border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px;
+    transition: color .25s, border-color .25s, background .25s, box-shadow .25s, transform .2s;
   }
-  .chip .dot { color: var(--cc, var(--gold)); font-size: 11px; transition: text-shadow .25s; }
-  .chip .n {
-    font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums;
-    transition: color .25s;
-  }
-  .chip:hover { color: var(--ink); border-color: color-mix(in srgb, var(--cc, var(--gold)) 55%, transparent); }
-  .chip:hover .n { color: var(--dim); }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cc, var(--gold)); flex: none; }
+  .chip .n { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; transition: color .25s; }
+  .chip:hover { color: var(--ink); border-color: color-mix(in srgb, var(--cc, var(--gold)) 50%, transparent); transform: translateY(-1px); }
   .chip[aria-pressed="true"] {
     color: var(--cc, var(--gold));
-    border-color: color-mix(in srgb, var(--cc, var(--gold)) 65%, transparent);
+    border-color: color-mix(in srgb, var(--cc, var(--gold)) 62%, transparent);
     background: color-mix(in srgb, var(--cc, var(--gold)) 10%, transparent);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--cc, var(--gold)) 25%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--cc, var(--gold)) 20%, transparent);
   }
-  .chip[aria-pressed="true"] .dot { text-shadow: 0 0 10px var(--cc, var(--gold)); }
-  .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--cc, var(--gold)) 75%, var(--ink)); }
+  .chip[aria-pressed="true"] .dot { box-shadow: 0 0 9px var(--cc, var(--gold)); }
+  .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--cc, var(--gold)) 70%, var(--ink)); }
 
-  .rand {
-    font-family: inherit; font-size: 13px; letter-spacing: 1.5px; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 8px;
-    color: var(--gold); background: rgba(40, 32, 12, .38);
-    border: 1px solid rgba(240, 198, 116, .45); border-radius: 999px; padding: 7px 17px;
-    transition: color .25s, border-color .25s, box-shadow .25s, transform .25s, opacity .25s;
+  .tools { display: flex; align-items: center; gap: 10px; margin-left: auto; min-width: 0; }
+  .seg {
+    display: inline-flex; padding: 3px; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(10, 14, 30, .6);
   }
-  .rand:hover:not([disabled]) {
-    color: #ffe9b8; border-color: rgba(240, 198, 116, .8);
-    box-shadow: 0 0 18px rgba(240, 198, 116, .28); transform: translateY(-1px);
+  .seg button {
+    font-family: inherit; font-size: 12.5px; cursor: pointer;
+    color: var(--dim); background: none; border: 0; padding: 6px 14px; border-radius: 999px;
+    transition: color .25s, background .25s;
   }
-  .rand[disabled] { opacity: .55; cursor: default; }
-
-  /* ── 星圖 ─────────────────────────────────────────── */
-  #skyWrap { margin-top: 18px; }
-  body[data-mode="list"] #skyWrap { display: none; }
-  #sky {
-    position: relative; height: clamp(460px, 60vh, 620px);
-    border: 1px solid var(--line); border-radius: 26px; overflow: hidden;
-    background:
-      radial-gradient(90% 70% at 50% 8%, rgba(24, 34, 72, .5), transparent 70%),
-      linear-gradient(180deg, rgba(12, 18, 42, .55), rgba(4, 7, 16, .7));
-    box-shadow: inset 0 0 90px rgba(0, 0, 0, .55), 0 24px 70px rgba(0, 0, 0, .45);
-  }
-  #sky::after {
-    content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
-    box-shadow: inset 0 0 120px 30px rgba(2, 4, 10, .55);
-  }
-  #lines { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-  .grat { stroke: var(--gold); opacity: .055; fill: none; stroke-dasharray: 2 5; }
-  .cline {
-    fill: none; stroke-width: .28; stroke-linecap: round;
-    stroke-dasharray: 1.6 2.4; opacity: 0; transition: opacity .6s ease;
-  }
-  .cline.lit { opacity: .5; }
-  /* 未觀測星域：空星座的極淡虛線輪廓與幽靈星，靜候第一顆星 */
-  .gline { stroke-dasharray: .9 2.6; opacity: .15; }
-  .gline.lit { opacity: .38; }
-  .gstar { fill: none; stroke-width: .22; opacity: .28; }
-  .const-label.await { opacity: .58; }
-  .const-label.await:hover, .const-label.await.on { opacity: .95; }
-
-  /* 隨機觀星的柔光掃束 */
-  #sweep {
-    position: absolute; top: 0; bottom: 0; left: 0; width: 150px; margin-left: -75px;
-    pointer-events: none; opacity: 0; z-index: 8;
-    background:
-      radial-gradient(50% 40% at 50% 50%, rgba(255, 241, 204, .13), transparent 72%),
-      linear-gradient(90deg, transparent, rgba(240, 222, 180, .09) 38%, rgba(255, 244, 214, .2) 50%, rgba(240, 222, 180, .09) 62%, transparent);
-    will-change: transform, opacity;
-  }
-
-  .const-label {
-    position: absolute; transform: translate(-50%, -50%); z-index: 5;
-    font-family: var(--serif); font-size: 13.5px; letter-spacing: .24em; text-indent: .24em;
-    color: var(--cc); background: none; border: 0; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    padding: 8px 12px; opacity: .8; transition: opacity .45s, text-shadow .3s;
-    animation: fade-in .8s ease 1s backwards;
-  }
-  @keyframes fade-in { from { opacity: 0; } }
-  .const-label .cnt {
-    font-size: 10.5px; letter-spacing: .3em; text-indent: .3em;
-    color: var(--faint); font-family: inherit;
-  }
-  .const-label:hover, .const-label.on { opacity: 1; text-shadow: 0 0 16px var(--cc); }
-  .const-label:hover .cnt, .const-label.on .cnt { color: var(--cc); }
-  #sky[data-active] .const-label:not(.on) { opacity: .28; }
-  .const-label:focus-visible, .chip:focus-visible, .mode button:focus-visible,
-  .rand:focus-visible, .h-cta:focus-visible, .c-btn:focus-visible, .c-x:focus-visible,
-  .g-card:focus-visible {
-    outline: 2px solid var(--gold); outline-offset: 3px; border-radius: 8px;
-  }
-
-  .star {
-    position: absolute; z-index: 6; width: var(--s); height: var(--s);
-    transform: translate(-50%, -50%); border-radius: 50%;
-    transition: opacity .5s, filter .5s;
-    touch-action: manipulation;
-    /* 開場儀式：依日期由舊到新逐顆點亮（--ld 由 JS 配置） */
-    animation: star-in .45s ease-out backwards;
-    animation-delay: var(--ld, 0s);
-  }
-  @keyframes star-in {
-    from { opacity: 0; transform: translate(-50%, -50%) scale(.2); }
-  }
-  .star .core {
-    position: absolute; inset: 0; border-radius: 50%;
-    background: radial-gradient(circle, #fff 0%, var(--cc) 42%, transparent 72%);
-    animation: breathe var(--dur, 3.6s) ease-in-out infinite;
-    animation-delay: var(--ph, 0s);
-    transition: transform .3s ease;
-  }
-  .star::before {
-    content: ""; position: absolute; inset: -130%; border-radius: 50%;
-    background: radial-gradient(circle, color-mix(in srgb, var(--cc) 30%, transparent), transparent 68%);
-    opacity: .8; transition: opacity .3s, transform .3s;
-  }
-  .star:hover .core, .star:focus-visible .core, .star.picked .core { transform: scale(1.45); animation-play-state: paused; }
-  .star:hover::before, .star:focus-visible::before, .star.picked::before { opacity: 1; transform: scale(1.35); }
-  @keyframes breathe {
-    0%, 100% { opacity: .72; transform: scale(1); }
-    50%      { opacity: 1;   transform: scale(1.22); }
-  }
-  .star .name {
-    position: absolute; top: calc(100% + 9px); left: 50%; transform: translateX(-50%);
-    white-space: nowrap; font-size: 11.5px; letter-spacing: 2px; color: var(--faint);
-    opacity: .6; transition: color .3s, opacity .3s; pointer-events: none;
-  }
-  /* 星名避讓：貼近星座標籤或其他星名時翻到星星上方 */
-  .star .name.up { top: auto; bottom: calc(100% + 9px); }
-  .star:hover .name, .star:focus-visible .name, .star.picked .name {
-    color: var(--cc); opacity: 1; text-shadow: 0 0 12px color-mix(in srgb, var(--cc) 60%, transparent);
-  }
-  /* 被篩掉的星：淡出、關閉指標事件（JS 同步移出 tab 順序） */
-  #sky[data-active] .star:not(.on) { opacity: .14; filter: saturate(.15); pointer-events: none; }
-  .star:focus-visible { outline: 1.5px solid var(--gold); outline-offset: 8px; }
-
-  /* 今日之星 */
-  .star.today::after {
-    content: ""; position: absolute; inset: -80%; border-radius: 50%;
-    border: 1px solid rgba(240, 198, 116, .65);
-    animation: halo 2.8s ease-out infinite;
-  }
-  @keyframes halo {
-    0%   { transform: scale(.45); opacity: .95; }
-    100% { transform: scale(1.6); opacity: 0; }
-  }
-  .star.today .core {
-    background: radial-gradient(circle, #fff 0%, #ffe9b8 30%, var(--cc) 55%, transparent 75%);
-    box-shadow: 0 0 22px 4px rgba(240, 198, 116, .45);
-  }
-  /* hero 主打卡與星圖上那顆星的呼應：hover hero 時星也亮起 */
-  .star.today.hero-lit .core { transform: scale(1.55); animation-play-state: paused; box-shadow: 0 0 30px 8px rgba(240, 198, 116, .6); }
-  .star.today.hero-lit::before { opacity: 1; transform: scale(1.5); }
-  .star.today.hero-lit .name { color: var(--gold); opacity: 1; }
-  .star.today .badge {
-    position: absolute; bottom: calc(100% + 14px); left: 50%; transform: translateX(-50%);
-    font-size: 10.5px; letter-spacing: .34em; text-indent: .34em; white-space: nowrap;
-    color: var(--gold); font-family: var(--serif);
-    text-shadow: 0 0 12px rgba(240, 198, 116, .65); pointer-events: none;
-  }
-
-  .sky-hint { text-align: center; color: var(--faint); font-size: 12.5px; letter-spacing: 2px; margin-top: 14px; }
-
-  /* ── 星座導覽帶：六類各一小卡（色點＋名稱＋件數＋定位），點擊即篩選 ── */
-  #guide { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; }
-  .g-card {
-    font-family: inherit; text-align: left; cursor: pointer;
-    display: flex; flex-direction: column; gap: 6px;
-    padding: 13px 16px 12px; border-radius: 14px;
-    color: var(--dim); background: rgba(8, 12, 28, .52);
-    border: 1px solid var(--line);
-    transition: border-color .25s, background .25s, box-shadow .25s, transform .25s;
-  }
-  .g-card:hover { border-color: color-mix(in srgb, var(--cc) 50%, transparent); transform: translateY(-1px); }
-  .g-top { display: flex; align-items: center; gap: 9px; width: 100%; }
-  .g-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 9px var(--cc); }
-  .g-name { color: var(--ink); font-size: 13.5px; font-weight: 700; letter-spacing: 1px; }
-  .g-n {
-    margin-left: auto; font-size: 11px; color: var(--faint);
-    letter-spacing: 1px; font-variant-numeric: tabular-nums; white-space: nowrap;
-  }
-  .g-note { font-size: 12px; color: var(--faint); line-height: 1.75; }
-  .g-card[aria-pressed="true"] {
-    border-color: color-mix(in srgb, var(--cc) 65%, transparent);
-    background: color-mix(in srgb, var(--cc) 8%, rgba(8, 12, 28, .52));
-    box-shadow: 0 0 18px color-mix(in srgb, var(--cc) 18%, transparent);
-  }
-  .g-card[aria-pressed="true"] .g-name { color: var(--cc); }
-  .g-card[aria-pressed="true"] .g-n { color: color-mix(in srgb, var(--cc) 70%, var(--ink)); }
-  @media (max-width: 880px) {
-    #guide { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  /* ── 資訊卡 ───────────────────────────────────────── */
-  #card {
-    position: fixed; z-index: 40; width: min(330px, 88vw);
-    pointer-events: none; opacity: 0; transform: translateY(8px) scale(.97);
-    transition: opacity .22s ease, transform .22s ease;
-    background: linear-gradient(160deg, rgba(22, 29, 58, .94), rgba(10, 14, 32, .94));
-    border: 1px solid color-mix(in srgb, var(--cc, #8892c2) 45%, transparent);
-    border-radius: 16px; padding: 16px 18px 14px;
-    box-shadow: 0 20px 55px rgba(0, 0, 0, .6),
-                0 0 30px color-mix(in srgb, var(--cc, #8892c2) 14%, transparent);
-    backdrop-filter: blur(10px);
-  }
-  #card.show { opacity: 1; transform: translateY(0) scale(1); }
-  #card.sheet { left: 14px !important; right: 14px; bottom: 14px; top: auto !important; width: auto; }
-  .c-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
-  .c-date { font-size: 12px; color: var(--faint); letter-spacing: 1.5px; font-variant-numeric: tabular-nums; }
-  .c-tag {
-    font-size: 11px; padding: 2.5px 10px; border-radius: 999px; white-space: nowrap;
-    color: var(--cc, var(--gold));
-    border: 1px solid color-mix(in srgb, var(--cc, var(--gold)) 45%, transparent);
-    background: color-mix(in srgb, var(--cc, var(--gold)) 10%, transparent);
-  }
-  #card h3 { font-size: 17.5px; letter-spacing: 1px; line-height: 1.5; }
-  #card h3 .emoji { margin-right: 8px; }
-  #card p { font-size: 13px; color: var(--dim); line-height: 1.9; margin-top: 6px; }
-  .c-go { display: block; margin-top: 10px; font-size: 12px; letter-spacing: 2px; color: var(--cc, var(--gold)); opacity: .85; }
-  /* 選取（釘選）狀態：卡片變得可互動，出現「進入作品」按鈕 */
-  .c-actions { display: none; }
-  #card.pinned { pointer-events: auto; }
-  #card.pinned .c-go { display: none; }
-  #card.pinned .c-actions { display: flex; gap: 10px; margin-top: 13px; }
-  .c-btn {
-    flex: 1; text-align: center; padding: 10px 14px; border-radius: 12px;
+  .seg button[aria-pressed="true"] {
+    color: #241c06; font-weight: 700;
     background: linear-gradient(135deg, #f6d795, var(--gold));
-    color: #241c06; font-weight: 700; letter-spacing: 2px; font-size: 13.5px;
-    text-decoration: none; transition: transform .2s, box-shadow .2s;
   }
-  .c-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(240, 198, 116, .35); }
-  .c-x {
-    flex: none; width: 42px; border-radius: 12px; cursor: pointer;
-    background: none; border: 1px solid var(--line); color: var(--dim); font-size: 14px;
-    font-family: inherit; transition: color .2s, border-color .2s;
+  .seg button:not([aria-pressed="true"]):hover { color: var(--ink); }
+  #rand {
+    font-family: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap;
+    color: var(--gold); background: rgba(40, 32, 12, .38);
+    border: 1px solid rgba(240, 198, 116, .42); border-radius: 999px; padding: 7px 14px;
+    transition: color .25s, border-color .25s, box-shadow .25s, transform .25s;
   }
-  .c-x:hover { color: var(--ink); border-color: rgba(150, 165, 220, .4); }
+  #rand:hover {
+    color: #ffe9b8; border-color: rgba(240, 198, 116, .8);
+    box-shadow: 0 0 18px rgba(240, 198, 116, .26); transform: translateY(-1px);
+  }
 
-  /* ── 清單模式 ─────────────────────────────────────── */
-  #listView {
-    display: none; margin-top: 18px; border: 1px solid var(--line); border-radius: 26px;
-    overflow: hidden; background: rgba(8, 12, 28, .58); backdrop-filter: blur(8px);
+  .result {
+    margin: 18px 0 -4px; font-size: 12.5px; color: var(--faint);
+    display: flex; align-items: center; gap: 8px; min-height: 18px;
   }
-  body[data-mode="list"] #listView { display: block; }
-  /* 依星座分組：每組一條金屬感的組頭（色點＋星座名＋件數） */
-  .lgroup { border-bottom: 1px solid var(--line); }
-  .lgroup:last-child { border-bottom: 0; }
-  .lgroup.hide { display: none; }
-  .lg-head {
-    display: flex; align-items: center; gap: 10px; margin: 0;
-    font-family: var(--serif); font-weight: 700; font-size: 13.5px;
-    letter-spacing: .28em; text-indent: .04em; color: var(--cc, var(--gold));
-    padding: 16px 30px 12px;
-    background: linear-gradient(90deg, color-mix(in srgb, var(--cc, var(--gold)) 8%, transparent), transparent 60%);
-    border-bottom: 1px solid var(--line);
-  }
-  .lg-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--cc); box-shadow: 0 0 10px var(--cc); }
-  .lg-n {
-    margin-left: auto; font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
-    font-size: 11px; font-weight: 400; letter-spacing: 1px; text-indent: 0;
-    color: var(--faint); font-variant-numeric: tabular-nums;
-  }
-  .row {
-    display: grid; grid-template-columns: 128px 1fr; gap: 8px 20px; align-items: center;
-    padding: 20px 30px; text-decoration: none; color: inherit; position: relative;
-    border-bottom: 1px solid var(--line); transition: background .25s;
-  }
-  .row:last-child { border-bottom: 0; }
-  .row::before {
-    content: ""; position: absolute; left: 0; top: 18%; bottom: 18%; width: 2.5px;
-    background: var(--cc, var(--gold)); border-radius: 3px;
-    opacity: 0; transform: scaleY(.4); transition: opacity .25s, transform .25s;
-  }
-  .row:hover, .row:focus-visible { background: rgba(120, 140, 220, .07); }
-  .row:hover::before, .row:focus-visible::before { opacity: .9; transform: scaleY(1); }
-  .row:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
-  /* 隨機觀星在清單模式的落點高亮 */
-  .row.flash { animation: row-flash 1.8s ease; }
-  .row.flash::before { opacity: .9; transform: scaleY(1); }
-  @keyframes row-flash {
-    0%, 35% { background: color-mix(in srgb, var(--cc, var(--gold)) 16%, transparent);
-              box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc, var(--gold)) 45%, transparent); }
-    100%    { background: transparent; box-shadow: none; }
-  }
-  .r-date {
-    font-size: 12.5px; color: var(--faint); letter-spacing: 1.5px;
-    font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 9px;
-  }
-  .r-date .pip { color: var(--cc, var(--gold)); font-size: 10px; }
-  .r-main { min-width: 0; }
-  .r-title { font-size: 16.5px; font-weight: 700; letter-spacing: .5px; transition: color .25s; }
-  .r-title .emoji { margin-right: 8px; }
-  .r-title .tbadge {
-    font-size: 10.5px; color: var(--gold); border: 1px solid rgba(240, 198, 116, .4);
-    border-radius: 999px; padding: 1.5px 9px; margin-left: 10px;
-    letter-spacing: .2em; text-indent: .2em; vertical-align: 2px; font-weight: 400;
-  }
-  .row:hover .r-title, .row:focus-visible .r-title { color: var(--cc, var(--gold)); }
-  .r-desc { font-size: 13px; color: var(--dim); line-height: 1.85; margin-top: 4px; }
-  .row.hide { display: none; }
-  .empty { display: none; text-align: center; color: var(--faint); padding: 56px 0; font-size: 14.5px; letter-spacing: 1px; }
+  .result b { color: var(--gold); font-variant-numeric: tabular-nums; font-weight: 700; }
 
-  /* ── 頁尾 ─────────────────────────────────────────── */
+  /* ── 時間軸卡片牆 ─────────────────────────────────── */
+  #wall { position: relative; margin-top: 22px; padding-left: 30px; }
+  #wall::before {
+    content: ""; position: absolute; left: 5px; top: 12px; bottom: 30px; width: 1px;
+    background: linear-gradient(180deg, transparent, var(--line) 5%, var(--line) 90%, transparent);
+  }
+  .group { position: relative; margin-bottom: 40px; }
+  .g-head { position: relative; display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+  .g-head::before {
+    content: ""; position: absolute; left: -29px; top: 50%; transform: translateY(-50%);
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--cc, var(--gold)); border: 2px solid var(--bg);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--cc, var(--gold)) 70%, transparent);
+  }
+  .g-title {
+    font-family: var(--serif); font-size: 17px; font-weight: 700; letter-spacing: .16em;
+    color: var(--cc, var(--ink));
+  }
+  .g-n { font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .g-rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line), transparent); }
+
+  .g-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); }
+
+  .card {
+    position: relative; display: flex; flex-direction: column; gap: 9px;
+    padding: 17px 18px 15px; border-radius: 16px; overflow: hidden;
+    text-decoration: none; color: inherit;
+    background: linear-gradient(160deg, rgba(19, 24, 46, .72), rgba(10, 13, 28, .72));
+    border: 1px solid var(--line);
+    transition: transform .3s cubic-bezier(.2,.8,.3,1), border-color .3s, box-shadow .3s, background .3s, opacity .5s ease;
+    /* 進場：由 JS 掛上 .in（IntersectionObserver），--d 為序列延遲 */
+    opacity: 0; transform: translateY(12px);
+  }
+  .card.in { opacity: 1; transform: none; transition-delay: var(--d, 0s); }
+  .card::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--cc, var(--gold));
+    transform: scaleY(0); transition: transform .3s cubic-bezier(.2,.8,.3,1);
+  }
+  .card:hover, .card:focus-visible {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--cc, var(--gold)) 52%, transparent);
+    background: linear-gradient(160deg,
+      color-mix(in srgb, var(--cc) 9%, rgba(19, 24, 46, .8)), rgba(10, 13, 28, .8));
+    box-shadow: 0 18px 44px rgba(0, 0, 0, .45),
+                0 0 30px color-mix(in srgb, var(--cc, var(--gold)) 14%, transparent);
+  }
+  .card:hover::before, .card:focus-visible::before { transform: scaleY(1); }
+  .c-top { display: flex; align-items: center; gap: 11px; }
+  .c-emoji {
+    flex: none; width: 42px; height: 42px; display: grid; place-items: center; font-size: 21px;
+    border-radius: 13px;
+    background: radial-gradient(circle at 36% 30%, color-mix(in srgb, var(--cc) 26%, transparent), rgba(10, 14, 32, .5) 76%);
+    border: 1px solid color-mix(in srgb, var(--cc) 34%, transparent);
+    transition: transform .3s cubic-bezier(.2,.8,.3,1), box-shadow .3s;
+  }
+  .card:hover .c-emoji {
+    transform: scale(1.08) rotate(-4deg);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--cc) 26%, transparent);
+  }
+  .c-date {
+    margin-left: auto; font-size: 11.5px; color: var(--faint);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .c-badge {
+    font-size: 10px; letter-spacing: .16em; text-indent: .16em; white-space: nowrap;
+    color: var(--gold); border: 1px solid rgba(240, 198, 116, .42);
+    background: rgba(240, 198, 116, .08); border-radius: 999px; padding: 2px 8px;
+  }
+  .c-title { font-size: 16px; font-weight: 700; line-height: 1.5; transition: color .25s; }
+  .card:hover .c-title, .card:focus-visible .c-title { color: var(--cc, var(--gold)); }
+  .c-desc {
+    font-size: 12.8px; color: var(--dim); line-height: 1.8;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .c-foot { display: flex; align-items: center; gap: 8px; margin-top: auto; padding-top: 3px; }
+  .c-tag {
+    display: inline-block; font-size: 11px; padding: 2.5px 9px; border-radius: 999px; white-space: nowrap;
+    color: var(--cc, var(--gold));
+    border: 1px solid color-mix(in srgb, var(--cc, var(--gold)) 34%, transparent);
+    background: color-mix(in srgb, var(--cc, var(--gold)) 8%, transparent);
+  }
+  .c-go {
+    margin-left: auto; font-size: 12px; color: var(--faint);
+    opacity: 0; transform: translateX(-4px);
+    transition: opacity .25s, transform .25s, color .25s;
+  }
+  .card:hover .c-go, .card:focus-visible .c-go { opacity: 1; transform: none; color: var(--cc, var(--gold)); }
+  .c-title mark, .c-desc mark {
+    background: color-mix(in srgb, var(--gold) 28%, transparent);
+    color: var(--ink); border-radius: 3px; padding: 0 2px;
+  }
+  /* 隨機挑中的落點高亮 */
+  .card.flash { animation: flash 1.9s ease; }
+  @keyframes flash {
+    0%, 30% {
+      border-color: color-mix(in srgb, var(--cc) 75%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc) 22%, transparent),
+                  0 18px 44px rgba(0, 0, 0, .45);
+      transform: translateY(-4px);
+    }
+    100% { border-color: var(--line); box-shadow: none; transform: none; }
+  }
+
+  .empty { display: none; text-align: center; padding: 70px 0 40px; }
+  body.no-result .empty { display: block; }
+  body.no-result #wall { display: none; }
+  .empty .e-ico { font-size: 40px; opacity: .55; }
+  .empty p { margin-top: 12px; color: var(--dim); font-size: 14.5px; line-height: 1.9; }
+  .empty button {
+    margin-top: 16px; font-family: inherit; font-size: 13px; cursor: pointer;
+    color: var(--gold); background: rgba(40, 32, 12, .38);
+    border: 1px solid rgba(240, 198, 116, .42); border-radius: 999px; padding: 8px 18px;
+    transition: color .2s, border-color .2s;
+  }
+  .empty button:hover { color: #ffe9b8; border-color: rgba(240, 198, 116, .8); }
+
   footer {
-    margin-top: 60px; text-align: center; color: var(--faint);
-    font-size: 12.5px; line-height: 2.15; border-top: 1px solid var(--line); padding-top: 26px;
+    margin-top: 56px; padding-top: 26px; text-align: center;
+    border-top: 1px solid var(--line-soft);
+    color: var(--faint); font-size: 12.5px; line-height: 2;
   }
 
-  /* ── 動態降級與行動裝置 ──────────────────────────── */
+  /* ── 降級與行動裝置 ───────────────────────────────── */
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .neb, .star, .star .core, .star.today::after, .scope .glint,
-    .const-label, #sweep { animation: none !important; }
-    .star .core { opacity: .95; }
-    .row.flash { animation: none; background: rgba(240, 198, 116, .14); }
+    .blob, .h-kicker .dot, .card.flash { animation: none !important; }
+    .card { opacity: 1; transform: none; }
     * { transition-duration: .01s !important; }
   }
+  @media (max-width: 860px) {
+    .tools { margin-left: 0; width: 100%; }
+    #rand { margin-left: auto; }
+  }
   @media (max-width: 560px) {
-    header { padding: 28px 0 0; }
-    .wrap { padding: 0 14px 56px; }
-    #hero { margin-top: 22px; }
-    .h-frame { padding: 20px 18px; }
+    .wrap { padding: 0 14px 60px; }
+    .site-head { padding: 34px 0 0; }
+    .stats { gap: 10px 22px; }
+    .stat b { font-size: 25px; }
+    #hero { margin-top: 28px; }
+    .h-card { padding: 20px 18px; border-radius: 18px; }
     .h-body { flex-direction: column; align-items: flex-start; gap: 16px; }
-    .h-emoji { width: 64px; height: 64px; font-size: 32px; }
+    .h-emoji { width: 66px; height: 66px; font-size: 32px; border-radius: 20px; }
     .h-cta { width: 100%; justify-content: center; }
-    #sky { height: 72vh; min-height: 440px; border-radius: 20px; }
-    .star .name { display: none; }
-    .star:focus-visible .name { display: block; }
-    .const-label { font-size: 10.5px; letter-spacing: .1em; text-indent: .1em; padding: 6px 8px; }
-    .const-label .cnt { font-size: 9.5px; letter-spacing: .2em; text-indent: .2em; }
-    /* 導覽帶改為橫向滑動的小卡列（容器內滑動，頁面不橫向捲動） */
-    #guide { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; scroll-snap-type: x proximity; }
-    .g-card { flex: none; width: 216px; scroll-snap-align: start; }
-    .lg-head { padding: 14px 20px 10px; }
-    .row { grid-template-columns: 1fr; padding: 16px 20px; }
+    .bar { gap: 10px; padding: 10px 0; }
+    .bar::before { inset: 6px -8px; border-radius: 14px; }
+    .chips {
+      flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .chips::-webkit-scrollbar { display: none; }
+    .search kbd { display: none; }
+    #wall { padding-left: 20px; }
+    #wall::before { left: 3px; }
+    .g-head::before { left: -21px; width: 9px; height: 9px; }
+    .g-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
-<body data-mode="sky">
-<canvas id="dust" aria-hidden="true"></canvas>
-<div id="nebula" aria-hidden="true">
-  <div class="neb" style="left:2%;  top:6%;    --nc: var(--c-trivia); animation-delay:-12s"></div>
-  <div class="neb" style="right:0%; top:2%;    --nc: var(--c-tool);   animation-delay:-40s"></div>
-  <div class="neb" style="left:4%;  bottom:0%; --nc: var(--c-learn);  animation-delay:-64s"></div>
-  <div class="neb" style="right:3%; bottom:4%; --nc: var(--c-fun);    animation-delay:-27s"></div>
+<body>
+<div id="aurora" aria-hidden="true">
+  <div class="blob" style="left:0%;  top:2%;    --nc: var(--c-trivia); animation-delay:-10s"></div>
+  <div class="blob" style="right:0%; top:-4%;   --nc: var(--c-fun);    animation-delay:-38s"></div>
+  <div class="blob" style="left:8%;  bottom:6%; --nc: var(--c-sci);    animation-delay:-60s"></div>
+  <div class="blob" style="right:4%; bottom:0%; --nc: var(--c-learn);  animation-delay:-26s"></div>
 </div>
+<div id="grid-bg" aria-hidden="true"></div>
 
 <div class="wrap">
-  <header>
-    <svg class="scope" viewBox="0 0 120 86" width="112" height="80" aria-hidden="true"
-         fill="none" stroke="#9fb2e8" stroke-linecap="round" stroke-linejoin="round">
-      <!-- 手繪感小望遠鏡 -->
-      <path d="M29 56 C42 48, 56 39, 70 30" stroke-width="10.5" opacity=".92"/>
-      <path d="M21 62 C24 60, 27 58, 30 56" stroke-width="6" opacity=".8"/>
-      <ellipse cx="71" cy="29.5" rx="3" ry="5.6" transform="rotate(-33 71 29.5)" stroke-width="1.6" opacity=".9"/>
-      <circle cx="50" cy="46" r="2.6" fill="#9fb2e8" stroke="none" opacity=".95"/>
-      <path d="M50 48 C46 58, 41 69, 36 79" stroke-width="2"/>
-      <path d="M50 48 C54 58, 59 69, 64 79" stroke-width="2"/>
-      <path d="M50 49 C50 57, 50 66, 50 74" stroke-width="2" opacity=".7"/>
-      <path d="M76 25 C85 19, 93 14, 101 9" stroke="#f0c674" stroke-width="1.4" stroke-dasharray="1 5.5" opacity=".85"/>
-      <g class="glint" stroke="#f0c674" stroke-width="1.6">
-        <path d="M106 1.5 L106 12.5"/>
-        <path d="M100.5 7 L111.5 7"/>
-        <path d="M102.8 3.8 L109.2 10.2" opacity=".55"/>
-        <path d="M109.2 3.8 L102.8 10.2" opacity=".55"/>
-      </g>
-    </svg>
-    <div class="kicker">NIGHT OBSERVATORY · 夜空天文台</div>
-    <h1>每日小專案</h1>
-    <p class="subtitle">
-      每天早上，夜空多亮起一顆新的星。<br>
-      目前收錄 <span class="count" id="count">0</span> 顆星 · 全部離線可用 · 資料只留在你的瀏覽器
-    </p>
+  <header class="site-head">
+    <div class="kicker rise" style="--rd:.05s">DAILY PROJECTS · 索引室</div>
+    <h1 class="rise" style="--rd:.12s">每日小專案</h1>
+    <p class="lede rise" style="--rd:.18s">每天長出一個新的小東西——玩具、實驗、小工具。這裡是它們的索引。</p>
+    <div class="stats rise" style="--rd:.24s">
+      <div class="stat"><b id="sN">0</b><span>件作品</span></div>
+      <div class="stat"><b id="sC">0</b><span>個類別</span></div>
+      <div class="stat"><b id="sD">0</b><span>個日子</span></div>
+    </div>
   </header>
 
-  <section id="hero" aria-label="今日之星"></section>
+  <section id="hero" class="rise" style="--rd:.3s" aria-label="今日之星"></section>
 
-  <div class="controls">
-    <div class="mode" role="group" aria-label="檢視模式">
-      <button type="button" id="modeSky"  aria-pressed="true">✦ 星圖模式</button>
-      <button type="button" id="modeList" aria-pressed="false">☰ 清單模式</button>
+  <div class="bar">
+    <div class="search">
+      <span class="ico" aria-hidden="true">🔍</span>
+      <label class="sr-only" for="q">搜尋作品</label>
+      <input id="q" type="search" placeholder="搜尋作品名稱、介紹或類別…" autocomplete="off">
+      <kbd aria-hidden="true">/</kbd>
+      <button type="button" id="qx" aria-label="清除搜尋">✕</button>
     </div>
-    <nav class="chips" id="chips" aria-label="星座篩選"></nav>
-    <button type="button" id="randomBtn" class="rand">🔭 隨機觀星</button>
+    <nav class="chips" id="chips" aria-label="類別篩選"></nav>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="排列方式">
+        <button type="button" id="grpDate" aria-pressed="true">時間軸</button>
+        <button type="button" id="grpCat"  aria-pressed="false">分類</button>
+      </div>
+      <button type="button" id="rand">🎲 隨機</button>
+    </div>
   </div>
 
-  <section id="skyWrap" aria-label="作品星圖">
-    <div id="sky">
-      <svg id="lines" viewBox="0 0 100 62" preserveAspectRatio="none" aria-hidden="true">
-        <g class="grat" stroke-width=".14">
-          <ellipse cx="50" cy="31" rx="40" ry="24"/>
-          <ellipse cx="50" cy="31" rx="24" ry="14"/>
-          <path d="M50 4 L50 58"/>
-          <path d="M8 31 L92 31"/>
-        </g>
-        <g id="clines"></g>
-      </svg>
-      <div id="sweep" aria-hidden="true"></div>
-    </div>
-    <p class="sky-hint">游標掠過星星可讀星曆 · 點星座之名讓它獨自亮起 · 觸控先點一下選星，再點一次啟程</p>
-  </section>
+  <p class="result" id="result"></p>
 
-  <section id="listView" aria-label="作品清單"></section>
-  <div class="empty" id="empty">這個星座還沒有星星，明天日出後再來看看 🌅</div>
+  <main id="wall"></main>
 
-  <div id="card" role="dialog" aria-labelledby="cTitle" aria-hidden="true">
-    <div class="c-top">
-      <span class="c-date" id="cDate"></span>
-      <span class="c-tag" id="cTag"></span>
-    </div>
-    <h3><span class="emoji" id="cEmoji"></span><span id="cTitle"></span></h3>
-    <p id="cDesc"></p>
-    <span class="c-go">點擊星星，開啟作品 →</span>
-    <div class="c-actions">
-      <a class="c-btn" id="cGo" href="#">進入作品 →</a>
-      <button type="button" class="c-x" id="cClose" aria-label="關閉資訊卡">✕</button>
-    </div>
+  <div class="empty" id="empty">
+    <div class="e-ico" aria-hidden="true">🔭</div>
+    <p>沒有符合的作品。<br>換個關鍵字，或看看其他類別。</p>
+    <button type="button" id="resetBtn">顯示全部作品</button>
   </div>
 
   <footer>
-    每天一顆新的星，慢慢把這片天空點亮。
+    每天一個小東西，慢慢長成一整片。
   </footer>
 </div>
 <span class="sr-only" id="live" role="status" aria-live="polite"></span>
@@ -713,27 +574,26 @@ const PROJECTS = [
 ];
 
 /* ==========================================================================
- * 以下為「夜空天文台」渲染引擎：星座配置、星圖、清單、資訊卡、星塵與流星
+ * 索引室渲染引擎：搜尋、類別篩選、時間軸／分類分組、隨機、進場編排
  * ========================================================================== */
-/* 六大星座：上排三座、下排三座（座標為 #sky 的百分比） */
 const CAT_META = {
-  "網路趣聞・冷知識": { key: "trivia", color: "var(--c-trivia)", cx: 18, cy: 33, rx: 11, ry: 15, lx: 17, ly: 8 },
-  "奇聞軼事":         { key: "odd",    color: "var(--c-odd)",    cx: 50, cy: 31, rx: 11, ry: 14, lx: 50, ly: 8 },
-  "生活痛點小工具":   { key: "tool",   color: "var(--c-tool)",   cx: 82, cy: 33, rx: 11, ry: 15, lx: 83, ly: 8 },
-  "學習新知":         { key: "learn",  color: "var(--c-learn)",  cx: 18, cy: 72, rx: 11, ry: 13, lx: 17, ly: 95 },
-  "科學趣聞":         { key: "sci",    color: "var(--c-sci)",    cx: 50, cy: 74, rx: 11, ry: 12, lx: 50, ly: 95 },
-  "創意・娛樂":       { key: "fun",    color: "var(--c-fun)",    cx: 82, cy: 72, rx: 11, ry: 14, lx: 83, ly: 95 },
+  "網路趣聞・冷知識": { color: "var(--c-trivia)" },
+  "奇聞軼事":         { color: "var(--c-odd)" },
+  "科學趣聞":         { color: "var(--c-sci)" },
+  "學習新知":         { color: "var(--c-learn)" },
+  "生活痛點小工具":   { color: "var(--c-tool)" },
+  "創意・娛樂":       { color: "var(--c-fun)" },
 };
 const CAT_NAMES = Object.keys(CAT_META);
-
-/* 動態監聽 reduced-motion（隨系統設定即時啟停動畫，非僅載入時讀一次） */
-const mReduced = matchMedia("(prefers-reduced-motion: reduce)");
-const reduced = () => mReduced.matches;
+const catColor = c => (CAT_META[c] || {}).color || "var(--gold)";
 
 const $ = id => document.getElementById(id);
 /* HTML 轉義：所有以 innerHTML 內插的資料欄位一律經過這裡 */
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const mReduced = matchMedia("(prefers-reduced-motion: reduce)");
+const reduced = () => mReduced.matches;
 
 const liveEl = $("live");
 function announce(msg) {
@@ -741,248 +601,149 @@ function announce(msg) {
   setTimeout(() => { liveEl.textContent = msg; }, 40);
 }
 
-/* 由字串生成穩定的偽亂數（同一顆星每天開啟都落在同個位置） */
-function hashStr(s) {
-  let x = 2166136261 >>> 0;
-  for (const ch of s) { x ^= ch.codePointAt(0); x = Math.imul(x, 16777619) >>> 0; }
-  return x;
-}
-function seeded(seed) {
-  let t = seed >>> 0;
-  return function () {
-    t = (t + 0x6D2B79F5) >>> 0;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
+/* 搜尋命中處標上 <mark>（先轉義再插標記） */
+function mark(text, q) {
+  if (!q) return esc(text);
+  const lower = String(text).toLowerCase();
+  const needle = q.toLowerCase();
+  let out = "", from = 0, i;
+  while ((i = lower.indexOf(needle, from)) !== -1) {
+    out += esc(text.slice(from, i)) + "<mark>" + esc(text.slice(i, i + needle.length)) + "</mark>";
+    from = i + needle.length;
+  }
+  return out + esc(text.slice(from));
 }
 
-/* ── 星座配置：黃金角螺旋佈點 + 斥力鬆弛，避免星星互相貼疊 ── */
-function layoutStars() {
-  const pts = [];
-  for (const cat of CAT_NAMES) {
-    const m = CAT_META[cat];
-    const members = [];
-    PROJECTS.forEach((p, gi) => { if (p.category === cat) members.push({ p, gi }); });
-    const n = members.length;
-    members.forEach(({ p, gi }, i) => {
-      const rnd = seeded(hashStr(p.dir));
-      const ang = i * 2.399963 + rnd() * 6.283;
-      const rad = Math.sqrt((i + 0.55) / n);
-      pts.push({
-        p, gi, cat,
-        x: m.cx + Math.cos(ang) * m.rx * rad + (rnd() - 0.5) * 4,
-        y: m.cy + Math.sin(ang) * m.ry * rad + (rnd() - 0.5) * 4,
-      });
-    });
-  }
-  /* 鬆弛：在等比空間中把太近的星推開 */
-  for (let iter = 0; iter < 60; iter++) {
-    let moved = false;
-    for (let a = 0; a < pts.length; a++) {
-      for (let b = a + 1; b < pts.length; b++) {
-        const dx = (pts[a].x - pts[b].x) * 1.8;
-        const dy = pts[a].y - pts[b].y;
-        const d = Math.hypot(dx, dy) || 0.01;
-        const min = 10.5;
-        if (d < min) {
-          const push = (min - d) / 2;
-          const ux = dx / d, uy = dy / d;
-          pts[a].x += ux * push / 1.8; pts[a].y += uy * push;
-          pts[b].x -= ux * push / 1.8; pts[b].y -= uy * push;
-          moved = true;
-        }
-      }
-    }
-    if (!moved) break;
-  }
-  for (const pt of pts) {
-    pt.x = Math.min(93, Math.max(7, pt.x));
-    pt.y = Math.min(85, Math.max(15, pt.y));
-    pt.size = pt.gi === 0 ? 30 : Math.max(13, 24 - pt.gi * 0.55);
-  }
-  return pts;
+const state = { q: "", cat: null, group: "date" };
+
+function matches(p) {
+  if (state.cat && p.category !== state.cat) return false;
+  if (!state.q) return true;
+  const hay = (p.title + " " + p.desc + " " + p.category + " " + p.date).toLowerCase();
+  return hay.includes(state.q.toLowerCase());
 }
 
-/* ── 星名避讓：估算星名文字盒，逼近星座標籤帶或彼此重疊時翻到星星上方 ── */
-function resolveNameOverlaps(pts) {
-  const W = 1000, H = 600, CW = 13.5, NH = 15;
-  const box = (pt, up) => {
-    const w = pt.p.title.length * CW + 6;
-    const x = pt.x / 100 * W, y = pt.y / 100 * H, half = pt.size / 2;
-    const top = up ? y - half - 9 - NH : y + half + 9;
-    return { l: x - w / 2, r: x + w / 2, t: top, b: top + NH };
-  };
-  const hit = (A, B) => A.l < B.r && B.l < A.r && A.t < B.b && B.t < A.b;
-  /* 貼近底部星座標籤（如「深夜電台」）→ 一律翻上；今日之星上方有徽章，不翻 */
-  for (const pt of pts) pt.nameUp = pt.gi !== 0 && pt.y >= 84;
-  const ordered = [...pts].sort((a, b) => a.gi - b.gi);
-  for (let i = 0; i < ordered.length; i++) {
-    for (let j = i + 1; j < ordered.length; j++) {
-      const A = ordered[i], B = ordered[j];
-      if (hit(box(A, A.nameUp), box(B, B.nameUp)) &&
-          B.gi !== 0 && !B.nameUp && B.y > 24 && !hit(box(A, A.nameUp), box(B, true))) {
-        B.nameUp = true;
-      }
-    }
-  }
-}
-
-const skyEl = document.getElementById("sky");
-const clinesEl = document.getElementById("clines");
-const sweepEl = document.getElementById("sweep");
-const starPts = layoutStars();
-resolveNameOverlaps(starPts);
-
-/* ── 今日之星 hero 主打卡（直接取 PROJECTS[0] 渲染） ── */
+/* ── 今日之星（永遠是陣列第一筆） ── */
 function renderHero() {
   const p = PROJECTS[0];
-  const m = CAT_META[p.category] || { color: "var(--gold)" };
+  if (!p) return;
   const hero = $("hero");
-  hero.style.setProperty("--cc", m.color);
+  hero.style.setProperty("--cc", catColor(p.category));
   hero.innerHTML = `
-    <div class="h-frame">
-      <p class="h-kicker">觀測日誌 · 今日之星<span class="h-date">${esc(p.date)}</span></p>
+    <a class="h-card" href="./${esc(p.dir)}/index.html">
+      <p class="h-kicker"><span class="dot" aria-hidden="true"></span>今日之星<span class="h-date">${esc(p.date)}</span></p>
       <div class="h-body">
         <span class="h-emoji" aria-hidden="true">${esc(p.emoji)}</span>
         <div class="h-main">
-          <span class="h-tag">${esc(p.category)}</span>
+          <span class="c-tag">${esc(p.category)}</span>
           <h2 class="h-title">${esc(p.title)}</h2>
           <p class="h-desc">${esc(p.desc)}</p>
         </div>
-        <a class="h-cta" href="./${esc(p.dir)}/index.html">進入作品 <span aria-hidden="true">→</span></a>
+        <span class="h-cta">進入作品 <span aria-hidden="true">→</span></span>
       </div>
-    </div>`;
-  /* hero ⇄ 星圖脈動呼應：hover / 聚焦 hero 時，星圖上的今日之星一起亮起 */
-  const link = on => {
-    const s = skyEl.querySelector(".star.today");
-    if (s) s.classList.toggle("hero-lit", on);
-  };
-  hero.addEventListener("pointerenter", () => link(true));
-  hero.addEventListener("pointerleave", () => link(false));
-  hero.addEventListener("focusin", () => link(true));
-  hero.addEventListener("focusout", () => link(false));
-}
-
-/* ── 星圖渲染 ── */
-function renderSky() {
-  const N = PROJECTS.length;
-  /* 星座名（即篩選鈕） */
-  for (const cat of CAT_NAMES) {
-    const m = CAT_META[cat];
-    const count = PROJECTS.filter(p => p.category === cat).length;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "const-label";
-    btn.dataset.cat = cat;
-    btn.style.setProperty("--cc", m.color);
-    btn.style.left = m.lx + "%";
-    btn.style.top = m.ly + "%";
-    /* 尚無作品的星座：極淡的「未觀測星域」標籤，靜候第一顆星 */
-    if (!count) btn.classList.add("await");
-    btn.innerHTML = `<span>${esc(cat)}</span><span class="cnt">${count ? `✦ ${count} 星` : "未觀測"}</span>`;
-    btn.setAttribute("aria-pressed", "false");
-    btn.addEventListener("click", () => toggleCat(cat));
-    skyEl.appendChild(btn);
-  }
-  /* 每一顆星（開場儀式：依日期由舊到新逐顆點亮，總長約 1.2s） */
-  for (const pt of starPts) {
-    const m = CAT_META[pt.cat];
-    const a = document.createElement("a");
-    a.className = "star" + (pt.gi === 0 ? " today" : "");
-    a.href = `./${pt.p.dir}/index.html`;
-    a.dataset.cat = pt.cat;
-    a.dataset.gi = pt.gi;
-    a.style.left = pt.x + "%";
-    a.style.top = pt.y + "%";
-    a.style.setProperty("--s", pt.size.toFixed(1) + "px");
-    a.style.setProperty("--cc", m.color);
-    a.style.setProperty("--ld", ((N - 1 - pt.gi) * 0.044).toFixed(3) + "s");
-    const rnd = seeded(hashStr(pt.p.title));
-    a.style.setProperty("--dur", (2.8 + rnd() * 3.2).toFixed(2) + "s");
-    a.style.setProperty("--ph", (-rnd() * 4).toFixed(2) + "s");
-    a.setAttribute("aria-label", `${pt.p.title}（${pt.p.date}・${pt.p.category}）${pt.p.desc}`);
-    a.innerHTML = `<span class="core"></span>` +
-                  `<span class="name${pt.nameUp ? " up" : ""}">${esc(pt.p.title)}</span>` +
-                  (pt.gi === 0 ? `<span class="badge">今日之星</span>` : "");
-    skyEl.appendChild(a);
-  }
-  /* 星座連線（依時間順序把星連起來） */
-  for (const cat of CAT_NAMES) {
-    const m = CAT_META[cat];
-    const members = starPts.filter(pt => pt.cat === cat).sort((u, v) => v.gi - u.gi);
-    const poly = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    poly.setAttribute("class", "cline " + m.key);
-    poly.setAttribute("points", members.map(pt => `${pt.x.toFixed(2)},${(pt.y * 0.62).toFixed(2)}`).join(" "));
-    poly.setAttribute("stroke", m.color);
-    clinesEl.appendChild(poly);
-  }
-}
-
-/* ── 清單渲染 ── */
-function renderList() {
-  const list = document.getElementById("listView");
-  list.innerHTML = PROJECTS.map((p, gi) => {
-    const m = CAT_META[p.category] || { color: "var(--gold)" };
-    return `
-    <a class="row" href="./${esc(p.dir)}/index.html" data-cat="${esc(p.category)}" data-gi="${gi}" style="--cc:${m.color}">
-      <span class="r-date"><span class="pip">✦</span>${esc(p.date)}</span>
-      <span class="r-main">
-        <span class="r-title"><span class="emoji">${esc(p.emoji)}</span>${esc(p.title)}${gi === 0 ? '<span class="tbadge">今日之星</span>' : ""}</span>
-        <span class="r-desc">${esc(p.desc)}</span>
-      </span>
-      <span class="r-tag">${esc(p.category)}</span>
     </a>`;
-  }).join("");
 }
 
-/* ── 星座篩選 ── */
-let activeCat = null;
-function setFilter(cat) {
-  activeCat = cat;
-  clearSelection();
-  if (cat) skyEl.dataset.active = CAT_META[cat].key;
-  else delete skyEl.dataset.active;
-  skyEl.querySelectorAll(".star").forEach(s => {
-    const on = !cat || s.dataset.cat === cat;
-    s.classList.toggle("on", on);
-    /* 被篩掉的星：移出 tab 順序並對輔助科技隱藏，避免誤點誤讀 */
-    s.tabIndex = on ? 0 : -1;
-    s.setAttribute("aria-hidden", String(!on));
-  });
-  skyEl.querySelectorAll(".const-label").forEach(l => {
-    const on = l.dataset.cat === cat;
-    l.classList.toggle("on", on);
-    l.setAttribute("aria-pressed", String(on));
-  });
-  document.querySelectorAll("#chips .chip").forEach(c => {
-    c.setAttribute("aria-pressed", String((c.dataset.cat || null) === cat || (!cat && !c.dataset.cat)));
-  });
-  let shown = 0;
-  document.querySelectorAll("#listView .row").forEach(r => {
-    const hide = cat && r.dataset.cat !== cat;
-    r.classList.toggle("hide", hide);
-    if (!hide) shown++;
-  });
-  document.getElementById("empty").style.display =
-    (document.body.dataset.mode === "list" && shown === 0) ? "block" : "none";
-}
-function toggleCat(cat) {
-  const next = activeCat === cat ? null : cat;
-  setFilter(next);
-  announce(next
-    ? `已聚焦「${next}」星座，共 ${PROJECTS.filter(p => p.category === next).length} 件作品`
-    : "已顯示全部星空");
+/* ── 卡片牆：依「時間軸（年月）」或「分類」分組 ── */
+function cardHTML(p, gi) {
+  const parts = p.date.split("-");
+  return `
+    <a class="card" href="./${esc(p.dir)}/index.html" data-gi="${gi}" style="--cc:${catColor(p.category)}"
+       aria-label="${esc(p.title)}（${esc(p.date)}・${esc(p.category)}）${esc(p.desc)}">
+      <span class="c-top">
+        <span class="c-emoji" aria-hidden="true">${esc(p.emoji)}</span>
+        ${gi === 0 ? '<span class="c-badge">今日之星</span>' : ""}
+        <span class="c-date">${esc(parts[1])}／${esc(parts[2])}</span>
+      </span>
+      <span class="c-title">${mark(p.title, state.q)}</span>
+      <span class="c-desc">${mark(p.desc, state.q)}</span>
+      <span class="c-foot">
+        <span class="c-tag">${esc(p.category)}</span>
+        <span class="c-go">開啟 →</span>
+      </span>
+    </a>`;
 }
 
+function groupsOf(items) {
+  const groups = [];
+  const byKey = new Map();
+  const push = (key, title, color, it) => {
+    let g = byKey.get(key);
+    if (!g) { g = { key, title, color, items: [] }; byKey.set(key, g); groups.push(g); }
+    g.items.push(it);
+  };
+  if (state.group === "cat") {
+    /* 分類模式：固定六類順序，空類別不出現 */
+    for (const cat of CAT_NAMES) {
+      for (const it of items) if (it.p.category === cat) push(cat, cat, catColor(cat), it);
+    }
+  } else {
+    /* 時間軸模式：依陣列順序（新→舊）分月 */
+    for (const it of items) {
+      const [y, m] = it.p.date.split("-");
+      push(y + "-" + m, `${y} 年 ${Number(m)} 月`, "var(--gold)", it);
+    }
+  }
+  return groups;
+}
+
+const wallEl = $("wall");
+let io = null;
+
+function renderWall() {
+  const items = PROJECTS.map((p, gi) => ({ p, gi })).filter(it => matches(it.p));
+  document.body.classList.toggle("no-result", items.length === 0);
+
+  const bits = [];
+  if (state.cat) bits.push(`類別「${state.cat}」`);
+  if (state.q) bits.push(`關鍵字「${state.q}」`);
+  $("result").innerHTML = bits.length
+    ? `${esc(bits.join(" · "))}　顯示 <b>${items.length}</b> / ${PROJECTS.length} 件`
+    : `依${state.group === "cat" ? "分類" : "時間"}排列 · 共 <b>${PROJECTS.length}</b> 件作品`;
+
+  wallEl.innerHTML = groupsOf(items).map(g => `
+    <section class="group" style="--cc:${g.color}">
+      <header class="g-head">
+        <h2 class="g-title">${esc(g.title)}</h2>
+        <span class="g-n">${g.items.length} 件</span>
+        <span class="g-rule" aria-hidden="true"></span>
+      </header>
+      <div class="g-grid">${g.items.map(it => cardHTML(it.p, it.gi)).join("")}</div>
+    </section>`).join("");
+
+  revealCards();
+}
+
+/* 進場編排：進入視窗時依序浮現（每批最多疊 8 段延遲，總長 ≤ .4s） */
+function revealCards() {
+  const cards = wallEl.querySelectorAll(".card");
+  if (io) io.disconnect();
+  if (reduced() || !("IntersectionObserver" in window)) {
+    cards.forEach(c => c.classList.add("in"));
+    return;
+  }
+  io = new IntersectionObserver((entries, obs) => {
+    let i = 0;
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      e.target.style.setProperty("--d", (Math.min(i, 8) * 0.045).toFixed(3) + "s");
+      e.target.classList.add("in");
+      obs.unobserve(e.target);
+      i++;
+    }
+  }, { rootMargin: "90px 0px" });
+  cards.forEach(c => io.observe(c));
+}
+
+/* ── 類別籌碼 ── */
 function renderChips() {
-  const nav = document.getElementById("chips");
+  const nav = $("chips");
   const all = document.createElement("button");
   all.type = "button";
   all.className = "chip";
-  all.innerHTML = `<span class="dot">✦</span>全部星空<span class="n">${PROJECTS.length}</span>`;
+  all.innerHTML = `<span class="dot"></span>全部<span class="n">${PROJECTS.length}</span>`;
   all.setAttribute("aria-pressed", "true");
-  all.addEventListener("click", () => { setFilter(null); announce("已顯示全部星空"); });
+  all.addEventListener("click", () => setCat(null));
   nav.appendChild(all);
   for (const cat of CAT_NAMES) {
     const count = PROJECTS.filter(p => p.category === cat).length;
@@ -990,315 +751,128 @@ function renderChips() {
     btn.type = "button";
     btn.className = "chip";
     btn.dataset.cat = cat;
-    btn.style.setProperty("--cc", CAT_META[cat].color);
-    btn.innerHTML = `<span class="dot">✦</span>${esc(cat)}<span class="n">${count}</span>`;
+    btn.style.setProperty("--cc", catColor(cat));
+    btn.innerHTML = `<span class="dot"></span>${esc(cat)}<span class="n">${count}</span>`;
     btn.setAttribute("aria-pressed", "false");
-    btn.addEventListener("click", () => toggleCat(cat));
+    btn.addEventListener("click", () => setCat(state.cat === cat ? null : cat));
     nav.appendChild(btn);
   }
 }
-
-/* ── 星圖 ⇄ 清單 模式切換 ── */
-function setMode(mode) {
-  document.body.dataset.mode = mode;
-  document.getElementById("modeSky").setAttribute("aria-pressed", String(mode === "sky"));
-  document.getElementById("modeList").setAttribute("aria-pressed", String(mode === "list"));
-  try { localStorage.setItem("observatory-mode", mode); } catch (e) {}
-  setFilter(activeCat);
+function syncChips() {
+  document.querySelectorAll("#chips .chip").forEach(c => {
+    c.setAttribute("aria-pressed", String((c.dataset.cat || null) === state.cat));
+  });
 }
-document.getElementById("modeSky").addEventListener("click", () => setMode("sky"));
-document.getElementById("modeList").addEventListener("click", () => setMode("list"));
-
-/* ── 資訊卡（星曆）與觸控選取 ──
-   桌面滑鼠：掠過即讀、點擊即進（行為不變）。
-   觸控裝置：第一次點星＝選取並釘選資訊卡（含進入按鈕），再點一次才導航。 */
-const cardEl = document.getElementById("card");
-let selectedStar = null;
-
-function showCard(starEl, pin = false) {
-  const gi = Number(starEl.dataset.gi);
-  const p = PROJECTS[gi];
-  if (!p) return;
-  const m = CAT_META[p.category] || { color: "var(--gold)" };
-  cardEl.style.setProperty("--cc", m.color);
-  document.getElementById("cDate").textContent = p.date + (gi === 0 ? " · 今日之星" : "");
-  document.getElementById("cTag").textContent = p.category;
-  document.getElementById("cEmoji").textContent = p.emoji;
-  document.getElementById("cTitle").textContent = p.title;
-  document.getElementById("cDesc").textContent = p.desc;
-  document.getElementById("cGo").setAttribute("href", starEl.getAttribute("href"));
-  cardEl.classList.toggle("pinned", pin);
-  cardEl.setAttribute("aria-hidden", "false");
-  if (innerWidth <= 560) {
-    cardEl.classList.add("sheet");
-  } else {
-    cardEl.classList.remove("sheet");
-    const r = starEl.getBoundingClientRect();
-    const cw = 336, ch = cardEl.offsetHeight || 170;
-    let x = r.right + 20;
-    if (x + cw > innerWidth - 10) x = r.left - cw - 20;
-    if (x < 10) x = Math.min(innerWidth - cw - 10, Math.max(10, r.left + r.width / 2 - cw / 2));
-    let y = r.top + r.height / 2 - ch / 2;
-    y = Math.min(innerHeight - ch - 12, Math.max(12, y));
-    cardEl.style.left = x + "px";
-    cardEl.style.top = y + "px";
-  }
-  cardEl.classList.add("show");
-  if (m.key) skyEl.dataset.glow = m.key; else delete skyEl.dataset.glow;
-  /* 反向呼應：讀到今日之星時，hero 卡的金邊也亮起 */
-  $("hero").classList.toggle("star-lit", gi === 0);
-}
-function hideCard() {
-  cardEl.classList.remove("show", "pinned");
-  cardEl.setAttribute("aria-hidden", "true");
-  delete skyEl.dataset.glow;
-  $("hero").classList.remove("star-lit");
-}
-function selectStar(starEl) {
-  if (selectedStar) selectedStar.classList.remove("picked");
-  selectedStar = starEl;
-  starEl.classList.add("picked");
-  showCard(starEl, true);
-}
-function clearSelection() {
-  if (selectedStar) selectedStar.classList.remove("picked");
-  selectedStar = null;
-  hideCard();
+function setCat(cat) {
+  state.cat = cat;
+  syncChips();
+  renderWall();
+  announce(cat
+    ? `已篩選「${cat}」，共 ${PROJECTS.filter(p => p.category === cat).length} 件`
+    : "已顯示全部作品");
 }
 
-/* 滑鼠／筆的掠過閱讀（觸控交給點擊流程） */
-skyEl.addEventListener("pointerover", e => {
-  if (e.pointerType === "touch") return;
-  const s = e.target.closest(".star");
-  if (!s) return;
-  if (selectedStar && s !== selectedStar) { selectedStar.classList.remove("picked"); selectedStar = null; }
-  showCard(s, s === selectedStar);
+/* ── 搜尋 ── */
+const qEl = $("q");
+let qTimer = null;
+qEl.addEventListener("input", () => {
+  const v = qEl.value.trim();
+  document.body.classList.toggle("searching", qEl.value !== "");
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => {
+    state.q = v;
+    renderWall();
+    if (v) announce(`搜尋「${v}」，找到 ${PROJECTS.filter(matches).length} 件`);
+  }, 120);
 });
-skyEl.addEventListener("pointerout", e => {
-  if (e.pointerType === "touch") return;
-  const s = e.target.closest(".star");
-  if (s && !s.contains(e.relatedTarget) && !selectedStar) hideCard();
+qEl.addEventListener("keydown", e => {
+  if (e.key === "Escape") { e.preventDefault(); clearSearch(); }
 });
-skyEl.addEventListener("focusin", e => {
-  const s = e.target.closest(".star");
-  if (s) showCard(s, s === selectedStar);
+function clearSearch() {
+  qEl.value = "";
+  state.q = "";
+  document.body.classList.remove("searching");
+  renderWall();
+  qEl.focus();
+}
+$("qx").addEventListener("click", clearSearch);
+$("resetBtn").addEventListener("click", () => {
+  qEl.value = "";
+  state.q = "";
+  state.cat = null;
+  document.body.classList.remove("searching");
+  syncChips();
+  renderWall();
+  announce("已顯示全部作品");
 });
-skyEl.addEventListener("focusout", e => {
-  const s = e.target.closest(".star");
-  if (s && !selectedStar) hideCard();
+/* 「/」聚焦搜尋框 */
+addEventListener("keydown", e => {
+  if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+  e.preventDefault();
+  qEl.focus();
+  qEl.select();
 });
 
-/* 觸控雙段式：第一次點＝選取，第二次點＝進入 */
-let lastPointerType = "";
-skyEl.addEventListener("pointerdown", e => { lastPointerType = e.pointerType; }, true);
-skyEl.addEventListener("click", e => {
-  const s = e.target.closest(".star");
-  const wasTouch = lastPointerType === "touch" && e.detail > 0;
-  lastPointerType = "";
-  if (!s) return;
-  if (wasTouch && selectedStar !== s) {
-    e.preventDefault();
-    selectStar(s);
-  }
-});
-document.addEventListener("click", e => {
-  if (!selectedStar) return;
-  if (e.target.closest("#card") || e.target.closest(".star") || e.target.closest("#randomBtn")) return;
-  clearSelection();
-});
-$("cClose").addEventListener("click", clearSelection);
-addEventListener("keydown", e => { if (e.key === "Escape") clearSelection(); });
-addEventListener("scroll", () => {
-  /* 底部固定的釘選小卡（行動裝置）不隨捲動關閉 */
-  if (!(cardEl.classList.contains("sheet") && cardEl.classList.contains("pinned"))) hideCard();
-}, { passive: true });
+/* ── 分組切換 ── */
+function setGroup(g) {
+  state.group = g;
+  $("grpDate").setAttribute("aria-pressed", String(g === "date"));
+  $("grpCat").setAttribute("aria-pressed", String(g === "cat"));
+  try { localStorage.setItem("index.group", g); } catch (e) {}
+  renderWall();
+}
+$("grpDate").addEventListener("click", () => { setGroup("date"); announce("依時間軸排列"); });
+$("grpCat").addEventListener("click", () => { setGroup("cat"); announce("依分類排列"); });
 
-/* ── 隨機觀星：柔光掃過星空，隨機停在一顆星 ── */
-const randBtn = $("randomBtn");
+/* ── 隨機：在目前篩選結果中挑一件，捲過去並亮起來 ── */
 let lastPick = -1;
-randBtn.addEventListener("click", () => {
-  if (randBtn.disabled) return;
-  const pool = PROJECTS.map((p, gi) => gi).filter(gi => !activeCat || PROJECTS[gi].category === activeCat);
+$("rand").addEventListener("click", () => {
+  const pool = PROJECTS.map((p, gi) => gi).filter(gi => matches(PROJECTS[gi]));
   if (!pool.length) return;
   let gi = pool[Math.floor(Math.random() * pool.length)];
   if (pool.length > 1 && gi === lastPick) gi = pool[(pool.indexOf(gi) + 1) % pool.length];
   lastPick = gi;
-  const p = PROJECTS[gi];
-
-  if (document.body.dataset.mode === "list") {
-    const row = document.querySelector(`#listView .row[data-gi="${gi}"]`);
-    if (!row) return;
-    row.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "center" });
-    row.classList.remove("flash");
-    void row.offsetWidth;
-    row.classList.add("flash");
-    setTimeout(() => row.classList.remove("flash"), 1900);
-    announce(`觀測到：${p.title}`);
-    return;
-  }
-
-  const star = skyEl.querySelector(`.star[data-gi="${gi}"]`);
-  if (!star) return;
-  const skyR = skyEl.getBoundingClientRect();
-  if (skyR.top < 0 || skyR.bottom > innerHeight) {
-    skyEl.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "nearest" });
-  }
-  const finish = () => {
-    randBtn.disabled = false;
-    if (document.body.dataset.mode !== "sky") return;
-    selectStar(star);
-    announce(`觀測到：${p.title}`);
-  };
-  if (reduced() || !sweepEl.animate) { finish(); return; }
-  randBtn.disabled = true;
-  const w = skyEl.clientWidth;
-  const x1 = w * (parseFloat(star.style.left) / 100);
-  const dur = 550 + 600 * (Math.max(x1 + 90, 120) / (w + 90));
-  const anim = sweepEl.animate([
-    { transform: "translate3d(-90px, 0, 0)", opacity: 0 },
-    { transform: `translate3d(${(-90 + (x1 + 90) * 0.2).toFixed(1)}px, 0, 0)`, opacity: 1, offset: 0.2 },
-    { transform: `translate3d(${x1.toFixed(1)}px, 0, 0)`, opacity: 0.9, offset: 0.85 },
-    { transform: `translate3d(${x1.toFixed(1)}px, 0, 0)`, opacity: 0 },
-  ], { duration: dur, easing: "cubic-bezier(.33,.72,.28,1)" });
-  anim.onfinish = finish;
-  anim.oncancel = () => { randBtn.disabled = false; };
+  const card = wallEl.querySelector(`.card[data-gi="${gi}"]`);
+  if (!card) return;
+  card.classList.add("in");
+  card.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "center" });
+  card.classList.remove("flash");
+  void card.offsetWidth;
+  card.classList.add("flash");
+  setTimeout(() => card.classList.remove("flash"), 2000);
+  announce(`隨機挑中：${PROJECTS[gi].title}`);
 });
 
-/* ── 星塵畫布：視差星塵 + 偶爾划過的流星 ──
-   效能：rAF 節流的視差寫入（transform3d、變化夠大才碰 style）、
-   分頁隱藏（visibilitychange）與離屏（IntersectionObserver）皆暫停。 */
-(function stardust() {
-  const cv = document.getElementById("dust");
-  const ctx = cv.getContext("2d");
-  const nebulaEl = document.getElementById("nebula");
-  let dpr = 1, W = 0, H = 0, grains = [];
-  let tx = 0, ty = 0, cx = 0, cy = 0;
-  let nbx = 1e9, nby = 1e9;              /* 上次寫入星雲的位移 */
-  let meteors = [], nextMeteor = performance.now() + 4000;
-  let rafId = null, onScreen = true;
-
-  function resize() {
-    dpr = Math.min(2, devicePixelRatio || 1);
-    W = innerWidth; H = innerHeight;
-    cv.width = W * dpr; cv.height = H * dpr;
-    cv.style.width = W + "px"; cv.style.height = H + "px";
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const n = Math.min(170, Math.floor(W * H / 11000));
-    const rnd = seeded(20260711);
-    grains = Array.from({ length: n }, () => ({
-      x: rnd() * W, y: rnd() * H,
-      z: rnd() * 0.8 + 0.2,
-      r: rnd() * 1.1 + 0.3,
-      base: rnd() * 0.45 + 0.2,
-      sp: rnd() * 1.4 + 0.4,
-      ph: rnd() * 6.283,
-    }));
-    if (rafId === null) drawFrame(performance.now());
-  }
-
-  function drawFrame(t) {
-    ctx.clearRect(0, 0, W, H);
-    for (const g of grains) {
-      const tw = reduced() ? 0 : Math.sin(t / 1000 * g.sp + g.ph) * 0.22;
-      ctx.globalAlpha = Math.max(0, g.base + tw);
-      ctx.fillStyle = "#dfe6ff";
-      ctx.beginPath();
-      ctx.arc(g.x + cx * g.z * 26, g.y + cy * g.z * 18, g.r, 0, 6.283);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function spawnMeteor(now) {
-    const rnd = Math.random;
-    const ang = 2.5 + rnd() * 0.35;               /* 左下方向劃過 */
-    const sp = 420 + rnd() * 260;
-    meteors.push({
-      x: W * (0.25 + rnd() * 0.7), y: -20 + rnd() * H * 0.25,
-      vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
-      life: 0, ttl: 1.1 + rnd() * 0.5, len: 110 + rnd() * 110,
-    });
-    nextMeteor = now + 7000 + rnd() * 9000;
-  }
-
-  function drawMeteors(dt) {
-    meteors = meteors.filter(mt => (mt.life += dt) < mt.ttl);
-    for (const mt of meteors) {
-      mt.x += mt.vx * dt; mt.y += mt.vy * dt;
-      const fade = Math.sin(Math.PI * mt.life / mt.ttl);
-      const nx = mt.vx, ny = mt.vy, nl = Math.hypot(nx, ny);
-      const txx = mt.x - nx / nl * mt.len, tyy = mt.y - ny / nl * mt.len;
-      const grad = ctx.createLinearGradient(mt.x, mt.y, txx, tyy);
-      grad.addColorStop(0, `rgba(240,225,190,${0.85 * fade})`);
-      grad.addColorStop(1, "rgba(240,225,190,0)");
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(mt.x, mt.y);
-      ctx.lineTo(txx, tyy);
-      ctx.stroke();
-    }
-  }
-
-  let last = performance.now();
-  function tick(t) {
-    const dt = Math.min(0.05, (t - last) / 1000);
-    last = t;
-    cx += (tx - cx) * 0.045;
-    cy += (ty - cy) * 0.045;
-    /* 視差跟隨：只在位移實際改變時才寫入 style */
-    const nx = -cx * 18, ny = -cy * 12;
-    if (Math.abs(nx - nbx) > 0.1 || Math.abs(ny - nby) > 0.1) {
-      nbx = nx; nby = ny;
-      nebulaEl.style.transform = `translate3d(${nx.toFixed(1)}px, ${ny.toFixed(1)}px, 0)`;
-    }
-    drawFrame(t);
-    if (t > nextMeteor && meteors.length < 2) spawnMeteor(t);
-    drawMeteors(dt);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function syncLoop() {
-    const run = onScreen && !document.hidden && !reduced();
-    if (run && rafId === null) {
-      last = performance.now();
-      rafId = requestAnimationFrame(tick);
-    } else if (!run && rafId !== null) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-      if (reduced()) { meteors = []; drawFrame(performance.now()); }
-    }
-  }
-
-  addEventListener("pointermove", e => {
-    tx = e.clientX / innerWidth - 0.5;
-    ty = e.clientY / innerHeight - 0.5;
-  }, { passive: true });
-  addEventListener("resize", resize);
-  document.addEventListener("visibilitychange", syncLoop);
-  if ("IntersectionObserver" in window) {
-    new IntersectionObserver(entries => {
-      onScreen = entries[0].isIntersecting;
-      syncLoop();
-    }).observe(cv);
-  }
-  /* reduced-motion 動態監聽：使用者切換系統設定時即時啟停 */
-  if (mReduced.addEventListener) mReduced.addEventListener("change", syncLoop);
-
-  resize();
-  syncLoop();
-})();
+/* ── 頁首統計數字滾動 ── */
+function countUp(el, to) {
+  if (reduced()) { el.textContent = to; return; }
+  const dur = 900, t0 = performance.now();
+  const step = t => {
+    const k = Math.min(1, (t - t0) / dur);
+    el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 /* ── 啟動 ── */
-document.getElementById("count").textContent = PROJECTS.length;
-renderSky();
+/* 進場淡入：只在 JS 在場且未要求減少動態時才先隱藏，確保內容永遠讀得到 */
+if (!reduced()) {
+  document.body.classList.add("preload");
+  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("preload")));
+}
+countUp($("sN"), PROJECTS.length);
+countUp($("sC"), new Set(PROJECTS.map(p => p.category)).size);
+countUp($("sD"), new Set(PROJECTS.map(p => p.date)).size);
 renderHero();
-renderList();
 renderChips();
-setFilter(null);
-let savedMode = "sky";
-try { savedMode = localStorage.getItem("observatory-mode") || "sky"; } catch (e) {}
-setMode(savedMode === "list" ? "list" : "sky");
+let savedGroup = "date";
+try { savedGroup = localStorage.getItem("index.group") || "date"; } catch (e) {}
+setGroup(savedGroup === "cat" ? "cat" : "date");
+mReduced.addEventListener("change", revealCards);
 </script>
 </body>
 </html>
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          

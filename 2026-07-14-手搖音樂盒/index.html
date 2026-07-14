@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>手搖音樂盒 · 在紙上打洞，讓它唱歌</title>
+<meta name="description" content="在牛皮紙卷上打洞，轉動曲柄，梳齒被一個個撥響——一台完全用瀏覽器合成的機械音樂盒。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="back" href="../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="page">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">創意・娛樂 · 1796 年的機械，跑在你的瀏覽器裡</p>
+    <h1 data-fade="2">手搖音樂盒</h1>
+    <p class="lede" data-fade="3">
+      在牛皮紙卷上<strong>打一個洞</strong>，那個洞就會在通過梳齒時，把一根鋼齒撥響。
+      沒有錄音檔、沒有取樣——每一聲都是<strong>當場合成</strong>的鋼齒振動。
+      <span class="hint">轉動右邊的曲柄，紙卷才會走。</span>
+    </p>
+  </header>
+
+  <section class="machine" data-fade="4" aria-label="音樂盒機芯">
+    <div class="box-shell">
+      <div class="canvas-wrap">
+        <canvas id="stage" tabindex="0" role="application"
+          aria-label="打孔紙卷。方向鍵移動游標，Enter 打洞或補起來。左方為十五根鋼齒的梳子。"></canvas>
+        <div class="cursor-hint" id="cursorHint" aria-hidden="true"></div>
+      </div>
+
+      <aside class="crank-bay">
+        <div class="crank-holder">
+          <svg id="crank" viewBox="0 0 160 160" role="slider" tabindex="0"
+               aria-label="曲柄：拖曳畫圈轉動紙卷，或用左右方向鍵"
+               aria-valuemin="0" aria-valuemax="96" aria-valuenow="0">
+            <defs>
+              <radialGradient id="brass" cx="38%" cy="32%">
+                <stop offset="0%" stop-color="#ffe9a8"/>
+                <stop offset="45%" stop-color="#d9a441"/>
+                <stop offset="100%" stop-color="#7e5a1c"/>
+              </radialGradient>
+              <radialGradient id="knob" cx="35%" cy="30%">
+                <stop offset="0%" stop-color="#fff3d0"/>
+                <stop offset="60%" stop-color="#c98a2e"/>
+                <stop offset="100%" stop-color="#6b4514"/>
+              </radialGradient>
+            </defs>
+            <circle cx="80" cy="80" r="60" class="crank-plate"/>
+            <g id="crankGear">
+              <circle cx="80" cy="80" r="46" fill="url(#brass)" class="crank-disc"/>
+              <g id="crankTeeth"></g>
+              <circle cx="80" cy="80" r="30" class="crank-inner"/>
+              <g id="crankArm">
+                <rect x="76" y="24" width="8" height="34" rx="4" class="crank-rod"/>
+                <circle cx="80" cy="26" r="13" fill="url(#knob)" class="crank-knob"/>
+                <circle cx="80" cy="26" r="4.5" class="crank-knob-dot"/>
+              </g>
+            </g>
+            <circle cx="80" cy="80" r="7" class="crank-hub"/>
+          </svg>
+        </div>
+        <p class="crank-label" id="crankLabel">拖著把手畫圈</p>
+        <div class="turn-count"><span id="turns">0.0</span> 圈</div>
+      </aside>
+    </div>
+
+    <div class="rail" aria-hidden="true">
+      <div class="rail-fill" id="railFill"></div>
+    </div>
+    <p class="status" id="status" role="status" aria-live="polite">紙卷就位，等你轉。</p>
+  </section>
+
+  <section class="controls" data-fade="5" aria-label="控制台">
+    <div class="ctl-group">
+      <button class="btn primary" id="motorBtn" aria-pressed="false">
+        <span class="ico" aria-hidden="true">⚙</span><span id="motorText">上發條自動轉</span>
+      </button>
+      <button class="btn" id="rewindBtn"><span class="ico" aria-hidden="true">⏮</span>倒回開頭</button>
+      <label class="switch">
+        <input type="checkbox" id="loopChk" checked>
+        <span>循環</span>
+      </label>
+    </div>
+
+    <div class="ctl-group">
+      <label class="slider">
+        <span>速度</span>
+        <input type="range" id="tempo" min="2" max="14" step="0.5" value="6" aria-label="自動轉動速度">
+        <output id="tempoOut">6.0 格/秒</output>
+      </label>
+      <label class="slider">
+        <span>音量</span>
+        <input type="range" id="vol" min="0" max="100" step="1" value="70" aria-label="音量">
+        <output id="volOut">70</output>
+      </label>
+    </div>
+
+    <div class="ctl-group">
+      <label class="switch">
+        <input type="checkbox" id="roomChk" checked>
+        <span>木盒共鳴</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="gearChk" checked>
+        <span>機械聲</span>
+      </label>
+      <button class="btn ghost" id="undoBtn"><span class="ico" aria-hidden="true">↶</span>復原</button>
+      <button class="btn ghost danger" id="clearBtn"><span class="ico" aria-hidden="true">✕</span>清空紙卷</button>
+    </div>
+  </section>
+
+  <section class="rolls" data-fade="6" aria-label="紙卷">
+    <div class="rolls-head">
+      <h2>換一卷紙</h2>
+      <p>選一首刻好的曲子，或自己從零打起。</p>
+    </div>
+    <div class="preset-row" id="presets"></div>
+
+    <div class="drawer">
+      <div class="drawer-head">
+        <h3>抽屜</h3>
+        <button class="btn small" id="saveBtn"><span class="ico" aria-hidden="true">＋</span>把這卷收進抽屜</button>
+      </div>
+      <ul class="drawer-list" id="drawerList" aria-live="polite"></ul>
+      <p class="drawer-empty" id="drawerEmpty">抽屜是空的。打完你的第一卷紙，收起來吧。</p>
+    </div>
+  </section>
+
+  <section class="facts" data-fade="7" aria-label="關於音樂盒">
+    <h2>這台機器是真的存在的</h2>
+    <div class="fact-grid">
+      <article class="fact">
+        <div class="fact-no">1796</div>
+        <h3>它本來是一只懷錶</h3>
+        <p>日內瓦鐘錶匠 <strong>Antoine Favre-Salomon</strong> 為了把音樂塞進懷錶，
+        把一整排小鈴鐺換成<strong>一把調好音的鋼梳</strong>——世界第一個梳齒音樂盒就這樣誕生。
+        這個省空間的小聰明，後來養活了瑞士整個聖克羅伊鎮。</p>
+        <p class="fact-foot">Favre 本人沒賺到錢，晚年因病退休，在貧困中過世。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">1 : 6.27 : 17.5</div>
+        <h3>為什麼音樂盒不像鋼琴</h3>
+        <p>鋼齒是一根<strong>單邊固定的懸臂樑</strong>，它的泛音不是 1:2:3，而是
+        <strong>1 : 6.27 : 17.55</strong>——泛音「不成整數倍」，聲音才會這麼玻璃、這麼冷、這麼像鈴。
+        這一頁的每個音就是照這組比例、用三個振盪器當場疊出來的。</p>
+        <p class="fact-foot">低音齒太短會不夠低，所以真實的音樂盒會在低音齒背後<strong>焊一塊鉛</strong>當配重——左邊那幾根粗齒上的小點就是它。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">15</div>
+        <h3>紙卷是真的規格</h3>
+        <p>市售 DIY 手搖音樂盒常見 15 音與 30 音：15 音是<strong>純大調音階、兩個八度</strong>，
+        所以怎麼打都不太會走音——這頁用的正是這組。打孔要準，偏一點那個音就撥不響；
+        而且<strong>同一個音不能連太快</strong>，齒還沒歸位就撥不出聲。</p>
+        <p class="fact-foot">30 音的版本是半音階，能打更多曲子，代價是很容易打出不和諧的洞。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>純靜態、零外部資源、離線可用。聲音由 Web Audio 即時合成，紙卷存在你自己的瀏覽器裡。</p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

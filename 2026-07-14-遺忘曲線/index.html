@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>遺忘曲線 · 在你剛好快忘記的那一刻叫你回來</title>
+<meta name="description" content="你的大腦正以一條可預測的曲線丟掉今天學的東西。這頁把 1885 年 Ebbinghaus 的遺忘曲線與 SuperMemo 的 SM-2 演算法變成一台真的能用的複習排程器：算出你「剛好快忘記」的時刻，只在那時候叫你回來。純前端，資料只存在你的瀏覽器。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="home-link" href="../index.html">← 回首頁</a>
+
+<div class="wrap">
+
+  <header class="hd">
+    <p class="kicker" data-anim="1">生活痛點小工具 · 認知科學</p>
+    <h1 class="title" data-anim="2">遺忘曲線</h1>
+    <p class="sub" data-anim="3">你的大腦正在以一條<strong>可預測</strong>的曲線，把今天學的東西丟掉。<br class="br-desktop">既然可以預測，就可以攔截——在你<em>剛好快忘記</em>的那一刻，把它撈回來。</p>
+    <p class="privacy" data-anim="4">
+      <span class="dot" aria-hidden="true"></span>零外部資源、零上傳。卡片只存在你這台裝置的 localStorage，<strong>請記得匯出備份</strong>。
+    </p>
+  </header>
+
+  <!-- ══════════ 儀表板 ══════════ -->
+  <section class="board" data-anim="5" aria-labelledby="board-h">
+    <h2 id="board-h" class="section-h"><span class="num">①</span> 今天的記憶帳單</h2>
+
+    <div class="stats" role="group" aria-label="複習統計">
+      <div class="stat stat-due">
+        <div class="stat-v" id="s-due" data-count="0">0</div>
+        <div class="stat-k">今天該複習</div>
+      </div>
+      <div class="stat stat-late">
+        <div class="stat-v" id="s-late" data-count="0">0</div>
+        <div class="stat-k">已經逾期</div>
+      </div>
+      <div class="stat">
+        <div class="stat-v" id="s-total" data-count="0">0</div>
+        <div class="stat-k">卡片總數</div>
+      </div>
+      <div class="stat stat-health">
+        <div class="stat-v" id="s-health" data-count="0">0<span class="pct">%</span></div>
+        <div class="stat-k">記憶健康度</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-head">
+        <h3>未來 45 天，你的記憶會剩下多少</h3>
+        <div class="legend">
+          <span class="lg lg-a"><i></i>照排程複習</span>
+          <span class="lg lg-b"><i></i>今天起都不複習</span>
+        </div>
+      </div>
+      <div class="canvas-box">
+        <canvas id="c-forecast" role="img" aria-label="未來 45 天所有卡片的平均預測留存率折線圖：實線是照 SM-2 排程複習，虛線是完全不複習的對照"></canvas>
+        <p class="empty-hint" id="forecast-empty">還沒有卡片。載入示範牌組，或自己建一張。</p>
+      </div>
+      <p class="chart-note" id="forecast-note" aria-live="polite"></p>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-start" type="button">開始複習</button>
+      <button class="btn" id="btn-demo" type="button">載入示範牌組</button>
+      <button class="btn btn-ghost" id="btn-jump-new" type="button">新增卡片</button>
+    </div>
+  </section>
+
+  <!-- ══════════ 複習台 ══════════ -->
+  <section class="review" id="review" aria-labelledby="review-h" hidden>
+    <h2 id="review-h" class="section-h"><span class="num">②</span> 複習台</h2>
+
+    <div class="rv-bar">
+      <span class="rv-pos" id="rv-pos">1 / 1</span>
+      <div class="rv-track" aria-hidden="true"><span class="rv-fill" id="rv-fill"></span></div>
+      <button class="btn btn-tiny" id="btn-quit" type="button">結束</button>
+    </div>
+
+    <div class="flip" id="flip">
+      <button class="flip-inner" id="flip-inner" type="button" aria-live="polite">
+        <span class="face face-f">
+          <span class="face-tag">正面 · 先自己回想，再翻牌</span>
+          <span class="face-txt" id="face-front">—</span>
+          <span class="face-hint">點一下或按 <kbd>空白鍵</kbd> 翻牌</span>
+        </span>
+        <span class="face face-b">
+          <span class="face-tag">背面 · 答案</span>
+          <span class="face-txt" id="face-back">—</span>
+          <span class="face-hint">誠實給分，演算法才算得準</span>
+        </span>
+      </button>
+    </div>
+
+    <div class="grades" id="grades" role="group" aria-label="回想品質評分 0 到 5" hidden>
+      <p class="grades-q">剛剛回想得如何？<span class="kbd-hint">鍵盤 <kbd>0</kbd>–<kbd>5</kbd></span></p>
+      <div class="grade-row">
+        <button class="g g0" type="button" data-q="0"><b>0</b><span>完全空白</span></button>
+        <button class="g g1" type="button" data-q="1"><b>1</b><span>看到才想起</span></button>
+        <button class="g g2" type="button" data-q="2"><b>2</b><span>答錯但很近</span></button>
+        <button class="g g3" type="button" data-q="3"><b>3</b><span>想很久才對</span></button>
+        <button class="g g4" type="button" data-q="4"><b>4</b><span>猶豫一下</span></button>
+        <button class="g g5" type="button" data-q="5"><b>5</b><span>秒答</span></button>
+      </div>
+      <p class="grades-cut">灰線以下（q &lt; 3）＝ 沒想起來，SM-2 會把這張卡的間隔<strong>打回一天</strong>重來。</p>
+    </div>
+
+    <!-- SM-2 當場算給你看 -->
+    <div class="result" id="result" hidden>
+      <div class="res-grid">
+        <div class="res-math">
+          <h3>SM-2 剛剛做了什麼</h3>
+          <div class="mline" id="m-ef"></div>
+          <div class="mline" id="m-int"></div>
+          <div class="mline mline-out" id="m-next"></div>
+          <p class="res-live" id="res-live" aria-live="polite"></p>
+        </div>
+        <div class="res-chart">
+          <h3>這張卡的記憶強度曲線</h3>
+          <div class="canvas-box canvas-box-sm">
+            <canvas id="c-card" role="img" aria-label="這張卡複習前後的記憶留存曲線比較：複習後曲線變得更平，衰減更慢"></canvas>
+          </div>
+          <p class="res-flat" id="res-flat"></p>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-next" id="btn-next" type="button">下一張 →</button>
+    </div>
+
+    <div class="done" id="done" hidden>
+      <p class="done-big">今天的都複習完了。</p>
+      <p class="done-sub" id="done-sub"></p>
+      <button class="btn" id="btn-done-back" type="button">回到儀表板</button>
+    </div>
+  </section>
+
+  <!-- ══════════ 牌組 ══════════ -->
+  <section class="deck" data-anim="7" aria-labelledby="deck-h">
+    <h2 id="deck-h" class="section-h"><span class="num">③</span> 你的牌組</h2>
+
+    <form class="new-card" id="new-card" autocomplete="off">
+      <div class="nc-fields">
+        <label class="fld">
+          <span>正面（問題 / 提示）</span>
+          <textarea id="in-front" rows="2" maxlength="400" placeholder="例：SM-2 的 EF 下限是多少？" required></textarea>
+        </label>
+        <label class="fld">
+          <span>背面（答案）</span>
+          <textarea id="in-back" rows="2" maxlength="400" placeholder="例：1.3——低於它的卡片會複習到煩，通常代表題目該重寫。" required></textarea>
+        </label>
+      </div>
+      <div class="nc-go">
+        <button class="btn btn-primary" type="submit">加入牌組</button>
+        <span class="nc-tip">按 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 快速送出。一次一個概念，比一張塞滿更有效。</span>
+      </div>
+    </form>
+
+    <div class="tbl-wrap">
+      <table class="tbl" id="tbl">
+        <caption class="sr-only">卡片列表，含下次複習日、間隔、EF 與複習次數</caption>
+        <thead>
+          <tr>
+            <th scope="col">卡片</th>
+            <th scope="col">下次複習</th>
+            <th scope="col">間隔</th>
+            <th scope="col">EF</th>
+            <th scope="col">複習</th>
+            <th scope="col"><span class="sr-only">操作</span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <p class="empty-hint" id="deck-empty">牌組是空的。上面加一張，或載入示範牌組。</p>
+    </div>
+
+    <div class="data-row">
+      <button class="btn btn-ghost" id="btn-export" type="button">匯出 JSON 備份</button>
+      <label class="btn btn-ghost btn-file">
+        匯入 JSON
+        <input type="file" id="in-import" accept="application/json,.json">
+      </label>
+      <button class="btn btn-ghost btn-danger" id="btn-clear" type="button">清空全部</button>
+      <span class="data-msg" id="data-msg" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <!-- ══════════ 教學 ══════════ -->
+  <section class="teach" data-anim="8" aria-labelledby="teach-h">
+    <h2 id="teach-h" class="section-h"><span class="num">④</span> 這條曲線是怎麼被畫出來的</h2>
+
+    <article class="tblock">
+      <h3>1885：一個人，幾千個無意義音節，把自己當白老鼠</h3>
+      <p>德國心理學家 <strong>Hermann Ebbinghaus</strong> 想量「遺忘」——但當時沒人相信高階心智能被測量。他的解法是：<strong>拿自己當唯一受試者</strong>，背下幾千個像 <span class="syl">WID</span>、<span class="syl">ZOF</span>、<span class="syl">QUX</span> 這樣的<strong>無意義音節</strong>（nonsense syllables），刻意剝掉任何意義與聯想，讓剩下的只有純粹的記憶痕跡。</p>
+      <p>他的量尺叫<strong>節省法（savings method）</strong>：隔一段時間後把同一串重學到能背，看這次<strong>省下多少</strong>學習時間。省 100% 表示完全沒忘；省 0% 表示跟沒學過一樣。1885 年的《<em>Über das Gedächtnis</em>》（英譯 <em>Memory</em>）畫出了人類第一條遺忘曲線——下面就是他自己的數字。</p>
+
+      <div class="chart-card chart-card-tight">
+        <div class="chart-head">
+          <h3>Ebbinghaus 原始節省率（1885）</h3>
+          <span class="chart-sub">橫軸為對數時間</span>
+        </div>
+        <div class="canvas-box">
+          <canvas id="c-ebb" role="img" aria-label="Ebbinghaus 1885 年原始節省率曲線：19 分鐘 58.2%、63 分鐘 44.2%、8.8 小時 35.8%、1 天 33.7%、2 天 27.8%、6 天 25.4%、31 天 21.1%"></canvas>
+        </div>
+        <table class="mini-tbl">
+          <thead><tr><th scope="col">距離學習</th><th scope="col">節省率</th></tr></thead>
+          <tbody>
+            <tr><td>19 分鐘</td><td>58.2%</td></tr>
+            <tr><td>63 分鐘</td><td>44.2%</td></tr>
+            <tr><td>8.8 小時</td><td>35.8%</td></tr>
+            <tr><td>1 天</td><td>33.7%</td></tr>
+            <tr><td>2 天</td><td>27.8%</td></tr>
+            <tr><td>6 天</td><td>25.4%</td></tr>
+            <tr><td>31 天</td><td>21.1%</td></tr>
+          </tbody>
+        </table>
+        <p class="chart-note">形狀是重點：<strong>掉最凶的是頭一天</strong>——第一個小時就掉掉一半以上。之後曲線趨緩，剩下的東西反而很耐放。<br>資料：Ebbinghaus (1885)《Über das Gedächtnis》節省率；數值依 Murre &amp; Dros (2015) 於 PLOS ONE 的整理與重現。</p>
+      </div>
+    </article>
+
+    <article class="tblock">
+      <h3>2015：一百三十年後，有人把它整個重做了一遍</h3>
+      <p>2015 年，阿姆斯特丹大學的 <strong>Jaap Murre</strong> 與 <strong>Joeri Dros</strong> 在 <em>PLOS ONE</em> 發表〈Replication and Analysis of Ebbinghaus' Forgetting Curve〉。Dros 本人花了<strong>約 70 小時</strong>，用同樣的無意義音節與同樣的節省法，在 20 分鐘、1 小時、9 小時、1 天、2 天、6 天、31 天後重學。</p>
+      <p>結果：<strong>與 Ebbinghaus 的原始曲線高度相符</strong>。作者說得很克制——考量到個體差異，四條曲線（Ebbinghaus、Mack &amp; Seitz、Dros 兩組）的相似程度「remarkable」。心理學近年吵得沸沸揚揚的可重複性危機裡，這條 19 世紀的曲線站得穩穩的。</p>
+      <p class="callout"><span class="co-tag">有趣的細節</span>他們還發現曲線<strong>不是完全平滑的</strong>：在 <strong>24 小時</strong>那個點附近，曲線似乎<strong>往上跳了一下</strong>。中間隔了什麼？<strong>一次睡眠</strong>。睡眠中的記憶固化（consolidation）——特別是慢波睡眠期海馬迴到皮質的重播——是目前對這個「隆起」最自然的解釋。熬夜背完直接考，不如背完去睡覺。</p>
+    </article>
+
+    <article class="tblock">
+      <h3>間隔效應：同樣的時間，攤開來用比較划算</h3>
+      <p>把 60 分鐘連在一起念（集中練習），跟拆成 6 次 10 分鐘、隔幾天念一次（間隔練習），花的時間一樣——但長期留存差非常多。這就是<strong>間隔效應（spacing effect）</strong>，Ebbinghaus 自己就注意到了。原因不難懂：每一次<strong>快忘記時的重新提取</strong>，都在告訴大腦「這東西還會用到，別丟」。太早複習（還記得很牢）＝浪費；太晚複習（已經忘光）＝重學。<strong>最划算的點，就在你剛好快忘記的那一刻。</strong></p>
+      <p>SM-2 做的事，說穿了就是一句話：<strong>幫你估出那一刻是哪一天。</strong></p>
+    </article>
+
+    <article class="tblock">
+      <h3>測驗效應：考試不只是測驗，它本身就是記憶手術</h3>
+      <p><strong>Roediger &amp; Karpicke (2006)</strong> 在 <em>Psychological Science</em> 的〈Test-Enhanced Learning〉裡讓學生讀文章，一組重讀、一組做無回饋的回想測驗，之後在 <strong>5 分鐘 / 2 天 / 1 週</strong>後考。結果非常刺人：</p>
+      <ul class="tlist">
+        <li><strong>5 分鐘後考：重讀組贏。</strong>所以重讀「感覺」很有用。</li>
+        <li><strong>2 天後、1 週後考：測驗組大勝。</strong>而且差距隨時間拉開。</li>
+      </ul>
+      <p>這就是<strong>流暢性錯覺（fluency illusion）</strong>的來源：重讀時字句很順、認得出來，大腦把「處理起來很流暢」誤判成「我記得」。但認得出來 ≠ 提取得出來。所以這頁的複習台<strong>強迫你先自己回想再翻牌</strong>——翻牌前那幾秒的掙扎，才是真正在做功的部分。</p>
+    </article>
+
+    <article class="tblock">
+      <h3>SM-2 公式：1987 年、Turbo Pascal、一台 IBM PC</h3>
+      <p>1987 年 12 月 13 日，波蘭的 <strong>Piotr Woźniak</strong> 讓 SuperMemo 1.0 for DOS 跑起了史上第一個間隔重複排程演算法。這套 <strong>SM-2</strong> 至今仍是 Anki、Mnemosyne 等軟體的骨幹。它只有兩個狀態變數：</p>
+
+      <div class="formula">
+        <div class="f-row">
+          <span class="f-lab">難易因子 EF</span>
+          <code>EF' = EF + (0.1 − (5 − q) × (0.08 + (5 − q) × 0.02))</code>
+        </div>
+        <p class="f-note">新卡 <code>EF = 2.5</code>；<code>EF</code> 不得低於 <strong>1.3</strong>（Woźniak：低於 1.3 的卡片「複習到煩人」，通常代表題目本身寫壞了，該拆開重寫）。</p>
+        <div class="f-row">
+          <span class="f-lab">間隔 I（天）</span>
+          <code>I(1) = 1　　I(2) = 6　　I(n) = I(n−1) × EF　（n &gt; 2，有小數就無條件進位）</code>
+        </div>
+        <p class="f-note">若 <code>q &lt; 3</code>（沒想起來）：<strong>重新從 I(1) = 1 開始</strong>，但 EF 仍照公式更新。</p>
+      </div>
+
+      <p>把 <code>q</code> 代進去，EF 的變化量其實是一張很小的表——這就是整個演算法的全部脾氣：</p>
+      <table class="mini-tbl mini-tbl-wide">
+        <thead><tr><th scope="col">q</th><th scope="col">意思</th><th scope="col">EF 變化</th><th scope="col">間隔</th></tr></thead>
+        <tbody>
+          <tr><td>5</td><td>秒答</td><td class="up">+0.10</td><td>照常拉長</td></tr>
+          <tr><td>4</td><td>猶豫一下</td><td class="flat">±0.00</td><td>照常拉長</td></tr>
+          <tr><td>3</td><td>想很久才對</td><td class="dn">−0.14</td><td>照常拉長（但變慢）</td></tr>
+          <tr><td>2</td><td>答錯但很近</td><td class="dn">−0.32</td><td class="rst">打回 1 天</td></tr>
+          <tr><td>1</td><td>看到答案才想起</td><td class="dn">−0.54</td><td class="rst">打回 1 天</td></tr>
+          <tr><td>0</td><td>完全空白</td><td class="dn">−0.80</td><td class="rst">打回 1 天</td></tr>
+        </tbody>
+      </table>
+      <p class="fine">注意 <code>q = 4</code> 剛好讓 EF 不動——那是設計出來的平衡點。也注意 EF 沒有上限：一張你每次都秒答的卡，間隔會指數式地飛走，正是我們要的。</p>
+      <p class="fine">實作註記：Woźniak 原文第 6 步字面寫「without changing the E-Factor」，但第 5 步已聲明「每次複習後都更新 EF」。本頁採用流通最廣、Anki 一脈沿用的解讀：<strong>EF 每次都更新，q &lt; 3 只重置間隔與複習次數</strong>。間隔依原文「round it up」以無條件進位處理。</p>
+    </article>
+
+    <article class="tblock">
+      <h3>那條「記憶強度曲線」是什麼？</h3>
+      <p>SM-2 本身只吐出日期，不吐曲線。這頁畫的曲線是把 SM-2 的排程翻譯成留存率的視覺化：假設留存率隨時間指數衰減 <code>R(t) = e^(−t/S)</code>，並讓穩定度 <code>S</code> 對齊 SM-2 的目標——<strong>下次複習日剛好落在留存率約 90% 的位置</strong>，也就是 <code>S = I / −ln(0.9) ≈ I / 0.105</code>。</p>
+      <p>於是你會看到：每複習一次、間隔被拉長一次，<code>S</code> 就變大一次，<strong>曲線就被壓得更平</strong>。這條愈來愈平的曲線，就是「記得住」在數學上的長相。（這是教學用的示意模型，不是 SM-2 規格的一部分。）</p>
+    </article>
+  </section>
+
+  <footer class="ft" data-anim="9">
+    <h2 class="ft-h">資料來源</h2>
+    <ul class="src">
+      <li>Ebbinghaus, H. (1885). <em>Über das Gedächtnis: Untersuchungen zur experimentellen Psychologie</em>. Leipzig: Duncker &amp; Humblot.（英譯 <em>Memory: A Contribution to Experimental Psychology</em>, 1913）</li>
+      <li>Murre, J. M. J. &amp; Dros, J. (2015). Replication and Analysis of Ebbinghaus' Forgetting Curve. <em>PLOS ONE</em> 10(7): e0120644. <a href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0120644" target="_blank" rel="noopener">journals.plos.org</a></li>
+      <li>Roediger, H. L. &amp; Karpicke, J. D. (2006). Test-Enhanced Learning: Taking Memory Tests Improves Long-Term Retention. <em>Psychological Science</em> 17(3), 249–255. <a href="https://journals.sagepub.com/doi/10.1111/j.1467-9280.2006.01693.x" target="_blank" rel="noopener">journals.sagepub.com</a></li>
+      <li>Woźniak, P. A. (1990). Application of a computer to improve the results obtained in working with the SuperMemo method（含 SM-2 完整規格）. <a href="https://www.supermemo.com/en/blog/application-of-a-computer-to-improve-the-results-obtained-in-working-with-the-supermemo-method" target="_blank" rel="noopener">supermemo.com</a> ／ <a href="https://supermemo.guru/wiki/Algorithm_SM-2" target="_blank" rel="noopener">supermemo.guru</a></li>
+    </ul>
+    <p class="ft-note">你的卡片存在瀏覽器的 localStorage（前綴 <code>recall.</code>）。清除瀏覽器資料、換裝置、開無痕視窗都會讓它們消失——<strong>養成匯出備份的習慣</strong>。</p>
+  </footer>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

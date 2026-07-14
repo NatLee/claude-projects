@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>下一個字 · GPT 在做的事，本質上只有這一件</title>
+<meta name="description" content="在瀏覽器裡當場訓練一個真的語言模型，親眼看見「下一個字的機率分布」，再用溫度與 top-k 把它從復讀機調成瘋子。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="back" href="../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="page">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">學習新知 · 語言模型的祖先</p>
+    <h1 data-fade="2">下一個字</h1>
+    <p class="lede" data-fade="3">
+      ChatGPT 在做的事，本質上只有一件：<strong>猜下一個字</strong>。
+      這頁讓你在瀏覽器裡<strong>當場訓練一個真的語言模型</strong>——不是神經網路，是它的祖先，
+      一個只會數次數的 n-gram。它一個字都不懂，卻和 GPT 用著<strong>同一個目標函數</strong>。
+    </p>
+  </header>
+
+  <!-- ── 語料 ── -->
+  <section class="panel" data-fade="4" aria-labelledby="h-corpus">
+    <div class="panel-head">
+      <h2 id="h-corpus"><span class="step">1</span>餵它一些字</h2>
+      <p>它只知道你餵給它的東西。換一份語料，它就換一個腦袋。</p>
+    </div>
+
+    <div class="corpus-chips" id="chips" role="group" aria-label="選擇語料"></div>
+
+    <label class="sr-only" for="corpus">語料文字</label>
+    <textarea id="corpus" spellcheck="false" aria-describedby="corpus-hint"
+      placeholder="貼上任何一段中文文字……"></textarea>
+    <p class="hint" id="corpus-hint">也可以貼上你自己的文字：一封信、一篇日記、一份會議紀錄——它會學會那個人的口氣。</p>
+
+    <div class="train-row">
+      <button class="btn primary" id="trainBtn"><span class="ico" aria-hidden="true">⚡</span>訓練</button>
+      <dl class="stats" id="stats" aria-live="polite">
+        <div><dt>總字數</dt><dd id="stChars">—</dd></div>
+        <div><dt>相異字</dt><dd id="stVocab">—</dd></div>
+        <div><dt>學到的接續</dt><dd id="stGrams">—</dd></div>
+        <div><dt>訓練耗時</dt><dd id="stTime">—</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ── 模型 ── -->
+  <section class="panel" data-fade="5" aria-labelledby="h-model">
+    <div class="panel-head">
+      <h2 id="h-model"><span class="step">2</span>看它猜</h2>
+      <p>左邊是它讀到的上下文，右邊是它對「下一個字」的<strong>機率分布</strong>。每一次生成，就是在這排長條上擲一次骰子。</p>
+    </div>
+
+    <div class="lab">
+      <div class="lab-left">
+        <div class="context-box">
+          <span class="ctx-label">上下文</span>
+          <div class="ctx" id="ctx" aria-live="off"><span class="ctx-empty">（尚未訓練）</span></div>
+        </div>
+
+        <div class="output-box">
+          <span class="ctx-label">它寫出來的東西</span>
+          <p class="output" id="output" aria-live="polite" aria-atomic="false"></p>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <span class="m-label">有效候選數</span>
+            <span class="m-val" id="mBranch">—</span>
+            <span class="m-note">它此刻在幾個字之間猶豫（2^熵）</span>
+          </div>
+          <div class="metric">
+            <span class="m-label">回退階數</span>
+            <span class="m-val" id="mBackoff">—</span>
+            <span class="m-note">上下文沒見過時，它會退而求其次</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="lab-right">
+        <div class="dist-head">
+          <span>下一個字的機率</span>
+          <span class="dice" id="dice" aria-hidden="true"></span>
+        </div>
+        <ol class="dist" id="dist" aria-label="下一個字的候選與機率"></ol>
+        <p class="dist-empty" id="distEmpty">先按上面的「訓練」。</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label class="slider">
+        <span>n＝<b id="nOut">3</b></span>
+        <input type="range" id="nRange" min="1" max="5" step="1" value="3" aria-label="n-gram 階數">
+        <em>看前 <b id="nCtx">2</b> 個字</em>
+      </label>
+      <label class="slider">
+        <span>溫度 <b id="tOut">0.8</b></span>
+        <input type="range" id="tRange" min="0" max="2" step="0.05" value="0.8" aria-label="溫度">
+        <em id="tNote">正常</em>
+      </label>
+      <label class="slider">
+        <span>top-k <b id="kOut">10</b></span>
+        <input type="range" id="kRange" min="1" max="30" step="1" value="10" aria-label="top-k">
+        <em>只留機率最高的 k 個字</em>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="stepBtn" disabled><span class="ico" aria-hidden="true">→</span>下一個字</button>
+      <button class="btn primary" id="autoBtn" disabled aria-pressed="false"><span class="ico" aria-hidden="true">▶</span><span id="autoText">連續生成</span></button>
+      <button class="btn ghost" id="resetBtn" disabled><span class="ico" aria-hidden="true">↺</span>換個開頭</button>
+      <span class="len" id="lenOut" aria-live="off"></span>
+    </div>
+  </section>
+
+  <!-- ── 三個現象 ── -->
+  <section class="panel discover" data-fade="6" aria-labelledby="h-disc">
+    <div class="panel-head">
+      <h2 id="h-disc"><span class="step">3</span>三個你會親眼看到的現象</h2>
+      <p>把滑桿推到極端，它會露出馬腳——而那三個馬腳，大型語言模型至今都還在對付。</p>
+    </div>
+    <ul class="disc-list" id="discList">
+      <li data-key="loop" class="locked">
+        <span class="disc-dot" aria-hidden="true"></span>
+        <div>
+          <b>復讀機</b>
+          <span>把溫度調到 0，看它會發生什麼事。</span>
+        </div>
+      </li>
+      <li data-key="chaos" class="locked">
+        <span class="disc-dot" aria-hidden="true"></span>
+        <div>
+          <b>胡言亂語</b>
+          <span>把溫度調到 1.6 以上。</span>
+        </div>
+      </li>
+      <li data-key="memo" class="locked">
+        <span class="disc-dot" aria-hidden="true"></span>
+        <div>
+          <b>它在背書</b>
+          <span>把 n 調到 5，讓它多寫幾十個字。</span>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── 知識 ── -->
+  <section class="facts" data-fade="7" aria-label="背後的原理">
+    <h2>它跟 GPT 的距離，比你以為的近</h2>
+    <div class="fact-grid">
+      <article class="fact">
+        <div class="fact-no">1948</div>
+        <h3>Shannon 早就玩過這個</h3>
+        <p>夏農在〈通訊的數學理論〉裡，就用 n-gram <strong>手工生成</strong>過近似英文：他真的是翻著一本書，隨機挑字、往前翻頁找下一個接續，一路做出零階、一階、二階、三階近似——階數越高，越像英文。</p>
+        <p class="fact-foot">他同時算出：不考慮八個字母以外的結構，<strong>英文大約有 50% 的冗餘</strong>——你寫下的每一個字，有一半是被語言的規則決定的，只有另一半是你自己選的。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">同一個目標</div>
+        <h3>GPT 也只是在猜下一個 token</h3>
+        <p>自迴歸語言模型的訓練目標就是 <strong>next-token prediction</strong>：給前文，最大化下一個 token 的機率。這頁的 n-gram 用「<strong>數次數</strong>」估這個機率，Transformer 用<strong>神經網路</strong>把上下文壓縮成向量再估——目標函數一模一樣，差的是怎麼記住上下文。</p>
+        <p class="fact-foot">所以你在 API 上看到的 <code>temperature</code>、<code>top_k</code>、<code>top_p</code>，這裡的滑桿就是同一回事。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">n → 5</div>
+        <h3>為什麼 n-gram 撐不到 GPT</h3>
+        <p>n 每加一，可能的上下文就乘上一個字表大小。很快地，<strong>幾乎每個上下文在語料裡都只出現過一次</strong>——這時候「機率」只剩一個候選，模型別無選擇，只好把原文一字不差地背出來。</p>
+        <p class="fact-foot">這就是<strong>資料稀疏</strong>：n-gram 沒有「相似上下文」的概念。而 Transformer 把字變成向量，語意相近的上下文自然靠在一起——它才能在沒見過的句子上還說得出話。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">2^H</div>
+        <h3>困惑度：它在幾個字之間猶豫</h3>
+        <p>把分布的熵 H 取 2 的次方，就得到「<strong>有效候選數</strong>」。它等於 1，代表模型已經確定；等於 40，代表它心裡有 40 個差不多好的選項。這個數字就是<strong>困惑度（perplexity）</strong>，也是評比語言模型最常用的指標——越低，代表它越不迷惘。</p>
+        <p class="fact-foot">溫度會直接改變它：溫度趨近 0，有效候選數被壓成 1（於是開始復讀）；溫度拉高，分布被攤平，它開始亂猜。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>純靜態、零外部資源、離線可用。所有統計與生成都在你的瀏覽器裡當場計算，語料不會離開這台電腦。</p>
+    <p class="src">語料出處：唐詩八首與《論語・學而》為公共領域文本；示範散文為本頁自寫。參考：Shannon (1948)〈A Mathematical Theory of Communication〉、Shannon (1951)〈Prediction and Entropy of Printed English〉。</p>
+  </footer>
+</main>
+
+<div class="card-pop" id="pop" role="status" aria-live="polite" hidden>
+  <div class="card-inner">
+    <button class="card-x" id="popX" aria-label="關閉">✕</button>
+    <p class="card-tag" id="popTag"></p>
+    <h3 id="popTitle"></h3>
+    <p id="popBody"></p>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

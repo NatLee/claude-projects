@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分帳清算所 · 一頓飯，最少幾筆轉帳能清乾淨？</title>
+<meta name="description" content="輸入誰付了什麼，按下一筆勾銷——糾纏的欠債網會在你眼前塌縮成最少的幾筆轉帳，並列印出一張結算收據。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="home-link" href="../index.html">← 回首頁</a>
+
+<main class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow reveal" style="--d:0">生活痛點小工具</p>
+    <h1 class="reveal" style="--d:1">分帳清算所</h1>
+    <p class="lede reveal" style="--d:2">六個人、一桌菜、七筆代墊——<br class="br-sm">最後到底誰該轉錢給誰，<b>最少只要幾筆</b>？</p>
+
+    <div class="stats reveal" style="--d:3">
+      <div class="stat">
+        <span class="stat-num" id="statTotal">0</span>
+        <span class="stat-lbl">總支出</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num" id="statAvg">0</span>
+        <span class="stat-lbl">每人平均</span>
+      </div>
+      <div class="stat stat-hi">
+        <span class="stat-num"><span id="statNaive">0</span><span class="arrow">→</span><span id="statMin">0</span></span>
+        <span class="stat-lbl">轉帳筆數：天真 → 清算後</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- 左欄：輸入 -->
+    <section class="col-in">
+
+      <div class="card reveal" style="--d:4">
+        <div class="card-head">
+          <h2>成員</h2>
+          <button type="button" class="ghost" id="btnDemo">載入範例</button>
+        </div>
+        <ul class="members" id="memberList" aria-label="成員清單"></ul>
+        <form class="add-row" id="memberForm">
+          <input type="text" id="memberName" maxlength="10" placeholder="加一個人（例如：阿華）" aria-label="新成員名字" autocomplete="off">
+          <button type="submit" class="btn-sm">＋ 加入</button>
+        </form>
+      </div>
+
+      <div class="card reveal" style="--d:5">
+        <div class="card-head">
+          <h2>支出</h2>
+          <span class="count" id="expCount">0 筆</span>
+        </div>
+
+        <ul class="expenses" id="expenseList" aria-label="支出清單"></ul>
+        <p class="empty" id="expEmpty">還沒有任何支出。先加一筆，看看網子怎麼纏起來。</p>
+
+        <form class="exp-form" id="expenseForm">
+          <div class="ef-row">
+            <label class="fld fld-title">
+              <span>項目</span>
+              <input type="text" id="expTitle" maxlength="16" placeholder="燒肉、計程車、KTV…" autocomplete="off" required>
+            </label>
+            <label class="fld fld-amt">
+              <span>金額</span>
+              <input type="number" id="expAmount" min="0.01" step="0.01" placeholder="0" inputmode="decimal" required>
+            </label>
+          </div>
+
+          <div class="ef-row">
+            <label class="fld">
+              <span>誰付的</span>
+              <select id="expPayer" required></select>
+            </label>
+          </div>
+
+          <fieldset class="parts">
+            <legend>誰要分攤（點名字切換；＋−調份數）</legend>
+            <div class="part-chips" id="partChips"></div>
+            <div class="part-tools">
+              <button type="button" class="ghost" id="btnAll">全選</button>
+              <button type="button" class="ghost" id="btnNone">全不選</button>
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn-primary">＋ 記下這筆</button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- 右欄：清算 -->
+    <section class="col-out">
+
+      <div class="card card-web reveal" style="--d:6">
+        <div class="card-head">
+          <h2>欠債網</h2>
+          <span class="count" id="webMode">尚未清算</span>
+        </div>
+
+        <div class="web-box">
+          <svg id="web" viewBox="0 0 440 360" role="img" aria-labelledby="webTitle">
+            <title id="webTitle">成員之間的欠債關係圖</title>
+            <defs>
+              <marker id="ah-thin" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+              </marker>
+              <marker id="ah-bold" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4.4" markerHeight="4.4" orient="auto-start-reverse">
+                <path d="M0 0 L10 5 L0 10 z" fill="currentColor"/>
+              </marker>
+              <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="3" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <g id="gTangle" class="g-tangle"></g>
+            <g id="gClean" class="g-clean"></g>
+            <g id="gNodes"></g>
+          </svg>
+          <p class="web-empty" id="webEmpty">加入成員與支出，這裡會長出一張網。</p>
+        </div>
+
+        <button type="button" class="btn-settle" id="btnSettle" disabled>
+          <span class="bs-main">一筆勾銷</span>
+          <span class="bs-sub" id="bsSub">把纏成一團的欠債，收斂成最少的轉帳</span>
+        </button>
+      </div>
+
+      <div class="card card-receipt reveal" style="--d:7" id="receiptCard" hidden>
+        <div class="receipt" id="receipt">
+          <div class="r-top">
+            <h3>結 算 收 據</h3>
+            <p class="r-sub" id="rSub">—</p>
+          </div>
+          <div class="r-rule"></div>
+          <ul class="r-lines" id="rLines" aria-live="polite"></ul>
+          <div class="r-rule"></div>
+          <p class="r-foot" id="rFoot">—</p>
+          <div class="r-tear" aria-hidden="true"></div>
+        </div>
+        <div class="r-tools">
+          <button type="button" class="ghost" id="btnCopy">複製結算文字</button>
+          <span class="copied" id="copied" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <div class="card card-net reveal" style="--d:8">
+        <div class="card-head"><h2>每個人的帳</h2></div>
+        <ul class="nets" id="netList" aria-live="polite"></ul>
+        <p class="note" id="netNote">正數＝別人欠你，負數＝你要還錢。加總永遠是 0。</p>
+      </div>
+
+    </section>
+  </div>
+
+  <section class="facts">
+    <h2 class="facts-h reveal" style="--d:9">為什麼「最少幾筆」比你想的難</h2>
+    <div class="fact-grid">
+      <article class="fact reveal" style="--d:10">
+        <span class="fact-tag">NP-complete</span>
+        <h3>要算出「絕對最少筆數」，是電腦科學裡的難題</h3>
+        <p>把欠債化簡成最少轉帳次數，等價於<b>子集和問題（Subset Sum）</b>——人一多就沒有已知的多項式時間解法。連 Splitwise 的「Simplify debts」也不硬解，而是用<b>貪婪演算法／最小成本流的變體</b>去逼近。</p>
+      </article>
+      <article class="fact reveal" style="--d:11">
+        <span class="fact-tag">上限 n−1</span>
+        <h3>但「夠好的答案」很便宜</h3>
+        <p>不管帳有多亂，<b>n 個人最多只要 n−1 筆轉帳</b>就能全部清乾淨，而且線性時間就能算出來。本頁用的正是這套：先做金額<b>完全相抵</b>的配對，再讓「欠最多的」直接還給「被欠最多的」。</p>
+      </article>
+      <article class="fact reveal" style="--d:12">
+        <span class="fact-tag">四捨五入</span>
+        <h3>那一塊錢跑去哪了？</h3>
+        <p>100 元三個人分，除不盡。本頁全程用<b>整數「分」</b>運算（不用浮點數），除不盡的餘數依序分給前幾位分攤者——所以每個人的帳<b>加起來一定剛好是 0</b>，不會憑空多出或少掉一塊錢。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>資料來源：Alex Irpan〈Splitwise is NP-Complete〉、Mithun Mohan K、Terbium、Anton Cao。</p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

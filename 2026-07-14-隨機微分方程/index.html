@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>隨機微分方程 — 把加噪變成一條連續時間的 SDE，再讓雜訊沿著逆流長回資料</title>
+<meta name="description" content="ICLR 2021 傑出論文 Score-SDE 的可玩版：在瀏覽器裡真的訓練一個分數網路，用 Euler–Maruyama 看資料溶成雜訊、再讓雜訊沿逆時間 SDE 長回形狀；並把隨機的逆 SDE 與確定性的機率流 ODE 擺在一起——殊途同歸。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="topbar" id="topbar">
+  <a class="home" href="../index.html">← 回首頁</a>
+  <span class="kicker">科學趣聞</span>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <p class="eyebrow" data-stagger>2026 · 07 · 14 · ICLR 2021 傑出論文</p>
+    <h1 data-stagger>隨機微分方程</h1>
+    <p class="lede" data-stagger>
+      擴散模型的「加噪」，其實可以寫成一條<strong>連續時間的隨機微分方程（SDE）</strong>：
+      前向 SDE 把一坨資料<strong>一路溶成純雜訊</strong>。
+      漂亮的地方是——只要知道每個時刻的<strong>分數 ∇log p</strong>（機率密度的梯度），
+      就能寫出一條<strong>逆時間 SDE</strong>，把雜訊<strong>倒著長回資料</strong>。
+    </p>
+    <p class="sub" data-stagger>
+      這個框架來自 Song、Sohl-Dickstein、Kingma、Kumar、Ermon、Poole（<strong>arXiv:2011.13456</strong>），
+      它把先前的兩套方法<strong>統一成同一件事的兩個特例</strong>：<strong>VP-SDE ⇄ DDPM</strong>、<strong>VE-SDE ⇄ NCSN</strong>；
+      還附贈一條確定性的<strong>機率流 ODE</strong>——和逆 SDE 走到<strong>同一個分布</strong>，卻是一條平滑、可重現的路。
+      這一頁不放假動畫：你會<strong>真的訓練</strong>一個分數網路，然後用<strong>數值積分</strong>親眼看這三件事發生。
+    </p>
+    <div class="steps" data-stagger>
+      <span class="step"><b>1</b> 選分布・訓練分數網路</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>2</b> 前向 SDE：溶成雜訊</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>3</b> 逆 SDE vs 機率流 ODE</span>
+    </div>
+  </section>
+
+  <!-- ============ 統一敘事：一座山、三條路 ============ -->
+  <section class="unify" data-stagger aria-label="DDPM、NCSN、SDE 的統一關係">
+    <div class="unify-head">
+      <h2><span class="num">◆</span> 一座山，三條路</h2>
+      <p class="card-sub">先前兩套看似不同的生成模型，在連續時間的 SDE 底下其實是同一件事——只是選了不同的加噪方式。</p>
+    </div>
+    <div class="unify-map">
+      <div class="peak">
+        <span class="peak-k">連續時間框架</span>
+        <span class="peak-t">前向 SDE　<code>dx = f·dt + g·dw</code></span>
+        <span class="peak-t">逆時間 SDE　<code>dx = [f − g²·∇log pₜ]·dt + g·dw̄</code></span>
+        <span class="peak-t bonus">機率流 ODE　<code>dx = [f − ½g²·∇log pₜ]·dt</code></span>
+      </div>
+      <div class="trails">
+        <div class="trail vp">
+          <span class="trail-tag">VP-SDE</span>
+          <span class="trail-name">保變異數 Variance Preserving</span>
+          <span class="trail-eq">離散化後 ＝ <b>DDPM</b>（Ho et al. 2020）</span>
+        </div>
+        <div class="trail ve">
+          <span class="trail-tag">VE-SDE</span>
+          <span class="trail-name">爆變異數 Variance Exploding</span>
+          <span class="trail-eq">離散化後 ＝ <b>NCSN</b>（Song &amp; Ermon 2019）</span>
+        </div>
+      </div>
+    </div>
+    <p class="unify-foot">本站另有 <em>從雜訊生形</em>（DDPM 版）與 <em>分數生成</em>（NCSN 版）兩個子頁面——它們是這座山的另外兩條路。</p>
+  </section>
+
+  <!-- ============ 步驟一：訓練分數網路 ============ -->
+  <section class="card" id="trainCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">01</span> 訓練一個分數網路</h2>
+      <p class="card-sub">
+        選一個 2D 目標分布（用點雲表示），或自己塗一團點。接著用 <strong>denoising score matching</strong> 訓練一個小 MLP
+        <code>s_θ(x, y, t)</code>：先照你選的 SDE 把點加上雜訊，網路要學會預測<strong>被加進去的雜訊</strong>——
+        除以雜訊大小，就是那個時刻的<strong>分數 ∇log pₜ</strong>。資料現場生成、梯度自己反向傳播算、Adam 更新，數秒收斂。
+      </p>
+    </div>
+
+    <div class="train-grid">
+      <div class="panel">
+        <h3 class="panel-title">目標分布（點雲）</h3>
+        <canvas id="targetCv" class="cloud-cv target" role="img"
+          aria-label="目前選擇的目標分布點雲，也是自己畫時的繪圖區"></canvas>
+        <div class="seg" id="shapeSeg" role="group" aria-label="選擇目標分布">
+          <button data-v="moons" type="button">雙月</button>
+          <button data-v="spiral" type="button">螺旋</button>
+          <button data-v="gaussians" type="button">四團</button>
+          <button data-v="letterS" type="button">字母 S</button>
+          <button data-v="draw" type="button">自己畫</button>
+        </div>
+        <div class="draw-tools" id="drawTools" hidden>
+          <button class="btn tiny ghost" id="clearDraw" type="button">清空重畫</button>
+          <span class="hint-sm">用滑鼠或手指在上面塗一團點，越多越好。</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">加噪方式與訓練設定</h3>
+
+        <div class="setting">
+          <label id="sdeLbl">SDE 類型</label>
+          <div class="seg small" id="sdeSeg" role="group" aria-labelledby="sdeLbl">
+            <button data-v="vp" type="button">VP（保變異數 ⇄ DDPM）</button>
+            <button data-v="ve" type="button">VE（爆變異數 ⇄ NCSN）</button>
+          </div>
+        </div>
+        <div class="setting">
+          <label id="noiseLbl">噪聲範圍</label>
+          <div class="seg small" id="noiseSeg" role="group" aria-labelledby="noiseLbl">
+            <button data-v="small" type="button">小</button>
+            <button data-v="mid" type="button">中</button>
+            <button data-v="large" type="button">大</button>
+          </div>
+        </div>
+        <div class="setting">
+          <label id="effortLbl">訓練程度</label>
+          <div class="seg small" id="effortSeg" role="group" aria-labelledby="effortLbl">
+            <button data-v="fast" type="button">快</button>
+            <button data-v="std" type="button">標準</button>
+            <button data-v="fine" type="button">精細</button>
+          </div>
+        </div>
+
+        <h3 class="panel-title" style="margin-top:20px">學習曲線（雜訊預測損失）</h3>
+        <canvas id="curve" class="curve" role="img" aria-label="訓練損失隨步數下降的曲線"></canvas>
+        <p class="legend"><span class="lg">損失 ‖預測雜訊 − 真實雜訊‖²，越低越好</span></p>
+
+        <div class="stats">
+          <div class="stat"><span class="stat-k">訓練步數</span><span class="stat-v" id="statStep">0 / 2800</span></div>
+          <div class="stat"><span class="stat-k">目前損失</span><span class="stat-v accent" id="statLoss">—</span></div>
+        </div>
+        <div class="progress" aria-hidden="true"><span class="progress-fill" id="trainBar"></span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="trainBtn" type="button">開始訓練</button>
+      <p class="status" id="trainStatus" aria-live="polite">按下開始，就會在這台瀏覽器裡真的做反向傳播。訓練完成後，下面兩張畫面才會解鎖。</p>
+    </div>
+  </section>
+
+  <!-- ============ 步驟二：前向 SDE 溶解 ============ -->
+  <section class="card" id="fwdCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">02</span> 前向 SDE：把資料溶成雜訊</h2>
+      <p class="card-sub">
+        哇時刻一。用 <strong>Euler–Maruyama</strong> 一小步一小步積分前向 SDE <code>dx = f·dt + g·dw</code>，
+        你會看到你選的形狀在連續時間裡<strong>平滑地溶成一團高斯雜訊</strong>。
+        選 <strong>VP</strong> 時雲團<strong>原地打散、大小不變</strong>（保變異數）；選 <strong>VE</strong> 時雲團會<strong>一路爆開</strong>（爆變異數）——名字就是這樣來的。
+        這一步<strong>不需要訓練</strong>，因為前向過程根本用不到分數。拖動時間軸，任一時刻的點雲都看得到。
+      </p>
+    </div>
+
+    <div class="single-view">
+      <div class="view-cap">
+        <span class="dir">資料 <span aria-hidden="true">→</span> 雜訊　<span id="fwdT">t = 0.00</span></span>
+        <span class="lvl">雜訊比例 <b id="fwdPct">0%</b></span>
+      </div>
+      <canvas id="fwdCv" class="cloud-cv big" role="img" aria-label="前向 SDE 把資料點雲溶成雜訊的當前畫面"></canvas>
+    </div>
+
+    <div class="transport">
+      <button class="btn primary" id="fwdPlay" type="button">▶ 溶解</button>
+    </div>
+    <div class="scrub-row">
+      <span class="scrub-label">時間軸 t</span>
+      <input type="range" id="fwdScrub" min="0" max="120" value="0" step="1" disabled aria-label="前向過程時間軸，0 是資料、最大值是純雜訊">
+      <div class="scrub-ends"><span>t≈0（資料）</span><span>t=1（純雜訊）</span></div>
+    </div>
+
+    <div class="setting" style="margin-top:18px">
+      <label id="stepsLbl">積分步數</label>
+      <div class="seg small" id="stepsSeg" role="group" aria-labelledby="stepsLbl">
+        <button data-v="s60" type="button">60</button>
+        <button data-v="s120" type="button">120</button>
+        <button data-v="s200" type="button">200</button>
+      </div>
+      <label id="speedLbl" style="margin-left:8px">播放速度</label>
+      <div class="seg small" id="speedSeg" role="group" aria-labelledby="speedLbl">
+        <button data-v="slow" type="button">慢</button>
+        <button data-v="normal" type="button">正常</button>
+        <button data-v="fast" type="button">快</button>
+      </div>
+    </div>
+    <p class="live" id="fwdLive" aria-live="polite"></p>
+  </section>
+
+  <!-- ============ 步驟三：逆 SDE vs 機率流 ODE ============ -->
+  <section class="card locked" id="genCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">03</span> 逆時間 SDE　vs　機率流 ODE</h2>
+      <p class="card-sub">
+        哇時刻二與三。從<strong>純雜訊</strong>出發，用剛剛學到的分數往回積分。
+        <strong>逆時間 SDE</strong>（Anderson 1982）帶著隨機項，路徑會<strong>抖</strong>、每次結果略不同；
+        <strong>機率流 ODE</strong> 沒有隨機項，路徑<strong>平滑、完全可重現</strong>。
+        神奇的是——選「對照」，同一組雜訊起點，兩邊<strong>都會長回同一個資料分布</strong>。這是本頁最重要的洞見：<strong>隨機 vs 確定，殊途同歸</strong>。
+        <span class="lock-note">（先在上面完成訓練，這裡才會解鎖。）</span>
+      </p>
+    </div>
+
+    <div class="setting">
+      <label id="genModeLbl">生成方式</label>
+      <div class="seg small" id="genModeSeg" role="group" aria-labelledby="genModeLbl">
+        <button data-v="sde" type="button">逆時間 SDE</button>
+        <button data-v="ode" type="button">機率流 ODE</button>
+        <button data-v="dual" type="button">對照</button>
+      </div>
+      <label id="particleLbl" style="margin-left:8px">粒子數</label>
+      <div class="seg small" id="particleSeg" role="group" aria-labelledby="particleLbl">
+        <button data-v="few" type="button">少</button>
+        <button data-v="mid" type="button">中</button>
+        <button data-v="many" type="button">多</button>
+      </div>
+    </div>
+
+    <div class="dual-view" id="genView">
+      <div class="view-col" id="sdeCol">
+        <div class="view-cap">
+          <span class="dir accent-sde">逆時間 SDE · 隨機</span>
+          <span class="lvl">路徑會抖 · 每次略不同</span>
+        </div>
+        <canvas id="sdeCv" class="cloud-cv big" role="img" aria-label="逆時間 SDE 從雜訊生成資料的當前畫面，含粒子軌跡"></canvas>
+      </div>
+      <div class="view-col" id="odeCol">
+        <div class="view-cap">
+          <span class="dir accent-ode">機率流 ODE · 確定</span>
+          <span class="lvl">路徑平滑 · 可重現</span>
+        </div>
+        <canvas id="odeCv" class="cloud-cv big" role="img" aria-label="機率流 ODE 從雜訊生成資料的當前畫面，含粒子軌跡"></canvas>
+      </div>
+    </div>
+
+    <div class="transport">
+      <button class="btn primary" id="genPlay" type="button">▶ 生成</button>
+      <button class="btn" id="genReplay" type="button" disabled>重播</button>
+      <button class="btn ghost" id="genRerun" type="button" disabled>再撒一次雜訊</button>
+      <span class="gen-meta"><span id="genT">t = 1.00</span> · 成形 <b id="genPct">0%</b></span>
+    </div>
+    <div class="scrub-row">
+      <span class="scrub-label">時間軸 t</span>
+      <input type="range" id="genScrub" min="0" max="120" value="120" step="1" disabled aria-label="逆向過程時間軸，最大值是純雜訊、0 是生成完成">
+      <div class="scrub-ends"><span>t≈0（成品）</span><span>t=1（純雜訊）</span></div>
+    </div>
+
+    <p class="repro" id="reproNote" aria-live="polite">選「對照」按下生成，看隨機與確定兩條路怎麼走到同一個分布。</p>
+    <p class="live" id="genLive" aria-live="polite"></p>
+    <div class="counter">你已經從雜訊裡長出 <b id="runCount">0</b> 次資料。</div>
+  </section>
+
+  <!-- ============ 說明 ============ -->
+  <section class="prose" aria-label="說明">
+    <h2>為什麼「加噪」可以寫成一條 SDE？</h2>
+    <p>
+      擴散模型的前向過程是「一步步加雜訊」。如果把步數推到無限細，這個離散過程就變成一條<strong>連續時間的隨機微分方程</strong>：
+      <code>dx = f(x,t)·dt + g(t)·dw</code>。其中 <code>f</code> 是<strong>漂移</strong>（決定點往哪裡走）、<code>g</code> 是<strong>擴散</strong>強度、<code>dw</code> 是布朗運動（隨機亂晃）。
+      從 <code>t=0</code>（資料）積分到 <code>t=1</code>，資料就被溶成一團標準的高斯雜訊。
+    </p>
+    <h2>逆時間 SDE：把雜訊倒著長回資料</h2>
+    <p>
+      Anderson（1982）有一個漂亮結果：一條擴散過程<strong>倒著跑</strong>還是一條擴散過程，形式是
+      <code>dx = [f − g²·∇ₓlog pₜ(x)]·dt + g·dw̄</code>。
+      這裡的 <code>∇log pₜ</code> 就是<strong>分數</strong>——每個時刻、每個位置「往資料密度更高處」的方向。
+      我們沒有真正的 <code>∇log pₜ</code>，但可以<strong>學一個網路去逼近它</strong>；把學到的分數代進去，從雜訊出發往回積分，形狀就長回來了。
+    </p>
+    <h2>機率流 ODE：同樣的終點，一條平滑確定的路（隱藏寶藏）</h2>
+    <p>
+      把逆 SDE 的隨機項拿掉一半、再丟掉布朗運動，就得到一條<strong>確定性</strong>的常微分方程
+      <code>dx = [f − ½g²·∇ₓlog pₜ(x)]·dt</code>，叫做<strong>機率流 ODE</strong>。
+      它和逆 SDE 有<strong>完全相同的邊際分布</strong>——也就是每個時刻點的分布長得一樣、終點也一樣，
+      但它<strong>沒有隨機性</strong>：同一個起點每次都走出一模一樣的路。這帶來三個好處：可做<strong>精確似然計算</strong>、可得到<strong>可逆的 latent 表示</strong>、採樣更<strong>可控</strong>。
+      本頁的「對照」畫面就是要讓你看到：<strong>一條抖、一條滑，卻回到同一片點雲</strong>。
+    </p>
+    <h2>VP ⇄ DDPM、VE ⇄ NCSN：三個子頁面是同一座山</h2>
+    <p>
+      這個框架最迷人的地方，是它把先前兩套方法<strong>統一</strong>了。把 <strong>VP-SDE（保變異數）</strong>離散化，就得到 <strong>DDPM</strong>（Ho et al. 2020，本站「從雜訊生形」那一頁）；
+      把 <strong>VE-SDE（爆變異數）</strong>離散化，就得到 <strong>NCSN</strong>（Song &amp; Ermon 2019，本站「分數生成」那一頁）。
+      同一座山、三條路：DDPM 走一條、NCSN 走一條，而 SDE 是把它們接起來、還多開一條 ODE 捷徑的地圖。
+      論文也提出 <strong>predictor–corrector 採樣器</strong>與<strong>可控生成</strong>（如著色、補全），並拿下 <strong>ICLR 2021 傑出論文獎</strong>。
+    </p>
+    <h2>怎麼玩</h2>
+    <p>
+      ① 選一個目標分布（或自己畫），選 SDE 類型與噪聲範圍，按<strong>開始訓練</strong>，看損失往下掉。
+      ② 到「前向 SDE」按<strong>溶解</strong>或拖時間軸，看資料化成雜訊（試試 VP 與 VE 的差別）。
+      ③ 到「逆 SDE vs 機率流 ODE」選<strong>對照</strong>按<strong>生成</strong>，看兩條路殊途同歸；按<strong>再撒一次雜訊</strong>，你會發現 ODE 每次落點一致、SDE 每次略有不同。
+    </p>
+    <h2>誠實說</h2>
+    <p>
+      這是<strong>2D 教學版</strong>：真實的 Score-SDE 跑在高維影像上、分數網路是大型 U-Net、還會用 predictor–corrector 等技巧。
+      但這裡的<strong>前向 SDE、逆時間 SDE、機率流 ODE 的骨架，以及 VP/VE 兩個特例，都和論文一致</strong>。
+      你看到的分數是真的用 denoising score matching 學來的，積分是真的 Euler–Maruyama／Euler 跑出來的。
+    </p>
+  </section>
+
+  <section class="sources" aria-label="資料來源">
+    <h2>資料來源</h2>
+    <ul>
+      <li>Song, Sohl-Dickstein, Kingma, Kumar, Ermon, Poole. <a href="https://arxiv.org/abs/2011.13456" target="_blank" rel="noopener">Score-Based Generative Modeling through Stochastic Differential Equations</a>（ICLR 2021 傑出論文，arXiv:2011.13456）。</li>
+      <li>官方程式碼：<a href="https://github.com/yang-song/score_sde" target="_blank" rel="noopener">github.com/yang-song/score_sde</a>（與 PyTorch 版 score_sde_pytorch）。</li>
+      <li>Yang Song 的科普長文：<a href="https://yang-song.net/blog/2021/score/" target="_blank" rel="noopener">Generative Modeling by Estimating Gradients of the Data Distribution</a>。</li>
+      <li>Anderson (1982), Reverse-time diffusion equation models（逆時間 SDE 的理論來源）。</li>
+      <li>兩個特例的出處：Ho, Jain, Abbeel (2020) <em>DDPM</em>（≈VP-SDE）；Song &amp; Ermon (2019) <em>NCSN</em>（≈VE-SDE）。</li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    <p>純靜態 · 零外部資源 · 分數網路與所有數值積分都在你的瀏覽器裡即時執行</p>
+  </footer>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

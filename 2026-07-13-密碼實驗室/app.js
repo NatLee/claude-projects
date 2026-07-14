@@ -384,23 +384,36 @@
   }
 
   const FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+  const BUMP_MS = 400;              // 單顆膨脹→縮回的時長，需與 style.css 的 @keyframes bump 一致
+  const PEAK_MS = BUMP_MS * 0.42;   // 膨脹到最大的瞬間——在這裡翻面
+  const STEP_MS = 100;              // 骰子之間的接力間隔
+  let rollTimers = [];
 
   function roll() {
     const res = makePhrase();
-    if (reduceMotion) { reveal(res); return; }
     const dies = diceEl.querySelectorAll('.die');
-    diceEl.classList.add('rolling');
-    const t0 = performance.now();
-    const tick = (t) => {
-      dies.forEach((d) => { d.textContent = FACES[randInt(6)]; });
-      if (document.hidden || t - t0 > 620) {
-        diceEl.classList.remove('rolling');
-        reveal(res);
-        return;
-      }
-      setTimeout(() => requestAnimationFrame(tick), 60);
-    };
-    requestAnimationFrame(tick);
+    rollTimers.forEach(clearTimeout);
+    rollTimers = [];
+
+    if (reduceMotion || document.hidden) {
+      dies.forEach((d) => { d.classList.remove('bump'); d.textContent = FACES[randInt(6)]; });
+      reveal(res);
+      return;
+    }
+
+    // 由左至右接力：膨脹 → 翻出新點數 → 縮回
+    dies.forEach((d, i) => {
+      rollTimers.push(setTimeout(() => {
+        d.classList.remove('bump');
+        void d.offsetWidth;
+        d.classList.add('bump');
+        rollTimers.push(setTimeout(() => { d.textContent = FACES[randInt(6)]; }, PEAK_MS));
+      }, i * STEP_MS));
+    });
+    rollTimers.push(setTimeout(() => {
+      dies.forEach((d) => d.classList.remove('bump'));
+      reveal(res);
+    }, (dies.length - 1) * STEP_MS + BUMP_MS));
   }
 
   /* ---------- 事件 ---------- */

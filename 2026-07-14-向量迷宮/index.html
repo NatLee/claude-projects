@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>向量迷宮 · 向量資料庫其實不做完整搜尋</title>
+<meta name="description" content="RAG 要在幾百萬個向量裡找最像的那幾個，卻幾乎從不逐一比對。這頁當場蓋出一座 HNSW 多層圖，讓你親眼看貪婪走訪如何一跳一跳穿過迷宮找到最近鄰——近似搜尋掃過的點少得驚人。純靜態、可離線、真的在跑。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="home-link" href="../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<header class="hero">
+  <p class="kicker" data-reveal="1" data-delay="0.04">科學趣聞 · 向量搜尋 / 近似最近鄰（ANN）</p>
+  <h1 class="hero-title" data-reveal="1" data-delay="0.10">
+    <span class="t1">向量</span><span class="t2">迷宮</span>
+  </h1>
+  <p class="hero-sub" data-reveal="1" data-delay="0.18">
+    你問 AI 一個問題，它要在幾百萬個向量裡找出「最像的那幾個」。
+    大家以為它把每一個都拿來比一遍——<b>其實不是</b>。正式產品幾乎都用一種叫
+    <b>HNSW</b> 的多層圖，做<b>近似</b>最近鄰搜尋：用一點點準確率，換來上千倍的速度。
+  </p>
+  <p class="hero-tag" data-reveal="1" data-delay="0.26">
+    這一頁當場蓋出那座迷宮，讓你親眼看它怎麼一跳一跳穿過去。
+  </p>
+  <div class="hero-hint" data-reveal="1" data-delay="0.34" aria-hidden="true">
+    <span>向下捲動，走進迷宮</span>
+    <span class="arrow">↓</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= 01 迷宮 ================= -->
+  <section id="maze" class="section" aria-labelledby="maze-h">
+    <div class="section-head" data-reveal="1">
+      <h2 id="maze-h"><span class="num">01</span> 走一遍迷宮</h2>
+      <p class="lead">
+        下面是一座<b>真的建出來的 HNSW 索引</b>：一批點、多層圖、上層是稀疏的長邊（高速公路），
+        下層是稠密的短邊（市區道路）。放下一個<b class="q-em">查詢點</b>，看搜尋從最頂層開始，
+        沿邊跳到更近的鄰居、逐層下降，最後鎖定最近鄰。旁邊即時算給你看：<b>只比對了幾個點</b>。
+      </p>
+    </div>
+    <div id="maze-mount"></div>
+    <p class="aside" data-reveal="1">
+      每一步都是當場真的在跑：真的建多層圖、真的用啟發式選鄰居、真的做貪婪圖走訪。
+      沒有預錄動畫，換個參數整座圖就重蓋。
+    </p>
+  </section>
+
+  <!-- ================= 02 誠實時刻 ================= -->
+  <section id="honest" class="section" aria-labelledby="honest-h">
+    <div class="section-head" data-reveal="1">
+      <h2 id="honest-h"><span class="num">02</span> 誠實時刻：近似是特性，不是 bug</h2>
+      <p class="lead">
+        暴力精確搜尋會把<b>全部</b>的點都掃一遍，保證找到真正的最近鄰。HNSW 只掃一小撮，
+        絕大多數時候答案一樣——但<b>偶爾會錯過</b>。這個「偶爾錯」正是「近似」的代價，
+        而工程師心甘情願地付：因為換來的是好幾個數量級的速度。
+      </p>
+    </div>
+    <div id="honest-mount"></div>
+    <p class="aside" data-reveal="1">
+      把上面的點數 N 調大、其他不動，你會看到一件事：<b>掃描比例會往下掉</b>。
+      這就是 HNSW 的魔法——查詢成本大致隨資料量呈<b>對數</b>成長，資料愈多，掃過的比例反而愈小。
+    </p>
+  </section>
+
+  <!-- ================= 03 原理 ================= -->
+  <section id="how" class="section" aria-labelledby="how-h">
+    <div class="section-head" data-reveal="1">
+      <h2 id="how-h"><span class="num">03</span> 這座迷宮怎麼蓋、怎麼走</h2>
+      <p class="lead">三個關鍵想法，湊成了現代向量搜尋的骨架。</p>
+    </div>
+
+    <div class="cards">
+      <article class="card" data-reveal="1" data-delay="0.05">
+        <div class="card-ic" aria-hidden="true">🌐</div>
+        <h3>小世界：六度分隔的可導航版</h3>
+        <p>
+          一張圖如果同時有很多<b>短邊</b>（連到附近）和少數<b>長邊</b>（跳到遠方），
+          任兩點之間就會有很短的路徑——而且只靠「往離目標更近的鄰居走」這種<b>局部貪婪</b>就找得到。
+          這是 Kleinberg（2000）把米爾格倫「六度分隔」變成演算法的洞見，也是 HNSW 的地基。
+        </p>
+      </article>
+
+      <article class="card" data-reveal="1" data-delay="0.12">
+        <div class="card-ic" aria-hidden="true">🏔️</div>
+        <h3>多層圖：高速公路疊在市區之上</h3>
+        <p>
+          HNSW 把圖疊成好幾層。<b>頂層</b>只有極少數點、連著很長的邊，像高速公路，
+          幾跳就橫越整個空間；<b>愈往下層點愈多、邊愈短</b>，像市區巷弄。
+          搜尋從頂層貪婪走到走不動，就<b>下降一層</b>接著走，由粗到細，一路逼近。
+        </p>
+      </article>
+
+      <article class="card" data-reveal="1" data-delay="0.19">
+        <div class="card-ic" aria-hidden="true">🎯</div>
+        <h3>維度詛咒：為什麼非近似不可</h3>
+        <p>
+          真正的向量是幾百上千維的。在高維空間裡，連 KD-tree 這種樹狀索引都會<b>退化成暴力掃描</b>，
+          因為要保證找到最近鄰得檢查的格子數隨維度<b>指數爆炸</b>。
+          於是大家改用圖式<b>近似</b>搜尋：放棄「保證最近」，換來「幾乎最近，但快得多」。
+        </p>
+      </article>
+    </div>
+
+    <div class="who" data-reveal="1" data-delay="0.06">
+      <h3>誰在用 HNSW？</h3>
+      <p>
+        它幾乎成了向量搜尋的預設選項：<b>FAISS</b>（Meta 的相似度搜尋函式庫，內建 HNSW 索引）、
+        <b>Weaviate</b>、<b>Qdrant</b>（以 Rust 寫成、核心就是 HNSW）、<b>Milvus</b>、以及
+        PostgreSQL 的 <b>pgvector</b>（0.5.0 版起加入 HNSW 索引）。你用過的 RAG 系統，
+        底下大概就藏著一座這樣的迷宮。
+      </p>
+    </div>
+  </section>
+
+  <!-- ================= 資料來源 ================= -->
+  <section id="src" class="section" aria-labelledby="src-h">
+    <div class="section-head" data-reveal="1">
+      <h2 id="src-h"><span class="num">04</span> 資料來源</h2>
+    </div>
+    <ul class="src-list" data-reveal="1">
+      <li>
+        <a href="https://arxiv.org/abs/1603.09320" target="_blank" rel="noopener">Malkov &amp; Yashunin (2016/2020)</a>
+        ——〈Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs〉，
+        HNSW 原始論文，2016 年放上 arXiv、2020 年正式刊於 <em>IEEE TPAMI</em>（Vol. 42, No. 4, pp. 824–836）。
+        本頁的多層圖、貪婪下降、啟發式選鄰居都出自這篇。
+      </li>
+      <li>
+        <a href="https://www.cs.cornell.edu/home/kleinber/nature00.pdf" target="_blank" rel="noopener">Kleinberg (2000)</a>
+        ——〈Navigation in a small world〉，<em>Nature</em> 406, 845。小世界網路要能「靠局部資訊就找到短路徑」的條件，
+        是 NSW／HNSW 的理論源頭。
+      </li>
+      <li>
+        <a href="https://www.pinecone.io/learn/series/faiss/hnsw/" target="_blank" rel="noopener">Pinecone — HNSW 教學</a>
+        與 <a href="https://github.com/erikbern/ann-benchmarks" target="_blank" rel="noopener">ANN-Benchmarks</a>
+        ——近似最近鄰的 recall 與速度取捨、百萬級向量的實測數字（例如 128 維百萬向量上約 0.94 recall@10、每秒數百次查詢）。
+      </li>
+      <li>
+        <a href="https://github.com/pgvector/pgvector" target="_blank" rel="noopener">pgvector</a>、
+        <a href="https://github.com/facebookresearch/faiss" target="_blank" rel="noopener">FAISS</a>、
+        <a href="https://qdrant.tech/" target="_blank" rel="noopener">Qdrant</a>、
+        <a href="https://weaviate.io/" target="_blank" rel="noopener">Weaviate</a>、
+        <a href="https://milvus.io/" target="_blank" rel="noopener">Milvus</a>
+        ——採用 HNSW 的代表性向量資料庫／函式庫。
+      </li>
+    </ul>
+    <p class="disclaim" data-reveal="1">
+      誠實聲明：本頁的 HNSW 是<b>教學用的簡化版</b>——維度只有 2D、規模只有幾百個點，
+      為了看得清楚，動畫與配色都是我加的。但<b>多層圖 + 貪婪下降 + 啟發式選鄰居</b>這副骨架，
+      和 FAISS、Qdrant 那些真實函式庫是同一套。想看真正的百萬級效能，請跑上面連結裡的基準測試。
+    </p>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>每日小專案 · 向量迷宮</p>
+  <p class="foot-sub">純靜態 · 零外部資源 · 可離線 · 所有計算都在你的瀏覽器裡當場完成</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

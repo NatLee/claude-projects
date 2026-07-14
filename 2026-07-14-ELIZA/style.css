@@ -160,13 +160,37 @@ h1 .year{
 }
 .xray-btn[aria-pressed="true"] .dot{background:var(--amber);box-shadow:0 0 10px var(--amber)}
 
-.stage-body{display:grid;grid-template-columns:1fr;gap:0}
+/* 對話與透視左右等高，各自捲動 */
+.stage-body{
+  --stage-h:clamp(440px,64vh,680px);
+  display:grid;grid-template-columns:1fr;gap:0;align-items:stretch;
+}
 .stage-body.has-xray{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+
+/* 手機分頁切換 */
+.stage-tabs{display:none}
+.stab{
+  font:inherit;font-size:.82rem;font-weight:600;
+  flex:1;padding:.62rem .8rem;cursor:pointer;
+  background:transparent;border:0;border-bottom:2px solid transparent;
+  color:var(--mute);position:relative;
+  transition:color .25s var(--ease),border-color .25s var(--ease),background .25s var(--ease);
+}
+.stab:hover{color:var(--paper);background:rgba(125,251,164,.05)}
+.stab:focus-visible{outline:2px solid var(--p);outline-offset:-3px}
+.stab.is-on{color:var(--p);border-bottom-color:var(--p);background:rgba(125,251,164,.06)}
+.stab-dot{
+  position:absolute;top:.5rem;margin-left:.28rem;
+  width:7px;height:7px;border-radius:50%;background:var(--amber);
+  box-shadow:0 0 8px var(--amber);
+  animation:dotpulse 1.6s var(--ease) infinite;
+}
+@keyframes dotpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
 
 /* ── CRT ─────────────────────────────────────────────── */
 .crt{
   position:relative;
-  min-height:430px;
+  height:var(--stage-h);min-height:0;
   display:flex;flex-direction:column;
   background:radial-gradient(120% 100% at 50% 0%,#0d1a13 0%,#070d0a 70%,#040806 100%);
   isolation:isolate;
@@ -195,7 +219,7 @@ h1 .year{
   padding:1.4rem 1.35rem .6rem;
   font-family:var(--ff-mono);
   font-size:.92rem;line-height:1.85;
-  max-height:52vh;min-height:330px;
+  min-height:0;
   scrollbar-width:thin;scrollbar-color:var(--p-deep) transparent;
 }
 .log::-webkit-scrollbar{width:8px}
@@ -256,7 +280,7 @@ h1 .year{
   border-left:1px solid var(--line-soft);
   background:linear-gradient(180deg,rgba(255,180,84,.035),rgba(255,180,84,.01));
   display:flex;flex-direction:column;
-  max-height:min(560px,70vh);
+  height:var(--stage-h);min-height:0;
   animation:xin .42s var(--ease);
 }
 @keyframes xin{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
@@ -380,7 +404,11 @@ h1 .year{
 .kw .d.is-hit{color:var(--p);text-shadow:0 0 8px rgba(125,251,164,.25)}
 
 /* ── story ───────────────────────────────────────────── */
-.story{margin-top:4rem;display:grid;gap:1.1rem}
+.story{
+  margin:4.5rem auto 0;
+  display:grid;gap:1.1rem;
+  max-width:78ch;            /* 中文一行約 38–42 字，讀起來最舒服 */
+}
 .card{
   border:1px solid var(--line-soft);border-radius:var(--r);
   background:linear-gradient(180deg,rgba(255,255,255,.022),rgba(255,255,255,.008));
@@ -394,7 +422,7 @@ h1 .year{
 .card h2 .num{
   font-family:var(--ff-mono);font-size:.72rem;letter-spacing:.2em;color:var(--p-deep);
 }
-.card p{margin-bottom:1rem;color:#c3d2c8;max-width:68ch}
+.card p{margin-bottom:1rem;color:#c3d2c8;max-width:none}
 .card p:last-child{margin-bottom:0}
 .card strong{color:var(--paper)}
 .card em{color:#cfe0d5;font-style:italic}
@@ -475,8 +503,18 @@ h1 .year{
 
 /* ── responsive ──────────────────────────────────────── */
 @media (max-width:900px){
+  .stage-body{--stage-h:clamp(400px,60vh,560px)}
   .stage-body.has-xray{grid-template-columns:1fr}
-  .xray{border-left:0;border-top:1px solid var(--line-soft);max-height:none}
+  .xray{border-left:0;border-top:1px solid var(--line-soft)}
+  /* 分頁切換：一次只看一個，頁面不再被拉得又臭又長 */
+  .stage-tabs:not([hidden]){
+    display:flex;
+    border-bottom:1px solid var(--line-soft);
+    background:rgba(0,0,0,.2);
+  }
+  .stage-body.tabs.show-chat .xray{display:none}
+  .stage-body.tabs.show-xray .crt{display:none}
+  .stage-body.tabs.show-xray .xray{border-top:0}
   @keyframes xin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 }
 @media (max-width:560px){

@@ -1086,10 +1086,16 @@
   const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 隱私模式 */ } };
 
   const $ = (id) => document.getElementById(id);
+  // CSS.escape 在舊環境不一定存在，給個備援
+  const cssEsc = (v) => (window.CSS && typeof window.CSS.escape === 'function')
+    ? window.CSS.escape(String(v))
+    : String(v).replace(/[^\w-]/g, (ch) => '\\' + ch);
   const logEl = $('log'), inputEl = $('input'), formEl = $('form');
   const xrayEl = $('xray'), xrayBody = $('xrayBody'), xrayBtn = $('xrayBtn');
   const rulesEl = $('rules'), rulesList = $('rulesList'), rulesBtn = $('rulesBtn');
   const stageBody = document.querySelector('.stage-body');
+  const stageTabs = $('stageTabs'), tabChat = $('tabChat'), tabXray = $('tabXray'), tabPulse = $('tabPulse');
+  const narrowMq = window.matchMedia('(max-width: 900px)');
 
   let script = get(LS.lang, 'zh') === 'en' ? EN : ZH;
   let bot = new Eliza(script);
@@ -1245,6 +1251,7 @@
       '只有一張表和一個堆疊。<br>而你剛剛，還是覺得它在回應你。</div>';
 
     xrayBody.innerHTML = h;
+    if (useTabs() && tab === 'chat') tabPulse.hidden = false;   // 提示：透視那邊有新東西
   }
 
   /* --- 規則表 --- */
@@ -1296,7 +1303,7 @@
     rulesList.querySelectorAll('.hit-chip').forEach((el) => el.remove());
     let card = null;
     if (x.path === 'keyword' && x.key) {
-      card = rulesList.querySelector('#kw-' + CSS.escape(x.key));
+      card = rulesList.querySelector('#kw-' + cssEsc(x.key));
       if (card) {
         const d = card.querySelector('.d[data-di="' + x.dIndex + '"]');
         const r = card.querySelector('.r[data-di="' + x.dIndex + '"][data-ri="' + x.rIndex + '"]');
@@ -1387,6 +1394,38 @@
   $('langZh').addEventListener('click', () => setLang('zh'));
   $('langEn').addEventListener('click', () => setLang('en'));
 
+  /* --- 窄螢幕：對話／透視分頁切換 --- */
+  let tab = 'chat';
+  function useTabs() { return xrayOn && narrowMq.matches; }
+  function syncTabs() {
+    const on = useTabs();
+    stageTabs.hidden = !on;
+    stageBody.classList.toggle('tabs', on);
+    stageBody.classList.toggle('show-chat', on && tab === 'chat');
+    stageBody.classList.toggle('show-xray', on && tab === 'xray');
+    if (!on || tab === 'xray') tabPulse.hidden = true;
+  }
+  function setTab(t, focusInput) {
+    tab = t;
+    tabChat.classList.toggle('is-on', t === 'chat');
+    tabXray.classList.toggle('is-on', t === 'xray');
+    tabChat.setAttribute('aria-selected', String(t === 'chat'));
+    tabXray.setAttribute('aria-selected', String(t === 'xray'));
+    syncTabs();
+    if (focusInput && t === 'chat' && useTabs()) inputEl.focus({ preventScroll: true });
+  }
+  tabChat.addEventListener('click', () => setTab('chat', true));
+  tabXray.addEventListener('click', () => setTab('xray'));
+  stageTabs.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const next = tab === 'chat' ? 'xray' : 'chat';
+    setTab(next);
+    (next === 'chat' ? tabChat : tabXray).focus();
+  });
+  if (narrowMq.addEventListener) narrowMq.addEventListener('change', syncTabs);
+  else if (narrowMq.addListener) narrowMq.addListener(syncTabs);
+
   /* --- 透視開關 --- */
   function setXray(on) {
     xrayOn = on;
@@ -1394,6 +1433,7 @@
     stageBody.classList.toggle('has-xray', on);
     xrayBtn.setAttribute('aria-pressed', String(on));
     set(LS.xray, on ? '1' : '0');
+    setTab(on ? 'xray' : 'chat');
     if (on && lastHit) renderXray(lastHit);
   }
   xrayBtn.addEventListener('click', () => setXray(!xrayOn));

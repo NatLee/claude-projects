@@ -443,7 +443,7 @@
 
   /* ---- 訓練 ---- */
   function initModel() {
-    if (scanning) { scanning = false; cancelAnimationFrame(scanRaf); }
+    stopScan();
     if (training) { training = false; cancelAnimationFrame(rafId); }
     pausedByVis = false;
     net = createNet(mulberry32((rng() * 1e9) | 0));
@@ -622,29 +622,30 @@
       el.foolCount.textContent = String(foolCount);
     }
   }
+  var SCAN_LABEL = '自動把 \u03b5 拉大，直到它翻掉';
+  function stopScan() {
+    if (!scanning) return;
+    scanning = false;
+    if (scanRaf) cancelAnimationFrame(scanRaf);
+    scanRaf = 0;
+    el.scanBtn.textContent = SCAN_LABEL;
+    store('eps', eps);
+  }
   function scanEps() {
-    if (scanning || !trained || !current) return;
+    if (scanning) { stopScan(); return; }          // 再按一次＝停下來
+    if (!trained || !current) return;
     scanning = true;
-    el.scanBtn.disabled = true;
+    el.scanBtn.textContent = '停止掃描';
     var t0 = performance.now(), dur = reduced ? 1 : 1400, hi = 0.16;
     var a0 = argmax(forward(net, current.x).p);
     eps = 0; syncEps(); updateAttack();
     function step(now) {
-      if (!scanning || !trained || !current) {
-        scanning = false;
-        el.scanBtn.disabled = false;
-        return;
-      }
+      if (!scanning || !trained || !current) { stopScan(); return; }
       var t = Math.min(1, (now - t0) / dur);
       eps = Math.round((t * hi) / 0.005) * 0.005;
       syncEps();
       updateAttack();
-      if (!advImg || argmax(forward(net, advImg).p) !== a0 || t >= 1) {
-        scanning = false;
-        el.scanBtn.disabled = false;
-        store('eps', eps);
-        return;
-      }
+      if (!advImg || argmax(forward(net, advImg).p) !== a0 || t >= 1) { stopScan(); return; }
       scanRaf = requestAnimationFrame(step);
     }
     scanRaf = requestAnimationFrame(step);
@@ -759,11 +760,7 @@
       training = false;
       cancelAnimationFrame(rafId);
     }
-    if (scanning) {
-      scanning = false;
-      cancelAnimationFrame(scanRaf);
-      el.scanBtn.disabled = false;
-    }
+    stopScan();
   }
   function resumeAll() {
     if (pausedByVis && !trained) {
@@ -802,7 +799,11 @@
     el.pgdBtn.addEventListener('click', runPgd);
 
     var epsPending = false;
+    ['pointerdown', 'mousedown', 'touchstart', 'keydown', 'wheel'].forEach(function (evt) {
+      el.epsRange.addEventListener(evt, stopScan);          // 手一碰滑桿，掃描立刻讓位
+    });
     el.epsRange.addEventListener('input', function () {
+      stopScan();
       eps = parseFloat(el.epsRange.value);
       syncEps();
       store('eps', eps);

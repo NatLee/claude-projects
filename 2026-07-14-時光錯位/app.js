@@ -42,7 +42,32 @@
     { id: 'youtube',  y: 2005,  k: 2005,  e: '📹', n: 'YouTube 第一支影片',    t: '19 秒，內容是動物園的大象。' },
     { id: 'demote',   y: 2006,  k: 2006,  e: '💔', n: '冥王星被降級為矮行星',  t: '國際天文聯合會投票除名。' },
     { id: 'iphone',   y: 2007,  k: 2007,  e: '📲', n: '初代 iPhone 發表',      t: '「一台 iPod、一支電話、一個上網裝置。」' },
-    { id: 'vcr',      y: 2016,  k: 2016,  e: '📼', n: '世界最後一台錄影機出廠', t: '船井電機停產 VCR，錄影帶時代正式結束。' }
+    { id: 'vcr',      y: 2016,  k: 2016,  e: '📼', n: '世界最後一台錄影機出廠', t: '船井電機停產 VCR，錄影帶時代正式結束。' },
+    { id: 'antikyth', y: -100, k: -100, ly: '約前 100', e: '⚙️', n: '安提基特拉機械',  t: '古希臘的齒輪「電腦」，能推算日月食。' },
+    { id: 'vending',  y: 50,   k: 50,   ly: '約 50',    e: '⛲', n: '世界第一台自動販賣機', t: '亞歷山卓的希羅：投一枚幣，流出聖水。' },
+    { id: 'kongo',    y: 578,  k: 578,  e: '🏯', n: '金剛組創立',              t: '蓋四天王寺的日本建築商，世界最老的公司。' },
+    { id: 'vikings',  y: 1000, k: 1000, ly: '約 1000', e: '⛵', n: '維京人踏上北美',      t: '紐芬蘭的蘭塞奧茲牧草地。' },
+    { id: 'magna',    y: 1215, k: 1215, e: '📜', n: '《大憲章》簽署',          t: '英王約翰在草地上蓋了印。' },
+    { id: 'plague',   y: 1347, k: 1347, e: '🐀', n: '黑死病抵達歐洲',          t: '幾年內帶走三分之一的人口。' },
+    { id: 'machu',    y: 1450, k: 1450, ly: '約 1450', e: '🏔️', n: '印加人蓋起馬丘比丘',  t: '兩千四百公尺高的雲端石城。' },
+    { id: 'columbus', y: 1492, k: 1492, e: '🧭', n: '哥倫布抵達美洲',          t: '他到死都以為那是印度。' },
+    { id: 'goldi',    y: 1782, k: 1782, e: '🔥', n: '歐洲最後一名「女巫」被處決', t: '瑞士的安娜·戈爾迪，2008 年才獲平反。' },
+    { id: 'megalo',   y: 1824, k: 1824, e: '🦕', n: '第一隻恐龍被命名',        t: '巨齒龍——那時「恐龍」這個詞還沒發明。' },
+    { id: 'photo',    y: 1826, k: 1826, e: '📷', n: '世界第一張照片',          t: '曝光八小時，拍的是自家窗外。' },
+    { id: 'ether',    y: 1846, k: 1846, e: '😷', n: '外科麻醉首次公開示範',    t: '在這之前，手術是清醒著做的。' },
+    { id: 'zanzibar', y: 1896, k: 1896, e: '💥', n: '史上最短的戰爭',          t: '英國對尚吉巴，38 分鐘結束。' },
+    { id: 'ev1900',   y: 1900, k: 1900, e: '🔋', n: '電動車佔美國汽車 38%',     t: '汽油車那時只有 22%。' },
+    { id: 'monalisa', y: 1911, k: 1911, e: '🖼️', n: '蒙娜麗莎被偷',            t: '被偷之後，她才變成世界名畫。' },
+    { id: 'bread',    y: 1928, k: 1928, e: '🍞', n: '切片麵包上市',            t: '密蘇里的小鎮麵包店，第一次用機器切。' },
+    { id: 'z3',       y: 1941, k: 1941, e: '💾', n: '第一台可程式電腦 Z3',      t: 'Zuse 在柏林的公寓客廳裡做出來。' },
+    { id: 'duncan',   y: 1944, k: 1944, e: '🔮', n: '英國最後一次「巫術罪」定罪', t: '靈媒海倫·鄧肯，依 1735 年的法律入獄。' },
+    { id: 'lego',     y: 1958, k: 1958, e: '🧱', n: '樂高積木取得專利',        t: '今天的積木仍扣得上 1958 年的那一顆。' },
+    { id: 'heart',    y: 1967, k: 1967, e: '🫀', n: '世界第一次心臟移植',      t: '南非，Barnard 醫師，病人活了 18 天。' },
+    { id: 'cell',     y: 1973, k: 1973, e: '📞', n: '第一通手機通話',          t: 'Motorola 的 Cooper 打去跟對手炫耀。' },
+    { id: 'elvis',    y: 1977, k: 1977.62, e: '🎤', n: '貓王去世',              t: '8 月 16 日，孟菲斯，享年 42 歲。' },
+    { id: 'spam',     y: 1978, k: 1978, e: '📧', n: '世界第一封垃圾郵件',      t: '一次寄給 ARPANET 上 393 個人。' },
+    { id: 'gameboy',  y: 1989, k: 1989.31, e: '🕹️', n: 'Game Boy 上市',        t: '4 月 21 日，一塊灰色的磚。' },
+    { id: 'wall',     y: 1989, k: 1989.86, e: '🚧', n: '柏林圍牆倒塌',          t: '11 月 9 日，一場記者會口誤引爆的夜晚。' }
   ];
 
   // ── 時光錯位：所有 need 的卡片都在時間軸上、且剛放下的那張在其中，就揭示 ──
@@ -58,7 +83,26 @@
     { need: ['youtube', 'vcr'],     html: '<strong>YouTube 上線 11 年後，世界才做出最後一台錄影機。</strong>2016 年 7 月船井電機停產 VCR——那一年，錄影帶和 4K 串流在同一個貨架上共存。' },
     { need: ['nokia', 'phone'],     html: '<strong>諾基亞（1865）比電話（1876）還老。</strong>它創立時是芬蘭河邊的一間木漿廠，離「手機」還有 116 年。' },
     { need: ['cleo', 'pyramid', 'moon'], html: '<strong>克麗奧佩脫拉離登月，比離金字塔完工還近。</strong>她（前 30）與金字塔（前 2560）隔了 2530 年，與阿波羅 11 號（1969）只隔 1999 年。' },
-    { need: ['harvard', 'press'],   html: '<strong>哈佛（1636）創校時，牛頓還沒出生。</strong>它比微積分、比蒸汽機、比美國本身都早——校園裡最老的，是時間本身。' }
+    { need: ['harvard', 'press'],   html: '<strong>哈佛（1636）創校時，牛頓還沒出生。</strong>它比微積分、比蒸汽機、比美國本身都早——校園裡最老的，是時間本身。' },
+    { need: ['fax', 'ether'],       html: '<strong>人類先學會傳真（1843），才學會讓病人不痛（1846）。</strong>在乙醚麻醉首次公開示範以前，開刀是清醒著挨的——而傳真機的專利，比那早了三年。' },
+    { need: ['kongo', 'oxford'],    html: '<strong>金剛組（578）比牛津（1096）還老五百年。</strong>這家日本建築商為了蓋四天王寺而生，然後一路營業到 21 世紀——世界上最老的公司。' },
+    { need: ['vikings', 'columbus'],html: '<strong>維京人約在西元 1000 年就踏上北美。</strong>比哥倫布（1492）早了將近 500 年，紐芬蘭的蘭塞奧茲牧草地是實證——他們來了、看了，然後回家了。' },
+    { need: ['antikyth', 'vending'],html: '<strong>古希臘人有齒輪「電腦」，也有投幣販賣機。</strong>安提基特拉機械（約前 100）能推算日月食；亞歷山卓的希羅（約公元 50）做出投一枚幣就流出聖水的機器。' },
+    { need: ['magna', 'oxford'],    html: '<strong>《大憲章》（1215）簽下去的時候，牛津已經開課 119 年。</strong>那所大學看著英國憲政從一張羊皮紙開始。' },
+    { need: ['plague', 'aztec'],    html: '<strong>黑死病橫掃歐洲（1347）時，特諾奇提特蘭才剛蓋好 22 年。</strong>兩個世界正在同一個世紀裡，各自走向自己的災難。' },
+    { need: ['machu', 'press'],     html: '<strong>馬丘比丘（約 1450）和古騰堡印刷術（約 1440）幾乎同時誕生。</strong>一邊在雲端疊石頭，一邊在萊茵河畔排鉛字——彼此都不知道對方存在。' },
+    { need: ['goldi', 'bastille'],  html: '<strong>歐洲最後一名「女巫」被處決是 1782 年。</strong>距離法國大革命（1789）只剩七年，美國獨立宣言已經簽了六年——啟蒙時代還在砍女巫的頭。' },
+    { need: ['duncan', 'z3'],       html: '<strong>1941 年德國做出第一台可程式電腦，1944 年英國還在用 1735 年的《巫術法》抓人。</strong>靈媒海倫·鄧肯被關了九個月——理由是她「洩漏軍機」。' },
+    { need: ['megalo', 'photo'],    html: '<strong>人類先給恐龍取了名字（1824），兩年後才拍出第一張照片（1826）。</strong>所以最早的古生物學，全部靠手繪。' },
+    { need: ['ev1900', 'wright'],   html: '<strong>萊特兄弟起飛前三年，美國路上有 33,842 台電動車。</strong>1900 年電動車佔 38%、蒸汽車 40%、汽油車只有 22%——電動車不是新東西，是被淘汰過一次的東西。' },
+    { need: ['monalisa', 'titanic'],html: '<strong>蒙娜麗莎是先被偷走，才變成世界名畫的。</strong>1911 年她從羅浮宮消失，全歐洲的報紙追了兩年——鐵達尼號（1912）沉沒時，她還下落不明。' },
+    { need: ['bread', 'suffrage'],  html: '<strong>切片麵包（1928）比美國女性投票權（1920）還晚。</strong>所以「自從切片麵包以來最棒的發明」這句話，其實年輕得很。' },
+    { need: ['heart', 'moon'],      html: '<strong>人類先換了一顆心臟（1967），兩年後才踏上月球（1969）。</strong>南非的 Barnard 醫師動手時，阿波羅 11 號還沒發射。' },
+    { need: ['cell', 'apple'],      html: '<strong>第一通手機通話（1973）比蘋果公司（1976）還早三年。</strong>Cooper 站在紐約街頭，打給對手公司的工程師說：我正用一支「行動電話」跟你講話。' },
+    { need: ['spam', 'web'],        html: '<strong>第一封垃圾郵件（1978）比第一個網站（1991）早了 13 年。</strong>廣告永遠比內容先抵達。' },
+    { need: ['gameboy', 'wall'],    html: '<strong>Game Boy 上市（1989 年 4 月）七個月後，柏林圍牆倒了（11 月）。</strong>俄羅斯方塊就這樣跟著冷戰的結束一起出現在全世界的手上。' },
+    { need: ['starwars', 'elvis', 'guillo'], html: '<strong>1977 這一年：5 月《星際大戰》上映，8 月貓王去世，9 月法國最後一次用斷頭台。</strong>同一年、同一個世界。' },
+    { need: ['zanzibar', 'coke'],   html: '<strong>史上最短的戰爭只打了 38 分鐘（1896）。</strong>那時可口可樂（1886）已經賣了十年——這場仗的時間，還不夠喝完兩瓶再散步回家。' }
   ];
 
   const LS = {
@@ -104,10 +148,12 @@
     score: 0,
     streak: 0,
     fired: new Set(),
+    queue: [],
     over: false
   };
 
   const yearText = (y) => (y < 0 ? '前 ' + Math.abs(y) : String(y));
+  const label = (c) => c.ly || yearText(c.y);
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -144,10 +190,10 @@
     if (o.showYear) {
       const year = document.createElement('div');
       year.className = 'year';
-      year.textContent = yearText(card.y);
+      year.textContent = label(card);
       el.appendChild(year);
-      el.setAttribute('aria-label', card.n + '，' + yearText(card.y) + ' 年');
-      if (o.roll && !calm) rollYear(year, card.y);
+      el.setAttribute('aria-label', card.n + '，' + label(card) + ' 年');
+      if (o.roll && !calm && !card.ly) rollYear(year, card.y);
     } else {
       el.setAttribute('aria-label', '手上的卡片：' + card.n + '。' + card.t);
     }
@@ -226,11 +272,11 @@
     b.textContent = '放這裡';
     const prev = state.placed[index - 1];
     const next = state.placed[index];
-    const label = prev && next ? (yearText(prev.y) + ' 與 ' + yearText(next.y) + ' 之間')
-      : prev ? (yearText(prev.y) + ' 之後')
-      : next ? (yearText(next.y) + ' 之前')
+    const where = prev && next ? (label(prev) + ' 與 ' + label(next) + ' 之間')
+      : prev ? (label(prev) + ' 之後')
+      : next ? (label(next) + ' 之前')
       : '時間軸起點';
-    b.setAttribute('aria-label', '放在' + label);
+    b.setAttribute('aria-label', '放在' + where);
     b.addEventListener('click', () => place(index));
     return b;
   }
@@ -265,7 +311,7 @@
       streakEl.textContent = String(state.streak);
       pop(scoreEl); pop(streakEl);
       revealLine.className = 'reveal-line good';
-      revealLine.textContent = '正確 · ' + card.n + '：' + yearText(card.y) + ' 年'
+      revealLine.textContent = '正確 · ' + card.n + '：' + label(card) + ' 年'
         + (state.streak >= 3 ? '（連對 ' + state.streak + '）' : '');
       renderRail(card.id);
       sparkle();
@@ -286,7 +332,7 @@
       const marked = Object.assign({}, card, { wrong: true });
       state.placed.splice(correctIndex, 0, marked);
       revealLine.className = 'reveal-line bad';
-      revealLine.textContent = '錯位 · ' + card.n + '其實是 ' + yearText(card.y) + ' 年——時間把它搬回去了。';
+      revealLine.textContent = '錯位 · ' + card.n + '其實是 ' + label(card) + ' 年——時間把它搬回去了。';
       renderRail(card.id);
     }
 
@@ -314,13 +360,17 @@
   let shockTimer = null;
   function tellShock(justPlacedId) {
     const ids = new Set(state.placed.map((c) => c.id));
-    const hit = SHOCKS.find((s) =>
-      !state.fired.has(s.need.join('|')) &&
-      s.need.includes(justPlacedId) &&
-      s.need.every((id) => ids.has(id))
-    );
+    // 同一次放置可能同時湊齊多則——全部排進佇列，之後一則一則放，不漏掉任何一個揭示
+    SHOCKS.forEach((s) => {
+      const key = s.need.join('|');
+      if (state.fired.has(key)) return;
+      if (!s.need.includes(justPlacedId)) return;
+      if (!s.need.every((id) => ids.has(id))) return;
+      state.fired.add(key);
+      state.queue.push(s);
+    });
+    const hit = state.queue.shift();
     if (!hit) return false;
-    state.fired.add(hit.need.join('|'));
 
     shockText.innerHTML = hit.html;
     shockEl.hidden = false;
@@ -447,7 +497,7 @@
   function finish(cleared) {
     state.over = true;
     handSlot.textContent = '';
-    handHint.textContent = cleared ? '36 張卡片全部進了時間軸。' : '時間軸暫時關門。';
+    handHint.textContent = cleared ? '整副牌全部進了時間軸。' : '時間軸暫時關門。';
     overScore.textContent = String(state.score);
     const best = Number(store.get(LS.best, 0)) || 0;
     const plays = (Number(store.get(LS.plays, 0)) || 0) + 1;
@@ -455,6 +505,27 @@
     overSub.textContent = cleared
       ? '你把整副牌都排完了——最佳紀錄 ' + best + '，這是你第 ' + plays + ' 次上工。'
       : '最佳紀錄 ' + best + ' 張 · 這是你第 ' + plays + ' 次上工。';
+    // 佇列裡還沒放完的錯位揭示，一次補在結束畫面上
+    const card = overEl.querySelector ? overEl.querySelector('.over-card') : null;
+    const stale = overEl.querySelector ? overEl.querySelector('.left-over') : null;
+    if (stale) stale.remove();
+    if (card && state.queue.length) {
+      const box = document.createElement('div');
+      box.className = 'deep-time left-over';
+      const h = document.createElement('h3');
+      h.textContent = '還沒來得及告訴你';
+      box.appendChild(h);
+      state.queue.forEach((s) => {
+        const p = document.createElement('p');
+        p.innerHTML = s.html;
+        box.appendChild(p);
+      });
+      const deep = card.querySelector('.deep-time');
+      if (deep && deep.parent !== undefined) card.appendChild(box);
+      else card.appendChild(box);
+    }
+    state.queue = [];
+
     overEl.hidden = false;
     setTimeout(() => { const b = $('again'); if (b) b.focus(); }, 60);
   }
@@ -468,6 +539,7 @@
     state.score = 0;
     state.streak = 0;
     state.fired = new Set();
+    state.queue = [];
     state.over = false;
 
     // 先送一張當錨點（已知年份）
@@ -478,7 +550,7 @@
     scoreEl.textContent = '0';
     bestEl.textContent = String(Number(store.get(LS.best, 0)) || 0);
     revealLine.className = 'reveal-line';
-    revealLine.textContent = '時間軸上先擺好一張——其餘 35 張，交給你。';
+    revealLine.textContent = '時間軸上先擺好一張——其餘 ' + state.pool.length + ' 張，交給你。';
     overEl.hidden = true;
     shockEl.hidden = true;
 

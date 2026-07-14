@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>騙倒它 — 親手訓練一個神經網路，再親手用梯度騙倒它</title>
+<meta name="description" content="在瀏覽器裡真的訓練一個神經網路分類器，然後用 FGSM／PGD 真的算梯度，加上一層人眼幾乎看不出來的雜訊，讓它信心滿滿地答錯。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="topbar">
+  <a class="home" href="../index.html">← 回首頁</a>
+  <span class="kicker">網路趣聞・冷知識</span>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <p class="eyebrow" data-stagger>2026 · 07 · 14</p>
+    <h1 data-stagger>騙倒它</h1>
+    <p class="lede" data-stagger>
+      這一頁不播影片、不放假動畫。你會<strong>真的訓練</strong>一個神經網路，
+      再<strong>真的算一次梯度</strong>，把一層人眼幾乎看不出來的雜訊疊上去 ——
+      然後看著它把「圓形 99%」改口成「三角形 96%」。
+    </p>
+    <p class="sub" data-stagger>
+      2014 年 Goodfellow、Shlens 與 Szegedy 用同一招，讓 GoogLeNet 把一隻
+      <strong>信心 57.7% 的熊貓</strong>，變成<strong>信心 99.3% 的長臂猿</strong>。
+      他們加的雜訊有多大？ε = .007 —— 每個像素只動 0.7%。
+    </p>
+    <div class="steps" data-stagger>
+      <span class="step"><b>1</b> 訓練它</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>2</b> 騙倒它</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>3</b> 換你出手</span>
+    </div>
+  </section>
+
+  <!-- ============ 步驟一：訓練 ============ -->
+  <section class="card" id="trainCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">01</span> 訓練</h2>
+      <p class="card-sub">256 → 64 → 3 的多層感知器，16,643 個參數，Adam + 交叉熵。
+        資料是現場生成的 3,000 張 16×16 灰階小圖：圓、方、三角，隨機位置、大小、旋轉、雜訊，
+        而且<strong>三類的面積一樣大</strong>，逼它去看形狀而不是亮度。</p>
+    </div>
+
+    <div class="train-grid">
+      <div class="panel">
+        <h3 class="panel-title">訓練資料（每次都重新生成）</h3>
+        <div class="samples" id="samples" aria-label="程序化生成的訓練樣本"></div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">學習曲線</h3>
+        <canvas id="curve" class="curve" role="img"
+          aria-label="訓練損失（橘線）與測試準確率（青線）隨時間變化的曲線"></canvas>
+        <div class="legend">
+          <span class="lg lg-loss">損失 loss</span>
+          <span class="lg lg-acc">測試準確率</span>
+        </div>
+        <div class="stats">
+          <div class="stat"><span class="stat-k">Epoch</span><span class="stat-v" id="statEpoch">0 / 14</span></div>
+          <div class="stat"><span class="stat-k">Loss</span><span class="stat-v" id="statLoss">—</span></div>
+          <div class="stat"><span class="stat-k">準確率</span><span class="stat-v accent" id="statAcc">—</span></div>
+        </div>
+        <div class="progress"><span class="progress-fill" id="trainBar"></span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="trainBtn">開始訓練</button>
+      <button class="btn ghost" id="resetBtn">重新初始化</button>
+      <p class="status" id="trainStatus" role="status" aria-live="polite">尚未訓練。這個模型現在只會亂猜（約 33%）。</p>
+    </div>
+  </section>
+
+  <!-- ============ 步驟二：攻擊 ============ -->
+  <section class="card locked" id="attackCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">02</span> 攻擊 <span class="badge" id="flipBadge">還沒翻</span></h2>
+      <p class="card-sub">
+        FGSM：<code>x_adv = clip( x + ε · sign(∇ₓ J(θ, x, y)) )</code>。
+        把「讓 loss 變大」的方向算出來，每個像素只往那個方向推 ε。
+        <span class="lock-note">（先完成訓練才能開始攻擊）</span>
+      </p>
+    </div>
+
+    <div class="triptych">
+      <figure>
+        <canvas id="origCanvas" width="16" height="16" class="px" role="img" aria-label="原圖"></canvas>
+        <figcaption>原圖 <span>x</span></figcaption>
+      </figure>
+      <span class="op" aria-hidden="true">+ ε ×</span>
+      <figure>
+        <canvas id="noiseCanvas" width="16" height="16" class="px" role="img" aria-label="加上去的雜訊，已放大到看得見"></canvas>
+        <figcaption>雜訊 <span>sign(∇ₓJ)</span></figcaption>
+      </figure>
+      <span class="op" aria-hidden="true">=</span>
+      <figure>
+        <canvas id="advCanvas" width="16" height="16" class="px" role="img" aria-label="對抗圖"></canvas>
+        <figcaption>對抗圖 <span>x + ε·sign(∇ₓJ)</span></figcaption>
+      </figure>
+    </div>
+    <p class="gain" id="gainNote">—</p>
+
+    <div class="eps-row">
+      <label for="epsRange">雜訊強度 ε</label>
+      <input type="range" id="epsRange" min="0" max="0.3" step="0.005" value="0.08" disabled
+             aria-label="雜訊強度 ε">
+      <output class="eps-out"><b id="epsVal">0.080</b><span id="epsLevels">20/255</span></output>
+    </div>
+
+    <div class="verdict">
+      <div class="verdict-col">
+        <h3>原圖，它說：</h3>
+        <div class="bars" id="barsOrig"></div>
+      </div>
+      <div class="verdict-col adv">
+        <h3>對抗圖，它說：</h3>
+        <div class="bars" id="barsAdv"></div>
+      </div>
+    </div>
+
+    <p class="live" id="attackLive" role="status" aria-live="polite"></p>
+
+    <div class="row">
+      <button class="btn primary" id="scanBtn" disabled>自動把 ε 拉大，直到它翻掉</button>
+      <button class="btn ghost" id="nextBtn" disabled>換一張圖</button>
+      <p class="hint">這張圖的臨界點：<b id="minEps">—</b></p>
+    </div>
+
+    <div class="targeted">
+      <h3 class="panel-title">目標攻擊（迭代式 PGD，40 步）</h3>
+      <p class="card-sub">不只讓它答錯 —— 指定它要答成哪一類。每一步都往「目標類別的 loss 變小」的方向走
+        <code>α·sign(∇ₓJ_target)</code>，再投影回 ε 的 L∞ 球裡。</p>
+      <div class="row">
+        <label for="targetSel">逼它說這是</label>
+        <select id="targetSel" aria-label="目標類別"></select>
+        <button class="btn primary" id="pgdBtn" disabled>執行 PGD</button>
+      </div>
+      <p class="live" id="pgdNote"></p>
+    </div>
+
+    <p class="counter">你已經騙倒它 <b id="foolCount">0</b> 次</p>
+  </section>
+
+  <!-- ============ 步驟三：自己畫 ============ -->
+  <section class="card" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">03</span> 換你出手</h2>
+      <p class="card-sub">用滑鼠或手指在格子裡塗一個形狀（16×16，就這麼小）。先看它怎麼分類，再對<strong>你畫的圖</strong>算梯度、攻擊它。</p>
+    </div>
+
+    <div class="draw-grid">
+      <div class="draw-col">
+        <canvas id="drawCanvas" width="16" height="16" class="px pad" aria-label="繪圖區，可用滑鼠或手指塗畫"></canvas>
+        <p class="cap">你畫的</p>
+      </div>
+      <div class="draw-col">
+        <canvas id="drawAdvCanvas" width="16" height="16" class="px" role="img" aria-label="攻擊後的圖"></canvas>
+        <p class="cap">攻擊後</p>
+      </div>
+      <div class="draw-col wide">
+        <div class="bars" id="drawBars"></div>
+        <p class="live" id="drawStatus" role="status">畫一個形狀，然後按「讓它分類」。</p>
+      </div>
+    </div>
+
+    <div class="row wrap">
+      <button class="btn primary" id="drawClassify" disabled>讓它分類</button>
+      <button class="btn danger" id="drawAttack" disabled>騙倒它</button>
+      <button class="btn ghost" id="clearBtn">清除</button>
+      <span class="demo" id="demoBtns">
+        <span class="demo-label">鍵盤／懶人用：</span>
+        <button class="btn tiny" data-cls="0">放一個圓</button>
+        <button class="btn tiny" data-cls="1">放一個方</button>
+        <button class="btn tiny" data-cls="2">放一個三角</button>
+      </span>
+    </div>
+    <p class="sr-only" id="drawLive" aria-live="polite"></p>
+  </section>
+
+  <!-- ============ 為什麼 ============ -->
+  <section class="prose" data-stagger>
+    <h2>為什麼一點點雜訊就能騙倒它？</h2>
+    <p>
+      直覺會說：因為神經網路太複雜、太扭曲了。<strong>但 Goodfellow 他們的結論剛好相反 —— 因為它太「線性」。</strong>
+      一個線性單元的輸出是 <code>w·x</code>。你把輸入每個維度都推一點點 η，輸出就多了 <code>w·η</code>。
+      如果你讓 <code>η = ε·sign(w)</code>，那麼這一項就等於 <code>ε · Σ|wᵢ|</code> ——
+      <strong>會隨著維度數量線性長大</strong>。
+    </p>
+    <p>
+      單一像素只動 0.7%，人眼看不出來；但幾十萬個像素<strong>同時朝著對它最壞的方向</strong>動 0.7%，
+      加起來就足以把決策邊界整個跨過去。維度愈高，這個「小改動的槓桿」愈長。
+      ReLU 網路在局部又幾乎是分段線性的，所以這個放大效應照樣成立。
+      這也解釋了另一件怪事：對抗樣本常常<strong>可以遷移</strong> ——
+      騙倒 A 模型的圖，往往也騙得倒獨立訓練的 B 模型，因為它們學到的線性方向很像。
+      （這一頁的核心程式在 node 裡實測過：拿 A 模型的梯度做出來的對抗樣本，
+      在 ε=0.08 時有 77.6%、ε=0.12 時有 90.2% 也騙倒了另一個獨立訓練、準確率 98.8% 的 B 模型 ——
+      B 從頭到尾沒被摸過一根寒毛。）
+    </p>
+
+    <h2>真實世界的案例</h2>
+    <ol class="timeline">
+      <li>
+        <b>2013 · Szegedy 等人</b>
+        〈Intriguing properties of neural networks〉第一次描述這個現象，當時稱之為神經網路的「盲點」，
+        並指出這些樣本會在不同模型、不同訓練集之間遷移。
+      </li>
+      <li>
+        <b>2014 · Goodfellow, Shlens &amp; Szegedy</b>
+        提出 FGSM，只要一次梯度就能生成對抗樣本。經典圖：熊貓（57.7%）+ .007 × sign(∇ₓJ) = 長臂猿（<strong>99.3%</strong>）。
+        中間那張雜訊圖本身，GoogLeNet 認為是「線蟲」，信心 8.2%。
+      </li>
+      <li>
+        <b>2017 · Brown 等人（Google Brain）</b>
+        對抗貼紙（adversarial patch）：一張迷幻花紋的貼紙放在香蕉旁邊，
+        VGG16 就從「香蕉 97%」變成「烤麵包機 99%」。貼紙可以直接印出來，不需要知道現場光線或相機角度。
+      </li>
+      <li>
+        <b>2018 · Eykholt 等人（CVPR）</b>
+        把幾張黑白貼紙貼在真的停車標誌上，辨識模型讀成「速限 45」：
+        實驗室拍攝的照片<strong>100% 誤判</strong>，行進中車輛拍的影片幀有 <strong>84.8%</strong> 誤判。
+      </li>
+      <li>
+        <b>2018 · Elsayed 等人（NeurIPS）</b>
+        更毛的一篇：把能在多個模型間遷移的對抗樣本拿給<strong>人</strong>看，
+        在只給 2 秒多的觀看時間下，人的判斷也會被推向攻擊者指定的類別。
+      </li>
+      <li>
+        <b>2021 · OpenAI</b>
+        CLIP 的「印刷體攻擊」：在蘋果上貼一張手寫「iPod」的紙條，CLIP 就說那是 iPod。
+        這個攻擊需要的裝備只有<strong>一支筆和一張紙</strong>。
+      </li>
+    </ol>
+
+    <h2>那擋得住嗎？</h2>
+    <p>
+      目前最主流、也最經得起考驗的防禦是<strong>對抗訓練</strong>（adversarial training）：
+      在訓練時就把對抗樣本混進去一起學 —— 這個想法在 2014 年那篇 FGSM 論文裡就已經提出來了。
+      它有效，但要付出代價：更長的訓練時間、通常還有一點乾淨資料上的準確率。
+      而且防守方永遠比較辛苦：模型要對<strong>所有</strong>可能的擾動都撐住，攻擊方只要找到<strong>一個</strong>就贏了。
+    </p>
+
+    <h2>誠實說明</h2>
+    <p>
+      這一頁的模型很小（一層隱藏層、16×16 的合成圖），資料是程式當場生成的，不是 ImageNet。
+      但<strong>演算法完全一樣</strong>：同一個交叉熵、同一個反向傳播、同一條 FGSM 公式、同一套 PGD 迭代。
+      你在畫面上看到的每一個百分比，都是這台瀏覽器現場算出來的，沒有任何預先寫死的結果。
+    </p>
+    <p>
+      一個差別要講清楚：因為這裡只有 256 個像素，雜訊沒有太多地方可以躲，所以 ε 拉大時你會比較容易看出顆粒感；
+      真實照片有幾十萬個像素，同樣強度的擾動反而更難察覺 —— 這正好就是上面說的「高維度讓槓桿變長」的另一面。
+      換句話說：<strong>真實世界的模型不是比較安全，是比較好騙。</strong>
+    </p>
+  </section>
+
+  <section class="sources" data-stagger>
+    <h2>資料來源</h2>
+    <ul>
+      <li><a href="https://arxiv.org/abs/1312.6199" target="_blank" rel="noopener">Szegedy et al. (2013) — Intriguing properties of neural networks (arXiv:1312.6199)</a></li>
+      <li><a href="https://arxiv.org/abs/1412.6572" target="_blank" rel="noopener">Goodfellow, Shlens &amp; Szegedy (2014) — Explaining and Harnessing Adversarial Examples (arXiv:1412.6572)</a>：Figure 1 的熊貓 57.7% → 長臂猿 99.3%、ε = .007</li>
+      <li><a href="https://arxiv.org/abs/1712.09665" target="_blank" rel="noopener">Brown et al. (2017) — Adversarial Patch (arXiv:1712.09665)</a></li>
+      <li><a href="https://openaccess.thecvf.com/content_cvpr_2018/papers/Eykholt_Robust_Physical-World_Attacks_CVPR_2018_paper.pdf" target="_blank" rel="noopener">Eykholt et al. (2018) — Robust Physical-World Attacks on Deep Learning Visual Classification (CVPR)</a>：停車標誌 → 速限 45，實驗室 100%、行車影片 84.8%</li>
+      <li><a href="https://openai.com/index/multimodal-neurons/" target="_blank" rel="noopener">OpenAI (2021) — Multimodal Neurons in Artificial Neural Networks</a>：CLIP 的印刷體攻擊（蘋果貼「iPod」）</li>
+      <li><a href="https://papers.nips.cc/paper/7647-adversarial-examples-that-fool-both-computer-vision-and-time-limited-humans" target="_blank" rel="noopener">Elsayed et al. (2018) — Adversarial Examples that Fool both Computer Vision and Time-Limited Humans (NeurIPS)</a></li>
+      <li><a href="https://arxiv.org/abs/1706.06083" target="_blank" rel="noopener">Madry et al. (2017) — Towards Deep Learning Models Resistant to Adversarial Attacks (arXiv:1706.06083)</a>：PGD 與對抗訓練</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>每日小專案 · 2026-07-14 · 全部在你的瀏覽器裡跑，沒有任何網路請求、沒有外部模型檔。</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

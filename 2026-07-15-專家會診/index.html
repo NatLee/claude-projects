@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>專家會診 — 兆級參數，每次只醒來一小撮</title>
+<meta name="description" content="很多人以為大模型每算一個字都動用全部參數。其實像 Mixtral、DeepSeek 這類 Mixture of Experts（MoE）模型，每個 token 只被路由器送去少數幾個專家——上兆參數，卻只啟動一小撮。這頁把稀疏啟動與路由做成看得見的互動，底下真的在跑一個小型 MoE。純靜態、零外部資源、不呼叫任何 AI API。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主要內容</a>
+
+<a class="back-link" href="../index.html" aria-label="回到首頁">
+  <span aria-hidden="true">←</span> 回首頁
+</a>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero" role="banner">
+  <canvas id="bg-canvas" class="hero-canvas" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="eyebrow" data-reveal>網路趣聞・冷知識 · 稀疏啟動</p>
+    <h1 class="hero-title" data-reveal>專家會診</h1>
+    <p class="hero-sub" data-reveal>兆級參數，每次只醒來一小撮</p>
+    <p class="hero-lead" data-reveal>
+      很多人以為，大型語言模型每吐一個字，都得動用它<strong>全部</strong>的參數。其實像
+      <strong>Mixtral</strong>、<strong>DeepSeek</strong>、以及被廣泛傳聞的 <strong>GPT-4</strong>
+      這類採用「專家混合（Mixture of Experts, MoE）」的模型，內部養了一大群「專家」子網路，
+      但每個字只會被一個「路由器」送去<strong>其中少少幾個</strong>——所以它能有上兆參數，
+      每個字卻只叫醒一小撮。這頁把「稀疏啟動 ＋ 路由」變成看得見、能親手玩的東西，
+      而且底下<strong>真的在跑一個小型 MoE</strong>：路由、稀疏加總、負載平衡都是當場算的。
+    </p>
+    <div class="hero-tags" data-reveal>
+      <span class="htag t-a">Mixtral 8x7B · 8 選 2</span>
+      <span class="htag t-b">Switch · top-1 · 兆級</span>
+      <span class="htag t-c">DeepSeek-V3 · 671B→37B</span>
+      <span class="htag t-d">稀疏啟動</span>
+    </div>
+    <a class="hero-cta" href="#bench" data-reveal>去路由台開跑 ↓</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ==================== 01 路由台 ==================== -->
+  <section class="sec" id="bench" aria-labelledby="bench-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">01</span>
+      <div>
+        <h2 id="bench-h">路由台：看每個字被送去哪幾個專家</h2>
+        <p class="sec-desc">
+          打一段字（中文以「字」為一個 token），或選一句範例。每個 token 通過<strong>路由器</strong>，
+          亮起它被送去的 <em>k</em> 個專家，其他專家保持暗——<strong>暗的就是沒被啟動、不花計算</strong>。
+          這裡的路由與稀疏加總都是當場算的，不是預錄動畫。
+        </p>
+      </div>
+    </div>
+
+    <div class="bench" data-reveal>
+      <!-- 控制列 -->
+      <div class="controls">
+        <div class="ctrl-row">
+          <label class="ctrl-label" for="tok-input">輸入 token</label>
+          <input id="tok-input" class="tok-input" type="text" maxlength="40"
+                 autocomplete="off" spellcheck="false"
+                 aria-describedby="tok-hint"
+                 value="量子電腦運算快得驚人">
+          <p id="tok-hint" class="ctrl-hint">中文一個字＝一個 token；也可打英數字。</p>
+        </div>
+        <div class="ctrl-row chips" id="preset-chips" role="group" aria-label="範例句">
+          <!-- JS 生成 -->
+        </div>
+        <div class="ctrl-row ctrl-actions">
+          <div class="kseg" id="k-seg" role="group" aria-label="每個 token 送去幾個專家（top-k）">
+            <span class="kseg-label">top-k</span>
+            <button type="button" class="kbtn" data-k="1" aria-pressed="false">1</button>
+            <button type="button" class="kbtn" data-k="2" aria-pressed="true">2</button>
+            <button type="button" class="kbtn" data-k="3" aria-pressed="false">3</button>
+          </div>
+          <div class="btn-group">
+            <button type="button" id="btn-step" class="btn">下一個字 ▸</button>
+            <button type="button" id="btn-auto" class="btn" aria-pressed="false">自動播放</button>
+            <button type="button" id="btn-send" class="btn btn-primary">整句送入</button>
+            <button type="button" id="btn-clear" class="btn btn-ghost">清空</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 舞台：路由器 + 8 個專家 + 連線 -->
+      <div class="stage" id="stage">
+        <svg class="wires" id="wires" aria-hidden="true" preserveAspectRatio="none"></svg>
+        <div class="router" id="router">
+          <div class="router-core">
+            <span class="router-title">路由器</span>
+            <span class="router-token" id="router-token" aria-hidden="true">·</span>
+          </div>
+          <p class="router-sub">gating：對每個專家算分數 → 取 top-k</p>
+        </div>
+        <div class="experts" id="experts" role="list" aria-label="專家群">
+          <!-- JS 生成 8 個專家 -->
+        </div>
+      </div>
+
+      <!-- token 卷軸 -->
+      <div class="tok-strip-wrap">
+        <div class="tok-strip" id="tok-strip" aria-label="token 卷軸"></div>
+      </div>
+
+      <!-- 即時讀數 -->
+      <p class="route-readout" id="route-readout" aria-live="polite" role="status">
+        按「整句送入」或「下一個字」，看每個 token 被路由到哪些專家。
+      </p>
+
+      <!-- 統計 -->
+      <div class="statbar" id="statbar">
+        <div class="stat"><span class="stat-num" id="stat-active">—</span><span class="stat-cap">這個 token 用了幾個專家</span></div>
+        <div class="stat"><span class="stat-num" id="stat-ratio">—</span><span class="stat-cap">這個 token 的專家啟動比例</span></div>
+        <div class="stat"><span class="stat-num" id="stat-distinct">0</span><span class="stat-cap">整句用到的不同專家</span></div>
+        <div class="stat"><span class="stat-num" id="stat-total">0</span><span class="stat-cap">已處理的 token 數</span></div>
+      </div>
+      <p class="fineprint">
+        專家的顏色只是編號識別；<strong>路由器一定要算</strong>（它負責決定去哪），真正稀疏、可以省下的是<strong>專家</strong>。
+        同一個字每次都走同一條路（決定性）；不同字走哪裡，是這個小 MoE <strong>訓練後學出來的</strong>。
+      </p>
+    </div>
+  </section>
+
+  <!-- ==================== 02 參數 vs 啟動 ==================== -->
+  <section class="sec" id="scale" aria-labelledby="scale-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">02</span>
+      <div>
+        <h2 id="scale-h">哇：總參數很大，這個 token 只醒來一小撮</h2>
+        <p class="sec-desc">
+          MoE 最反直覺的地方——<strong>參數量</strong>決定它「學得下多少東西」，
+          <strong>每個 token 實際動用的參數</strong>才決定「這一步要算多少」。兩者可以差很多。挑一個模型看看。
+        </p>
+      </div>
+    </div>
+
+    <div class="scale-card" data-reveal>
+      <div class="model-seg" id="model-seg" role="group" aria-label="選擇模型">
+        <button type="button" class="mbtn is-on" data-model="mixtral" aria-pressed="true">Mixtral 8x7B</button>
+        <button type="button" class="mbtn" data-model="deepseek" aria-pressed="false">DeepSeek-V3</button>
+        <button type="button" class="mbtn" data-model="switch" aria-pressed="false">Switch-C</button>
+        <button type="button" class="mbtn" data-model="gpt4" aria-pressed="false">GPT-4（傳聞）</button>
+        <button type="button" class="mbtn" data-model="toy" aria-pressed="false">本頁教學版</button>
+      </div>
+
+      <div class="scale-body">
+        <div class="scale-nums">
+          <div class="bignum">
+            <span class="bignum-val" id="p-total">—</span>
+            <span class="bignum-cap">總參數</span>
+          </div>
+          <div class="bignum bignum-active">
+            <span class="bignum-val" id="p-active">—</span>
+            <span class="bignum-cap">這個 token 只醒來</span>
+          </div>
+          <div class="bignum">
+            <span class="bignum-val" id="p-ratio">—</span>
+            <span class="bignum-cap">啟動比例</span>
+          </div>
+        </div>
+
+        <div class="pbar" aria-hidden="true">
+          <div class="pbar-track">
+            <div class="pbar-fill" id="p-bar"></div>
+          </div>
+          <div class="pbar-legend">
+            <span><i class="dot dot-total"></i>總參數（容量）</span>
+            <span><i class="dot dot-active"></i>本 token 啟動（算力）</span>
+          </div>
+        </div>
+
+        <div class="pgrid-wrap">
+          <div class="pgrid" id="p-grid" aria-hidden="true"></div>
+          <p class="pgrid-cap" id="p-gridcap"></p>
+        </div>
+
+        <p class="scale-note" id="p-note"></p>
+      </div>
+    </div>
+    <p class="fineprint">
+      數字都是查證過的公開資料；<strong>GPT-4 的部分是非官方傳聞</strong>（OpenAI 從未證實），已明確標示。
+      Switch-C 用 top-1（每 token 只 1 個專家），所以強調的是「總參數 vs 每步算力」而非啟動比例。
+    </p>
+  </section>
+
+  <!-- ==================== 03 負載平衡 ==================== -->
+  <section class="sec" id="balance" aria-labelledby="balance-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">03</span>
+      <div>
+        <h2 id="balance-h">負載平衡：別讓少數專家過勞、其他餓死</h2>
+        <p class="sec-desc">
+          如果大家都愛去同一個專家，它會被操爆、其他專家卻閒著（甚至<strong>餓死</strong>、幾乎沒被訓練到）。
+          這裡灌進一批「偏心」的 token，開關<strong>負載平衡</strong>，看分布怎麼從失衡變均勻。
+        </p>
+      </div>
+    </div>
+
+    <div class="lb-card" data-reveal>
+      <div class="lb-controls">
+        <button type="button" id="lb-feed" class="btn btn-primary">灌入一批 token（+40）</button>
+        <button type="button" id="lb-reset" class="btn btn-ghost">歸零</button>
+        <label class="switch">
+          <input type="checkbox" id="lb-toggle" role="switch" aria-checked="false">
+          <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+          <span class="switch-text">負載平衡</span>
+        </label>
+      </div>
+
+      <div class="lb-bars" id="lb-bars" aria-hidden="true"></div>
+
+      <div class="lb-metrics" aria-live="polite">
+        <div class="metric"><span class="metric-num" id="lb-count">0</span><span class="metric-cap">已灌入 token</span></div>
+        <div class="metric"><span class="metric-num" id="lb-entropy">—</span><span class="metric-cap">分布 entropy（越大越均勻，上限 3.00）</span></div>
+        <div class="metric"><span class="metric-num" id="lb-variance">—</span><span class="metric-cap">負載變異數（越小越平均）</span></div>
+        <div class="metric"><span class="metric-num" id="lb-max">—</span><span class="metric-cap">最忙專家 / 平均</span></div>
+      </div>
+      <p class="scale-note" id="lb-note">
+        關掉平衡：偏心的輸入會把少數專家操爆。打開平衡：路由器會把後來的 token 擠去比較閒的專家——
+        分布變均勻，代價是有些 token 被送去「非本行」的專家，輸出會差一點。這正是真實 MoE 要拿捏的取捨。
+      </p>
+    </div>
+    <p class="fineprint">
+      這裡示範的是 <strong>DeepSeek-V3 那種「無輔助損失」的推論期偏置</strong>：依各專家目前的負載動態調整分數。
+      另一條路是 <strong>Switch Transformer 的訓練期輔助損失</strong>（鼓勵平均使用）——兩者這頁都有（後者見底下說明與測試）。
+    </p>
+  </section>
+
+  <!-- ==================== 04 誠實聲明 ==================== -->
+  <section class="sec" id="honest" aria-labelledby="honest-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">04</span>
+      <div>
+        <h2 id="honest-h">老實說：這是教學版小 MoE</h2>
+        <p class="sec-desc">哪些是真的、哪些是為了看得懂而簡化的，講清楚。</p>
+      </div>
+    </div>
+    <div class="honest-grid" data-reveal>
+      <div class="honest-col honest-real">
+        <h3>這些是真的在跑</h3>
+        <ul>
+          <li>路由器是一層<strong>線性 gating＋softmax</strong>，真的算分數、真的取 <strong>top-k</strong>。</li>
+          <li>只<strong>加總被選中專家</strong>的輸出——沒被選的專家完全沒算（稀疏計算）。</li>
+          <li>這個小 MoE 是<strong>用梯度下降真的訓練出來的</strong>，router 自己學會把某些字送去某些專家。</li>
+          <li>負載平衡（推論期偏置、訓練期輔助損失）都是真的機制，效果可被量化、可被 node 驗證。</li>
+        </ul>
+      </div>
+      <div class="honest-col honest-sim">
+        <h3>這些是教學簡化</h3>
+        <ul>
+          <li>維度與專家數<strong>遠小於</strong>真實模型（這裡 8 個專家、6 維；真實模型動輒上百專家、上千維）。</li>
+          <li>token 的向量是<strong>合成</strong>的（真實模型的是前面好幾層算出來的隱藏狀態）。</li>
+          <li>畫面上的「特徵族」是我們<strong>造出來、方便你看見分群</strong>的；
+              <strong>真實模型的專家分工是學出來的，通常無法對應人類主題</strong>——
+              不是「這個管數學、那個管寫詩」，別被直覺騙了。</li>
+          <li>真實 MoE 的專家輸出會再往上疊很多層；這裡只示範「路由 + 稀疏 + 平衡」這個核心。</li>
+        </ul>
+      </div>
+    </div>
+    <p class="takeaway" data-reveal>
+      一句話：<strong>容量看總參數，算力看啟動參數</strong>。MoE 讓你把參數養得很大（記得住很多東西），
+      每一步卻只叫醒一小撮（算得起）。路由決定叫醒誰，負載平衡讓大家別偏食——
+      這套機制，這頁的小 MoE 和真實的大模型是一致的。
+    </p>
+  </section>
+
+  <!-- ==================== 資料來源 ==================== -->
+  <section class="sec sec-src" id="sources" aria-labelledby="src-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">05</span>
+      <div><h2 id="src-h">資料來源</h2>
+      <p class="sec-desc">概念源流與模型數字的出處（可點）。</p></div>
+    </div>
+    <ul class="src-list" data-reveal>
+      <li><a href="https://arxiv.org/abs/1701.06538" target="_blank" rel="noopener">Shazeer et al. (2017)．Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer．arXiv:1701.06538</a>——稀疏門控 MoE 的源頭：上千個專家、top-k 路由、輔助負載平衡損失。</li>
+      <li><a href="https://arxiv.org/abs/2101.03961" target="_blank" rel="noopener">Fedus, Zoph &amp; Shazeer (2021)．Switch Transformers．arXiv:2101.03961</a>——把路由簡化成 top-1，首度穩定訓練到兆級（Switch-C 約 1.6 兆參數）。</li>
+      <li><a href="https://arxiv.org/abs/2401.04088" target="_blank" rel="noopener">Jiang et al. (2024)．Mixtral of Experts．arXiv:2401.04088</a>——8 個專家、每 token 選 2；總約 47B、每 token 只用約 13B。</li>
+      <li><a href="https://arxiv.org/abs/2412.19437" target="_blank" rel="noopener">DeepSeek-AI (2024)．DeepSeek-V3 Technical Report．arXiv:2412.19437</a>——256 路由專家 + 1 共享，每 token 啟動 8+1；總 671B、每 token 只用 37B；無輔助損失負載平衡。</li>
+      <li><a href="https://arxiv.org/abs/2408.15664" target="_blank" rel="noopener">Wang et al. (2024)．Auxiliary-Loss-Free Load Balancing Strategy for MoE．arXiv:2408.15664</a>——依負載動態調整偏置來平衡（本頁「負載平衡」開關的做法）。</li>
+      <li>GPT-4 採 MoE 為<strong>非官方傳聞</strong>（George Hotz 等，2023；OpenAI 未證實）：約 8 個 220B 專家、每 token 選 2、估總 ~1.76T。</li>
+    </ul>
+    <p class="fineprint">
+      本頁純靜態、零外部資源，雙擊 <span class="mono">index.html</span> 即可離線運作，不連網、不呼叫任何 AI API。
+      偏好設定（輸入、top-k、模型、平衡開關）存在瀏覽器 localStorage，key 一律以 <span class="mono">moe.</span> 開頭。
+    </p>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <p>每日小專案 · <a href="../index.html">回首頁看更多</a></p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

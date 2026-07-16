@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>基因剪刀 CRISPR · 修一個字</title>
+<meta name="description" content="鐮刀型貧血只錯了一個 DNA 字母。用 CRISPR 當分子剪刀：讓 Cas9 認位、剪開、用模板把字補回來，看紅血球從鐮刀變回圓盤。再看不必剪斷的『鹼基編輯』——2025 年就是它救了 baby KJ。">
+<style>
+  :root{
+    --bg:#08131c; --bg2:#0b1c2a; --card:#0e2233; --card2:#123049;
+    --line:#1e4863; --ink:#e9f6fb; --soft:#9fc2d4; --dim:#6c93a8;
+    --a:#57d1a8; --t:#f2a65a; --c:#5aa9f2; --g:#c98bf0;
+    --cas:#4bb3ff; --guide:#ffcf5a; --cut:#ff5a6e; --heal:#3ad07f;
+    --mono:"SFMono-Regular",ui-monospace,"Menlo","Consolas",monospace;
+    --r:16px; --shadow:0 24px 60px -30px rgba(0,0,0,.85);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    color:var(--ink);line-height:1.65;overflow-x:hidden;
+    background:radial-gradient(1100px 640px at 76% -8%,#12374f 0%,rgba(18,55,79,0) 56%),
+      radial-gradient(820px 520px at 6% 108%,#0c2233 0%,rgba(12,34,51,0) 60%),var(--bg);
+    background-attachment:fixed}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
+    background-image:radial-gradient(rgba(120,190,220,.045) 1px,transparent 1px);background-size:5px 5px}
+  body>*{position:relative;z-index:1}
+  [data-anim]{opacity:0;transform:translateY(15px);animation:rise .7s cubic-bezier(.2,.75,.25,1) forwards;animation-delay:calc(var(--i,0)*90ms)}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .home-link{position:fixed;top:16px;left:16px;z-index:30;font-size:.86rem;color:var(--soft);
+    text-decoration:none;background:rgba(14,34,51,.8);border:1px solid var(--line);padding:6px 12px;
+    border-radius:999px;backdrop-filter:blur(6px);transition:transform .2s,color .2s,box-shadow .2s}
+  .home-link:hover{transform:translateX(-3px);color:var(--cas);box-shadow:var(--shadow)}
+  .home-link:focus-visible{outline:2px solid var(--cas);outline-offset:2px}
+  .head{max-width:780px;margin:0 auto;padding:74px 22px 6px;text-align:center}
+  .eyebrow{margin:0 0 12px;letter-spacing:.32em;font-size:.66rem;font-weight:700;color:var(--a);
+    font-family:var(--mono);text-indent:.32em}
+  h1{margin:0;font-size:clamp(2.3rem,7vw,3.9rem);line-height:1.03;letter-spacing:.02em;
+    font-family:"Songti TC","Noto Serif TC",Georgia,serif;font-weight:800;
+    background:linear-gradient(180deg,#fff,#8fe3c6 76%,var(--a) 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .head .sub{margin:16px auto 0;max-width:35em;color:var(--soft);font-size:1.02rem}
+  .wrap{max-width:780px;margin:0 auto;padding:20px 18px 40px}
+
+  .stage{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);
+    border-radius:var(--r);padding:20px 16px;margin:16px 0;box-shadow:var(--shadow)}
+  .caseline{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:6px}
+  .rbc-wrap{text-align:center}
+  .rbc-wrap svg{width:104px;height:104px;display:block}
+  .rbc-wrap .rlbl{font-size:.72rem;color:var(--dim);margin-top:2px;transition:color .4s}
+  .rbc-wrap.fixed .rlbl{color:var(--heal)}
+  .rbc-sickle,.rbc-disc{transition:opacity .6s ease,transform .6s ease;transform-origin:50px 50px}
+  .rbc-disc{opacity:0;transform:scale(.55)}
+  .rbc-wrap.fixed .rbc-sickle{opacity:0;transform:scale(.55)}
+  .rbc-wrap.fixed .rbc-disc{opacity:1;transform:scale(1)}
+  .amino{font-family:var(--mono);text-align:center}
+  .amino .codon{font-size:1.4rem;font-weight:700;letter-spacing:.06em}
+  .amino .aa{font-size:.82rem;margin-top:2px}
+  .amino .bad{color:var(--cut)} .amino .good{color:var(--heal)}
+
+  .dna{margin:16px 0 6px;overflow-x:auto;padding-bottom:6px}
+  .strand{display:flex;gap:3px;justify-content:center;min-width:max-content;padding:0 6px}
+  .base{--bc:var(--dim);position:relative;width:26px;height:34px;border-radius:6px;display:flex;
+    align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:1rem;
+    color:#06131c;background:var(--bc);transition:transform .3s,opacity .3s,background .3s,box-shadow .3s}
+  .base.A{--bc:var(--a)} .base.T{--bc:var(--t)} .base.C{--bc:var(--c)} .base.G{--bc:var(--g)}
+  .base.mut{box-shadow:0 0 0 2px var(--cut),0 0 16px var(--cut);animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 3px var(--cut),0 0 22px var(--cut)}}
+  .base.pam{outline:2px solid var(--guide);outline-offset:1px}
+  .base.dim{opacity:.32}
+  .strand.cut .base.left{transform:translateX(-9px)} .strand.cut .base.right{transform:translateX(9px)}
+  .guideRow{display:flex;gap:3px;justify-content:center;min-width:max-content;padding:2px 6px 0;
+    opacity:0;transform:translateY(-6px);transition:opacity .4s,transform .4s}
+  .guideRow.show{opacity:1;transform:none}
+  .gbase{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-weight:700;font-size:.82rem;color:#3a2600;background:var(--guide)}
+  .legend-dna{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px;font-size:.72rem;color:var(--soft)}
+  .legend-dna i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:middle}
+
+  .steps{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+  .btn{font-family:inherit;font-size:.92rem;font-weight:700;cursor:pointer;color:var(--ink);
+    background:var(--card2);border:1px solid var(--line);padding:11px 18px;border-radius:999px;
+    transition:transform .16s,background .2s,box-shadow .2s,opacity .2s,border-color .2s}
+  .btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--cas)}
+  .btn:focus-visible{outline:2px solid var(--cas);outline-offset:2px}
+  .btn.primary{background:linear-gradient(180deg,#6fd0ff,#2f8fd6);color:#04202f;border:none}
+  .btn.go{background:linear-gradient(180deg,#6ee3b0,#22a06b);color:#042318;border:none}
+  .btn:disabled{opacity:.38;cursor:default}
+  .status{margin:14px 2px 0;font-size:.96rem;color:var(--soft);min-height:1.6em;text-align:center}
+  .status b{color:var(--ink)}
+
+  .panel{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);
+    border-radius:var(--r);padding:16px 18px;margin:14px 0}
+  .panel h2{margin:0 0 8px;font-size:.82rem;letter-spacing:.06em;color:var(--dim);font-weight:700}
+  .panel p{margin:6px 0 0;font-size:.9rem;color:var(--soft)}
+  .panel b{color:var(--ink)}
+  .be-demo{display:flex;align-items:center;gap:10px;justify-content:center;margin-top:10px;font-family:var(--mono);flex-wrap:wrap}
+  .be-demo .cell{width:30px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-weight:700;color:#06131c;background:var(--c);transition:background .5s,transform .3s}
+  .be-demo .cell.done{background:var(--a)}
+  .facts{display:grid;gap:10px}
+  .fact{background:linear-gradient(180deg,var(--card),var(--bg2));border:1px solid var(--line);
+    border-left:3px solid var(--a);border-radius:12px;padding:12px 15px;font-size:.88rem;color:var(--soft)}
+  .fact b{color:var(--ink)}
+  .foot{max-width:780px;margin:30px auto 26px;padding:0 18px;text-align:center}
+  .foot p{margin:0;font-size:.76rem;color:var(--dim)}
+  .live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  @media (max-width:560px){.head{padding-top:62px}.base{width:22px;height:30px;font-size:.9rem}.gbase{width:22px;height:22px}}
+  @media (prefers-reduced-motion:reduce){[data-anim]{animation:none;opacity:1;transform:none}
+    .base,.guideRow,.be-demo .cell,.rbc-sickle,.rbc-disc{transition:none}.base.mut{animation:none}}
+</style>
+</head>
+<body>
+<a class="home-link" href="../index.html">← 回首頁</a>
+
+<header class="head">
+  <p class="eyebrow" data-anim style="--i:0">CRISPR · GENE EDITING</p>
+  <h1 data-anim style="--i:1">基因剪刀</h1>
+  <p class="sub" data-anim style="--i:2">鐮刀型貧血，只錯了一個 DNA 字母。<br>用 CRISPR 當分子剪刀，把它修回來——看紅血球從鐮刀變回圓盤。</p>
+</header>
+
+<main class="wrap">
+  <section class="stage" data-anim style="--i:3">
+    <div class="caseline">
+      <div class="rbc-wrap" id="rbcWrap">
+        <svg viewBox="0 0 100 100" role="img" aria-label="紅血球形狀">
+          <path class="rbc-sickle" d="M50 12 C74 16 86 40 78 60 C71 78 44 92 30 78 C44 78 60 66 60 50 C60 34 42 24 30 24 C38 16 44 12 50 12 Z" fill="#e63950"/>
+          <path class="rbc-disc" d="M50 22 C66 22 80 34 80 50 C80 66 66 78 50 78 C34 78 20 66 20 50 C20 34 34 22 50 22 Z M50 36 C58 36 65 42 65 50 C65 58 58 64 50 64 C42 64 35 58 35 50 C35 42 42 36 50 36 Z" fill="#e63950" fill-rule="evenodd"/>
+        </svg>
+        <div class="rlbl" id="rbcLbl">鐮刀狀紅血球</div>
+      </div>
+      <div class="amino">
+        <div class="codon" id="codon"><span class="good">G</span><span class="bad" id="midBase">T</span><span class="good">G</span></div>
+        <div class="aa" id="aa"><span class="bad">纈胺酸 Val</span></div>
+        <div style="font-size:.7rem;color:var(--dim);margin-top:3px">HBB 基因・第 6 個密碼子</div>
+      </div>
+    </div>
+
+    <div class="dna" aria-hidden="true">
+      <div class="strand" id="strand"></div>
+      <div class="guideRow" id="guideRow"></div>
+    </div>
+    <div class="legend-dna" aria-hidden="true">
+      <span><i style="background:var(--a)"></i>A</span><span><i style="background:var(--t)"></i>T</span>
+      <span><i style="background:var(--c)"></i>C</span><span><i style="background:var(--g)"></i>G</span>
+      <span><i style="outline:2px solid var(--guide);background:transparent"></i>PAM（Cas9 的門牌）</span>
+      <span><i style="background:var(--cut)"></i>致病的錯字</span>
+    </div>
+
+    <div class="steps">
+      <button class="btn primary" id="btnAim" type="button">① Cas9 認位（找 PAM）</button>
+      <button class="btn" id="btnCut" type="button" disabled>② 剪！</button>
+      <button class="btn go" id="btnFix" type="button" disabled>③ 用模板修復</button>
+      <button class="btn" id="btnReset" type="button">↺ 重來</button>
+    </div>
+    <p class="status" id="status" aria-live="polite">病人的第 6 個密碼子是 <b>GTG</b>（纈胺酸），正常應是 <b>GAG</b>（麩胺酸）——一個字母之差，紅血球就被折成鐮刀。</p>
+  </section>
+
+  <section class="panel" data-anim style="--i:4">
+    <h2>不必剪斷：鹼基編輯（CRISPR 2.0）</h2>
+    <p>剪斷雙股風險較高。新一代<b>鹼基編輯器</b>像一支鉛筆，不切開 DNA，直接把<b>單一字母</b>改掉（A↔G、C↔T 這類）。2025 年，費城兒童醫院就用它替出生僅幾個月、患極罕見 CPS1 代謝病的 <b>baby KJ</b> 改寫了他獨有的致命錯字——史上第一個「為單一個人量身訂做」的基因療法。</p>
+    <div class="be-demo" aria-hidden="true">
+      <span>致病錯字</span>
+      <span class="cell" id="beCell">C</span>
+      <button class="btn" id="beBtn" type="button" style="padding:8px 14px">✏️ 鹼基編輯</button>
+      <span class="cell" id="beCell2">T</span>
+      <span id="beMsg" style="font-size:.82rem;color:var(--soft)"></span>
+    </div>
+  </section>
+
+  <section class="facts" data-anim style="--i:5">
+    <div class="fact"><b>CRISPR 本來是細菌的免疫系統。</b> 細菌把病毒的 DNA 片段存起來當「通緝令」，下次入侵就用 Cas9 照著剪。2020 年，Doudna 與 Charpentier 因把它變成可程式化的編輯工具拿下諾貝爾化學獎。</div>
+    <div class="fact"><b>2023：第一個 CRISPR 療法上市。</b> Casgevy 獲美國 FDA 核准治療鐮刀型貧血與地中海貧血。它的巧思是不直接改壞掉的字，而是關掉 BCL11A、<b>重新開啟胎兒血紅素</b>——胎兒版本天生不會鐮刀化。</div>
+  </section>
+</main>
+
+<div class="live" id="live" aria-live="polite"></div>
+
+<footer class="foot">
+  <p>資料來源：Nobel Prize 2020、FDA（Casgevy 2023）、NEJM／CHOP（baby KJ, 2025）</p>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+  var LS='crispr.';
+  var INIT='ACTCCTGTGGAGAAGGGA';
+  var SEQ=INIT.split('');
+  var MUT=7;             // 錯字（應為 A，現為 T）
+  var PAM=[15,16];       // NGG 的 GG（教學示意）
+  var PROTO=[3,12];      // protospacer 顯示範圍（示意）
+  var state={step:0};
+  try{ localStorage.getItem(LS+'cured'); }catch(e){}
+
+  var strand=document.getElementById('strand');
+  var guideRow=document.getElementById('guideRow');
+  var comp={A:'T',T:'A',C:'G',G:'C'};
+  function buildStrand(){
+    strand.innerHTML='';
+    SEQ.forEach(function(b,i){
+      var d=document.createElement('div'); d.className='base '+b; d.textContent=b;
+      if(i===MUT) d.classList.add('mut');
+      if(i===PAM[0]||i===PAM[1]) d.classList.add('pam');
+      d.dataset.i=i; strand.appendChild(d);
+    });
+  }
+  function buildGuide(){
+    guideRow.innerHTML='';
+    for(var i=PROTO[0];i<=PROTO[1];i++){
+      var g=document.createElement('div'); g.className='gbase';
+      var base=comp[SEQ[i]]; g.textContent=(base==='T')?'U':base;
+      guideRow.appendChild(g);
+    }
+  }
+  buildStrand();
+
+  var btnAim=document.getElementById('btnAim'), btnCut=document.getElementById('btnCut'),
+      btnFix=document.getElementById('btnFix'), btnReset=document.getElementById('btnReset');
+  var statusEl=document.getElementById('status'), live=document.getElementById('live');
+  var rbcWrap=document.getElementById('rbcWrap'), rbcLbl=document.getElementById('rbcLbl');
+
+  function say(msg){ statusEl.innerHTML=msg; live.textContent=statusEl.textContent; }
+
+  btnAim.addEventListener('click', function(){
+    if(state.step!==0) return;
+    state.step=1;
+    Array.prototype.forEach.call(strand.children,function(d){
+      var i=+d.dataset.i; if(i<PROTO[0]||i>PROTO[1]) d.classList.add('dim');
+    });
+    buildGuide(); guideRow.classList.add('show');
+    btnAim.disabled=true; btnCut.disabled=false;
+    say('Cas9 靠 <b>嚮導 RNA</b> 認出這串字母、停在 <b>PAM</b>（門牌）旁。黃色那排就是配好對的嚮導 RNA（RNA 用 U 取代 T）。');
+  });
+
+  btnCut.addEventListener('click', function(){
+    if(state.step!==1) return;
+    state.step=2;
+    var cutAt=12;
+    Array.prototype.forEach.call(strand.children,function(d){
+      var i=+d.dataset.i; d.classList.add(i<cutAt?'left':'right');
+    });
+    strand.classList.add('cut');
+    btnCut.disabled=true; btnFix.disabled=false;
+    say('喀嚓——Cas9 把雙股 DNA <b style="color:var(--cut)">剪斷</b>了。接下來細胞會啟動修復；只要給它一段<b>正確的模板</b>，就能照著補回來。');
+  });
+
+  btnFix.addEventListener('click', function(){
+    if(state.step!==2) return;
+    state.step=3;
+    SEQ[MUT]='A';
+    var midCell=strand.children[MUT];
+    midCell.classList.remove('T','mut'); midCell.classList.add('A'); midCell.textContent='A';
+    strand.classList.remove('cut');
+    Array.prototype.forEach.call(strand.children,function(d){ d.classList.remove('left','right','dim'); });
+    guideRow.classList.remove('show');
+    document.getElementById('midBase').textContent='A';
+    document.getElementById('midBase').className='good';
+    document.getElementById('aa').innerHTML='<span class="good">麩胺酸 Glu</span>';
+    rbcWrap.classList.add('fixed');
+    rbcLbl.textContent='健康的圓盤紅血球 ✓';
+    btnFix.disabled=true;
+    try{ localStorage.setItem(LS+'cured','1'); }catch(e){}
+    say('✓ 修好了！第 6 個密碼子回到 <b>GAG（麩胺酸）</b>，紅血球從鐮刀變回<b style="color:var(--heal)">圓盤</b>。一個字母，就是疾病與健康的差別。');
+  });
+
+  btnReset.addEventListener('click', function(){
+    SEQ=INIT.split('');
+    state.step=0;
+    buildStrand(); guideRow.classList.remove('show'); guideRow.innerHTML='';
+    strand.classList.remove('cut');
+    rbcWrap.classList.remove('fixed');
+    rbcLbl.textContent='鐮刀狀紅血球';
+    document.getElementById('midBase').textContent='T'; document.getElementById('midBase').className='bad';
+    document.getElementById('aa').innerHTML='<span class="bad">纈胺酸 Val</span>';
+    btnAim.disabled=false; btnCut.disabled=true; btnFix.disabled=true;
+    say('病人的第 6 個密碼子是 <b>GTG</b>（纈胺酸），正常應是 <b>GAG</b>（麩胺酸）——一個字母之差，紅血球就被折成鐮刀。');
+  });
+
+  // 鹼基編輯 mini demo
+  var beBtn=document.getElementById('beBtn'), beCell=document.getElementById('beCell'),
+      beCell2=document.getElementById('beCell2'), beMsg=document.getElementById('beMsg');
+  var beDone=false;
+  beBtn.addEventListener('click', function(){
+    beDone=!beDone;
+    if(beDone){ beCell.classList.add('done'); beCell.textContent='T'; beCell2.classList.add('done');
+      beMsg.textContent='不剪斷，一個字母就地改好。'; beBtn.textContent='↺ 復原';
+    } else { beCell.classList.remove('done'); beCell.textContent='C'; beCell2.classList.remove('done');
+      beMsg.textContent=''; beBtn.textContent='✏️ 鹼基編輯'; }
+  });
+})();
+</script>
+</body>
+</html>

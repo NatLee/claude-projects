@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一步一步想 · 為什麼叫模型「想清楚」正確率就會飆升</title>
+<meta name="description" content="大型語言模型碰到多步驟推理題，直接要答案常常錯；只要叫它「一步一步想」，把過程寫出來，正確率就大幅上升。這頁用看得見的玩具，把思維鏈與自我一致性演出來。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="back" href="../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="page">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">科學趣聞 · 2022 年最有影響力的發現之一</p>
+    <h1 data-fade="2">一步一步想</h1>
+    <p class="lede" data-fade="3">
+      同一個模型、同一道題，只差一句<strong>「讓我們一步一步思考」</strong>——
+      正確率就從十幾趴跳到七八成。這不是換了更聰明的模型，是<strong>給它思考的空間</strong>。
+      下面用兩個看得見的玩具求解器，把<strong>思維鏈</strong>和更進階的<strong>自我一致性</strong>親手演給你看。
+    </p>
+  </header>
+
+  <!-- ── 1. 選題 ── -->
+  <section class="panel" data-fade="4" aria-labelledby="h-pick">
+    <div class="panel-head">
+      <h2 id="h-pick"><span class="step">1</span>挑一道多步驟題目</h2>
+      <p>都是答案<strong>客觀可驗證</strong>的算術文字題。步數越多，「直接答」越容易翻車。</p>
+    </div>
+    <div class="prob-chips" id="probChips" role="group" aria-label="選擇題目"></div>
+    <blockquote class="prob-text" id="probText" aria-live="polite"></blockquote>
+    <p class="prob-meta"><span id="probSteps" class="pill"></span><span class="prob-hint">正解藏在下面，先自己心算看看？</span></p>
+  </section>
+
+  <!-- ── 2. 哇時刻一：直接答 vs 一步一步想 ── -->
+  <section class="panel" data-fade="5" aria-labelledby="h-vs">
+    <div class="panel-head">
+      <h2 id="h-vs"><span class="step">2</span>兩種作答，天差地別</h2>
+      <p>左邊<strong>一步到位地猜</strong>，右邊<strong>把題目拆開、逐步算</strong>。看清楚——<strong>模型沒變，變的是有沒有讓它想。</strong></p>
+    </div>
+
+    <div class="vs">
+      <article class="solver direct" id="cardDirect" aria-labelledby="lbl-direct">
+        <header class="solver-head">
+          <span class="solver-tag" id="lbl-direct">直接答</span>
+          <span class="solver-sub">憑表面模式，一步到位</span>
+        </header>
+        <div class="solver-body">
+          <div class="blurt" id="directBlurt"><span class="waiting">按下方按鈕，看它脫口而出</span></div>
+          <p class="why" id="directWhy"></p>
+        </div>
+        <footer class="solver-foot">
+          <span class="verdict" id="directVerdict" aria-live="polite"></span>
+        </footer>
+      </article>
+
+      <article class="solver cot" id="cardCot" aria-labelledby="lbl-cot">
+        <header class="solver-head">
+          <span class="solver-tag" id="lbl-cot">一步一步想</span>
+          <span class="solver-sub">拆解題目，逐步計算</span>
+        </header>
+        <div class="solver-body">
+          <ol class="cot-steps" id="cotSteps" aria-live="polite"></ol>
+          <div class="cot-final" id="cotFinal"></div>
+        </div>
+        <footer class="solver-foot">
+          <span class="verdict" id="cotVerdict" aria-live="polite"></span>
+        </footer>
+      </article>
+    </div>
+
+    <div class="vs-actions">
+      <button class="btn primary" id="runCompare"><span class="ico" aria-hidden="true">▶</span>看它們各自作答</button>
+      <button class="btn ghost" id="resetCompare" hidden><span class="ico" aria-hidden="true">↺</span>再看一次</button>
+    </div>
+
+    <div class="scoreboard" id="scoreboard">
+      <div class="score-head">
+        <h3>把整組題目全跑一遍</h3>
+        <button class="btn" id="runAll"><span class="ico" aria-hidden="true">🏁</span>跑全部 <span id="probCount">8</span> 題</button>
+      </div>
+      <div class="score-grid" id="scoreGrid" aria-live="polite">
+        <div class="score-cell">
+          <span class="score-name">直接答</span>
+          <span class="score-val" id="scoreDirect">—</span>
+          <div class="score-track"><i id="scoreDirectBar"></i></div>
+        </div>
+        <div class="score-cell">
+          <span class="score-name">一步一步想</span>
+          <span class="score-val" id="scoreCot">—</span>
+          <div class="score-track"><i id="scoreCotBar" class="good"></i></div>
+        </div>
+      </div>
+      <p class="score-note" id="scoreNote">按上面的按鈕，量化兩者的正確率差距。</p>
+    </div>
+  </section>
+
+  <!-- ── 3. 哇時刻二：self-consistency ── -->
+  <section class="panel" data-fade="6" aria-labelledby="h-sc">
+    <div class="panel-head">
+      <h2 id="h-sc"><span class="step">3</span>多幾條、投票，就更準</h2>
+      <p>現在讓「一步一步想」<strong>帶點隨機</strong>——有時某一步會手滑算錯。單獨一條可能出錯，
+        但<strong>採樣很多條、取多數決</strong>，正確答案會自己浮上來。這招叫 <strong>self-consistency（自我一致性）</strong>。</p>
+    </div>
+
+    <div class="sc-controls">
+      <label class="slider">
+        <span>採樣條數 N＝<b id="nOut">15</b></span>
+        <input type="range" id="nRange" min="3" max="41" step="2" value="15" aria-label="採樣的推理鏈條數 N">
+        <em>越多條，投票越穩</em>
+      </label>
+      <button class="btn primary" id="sampleBtn"><span class="ico" aria-hidden="true">🎲</span>採樣 N 條推理鏈</button>
+    </div>
+
+    <div class="sc-stream-wrap">
+      <span class="sc-label">每條鏈各自給一個答案（<b class="ok-ink">綠＝答對</b>、<b class="bad-ink">紅＝算錯了</b>）</span>
+      <div class="sc-stream" id="chainStream" aria-live="off"></div>
+    </div>
+
+    <div class="sc-vote-wrap">
+      <span class="sc-label">把答案投票——長條越長，票越多</span>
+      <div class="sc-bars" id="voteBars"></div>
+    </div>
+
+    <div class="sc-result" id="scResult" aria-live="polite"></div>
+  </section>
+
+  <!-- ── 4. 真實數字 ── -->
+  <section class="facts" data-fade="7" aria-label="真實模型上的數字">
+    <h2>真實模型上，也是這樣</h2>
+    <p class="facts-lede">上面是玩具，但方向和真實研究一致。以下數字都可點連結查證。</p>
+    <div class="fact-grid">
+      <article class="fact">
+        <div class="fact-no">Wei et al. · 2022</div>
+        <h3>思維鏈：給幾個「附推理」的範例</h3>
+        <p>只要在提示裡示範幾條「把過程寫出來」的解法，數學／常識／符號推理正確率大幅提升。<strong>PaLM 540B 在 GSM8K 數學題從 17.9% 跳到 56.9%</strong>。</p>
+        <p class="fact-foot">而且它是<strong>隨模型規模才浮現</strong>的能力——小模型用了幾乎沒差，甚至更差。NeurIPS 2022，Google。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">Kojima et al. · 2022</div>
+        <h3>零範例：加一句咒語就行</h3>
+        <p>連範例都不用，只在題目後加上<strong>「Let's think step by step」</strong>，就能觸發逐步推理。同一個 text-davinci-002：<strong>MultiArith 從 17.7% 衝到 78.7%</strong>；GSM8K 從 10.4% 到 40.7%。</p>
+        <p class="fact-foot">一句話、跨多種任務通用。這就是本頁標題的由來。NeurIPS 2022。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">Wang et al. · 2022</div>
+        <h3>自我一致性：不只取一條，投票</h3>
+        <p>不要只信貪婪解碼那一條鏈，<strong>採樣多條、取多數決</strong>，正確率再明顯往上。<strong>GSM8K +17.9%</strong>、SVAMP +11.0%、AQuA +12.2%。</p>
+        <p class="fact-foot">就是第 3 段那個投票玩具的真身。ICLR 2023。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">為什麼有效</div>
+        <h3>把難題拆成一串容易的小步</h3>
+        <p>一步到位要模型在「一次前向運算」裡湊出整條推理，太難；<strong>寫出中間步驟，等於給它更多運算與工作記憶</strong>，每一步都只是簡單題。</p>
+        <p class="fact-foot">多數決則利用「<strong>對的路殊途同歸、錯的路各錯各的</strong>」——正確答案是唯一會被反覆算到的那個。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p class="honest"><strong>誠實聲明：</strong>這一頁<strong>不呼叫任何 LLM、也不連任何網路</strong>。兩個求解器都是<strong>玩具</strong>——
+      「直接答」故意只做最後一步來模擬「跳步瞎猜」，「一步一步想」則老實把題目拆開逐步計算。
+      它們是用來把「<strong>拆步驟</strong>」與「<strong>多數決</strong>」這兩個機制演示得看得見；真實 LLM 的推理複雜得多，但方向一致。</p>
+    <p class="src">資料來源：
+      <a href="https://arxiv.org/abs/2201.11903" target="_blank" rel="noopener">Wei et al. 2022 · Chain-of-Thought Prompting</a> ·
+      <a href="https://arxiv.org/abs/2205.11916" target="_blank" rel="noopener">Kojima et al. 2022 · Zero-Shot Reasoners</a> ·
+      <a href="https://arxiv.org/abs/2203.11171" target="_blank" rel="noopener">Wang et al. 2022 · Self-Consistency</a>
+    </p>
+    <p class="src">純靜態、零外部資源、可離線運作。你的選題與 N 值以 <code>cot.</code> 前綴存在本機 localStorage，不會離開這台電腦。</p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

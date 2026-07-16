@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>注意力 · Transformer 的心臟</title>
+<meta name="description" content="把一個真的自注意力頭攤開來算給你看：softmax(QKᵀ/√d)V、熱力圖、注意力連線，再揭露 induction head——Transformer 用來『在上下文裡複製』的電路，被認為是 in-context learning 的來源。純靜態、離線可用。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="back" href="../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="page">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">學習新知 · Transformer 的心臟</p>
+    <h1 data-fade="2">注意力</h1>
+    <p class="lede" data-fade="3">
+      現在所有大型語言模型，都建立在 2017 年的一個機制上——<strong>self-attention（自注意力）</strong>。
+      它讓每個字在理解自己時「回頭看」句子裡的其他字、決定該關注誰。
+      這頁把一個<strong>真的自注意力頭</strong>攤開來算給你看，
+      再揭露一個隱藏寶藏：<strong>induction head（歸納頭）</strong>——模型用來「在上下文裡複製」的電路。
+    </p>
+  </header>
+
+  <!-- ── 面板 1：選句子 ── -->
+  <section class="panel" data-fade="4" aria-labelledby="h-sent">
+    <div class="panel-head">
+      <h2 id="h-sent"><span class="step">1</span>選一個句子</h2>
+      <p>每個字（中文以「字」為 token、英文以「詞」為 token）都會被指派一個<strong>可解釋的小向量</strong>。</p>
+    </div>
+    <div class="ex-chips" id="ex-chips" role="group" aria-label="選擇例句"></div>
+    <label class="sr-only" for="sent-input">自訂句子</label>
+    <input class="text-input" id="sent-input" type="text" autocomplete="off" spellcheck="false"
+      placeholder="也可以自己打一句：例如「小狗 咬 了 皮球」或英文 the cat sat …" aria-describedby="sent-hint">
+    <p class="hint" id="sent-hint">自訂句子用的是簡化的自動詞性標記，只是拿來把玩；內建例句的向量是手工設計的，語法／語意關係最清楚。</p>
+  </section>
+
+  <!-- ── 面板 2：自注意力頭 ── -->
+  <section class="panel" data-fade="5" aria-labelledby="h-head">
+    <div class="panel-head">
+      <h2 id="h-head"><span class="step">2</span>一個自注意力頭，攤開來算</h2>
+      <p>把每個字投影成 <b class="k-q">Q</b>（查詢）、<b class="k-k">K</b>（鍵）、<b class="k-v">V</b>（值），
+        算 <b class="k-q">Q</b>·<b class="k-k">K</b>ᵀ 當「相合度」，softmax 成注意力權重，再用它去加權 <b class="k-v">V</b>。</p>
+    </div>
+
+    <div class="formula" aria-hidden="true">
+      Attention(Q,K,V) = softmax<span class="paren">(</span>
+      <span class="frac"><span class="num">Q K<sup>ᵀ</sup></span><span class="den" id="formula-scale">√d<sub>k</sub></span></span>
+      <span class="paren">)</span> V
+    </div>
+
+    <div class="head-bar">
+      <div class="tabs" id="head-tabs" role="tablist" aria-label="選擇注意力頭">
+        <button class="tab" role="tab" data-head="A" aria-selected="true">語法頭<em>動詞↔論元</em></button>
+        <button class="tab" role="tab" data-head="B" aria-selected="false" tabindex="-1">語意頭<em>同類相吸</em></button>
+        <button class="tab" role="tab" data-head="C" aria-selected="false" tabindex="-1">位置頭<em>看前一個字</em></button>
+      </div>
+      <label class="switch" for="scale-toggle">
+        <input type="checkbox" id="scale-toggle" checked>
+        <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+        <span class="switch-text">除以 √d<sub>k</sub><em id="scale-note">開：分數除以 √dₖ，注意力較平滑</em></span>
+      </label>
+    </div>
+
+    <p class="head-desc" id="head-desc"></p>
+
+    <div class="strip-wrap" id="strip-wrap">
+      <svg class="arc-svg" id="arc-svg" aria-hidden="true"></svg>
+      <div class="tok-strip" id="tok-strip" role="listbox" aria-label="用方向鍵選一個查詢字，看它把注意力分給誰"></div>
+    </div>
+    <p class="strip-hint">↑ 選一個<strong>查詢字</strong>（可用滑鼠或方向鍵），弧線就是它把注意力分給哪些字——線越粗、權重越大。</p>
+
+    <div class="lab2">
+      <div class="heat-side">
+        <div class="heat" id="heat" role="figure" aria-label="自注意力權重矩陣熱力圖"></div>
+        <p class="heat-cap">列＝查詢字，行＝被關注的字，數字為百分比；每列相加為 100%。深色＝權重高。</p>
+      </div>
+      <aside class="side2">
+        <div class="breakdown">
+          <h3 id="bd-title">注意力去向</h3>
+          <ol class="bd-list" id="bd-list"></ol>
+        </div>
+        <dl class="calc" aria-label="這一列的計算數據">
+          <div><dt>d<sub>k</sub>（鍵維度）</dt><dd id="calc-dk">—</dd></div>
+          <div><dt>縮放</dt><dd id="calc-scale">—</dd></div>
+          <div><dt>這列的熵</dt><dd><span id="calc-ent">0.00</span> bits</dd></div>
+          <div><dt>最大注意力</dt><dd><span id="calc-max">0</span>%</dd></div>
+        </dl>
+        <p class="calc-note">熵越低＝注意力越集中（尖）。把「除以 √d」關掉，看熵怎麼掉、softmax 怎麼變尖。</p>
+      </aside>
+    </div>
+    <p class="sr-only" id="live" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- ── 面板 3：induction head ── -->
+  <section class="panel treasure" data-fade="6" aria-labelledby="h-ind">
+    <div class="panel-head">
+      <span class="treasure-tag">隱藏寶藏</span>
+      <h2 id="h-ind"><span class="step">3</span>induction head：在上下文裡「複製」</h2>
+      <p>2022 年 Anthropic 發現一種<strong>兩層注意力電路</strong>：它會找出「上一次出現當前這個字之後，接了什麼」，
+        然後預測它會<strong>再次出現</strong>——模式 <code>[A][B]…[A]→[B]</code>。被認為是<strong>少樣本學習（in-context learning）</strong>的來源。</p>
+    </div>
+
+    <div class="seq-chips" id="seq-chips" role="group" aria-label="選擇重複序列"></div>
+    <label class="sr-only" for="seq-input">自訂重複序列</label>
+    <input class="text-input" id="seq-input" type="text" autocomplete="off" spellcheck="false"
+      placeholder="打一段有重複的序列，例如「甲 乙 丙 甲 乙」或 a b a b a">
+
+    <div class="ind-seq-wrap" id="ind-seq-wrap">
+      <svg class="arc-svg pink" id="ind-svg" aria-hidden="true"></svg>
+      <div class="ind-seq" id="ind-seq" aria-hidden="true"></div>
+    </div>
+
+    <p class="ind-explain" id="ind-explain"></p>
+
+    <div class="ind-grid">
+      <div class="ind-circuit">
+        <h3>電路怎麼運作</h3>
+        <ol class="circuit-steps">
+          <li><span class="cnum">L1</span><b>前一字頭</b>：每個位置回頭看前一格，把「前一個字」抄進自己（上面每個字下方的「前字·」就是它抄到的）。</li>
+          <li><span class="cnum">L2</span><b>歸納頭</b>：拿「當前字」去比對各位置抄到的前字——找出「上一次也是接在我後面的位置」，把那個位置的字複製成預測。</li>
+        </ol>
+      </div>
+      <div class="ind-predbox">
+        <h3>下一個字的預測</h3>
+        <ol class="pred-list" id="ind-pred"></ol>
+      </div>
+    </div>
+
+    <div class="icl-note">
+      <b>這為什麼＝ in-context learning？</b>
+      你在 prompt 裡給幾組「範例 → 答案」，模型不必重新訓練，就用<strong>同一個電路</strong>：看到新題目，
+      回上文找「類似情境後面接了什麼」再照做。<strong>你給的幾個例子，就是它當場學會照做的依據。</strong>
+    </div>
+    <p class="sr-only" id="ind-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- ── 重點 ── -->
+  <section class="facts" data-fade="7" aria-labelledby="h-facts">
+    <h2 id="h-facts">帶走這幾個重點</h2>
+    <div class="fact-grid">
+      <article class="fact">
+        <div class="fact-no">Q / K / V</div>
+        <h3>三個角色</h3>
+        <p>同一個字投影成三種身分：<strong>查詢 Q</strong>（我在找什麼）、<strong>鍵 K</strong>（我能被誰找到）、<strong>值 V</strong>（找到我會拿走什麼）。<code>Q·Kᵀ</code> 是相合度，softmax 成權重去加權 V。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">÷ √d<sub>k</sub></div>
+        <h3>為什麼要縮放</h3>
+        <p>維度一大，點積數值就變大，softmax 會被推進<strong>梯度趨近於零</strong>的死角、難以訓練。除以 <code>√dₖ</code> 讓分數維持單位變異數——這頁的開關讓你親眼看它變平還是變尖。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">多頭 · 平行</div>
+        <h3>取代了 RNN</h3>
+        <p>多個頭<strong>平行</strong>看不同關係（語法／語意／位置），一舉丟掉 RNN 逐字遞迴的限制、能一次算完整句。任何兩個字都能在一層內直接連上。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">歸納頭</div>
+        <h3>複製 = 學習</h3>
+        <p>induction head 這個兩層電路，在訓練中<strong>某個相變點</strong>突然形成，同時 in-context learning 能力也陡升——多條證據指向：它就是少樣本學習的機制來源。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">O(n²)</div>
+        <h3>長上下文為何貴</h3>
+        <p>每個字都要和所有字算相合度，成本隨長度<strong>平方成長</strong>：長度翻倍、計算與記憶體變四倍。這就是「長上下文很貴」的根源，也是一堆高效注意力變體想解決的事。</p>
+      </article>
+      <article class="fact honest">
+        <div class="fact-no">誠實聲明</div>
+        <h3>這是教學版</h3>
+        <p>維度很小、嵌入是為了<strong>可解釋</strong>而手工設計/簡化的，權重矩陣也是手挑而非訓練。但 <code>softmax(QKᵀ/√d)V</code> 的計算<strong>與真實 Transformer 完全相同</strong>，induction head 是真實被發現的電路的示意。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>把 <code>softmax(QKᵀ/√d)V</code> 算給你看，並示範 induction head。所有計算都在你的瀏覽器裡，離線、不連網、不呼叫任何 AI。</p>
+    <p class="src">
+      資料來源：
+      <a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener">Vaswani et al. (2017)《Attention Is All You Need》(NeurIPS)</a> ·
+      <a href="https://transformer-circuits.pub/2022/in-context-learning-and-induction-heads/index.html" target="_blank" rel="noopener">Olsson et al. (2022)《In-context Learning and Induction Heads》(Anthropic)</a>
+    </p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

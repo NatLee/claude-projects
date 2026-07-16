@@ -106,8 +106,9 @@
   .stat span { font-size: 11.5px; color: var(--faint); letter-spacing: .22em; text-indent: .22em; }
 
   /* ── 星空圖：每顆星＝一件作品 ─────────────────────── */
+  /* 注意：skywrap 不設 z-index（不建立堆疊環境），懸浮卡才能疊在 hero 卡之上 */
   #skywrap {
-    position: relative; z-index: 1;
+    position: relative;
     width: 100vw; margin: 18px calc(50% - 50vw) 0;
     height: clamp(400px, 58vh, 620px);
   }
@@ -122,7 +123,7 @@
     white-space: nowrap; pointer-events: none;
   }
   #sky-tip {
-    position: absolute; left: 0; top: 0; z-index: 6;
+    position: absolute; left: 0; top: 0; z-index: 25;
     width: min(276px, 78vw);
     display: flex; gap: 11px; padding: 13px 15px; border-radius: 15px;
     background: var(--panel);
@@ -145,6 +146,37 @@
   }
   .t-open { display: inline-block; margin-top: 7px; font-size: 11px; color: var(--gold); text-decoration: none; letter-spacing: .1em; }
   a.t-open:hover { color: #ffe9b8; }
+
+  /* 掃描鈕：浮在星空右上，光束橫掃夜空、鎖定一顆隨機星 */
+  #scanBtn {
+    position: absolute; z-index: 25; top: 16px; right: max(20px, calc(50% - 596px));
+    display: inline-flex; align-items: center; gap: 9px;
+    font-family: inherit; font-size: 12.5px; letter-spacing: .18em; text-indent: .04em;
+    cursor: pointer; color: var(--gold);
+    padding: 9px 17px; border-radius: 999px;
+    background: rgba(22, 17, 6, .48);
+    border: 1px solid rgba(240, 198, 116, .45);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    transition: color .25s, border-color .25s, box-shadow .25s, transform .25s;
+  }
+  #scanBtn::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none;
+    background: var(--gold); box-shadow: 0 0 8px var(--gold);
+    animation: radar 2.4s ease-out infinite;
+  }
+  @keyframes radar {
+    0%   { box-shadow: 0 0 0 0 rgba(240, 198, 116, .5); }
+    70%  { box-shadow: 0 0 0 10px rgba(240, 198, 116, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(240, 198, 116, 0); }
+  }
+  #scanBtn:hover {
+    color: #ffe9b8; border-color: rgba(240, 198, 116, .85);
+    box-shadow: 0 0 22px rgba(240, 198, 116, .3); transform: translateY(-1px);
+  }
+  #scanBtn.scanning {
+    color: #ffe9b8; border-color: rgba(240, 198, 116, .9);
+    box-shadow: 0 0 26px rgba(240, 198, 116, .42);
+  }
 
   /* ── 今晚最亮的星（hero，疊在星空下緣） ───────────── */
   #hero { position: relative; z-index: 5; margin: -56px auto 0; max-width: 980px; }
@@ -431,7 +463,7 @@
   /* ── 降級與行動裝置 ───────────────────────────────── */
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
-    .blob, .h-kicker .dot, .card.flash { animation: none !important; }
+    .blob, .h-kicker .dot, .card.flash, #scanBtn::before { animation: none !important; }
     .card { opacity: 1; transform: none; }
     * { transition-duration: .01s !important; }
   }
@@ -446,6 +478,7 @@
     .stat b { font-size: 25px; }
     #skywrap { height: clamp(340px, 48vh, 460px); margin-top: 10px; }
     .sky-hint { font-size: 10.5px; bottom: 44px; }
+    #scanBtn { top: 10px; right: 12px; padding: 8px 13px; font-size: 12px; letter-spacing: .12em; }
     #hero { margin-top: -34px; }
     .h-card { padding: 20px 18px; border-radius: 18px; }
     .h-body { flex-direction: column; align-items: flex-start; gap: 16px; }
@@ -490,7 +523,8 @@
   <section id="skywrap" class="rise" style="--rd:.3s" aria-label="星空圖">
     <canvas id="sky" aria-hidden="true"></canvas>
     <div id="sky-tip" aria-hidden="true"></div>
-    <p class="sky-hint" aria-hidden="true">☄ 一顆星星＝一件作品，滑過探索、點擊開啟</p>
+    <button type="button" id="scanBtn" aria-label="掃描星空：隨機挑一顆星"><span class="lbl">掃描星空</span></button>
+    <p class="sky-hint" aria-hidden="true">☄ 一顆星＝一件作品・滑過探索・按「掃描」隨機挑一顆</p>
     <p class="sr-only">上方星空圖為視覺化索引，每顆星代表一件作品；完整清單請見下方卡片牆。</p>
   </section>
 
@@ -939,19 +973,25 @@ function countUp(el, to) {
 /* ==========================================================================
  * 星空圖引擎：每顆星＝一件作品，依日期連成星軌
  *   - 佈局：由舊到新蛇行鋪排（boustrophedon）＋雜湊抖動，任何寬度都成立
- *   - 動畫：閃爍、今日之星呼吸光環、偶發流星、滑鼠視差（皆 rAF、離屏即停）
+ *   - 氛圍：漂移星雲、雙層視差星塵與銀河帶、沿星軌巡行的彗星、
+ *           開頁沿星軌依序點燈、隨機星光乍現、流星
+ *   - 掃描：金色光束橫掃夜空、沿途星星漣漪應答，減速鎖定一顆隨機星，
+ *           準星收束後彈出介紹卡（含開啟連結）
  *   - 互動：滑過發光＋懸浮卡、點擊開啟；觸控先點選看介紹、再點開啟
  *   - 篩選連動：搜尋／類別改變時，不符合的星星與線段一起變暗
- *   - 降級：prefers-reduced-motion 時停止動畫，靜態繪製、互動照常
+ *   - 紀律：全 rAF、離屏或分頁隱藏即停；prefers-reduced-motion 靜態降級
  * ========================================================================== */
 (function initSky() {
-  const skyWrap = $("skywrap"), cv = $("sky"), tipEl = $("sky-tip");
+  const skyWrap = $("skywrap"), cv = $("sky"), tipEl = $("sky-tip"), scanBtn = $("scanBtn");
   const probe = (cv && cv.getContext) ? cv.getContext("2d") : null;
   if (!probe) { if (skyWrap) skyWrap.style.display = "none"; return; }
 
   const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
   const rgba = (h, a) => { const [r, g, b] = hexRGB(h); return `rgba(${r},${g},${b},${a})`; };
-  /* FNV-1a 雜湊 → 0..1，讓每顆星的抖動與相位固定（不會每次載入亂跳） */
+  const clamp01 = k => Math.max(0, Math.min(1, k));
+  const outCubic = k => 1 - Math.pow(1 - clamp01(k), 3);
+  const ioCubic = k => { k = clamp01(k); return k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2; };
+  /* FNV-1a 雜湊 → 0..1：抖動與相位固定，不會每次載入亂跳 */
   const hashStr = s => {
     let h = 2166136261 >>> 0;
     for (const ch of String(s)) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
@@ -959,12 +999,54 @@ function countUp(el, to) {
   };
 
   const chrono = PROJECTS.map((p, gi) => ({ p, gi })).reverse(); /* 舊 → 新 */
-  let ctx = null, bg = null, stars = [], W = 0, H = 0, dpr = 1;
+  let ctx = null, W = 0, H = 0, dpr = 1;
+  let farL = null, nearL = null, nebs = [];
+  let stars = [], pathPts = [], pathCum = [], pathLen = 1;
   let hoverGi = -1, selGi = -1, lastPT = "mouse";
-  let pulses = [], meteor = null, meteorTimer = null;
+  let pulses = [], meteor = null, meteorTimer = null, glint = null, glintTimer = null;
+  let scan = null, lastScan = -1;
   const par = { x: 0, y: 0, tx: 0, ty: 0 };
   let running = false, inView = true, rafId = 0;
   let visSet = new Set(PROJECTS.map((_, gi) => gi));
+  let bornAt = 0; /* 0＝尚未點燈；>0＝點燈中；-1＝完成（resize 不重播） */
+
+  /* 靜態星塵層（離屏，含斜向銀河帶；每幀只 blit） */
+  function speckLayer(density, bright) {
+    const c = document.createElement("canvas");
+    c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
+    const g = c.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const n = Math.round(W * H / density);
+    for (let i = 0; i < n; i++) {
+      const x = Math.random() * W, y = Math.random() * H, k = Math.random();
+      g.globalAlpha = (.1 + k * .4) * bright;
+      g.fillStyle = k > .85 ? "#d6e4ff" : "#93a5d6";
+      g.beginPath(); g.arc(x, y, .3 + k * 1.2, 0, 7); g.fill();
+    }
+    for (let i = 0; i < Math.round(n * .5); i++) {
+      const u = Math.random();
+      const cx = W * (.06 + u * .92), cy = H * (.84 - u * .64);
+      const spread = (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+      g.globalAlpha = (.05 + Math.random() * .2) * bright;
+      g.fillStyle = "#aebbe8";
+      g.beginPath(); g.arc(cx + spread * 46, cy + spread * 92, .3 + Math.random() * .9, 0, 7); g.fill();
+    }
+    g.globalAlpha = 1;
+    return c;
+  }
+  /* 星雲精靈（radial gradient 預烘焙，繪製時 additive 疊亮） */
+  function nebSprite(hex) {
+    const c = document.createElement("canvas");
+    c.width = 320; c.height = 320;
+    const g = c.getContext("2d");
+    const rg = g.createRadialGradient(160, 160, 0, 160, 160, 160);
+    rg.addColorStop(0, rgba(hex, .5));
+    rg.addColorStop(.4, rgba(hex, .18));
+    rg.addColorStop(1, rgba(hex, 0));
+    g.fillStyle = rg;
+    g.fillRect(0, 0, 320, 320);
+    return c;
+  }
 
   function layoutSky() {
     const rect = skyWrap.getBoundingClientRect();
@@ -975,7 +1057,7 @@ function countUp(el, to) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const n = chrono.length;
-    const mx = Math.max(30, W * .05), myT = 54, myB = 52;
+    const mx = Math.max(30, W * .05), myT = 56, myB = 74;
     const uw = W - mx * 2, uh = H - myT - myB;
     const perRow = Math.max(5, Math.min(14, Math.round(uw / 88)));
     const rows = Math.max(1, Math.ceil(n / perRow));
@@ -988,102 +1070,190 @@ function countUp(el, to) {
       const by = myT + rowH * (r + .5);
       const h1 = hashStr(it.p.dir), h2 = hashStr(it.p.title + it.p.date);
       const x = bx + (h1 - .5) * Math.min(40, uw / perRow * .5);
-      const y = by + (h2 - .5) * Math.min(rowH * .62, 52);
+      /* 底緣留 70px 淨空：最下排星星不被「今晚最亮的星」卡片壓住 */
+      const y = Math.min(H - 70, by + (h2 - .5) * Math.min(rowH * .62, 52));
       const mm = it.p.date.slice(5, 7);
       const mkey = it.p.date.slice(0, 7);
       const label = (mkey !== lastMonth) ? `${Number(mm)} 月` : "";
       lastMonth = mkey;
       return {
-        gi: it.gi, p: it.p, x, y,
-        r: 2 + h1 * 1.5, hex: catHex(it.p.category),
-        ph: h2 * Math.PI * 2, sp: .9 + h1 * 1.4,
+        gi: it.gi, p: it.p, x, y, idx: i,
+        r: 2.1 + h1 * 1.6, hex: catHex(it.p.category),
+        ph: h2 * Math.PI * 2, sp: .8 + h1 * 1.6,
         label, today: it.gi === 0,
       };
     });
-    buildBg();
+    /* 星軌折線累積長度（彗星巡行用） */
+    pathPts = stars.map(s => [s.x, s.y]);
+    pathCum = [0];
+    for (let i = 1; i < pathPts.length; i++) {
+      pathCum[i] = pathCum[i - 1] + Math.hypot(pathPts[i][0] - pathPts[i - 1][0], pathPts[i][1] - pathPts[i - 1][1]);
+    }
+    pathLen = pathCum[pathCum.length - 1] || 1;
+
+    farL = speckLayer(5200, .8);
+    nearL = speckLayer(9000, 1.15);
+    const nebHex = ["#64b5f6", "#ba9df1", "#4dd0e1", "#f48fb1"];
+    nebs = nebHex.map((hx, i) => ({
+      sp: nebSprite(hx),
+      bx: W * [.16, .78, .46, .9][i], by: H * [.3, .22, .74, .66][i],
+      size: Math.max(W, H) * [.52, .6, .46, .4][i],
+      orb: 16 + i * 7, spd: .00005 + i * .00002, ph: i * 1.7,
+    }));
+    if (bornAt === 0 && reduced()) bornAt = -1;
   }
 
-  /* 靜態星塵底圖（離屏 canvas，每幀只 blit，不重算） */
-  function buildBg() {
-    bg = document.createElement("canvas");
-    bg.width = Math.round(W * dpr); bg.height = Math.round(H * dpr);
-    const c = bg.getContext("2d");
-    c.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const count = Math.round(W * H / 4200);
-    for (let i = 0; i < count; i++) {
-      const x = Math.random() * W, y = Math.random() * H, k = Math.random();
-      c.globalAlpha = .12 + k * .38;
-      c.fillStyle = k > .86 ? "#cfe0ff" : "#93a5d6";
-      c.beginPath(); c.arc(x, y, .3 + k * 1.1, 0, 7); c.fill();
+  function pathAt(d) {
+    if (d <= 0) return pathPts[0];
+    if (d >= pathLen) return pathPts[pathPts.length - 1];
+    let i = 1;
+    while (pathCum[i] < d) i++;
+    const t = (d - pathCum[i - 1]) / (pathCum[i] - pathCum[i - 1] || 1);
+    return [
+      pathPts[i - 1][0] + (pathPts[i][0] - pathPts[i - 1][0]) * t,
+      pathPts[i - 1][1] + (pathPts[i][1] - pathPts[i - 1][1]) * t,
+    ];
+  }
+
+  /* 四芒光 */
+  function flare(x, y, L, col, a, rot) {
+    ctx.strokeStyle = rgba(col, a);
+    ctx.beginPath();
+    for (let q = 0; q < 4; q++) {
+      const ang = rot + q * Math.PI / 2;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(ang) * L, y + Math.sin(ang) * L);
     }
-    c.globalAlpha = 1;
+    ctx.stroke();
   }
 
   function drawSky(t) {
     if (!ctx) return;
+    if (bornAt === 0) bornAt = t; /* 點燈基準取自繪圖時間軸本身，避免時鐘混用 */
     ctx.clearRect(0, 0, W, H);
-    /* 星塵層＋輕微視差（超畫 16px 避免露邊） */
-    ctx.drawImage(bg, par.x * 7 - 8, par.y * 5 - 8, W + 16, H + 16);
 
-    const twinkle = s => reduced() ? .82 : .6 + .4 * Math.sin(t / 1000 * s.sp + s.ph);
+    /* 星雲層：緩慢漂移＋視差，additive 疊亮 */
+    ctx.globalCompositeOperation = "lighter";
+    ctx.globalAlpha = .5;
+    for (const nb of nebs) {
+      const dx = reduced() ? 0 : Math.sin(t * nb.spd + nb.ph) * nb.orb;
+      const dy = reduced() ? 0 : Math.cos(t * nb.spd * .8 + nb.ph) * nb.orb * .7;
+      ctx.drawImage(nb.sp, nb.bx + dx + par.x * 5 - nb.size / 2, nb.by + dy + par.y * 4 - nb.size / 2, nb.size, nb.size);
+    }
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+
+    /* 星塵遠近層（視差，超畫避免露邊） */
+    ctx.drawImage(farL, par.x * 4 - 8, par.y * 3 - 8, W + 16, H + 16);
+    ctx.drawImage(nearL, par.x * 10 - 14, par.y * 7 - 14, W + 28, H + 28);
+
+    /* 彗星：沿星軌巡行一圈、喘口氣再出發 */
+    let cometD = null, cometPos = null;
+    if (!reduced() && pathLen > 1) {
+      const cyc = pathLen / .11 + 3200;
+      const d = (t % cyc) * .11;
+      if (d <= pathLen) { cometD = d; cometPos = pathAt(d); }
+    }
 
     /* 月份標記 */
     ctx.font = '10.5px "Noto Sans TC", system-ui, sans-serif';
     ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(166,174,201,.5)";
-    for (const s of stars) if (s.label) ctx.fillText(s.label, s.x, s.y - 17);
+    for (const s of stars) {
+      if (!s.label) continue;
+      const ly = (s.today && s.y > H - 120) ? s.y - 42 : s.y - 18;
+      ctx.fillStyle = "rgba(166,174,201,.5)";
+      ctx.fillText(s.label, s.x, ly);
+    }
 
-    /* 星軌連線（日期順序） */
+    /* 星軌連線（沿線微微呼吸） */
     ctx.lineWidth = 1;
     for (let i = 1; i < stars.length; i++) {
       const a = stars[i - 1], b = stars[i];
       const on = visSet.has(a.gi) && visSet.has(b.gi);
-      ctx.strokeStyle = `rgba(160,175,225,${on ? .16 : .045})`;
+      const puls = reduced() ? .5 : (.5 + .5 * Math.sin(t / 1100 + i * .55));
+      ctx.strokeStyle = `rgba(160,175,225,${on ? (.1 + .09 * puls).toFixed(3) : ".04"})`;
       ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
     }
 
-    /* 星星 */
+    /* 彗星尾跡與頭部 */
+    if (cometPos) {
+      for (let k = 12; k >= 1; k--) {
+        const p = pathAt(cometD - k * 6);
+        const fade = 1 - k / 13;
+        ctx.fillStyle = `rgba(255,240,200,${(fade * .38).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(p[0], p[1], .8 + fade * 1.6, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = "rgba(240,198,116,.22)";
+      ctx.beginPath(); ctx.arc(cometPos[0], cometPos[1], 8, 0, 7); ctx.fill();
+      ctx.fillStyle = "rgba(255,250,230,.95)";
+      ctx.beginPath(); ctx.arc(cometPos[0], cometPos[1], 2.2, 0, 7); ctx.fill();
+    }
+
+    /* 星星（開頁沿星軌依序點燈；彗星經過時被喚亮） */
+    const igniting = bornAt > 0;
     for (const s of stars) {
       const on = visSet.has(s.gi);
       const hot = s.gi === hoverGi || s.gi === selGi;
-      const a = (on ? 1 : .15) * twinkle(s);
-      const rr = s.today ? 4.6 : (hot ? s.r * 1.7 : s.r);
+      const tw = reduced() ? .8 : .55 + .45 * Math.sin(t / 1000 * s.sp + s.ph);
+      let a = (on ? 1 : .14) * tw;
+      let rr = (s.today ? 4.8 : s.r) * (reduced() ? 1 : .88 + .24 * tw);
+      if (hot) { rr *= 1.55; a = Math.min(1, a + .35); }
+      if (igniting) {
+        const ig = clamp01((t - bornAt - s.idx * 16) / 380);
+        a *= ig; rr *= .6 + .4 * ig;
+      }
+      if (cometPos && on) {
+        const dd = Math.hypot(s.x - cometPos[0], s.y - cometPos[1]);
+        if (dd < 26) { const bo = 1 - dd / 26; a = Math.min(1, a + bo * .5); rr *= 1 + bo * .35; }
+      }
       const col = s.today ? GOLD_HEX : s.hex;
-      /* 光暈 → 白色核心 */
-      ctx.fillStyle = rgba(col, Math.min(1, a) * .3);
-      ctx.beginPath(); ctx.arc(s.x, s.y, rr * 3.1, 0, 7); ctx.fill();
-      ctx.fillStyle = `rgba(255,255,255,${Math.min(1, a)})`;
+      a = Math.min(1, a);
+      ctx.fillStyle = rgba(col, a * .3);
+      ctx.beginPath(); ctx.arc(s.x, s.y, rr * 3.2, 0, 7); ctx.fill();
+      ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
       ctx.beginPath(); ctx.arc(s.x, s.y, rr, 0, 7); ctx.fill();
-      /* 十字光芒：滑過或今日之星 */
-      if (hot || s.today) {
-        const L = hot ? 15 : 11;
-        ctx.strokeStyle = rgba(col, Math.min(1, a) * (hot ? .85 : .55));
-        ctx.beginPath();
-        ctx.moveTo(s.x - L, s.y); ctx.lineTo(s.x + L, s.y);
-        ctx.moveTo(s.x, s.y - L); ctx.lineTo(s.x, s.y + L);
-        ctx.stroke();
+      if (s.r > 2.9 || s.today || hot) {
+        ctx.lineWidth = 1;
+        flare(s.x, s.y, hot ? rr * 4.6 : rr * 3.4, col, a * (hot ? .8 : .4), s.today ? t / 2600 : 0);
       }
       if (s.today) {
         const k = reduced() ? .4 : (Math.sin(t / 700) + 1) / 2;
         ctx.strokeStyle = rgba(GOLD_HEX, .55 - k * .3);
-        ctx.beginPath(); ctx.arc(s.x, s.y, 8 + k * 5, 0, 7); ctx.stroke();
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 9 + k * 6, 0, 7); ctx.stroke();
         ctx.fillStyle = rgba(GOLD_HEX, .92);
         ctx.font = '11px "Noto Serif TC", serif';
-        ctx.fillText("今日之星", s.x, s.y + 28);
+        ctx.fillText("今日之星", s.x, s.y > H - 120 ? s.y - 26 : s.y + 30);
         ctx.font = '10.5px "Noto Sans TC", system-ui, sans-serif';
-        ctx.fillStyle = "rgba(166,174,201,.5)";
+      }
+    }
+    if (igniting && t - bornAt > stars.length * 16 + 420) bornAt = -1;
+
+    /* 星光乍現：隨機一顆對你眨眼 */
+    if (glint) {
+      const k = (t - glint.t0) / 750;
+      if (k >= 1) glint = null;
+      else {
+        const s = stars.find(z => z.gi === glint.gi);
+        if (s && visSet.has(s.gi)) {
+          const a = Math.sin(Math.PI * clamp01(k));
+          ctx.lineWidth = 1;
+          flare(s.x, s.y, 5 + k * 17, s.hex, a * .85, Math.PI / 4);
+          ctx.strokeStyle = rgba(s.hex, a * .5);
+          ctx.beginPath(); ctx.arc(s.x, s.y, 3 + k * 11, 0, 7); ctx.stroke();
+        }
       }
     }
 
-    /* 隨機觀星的漣漪 */
-    pulses = pulses.filter(pl => t - pl.t0 < 900);
+    /* 漣漪（大＝隨機／鎖定；小＝掃描光束沿途應答） */
+    pulses = pulses.filter(pl => t - pl.t0 < (pl.small ? 520 : 900));
     for (const pl of pulses) {
       const s = stars.find(z => z.gi === pl.gi);
       if (!s) continue;
-      const k = (t - pl.t0) / 900;
-      ctx.strokeStyle = rgba(s.today ? GOLD_HEX : s.hex, (1 - k) * .8);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.arc(s.x, s.y, 4 + k * 26, 0, 7); ctx.stroke();
+      const k = (t - pl.t0) / (pl.small ? 520 : 900);
+      ctx.strokeStyle = rgba(s.today ? GOLD_HEX : s.hex, ((1 - k) * (pl.small ? .55 : .8)).toFixed(3));
+      ctx.lineWidth = pl.small ? 1 : 1.5;
+      ctx.beginPath(); ctx.arc(s.x, s.y, (pl.small ? 3 : 4) + k * (pl.small ? 13 : 26), 0, 7); ctx.stroke();
       ctx.lineWidth = 1;
     }
 
@@ -1095,14 +1265,90 @@ function countUp(el, to) {
         const x = meteor.x0 + meteor.dx * k, y = meteor.y0 + meteor.dy * k;
         const tail = Math.min(k * 110, 74) * (1 - k * .35);
         const g = ctx.createLinearGradient(x, y, x - meteor.ux * tail, y - meteor.uy * tail);
-        g.addColorStop(0, `rgba(255,255,255,${.85 * (1 - k)})`);
+        g.addColorStop(0, `rgba(255,255,255,${(.85 * (1 - k)).toFixed(3)})`);
         g.addColorStop(1, "rgba(255,255,255,0)");
         ctx.strokeStyle = g; ctx.lineWidth = 1.6;
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - meteor.ux * tail, y - meteor.uy * tail); ctx.stroke();
         ctx.lineWidth = 1;
       }
     }
+
+    /* 掃描光束與鎖定準星 */
+    if (scan) drawScan(t);
   }
+
+  /* ── 掃描星空：光束橫掃 → 減速鎖定 → 準星收束 → 開介紹卡 ── */
+  function drawScan(t) {
+    const target = stars.find(z => z.gi === scan.gi);
+    if (!target) { scan = null; return; }
+    if (scan.phase === "sweep") {
+      const k = clamp01((t - scan.t0) / scan.dur);
+      let x;
+      if (k < .5) x = 10 + (W - 20) * outCubic(k / .5);              /* 先全幅掃過去 */
+      else x = (W - 10) + (target.x - (W - 10)) * ioCubic((k - .5) / .5); /* 折返減速鎖定 */
+      /* 光束沿途叫醒星星 */
+      const lo = Math.min(scan.px, x), hi = Math.max(scan.px, x);
+      for (const s of stars) {
+        if (!visSet.has(s.gi) || scan.hit.has(s.gi)) continue;
+        if (s.x >= lo - 1 && s.x <= hi + 1) { scan.hit.add(s.gi); pulses.push({ gi: s.gi, t0: t, small: true }); }
+      }
+      scan.px = x;
+      const band = ctx.createLinearGradient(x - 34, 0, x + 34, 0);
+      band.addColorStop(0, "rgba(240,198,116,0)");
+      band.addColorStop(.5, "rgba(240,198,116,.14)");
+      band.addColorStop(1, "rgba(240,198,116,0)");
+      ctx.fillStyle = band;
+      ctx.fillRect(x - 34, 0, 68, H);
+      const lg = ctx.createLinearGradient(0, 0, 0, H);
+      lg.addColorStop(0, "rgba(240,198,116,0)");
+      lg.addColorStop(.5, "rgba(255,238,196,.9)");
+      lg.addColorStop(1, "rgba(240,198,116,0)");
+      ctx.strokeStyle = lg; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(x, 8); ctx.lineTo(x, H - 8); ctx.stroke();
+      ctx.lineWidth = 1;
+      if (k >= 1) { scan.phase = "lock"; scan.lockT0 = t; selGi = scan.gi; hoverGi = -1; }
+    } else {
+      const kk = clamp01((t - scan.lockT0) / 650);
+      const rr = 30 - 16 * outCubic(kk);
+      const rot = t / 500;
+      ctx.strokeStyle = rgba(GOLD_HEX, .35 + .55 * kk);
+      ctx.lineWidth = 1.4;
+      for (let q = 0; q < 4; q++) {
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, rr, rot + q * Math.PI / 2, rot + q * Math.PI / 2 + Math.PI / 3.2);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1;
+      if (kk >= 1) finishScan();
+    }
+  }
+  function resetScanBtn() {
+    scanBtn.classList.remove("scanning");
+    scanBtn.querySelector(".lbl").textContent = "掃描星空";
+  }
+  function finishScan() {
+    const gi = scan.gi;
+    scan = null;
+    resetScanBtn();
+    pulses.push({ gi, t0: performance.now() });
+    selGi = gi; hoverGi = -1;
+    showTip(gi, true);
+    announce(`掃描鎖定：${PROJECTS[gi].title}`);
+    if (!running) drawSky(performance.now());
+  }
+  function startScan() {
+    const pool = [...visSet];
+    if (!pool.length) return;
+    let gi = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1 && gi === lastScan) gi = pool[(pool.indexOf(gi) + 1) % pool.length];
+    lastScan = gi;
+    hideTip(); hoverGi = -1;
+    if (reduced()) { scan = { gi }; finishScan(); return; }
+    scan = { gi, phase: "sweep", t0: performance.now(), dur: 1500, px: 10, hit: new Set() };
+    scanBtn.classList.add("scanning");
+    scanBtn.querySelector(".lbl").textContent = "掃描中…";
+  }
+  scanBtn.addEventListener("click", startScan);
 
   /* rAF 迴圈：只在「在畫面內＋分頁可見＋允許動態」時運轉 */
   function frame(t) {
@@ -1114,8 +1360,8 @@ function countUp(el, to) {
   }
   function setRunning() {
     const want = inView && !document.hidden && !reduced();
-    if (want && !running) { running = true; rafId = requestAnimationFrame(frame); scheduleMeteor(); }
-    else if (!want && running) { running = false; cancelAnimationFrame(rafId); clearTimeout(meteorTimer); }
+    if (want && !running) { running = true; rafId = requestAnimationFrame(frame); scheduleMeteor(); scheduleGlint(); }
+    else if (!want && running) { running = false; cancelAnimationFrame(rafId); clearTimeout(meteorTimer); clearTimeout(glintTimer); }
     if (!running) drawSky(performance.now());
   }
   function scheduleMeteor() {
@@ -1129,7 +1375,16 @@ function countUp(el, to) {
       const ul = Math.hypot(dx, dy);
       meteor = { x0, y0, dx, dy, ux: dx / ul, uy: dy / ul, t0: performance.now(), dur: 900 + Math.random() * 500 };
       scheduleMeteor();
-    }, 4500 + Math.random() * 6500);
+    }, 2600 + Math.random() * 4200);
+  }
+  function scheduleGlint() {
+    clearTimeout(glintTimer);
+    glintTimer = setTimeout(() => {
+      if (!running) return;
+      const pool = [...visSet].filter(g => g !== 0);
+      if (pool.length) glint = { gi: pool[Math.floor(Math.random() * pool.length)], t0: performance.now() };
+      scheduleGlint();
+    }, 1400 + Math.random() * 2200);
   }
 
   /* 命中測試：18px 內最近的可見星星 */
@@ -1178,7 +1433,7 @@ function countUp(el, to) {
     const rc = cv.getBoundingClientRect();
     const x = e.clientX - rc.left, y = e.clientY - rc.top;
     if (!reduced()) { par.tx = (x / W - .5) * 2; par.ty = (y / H - .5) * 2; }
-    if (e.pointerType === "touch") return;
+    if (e.pointerType === "touch" || scan) return;
     const gi = starAt(x, y);
     if (gi !== hoverGi) {
       hoverGi = gi;
@@ -1195,6 +1450,7 @@ function countUp(el, to) {
   });
   cv.addEventListener("pointerdown", e => { lastPT = e.pointerType || "mouse"; });
   cv.addEventListener("click", e => {
+    if (scan) { scan = null; resetScanBtn(); }   /* 點天空可中止掃描 */
     const rc = cv.getBoundingClientRect();
     const gi = starAt(e.clientX - rc.left, e.clientY - rc.top);
     if (gi < 0) { hideTip(); if (!running) drawSky(performance.now()); return; }

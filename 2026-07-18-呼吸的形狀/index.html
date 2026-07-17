@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>呼吸的形狀</title>
+<style>
+  :root{
+    --bg:#080b16; --bg2:#0f1730; --bg3:#141d3a;
+    --ink:#eef2ff; --muted:#9aa7cf; --faint:#5f6c93;
+    --line:rgba(255,255,255,.09);
+    --card:rgba(255,255,255,.035);
+    --lo:91,107,214;      /* 吐盡：靛藍 */
+    --hi:130,240,214;     /* 吸滿：湖水綠 */
+    --accent:#82f0d6; --accent2:#a78bfa;
+    --shadow:0 20px 60px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 720px at 50% -8%, #1b2650 0%, rgba(27,38,80,0) 60%),
+      radial-gradient(900px 620px at 88% 108%, #16234a 0%, rgba(22,35,74,0) 55%),
+      linear-gradient(180deg,var(--bg),#070a13 90%);
+    background-attachment:fixed;
+    min-height:100%;
+    -webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;align-items:center;
+    padding:26px 20px 34px;
+    overflow-x:hidden;
+  }
+  a{color:inherit}
+  .home{
+    position:fixed;left:18px;top:16px;z-index:20;
+    font-size:13px;color:var(--faint);text-decoration:none;
+    padding:7px 12px;border-radius:999px;border:1px solid transparent;
+    transition:color .25s, border-color .25s, background .25s, transform .25s;
+  }
+  .home:hover,.home:focus-visible{color:var(--ink);border-color:var(--line);background:var(--card);transform:translateX(-2px)}
+
+  .wrap{width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center}
+
+  /* 進場編排 */
+  .rise{opacity:0;transform:translateY(14px);animation:rise .62s cubic-bezier(.2,.7,.25,1) forwards;animation-delay:var(--rd,0s)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  header{text-align:center;margin-top:14px}
+  h1{
+    font-size:clamp(26px,7vw,38px);margin:0;font-weight:700;letter-spacing:.04em;
+    background:linear-gradient(92deg,#eaf4ff,#a9f0e2 55%,#c3b6ff);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{color:var(--muted);font-size:14px;margin-top:8px;letter-spacing:.02em}
+
+  /* 呼吸法切換 */
+  .picks{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:22px 0 4px}
+  .pick{
+    appearance:none;cursor:pointer;font:inherit;color:var(--muted);
+    background:var(--card);border:1px solid var(--line);border-radius:999px;
+    padding:9px 15px;font-size:13.5px;letter-spacing:.02em;
+    transition:color .22s,border-color .22s,background .22s,transform .12s,box-shadow .22s;
+  }
+  .pick:hover{color:var(--ink);transform:translateY(-1px)}
+  .pick:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(130,240,214,.25)}
+  .pick .k{font-size:11px;color:var(--faint);margin-left:7px;letter-spacing:.06em}
+  .pick[aria-pressed="true"]{
+    color:#04121a;border-color:transparent;font-weight:600;
+    background:linear-gradient(120deg,var(--accent),#bfa8ff);
+    box-shadow:0 8px 26px rgba(130,240,214,.22);
+  }
+  .pick[aria-pressed="true"] .k{color:rgba(4,18,26,.6)}
+
+  .caption{min-height:20px;color:var(--muted);font-size:13px;text-align:center;margin:14px 8px 0;max-width:440px;transition:opacity .3s}
+
+  /* 舞台 */
+  .stage{position:relative;width:min(340px,82vw);height:min(340px,82vw);margin:20px 0 6px;display:grid;place-items:center}
+  .halo{
+    position:absolute;inset:0;border-radius:50%;
+    background:radial-gradient(circle at 50% 50%, rgba(130,240,214,.30), rgba(130,240,214,0) 62%);
+    filter:blur(6px);opacity:.5;transform:scale(1);pointer-events:none;
+    transition:opacity .6s;
+  }
+  .ring{position:absolute;inset:6%;border-radius:50%;border:1px solid var(--line);opacity:.5}
+  .ring.two{inset:15%;opacity:.32}
+  .orb{
+    position:relative;width:56%;height:56%;border-radius:50%;
+    background:radial-gradient(circle at 36% 30%, rgba(255,255,255,.95), rgba(130,240,214,.9) 42%, rgba(91,107,214,.85) 80%);
+    box-shadow:0 10px 40px rgba(80,120,200,.35), inset 0 0 40px rgba(255,255,255,.14);
+    transform:scale(.5);will-change:transform;
+  }
+  body.idle .orb{animation:idle 7s ease-in-out infinite}
+  @keyframes idle{0%,100%{transform:scale(.5)}50%{transform:scale(.56)}}
+  .readout{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+  .phase{font-size:16px;letter-spacing:.28em;color:#eafffb;text-shadow:0 2px 12px rgba(0,0,0,.4);font-weight:500}
+  .count{font-size:44px;font-weight:300;font-variant-numeric:tabular-nums;line-height:1;margin-top:8px;color:#fff;text-shadow:0 3px 16px rgba(0,0,0,.45)}
+  .count.hide{opacity:0}
+  .hint{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;letter-spacing:.14em}
+
+  /* 呼吸曲線 */
+  .curveWrap{width:100%;max-width:520px;margin:8px 0 4px}
+  .curve{width:100%;height:92px;display:block}
+
+  /* 控制列 */
+  .controls{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:14px;width:100%}
+  .seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;gap:2px}
+  .seg button{
+    appearance:none;cursor:pointer;font:inherit;font-size:13px;color:var(--muted);
+    background:transparent;border:0;border-radius:999px;padding:7px 14px;letter-spacing:.02em;
+    transition:color .2s,background .2s;
+  }
+  .seg button:focus-visible{outline:none;color:var(--ink);box-shadow:0 0 0 3px rgba(130,240,214,.25)}
+  .seg button[aria-pressed="true"]{color:#04121a;background:linear-gradient(120deg,var(--accent),#bfa8ff);font-weight:600}
+
+  .row{display:flex;align-items:center;gap:14px}
+  .play{
+    appearance:none;cursor:pointer;font:inherit;font-weight:600;font-size:16px;letter-spacing:.1em;
+    color:#04121a;border:0;border-radius:999px;padding:14px 40px;
+    background:linear-gradient(120deg,var(--accent),#bfa8ff);
+    box-shadow:0 12px 34px rgba(130,240,214,.28);
+    transition:transform .14s,box-shadow .22s,filter .22s;
+  }
+  .play:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(130,240,214,.34)}
+  .play:active{transform:translateY(0)}
+  .play:focus-visible{outline:none;box-shadow:0 0 0 4px rgba(130,240,214,.35)}
+  .ghost{
+    appearance:none;cursor:pointer;font:inherit;font-size:13px;color:var(--muted);
+    background:transparent;border:1px solid var(--line);border-radius:999px;padding:11px 16px;
+    transition:color .2s,border-color .2s,transform .12s,background .2s;
+  }
+  .ghost:hover{color:var(--ink);border-color:var(--muted)}
+  .ghost:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(130,240,214,.25)}
+  .ghost[aria-pressed="true"]{color:var(--accent);border-color:rgba(130,240,214,.5)}
+  .ghost.hidden{display:none}
+
+  /* 統計 */
+  .stats{display:flex;gap:26px;justify-content:center;margin-top:24px;color:var(--muted)}
+  .stat{text-align:center}
+  .stat .n{font-size:22px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .stat .l{font-size:11px;letter-spacing:.08em;margin-top:3px;color:var(--faint)}
+
+  /* 完成 */
+  .done{
+    position:fixed;inset:0;z-index:30;display:none;place-items:center;
+    background:radial-gradient(600px 500px at 50% 42%, rgba(16,24,52,.72), rgba(8,11,22,.9));
+    backdrop-filter:blur(3px);
+  }
+  .done.show{display:grid;animation:fade .5s ease forwards}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .doneCard{text-align:center;padding:10px 24px;transform:translateY(10px);opacity:0;animation:rise .6s .06s cubic-bezier(.2,.7,.25,1) forwards}
+  .doneBloom{width:120px;height:120px;margin:0 auto 18px;border-radius:50%;
+    background:radial-gradient(circle at 50% 45%, #fff, var(--accent) 42%, rgba(167,139,250,.6) 78%, transparent);
+    box-shadow:0 0 60px rgba(130,240,214,.4);animation:bloom 1.1s ease-out both}
+  @keyframes bloom{0%{transform:scale(.2);opacity:0}55%{opacity:1}100%{transform:scale(1);opacity:1}}
+  .doneCard h2{margin:0 0 6px;font-weight:600;font-size:24px;letter-spacing:.06em}
+  .doneCard p{margin:0 auto;color:var(--muted);font-size:14px;max-width:340px;line-height:1.7}
+  .doneCard .fact{margin-top:14px;color:var(--accent);font-size:13px}
+  .doneCard .again{margin-top:26px}
+
+  footer{margin-top:30px;text-align:center;color:var(--faint);font-size:12px;line-height:1.8;letter-spacing:.02em;max-width:460px}
+
+  .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  @media (max-width:560px){
+    .stats{gap:20px}
+    .play{padding:14px 34px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rise,.doneCard,.doneBloom,.done.show{animation:none!important;opacity:1!important;transform:none!important}
+    body.idle .orb{animation:none}
+    .halo{transition:none}
+  }
+</style>
+</head>
+<body class="idle">
+<a class="home" href="../index.html" aria-label="回到首頁">← 回首頁</a>
+
+<div class="wrap">
+  <header class="rise">
+    <h1>呼吸的形狀</h1>
+    <div class="sub">跟著光呼吸，看你的一口氣畫出一條線</div>
+  </header>
+
+  <div class="picks rise" style="--rd:.08s" role="group" aria-label="選擇呼吸法">
+    <button class="pick" data-tech="box" aria-pressed="true">箱式<span class="k">4·4·4·4</span></button>
+    <button class="pick" data-tech="t478" aria-pressed="false">4-7-8<span class="k">吸4·憋7·吐8</span></button>
+    <button class="pick" data-tech="sigh" aria-pressed="false">生理性嘆息<span class="k">雙吸·長吐</span></button>
+    <button class="pick" data-tech="coherent" aria-pressed="false">共振<span class="k">5.5·5.5</span></button>
+  </div>
+  <p class="caption rise" id="caption" style="--rd:.12s"></p>
+
+  <div class="stage rise" style="--rd:.18s">
+    <div class="halo" id="halo"></div>
+    <div class="ring"></div><div class="ring two"></div>
+    <div class="orb" id="orb"></div>
+    <div class="readout" aria-hidden="true">
+      <div>
+        <div class="phase" id="phase"></div>
+        <div class="count" id="count"></div>
+      </div>
+    </div>
+    <div class="hint" id="hint">按下開始</div>
+  </div>
+
+  <div class="curveWrap rise" style="--rd:.22s">
+    <canvas class="curve" id="curve" width="1040" height="184" aria-hidden="true"></canvas>
+  </div>
+
+  <div class="controls rise" style="--rd:.26s">
+    <div class="seg" role="group" aria-label="選擇時長">
+      <button data-dur="once" aria-pressed="false">一次</button>
+      <button data-dur="60" aria-pressed="false">1 分鐘</button>
+      <button data-dur="180" aria-pressed="true">3 分鐘</button>
+      <button data-dur="300" aria-pressed="false">5 分鐘</button>
+    </div>
+    <div class="row">
+      <button class="play" id="play" aria-label="開始">開始</button>
+      <button class="ghost hidden" id="reset" aria-label="重來">重來</button>
+      <button class="ghost" id="sound" aria-pressed="false" aria-label="開啟聲音提示" title="聲音提示">🔈 靜音</button>
+    </div>
+  </div>
+
+  <div class="stats rise" style="--rd:.32s" aria-label="練習紀錄">
+    <div class="stat"><div class="n" id="s-sessions">0</div><div class="l">總次數</div></div>
+    <div class="stat"><div class="n" id="s-minutes">0</div><div class="l">總分鐘</div></div>
+    <div class="stat"><div class="n" id="s-streak">0</div><div class="l">連續天數</div></div>
+  </div>
+
+  <footer class="rise" style="--rd:.4s">
+    這是放鬆練習，不能取代醫療建議；若感到頭暈或不適，請停下來自然呼吸。<br>
+    資料來源：Stanford Medicine、Dr. Andrew Weil、Cell Reports Medicine（2023）
+  </footer>
+</div>
+
+<div class="done" id="done" aria-live="polite">
+  <div class="doneCard">
+    <div class="doneBloom"></div>
+    <h2>完成</h2>
+    <p id="doneMsg"></p>
+    <div class="fact" id="doneFact"></div>
+    <div class="again"><button class="play" id="again">再一次</button></div>
+  </div>
+</div>
+
+<div class="sr" id="live" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TECH = {
+    box:{
+      name:"箱式呼吸", cap:"海豹部隊的「戰術呼吸」：四段等長，像描一個正方形的四條邊。",
+      fact:"這套等長呼吸源自古印度的調息（pranayama），被軍警拿來在高壓下穩住神經。",
+      phases:[
+        {k:"in",  d:4, label:"吸氣"},
+        {k:"hold",d:4, label:"憋住", top:true},
+        {k:"out", d:4, label:"吐氣"},
+        {k:"hold",d:4, label:"停",   top:false}
+      ]
+    },
+    t478:{
+      name:"4-7-8 呼吸", cap:"Weil 醫師的「神經系統天然鎮定劑」：吐氣拉得比吸氣長。",
+      fact:"吐氣比吸氣長，會把身體推向副交感（放鬆）那一側——常被拿來幫助入睡。",
+      phases:[
+        {k:"in",  d:4, label:"吸氣"},
+        {k:"hold",d:7, label:"憋住", top:true},
+        {k:"out", d:8, label:"吐氣"}
+      ]
+    },
+    sigh:{
+      name:"生理性嘆息", cap:"兩段吸氣把肺撐飽，再長長吐掉——2023 年 Stanford 研究裡效果最好的一種。",
+      fact:"第二口短吸能撐開悄悄塌掉的肺泡；一次嘆息就能明顯降下呼吸速率、讓心情變好。",
+      phases:[
+        {k:"in", d:2.4, label:"吸氣",     to:0.66},
+        {k:"in2",d:1.1, label:"再吸一口", to:1},
+        {k:"out",d:5.5, label:"慢慢吐"}
+      ]
+    },
+    coherent:{
+      name:"共振呼吸", cap:"每分鐘 5.5 次，吸與吐一樣長，讓心跳和呼吸同頻共振。",
+      fact:"約 5.5 次/分是多數人的「共振頻率」，此時心率變異度（HRV）達到最大。",
+      phases:[
+        {k:"in", d:5.5, label:"吸氣"},
+        {k:"out",d:5.5, label:"吐氣"}
+      ]
+    }
+  };
+
+  var LS = "breath.";
+  function load(k,d){ try{ var v=localStorage.getItem(LS+k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }
+  function save(k,v){ try{ localStorage.setItem(LS+k, JSON.stringify(v)); }catch(e){} }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var orb=$("orb"), halo=$("halo"), phaseEl=$("phase"), countEl=$("count"),
+      hintEl=$("hint"), captionEl=$("caption"), playBtn=$("play"), resetBtn=$("reset"),
+      soundBtn=$("sound"), liveEl=$("live"), canvas=$("curve"), ctx=canvas.getContext("2d"),
+      doneEl=$("done"), doneMsg=$("doneMsg"), doneFact=$("doneFact"), againBtn=$("again");
+
+  var mq = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : {matches:false, addEventListener:function(){}};
+
+  var S = {
+    tech:"box", session:"idle", // idle | running | paused | finished
+    mode:"180",                 // 'once' or seconds-as-string
+    reduced: !!mq.matches,
+    baseElapsed:0, spanStart:0,
+    raf:0, timer:0, tick1s:0,
+    lastPhase:-1, cache:null, cycleDur:0, samples:[],
+    soundOn: !!load("sound", false), actx:null, hiddenPause:false
+  };
+
+  // ---- 呼吸體積模型 ----
+  function ease(f){ return f*f*(3-2*f); }
+  function buildCache(tech){
+    var ph = TECH[tech].phases, prev=0, out=[], total=0, i;
+    for(i=0;i<ph.length;i++){
+      var p=ph[i], s=prev, e;
+      if(p.k==="hold"){ s = p.top?1:0; e = s; }
+      else if(p.k==="out"){ e = 0; }
+      else { e = (p.to!=null? p.to : 1); } // in / in2
+      out.push({k:p.k,d:p.d,label:p.label,s:s,e:e});
+      prev=e; total+=p.d;
+    }
+    S.cache=out; S.cycleDur=total;
+    // 正規化取樣供畫曲線用
+    var N=260, samp=[], j;
+    for(j=0;j<=N;j++){
+      var t=(j/N)*total, v=volAtTime(out,t);
+      samp.push({nx:j/N, nv:v});
+    }
+    S.samples=samp;
+  }
+  function volAtTime(cache,t){
+    var acc=0,i;
+    for(i=0;i<cache.length;i++){
+      if(t < acc+cache[i].d || i===cache.length-1){
+        var f=(t-acc)/cache[i].d; if(f<0)f=0; if(f>1)f=1;
+        var c=cache[i];
+        return c.s + (c.e-c.s)*ease(f);
+      }
+      acc+=cache[i].d;
+    }
+    return 0;
+  }
+  function stateAt(elapsedSec){
+    var cd=S.cycleDur, t=elapsedSec % cd, acc=0, i, cache=S.cache;
+    for(i=0;i<cache.length;i++){
+      if(t < acc+cache[i].d){ break; }
+      acc+=cache[i].d;
+    }
+    if(i>=cache.length){ i=cache.length-1; acc=cd-cache[i].d; }
+    var c=cache[i], f=(t-acc)/c.d;
+    return { idx:i, phase:c, f:f, t:t,
+             v: c.s + (c.e-c.s)*ease(Math.max(0,Math.min(1,f))),
+             remain: c.d-(t-acc) };
+  }
+
+  // ---- 顏色 ----
+  var LO=[91,107,214], HI=[130,240,214];
+  function mix(v){
+    var r=Math.round(LO[0]+(HI[0]-LO[0])*v),
+        g=Math.round(LO[1]+(HI[1]-LO[1])*v),
+        b=Math.round(LO[2]+(HI[2]-LO[2])*v);
+    return [r,g,b];
+  }
+  function paintOrb(v){
+    var c=mix(v), rgb=c[0]+","+c[1]+","+c[2];
+    orb.style.background="radial-gradient(circle at 36% 30%, rgba(255,255,255,.95), rgba("+rgb+",.92) 44%, rgba("+
+      Math.round(c[0]*.7)+","+Math.round(c[1]*.7)+","+Math.round(c[2]*.82)+",.9) 82%)";
+    halo.style.background="radial-gradient(circle at 50% 50%, rgba("+rgb+","+(0.16+0.26*v).toFixed(2)+"), rgba("+rgb+",0) 62%)";
+  }
+  function setOrb(v, smoothMs){
+    orb.style.transitionDuration = (smoothMs||0)+"ms";
+    orb.style.transitionProperty = "transform";
+    orb.style.transitionTimingFunction = "cubic-bezier(.37,0,.63,1)";
+    orb.style.transform = "scale("+(0.34+0.66*v).toFixed(4)+")";
+    paintOrb(v);
+  }
+
+  // ---- 畫曲線 ----
+  var CW=0, CH=0, DPR=1;
+  function sizeCanvas(){
+    DPR = Math.min(2, window.devicePixelRatio||1);
+    var r=canvas.getBoundingClientRect();
+    CW=r.width; CH=r.height;
+    canvas.width=Math.round(CW*DPR); canvas.height=Math.round(CH*DPR);
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    drawCurve(S.session==="idle"? null : stateAt(elapsedSec()));
+  }
+  function vy(v){ var pad=16; return pad+(1-v)*(CH-2*pad); }
+  function drawCurve(st){
+    ctx.clearRect(0,0,CW,CH);
+    var samp=S.samples; if(!samp||!samp.length) return;
+    // 底線（完整一個循環的形狀，淡）
+    ctx.lineWidth=2; ctx.lineJoin="round"; ctx.lineCap="round";
+    ctx.strokeStyle="rgba(255,255,255,.13)";
+    ctx.beginPath();
+    for(var i=0;i<samp.length;i++){
+      var x=samp[i].nx*CW, y=vy(samp[i].nv);
+      if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+    // 標記 吸 / 吐
+    ctx.font="11px 'Noto Sans TC',sans-serif"; ctx.fillStyle="rgba(154,167,207,.55)";
+    ctx.textBaseline="middle"; ctx.fillText("吸",4,vy(1)); ctx.fillText("吐",4,vy(0));
+    if(!st) return;
+    var prog=st.t/S.cycleDur;
+    // 已走過的亮線
+    var grad=ctx.createLinearGradient(0,0,CW,0);
+    grad.addColorStop(0,"rgba(130,240,214,.5)"); grad.addColorStop(1,"#82f0d6");
+    ctx.strokeStyle=grad; ctx.lineWidth=3;
+    ctx.beginPath(); var started=false;
+    for(var j=0;j<samp.length;j++){
+      if(samp[j].nx>prog) break;
+      var xx=samp[j].nx*CW, yy=vy(samp[j].nv);
+      if(!started){ctx.moveTo(xx,yy);started=true;} else ctx.lineTo(xx,yy);
+    }
+    var dx=prog*CW, dy=vy(st.v);
+    if(started) ctx.lineTo(dx,dy);
+    ctx.stroke();
+    // 光點
+    var glow=ctx.createRadialGradient(dx,dy,0,dx,dy,15);
+    glow.addColorStop(0,"rgba(255,255,255,.9)"); glow.addColorStop(.4,"rgba(130,240,214,.55)"); glow.addColorStop(1,"rgba(130,240,214,0)");
+    ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(dx,dy,15,0,7); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.beginPath(); ctx.arc(dx,dy,3.4,0,7); ctx.fill();
+  }
+
+  // ---- 時間 ----
+  function elapsedSec(){
+    return (S.baseElapsed + (S.session==="running" ? performance.now()-S.spanStart : 0))/1000;
+  }
+  function targetSec(){ return S.mode==="once" ? S.cycleDur : parseInt(S.mode,10); }
+
+  // ---- 主更新 ----
+  function tick(){
+    if(S.session!=="running") return;
+    var el=elapsedSec();
+    // 結束判定：跑滿後在下一個循環起點收尾
+    if(S.mode==="once"){
+      if(el>=S.cycleDur){ finish(); return; }
+    } else {
+      var goal=targetSec();
+      if(el>=goal){
+        var stx=stateAt(el);
+        if((stx.idx===0 && stx.t<0.18) || el>=goal+S.cycleDur){ finish(); return; }
+      }
+    }
+    var st=stateAt(el);
+    countEl.textContent = Math.max(1, Math.ceil(st.remain-0.001));
+    if(st.idx!==S.lastPhase){
+      S.lastPhase=st.idx;
+      phaseEl.textContent=st.phase.label;
+      liveEl.textContent=st.phase.label;
+      cue(st.phase.k);
+      if(S.reduced){
+        setOrb(st.phase.e, st.phase.d*1000);
+        drawCurve(st);
+      }
+    }
+    if(!S.reduced){ setOrb(st.v,0); drawCurve(st); }
+  }
+
+  // ---- 驅動 ----
+  function startDriver(){
+    stopDriver();
+    tick();
+    if(S.reduced){
+      S.timer=setInterval(tick,200);
+    } else {
+      var loop=function(){ if(S.session!=="running")return; tick(); S.raf=requestAnimationFrame(loop); };
+      S.raf=requestAnimationFrame(loop);
+    }
+  }
+  function stopDriver(){
+    if(S.raf){ cancelAnimationFrame(S.raf); S.raf=0; }
+    if(S.timer){ clearInterval(S.timer); S.timer=0; }
+  }
+
+  // ---- 會話 ----
+  function startSession(){
+    doneEl.classList.remove("show");
+    buildCache(S.tech);
+    S.baseElapsed=0; S.lastPhase=-1;
+    S.session="running"; S.spanStart=performance.now();
+    document.body.classList.remove("idle");
+    hintEl.style.display="none";
+    countEl.classList.remove("hide");
+    if(S.soundOn) ensureAudio();
+    updatePlay(); startDriver();
+  }
+  function pauseSession(){
+    if(S.session!=="running")return;
+    S.baseElapsed+=performance.now()-S.spanStart;
+    S.session="paused"; stopDriver(); updatePlay();
+  }
+  function resumeSession(){
+    if(S.session!=="paused")return;
+    S.session="running"; S.spanStart=performance.now();
+    updatePlay(); startDriver();
+  }
+  function stopToIdle(){
+    stopDriver(); S.session="idle"; S.baseElapsed=0; S.lastPhase=-1;
+    document.body.classList.add("idle");
+    orb.style.transitionDuration="600ms"; orb.style.transform="scale(.5)"; paintOrb(0);
+    phaseEl.textContent=""; countEl.textContent="";
+    hintEl.style.display="grid"; updatePlay();
+    drawCurve(null);
+  }
+  function finish(){
+    var breaths=Math.max(1, Math.round(elapsedSec()/S.cycleDur));
+    var secs=Math.round(elapsedSec());
+    stopDriver(); S.session="finished";
+    recordStats(secs);
+    // 回到靜止
+    orb.style.transitionDuration="1400ms"; orb.style.transform="scale(.5)"; paintOrb(0);
+    phaseEl.textContent=""; countEl.textContent=""; document.body.classList.add("idle");
+    hintEl.style.display="none";
+    doneMsg.innerHTML="你完成了 <b>"+breaths+"</b> 次呼吸，共 "+fmtTime(secs)+"。<br>感覺身體慢下來了嗎？";
+    doneFact.textContent=TECH[S.tech].fact;
+    liveEl.textContent="完成，你做了 "+breaths+" 次呼吸";
+    doneEl.classList.add("show");
+    updatePlay();
+  }
+  function fmtTime(s){
+    if(s<60) return s+" 秒";
+    var m=Math.floor(s/60), r=s%60;
+    return r? (m+" 分 "+r+" 秒") : (m+" 分鐘");
+  }
+
+  function updatePlay(){
+    if(S.session==="running"){ playBtn.textContent="暫停"; playBtn.setAttribute("aria-label","暫停"); resetBtn.classList.remove("hidden"); }
+    else if(S.session==="paused"){ playBtn.textContent="繼續"; playBtn.setAttribute("aria-label","繼續"); resetBtn.classList.remove("hidden"); }
+    else { playBtn.textContent="開始"; playBtn.setAttribute("aria-label","開始"); resetBtn.classList.add("hidden"); }
+  }
+
+  // ---- 統計 ----
+  function todayStr(){
+    var d=new Date(), m=("0"+(d.getMonth()+1)).slice(-2), day=("0"+d.getDate()).slice(-2);
+    return d.getFullYear()+"-"+m+"-"+day;
+  }
+  function dayDiff(a,b){
+    // b - a，以本地日曆日計
+    var pa=a.split("-"), pb=b.split("-");
+    var da=new Date(+pa[0],+pa[1]-1,+pa[2]), db=new Date(+pb[0],+pb[1]-1,+pb[2]);
+    return Math.round((db-da)/86400000);
+  }
+  function recordStats(secs){
+    var sessions=load("sessions",0)+1;
+    var total=load("totalSec",0)+secs;
+    var streak=load("streak",0), last=load("lastDay","");
+    var today=todayStr();
+    if(last===""){ streak=1; }
+    else if(last===today){ /* 同一天不變 */ if(streak<1)streak=1; }
+    else { var gap=dayDiff(last,today); streak = (gap===1)? streak+1 : 1; }
+    save("sessions",sessions); save("totalSec",total); save("streak",streak); save("lastDay",today);
+    renderStats(true);
+  }
+  function rollTo(el,to){
+    if(S.reduced){ el.textContent=to; return; }
+    var from=parseInt(el.textContent,10)||0, t0=performance.now(), dur=600;
+    function step(now){
+      var k=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-k,3);
+      el.textContent=Math.round(from+(to-from)*e);
+      if(k<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+  function renderStats(animate){
+    var mins=Math.round(load("totalSec",0)/60);
+    if(animate){
+      rollTo($("s-sessions"),load("sessions",0));
+      rollTo($("s-minutes"),mins);
+      rollTo($("s-streak"),load("streak",0));
+    } else {
+      $("s-sessions").textContent=load("sessions",0);
+      $("s-minutes").textContent=mins;
+      $("s-streak").textContent=load("streak",0);
+    }
+  }
+
+  // ---- 聲音提示（可選） ----
+  function ensureAudio(){
+    if(S.actx) return;
+    try{ S.actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ S.actx=null; }
+  }
+  function cue(kind){
+    if(!S.soundOn || !S.actx) return;
+    var freq = (kind==="in"||kind==="in2")? 528 : (kind==="out"? 384 : 456);
+    try{
+      var a=S.actx, o=a.createOscillator(), g=a.createGain(), t=a.currentTime;
+      o.type="sine"; o.frequency.value=freq;
+      o.connect(g); g.connect(a.destination);
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.09,t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.7);
+      o.start(t); o.stop(t+0.75);
+    }catch(e){}
+  }
+
+  // ---- 事件 ----
+  function selectTech(tech){
+    S.tech=tech; save("tech",tech);
+    var btns=document.querySelectorAll(".pick");
+    for(var i=0;i<btns.length;i++){
+      btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-tech")===tech ? "true":"false");
+    }
+    captionEl.textContent=TECH[tech].cap;
+    buildCache(tech);
+    if(S.session==="running"||S.session==="paused"){ stopToIdle(); }
+    else { drawCurve(null); }
+  }
+  function selectDur(dur){
+    S.mode=dur;
+    var btns=document.querySelectorAll(".seg button");
+    for(var i=0;i<btns.length;i++){
+      btns[i].setAttribute("aria-pressed", btns[i].getAttribute("data-dur")===dur ? "true":"false");
+    }
+    if(S.session==="running"||S.session==="paused"){ stopToIdle(); }
+  }
+
+  document.querySelector(".picks").addEventListener("click",function(e){
+    var b=e.target.closest(".pick"); if(b) selectTech(b.getAttribute("data-tech"));
+  });
+  document.querySelector(".seg").addEventListener("click",function(e){
+    var b=e.target.closest("button"); if(b) selectDur(b.getAttribute("data-dur"));
+  });
+  playBtn.addEventListener("click",function(){
+    if(S.soundOn) ensureAudio();
+    if(S.session==="running") pauseSession();
+    else if(S.session==="paused") resumeSession();
+    else startSession();
+  });
+  resetBtn.addEventListener("click",stopToIdle);
+  againBtn.addEventListener("click",function(){ doneEl.classList.remove("show"); startSession(); });
+  soundBtn.addEventListener("click",function(){
+    S.soundOn=!S.soundOn; save("sound",S.soundOn);
+    soundBtn.setAttribute("aria-pressed", S.soundOn?"true":"false");
+    soundBtn.textContent = S.soundOn? "🔊 聲音" : "🔈 靜音";
+    soundBtn.setAttribute("aria-label", S.soundOn? "關閉聲音提示":"開啟聲音提示");
+    if(S.soundOn) ensureAudio();
+  });
+
+  // 鍵盤
+  document.addEventListener("keydown",function(e){
+    if(e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if(e.code==="Space"){ e.preventDefault(); playBtn.click(); }
+    else if(e.key==="Escape"){ if(S.session!=="idle"){ doneEl.classList.remove("show"); stopToIdle(); } }
+    else if(e.key>="1"&&e.key<="4"){
+      var order=["box","t478","sigh","coherent"]; selectTech(order[+e.key-1]);
+    }
+  });
+
+  // 分頁隱藏 → 暫停 rAF / 會話
+  document.addEventListener("visibilitychange",function(){
+    if(document.hidden){
+      if(S.session==="running"){ S.hiddenPause=true; pauseSession(); }
+    } else if(S.hiddenPause){
+      S.hiddenPause=false; if(S.session==="paused") resumeSession();
+    }
+  });
+
+  // reduced-motion 動態切換
+  function onMQ(e){
+    S.reduced=e.matches;
+    if(S.session==="running"){ stopDriver(); startDriver(); }
+  }
+  if(mq.addEventListener) mq.addEventListener("change",onMQ);
+  else if(mq.addListener) mq.addListener(onMQ);
+
+  var rz; window.addEventListener("resize",function(){ clearTimeout(rz); rz=setTimeout(sizeCanvas,120); });
+
+  // ---- 初始化 ----
+  selectTech(load("tech","box"));
+  soundBtn.setAttribute("aria-pressed", S.soundOn?"true":"false");
+  soundBtn.textContent = S.soundOn? "🔊 聲音":"🔈 靜音";
+  paintOrb(0); setOrb(0,0);
+  renderStats(false);
+  sizeCanvas();
+})();
+</script>
+</body>
+</html>

@@ -579,7 +579,7 @@
     // 走這條邊
     e.used=true; used++;
     usedStack.push(e.i);
-    inkEdge(e.i);
+    inkEdge(e, cur, id);   // cur=起點、id=終點：依實際方向畫線
     trail.push(id); cur=id;
     $("#btnUndo").disabled=false;
     if(used===edges.length){ win(); return; }
@@ -593,14 +593,34 @@
   }
   function labelOf(id){ return (L.labels&&L.labels[id])?L.labels[id]:("點 "+(ids.indexOf(id)+1)); }
 
-  function inkEdge(i){
-    const el=edgeEls[i]; if(!el) return;
-    if(reduce){ el.ink.style.transition="none"; }
-    el.ink.style.strokeDashoffset = 0;
+  // 依實際走訪方向重繪並可靠重播畫線動畫（修正：後續筆畫不動、方向相反）
+  function inkEdge(e, fromId, toId){
+    const el=edgeEls[e.i]; if(!el) return;
+    const ink=el.ink;
+    // 走訪方向可能與 e.u→e.v 相反；off 取負，弧線才會落在同一側、與底線重合
+    const off = (fromId===e.u) ? e.off : -e.off;
+    ink.setAttribute("d", pathD(fromId, toId, off));
+    const len = ink.getTotalLength(); el.len = len;
+    if(reduce){                        // 減弱動態：直接顯示整條線
+      ink.style.transition="none";
+      ink.style.strokeDasharray="none";
+      ink.style.strokeDashoffset="0";
+      return;
+    }
+    // 每一筆都從頭重播：關動畫→設為隱藏→強制 reflow→開動畫→設為 0
+    ink.style.transition="none";
+    ink.style.strokeDasharray=len;
+    ink.style.strokeDashoffset=len;
+    void ink.getBoundingClientRect();
+    ink.style.transition="stroke-dashoffset .45s var(--e-out)";
+    ink.style.strokeDashoffset="0";
   }
   function unink(i){
     const el=edgeEls[i]; if(!el) return;
-    el.ink.style.strokeDashoffset = el.len;
+    const ink=el.ink;
+    ink.style.transition="none";       // 撤回：立即隱藏，不做反向動畫
+    ink.style.strokeDasharray=el.len;
+    ink.style.strokeDashoffset=el.len;
   }
 
   function bump(id){

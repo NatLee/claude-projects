@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>布隆過濾器 · 一定沒有，可能有</title>
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  :root{
+    --bg:#0a0b16; --panel:rgba(18,20,42,.72); --panel2:#161936;
+    --line:rgba(160,150,220,.16); --line-soft:rgba(160,150,220,.09);
+    --ink:#f1eefb; --dim:#a9a4cf; --faint:#6f6a97;
+    --accent:#64b5f6;       /* 本專案主色：網路趣聞・冷知識 */
+    --accent-d:#3f8fd6;
+    --gold:#f0c674;
+    --warn:#ff6b81;         /* 一定沒有／誤判警示 */
+    --good:#7bd6a2;         /* 相符／正確 */
+    --shadow:0 22px 48px rgba(0,0,0,.5);
+    --e-out:cubic-bezier(.22,1,.36,1);
+    --e-pop:cubic-bezier(.2,1.5,.4,1);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 560px at 84% -6%, rgba(100,181,246,.15), transparent 60%),
+      radial-gradient(860px 600px at 4% 10%, rgba(240,198,116,.07), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; line-height:1.6; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.55;
+    background-image:radial-gradient(rgba(241,238,251,.045) 1px, transparent 1.6px);
+    background-size:34px 34px;
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.75), transparent 74%);
+            mask-image:linear-gradient(180deg, rgba(0,0,0,.75), transparent 74%);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:8px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .home{
+    position:fixed; top:15px; left:16px; z-index:30;
+    font-size:13px; color:var(--dim); text-decoration:none;
+    background:rgba(14,16,38,.72); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; backdrop-filter:blur(8px);
+    transition:color .2s, border-color .2s, transform .2s;
+  }
+  .home:hover{color:var(--ink); border-color:var(--accent); transform:translateX(-2px)}
+
+  .wrap{position:relative; z-index:1; max-width:1000px; margin:0 auto; padding:0 22px 72px}
+
+  .rise{transition:opacity .7s ease var(--rd,0s), transform .7s var(--e-out) var(--rd,0s)}
+  body.preload .rise{opacity:0; transform:translateY(16px)}
+
+  header{text-align:center; padding:74px 0 22px}
+  .kicker{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:var(--serif); font-size:11.5px; color:var(--accent);
+    letter-spacing:.32em; text-indent:.32em;
+    border:1px solid rgba(100,181,246,.36); border-radius:999px; padding:6px 15px 6px 19px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; margin-top:18px;
+    font-size:clamp(32px,6.4vw,54px); letter-spacing:.12em; text-indent:.12em;
+    background:linear-gradient(180deg,#fff 10%,#bcd9f7 96%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .lede{color:var(--dim); font-size:15px; margin-top:14px; letter-spacing:.02em; max-width:620px; margin-left:auto; margin-right:auto; line-height:1.85}
+  .lede b{color:var(--ink); font-weight:600}
+
+  section{padding:30px 0}
+  .sec-head{display:flex; align-items:center; gap:14px; margin:0 2px 16px}
+  .sec-head .tag{
+    font-family:var(--serif); font-size:11.5px; letter-spacing:.22em; color:var(--gold); white-space:nowrap;
+  }
+  .sec-head h2{
+    font-family:var(--serif); font-weight:700; letter-spacing:.04em;
+    font-size:clamp(19px,3.4vw,25px);
+    background:linear-gradient(180deg,#fff 20%,#bcd9f7 98%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .sec-head .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+  p.body{font-size:14.5px; color:var(--dim); line-height:1.85; max-width:800px; margin:0 0 4px}
+  p.body b{color:var(--ink)}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    box-shadow:var(--shadow); backdrop-filter:blur(10px);
+  }
+
+  /* ---------- 實驗台 ---------- */
+  .stage{display:grid; grid-template-columns:1.28fr .72fr; gap:20px; align-items:start}
+  @media (max-width:820px){ .stage{grid-template-columns:1fr} }
+
+  .benchcard{padding:20px 20px 22px}
+  .bench-controls{display:flex; flex-wrap:wrap; gap:16px 26px; align-items:end; padding-bottom:16px; border-bottom:1px solid var(--line-soft)}
+  .param{display:flex; flex-direction:column; gap:6px; min-width:150px; flex:1}
+  .param label{font-size:12px; color:var(--faint); letter-spacing:.06em}
+  .param .prow{display:flex; align-items:center; gap:10px}
+  .param input[type=range]{
+    flex:1; -webkit-appearance:none; appearance:none; height:5px; border-radius:999px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-d)); outline:none; cursor:pointer;
+  }
+  .param input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:#fff; border:3px solid var(--accent-d); cursor:pointer; transition:transform .15s var(--e-pop);
+  }
+  .param input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  .param input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid var(--accent-d); cursor:pointer;
+  }
+  .param output{font-family:var(--serif); font-weight:700; color:var(--gold); font-size:15px; min-width:2.4em; text-align:right; font-variant-numeric:tabular-nums}
+  .btnrow{display:flex; gap:8px; flex-wrap:wrap}
+
+  .btn{font-family:inherit; font-size:13.5px; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#1c2040,#151732); border:1px solid var(--line);
+    padding:9px 15px; border-radius:11px; transition:transform .15s var(--e-pop), border-color .2s, background .2s, box-shadow .2s; white-space:nowrap}
+  .btn:hover{border-color:var(--accent); transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn.ghost{background:transparent; color:var(--dim)}
+  .btn.primary{background:linear-gradient(180deg,#8ec8fb,var(--accent-d)); border:none; color:#0c1a2c; font-weight:700}
+  .btn.primary:hover{box-shadow:0 6px 18px rgba(100,181,246,.3)}
+  .btn:disabled{opacity:.42; cursor:default; transform:none; box-shadow:none}
+
+  .bench-io{display:flex; flex-wrap:wrap; gap:12px; margin-top:16px}
+  .io-group{display:flex; gap:8px; flex:1; min-width:230px}
+  .io-group input[type=text]{
+    flex:1; min-width:0; font-family:inherit; font-size:14px; color:var(--ink);
+    background:#12142a; border:1px solid var(--line); border-radius:11px; padding:10px 13px;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .io-group input[type=text]::placeholder{color:var(--faint)}
+  .io-group input[type=text]:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(100,181,246,.14)}
+  .io-group input.shake{animation:shake .32s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+  .hash-console{
+    margin-top:14px; min-height:20px; padding:11px 14px; border-radius:12px;
+    background:rgba(255,255,255,.025); border:1px solid var(--line-soft);
+    font-size:12.5px; color:var(--faint); display:none;
+  }
+  .hash-console.show{display:block}
+  .hc-word{color:var(--ink); font-weight:600; font-family:var(--serif); font-size:14px; margin-bottom:3px}
+  .hc-formula{font-variant-numeric:tabular-nums; margin-bottom:6px}
+  .hc-steps{list-style:none; display:flex; flex-wrap:wrap; gap:6px 14px}
+  .hc-steps li{font-variant-numeric:tabular-nums; opacity:0; transform:translateY(4px); transition:opacity .3s ease, transform .3s var(--e-out)}
+  .hc-steps li.in{opacity:1; transform:none}
+  .hc-steps b{color:var(--gold)}
+
+  .grid-stage{position:relative; margin-top:16px; padding-top:30px}
+  .beam-source{position:absolute; top:0; left:50%; transform:translateX(-50%); width:9px; height:9px; border-radius:50%;
+    background:var(--gold); box-shadow:0 0 12px rgba(240,198,116,.85)}
+  .beam-svg{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:2}
+  #beamGroup{filter:drop-shadow(0 0 6px rgba(100,181,246,.65))}
+  .beam{fill:none; stroke:url(#beamGrad); stroke-width:2.2; stroke-linecap:round; opacity:.95}
+  .beam.beam-miss{stroke:var(--warn)}
+  .beam.beam-hit{stroke:var(--good)}
+
+  .bitgrid{position:relative; z-index:1; display:grid; grid-template-columns:repeat(auto-fill,minmax(13px,1fr)); gap:3px}
+  .bit{aspect-ratio:1; border-radius:4px; background:#181a34; border:1px solid var(--line-soft);
+    transition:background .35s ease, border-color .35s ease, transform .22s var(--e-pop), box-shadow .3s ease}
+  .bit.on{background:linear-gradient(155deg,#8fd0ff,var(--accent-d)); border-color:#a9def9}
+  .bit.pulse{transform:scale(1.32); box-shadow:0 0 13px rgba(100,181,246,.8); z-index:3}
+  .bit.check-miss{border-color:var(--warn); box-shadow:0 0 12px rgba(255,107,129,.7)}
+  .bit.check-miss.pulse{background:#3a1f24}
+  .bit.check-hit.pulse{box-shadow:0 0 13px rgba(123,214,162,.75)}
+
+  .result{margin-top:16px; min-height:22px; font-size:14px; color:var(--dim); text-align:center; line-height:1.7;
+    padding:4px 6px; border-radius:10px; transition:box-shadow .3s ease}
+  .result .v-yes{color:var(--gold)} .result .v-no{color:var(--warn)}
+  .result.flash{animation:flashWarn .7s ease}
+  @keyframes flashWarn{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 5px rgba(255,107,129,.32)}}
+
+  .formula{font-family:var(--sans); background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; font-size:13.5px; color:var(--ink); text-align:center; margin:12px 0; letter-spacing:.02em; font-variant-numeric:tabular-nums}
+  .formula b{color:var(--gold)}
+
+  /* ---------- 右欄 ---------- */
+  .side{display:flex; flex-direction:column; gap:16px}
+  .panel{padding:17px 18px}
+  .panel h3{font-family:var(--serif); font-size:14.5px; font-weight:700; letter-spacing:.05em; margin-bottom:10px; display:flex; align-items:center; gap:8px}
+  .panel h3 .dot{width:8px; height:8px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent)}
+  .panel .lead{font-size:12.5px; color:var(--faint); margin-bottom:11px; line-height:1.6}
+
+  .stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 10px}
+  .stat{display:flex; flex-direction:column; gap:2px}
+  .stat b{font-family:var(--serif); font-size:22px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.2}
+  .stat span{font-size:11px; color:var(--faint); letter-spacing:.03em}
+
+  .fp-compare{margin-top:13px; display:none}
+  .fp-compare.show{display:block}
+  .fp-row{display:flex; justify-content:space-between; align-items:baseline; font-size:13px; color:var(--dim); padding:6px 0; border-bottom:1px solid var(--line-soft)}
+  .fp-row b{font-family:var(--serif); font-size:16px; color:var(--ink); font-variant-numeric:tabular-nums}
+  .fp-note{font-size:12px; color:var(--faint); margin-top:9px; line-height:1.6}
+  .fp-note.ok{color:var(--good)}
+
+  .aha{margin-top:12px; display:none; font-size:13px; line-height:1.7; padding:12px 13px; border-radius:12px;
+    background:rgba(255,107,129,.07); border:1px solid rgba(255,107,129,.32)}
+  .aha.show{display:block}
+  .aha b{color:var(--warn)}
+  .aha .aha-note{color:var(--dim); margin-top:6px}
+  .aha.empty{background:rgba(255,255,255,.03); border-color:var(--line)}
+  .aha.empty b{color:var(--gold)}
+
+  /* ---------- 故事／應用卡片 ---------- */
+  .cards2{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+  @media (max-width:680px){ .cards2{grid-template-columns:1fr} }
+  .scard{position:relative; overflow:hidden; padding:18px 19px 16px; border-radius:16px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px)}
+  .scard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--accent),var(--gold))}
+  .scard .n{font-family:var(--serif); font-size:11.5px; color:var(--accent); letter-spacing:.24em}
+  .scard h3{font-family:var(--serif); font-size:16.5px; font-weight:700; margin:6px 0 9px; letter-spacing:.02em}
+  .scard p{font-size:13.5px; color:var(--dim); line-height:1.8}
+  .scard p b{color:var(--ink); font-weight:600}
+
+  .cases{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px}
+  .case{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow); backdrop-filter:blur(10px);
+    transition:border-color .22s ease, box-shadow .22s ease, transform .22s var(--e-out)}
+  .case:hover{border-color:rgba(100,181,246,.4); transform:translateY(-2px); box-shadow:0 3px 10px rgba(0,0,0,.3),0 18px 40px rgba(0,0,0,.35)}
+  .case .ic{font-size:23px; display:inline-block; transition:transform .3s var(--e-out)}
+  .case:hover .ic{transform:translateY(-2px) scale(1.08) rotate(-3deg)}
+  .case h3{font-family:var(--serif); font-size:16px; margin:8px 0 7px}
+  .case p{font-size:13px; color:var(--dim); line-height:1.75}
+  .case p b{color:var(--ink)}
+  .note{font-size:12.5px; color:var(--faint); margin-top:14px; line-height:1.8; max-width:800px}
+  .note b{color:var(--dim)}
+
+  footer{margin-top:38px; text-align:center; color:var(--faint); font-size:12px; letter-spacing:.02em}
+
+  @media (max-width:560px){
+    header{padding:60px 0 16px}
+    .benchcard{padding:16px 14px 18px}
+    .stat-grid{grid-template-columns:1fr 1fr; gap:10px 8px}
+    .stat b{font-size:19px}
+    .panel{padding:15px 15px}
+    .param{min-width:120px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .rise{transition:none!important} body.preload .rise{opacity:1;transform:none}
+    .bit,.btn,.param input[type=range]::-webkit-slider-thumb,.case,.case .ic{transition:none!important}
+    .result.flash{animation:none!important}
+    *,*::before,*::after{animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; transition-delay:0s!important}
+  }
+  html.reduced *,html.reduced *::before,html.reduced *::after{
+    animation-duration:.001ms!important; animation-iteration-count:1!important; transition-duration:.001ms!important; transition-delay:0s!important;
+  }
+  html.reduced .rise{transition:none!important} html.reduced body.preload .rise{opacity:1;transform:none}
+  html.reduced .result.flash{animation:none!important}
+</style>
+</head>
+<body class="preload">
+<a class="home" href="../index.html" aria-label="回到首頁">← 回首頁</a>
+
+<div class="wrap">
+  <header>
+    <span class="kicker rise">每日小專案 · 網路趣聞・冷知識　/　2026.07.19</span>
+    <h1 class="rise" style="--rd:.06s">布隆過濾器</h1>
+    <p class="lede rise" style="--rd:.12s">一個只用幾十個位元、就能幫瀏覽器、資料庫、CDN 擋下無數次不必要查詢的陣列——代價是，<b>它偶爾會看走眼</b>。加幾個字詞，再親手抓一次它的誤判，你就懂了。</p>
+  </header>
+
+  <section aria-label="布隆過濾器實驗台">
+    <div class="sec-head rise" style="--rd:.16s"><span class="tag">01</span><h2>加入幾個字詞，看 k 個位元怎麼被點亮</h2><span class="rule"></span></div>
+    <p class="body rise" style="--rd:.18s">布隆過濾器的核心只有一個位元陣列。加入時，<b>k 個雜湊函數</b>算出 k 個位置，把它們全部點成 1；查詢時一樣算出 k 個位置去檢查。試著放大或縮小陣列（m）、增減雜湊函數（k），看誤判率怎麼跟著變。</p>
+
+    <div class="stage" style="margin-top:16px">
+      <div class="card benchcard rise" style="--rd:.22s">
+        <div class="bench-controls">
+          <div class="param">
+            <label for="mRange">位元數 m（陣列大小）</label>
+            <div class="prow"><input type="range" id="mRange" min="16" max="200" step="1" value="96" aria-describedby="mOut"><output id="mOut" for="mRange">96</output></div>
+          </div>
+          <div class="param">
+            <label for="kRange">雜湊函數個數 k</label>
+            <div class="prow"><input type="range" id="kRange" min="1" max="10" step="1" value="4" aria-describedby="kOut"><output id="kOut" for="kRange">4</output></div>
+          </div>
+          <div class="btnrow">
+            <button class="btn" id="btnSample" aria-label="灌入範例網址">灌入範例網址</button>
+            <button class="btn ghost" id="btnResetFilter" aria-label="清空重來">清空重來</button>
+          </div>
+        </div>
+
+        <div class="bench-io">
+          <div class="io-group">
+            <input type="text" id="addInput" placeholder="輸入字詞，例如 example.com" aria-label="輸入要加入的字詞" maxlength="40">
+            <button class="btn primary" id="btnAdd">加入</button>
+          </div>
+          <div class="io-group">
+            <input type="text" id="queryInput" placeholder="輸入字詞來查詢" aria-label="輸入要查詢的字詞" maxlength="40">
+            <button class="btn" id="btnQuery">查詢</button>
+          </div>
+        </div>
+
+        <div class="hash-console" id="hashConsole" aria-hidden="true">
+          <div class="hc-word" id="hcWord">—</div>
+          <div class="hc-formula" id="hcFormula">h1(x) = —　h2(x) = —</div>
+          <ol class="hc-steps" id="hcSteps"></ol>
+        </div>
+
+        <div class="grid-stage" id="gridStage">
+          <div class="beam-source" id="beamSource" aria-hidden="true"></div>
+          <svg class="beam-svg" id="beamSvg" aria-hidden="true">
+            <defs>
+              <!-- userSpaceOnUse＋真實座標：不依賴各線段自己的 bbox，任意方向的線都畫得出來 -->
+              <linearGradient id="beamGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="240">
+                <stop offset="0" stop-color="#f0c674"/>
+                <stop offset="1" stop-color="#64b5f6"/>
+              </linearGradient>
+            </defs>
+            <g id="beamGroup"></g>
+          </svg>
+          <div class="bitgrid" id="bitGrid" role="img" aria-label="位元陣列"></div>
+        </div>
+
+        <p class="result" id="resultLine" aria-live="polite">加入幾個字詞，再試著查詢看看。</p>
+        <div class="formula">誤判率 ≈ <b>(1 − e<sup>−kn/m</sup>)<sup>k</sup></b>　　m＝陣列大小、k＝雜湊函數個數、n＝已加入元素數</div>
+      </div>
+
+      <div class="side">
+        <div class="card panel rise" style="--rd:.26s">
+          <h3><span class="dot"></span>即時統計</h3>
+          <div class="stat-grid">
+            <div class="stat"><b id="statN">0</b><span>已加入 n</span></div>
+            <div class="stat"><b id="statLoad">0%</b><span>bit 載入率</span></div>
+            <div class="stat"><b id="statFp">—</b><span>理論誤判率</span></div>
+            <div class="stat"><b id="statKopt">—</b><span>建議最佳 k</span></div>
+          </div>
+        </div>
+
+        <div class="card panel rise" style="--rd:.30s">
+          <h3><span class="dot"></span>實測 vs. 理論</h3>
+          <p class="lead">真的跑 <b id="trialsLabel">30,000</b> 個從沒加過的隨機字串，統計它們被誤判成「可能有」的比例。</p>
+          <button class="btn primary" id="btnEmpirical" aria-label="用大量隨機字串實測誤判率">🎲 一鍵實測誤判率</button>
+          <div class="fp-compare" id="fpCompare" aria-live="polite">
+            <div class="fp-row"><span>理論值</span><b id="fpTheory">—</b></div>
+            <div class="fp-row"><span>實測值</span><b id="fpEmpirical">—</b></div>
+            <p class="fp-note" id="fpNote"></p>
+          </div>
+        </div>
+
+        <div class="card panel rise" style="--rd:.34s">
+          <h3><span class="dot"></span>親手抓一個誤判</h3>
+          <p class="lead">找一個<b>從沒加入過</b>的字，卻被判定成「可能有」。</p>
+          <button class="btn primary" id="btnFindFP" aria-label="尋找一個誤判">🔍 尋找一個誤判</button>
+          <div class="aha" id="ahaBox" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-label="原理與故事">
+    <div class="sec-head rise" style="--rd:.2s"><span class="tag">02</span><h2>為什麼「不會漏報」卻「會騙人」</h2><span class="rule"></span></div>
+    <div class="cards2">
+      <article class="scard rise" style="--rd:.06s">
+        <div class="n">壹</div>
+        <h3>1970 年，一個省記憶體的點子</h3>
+        <p>貝爾實驗室的 <b>Burton Howard Bloom</b> 在 1970 年發表〈Space/Time Trade-offs in Hash Coding with Allowable Errors〉，想解決一個實際問題：一部 50 萬字的英文字典，九成的字用簡單規則就能斷字，剩下一成得查表——但表大到記憶體放不下。他發現，只要<b>願意接受極低的錯誤率</b>，一個遠比原始資料小的位元陣列就能做到，把不必要的磁碟存取砍掉八成以上。這篇論文後來成了電腦科學最常被實作的資料結構之一。</p>
+      </article>
+      <article class="scard rise" style="--rd:.12s">
+        <div class="n">貳</div>
+        <h3>位元只會被點亮，從不熄滅</h3>
+        <p>加入一個字，就用 k 個雜湊函數算出 k 個位置，把陣列裡對應的位元<b>全部設成 1</b>。查詢時算出同樣的 k 個位置：<b>只要有一個是 0，就能百分之百確定「一定沒有」</b>——因為真的加過的話，那個位元早該是 1。反過來，<b>全部是 1 不代表真的加過</b>，那些 1 可能是別的字詞湊巧疊上去的。位元「只增不減」，正是「不漏報」的祕密，也是「會騙你」的原因。</p>
+      </article>
+      <article class="scard rise" style="--rd:.18s">
+        <div class="n">參</div>
+        <h3>選對 k，數字會很漂亮</h3>
+        <p>陣列大小 m、雜湊函數個數 k、已加入元素數 n，三者共同決定誤判率。固定 m、n 時，誤判率在 <b>k = (m/n)·ln2</b> 時最小。把最佳 k 代回公式，會收斂成一個乾淨的常數：只要能接受 <b>1% 的誤判率</b>，平均每個元素只要約 <b>9.6 個位元</b>——不管這個元素是一個字，還是一整個網址，都一樣。想把誤判率再砍到十分之一，每個元素只要多加約 4.8 bits。</p>
+      </article>
+      <article class="scard rise" style="--rd:.24s">
+        <div class="n">肆</div>
+        <h3>用了就回不了頭：不能刪除</h3>
+        <p>布隆過濾器的加入與查詢都是<b>固定的 O(k)</b>，跟裡面已經塞了多少元素無關；它也完全不存實際字串，只存位元，空間效率遠勝雜湊表。但它有個壞脾氣：<b>不能刪除</b>。清空某個位元，可能連帶讓共用這個位元的其他元素「憑空消失」，製造出原本不該有的漏報。真要刪除，得換成 <b>counting Bloom filter</b>（Fan、Cao、Almeida、Broder，2000）——把每個位元換成一個小計數器，加入 +1、刪除 −1，代價是多花 3～4 倍空間。</p>
+      </article>
+    </div>
+  </section>
+
+  <section aria-label="真實世界的應用">
+    <div class="sec-head rise" style="--rd:.24s"><span class="tag">03</span><h2>它真的被用在你每天打開的東西上</h2><span class="rule"></span></div>
+    <p class="body rise" style="--rd:.26s">「快速說不、偶爾說錯」聽起來像個缺點，但只要誤判的代價是「多做一次確認」而不是「出大錯」，這筆交易就非常划算。</p>
+    <div class="cases" style="margin-top:6px">
+      <div class="case rise" style="--rd:.3s"><div class="ic">🌐</div><h3>瀏覽器的第一道防線</h3>
+        <p>Google Chrome 曾把惡意網址清單做成本機端的布隆過濾器：多數安全網址「一定沒有」，完全不用連網；只有「可能有」時才向伺服器要完整清單做二次確認。</p></div>
+      <div class="case rise" style="--rd:.34s"><div class="ic">🗄️</div><h3>資料庫少走的冤枉路</h3>
+        <p>Cassandra、HBase、LevelDB、RocksDB、Google Bigtable 這類 LSM-tree 資料庫，查一個 key 前先問每個資料檔的布隆過濾器「這裡面有沒有」——「一定沒有」就直接跳過，省下一次磁碟讀取。</p></div>
+      <div class="case rise" style="--rd:.38s"><div class="ic">📡</div><h3>CDN 不幫你囤積只看一次的東西</h3>
+        <p>Akamai 發現快取伺服器裡近四分之三的物件都只被要求過一次。他們用布隆過濾器記住「這物件是否已被要求過」，只有<b>第二次</b>要求才真的寫入磁碟快取，省下大量無謂寫入。</p></div>
+    </div>
+    <p class="note rise" style="--rd:.42s">延伸應用：早期 Bitcoin 輕錢包用它加速同步（後因隱私疑慮淘汰）、Squid 代理伺服器用它做快取摘要、Firefox 用它處理憑證撤銷清單。</p>
+  </section>
+
+  <footer class="rise" style="--rd:.46s">資料來源：Bloom (1970) Communications of the ACM、Wikipedia、Kirsch &amp; Mitzenmacher (2006)</footer>
+</div>
+
+<script id="core">
+"use strict";
+/* ===== 核心邏輯：與 DOM 無關，可獨立在 Node 測試 ===== */
+
+// FNV-1a（32-bit，seed 可換成不同的 offset basis，讓同一個演算法產生兩支「獨立」的雜湊）
+function fnv1a(str, seed){
+  let h = (seed === undefined ? 0x811c9dc5 : seed) >>> 0;
+  for(let i=0;i<str.length;i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+const FNV_SEED_H1 = 0x811c9dc5;   // 標準 FNV-1a offset basis
+const FNV_SEED_H2 = 0x9e3779b9;   // 另一組 32-bit 種子（黃金比例常數），讓 h2 是「同演算法、不同起點」的獨立雜湊
+function gcd(a, b){ while(b){ const t = a % b; a = b; b = t; } return a; }
+
+function BloomFilter(m, k){
+  this.m = Math.max(1, m|0);
+  this.k = Math.max(1, k|0);
+  this.bits = new Uint8Array(this.m);
+  this.n = 0;
+}
+// 雙重雜湊（Kirsch & Mitzenmacher, 2006）：g_i(x) = h1(x) + i·h2(x) mod m
+BloomFilter.prototype.compute = function(str){
+  const s = String(str);
+  const h1 = fnv1a(s, FNV_SEED_H1) % this.m;
+  let h2 = fnv1a(s, FNV_SEED_H2) % this.m;
+  if(h2 === 0) h2 = 1; // 避免步長為 0，讓 k 次都落在同一格
+  // 強制 h2 與 m 互質：否則 (h1+i·h2) mod m 這條等差數列會被鎖死在 m 的一個因數子群裡，
+  // 不同元素的位元會更容易互相重疊，讓實際誤判率明顯高於理論公式（尤其 m 有很多小因數時）。
+  if(this.m > 2){
+    let guard = 0;
+    while(gcd(h2, this.m) !== 1 && guard < this.m){
+      h2 = (h2 % (this.m - 1)) + 1;
+      guard++;
+    }
+  }
+  const idx = new Array(this.k);
+  for(let i=0;i<this.k;i++){
+    idx[i] = (h1 + i*h2) % this.m;
+  }
+  return { h1, h2, idx };
+};
+BloomFilter.prototype.add = function(str){
+  const c = this.compute(str);
+  for(let i=0;i<c.idx.length;i++) this.bits[c.idx[i]] = 1;
+  this.n++;
+  return c;
+};
+// 純查詢，不改動任何狀態
+BloomFilter.prototype.has = function(str){
+  const c = this.compute(str);
+  for(let i=0;i<c.idx.length;i++){
+    if(!this.bits[c.idx[i]]) return { result:false, idx:c.idx, missAt:c.idx[i], missStep:i };
+  }
+  return { result:true, idx:c.idx, missAt:-1, missStep:-1 };
+};
+BloomFilter.prototype.onesCount = function(){
+  let ones = 0;
+  for(let i=0;i<this.m;i++) if(this.bits[i]) ones++;
+  return ones;
+};
+BloomFilter.prototype.loadFactor = function(){
+  return this.m ? this.onesCount()/this.m : 0;
+};
+
+// 理論誤判率：(1 - e^(-kn/m))^k
+function theoreticalFP(m, k, n){
+  if(m<=0 || k<=0 || n<=0) return 0;
+  return Math.pow(1 - Math.exp(-k*n/m), k);
+}
+// 最佳雜湊函數個數：k* = (m/n)·ln2
+function optimalK(m, n){
+  if(n<=0) return 1;
+  return Math.max(1, Math.round((m/n) * Math.LN2));
+}
+// 給定目標誤判率 ε，最佳配置下每個元素所需 bits：-ln(ε)/(ln2)^2
+function bitsPerElement(eps){
+  return -Math.log(eps) / (Math.LN2*Math.LN2);
+}
+
+if(typeof module !== "undefined" && module.exports){
+  module.exports = { fnv1a, gcd, BloomFilter, theoreticalFP, optimalK, bitsPerElement };
+}
+</script>
+
+<script>
+"use strict";
+(function(){
+  const $ = s => document.querySelector(s);
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let reduce = RM.matches;
+  document.documentElement.classList.toggle("reduced", reduce);
+  RM.addEventListener("change", e => {
+    reduce = e.matches;
+    document.documentElement.classList.toggle("reduced", reduce);
+  });
+
+  // ── localStorage（前綴 bloom.） ──
+  const LSKEY_MK = "bloom.mk";
+  function saveParams(){
+    try{ localStorage.setItem(LSKEY_MK, JSON.stringify({ m: bf.m, k: bf.k })); }catch(e){}
+  }
+  function loadParams(){
+    try{
+      const raw = localStorage.getItem(LSKEY_MK);
+      if(!raw) return null;
+      const o = JSON.parse(raw);
+      if(o && Number.isFinite(o.m) && Number.isFinite(o.k)) return o;
+    }catch(e){}
+    return null;
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+  }
+  function wait(ms){ return new Promise(res => reduce ? res() : setTimeout(res, ms)); }
+
+  const SAMPLE_WORDS = ["example.com","test-site.org","hello.tw","openlib.io","github.com","wikipedia.org",
+    "cloudmail.net","daily-news.tw","piggybank.app","weatherly.io","bookclub.tw","greenmarket.co"];
+
+  // ── DOM refs ──
+  const mRange=$("#mRange"), kRange=$("#kRange"), mOut=$("#mOut"), kOut=$("#kOut");
+  const addInput=$("#addInput"), queryInput=$("#queryInput"), btnAdd=$("#btnAdd"), btnQuery=$("#btnQuery");
+  const btnSample=$("#btnSample"), btnResetFilter=$("#btnResetFilter");
+  const hashConsole=$("#hashConsole"), hcWord=$("#hcWord"), hcFormula=$("#hcFormula"), hcSteps=$("#hcSteps");
+  const gridStage=$("#gridStage"), beamSource=$("#beamSource"), beamSvg=$("#beamSvg"), beamGroup=$("#beamGroup"), bitGrid=$("#bitGrid");
+  const resultLine=$("#resultLine");
+  const statN=$("#statN"), statLoad=$("#statLoad"), statFp=$("#statFp"), statKopt=$("#statKopt");
+  const btnEmpirical=$("#btnEmpirical"), fpCompare=$("#fpCompare"), fpTheory=$("#fpTheory"), fpEmpirical=$("#fpEmpirical"), fpNote=$("#fpNote");
+  const btnFindFP=$("#btnFindFP"), ahaBox=$("#ahaBox");
+
+  let bf, addedSet, bitCells, busy = false;
+
+  // ── 建 / 重建位元格 ──
+  function buildGrid(){
+    bitGrid.innerHTML = "";
+    bitCells = new Array(bf.m);
+    for(let i=0;i<bf.m;i++){
+      const d = document.createElement("div");
+      d.className = "bit";
+      d.dataset.i = i;
+      bitGrid.appendChild(d);
+      bitCells[i] = d;
+    }
+    bitGrid.setAttribute("aria-label", "位元陣列，共 " + bf.m + " 格，目前 " + bf.onesCount() + " 格為 1");
+  }
+  function refreshGridFromState(pulse){
+    for(let i=0;i<bf.m;i++){
+      const on = bf.bits[i]===1;
+      bitCells[i].classList.toggle("on", on);
+      if(pulse && on) bitCells[i].classList.add("pulse");
+    }
+    if(pulse){
+      setTimeout(()=>{ bitCells.forEach(c=>c.classList.remove("pulse")); }, reduce?0:280);
+    }
+    bitGrid.setAttribute("aria-label", "位元陣列，共 " + bf.m + " 格，目前 " + bf.onesCount() + " 格為 1");
+  }
+
+  function resetFilter(m, k){
+    bf = new BloomFilter(m, k);
+    addedSet = new Set();
+    buildGrid();
+    clearBeams();
+    updateStats();
+    fpCompare.classList.remove("show");
+    ahaBox.classList.remove("show","empty");
+    hashConsole.classList.remove("show");
+    resultLine.classList.remove("flash");
+    resultLine.textContent = "已重置。加入幾個字詞，再試著查詢看看。";
+    saveParams();
+  }
+
+  // ── 光束（連線） ──
+  function clearBeams(){ beamGroup.innerHTML = ""; }
+  function drawBeam(targetEl, cls){
+    const stageRect = gridStage.getBoundingClientRect();
+    beamSvg.setAttribute("viewBox", "0 0 " + stageRect.width + " " + stageRect.height);
+    const srcRect = beamSource.getBoundingClientRect();
+    const tgtRect = targetEl.getBoundingClientRect();
+    const x1 = srcRect.left + srcRect.width/2 - stageRect.left;
+    const y1 = srcRect.top + srcRect.height/2 - stageRect.top;
+    const x2 = tgtRect.left + tgtRect.width/2 - stageRect.left;
+    const y2 = tgtRect.top + tgtRect.height/2 - stageRect.top;
+    const path = document.createElementNS(SVGNS,"path");
+    path.setAttribute("d", "M"+x1+" "+y1+" L"+x2+" "+y2);
+    path.setAttribute("class", "beam" + (cls?(" "+cls):""));
+    beamGroup.appendChild(path);
+    const len = path.getTotalLength() || 1;
+    path.style.transition = "none";
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.style.opacity = "1";
+    // 強制 reflow，下一影格才開始畫線（可靠重播畫線動畫）
+    void path.getBoundingClientRect();
+    requestAnimationFrame(()=>{
+      path.style.transition = "stroke-dashoffset .4s var(--e-out), opacity .55s ease";
+      path.style.strokeDashoffset = "0";
+    });
+    return path;
+  }
+  function fadeBeam(path, delay){
+    setTimeout(()=>{
+      if(path && path.style) path.style.opacity = "0";
+      setTimeout(()=>{ if(path && path.parentNode) path.remove(); }, 650);
+    }, delay);
+  }
+
+  // ── 雜湊主控台 ──
+  function consoleReset(word, h1, h2){
+    hashConsole.classList.add("show");
+    hcWord.textContent = word;
+    hcFormula.textContent = "h1(x) = " + h1 + "　h2(x) = " + h2;
+    hcSteps.innerHTML = "";
+  }
+  function consoleStep(i, idx){
+    const li = document.createElement("li");
+    li.innerHTML = "g<sub>"+i+"</sub> = (h1 + "+i+"·h2) mod "+bf.m+" = <b>"+idx+"</b>";
+    hcSteps.appendChild(li);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>li.classList.add("in")));
+  }
+
+  // ── 統計 ──
+  function animateNumber(el, from, to, fmt){
+    if(el.__raf){ cancelAnimationFrame(el.__raf); el.__raf = 0; }
+    if(reduce || from===to){ el.textContent = fmt(to); return; }
+    const t0 = performance.now(), dur = 480;
+    function frame(t){
+      const p = Math.min((t-t0)/dur,1), e = 1-Math.pow(1-p,3);
+      el.textContent = fmt(from + (to-from)*e);
+      if(p<1) el.__raf = requestAnimationFrame(frame);
+      else { el.__raf = 0; el.textContent = fmt(to); }
+    }
+    el.__raf = requestAnimationFrame(frame);
+  }
+  let prevN = 0;
+  function updateStats(){
+    const n = bf.n;
+    animateNumber(statN, prevN, n, v=>Math.round(v).toLocaleString("en-US"));
+    prevN = n;
+    statLoad.textContent = (bf.loadFactor()*100).toFixed(1) + "%";
+    if(n>0){
+      statFp.textContent = (theoreticalFP(bf.m, bf.k, n)*100).toFixed(2) + "%";
+      statKopt.textContent = optimalK(bf.m, n);
+    } else {
+      statFp.textContent = "—";
+      statKopt.textContent = "—";
+    }
+  }
+
+  // ── 加入 ──
+  async function doAdd(){
+    if(busy) return;
+    const raw = addInput.value.trim();
+    if(!raw){ addInput.classList.remove("shake"); void addInput.offsetWidth; addInput.classList.add("shake"); addInput.focus(); return; }
+    busy = true; setBtnsDisabled(true);
+    clearBeams();
+    const dup = addedSet.has(raw);
+    const c = bf.compute(raw);
+    consoleReset(raw, c.h1, c.h2);
+    let already = 0;
+    for(let i=0;i<c.idx.length;i++){
+      const cell = bitCells[c.idx[i]];
+      const wasOn = bf.bits[c.idx[i]]===1;
+      if(wasOn) already++;
+      consoleStep(i, c.idx[i]);
+      const beam = drawBeam(cell, wasOn ? "beam-hit" : "");
+      cell.classList.add("pulse");
+      bf.bits[c.idx[i]] = 1;
+      cell.classList.add("on");
+      await wait(200);
+      cell.classList.remove("pulse");
+      fadeBeam(beam, 1300);
+    }
+    if(!dup){ bf.n++; addedSet.add(raw); }
+    bitGrid.setAttribute("aria-label", "位元陣列，共 " + bf.m + " 格，目前 " + bf.onesCount() + " 格為 1");
+    updateStats();
+    const w = escapeHtml(raw);
+    if(dup){
+      resultLine.innerHTML = "「<b>"+w+"</b>」<b>已經加過了</b>——位元陣列不會因為重複加入而改變，布隆過濾器本來就不記錄「加了幾次」。";
+    } else {
+      resultLine.innerHTML = "已加入「<b>"+w+"</b>」，點亮了 "+c.idx.length+" 個位元"+(already?"（其中 "+already+" 個原本就是 1，是跟別的字共用到的）":"")+"。";
+    }
+    addInput.value = "";
+    busy = false; setBtnsDisabled(false);
+  }
+
+  // ── 查詢 ──
+  async function doQuery(){
+    if(busy) return;
+    const raw = queryInput.value.trim();
+    if(!raw){ queryInput.classList.remove("shake"); void queryInput.offsetWidth; queryInput.classList.add("shake"); queryInput.focus(); return; }
+    busy = true; setBtnsDisabled(true);
+    clearBeams();
+    const c = bf.compute(raw);
+    consoleReset(raw, c.h1, c.h2);
+    let verdict = true, missAt = -1;
+    for(let i=0;i<c.idx.length;i++){
+      const cell = bitCells[c.idx[i]];
+      const isSet = bf.bits[c.idx[i]]===1;
+      consoleStep(i, c.idx[i]);
+      const beam = drawBeam(cell, isSet ? "beam-hit" : "beam-miss");
+      cell.classList.add("pulse", isSet?"check-hit":"check-miss");
+      await wait(220);
+      cell.classList.remove("pulse");
+      if(!isSet) cell.classList.add("check-miss"); else cell.classList.remove("check-miss");
+      fadeBeam(beam, 1300);
+      if(!isSet){ verdict = false; missAt = c.idx[i]; break; } // 提早結束：一遇到 0 就能確定
+    }
+    const wasAdded = addedSet.has(raw);
+    const w = escapeHtml(raw);
+    if(verdict){
+      if(wasAdded){
+        resultLine.innerHTML = "<b class=\"v-yes\">可能有。</b> 沒錯，「"+w+"」確實加過。";
+      } else {
+        resultLine.innerHTML = "<b class=\"v-yes\">可能有。</b> 但「"+w+"」<b>從來沒有加入過</b>——這就是一次<b>誤判</b>！它永遠不會漏報「有」，但會誤報。";
+        resultLine.classList.remove("flash"); void resultLine.offsetWidth; resultLine.classList.add("flash");
+      }
+    } else {
+      resultLine.innerHTML = "<b class=\"v-no\">一定沒有。</b> 位元 #"+missAt+" 是 0，查到這裡就能百分之百確定，不必再檢查剩下的位元。";
+    }
+    setTimeout(()=>{ bitCells.forEach(cell=>cell.classList.remove("check-miss","check-hit")); }, 1400);
+    busy = false; setBtnsDisabled(false);
+  }
+
+  function setBtnsDisabled(v){
+    [btnAdd, btnQuery, btnFindFP, btnEmpirical, btnSample, btnResetFilter, mRange, kRange].forEach(el=>{ el.disabled = v; });
+  }
+
+  // ── 範例批次加入（不逐格動畫，保持流暢） ──
+  function addWordsBatch(words){
+    if(busy) return;
+    let addedCount = 0;
+    words.forEach(w=>{
+      if(addedSet.has(w)) return;
+      const c = bf.compute(w);
+      for(let i=0;i<c.idx.length;i++) bf.bits[c.idx[i]] = 1;
+      bf.n++; addedSet.add(w); addedCount++;
+    });
+    refreshGridFromState(true);
+    updateStats();
+    resultLine.textContent = addedCount
+      ? ("已灌入 "+addedCount+" 個範例網址，目前共點亮 "+bf.onesCount()+" 個位元。")
+      : "範例網址都已經加過了。";
+  }
+
+  // ── 一鍵實測誤判率 ──
+  function randomProbe(seed){
+    return "probe-"+seed.toString(36)+"-"+Math.random().toString(36).slice(2,10);
+  }
+  const TRIALS = 30000;
+  function runEmpiricalTest(){
+    if(bf.n===0){
+      fpCompare.classList.add("show");
+      fpTheory.textContent = "—"; fpEmpirical.textContent = "—";
+      fpNote.textContent = "先加入幾個字詞，才有東西可以誤判。";
+      fpNote.className = "fp-note";
+      return;
+    }
+    let fpCount=0, tested=0, tries=0;
+    const maxTries = TRIALS*3;
+    while(tested<TRIALS && tries<maxTries){
+      tries++;
+      const s = randomProbe(tries);
+      if(addedSet.has(s)) continue;
+      tested++;
+      if(bf.has(s).result) fpCount++;
+    }
+    const empirical = tested ? fpCount/tested : 0;
+    const theory = theoreticalFP(bf.m, bf.k, bf.n);
+    fpCompare.classList.add("show");
+    fpTheory.textContent = (theory*100).toFixed(3)+"%";
+    fpEmpirical.textContent = (empirical*100).toFixed(3)+"%（"+fpCount+"/"+tested+"）";
+    const relErr = theory>0 ? Math.abs(empirical-theory)/theory : (empirical>0?1:0);
+    if(theory===0 && empirical===0){
+      fpNote.textContent = "理論與實測都是 0——目前參數下幾乎不會誤判。";
+      fpNote.className = "fp-note ok";
+    } else if(relErr < 0.3){
+      fpNote.textContent = "很接近！相對誤差 "+(relErr*100).toFixed(1)+"%，隨機抽樣本來就會有點波動，屬於正常範圍。";
+      fpNote.className = "fp-note ok";
+    } else if(bf.n < 50){
+      fpNote.textContent = "相對誤差 "+(relErr*100).toFixed(1)+"%，落差看似不小——但這是真實統計現象，不是算錯：n 只有 "+bf.n+" 個元素時，「哪幾個位元剛好被誰佔走」本身就有很大隨機性。加到 50 個以上元素再測一次，會明顯貼近理論值。";
+      fpNote.className = "fp-note";
+    } else {
+      fpNote.textContent = "有點落差（相對誤差 "+(relErr*100).toFixed(1)+"%）——可以再測一次，或加更多字詞讓統計更穩定。";
+      fpNote.className = "fp-note";
+    }
+  }
+
+  // ── 親手抓一個誤判 ──
+  function findFalsePositive(maxTries){
+    for(let i=0;i<maxTries;i++){
+      const s = randomProbe(i*7+1);
+      if(addedSet.has(s)) continue;
+      if(bf.has(s).result) return s;
+    }
+    return null;
+  }
+
+  // ── 事件綁定 ──
+  mRange.addEventListener("input", ()=>{ mOut.textContent = mRange.value; });
+  kRange.addEventListener("input", ()=>{ kOut.textContent = kRange.value; });
+  mRange.addEventListener("change", ()=>{ resetFilter(+mRange.value, bf.k); });
+  kRange.addEventListener("change", ()=>{ resetFilter(bf.m, +kRange.value); });
+
+  btnAdd.addEventListener("click", doAdd);
+  btnQuery.addEventListener("click", doQuery);
+  addInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); doAdd(); } });
+  queryInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); doQuery(); } });
+
+  btnSample.addEventListener("click", ()=>addWordsBatch(SAMPLE_WORDS));
+  btnResetFilter.addEventListener("click", ()=>resetFilter(bf.m, bf.k));
+
+  btnEmpirical.addEventListener("click", runEmpiricalTest);
+
+  btnFindFP.addEventListener("click", ()=>{
+    if(busy) return;
+    if(bf.n===0){
+      ahaBox.classList.add("show","empty");
+      ahaBox.innerHTML = "<p>先加入幾個字詞（或按「灌入範例網址」），再來找誤判。</p>";
+      return;
+    }
+    const found = findFalsePositive(200000);
+    ahaBox.classList.add("show");
+    ahaBox.classList.remove("empty");
+    if(found){
+      ahaBox.innerHTML = "<p>找到了！<b>「"+escapeHtml(found)+"」</b>——這個字從沒被加入過，但布隆過濾器說「可能有」。</p>"+
+        "<p class=\"aha-note\">它<b>永遠不會漏報</b>（加過的字一定查得到），但<b>會誤報</b>——這正是它用空間換來的代價。</p>";
+      queryInput.value = found;
+      doQuery();
+    } else {
+      ahaBox.classList.add("empty");
+      ahaBox.innerHTML = "<p>目前誤判率太低，20 萬次嘗試都沒找到。試著把 <b>m 調小</b>、<b>k 調大</b>，或多加幾個字詞，誤判會更容易出現。</p>";
+    }
+  });
+
+  // ── 啟動 ──
+  const savedMK = loadParams();
+  const initM = savedMK ? Math.min(200, Math.max(16, savedMK.m)) : +mRange.value;
+  const initK = savedMK ? Math.min(10, Math.max(1, savedMK.k)) : +kRange.value;
+  mRange.value = initM; kRange.value = initK;
+  mOut.textContent = initM; kOut.textContent = initK;
+  $("#trialsLabel").textContent = TRIALS.toLocaleString("en-US");
+  resetFilter(initM, initK);
+
+  requestAnimationFrame(()=>document.body.classList.remove("preload"));
+})();
+</script>
+</body>
+</html>

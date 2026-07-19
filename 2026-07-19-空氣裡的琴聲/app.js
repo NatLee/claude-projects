@@ -45,7 +45,14 @@
   /* ---------- reduced-motion ---------- */
   var mqReduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false, addEventListener: function () {} };
   var reduced = mqReduce.matches;
-  function onReduceChange() { reduced = mqReduce.matches; if (reduced) { ripples.length = 0; } else if (audioReady) { ensureLoop(); } }
+  function onReduceChange() {
+    reduced = mqReduce.matches;
+    if (reduced) {
+      ripples.length = 0;
+      var bs = document.querySelectorAll('.beat, .reveal');
+      for (var i = 0; i < bs.length; i++) bs[i].classList.add('in');
+    } else if (audioReady) { ensureLoop(); }
+  }
   if (mqReduce.addEventListener) mqReduce.addEventListener('change', onReduceChange);
   else if (mqReduce.addListener) mqReduce.addListener(onReduceChange);
 
@@ -350,7 +357,10 @@
       if (osc) osc.type = prefs.wave;
     });
   });
-  scaleChk.addEventListener('change', function () { prefs.scale = scaleChk.checked; savePrefs(); applyAudio(); });
+  scaleChk.addEventListener('change', function () {
+    prefs.scale = scaleChk.checked; savePrefs(); applyAudio();
+    if (!running) { fctx.clearRect(0, 0, fw, fh); drawGuides(); } // 靜態畫面下即時更新導引線
+  });
   revChk.addEventListener('change', function () {
     prefs.reverb = revChk.checked; savePrefs();
     if (wetGain) wetGain.gain.setTargetAtTime(prefs.reverb ? 0.32 : 0, nowT(), 0.05);
@@ -394,12 +404,41 @@
     scopeCv.width = Math.round(sw * DPR); scopeCv.height = Math.round(sh * DPR);
     sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     placeHand();
+    if (!running) { fctx.clearRect(0, 0, fw, fh); drawGuides(); } // 未跑迴圈時也先畫好刻度
   }
 
   var ripples = [], lastRipple = 0;
 
+  /* 音高導引：八度刻度 + （吸附開啟時）五聲音階線 */
+  var OCT_LABELS = ['C2', 'C3', 'C4', 'C5', 'C6'];
+  function drawGuides() {
+    fctx.save();
+    fctx.font = '10px system-ui, -apple-system, sans-serif';
+    fctx.textAlign = 'center';
+    if (prefs.scale) {
+      for (var j = 0; j < scaleMidis.length; j++) {
+        var f = midiToFreq(scaleMidis[j]);
+        var sx = xFromFreq(f) * fw;
+        if (sx < 2 || sx > fw - 2) continue;
+        fctx.strokeStyle = 'rgba(94,234,212,.07)';
+        fctx.lineWidth = 1;
+        fctx.beginPath(); fctx.moveTo(sx, 16); fctx.lineTo(sx, fh - 26); fctx.stroke();
+      }
+    }
+    for (var i = 0; i <= OCT; i++) {
+      var x = (i / OCT) * fw;
+      fctx.strokeStyle = 'rgba(140,160,210,.11)';
+      fctx.lineWidth = 1;
+      fctx.beginPath(); fctx.moveTo(x, 12); fctx.lineTo(x, fh - 22); fctx.stroke();
+      fctx.fillStyle = 'rgba(138,147,171,.6)';
+      fctx.fillText(OCT_LABELS[i], Math.max(12, Math.min(fw - 12, x)), fh - 8);
+    }
+    fctx.restore();
+  }
+
   function drawField(ts) {
     fctx.clearRect(0, 0, fw, fh);
+    drawGuides();
     var hx = hand.x * fw, hy = hand.y * fh;
     if (sounding()) {
       // 到音高天線的能量束
@@ -465,7 +504,7 @@
   }
   function ensureLoop() {
     if (running || document.hidden) return;
-    if (reduced) { fctx.clearRect(0, 0, fw, fh); drawScope(); return; } // 降級：只畫一次靜態
+    if (reduced) { fctx.clearRect(0, 0, fw, fh); drawGuides(); drawScope(); return; } // 降級：只畫一次靜態
     running = true; rafId = requestAnimationFrame(loop);
   }
   function stopLoop() { running = false; if (rafId) cancelAnimationFrame(rafId); rafId = 0; }
@@ -497,9 +536,24 @@
     els.forEach(function (el) { io.observe(el); });
   }
 
+  /* 時間軸卡片逐張進場 */
+  function revealBeats() {
+    var beats = Array.prototype.slice.call(document.querySelectorAll('.beat'));
+    if (!('IntersectionObserver' in window) || reduced) {
+      beats.forEach(function (b) { b.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -6% 0px' });
+    beats.forEach(function (b) { io.observe(b); });
+  }
+
   /* ---------- init ---------- */
   sizeCanvas();
   drawScope();
-  requestAnimationFrame(revealAll);
+  requestAnimationFrame(function () { revealAll(); revealBeats(); });
 
 })();

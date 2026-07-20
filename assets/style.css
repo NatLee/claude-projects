@@ -511,7 +511,7 @@
   .act-seg button[aria-pressed="true"] { color: var(--bg); background: var(--gold); font-weight: 600; }
   /* overflow-x:auto 會讓 overflow-y 從 visible 變成 auto，第一排格子 hover 放大時
      會被上緣裁掉。用上下留白換回空間，再用負 margin 抵銷、維持原本的版面節奏。 */
-  .act-body { overflow-x: auto; overflow-y: hidden; padding: 9px 0 3px; margin-top: -9px; }
+  .act-body { overflow-x: auto; overflow-y: hidden; }
   .act-view { display: none; } .act-view.on { display: block; }
 
   /* 日曆熱力圖 */
@@ -520,15 +520,19 @@
   .cal-cells { display: grid; grid-template-columns: repeat(31, 1fr); gap: 3px; flex: 1; min-width: 420px; }
   .cal-c {
     aspect-ratio: 1; border-radius: 3px; background: rgba(150,165,220,.07); border: 0; padding: 0;
-    cursor: default; transition: transform .15s, box-shadow .15s;
+    cursor: default; transition: filter .15s, box-shadow .15s;
   }
   .cal-c[data-n]:not([data-n="0"]) { cursor: pointer; }
   .cal-c[data-n="1"] { background: rgba(240,198,116,.32); }
   .cal-c[data-n="2"] { background: rgba(240,198,116,.55); }
   .cal-c[data-n="3"] { background: rgba(240,198,116,.78); }
   .cal-c[data-n="4"] { background: var(--gold); box-shadow: 0 0 8px rgba(240,198,116,.5); }
-  .cal-c:hover[data-n]:not([data-n="0"]) { transform: scale(1.35); box-shadow: 0 0 10px rgba(240,198,116,.7); }
-  .cal-c:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+  /* 高亮改成「往內」畫，不放大、不外溢：亮度＋內圈描邊。
+     先前 transform:scale 會讓格子長到格線外，而 .act-body 為了橫向捲動必須
+     裁掉垂直方向（overflow-x:auto 會把 overflow-y 從 visible 變成 auto），
+     於是最上面那排月份 hover 時就被上緣切掉、看起來像「跑上去」。 */
+  .cal-c:hover[data-n]:not([data-n="0"]) { filter: brightness(1.28) saturate(1.08); box-shadow: inset 0 0 0 2px rgba(255,246,222,.95); }
+  .cal-c:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gold); }
   .cal-axis { display: flex; gap: 8px; margin-top: 6px; }
   .cal-axis .cal-lab { visibility: hidden; }
   .cal-ticks { display: grid; grid-template-columns: repeat(31, 1fr); gap: 3px; flex: 1; min-width: 420px;
@@ -554,5 +558,4 @@
   }
   @media (prefers-reduced-motion: reduce) {
     .cal-c, .cat-row .fill { transition: none; }
-    .cal-c:hover { transform: none; }
   }

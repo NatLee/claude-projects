@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>睡眠週期鬧鐘 · 在淺眠的浪尖上醒來</title>
+<style>
+  :root{
+    --bg0:#0a0e27; --bg1:#111845; --bg2:#1a1f52;
+    --ink:#eef1ff; --ink2:#c7cdf2; --muted:#9098cf; --muted2:#6d75ac;
+    --line:rgba(160,172,235,.16); --line2:rgba(160,172,235,.28);
+    --surface:rgba(26,33,78,.6); --surface2:rgba(40,49,104,.55);
+    --gold:#f6c86a; --gold2:#ffdf9a; --goldd:#d8a545;
+    --rem:#c58be6; --deep:#5566c9; --light:#7fd7e6; --good:#8fe0b0;
+    --accent:#8aa2ff;
+    --shadow:0 34px 80px -34px rgba(0,0,0,.72);
+    --ease:cubic-bezier(.22,.8,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,"Segoe UI",Roboto,sans-serif;
+    color:var(--ink); line-height:1.65;
+    background:
+      radial-gradient(1200px 720px at 84% -12%, #2a2f6e 0%, transparent 55%),
+      radial-gradient(900px 620px at 8% 8%, #182158 0%, transparent 58%),
+      radial-gradient(1100px 900px at 50% 120%, #241a4a 0%, transparent 60%),
+      linear-gradient(168deg, #0a0e27 0%, #0e1336 52%, #120e2e 100%);
+    background-attachment:fixed;
+    min-height:100vh; padding:22px 18px 56px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1060px;margin:0 auto}
+
+  /* ---- 進場編排 ---- */
+  .rise{opacity:0;transform:translateY(16px);animation:rise .62s var(--ease) forwards;animation-delay:calc(var(--d,0)*90ms)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* ---- 回首頁 ---- */
+  .topnav{margin-bottom:8px}
+  .home{display:inline-flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13.5px;letter-spacing:1px;padding:5px 11px;border-radius:999px;border:1px solid transparent;transition:color .25s,border-color .25s,background .25s}
+  .home .arr{display:inline-block;transition:transform .28s var(--ease)}
+  .home:hover{color:var(--gold2);border-color:var(--line);background:rgba(26,33,78,.5)}
+  .home:hover .arr{transform:translateX(-3px)}
+
+  /* ---- 標題 ---- */
+  header{text-align:center;margin:4px 0 22px;position:relative}
+  .sky{position:absolute;inset:-6px 0 auto;height:78px;pointer-events:none}
+  .sky i{position:absolute;width:2.5px;height:2.5px;border-radius:50%;background:#dfe6ff;opacity:.5;animation:tw 3.4s ease-in-out infinite}
+  .sky i:nth-child(1){left:20%;top:16px;animation-delay:.2s}
+  .sky i:nth-child(2){left:34%;top:44px;animation-delay:1.1s;width:1.8px;height:1.8px}
+  .sky i:nth-child(3){left:63%;top:20px;animation-delay:.7s}
+  .sky i:nth-child(4){left:76%;top:52px;animation-delay:1.9s;width:1.8px;height:1.8px}
+  .sky i:nth-child(5){left:88%;top:26px;animation-delay:1.4s}
+  .sky i:nth-child(6){left:12%;top:50px;animation-delay:2.3s;width:1.8px;height:1.8px}
+  @keyframes tw{0%,100%{opacity:.14;transform:scale(.7)}50%{opacity:.85;transform:scale(1)}}
+  .moonmark{display:inline-flex;align-items:center;justify-content:center;margin-bottom:4px;position:relative;z-index:1}
+  h1{font-size:clamp(26px,5.6vw,42px);letter-spacing:3px;font-weight:800;position:relative;z-index:1;
+     background:linear-gradient(92deg,#eaeeff 0%,#c9d2ff 46%,#f6c86a 118%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--ink2);opacity:.82;font-size:15px;margin-top:8px;max-width:54ch;margin-left:auto;margin-right:auto;position:relative;z-index:1}
+
+  /* ---- 卡片 ---- */
+  .card{background:linear-gradient(180deg,var(--surface),rgba(18,24,60,.5));border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:22px;position:relative;overflow:hidden}
+  .card+.card{margin-top:18px}
+  h2.sec{display:flex;align-items:center;gap:9px;font-size:15px;letter-spacing:2px;margin-bottom:4px;color:var(--ink)}
+  h2.sec::before{content:"";width:16px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--gold),#e0aa5e);flex:none}
+  .hint{font-size:13px;color:var(--muted);margin-bottom:14px}
+
+  /* ---- 控制列 ---- */
+  .seg{display:flex;background:rgba(12,16,44,.6);border:1px solid var(--line);border-radius:14px;padding:5px;gap:5px}
+  .seg button{flex:1;border:none;background:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink2);padding:10px 6px;border-radius:10px;cursor:pointer;transition:background .28s,color .25s,box-shadow .28s,transform .16s var(--ease);white-space:nowrap}
+  .seg button:hover{color:var(--ink)}
+  .seg button:active{transform:scale(.96)}
+  .seg button.on{background:linear-gradient(180deg,rgba(246,200,106,.22),rgba(246,200,106,.1));color:var(--gold2);box-shadow:0 6px 18px -8px rgba(246,200,106,.5),inset 0 0 0 1px rgba(246,200,106,.35)}
+  .modecap{font-size:13px;color:var(--muted);margin:11px 2px 0}
+
+  .ctrlgrid{display:grid;grid-template-columns:1fr;gap:18px;margin-top:16px}
+  @media(min-width:720px){.ctrlgrid{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}}
+  .field>label,.field .flab{display:block;font-size:13px;font-weight:600;color:var(--ink2);margin-bottom:8px;letter-spacing:.5px}
+  .timerow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  input[type=time]{font-family:inherit;font-size:22px;font-weight:700;letter-spacing:1px;padding:8px 12px;border:1px solid var(--line2);border-radius:12px;background:rgba(10,14,38,.6);color:var(--ink);font-variant-numeric:tabular-nums;transition:border-color .25s,box-shadow .25s;color-scheme:dark}
+  input[type=time]:hover{border-color:var(--accent)}
+  .nowbtn{border:1px solid var(--line2);background:rgba(138,162,255,.12);color:var(--accent);font-family:inherit;font-size:13px;font-weight:600;padding:9px 14px;border-radius:11px;cursor:pointer;transition:border-color .25s,color .25s,background .25s,transform .16s var(--ease)}
+  .nowbtn:hover{border-color:var(--accent);background:rgba(138,162,255,.2)}
+  .nowbtn:active{transform:scale(.96)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .chip{border:1px solid var(--line);background:rgba(12,16,44,.5);color:var(--ink2);font-family:inherit;font-size:13.5px;font-weight:600;font-variant-numeric:tabular-nums;padding:7px 13px;border-radius:999px;cursor:pointer;transition:border-color .22s,color .22s,background .22s,transform .16s var(--ease)}
+  .chip:hover{border-color:var(--gold);color:var(--gold2);background:rgba(246,200,106,.1)}
+  .chip:active{transform:scale(.95)}
+  .chip.on{border-color:var(--gold);color:var(--gold2);background:rgba(246,200,106,.16)}
+  .seg.small button{font-size:13px;padding:9px 4px}
+
+  /* ---- 結果卡片 ---- */
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .opt{position:relative;text-align:left;font-family:inherit;color:inherit;background:linear-gradient(180deg,rgba(30,38,86,.66),rgba(16,22,54,.5));border:1px solid var(--line);border-radius:16px;padding:15px 15px 14px;cursor:pointer;transition:border-color .24s,transform .24s var(--ease),box-shadow .24s,background .24s}
+  .opt:hover{transform:translateY(-3px);border-color:var(--line2);box-shadow:0 16px 34px -20px rgba(0,0,0,.7)}
+  .opt:active{transform:translateY(-1px) scale(.99)}
+  .opt.on{border-color:var(--gold);background:linear-gradient(180deg,rgba(246,200,106,.16),rgba(30,38,86,.5));box-shadow:0 18px 40px -20px rgba(246,200,106,.4),inset 0 0 0 1px rgba(246,200,106,.35)}
+  .opt .cyc{font-size:12.5px;color:var(--muted);letter-spacing:.5px}
+  .opt.on .cyc{color:var(--gold2)}
+  .opt .ot{font-size:28px;font-weight:800;line-height:1.15;margin-top:3px;font-variant-numeric:tabular-nums;letter-spacing:1px;transition:color .3s}
+  .opt.on .ot{color:var(--gold2)}
+  .opt .oday{display:inline-block;font-size:11px;color:var(--muted2);margin-left:2px;vertical-align:2px}
+  .opt .ohr{font-size:12.5px;color:var(--muted);margin-top:5px}
+  .opt .ribbon{position:absolute;top:-1px;right:-1px;font-size:10.5px;font-weight:700;letter-spacing:1px;color:#3a2a06;background:linear-gradient(180deg,var(--gold2),var(--gold));padding:3px 9px;border-radius:0 16px 0 12px}
+  .opt.best{border-color:rgba(246,200,106,.4)}
+
+  /* ---- 波形卡片 + hero ---- */
+  .wavecard{padding-top:20px}
+  .hero{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px}
+  .hero .eye{font-size:13px;letter-spacing:1.5px;color:var(--muted);margin-bottom:2px}
+  .hero .bigtime{font-size:clamp(40px,9vw,62px);font-weight:800;line-height:1.02;font-variant-numeric:tabular-nums;letter-spacing:1px;
+     background:linear-gradient(94deg,#ffffff,#ffe6b0 130%);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero .daytag{font-size:14px;font-weight:600;color:var(--gold);letter-spacing:1px;margin-left:8px;-webkit-text-fill-color:var(--gold)}
+  .hero .hsub{font-size:14px;color:var(--ink2);text-align:right;max-width:34ch}
+  .hero .hsub b{color:var(--gold2);font-weight:700}
+  .heroWhy{font-size:13.5px;color:var(--muted);margin:2px 2px 12px;max-width:60ch}
+  .heroWhy b{color:var(--light);font-weight:600}
+
+  .wavewrap{width:100%;border-radius:14px;overflow:hidden}
+  svg#wave{width:100%;height:auto;display:block;aspect-ratio:760/300}
+  #waveLine{fill:none;stroke:url(#strokeGrad);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 3px 8px rgba(120,150,255,.35))}
+  #waveArea{stroke:none}
+  .glabel{fill:var(--muted2);font-size:11px;font-family:inherit}
+  .gline{stroke:rgba(160,172,235,.14);stroke-width:1;stroke-dasharray:3 5}
+  .gline.wake{stroke:rgba(246,200,106,.16)}
+  .ctime{fill:var(--muted);font-size:11px;font-family:inherit;font-variant-numeric:tabular-nums;text-anchor:middle}
+  .ctime.wk{fill:var(--gold2);font-weight:700}
+  .ctime.bed{fill:var(--ink2);font-weight:700;text-anchor:start}
+  .cdot{fill:var(--light);opacity:.9}
+  .cdot.rem{fill:var(--rem)}
+  .wakedot{fill:var(--gold2);stroke:#fff2d6;stroke-width:1.5}
+  .beam{stroke:rgba(246,200,106,.4);stroke-width:1.4;stroke-dasharray:2 4}
+  .bell{fill:var(--gold2)}
+  .bellglow{fill:var(--gold);transform-box:fill-box;transform-origin:center;animation:bpulse 2.6s ease-in-out infinite}
+  @keyframes bpulse{0%,100%{opacity:.16;transform:scale(1)}50%{opacity:.36;transform:scale(1.22)}}
+  .moon{fill:#e6eaff}
+  .zzz{fill:var(--muted);font-size:12px;font-family:inherit}
+  .wavelegend{font-size:12px;color:var(--muted);margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .wavelegend .k{display:inline-flex;align-items:center;gap:6px}
+  .wavelegend .sw{width:11px;height:11px;border-radius:50%;display:inline-block}
+
+  /* ---- 知識卡 ---- */
+  .facts{background:linear-gradient(165deg,rgba(38,30,72,.7),rgba(22,26,62,.6))}
+  .facts::after{content:"";position:absolute;right:-40px;top:-44px;width:140px;height:140px;border-radius:50%;border:11px solid rgba(197,139,230,.08);pointer-events:none}
+  .facts h2{color:var(--rem)}
+  .facts h2::before{background:linear-gradient(90deg,var(--rem),#e0aef0)}
+  .facts p{font-size:13.5px;color:var(--ink2);opacity:.94;margin-bottom:9px}
+  .facts b{color:#e7c6ff}
+  .facts .src{font-size:11.5px;color:var(--muted2);margin-top:10px}
+
+  .disc{font-size:11.5px;color:var(--muted2);text-align:center;margin-top:18px;line-height:1.75;max-width:60ch;margin-left:auto;margin-right:auto}
+
+  /* ---- a11y ---- */
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:8px}
+
+  @media(max-width:560px){
+    body{padding:16px 12px 44px}
+    .card{padding:17px}
+    .cards{grid-template-columns:repeat(2,1fr);gap:10px}
+    .hero{flex-direction:column;align-items:flex-start}
+    .hero .hsub{text-align:left}
+    .opt .ot{font-size:25px}
+  }
+
+  /* ---- 動態降級 ---- */
+  @media(prefers-reduced-motion:reduce){
+    .rise{animation:none;opacity:1;transform:none}
+    .sky i,.bellglow{animation:none}
+    *{transition-duration:.01ms!important}
+  }
+  html.rm .rise{animation:none;opacity:1;transform:none}
+  html.rm .sky i,html.rm .bellglow{animation:none}
+  html.paused .sky i,html.paused .bellglow{animation-play-state:paused}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="topnav rise" style="--d:0">
+    <a class="home" href="../../../index.html" aria-label="回到首頁"><span class="arr">←</span> 回首頁</a>
+  </nav>
+
+  <header class="rise" style="--d:0">
+    <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    <div class="moonmark" aria-hidden="true">
+      <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
+        <defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#fff3d6"/><stop offset="1" stop-color="#f6c86a"/>
+        </linearGradient></defs>
+        <path d="M30 8a15 15 0 1 0 8 20 12 12 0 0 1-8-20Z" fill="url(#mg)"/>
+        <circle cx="20" cy="18" r="1.4" fill="#0e1336" opacity=".18"/>
+        <circle cx="17" cy="26" r="1" fill="#0e1336" opacity=".14"/>
+      </svg>
+    </div>
+    <h1>睡眠週期鬧鐘</h1>
+    <p class="sub">睡眠以大約 90 分鐘為一個週期起伏。把鬧鐘設在週期交界的「淺眠浪尖」，會比在深眠中被硬拉起來清醒得多。</p>
+  </header>
+
+  <!-- 控制 -->
+  <section class="card rise" style="--d:1">
+    <div class="seg" id="modeSeg" role="group" aria-label="使用方式">
+      <button type="button" data-mode="A" class="on" aria-pressed="true">我要幾點起床 →</button>
+      <button type="button" data-mode="B" aria-pressed="false">我幾點上床 →</button>
+    </div>
+    <p class="modecap" id="modeCap">先決定幾點起床，往回推幾點該躺上床最剛好。</p>
+
+    <div class="ctrlgrid">
+      <div class="field">
+        <label id="timeLab" for="mainTime">目標起床時間</label>
+        <div class="timerow">
+          <input type="time" id="mainTime" value="07:00" aria-labelledby="timeLab">
+          <button class="nowbtn" id="nowBtn" type="button" hidden>現在就睡</button>
+        </div>
+        <div class="chips" id="chips" aria-label="常用時間"></div>
+      </div>
+      <div class="field">
+        <span class="flab">入睡大約要多久（會加進推算）</span>
+        <div class="seg small" id="latSeg" role="group" aria-label="入睡所需時間">
+          <button type="button" data-lat="5" aria-pressed="false">很快 ~5 分</button>
+          <button type="button" data-lat="15" class="on" aria-pressed="true">一般 ~15 分</button>
+          <button type="button" data-lat="30" aria-pressed="false">較慢 ~30 分</button>
+        </div>
+        <p class="hint" style="margin:12px 2px 0">一般人躺下到真正睡著平均約 10–20 分鐘。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 候選時刻 -->
+  <section class="card rise" style="--d:2">
+    <h2 class="sec" id="cardsHead">建議的就寢時刻</h2>
+    <p class="hint" id="cardsHint">每個時刻都讓睡眠剛好停在整數個週期的尾端（淺眠）。點一下看它的睡眠波形。</p>
+    <div class="cards" id="cards" role="group" aria-label="候選時刻"></div>
+  </section>
+
+  <!-- 波形 + hero -->
+  <section class="card wavecard rise" style="--d:3">
+    <div class="hero">
+      <div>
+        <div class="eye" id="heroEye">建議就寢時間</div>
+        <div class="bigtime"><span id="heroTime">—</span><span class="daytag" id="heroDay"></span></div>
+      </div>
+      <div class="hsub" id="heroSub"></div>
+    </div>
+    <p class="heroWhy" id="heroWhy"></p>
+    <div class="wavewrap">
+      <svg id="wave" viewBox="0 0 760 300" role="img" aria-label="睡眠波形圖">
+        <defs>
+          <!-- 描邊漸層：務必 userSpaceOnUse + 實座標，否則近乎水平的線段在預設 objectBoundingBox 下不會繪製 -->
+          <linearGradient id="strokeGrad" gradientUnits="userSpaceOnUse" x1="0" y1="28" x2="0" y2="250">
+            <stop offset="0" stop-color="#ffd98a"/>
+            <stop offset=".30" stop-color="#a9bcff"/>
+            <stop offset=".68" stop-color="#6b74d8"/>
+            <stop offset="1" stop-color="#414788"/>
+          </linearGradient>
+          <linearGradient id="areaGrad" gradientUnits="userSpaceOnUse" x1="0" y1="28" x2="0" y2="250">
+            <stop offset="0" stop-color="rgba(150,170,255,.26)"/>
+            <stop offset="1" stop-color="rgba(60,70,140,.02)"/>
+          </linearGradient>
+          <filter id="soft" x="-70%" y="-70%" width="240%" height="240%"><feGaussianBlur stdDeviation="4.5"/></filter>
+        </defs>
+        <g id="guides"></g>
+        <path id="waveArea" fill="url(#areaGrad)" d=""></path>
+        <path id="waveLine" d=""></path>
+        <g id="crests"></g>
+        <g id="bedMark"></g>
+        <g id="wakeMark"></g>
+      </svg>
+    </div>
+    <div class="wavelegend" aria-hidden="true">
+      <span class="k"><span class="sw" style="background:var(--gold2)"></span>鬧鐘（淺眠浪尖）</span>
+      <span class="k"><span class="sw" style="background:var(--light)"></span>淺眠 · 好起床點</span>
+      <span class="k"><span class="sw" style="background:var(--rem)"></span>REM 做夢</span>
+      <span class="k"><span class="sw" style="background:var(--deep)"></span>深眠 · 別在這醒</span>
+    </div>
+  </section>
+
+  <!-- 知識 -->
+  <section class="card facts rise" style="--d:4">
+    <h2 class="sec">為什麼是 90 分鐘？</h2>
+    <p>一夜的睡眠不是一路睡到底，而是分成 <b>NREM</b> 與 <b>REM</b> 兩大類反覆交替：NREM 又分 N1（剛入睡的淺眠）、N2、到 N3（最深、最能修復身體的慢波睡眠）；REM 則是大腦活躍、多數夢境發生的階段。</p>
+    <p>這些階段輪一圈大約 <b>90 分鐘</b>，一夜通常會經歷 <b>4～6 個</b>週期。夜的前半段深眠（N3）占得多；<b>愈接近清晨，REM 愈長、深眠愈少</b>。每個週期交界前，人會短暫「浮回」接近清醒的淺眠——在這一刻醒來最不費力。</p>
+    <p>所以與其死守「睡滿 8 小時」，不如讓鬧鐘對齊<b>整數個週期</b>的尾端。對多數成人，<b>5 個週期（約 7.5 小時）</b>是常見的甜蜜點。</p>
+    <p class="src">資料來源：Sleep Foundation、美國國家睡眠基金會（NSF）等。</p>
+  </section>
+
+  <p class="disc rise" style="--d:5">提醒：90 分鐘與 15 分鐘都是人群平均、因人而異；本工具為示意估算，僅供參考，不能取代專業醫療建議。</p>
+
+  <div id="srStatus" class="sr" role="status" aria-live="polite"></div>
+</div>
+
+<!-- ============ 純函式核心（可測試、無 DOM 依賴） ============ -->
+<script>
+/*CORE-START*/
+var SleepCore = (function(){
+  "use strict";
+  var CYCLE = 90;    // 一個睡眠週期約 90 分鐘
+  var LATENCY = 15;  // 入睡潛伏期預設 15 分鐘
+
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  // 把任意分鐘數規約到 0..1439（處理跨午夜與 24 小時進位）
+  function mod1440(m){ return ((Math.round(m) % 1440) + 1440) % 1440; }
+
+  // 24 小時制、補零 "HH:MM"
+  function fmt24(min){
+    var m = mod1440(min);
+    return pad2(Math.floor(m/60)) + ":" + pad2(m % 60);
+  }
+  // 12 小時制、上午/下午
+  function fmt12(min){
+    var m = mod1440(min), h = Math.floor(m/60), mm = m % 60;
+    var ap = h < 12 ? "上午" : "下午";
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    return ap + " " + h12 + ":" + pad2(mm);
+  }
+  // "HH:MM" -> 分鐘
+  function parseHM(s){
+    var p = String(s).split(":");
+    return (parseInt(p[0],10)||0) * 60 + (parseInt(p[1],10)||0);
+  }
+  // 相對參考日的天數位移：負=前一天，正=隔天
+  function dayShift(raw){ return Math.floor(raw / 1440); }
+
+  // 用法 A：給定起床時刻，反推各候選就寢 = 起床 −(k×週期 + 入睡)
+  function bedtimesForWake(wakeMin, ks, latency, cycle){
+    latency = (latency == null ? LATENCY : latency);
+    cycle = (cycle == null ? CYCLE : cycle);
+    return ks.map(function(k){
+      var raw = wakeMin - (k * cycle + latency);
+      return { k:k, min:mod1440(raw), day:dayShift(raw), sleepMin:k*cycle, inBedMin:k*cycle + latency };
+    });
+  }
+  // 用法 B：給定就寢時刻，推各候選起床 = 就寢 + 入睡 + k×週期
+  function wakesForBedtime(bedMin, ks, latency, cycle){
+    latency = (latency == null ? LATENCY : latency);
+    cycle = (cycle == null ? CYCLE : cycle);
+    return ks.map(function(k){
+      var raw = bedMin + latency + k * cycle;
+      return { k:k, min:mod1440(raw), day:dayShift(raw), sleepMin:k*cycle, inBedMin:k*cycle + latency };
+    });
+  }
+
+  return {
+    CYCLE:CYCLE, LATENCY:LATENCY,
+    pad2:pad2, mod1440:mod1440, fmt24:fmt24, fmt12:fmt12, parseHM:parseHM, dayShift:dayShift,
+    bedtimesForWake:bedtimesForWake, wakesForBedtime:wakesForBedtime
+  };
+})();
+/*CORE-END*/
+if (typeof module !== "undefined" && module.exports) module.exports = SleepCore;
+</script>
+
+<!-- ============ 介面與波形 ============ -->
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+  var SC = SleepCore;
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  /* ---- 動態減弱動態效果 ---- */
+  var rmq = window.matchMedia ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var reduced = !!(rmq && rmq.matches);
+  function applyRM(){ document.documentElement.classList.toggle("rm", reduced); }
+  if (rmq){
+    var onRM = function(e){ reduced = e.matches; applyRM(); render(); };
+    if (rmq.addEventListener) rmq.addEventListener("change", onRM);
+    else if (rmq.addListener) rmq.addListener(onRM);
+  }
+  // 分頁隱藏時暫停背景動畫
+  document.addEventListener("visibilitychange", function(){
+    document.documentElement.classList.toggle("paused", document.hidden);
+  });
+
+  /* ---- 狀態 ---- */
+  var KEY = "sleepcalc.v1";
+  var state = { mode:"A", wake:7*60, bed:23*60, lat:15, selK:5 };
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if (raw){
+        var s = JSON.parse(raw);
+        if (s.mode === "A" || s.mode === "B") state.mode = s.mode;
+        if (typeof s.wake === "number") state.wake = s.wake;
+        if (typeof s.bed === "number") state.bed = s.bed;
+        if (s.lat === 5 || s.lat === 15 || s.lat === 30) state.lat = s.lat;
+        if ([3,4,5,6].indexOf(s.selK) >= 0) state.selK = s.selK;
+      }
+    }catch(e){}
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+
+  function nowMin(){ var d = new Date(); return d.getHours()*60 + d.getMinutes(); }
+  function hoursLabel(k){ var h = k*1.5; return (h % 1 === 0) ? String(h) : h.toFixed(1); }
+  function dayTagA(day){ return day < 0 ? "前一晚" : ""; }
+  function dayTagB(day){ return day > 0 ? "隔天" : ""; }
+
+  var MODE = {
+    A: {
+      ks:[6,5,4,3], cap:"先決定幾點起床，往回推幾點該躺上床最剛好。",
+      timeLab:"目標起床時間", cardsHead:"建議的就寢時刻",
+      cardsHint:"每個時刻都讓睡眠剛好停在整數個週期的尾端（淺眠）。點一下看它的睡眠波形。",
+      chips:["06:00","06:30","07:00","07:30","08:00"], heroEye:"建議就寢時間"
+    },
+    B: {
+      ks:[4,5,6,3], cap:"現在或稍後上床，往後推幾點起床最剛好。",
+      timeLab:"預計上床時間", cardsHead:"建議的起床時刻",
+      cardsHint:"每個時刻都讓你在淺眠浪尖醒來，而不是被深眠硬拉起來。點一下看它的睡眠波形。",
+      chips:["22:30","23:00","23:30","00:30"], heroEye:"建議起床時間"
+    }
+  };
+
+  /* ---- 取得目前候選 ---- */
+  function options(){
+    var m = MODE[state.mode];
+    var list = state.mode === "A"
+      ? SC.bedtimesForWake(state.wake, m.ks, state.lat)
+      : SC.wakesForBedtime(state.bed, m.ks, state.lat);
+    return { ks:m.ks, list:list };
+  }
+  function selected(list){
+    for (var i=0;i<list.length;i++) if (list[i].k === state.selK) return list[i];
+    return list[0];
+  }
+
+  /* =========================================================
+     波形幾何：把 depth 0(清醒)→1(最深) 映到畫布；
+     每個週期前段下探深眠、後段浮回淺眠與 REM；
+     愈後面的週期深眠愈淺、REM 愈長（貼近真實生理）。
+     ========================================================= */
+  var PL=58, PR=740, PT=28, PB=250, plotH=PB-PT;
+  var L_WAKE=0.06, L_REM_TOP=0.24, L_N1=0.40, L_N2=0.62, L_DEEP=0.92;
+  function yFor(lv){ return PT + lv*plotH; }
+
+  function yDeep(c){ return yFor(Math.max(0.54, 0.92 - 0.11*c)); }
+  function yRem(c){ return yFor(Math.max(0.20, 0.30 - 0.02*c)); }
+  function remStart(c){ return 0.70 - 0.02*Math.min(c,5); }
+  function remEnd(c){ return 0.88 + 0.012*Math.min(c,5); }
+
+  function el(tag, attrs){
+    var e = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (attrs.hasOwnProperty(k)) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  // Catmull-Rom → 三次貝茲，讓折線化為柔順曲線且必經每個控制點（含淺眠浪尖）
+  function catmull(pts){
+    if (pts.length < 2) return "";
+    var d = "M" + pts[0][0].toFixed(2) + " " + pts[0][1].toFixed(2);
+    for (var i=0;i<pts.length-1;i++){
+      var p0 = pts[i-1] || pts[i], p1 = pts[i], p2 = pts[i+1], p3 = pts[i+2] || pts[i+1];
+      var c1x = p1[0] + (p2[0]-p0[0])/6, c1y = p1[1] + (p2[1]-p0[1])/6;
+      var c2x = p2[0] - (p3[0]-p1[0])/6, c2y = p2[1] - (p3[1]-p1[1])/6;
+      d += "C" + c1x.toFixed(2) + " " + c1y.toFixed(2) + " " + c2x.toFixed(2) + " " + c2y.toFixed(2)
+             + " " + p2[0].toFixed(2) + " " + p2[1].toFixed(2);
+    }
+    return d;
+  }
+
+  // 靜態階段參考線（只畫一次）
+  function initGuides(){
+    var g = $("#guides");
+    var rows = [
+      {lv:L_WAKE, t:"清醒", cls:"gline wake"},
+      {lv:L_REM_TOP, t:"REM", cls:"gline"},
+      {lv:L_N1, t:"淺眠", cls:"gline"},
+      {lv:L_DEEP, t:"深眠", cls:"gline"}
+    ];
+    rows.forEach(function(r){
+      var y = yFor(r.lv);
+      g.appendChild(el("line", {x1:PL, y1:y, x2:PR, y2:y, "class":r.cls}));
+      var tx = el("text", {x:PL-8, y:y+3.5, "class":"glabel", "text-anchor":"end"});
+      tx.textContent = r.t;
+      g.appendChild(tx);
+    });
+  }
+
+  var drawTimer = null;
+  function buildWave(k){
+    var lat = state.lat, onsetRaw, bedRaw, wakeRaw;
+    if (state.mode === "A"){ wakeRaw = state.wake; onsetRaw = state.wake - k*90; bedRaw = onsetRaw - lat; }
+    else { bedRaw = state.bed; onsetRaw = state.bed + lat; wakeRaw = onsetRaw + k*90; }
+
+    var xA = PL, xL = PL + 24, xRc = PR - 20, xR = PR;
+    var cw = (xRc - xL) / k;
+
+    // 控制點
+    var P = [];
+    P.push([xA, yFor(L_WAKE)]);           // 躺著、還醒
+    P.push([xL, yFor(L_N1)]);             // 入睡（淺眠）
+    for (var c=0;c<k;c++){
+      var base = xL + c*cw;
+      P.push([base + 0.09*cw, yFor(L_N2)]);
+      P.push([base + 0.27*cw, yDeep(c)]); // 深眠谷底（前段）
+      P.push([base + 0.45*cw, yFor(L_N2)]);
+      P.push([base + 0.60*cw, yFor(L_N1)]);
+      P.push([base + remStart(c)*cw, yRem(c)]);
+      P.push([base + remEnd(c)*cw, yRem(c)]);
+      P.push([base + 1.0*cw, yFor(L_N1)]); // 週期交界＝淺眠浪尖
+    }
+    P.push([xR, yFor(L_WAKE)]);           // 醒來、浮回清醒
+
+    var d = catmull(P);
+    var line = $("#waveLine"), area = $("#waveArea");
+    line.setAttribute("d", d);
+    area.setAttribute("d", d + "L" + xR + " " + PB + " L" + xA + " " + PB + " Z");
+
+    // ---- 各週期交界的淺眠標記 + 時刻 ----
+    var crests = $("#crests"); crests.innerHTML = "";
+    for (var j=1;j<=k;j++){
+      var cx = xL + j*cw, cy = yFor(L_N1);
+      var isWake = (j === k);
+      if (!isWake){
+        crests.appendChild(el("circle", {cx:cx, cy:cy, r:3.4, "class":"cdot"}));
+      }
+      var t = el("text", {x:cx, y:PB+20, "class":"ctime" + (isWake ? " wk" : "")});
+      t.textContent = SC.fmt24(onsetRaw + j*90);
+      crests.appendChild(t);
+    }
+
+    // ---- 就寢（月亮）----
+    var bed = $("#bedMark"); bed.innerHTML = "";
+    var moon = el("path", {d:"M "+(xA+3)+" "+(yFor(L_WAKE)-6)+" a 6 6 0 1 0 0 12 a 7.5 7.5 0 0 1 0 -12 Z", "class":"moon"});
+    bed.appendChild(moon);
+    var zzz = el("text", {x:xA+11, y:yFor(L_WAKE)-4, "class":"zzz"}); zzz.textContent = "z";
+    bed.appendChild(zzz);
+    var bt = el("text", {x:xA, y:PB+20, "class":"ctime bed"}); bt.textContent = SC.fmt24(bedRaw) + " 上床";
+    bed.appendChild(bt);
+
+    // ---- 鬧鐘（淺眠浪尖）----
+    var wm = $("#wakeMark"); wm.innerHTML = "";
+    var wx = xL + k*cw, wy = yFor(L_N1);
+    wm.appendChild(el("line", {x1:wx, y1:PT+2, x2:wx, y2:wy, "class":"beam"}));
+    wm.appendChild(el("circle", {cx:wx, cy:wy, r:16, "class":"bellglow", filter:"url(#soft)"}));
+    wm.appendChild(el("circle", {cx:wx, cy:wy, r:5, "class":"wakedot"}));
+    // 小鈴鐺置於浪尖上方
+    var by = PT + 4;
+    var bell = el("g", {transform:"translate(" + wx + "," + by + ")", "class":"bell"});
+    bell.appendChild(el("path", {d:"M-6 4 C-6 -3 -3 -6 0 -6 C3 -6 6 -3 6 4 L7.5 5.5 L-7.5 5.5 Z"}));
+    bell.appendChild(el("path", {d:"M-2.4 5.5 A2.4 2.4 0 0 0 2.4 5.5", fill:"none", stroke:"var(--goldd)", "stroke-width":"1.4"}));
+    bell.appendChild(el("circle", {cx:0, cy:-7, r:1.5}));
+    wm.appendChild(bell);
+
+    // ---- 描線動畫（可靠重播：transition none → 強制 reflow → rAF 才設 dashoffset）----
+    clearTimeout(drawTimer);
+    if (reduced){
+      line.style.transition = "none";
+      line.style.strokeDasharray = "none";
+      line.style.strokeDashoffset = "0";
+      area.style.opacity = "1";
+      crests.style.opacity = bed.style.opacity = wm.style.opacity = "1";
+      return;
+    }
+    var len = line.getTotalLength();
+    line.style.transition = "none";
+    line.style.strokeDasharray = len + " " + len;
+    line.style.strokeDashoffset = String(len);
+    area.style.transition = "none"; area.style.opacity = "0";
+    [crests, bed, wm].forEach(function(gg){ gg.style.transition = "none"; gg.style.opacity = "0"; });
+    line.getBoundingClientRect(); // 強制 reflow
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        line.style.transition = "stroke-dashoffset 1.05s cubic-bezier(.4,0,.2,1)";
+        line.style.strokeDashoffset = "0";
+        area.style.transition = "opacity .9s ease .2s"; area.style.opacity = "1";
+        crests.style.transition = "opacity .5s ease .55s"; crests.style.opacity = "1";
+        bed.style.transition = "opacity .5s ease .35s"; bed.style.opacity = "1";
+        wm.style.transition = "opacity .6s ease .85s"; wm.style.opacity = "1";
+      });
+    });
+  }
+
+  /* ---- 渲染卡片與 hero ---- */
+  function render(){
+    var m = MODE[state.mode];
+    var data = options();
+    var list = data.list;
+    var sel = selected(list);
+
+    // 卡片
+    var wrap = $("#cards"); wrap.innerHTML = "";
+    list.forEach(function(o){
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "opt" + (o.k === 5 ? " best" : "") + (o.k === state.selK ? " on" : "");
+      b.setAttribute("aria-pressed", o.k === state.selK ? "true" : "false");
+      var day = state.mode === "A" ? dayTagA(o.day) : dayTagB(o.day);
+      var whenWord = state.mode === "A" ? "就寢" : "起床";
+      b.setAttribute("aria-label", o.k + " 個週期，" + whenWord + " " + SC.fmt24(o.min) + (day ? "（" + day + "）" : "") + "，約 " + hoursLabel(o.k) + " 小時");
+      b.innerHTML =
+        (o.k === 5 ? '<span class="ribbon">最佳</span>' : "") +
+        '<div class="cyc">' + o.k + ' 個週期</div>' +
+        '<div class="ot">' + SC.fmt24(o.min) + (day ? '<span class="oday">' + day + '</span>' : "") + '</div>' +
+        '<div class="ohr">約 ' + hoursLabel(o.k) + ' 小時</div>';
+      b.addEventListener("click", function(){
+        state.selK = o.k; save();
+        render();
+      });
+      wrap.appendChild(b);
+    });
+
+    // hero
+    var day = state.mode === "A" ? dayTagA(sel.day) : dayTagB(sel.day);
+    $("#heroEye").textContent = m.heroEye;
+    $("#heroTime").textContent = SC.fmt24(sel.min);
+    $("#heroDay").textContent = day;
+    var fixedT = state.mode === "A" ? ("，" + SC.fmt24(state.wake) + " 起床") : ("，" + SC.fmt24(state.bed) + " 就寢");
+    $("#heroSub").innerHTML = "睡 <b>" + sel.k + "</b> 個週期・約 <b>" + hoursLabel(sel.k) + "</b> 小時" + fixedT;
+    $("#heroWhy").innerHTML = "鬧鐘落在<b>淺眠浪尖</b>——最接近清醒的一刻，比被谷底的深眠硬拉起來輕鬆得多。";
+
+    // 波形
+    buildWave(sel.k);
+
+    // 標題文案
+    $("#cardsHead").textContent = m.cardsHead;
+    $("#cardsHint").textContent = m.cardsHint;
+
+    // 無障礙播報
+    var actWord = state.mode === "A" ? "就寢" : "起床";
+    var msg = "建議" + actWord + " " + (day ? day + " " : "") + SC.fmt24(sel.min) + "，睡 " + sel.k + " 個週期、約 " + hoursLabel(sel.k) + " 小時，鬧鐘落在淺眠階段。";
+    $("#srStatus").textContent = msg;
+    $("#wave").setAttribute("aria-label", "睡眠波形圖：" + msg);
+  }
+
+  /* ---- 控制項 ---- */
+  function syncModeUI(){
+    var m = MODE[state.mode];
+    $("#modeCap").textContent = m.cap;
+    $("#timeLab").textContent = m.timeLab;
+    $("#mainTime").value = SC.fmt24(state.mode === "A" ? state.wake : state.bed);
+    $("#nowBtn").hidden = (state.mode !== "B");
+    $("#modeSeg").querySelectorAll("button").forEach(function(b){
+      var on = b.dataset.mode === state.mode;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    buildChips();
+  }
+  function buildChips(){
+    var m = MODE[state.mode];
+    var wrap = $("#chips"); wrap.innerHTML = "";
+    var cur = SC.fmt24(state.mode === "A" ? state.wake : state.bed);
+    m.chips.forEach(function(t){
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "chip" + (t === cur ? " on" : "");
+      b.textContent = t;
+      b.setAttribute("aria-label", "設定為 " + t);
+      b.addEventListener("click", function(){
+        var v = SC.parseHM(t);
+        if (state.mode === "A") state.wake = v; else state.bed = v;
+        $("#mainTime").value = t;
+        save(); syncModeUI(); render();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  function initControls(){
+    // 模式切換
+    $("#modeSeg").querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click", function(){
+        if (state.mode === b.dataset.mode) return;
+        state.mode = b.dataset.mode;
+        if ([3,4,5,6].indexOf(state.selK) < 0) state.selK = 5;
+        save(); syncModeUI(); render();
+      });
+    });
+    // 時間輸入
+    $("#mainTime").addEventListener("input", function(e){
+      if (!e.target.value) return;
+      var v = SC.parseHM(e.target.value);
+      if (state.mode === "A") state.wake = v; else state.bed = v;
+      save(); buildChips(); render();
+    });
+    // 現在就睡（模式 B）
+    $("#nowBtn").addEventListener("click", function(){
+      state.bed = nowMin();
+      $("#mainTime").value = SC.fmt24(state.bed);
+      save(); buildChips(); render();
+    });
+    // 入睡潛伏期
+    $("#latSeg").querySelectorAll("button").forEach(function(b){
+      b.addEventListener("click", function(){
+        state.lat = +b.dataset.lat;
+        $("#latSeg").querySelectorAll("button").forEach(function(x){
+          var on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        save(); render();
+      });
+    });
+    // 還原潛伏期選取狀態
+    $("#latSeg").querySelectorAll("button").forEach(function(x){
+      var on = +x.dataset.lat === state.lat;
+      x.classList.toggle("on", on); x.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  // 開機
+  load();
+  applyRM();
+  initGuides();
+  initControls();
+  syncModeUI();
+  render();
+})();
+</script>
+</body>
+</html>

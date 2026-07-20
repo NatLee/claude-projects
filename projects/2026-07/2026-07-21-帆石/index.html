@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>會自己走路的石頭 · 死亡谷帆石之謎</title>
+<meta name="description" content="死亡谷 Racetrack Playa 的乾湖床上，重達數百公斤的石頭會自己滑行、拖出蜿蜒的長軌跡。這個困擾百年的謎團在 2014 年被解開：冬夜結成的薄冰、白天裂成的浮冰板，加上一陣微風。親手重現那一夜，看石頭在你眼前動起來。">
+<style>
+  :root{
+    --bg:#0b0d12;
+    --ink:#efe7d6;         /* 暖白 */
+    --soft:#c3b79d;        /* 沙棕 */
+    --dim:#8f846d;         /* 暗棕 */
+    --dimmer:#5f5849;
+    --line:rgba(230,214,180,.14);
+    --panel:rgba(24,25,31,.72);
+    --panel2:rgba(32,33,40,.6);
+    --moon:#8fdbe6;        /* 月光青 */
+    --sun:#e9b264;         /* 日光赭 */
+    --rose:#f2a6a6;        /* 移動／揭示的暖點綴（奇聞軼事） */
+    --ok:#8fd68a;          /* 條件滿足 */
+    --amber:#e6b566;       /* 條件半滿 */
+    --mono:"SFMono-Regular",ui-monospace,"Menlo","Consolas",monospace;
+    --serif:"Noto Serif TC","Songti TC","Georgia",serif;
+    --shadow:0 26px 60px -34px rgba(0,0,0,.9);
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+    line-height:1.65;overflow-x:hidden;-webkit-font-smoothing:antialiased;
+  }
+  #bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(60% 42% at 78% -6%, rgba(233,178,100,.14), transparent 60%),
+      radial-gradient(52% 46% at 8% 108%, rgba(143,219,230,.12), transparent 60%),
+      linear-gradient(180deg,#0c0e13,#0a0b0f 60%,#0b0d12);
+  }
+  body>*{position:relative;z-index:1}
+
+  a.home{position:fixed;top:15px;left:15px;z-index:40;font-size:.84rem;color:var(--soft);
+    text-decoration:none;background:rgba(18,19,25,.72);border:1px solid var(--line);
+    padding:6px 13px;border-radius:999px;backdrop-filter:blur(7px);
+    transition:transform .2s ease,color .2s ease,border-color .2s}
+  a.home:hover{transform:translateX(-3px);color:var(--ink);border-color:rgba(233,178,100,.5)}
+  a.home:focus-visible{outline:2px solid var(--sun);outline-offset:3px}
+
+  .wrap{max-width:1160px;margin:0 auto;padding:0 20px 46px}
+  header.head{max-width:820px;margin:0 auto;padding:70px 4px 8px;text-align:center}
+  .eyebrow{margin:0 0 14px;letter-spacing:.34em;font-size:.66rem;font-weight:700;
+    color:var(--sun);font-family:var(--mono);text-indent:.34em}
+  h1{margin:0;font-family:var(--serif);font-weight:800;letter-spacing:.02em;
+    font-size:clamp(2.15rem,6.4vw,3.7rem);line-height:1.06;
+    background:linear-gradient(180deg,#fff,#f0d9b0 60%,#c79a5f 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .head .sub{margin:15px auto 0;max-width:34em;color:var(--soft);font-size:1.02rem}
+
+  /* 進場編排 */
+  [data-anim]{opacity:0;transform:translateY(16px);
+    animation:rise .82s cubic-bezier(.2,.75,.25,1) forwards;
+    animation-delay:calc(var(--i,0)*105ms)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* 主要版面 */
+  .app{display:grid;grid-template-columns:1fr 344px;gap:20px;align-items:start;margin-top:26px}
+  @media (max-width:880px){.app{grid-template-columns:1fr;gap:16px}}
+
+  /* 舞台（俯視湖床） */
+  .stage-card{position:relative;border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);background:#14110c}
+  .stage{position:relative;width:100%;aspect-ratio:16/11;min-height:240px}
+  @media (max-width:560px){.stage{aspect-ratio:5/6}}
+  #playa{display:block;width:100%;height:100%;touch-action:manipulation;cursor:crosshair}
+
+  .ribbon{position:absolute;left:14px;right:14px;bottom:14px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(10,10,14,.05),rgba(8,8,12,.82));
+    border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:11px 15px;
+    backdrop-filter:blur(3px)}
+  .ribbon .rt{font-family:var(--serif);font-weight:700;font-size:1.02rem;color:#fff;letter-spacing:.01em}
+  .ribbon .rn{margin-top:2px;font-size:.85rem;color:var(--soft)}
+  .ribbon-anim{animation:ribin .5s cubic-bezier(.2,.75,.25,1)}
+  @keyframes ribin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .badge{position:absolute;top:12px;left:14px;display:flex;gap:7px;align-items:center;
+    font-size:.72rem;color:var(--soft);background:rgba(10,10,14,.5);
+    border:1px solid rgba(255,255,255,.09);padding:5px 11px;border-radius:999px;backdrop-filter:blur(4px)}
+  .badge b{color:var(--ink);font-family:var(--mono);font-weight:700}
+  .badge .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:background .35s ease}
+  .badge.on .dot{background:var(--rose);box-shadow:0 0 10px var(--rose)}
+
+  .clue{position:absolute;top:12px;right:14px;font-size:.72rem;color:var(--dim);
+    background:rgba(10,10,14,.5);border:1px solid rgba(255,255,255,.07);
+    padding:5px 11px;border-radius:999px;backdrop-filter:blur(4px);max-width:44%;text-align:right}
+
+  /* 控制面板 */
+  .panel{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);
+    box-shadow:var(--shadow);padding:16px 16px 18px;backdrop-filter:blur(9px)}
+  .panel h2{margin:0 0 3px;font-size:.72rem;letter-spacing:.24em;color:var(--dim);
+    font-family:var(--mono);font-weight:700;text-transform:uppercase}
+  .play{width:100%;margin:4px 0 14px;font-family:inherit;font-size:1.02rem;font-weight:800;
+    letter-spacing:.04em;cursor:pointer;color:#231708;border:none;border-radius:13px;padding:13px;
+    background:linear-gradient(180deg,#f2c079,#e2984a);box-shadow:0 12px 26px -14px rgba(233,178,100,.9);
+    transition:transform .16s ease,box-shadow .2s ease,filter .2s}
+  .play:hover{transform:translateY(-2px);box-shadow:0 18px 34px -16px rgba(233,178,100,.95);filter:brightness(1.04)}
+  .play:active{transform:translateY(0)}
+  .play:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+  .grp{margin-top:15px}
+  .grp:first-of-type{margin-top:4px}
+  .grp .lab{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .grp .lab .t{font-size:.85rem;color:var(--soft);font-weight:600}
+  .grp .lab .v{font-size:.82rem;color:var(--ink);font-family:var(--mono);font-weight:700}
+  .grp .lab .v b{color:var(--sun)}
+
+  /* 四步時間軸 */
+  .rail input[type=range], .speed input[type=range]{width:100%;margin:0;accent-color:var(--sun);cursor:pointer;height:22px}
+  .ticks{display:flex;justify-content:space-between;margin-top:2px;padding:0 2px}
+  .ticks span{flex:1;text-align:center;font-size:.68rem;color:var(--dim);transition:color .25s ease}
+  .ticks span.on{color:var(--sun);font-weight:700}
+
+  .speed input[type=range]{accent-color:var(--moon)}
+
+  /* 風向羅盤 */
+  .compass-wrap{display:flex;gap:14px;align-items:center}
+  .compass{width:98px;height:98px;flex:none;border-radius:50%;cursor:grab;touch-action:none;
+    outline:none;transition:box-shadow .2s ease}
+  .compass:active{cursor:grabbing}
+  .compass:focus-visible{box-shadow:0 0 0 3px rgba(233,178,100,.55)}
+  .compass-info{flex:1;min-width:0}
+  .compass-info .dir{font-family:var(--serif);font-size:1.5rem;font-weight:800;color:var(--ink);line-height:1.1}
+  .compass-info .deg{font-family:var(--mono);font-size:.8rem;color:var(--dim)}
+  .compass-info .hint{margin-top:5px;font-size:.72rem;color:var(--dim)}
+
+  /* 石頭數量 */
+  .stepper{display:flex;align-items:center;gap:10px}
+  .stepper button{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);font-size:1.3rem;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;line-height:1;
+    transition:transform .14s ease,border-color .2s,background .2s}
+  .stepper button:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(233,178,100,.5);background:rgba(233,178,100,.1)}
+  .stepper button:active:not(:disabled){transform:translateY(0)}
+  .stepper button:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+  .stepper button:disabled{opacity:.35;cursor:not-allowed}
+  .stepper .num{font-family:var(--mono);font-size:1.15rem;font-weight:700;min-width:2.6ch;text-align:center}
+  .stepper .cap{font-size:.74rem;color:var(--dim);margin-left:2px}
+  .ghost{margin-top:12px;width:100%;font-family:inherit;font-size:.82rem;color:var(--soft);cursor:pointer;
+    background:transparent;border:1px solid var(--line);border-radius:11px;padding:9px;
+    transition:border-color .2s,color .2s,background .2s}
+  .ghost:hover{border-color:rgba(233,178,100,.5);color:var(--ink);background:rgba(233,178,100,.06)}
+  .ghost:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+
+  /* 條件燈：缺一不可 */
+  .cond{margin-top:16px;border-top:1px dashed var(--line);padding-top:14px}
+  .cond h2{margin-bottom:10px}
+  .lights{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .light{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;
+    transition:border-color .35s ease,background .35s ease}
+  .light .d{width:12px;height:12px;border-radius:50%;margin:0 auto 7px;background:var(--dimmer);
+    transition:background .35s ease,box-shadow .35s ease}
+  .light .nm{font-size:.84rem;font-weight:700;color:var(--soft)}
+  .light .st{font-size:.68rem;color:var(--dim);margin-top:1px;min-height:1.5em;line-height:1.35}
+  .light[data-s="on"]{border-color:rgba(143,214,138,.45);background:rgba(143,214,138,.08)}
+  .light[data-s="on"] .d{background:var(--ok);box-shadow:0 0 12px rgba(143,214,138,.75)}
+  .light[data-s="on"] .nm{color:var(--ink)}
+  .light[data-s="half"]{border-color:rgba(230,181,102,.4);background:rgba(230,181,102,.07)}
+  .light[data-s="half"] .d{background:var(--amber);box-shadow:0 0 10px rgba(230,181,102,.6)}
+  .verdict{margin-top:12px;font-size:.9rem;font-weight:700;text-align:center;padding:9px;border-radius:11px;
+    color:var(--soft);background:var(--panel2);border:1px solid var(--line);transition:color .3s,background .3s,border-color .3s}
+  .verdict.go{color:#0d1a0c;background:linear-gradient(180deg,#a6e59f,#7fce7a);border-color:transparent}
+  .verdict.go.pulse{animation:vp .6s ease}
+  @keyframes vp{0%{transform:scale(.97);opacity:.7}60%{transform:scale(1.02)}100%{transform:scale(1);opacity:1}}
+
+  /* 揭曉：真實事實 */
+  .reveal{margin-top:30px}
+  .reveal h2.sec{font-family:var(--serif);font-size:clamp(1.3rem,3.4vw,1.7rem);font-weight:800;
+    text-align:center;margin:0 0 4px;color:var(--ink)}
+  .reveal .seclede{text-align:center;color:var(--dim);font-size:.9rem;margin:0 auto 20px;max-width:32em}
+  .facts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:820px){.facts{grid-template-columns:1fr}}
+  .fact{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:17px 17px 18px;
+    box-shadow:var(--shadow)}
+  .fact .fh{display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .fact .fi{font-size:1.32rem;line-height:1}
+  .fact .ft{font-family:var(--serif);font-weight:800;font-size:1.06rem;color:var(--ink)}
+  .fact p{margin:0;font-size:.9rem;color:var(--soft)}
+  .fact b{color:var(--ink)}
+  .fact.hi{border-color:rgba(233,178,100,.32)}
+  .fact.hi .ft{color:var(--sun)}
+
+  footer{max-width:820px;margin:30px auto 6px;text-align:center}
+  footer p{margin:0;font-size:.76rem;color:var(--dim)}
+  footer .src{font-family:var(--mono);color:var(--dimmer)}
+
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  @media (prefers-reduced-motion:reduce){
+    [data-anim]{animation:none;opacity:1;transform:none}
+    .ribbon-anim,.verdict.go.pulse{animation:none}
+    *{transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"></div>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<div class="wrap">
+  <header class="head">
+    <p class="eyebrow" data-anim style="--i:0">DEATH VALLEY · RACETRACK PLAYA</p>
+    <h1 data-anim style="--i:1">會自己走路的石頭</h1>
+    <p class="sub" data-anim style="--i:2">乾裂的湖床上，幾百公斤的石頭拖著長長的、詭異同步的軌跡。<br>沒有人推、沒有人拉——這謎團困了世人快一百年。按下按鈕，重現那一夜。</p>
+  </header>
+
+  <div class="app">
+    <!-- 舞台 -->
+    <section class="stage-card" data-anim style="--i:3" aria-label="俯視死亡谷湖床的互動場景">
+      <div class="stage">
+        <canvas id="playa" role="img" aria-label="俯視乾裂湖床：石頭與它們拖出的軌跡"></canvas>
+      </div>
+      <div class="badge" id="badge"><span class="dot"></span><span id="badgeTxt">尚未起風</span></div>
+      <div class="clue" id="clue">點一下畫面，可以再放一顆石頭</div>
+      <div class="ribbon" id="ribbon">
+        <div class="rt" id="ribbonT">按「重現那一夜」，或拖動下方時間軸</div>
+        <div class="rn" id="ribbonN">四個步驟缺一不可，看看是哪一步讓石頭動了起來。</div>
+      </div>
+    </section>
+
+    <!-- 控制 -->
+    <aside class="panel" data-anim style="--i:4" aria-label="控制面板">
+      <button class="play" id="playBtn" type="button" aria-label="重現那一夜：從下雨、結冰、冰裂到起風，自動播放四個步驟">▶ 重現那一夜</button>
+
+      <div class="grp rail">
+        <div class="lab"><span class="t">四步時間軸</span><span class="v" id="stepV">第 1 步</span></div>
+        <input id="timeline" type="range" min="0" max="400" step="1" value="0"
+          aria-label="四步時間軸，拖曳以在下雨、結冰、冰裂、起風之間移動；停在『起風』石頭就會滑行"
+          aria-valuetext="第 1 步：白天下雨">
+        <div class="ticks" id="ticks">
+          <span data-k="1">下雨</span><span data-k="2">結冰</span><span data-k="3">冰裂</span><span data-k="4">起風</span>
+        </div>
+      </div>
+
+      <div class="grp speed">
+        <div class="lab"><span class="t">風速</span><span class="v"><b id="spV">4.0</b> 公尺/秒</span></div>
+        <input id="speed" type="range" min="0" max="8" step="0.5" value="4"
+          aria-label="風速，單位公尺每秒。真實的帆石只需要每秒幾公尺的微風" aria-valuetext="每秒 4.0 公尺">
+      </div>
+
+      <div class="grp">
+        <div class="lab"><span class="t">風向（風往哪吹）</span></div>
+        <div class="compass-wrap">
+          <svg class="compass" id="compass" viewBox="0 0 100 100" role="slider"
+               tabindex="0" aria-label="風向，風往哪個方向吹"
+               aria-valuemin="0" aria-valuemax="359" aria-valuenow="125" aria-valuetext="往東南（125 度）">
+            <circle cx="50" cy="50" r="45" fill="rgba(20,21,27,.7)" stroke="rgba(230,214,180,.2)" stroke-width="1.5"/>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(143,219,230,.12)" stroke-width="6"/>
+            <g fill="#8f846d" font-size="8" font-weight="700" text-anchor="middle" font-family="ui-monospace,Menlo,Consolas,monospace">
+              <text x="50" y="15">北</text><text x="88" y="53">東</text>
+              <text x="50" y="91">南</text><text x="12" y="53">西</text>
+            </g>
+            <g id="arrow" transform="rotate(125 50 50)">
+              <line x1="50" y1="50" x2="83" y2="50" stroke="#f2a6a6" stroke-width="3.4" stroke-linecap="round"/>
+              <polygon points="83,44 93,50 83,56" fill="#f2a6a6"/>
+              <circle cx="50" cy="50" r="4.6" fill="#efe7d6"/>
+            </g>
+          </svg>
+          <div class="compass-info">
+            <div class="dir" id="dirName">東南風</div>
+            <div class="deg" id="dirDeg">往 125°</div>
+            <div class="hint">拖動羅盤，或用方向鍵。<br>轉動風向，看所有軌跡一起轉彎。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grp">
+        <div class="lab"><span class="t">石頭數量</span></div>
+        <div class="stepper">
+          <button id="minus" type="button" aria-label="減少一顆石頭">−</button>
+          <span class="num" id="stoneNum" aria-live="off">4</span>
+          <button id="plus" type="button" aria-label="增加一顆石頭">＋</button>
+          <span class="cap">顆（多放幾顆看同步）</span>
+        </div>
+        <button class="ghost" id="resetBtn" type="button" aria-label="清除所有軌跡並回到第一步">↺ 抹平湖床・重新開始</button>
+      </div>
+
+      <div class="cond">
+        <h2>石頭移動的三個條件</h2>
+        <div class="lights">
+          <div class="light" id="lWater" data-s="off"><div class="d"></div><div class="nm">淺水</div><div class="st" id="stWater">還沒下雨</div></div>
+          <div class="light" id="lIce" data-s="off"><div class="d"></div><div class="nm">薄冰</div><div class="st" id="stIce">尚未結冰</div></div>
+          <div class="light" id="lWind" data-s="off"><div class="d"></div><div class="nm">微風</div><div class="st" id="stWind">無風</div></div>
+        </div>
+        <div class="verdict" id="verdict">缺一不可：三個條件同時到齊，石頭才會動。</div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 揭曉 -->
+  <section class="reveal" data-anim style="--i:5" aria-label="真相與科學">
+    <h2 class="sec">那，到底是誰在推它？</h2>
+    <p class="seclede">一個從 1940 年代就被記錄、卻沒人親眼見過的百年謎團，2014 年終於真相大白。</p>
+    <div class="facts">
+      <div class="fact">
+        <div class="fh"><span class="fi">🪨</span><span class="ft">百年懸案</span></div>
+        <p>死亡谷 Racetrack Playa 的乾湖床上，最重約 <b>320 公斤</b>（700 磅）的石頭，會拖出長達<b>數百公尺</b>的軌跡。自 <b>1940 年代</b>就有紀錄，卻從沒有人看過它們移動。強風說、磁力說、甚至外星人，都被搬出來過。</p>
+      </div>
+      <div class="fact hi">
+        <div class="fh"><span class="fi">📸</span><span class="ft">2014，真相大白</span></div>
+        <p><b>2014 年 8 月 27 日</b>，《PLOS ONE》一篇論文首度用縮時攝影＋GPS「當場」拍到石頭滑行——由 Scripps 海洋研究所（UC San Diego）的 <b>Richard Norris</b>、堂弟 James Norris 與行星科學家 <b>Ralph Lorenz</b> 主導。那個冬天，他們看到約 <b>60 顆</b>石頭同時移動。</p>
+      </div>
+      <div class="fact">
+        <div class="fh"><span class="fi">🌬️</span><span class="ft">機制其實很溫柔</span></div>
+        <p>冬夜，淺淺的雨水結成一層薄得像窗玻璃的「<b>窗玻璃冰</b>」；白天陽光把整片冰曬裂成一塊塊<b>浮冰板</b>；只要一陣每秒幾公尺的「<b>微風</b>」，就能推著浮冰、連帶推著嵌在冰裡的石頭，在濕滑泥面上緩緩滑行。不是狂風、不是磁力，更不是外星人。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer data-anim style="--i:6">
+    <p>石頭一夜可能只滑幾公尺，慢到沒人看得見——但它真的在走。<br>
+    <span class="src">資料來源：Scripps 海洋研究所／PLOS ONE（2014）</span></p>
+  </footer>
+</div>
+
+<span class="sr-only" id="live" role="status" aria-live="polite"></span>
+
+<script>
+(function(){
+  'use strict';
+
+  //<<<CORE 純函式核心（供 node 測試抽出；此區塊內不可使用 DOM／window）
+  var PLAYA_CORE = (function(){
+    var K = 9; // 每 (公尺/秒)·每秒 石頭滑行的畫布像素數（觀賞用，時間有壓縮）
+
+    function lerp(a,b,t){ return a+(b-a)*t; }
+    function clamp(v,lo,hi){ return v<lo?lo:(v>hi?hi:v); }
+
+    // 相位 phase ∈ [0,4]，對應四步：
+    // [0,1) 白天下雨積水 · [1,2) 入夜結窗玻璃冰 · [2,3) 白天冰裂成浮板 · [3,4) 微風推動
+    // 由相位推出「石頭要動」所需的兩個環境條件：
+    function condAt(phase){
+      return {
+        water: phase >= 0.55,     // 下雨後泥面一直有水（之後為水膜）
+        icePanels: phase >= 2.6   // 冰已裂成可被推動的浮板（整片凍死的冰不算）
+      };
+    }
+    // 白天的微風是否正在吹：只在第四步視窗內；天亮（≈4）風就停了
+    function windActive(phase){ return phase >= 3.0 && phase < 3.95; }
+
+    // 單顆石頭走一步：唯有「淺水 且 浮冰 且 有風且風速>0」才移動。
+    // 位移量 = 風速 × K × dt；方向 = 風向 dirRad（noise 為疊加的微小角度擾動，預設 0）。
+    function stepStone(x, y, cond, windOn, speed, dirRad, dt, noise){
+      if(!(cond.water && cond.icePanels && windOn && speed > 0)){
+        return { x:x, y:y, dx:0, dy:0, moved:false };
+      }
+      var dist = speed * K * dt;
+      var dir = dirRad + (noise || 0);
+      var dx = Math.cos(dir) * dist;
+      var dy = Math.sin(dir) * dist;
+      return { x:x+dx, y:y+dy, dx:dx, dy:dy, moved:true };
+    }
+
+    return { K:K, lerp:lerp, clamp:clamp, condAt:condAt, windActive:windActive, stepStone:stepStone };
+  })();
+  //CORE>>>
+
+  var lerp = PLAYA_CORE.lerp, clamp = PLAYA_CORE.clamp;
+  var TAU = Math.PI*2;
+  var REF_M = 180; // 畫布寬度 ≈ 這麼多公尺（用於距離讀數）
+
+  // ---- 元素 ----
+  var canvas = document.getElementById('playa');
+  var ctx = canvas.getContext('2d');
+  var stageEl = canvas.parentNode;
+  var timeline = document.getElementById('timeline');
+  var speedEl = document.getElementById('speed');
+  var compass = document.getElementById('compass');
+  var arrow = document.getElementById('arrow');
+  var playBtn = document.getElementById('playBtn');
+  var live = document.getElementById('live');
+
+  var reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var REDUCE = reduceMQ.matches;
+
+  // ---- 狀態 ----
+  var state = {
+    phase: 0,
+    windDeg: 125,     // 風「往哪吹」的螢幕角度（0=東/右，90=南/下）
+    windSpeed: 4,
+    playing: false,
+    moving: false,
+    wander: 0, wanderV: 0,
+    stones: [],
+    t: 0               // 累積時間（給水光／冰面微動）
+  };
+
+  // 畫布尺寸（邏輯 CSS 像素）
+  var cssW = 0, cssH = 0, dpr = 1;
+  var mud = document.createElement('canvas');
+  var mctx = mud.getContext('2d');
+  var panelsFrac = [];   // 浮冰板（以 0..1 分數座標存，隨尺寸縮放）
+  var iceLines = [];     // 窗玻璃冰的細裂線（分數座標）
+  var sparkles = [];     // 水面／冰面反光（分數座標）
+
+  // ---- 幾何：日照、水、冰量（純視覺，皆為相位函式） ----
+  function daylight(p){
+    if(p<0.9) return 1;
+    if(p<1.4) return lerp(1,0.13,(p-0.9)/0.5);
+    if(p<2.1) return 0.13;
+    if(p<2.6) return lerp(0.13,1,(p-2.1)/0.5);
+    return 1;
+  }
+  function waterAmt(p){
+    if(p<0.4) return 0;
+    if(p<1.0) return (p-0.4)/0.6;             // 積水
+    if(p<1.5) return 1 - (p-1.0)/0.5*0.62;    // 結冰時液面反光下降
+    return 0.28;                               // 之後為薄水膜
+  }
+  function iceAmt(p){
+    if(p<1.1) return 0;
+    if(p<1.6) return (p-1.1)/0.5;   // 結冰
+    if(p<2.6) return 1;             // 整片薄冰
+    return 0.72;                    // 裂成浮板後仍有冰
+  }
+  function panelBreak(p){ return clamp((p-2.4)/0.45,0,1); } // 浮板邊緣顯現程度
+  function iceState(p){ return p<1.4 ? 'none' : (p<2.6 ? 'frozen' : 'panels'); }
+
+  // ---- 亂數（可重現） ----
+  function hash2(i,j){ var s=Math.sin(i*127.1+j*311.7)*43758.5453; return s-Math.floor(s); }
+  function makeLCG(seed){ var s=seed>>>0; return function(){ s=(s*1664525+1013904223)>>>0; return s/4294967296; }; }
+
+  // ---- 建立乾裂泥面（離屏，尺寸變才重畫） ----
+  function buildMud(){
+    var tw = Math.max(1,Math.round(cssW*dpr)), th = Math.max(1,Math.round(cssH*dpr));
+    mud.width = tw; mud.height = th;
+    mctx.setTransform(dpr,0,0,dpr,0,0);
+    var W=cssW, H=cssH;
+    var bg = mctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0,'#c3ad8b'); bg.addColorStop(1,'#a4906f');
+    mctx.fillStyle=bg; mctx.fillRect(0,0,W,H);
+
+    var cell = Math.max(30, Math.min(W,H)/13);
+    var cols = Math.ceil(W/cell)+2, rows = Math.ceil(H/cell)+2;
+    function lp(i,j){
+      var jx=(hash2(i,j)-0.5)*cell*0.72, jy=(hash2(i+91,j-13)-0.5)*cell*0.72;
+      return { x:(i-1)*cell+jx, y:(j-1)*cell+jy };
+    }
+    for(var j=0;j<rows;j++) for(var i=0;i<cols;i++){
+      var a=lp(i,j), b=lp(i+1,j), c=lp(i+1,j+1), d=lp(i,j+1);
+      var cx=(a.x+b.x+c.x+d.x)/4, cy=(a.y+b.y+c.y+d.y)/4;
+      var s=0.9; // 向形心內縮 → 板塊之間的縫隙即為裂痕
+      var tt=hash2(i*13+3,j*7+5), tone=Math.floor(172+tt*36);
+      mctx.fillStyle='rgb('+tone+','+(tone-20)+','+(tone-50)+')';
+      mctx.beginPath();
+      mctx.moveTo(cx+(a.x-cx)*s, cy+(a.y-cy)*s);
+      mctx.lineTo(cx+(b.x-cx)*s, cy+(b.y-cy)*s);
+      mctx.lineTo(cx+(c.x-cx)*s, cy+(c.y-cy)*s);
+      mctx.lineTo(cx+(d.x-cx)*s, cy+(d.y-cy)*s);
+      mctx.closePath(); mctx.fill();
+      mctx.strokeStyle='rgba(58,42,24,0.5)'; mctx.lineWidth=1; mctx.stroke();
+      mctx.strokeStyle='rgba(255,246,225,0.05)'; mctx.lineWidth=1;
+      mctx.beginPath();
+      mctx.moveTo(cx+(d.x-cx)*s, cy+(d.y-cy)*s);
+      mctx.lineTo(cx+(a.x-cx)*s, cy+(a.y-cy)*s);
+      mctx.lineTo(cx+(b.x-cx)*s, cy+(b.y-cy)*s);
+      mctx.stroke();
+    }
+    var vg = mctx.createRadialGradient(W/2,H*0.46,Math.min(W,H)*0.18, W/2,H/2,Math.max(W,H)*0.72);
+    vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(18,10,2,0.4)');
+    mctx.fillStyle=vg; mctx.fillRect(0,0,W,H);
+  }
+
+  // 冰裂線 + 浮板 + 反光（一次性，分數座標）
+  function buildOverlays(){
+    var r = makeLCG(20140827);
+    iceLines = [];
+    for(var i=0;i<11;i++){
+      var horiz = r()<0.5;
+      if(horiz) iceLines.push({x1:0,y1:r(),x2:1,y2:r()});
+      else iceLines.push({x1:r(),y1:0,x2:r(),y2:1});
+    }
+    // 浮板：3×3 抖動格，每格一塊板
+    panelsFrac = [];
+    var GC=3, GR=3;
+    function pt(i,j){ return { x:(i+ (hash2(i*5+1,j*5+2)-0.5)*0.6)/GC, y:(j+(hash2(i*5+7,j*5+3)-0.5)*0.6)/GR }; }
+    for(var jj=0;jj<GR;jj++) for(var ii=0;ii<GC;ii++){
+      panelsFrac.push([pt(ii,jj),pt(ii+1,jj),pt(ii+1,jj+1),pt(ii,jj+1)]);
+    }
+    sparkles = [];
+    for(var k=0;k<26;k++) sparkles.push({x:r(),y:r(),ph:r()*TAU,s:0.5+r()});
+  }
+
+  // ---- 石頭 ----
+  function makeStone(x,y,big,idx){
+    return { x:x, y:y, x0:x, y0:y, r: big?15:(8+ (hash2(idx*3+1,idx*2+5))*4),
+             big:!!big, seed:idx, trail:[{x:x,y:y}], dist:0 };
+  }
+  function seedStones(n){
+    state.stones = [];
+    var r = makeLCG(7 + n*131);
+    for(var i=0;i<n;i++){
+      // 沿一條略斜的線散開，讓平行軌跡清楚可見
+      var fx = 0.16 + 0.30*(i/Math.max(1,n-1)) + (r()-0.5)*0.05;
+      var fy = 0.26 + 0.5*(r()) ;
+      state.stones.push(makeStone(clamp(fx,0.08,0.5)*cssW, clamp(fy,0.14,0.86)*cssH, i===0, i));
+    }
+  }
+  function addStoneAt(x,y){
+    if(state.stones.length>=8) return false;
+    state.stones.push(makeStone(clamp(x,10,cssW-10), clamp(y,10,cssH-10), false, state.stones.length+3));
+    return true;
+  }
+
+  // ---- 版面（含 dpr 回寫防呆） ----
+  function layout(){
+    var rect = canvas.getBoundingClientRect();
+    var nw = rect.width, nh = rect.height;
+    if(nw<2 || nh<2) return;
+    var ndpr = Math.min(window.devicePixelRatio||1, 2);
+    var tw = Math.round(nw*ndpr), th = Math.round(nh*ndpr);
+    var sizeChanged = (canvas.width!==tw || canvas.height!==th);
+    // 依比例保留石頭與軌跡的相對位置
+    var ox = cssW, oy = cssH;
+    cssW = nw; cssH = nh; dpr = ndpr;
+    if(sizeChanged){
+      if(ox>0 && oy>0 && (ox!==nw || oy!==nh)){
+        var sx=nw/ox, sy=nh/oy;
+        state.stones.forEach(function(s){
+          s.x*=sx; s.y*=sy; s.x0*=sx; s.y0*=sy;
+          s.trail.forEach(function(p){ p.x*=sx; p.y*=sy; });
+        });
+      }
+      canvas.width = tw; canvas.height = th;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      buildMud();
+      if(state.stones.length===0) seedStones(state.nStones||4);
+    }
+  }
+
+  // ---- 色彩工具 ----
+  function rgba(r,g,b,a){ return 'rgba('+(r|0)+','+(g|0)+','+(b|0)+','+a+')'; }
+
+  // ---- 繪製 ----
+  function draw(){
+    if(cssW<2) return;
+    var W=cssW, H=cssH, p=state.phase;
+    ctx.clearRect(0,0,W,H);
+    // 泥面
+    ctx.drawImage(mud, 0, 0, W, H);
+
+    // 日夜色調（multiply 讓夜晚變暗變冷）
+    var dl = daylight(p);
+    ctx.save();
+    ctx.globalCompositeOperation='multiply';
+    ctx.fillStyle = rgba(lerp(58,255,dl), lerp(74,250,dl), lerp(120,242,dl), 1);
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+    if(dl>0.62){
+      ctx.save(); ctx.globalCompositeOperation='soft-light';
+      ctx.fillStyle = rgba(255,196,120,(dl-0.62)*0.5); ctx.fillRect(0,0,W,H);
+      ctx.restore();
+    }
+
+    // 水
+    var wa = waterAmt(p);
+    if(wa>0.01){
+      ctx.save(); ctx.globalCompositeOperation='screen';
+      var wg = ctx.createLinearGradient(0,0,0,H);
+      var cool = 1-dl;
+      wg.addColorStop(0, rgba(70+60*cool,150,180, 0.10*wa));
+      wg.addColorStop(1, rgba(40,90,140, 0.16*wa));
+      ctx.fillStyle=wg; ctx.fillRect(0,0,W,H);
+      ctx.restore();
+      // 反光點
+      ctx.save();
+      for(var i=0;i<sparkles.length;i++){
+        var sp=sparkles[i];
+        var tw = REDUCE?0.6:(0.5+0.5*Math.sin(state.t*1.6+sp.ph));
+        ctx.fillStyle = rgba(220,240,255, 0.16*wa*tw);
+        ctx.beginPath(); ctx.arc(sp.x*W, sp.y*H, sp.s*1.5, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // 冰
+    var ia = iceAmt(p);
+    if(ia>0.01){
+      ctx.save(); ctx.globalCompositeOperation='screen';
+      ctx.fillStyle = rgba(200,232,240, 0.16*ia); ctx.fillRect(0,0,W,H);
+      ctx.restore();
+      // 窗玻璃冰的細裂線
+      ctx.save();
+      ctx.strokeStyle = rgba(235,250,255, 0.20*ia); ctx.lineWidth=1;
+      for(var j=0;j<iceLines.length;j++){ var L=iceLines[j];
+        ctx.beginPath(); ctx.moveTo(L.x1*W,L.y1*H); ctx.lineTo(L.x2*W,L.y2*H); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 浮冰板（第 3 步顯現；第 4 步隨風漂移）
+    var pb = panelBreak(p);
+    if(pb>0.01){
+      var wr = state.windDeg*Math.PI/180;
+      var drift = PLAYA_CORE.windActive(p) ? Math.min(1,(p-3.0)/0.9)*10 : 0;
+      var ox2 = Math.cos(wr)*drift, oy2 = Math.sin(wr)*drift;
+      ctx.save();
+      ctx.strokeStyle = rgba(230,248,255, 0.5*pb*Math.max(0.4,ia)); ctx.lineWidth=1.4; ctx.lineJoin='round';
+      ctx.fillStyle = rgba(210,236,244, 0.05*pb);
+      for(var q=0;q<panelsFrac.length;q++){
+        var poly=panelsFrac[q];
+        ctx.beginPath();
+        for(var v=0;v<poly.length;v++){
+          var X=poly[v].x*W+ox2, Y=poly[v].y*H+oy2;
+          if(v===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+        }
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 微風的痕跡（僅推動時）
+    if(!REDUCE && PLAYA_CORE.windActive(p) && state.windSpeed>0){
+      var a2 = state.windDeg*Math.PI/180, ca=Math.cos(a2), sa=Math.sin(a2);
+      ctx.save(); ctx.strokeStyle=rgba(255,255,255,0.05); ctx.lineWidth=1;
+      for(var s3=0;s3<9;s3++){
+        var base=(s3*97.13)%1, off=((state.t*30*Math.max(0.3,state.windSpeed/4)+s3*40)%160);
+        var px0 = ((base*W + ca*off)%(W+80)+W+80)%(W+80)-40;
+        var py0 = ((s3/9*H + sa*off)%(H+80)+H+80)%(H+80)-40;
+        ctx.beginPath(); ctx.moveTo(px0,py0); ctx.lineTo(px0-ca*14, py0-sa*14); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // 軌跡（凹槽）— 依實際走訪順序描繪，不倒放
+    for(var t=0;t<state.stones.length;t++){
+      var st=state.stones[t];
+      if(st.trail.length<2) continue;
+      ctx.lineJoin='round'; ctx.lineCap='round';
+      // 柔和外緣（像被壓出的凹陷）
+      ctx.strokeStyle = rgba(236,220,188, 0.22); ctx.lineWidth = st.r*0.95;
+      strokePath(st.trail);
+      // 深色furrow中心
+      ctx.strokeStyle = rgba(60,44,26, 0.5); ctx.lineWidth = Math.max(1.6, st.r*0.42);
+      strokePath(st.trail);
+    }
+
+    // 起點標記 + 石頭
+    for(var u=0;u<state.stones.length;u++){
+      var s=state.stones[u];
+      // 起點
+      ctx.save(); ctx.strokeStyle=rgba(255,255,255,0.22); ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.arc(s.x0,s.y0, Math.max(3,s.r*0.4),0,TAU); ctx.stroke(); ctx.restore();
+      // 移動時的暖光
+      if(state.moving){
+        ctx.save();
+        var glow=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*2.4);
+        glow.addColorStop(0, rgba(242,166,166,0.5)); glow.addColorStop(1, rgba(242,166,166,0));
+        ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(s.x,s.y,s.r*2.4,0,TAU); ctx.fill(); ctx.restore();
+      }
+      drawStone(s);
+    }
+  }
+
+  function strokePath(tr){
+    ctx.beginPath();
+    ctx.moveTo(tr[0].x, tr[0].y);
+    for(var i=1;i<tr.length;i++) ctx.lineTo(tr[i].x, tr[i].y);
+    ctx.stroke();
+  }
+
+  function drawStone(s){
+    // 接觸陰影
+    ctx.save();
+    ctx.fillStyle=rgba(0,0,0,0.32);
+    ctx.beginPath(); ctx.ellipse(s.x+s.r*0.28, s.y+s.r*0.4, s.r*1.05, s.r*0.72, 0,0,TAU); ctx.fill();
+    ctx.restore();
+    // 不規則多邊形石身
+    var n=6, R=s.r;
+    ctx.beginPath();
+    for(var i=0;i<n;i++){
+      var ang=i/n*TAU;
+      var rr=R*(0.82+0.28*hash2(s.seed*9+i, s.seed*3+2));
+      var X=s.x+Math.cos(ang)*rr, Y=s.y+Math.sin(ang)*rr;
+      if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y);
+    }
+    ctx.closePath();
+    var g=ctx.createLinearGradient(s.x-R,s.y-R,s.x+R,s.y+R);
+    g.addColorStop(0,'#6b6252'); g.addColorStop(0.5,'#463f34'); g.addColorStop(1,'#2c281f');
+    ctx.fillStyle=g; ctx.fill();
+    // 高光
+    ctx.fillStyle=rgba(214,203,180,0.5);
+    ctx.beginPath(); ctx.ellipse(s.x-R*0.28, s.y-R*0.3, R*0.34, R*0.22, -0.6,0,TAU); ctx.fill();
+    ctx.strokeStyle=rgba(20,16,10,0.5); ctx.lineWidth=1; ctx.stroke();
+  }
+
+  // ---- 模擬（即時） ----
+  function integrate(dt){
+    var cond = PLAYA_CORE.condAt(state.phase);
+    var windOn = PLAYA_CORE.windActive(state.phase);
+    var canMove = cond.water && cond.icePanels && windOn && state.windSpeed>0;
+    state.moving = canMove;
+    if(!canMove) return;
+    // 共同的風向緩慢擺動 → 多顆石頭一起轉彎（詭異同步）
+    state.wanderV += (Math.random()-0.5)*1.5*dt;
+    state.wanderV *= 0.95;
+    state.wander = clamp(state.wander + state.wanderV*dt, -0.5, 0.5);
+    var base = state.windDeg*Math.PI/180 + state.wander;
+    for(var i=0;i<state.stones.length;i++){
+      var s=state.stones[i];
+      var jitter=(Math.random()-0.5)*0.06; // 每顆極小的獨立擾動
+      var res=PLAYA_CORE.stepStone(s.x,s.y,cond,windOn,state.windSpeed,base,dt,jitter);
+      if(!res.moved) continue;
+      var pad=s.r+6;
+      var nx=clamp(res.x,pad,cssW-pad), ny=clamp(res.y,pad,cssH-pad);
+      moveStoneTo(s,nx,ny);
+    }
+  }
+  function moveStoneTo(s,nx,ny){
+    var last=s.trail[s.trail.length-1];
+    var dpx=nx-s.x, dpy=ny-s.y;
+    s.x=nx; s.y=ny;
+    var seg=Math.hypot(nx-last.x, ny-last.y);
+    if(seg>2.6 && s.trail.length<2200){
+      s.trail.push({x:nx,y:ny});
+      s.dist += seg*(REF_M/Math.max(1,cssW));
+    }
+  }
+
+  // 降級模式：一次算完整段軌跡（可重現、平行同步、輕微蜿蜒）
+  function simulateTrails(){
+    var r=makeLCG(31337);
+    var cond={water:true, icePanels:true};
+    var dt=0.05, steps=150, wander=0, wv=0;
+    // 重置每顆石頭到起點
+    for(var i=0;i<state.stones.length;i++){ var s=state.stones[i]; s.x=s.x0; s.y=s.y0; s.trail=[{x:s.x0,y:s.y0}]; s.dist=0; }
+    for(var k=0;k<steps;k++){
+      wv += (r()-0.5)*1.5*dt; wv*=0.95; wander=clamp(wander+wv*dt,-0.5,0.5);
+      var base=state.windDeg*Math.PI/180 + wander;
+      for(var j=0;j<state.stones.length;j++){
+        var st=state.stones[j];
+        var jit=(r()-0.5)*0.06;
+        var res=PLAYA_CORE.stepStone(st.x,st.y,cond,true,state.windSpeed,base,dt,jit);
+        if(!res.moved) continue;
+        var pad=st.r+6;
+        moveStoneTo(st, clamp(res.x,pad,cssW-pad), clamp(res.y,pad,cssH-pad));
+      }
+    }
+    state.moving=false;
+  }
+
+  // ---- 自動播放 ----
+  function advance(dt){
+    var p=state.phase, rate;
+    if(p<1) rate=1/2.2;
+    else if(p<2) rate=1/2.0;
+    else if(p<3) rate=1/2.2;
+    else rate=1/7.0; // 起風段放慢，讓石頭好好爬
+    state.phase = Math.min(4, p + rate*dt);
+    if(state.phase>=4){
+      state.phase=4; state.playing=false; state.moving=false;
+      announce('天亮，風停，石頭停在原地——留下整夜刻出的軌跡。');
+      playBtn.textContent='▶ 再看一次';
+    }
+    syncTimeline();
+  }
+
+  // ---- 主迴圈 ----
+  var running=false, rafId=null, last=0;
+  function frame(ts){
+    if(!running) return;
+    var dt=Math.min(0.05,(ts-last)/1000||0); last=ts;
+    state.t += dt;
+    if(state.playing) advance(dt);
+    if(!REDUCE) integrate(dt);
+    draw();
+    refreshUI();
+    rafId=requestAnimationFrame(frame);
+  }
+  function startLoop(){ if(REDUCE){ renderStatic(); return; } if(!running){ running=true; last=performance.now(); rafId=requestAnimationFrame(frame); } }
+  function stopLoop(){ running=false; if(rafId) cancelAnimationFrame(rafId); rafId=null; }
+
+  function renderStatic(){ draw(); refreshUI(); }
+
+  // ---- UI 同步 ----
+  var STEP_NAMES=['白天下雨','入夜結冰','白天冰裂','微風推動','天亮'];
+  var lastStep=-1;
+  function ribbonFor(p){
+    if(p<1) return {s:1,t:'第一步 · 白天下起雨',n:'一層薄薄的雨水，在乾裂的湖床上積成淺淺一片。'};
+    if(p<2) return {s:2,t:'第二步 · 入夜，結成窗玻璃冰',n:'氣溫驟降，水面凍出一層薄得像窗玻璃的冰。'};
+    if(p<2.6) return {s:3,t:'第三步 · 白天，太陽曬裂冰面',n:'陽光一照，整片薄冰開始裂成一塊塊會漂的浮冰板。'};
+    if(p<3) return {s:3,t:'第三步 · 浮冰板成形',n:'冰裂成大片浮板，就等一陣風。'};
+    if(p<3.95) return {s:4,t:'第四步 · 微風，推著石頭走',n:'每秒幾公尺的微風推著浮冰，連帶推著石頭在泥面滑行。'};
+    return {s:5,t:'天亮了 · 風停，石頭停下',n:'留下整夜刻出的軌跡——和真實照片裡一模一樣。'};
+  }
+  function currentStepNo(p){ return p>=4?4:Math.floor(p)+1; }
+
+  function refreshUI(){
+    var p=state.phase;
+    // ribbon
+    var rb=ribbonFor(p);
+    var rt=document.getElementById('ribbonT'), rn=document.getElementById('ribbonN'), rib=document.getElementById('ribbon');
+    if(rb.t!==rt.textContent){
+      rt.textContent=rb.t; rn.textContent=rb.n;
+      if(!REDUCE){ rib.classList.remove('ribbon-anim'); void rib.offsetWidth; rib.classList.add('ribbon-anim'); }
+    }
+    // 步驟標籤 + ticks
+    var sn=currentStepNo(p);
+    document.getElementById('stepV').textContent = p>=4?'已完成':('第 '+sn+' 步');
+    var ticks=document.getElementById('ticks').children;
+    for(var i=0;i<ticks.length;i++) ticks[i].classList.toggle('on', (i+1)===sn && p<4);
+    timeline.setAttribute('aria-valuetext','第 '+sn+' 步：'+STEP_NAMES[Math.min(sn,4)-1]);
+
+    // 條件燈
+    var cond=PLAYA_CORE.condAt(p), ist=iceState(p);
+    var windLive = PLAYA_CORE.windActive(p);
+    setLight('lWater','stWater', cond.water?'on':'off', cond.water?'已積水':'還沒下雨');
+    if(ist==='none') setLight('lIce','stIce','off','尚未結冰');
+    else if(ist==='frozen') setLight('lIce','stIce','half','結凍・鎖死');
+    else setLight('lIce','stIce','on','浮動・可推');
+    if(!windLive) setLight('lWind','stWind','off', p<3?'尚未起風':'風停了');
+    else if(state.windSpeed<=0) setLight('lWind','stWind','half','風速為 0');
+    else setLight('lWind','stWind','on','每秒 '+state.windSpeed.toFixed(1)+' 公尺');
+
+    // 判決（缺一不可）
+    var allGo = cond.water && (ist==='panels') && windLive && state.windSpeed>0;
+    var vd=document.getElementById('verdict');
+    if(allGo){
+      if(!vd.classList.contains('go')){ vd.classList.add('go'); if(!REDUCE){ vd.classList.remove('pulse'); void vd.offsetWidth; vd.classList.add('pulse'); } }
+      vd.textContent='✓ 條件到齊：石頭開始自己滑行';
+    } else {
+      vd.classList.remove('go','pulse');
+      var miss=[];
+      if(!cond.water) miss.push('淺水');
+      if(ist!=='panels') miss.push('浮動的薄冰');
+      if(!(windLive && state.windSpeed>0)) miss.push('微風');
+      vd.textContent='缺一不可：還差「'+miss.join('、')+'」';
+    }
+
+    // 徽章 + live 狀態
+    var maxd=0; for(var s=0;s<state.stones.length;s++) if(state.stones[s].dist>maxd) maxd=state.stones[s].dist;
+    var badge=document.getElementById('badge'), bt=document.getElementById('badgeTxt');
+    if(state.moving){ badge.classList.add('on'); bt.innerHTML='石頭移動中 · <b>'+Math.round(maxd)+'</b> 公尺'; }
+    else { badge.classList.remove('on'); bt.textContent = p>=4? '整夜滑行結束' : (allGo?'即將起步':'尚未起風'); }
+
+    if(state.moving){
+      liveThrottle('條件到齊，'+state.stones.length+' 顆石頭正沿著風向滑行，最遠一顆已走 '+Math.round(maxd)+' 公尺。');
+    }
+  }
+  function setLight(id,stId,s,txt){
+    document.getElementById(id).setAttribute('data-s',s);
+    document.getElementById(stId).textContent=txt;
+  }
+  var lastLive=0;
+  function liveThrottle(msg){ var now=performance.now(); if(now-lastLive>1400){ lastLive=now; live.textContent=msg; } }
+  function announce(msg){ live.textContent=msg; }
+
+  function syncTimeline(){ timeline.value=String(Math.round(state.phase*100)); }
+
+  // ---- 事件 ----
+  playBtn.addEventListener('click', function(){
+    // 重新開始整段故事
+    state.phase=0; state.wander=0; state.wanderV=0; state.moving=false;
+    seedStones(state.nStones);
+    syncTimeline();
+    if(REDUCE){
+      // 直接顯示最終結果：跳到起風、算完整段軌跡
+      state.phase=3.5;
+      simulateTrails();
+      state.phase=4; // 定格於天亮
+      syncTimeline();
+      renderStatic();
+      announce('已直接顯示最終結果：淺水、浮冰與微風三者到齊，石頭沿風向滑行後停下，留下平行的軌跡。');
+      playBtn.textContent='▶ 再看一次';
+      return;
+    }
+    state.playing=true;
+    playBtn.textContent='● 播放中…';
+    announce('開始重現那一夜：下雨、結冰、冰裂、起風。');
+    startLoop();
+  });
+
+  timeline.addEventListener('input', function(){
+    state.playing=false;
+    if(playBtn.textContent.indexOf('播放中')>=0) playBtn.textContent='▶ 重現那一夜';
+    var newP=(+timeline.value)/100;
+    var enteringPush = newP>=3 && state.phase<3;
+    state.phase=newP;
+    if(REDUCE){
+      // 進入起風區 → 顯示最終軌跡；離開 → 清除
+      if(newP>=3){ if(state.stones.length && state.stones[0].trail.length<3) simulateTrails(); else if(enteringPush) simulateTrails(); }
+      else clearTrails();
+      renderStatic();
+    } else {
+      startLoop();
+    }
+  });
+
+  speedEl.addEventListener('input', function(){
+    state.windSpeed=+speedEl.value;
+    document.getElementById('spV').textContent=state.windSpeed.toFixed(1);
+    speedEl.setAttribute('aria-valuetext','每秒 '+state.windSpeed.toFixed(1)+' 公尺');
+    if(REDUCE){ if(state.phase>=3){ simulateTrails(); } renderStatic(); }
+  });
+
+  // 風向羅盤：拖動 + 鍵盤
+  function setWind(deg){
+    deg=((deg%360)+360)%360;
+    state.windDeg=deg;
+    arrow.setAttribute('transform','rotate('+deg+' 50 50)');
+    compass.setAttribute('aria-valuenow', Math.round(deg));
+    var nm=dirName(deg);
+    compass.setAttribute('aria-valuetext','往'+nm+'（'+Math.round(deg)+' 度）');
+    document.getElementById('dirName').textContent=nm+'風';
+    document.getElementById('dirDeg').textContent='往 '+Math.round(deg)+'°';
+    if(REDUCE && state.phase>=3){ simulateTrails(); renderStatic(); }
+  }
+  function dirName(deg){
+    var names=['東','東南','南','西南','西','西北','北','東北'];
+    return names[Math.round(((deg%360)+360)%360/45)%8];
+  }
+  var compassDrag=false;
+  function compassAngle(e){
+    var rect=compass.getBoundingClientRect();
+    var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+    return Math.atan2(e.clientY-cy, e.clientX-cx)*180/Math.PI;
+  }
+  compass.addEventListener('pointerdown', function(e){ compassDrag=true; compass.setPointerCapture&&compass.setPointerCapture(e.pointerId); setWind(compassAngle(e)); e.preventDefault(); });
+  compass.addEventListener('pointermove', function(e){ if(compassDrag) setWind(compassAngle(e)); });
+  compass.addEventListener('pointerup', function(){ compassDrag=false; });
+  compass.addEventListener('pointercancel', function(){ compassDrag=false; });
+  compass.addEventListener('keydown', function(e){
+    var d=state.windDeg, step=5;
+    if(e.key==='ArrowRight'||e.key==='ArrowUp'){ setWind(d+step); e.preventDefault(); }
+    else if(e.key==='ArrowLeft'||e.key==='ArrowDown'){ setWind(d-step); e.preventDefault(); }
+    else if(e.key==='PageUp'){ setWind(d+15); e.preventDefault(); }
+    else if(e.key==='PageDown'){ setWind(d-15); e.preventDefault(); }
+    else if(e.key==='Home'){ setWind(0); e.preventDefault(); }
+    else if(e.key==='End'){ setWind(315); e.preventDefault(); }
+  });
+
+  // 石頭數量
+  function setCount(n){
+    n=clamp(n,1,8);
+    state.nStones=n;
+    document.getElementById('stoneNum').textContent=String(n);
+    document.getElementById('minus').disabled=(n<=1);
+    document.getElementById('plus').disabled=(n>=8);
+    seedStones(n);
+    if(REDUCE){ if(state.phase>=3) simulateTrails(); renderStatic(); }
+    else if(!running) startLoop();
+  }
+  document.getElementById('plus').addEventListener('click', function(){ setCount(state.nStones+1); });
+  document.getElementById('minus').addEventListener('click', function(){ setCount(state.nStones-1); });
+
+  function clearTrails(){
+    state.stones.forEach(function(s){ s.x=s.x0; s.y=s.y0; s.trail=[{x:s.x0,y:s.y0}]; s.dist=0; });
+    state.moving=false;
+  }
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    state.playing=false; state.phase=0; state.wander=0; state.wanderV=0;
+    playBtn.textContent='▶ 重現那一夜';
+    seedStones(state.nStones);
+    syncTimeline();
+    renderStatic();
+    if(!REDUCE) startLoop();
+    announce('湖床已抹平，回到第一步。');
+  });
+
+  // 點畫面放石頭
+  canvas.addEventListener('pointerdown', function(e){
+    var rect=canvas.getBoundingClientRect();
+    var x=e.clientX-rect.left, y=e.clientY-rect.top;
+    if(addStoneAt(x,y)){
+      state.nStones=state.stones.length;
+      document.getElementById('stoneNum').textContent=String(state.nStones);
+      document.getElementById('minus').disabled=(state.nStones<=1);
+      document.getElementById('plus').disabled=(state.nStones>=8);
+      if(REDUCE){ if(state.phase>=3) simulateTrails(); renderStatic(); }
+      announce('放下一顆石頭，現在共 '+state.nStones+' 顆。');
+    }
+  });
+
+  // ---- 生命週期 ----
+  window.addEventListener('resize', function(){ layout(); if(REDUCE) renderStatic(); });
+  if('ResizeObserver' in window){
+    var ro=new ResizeObserver(function(){ layout(); if(REDUCE) renderStatic(); });
+    ro.observe(stageEl);
+  }
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) stopLoop(); else if(!REDUCE) startLoop(); });
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){
+      es.forEach(function(en){ if(en.isIntersecting){ if(!REDUCE) startLoop(); } else stopLoop(); });
+    }, {threshold:0.04}).observe(canvas);
+  }
+  function onReduceChange(){
+    REDUCE=reduceMQ.matches;
+    if(REDUCE){ stopLoop(); if(state.phase>=3) simulateTrails(); renderStatic(); }
+    else { startLoop(); }
+  }
+  if(reduceMQ.addEventListener) reduceMQ.addEventListener('change', onReduceChange);
+  else if(reduceMQ.addListener) reduceMQ.addListener(onReduceChange);
+
+  // ---- 初始化 ----
+  state.nStones=4;
+  layout();
+  seedStones(4);
+  setWind(125);
+  syncTimeline();
+  refreshUI();
+  if(REDUCE) renderStatic(); else startLoop();
+})();
+</script>
+</body>
+</html>

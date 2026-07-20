@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Truchet 瓷磚 · 兩條弧線，鋪成一片蜿蜒</title>
+<meta name="description" content="每一格只有兩條四分之一圓弧，卻隨機挑一種擺法。整片鋪滿時，簡單的弧線會自動接成蜿蜒、連綿、像迷宮或水流的大圖樣。按「重新擲一次」，看整片圖樣在一次對角波浪翻面中重組成全新的一幅。純靜態、離線可用、可下載。">
+<style>
+:root{
+  --bg-0:#0b0d11; --bg-1:#12151b;
+  --ink:#eef2f3; --dim:#a6afba; --dimmer:#717a85;
+  --cel:#74c6ae;      /* 青瓷 */
+  --clay:#e28c63;     /* 陶土 */
+  --gold:#e7bd6c;     /* 釉金 */
+  --line:rgba(116,198,174,.16);
+  --panel:rgba(116,198,174,.045);
+  --card:rgba(8,10,14,.5);
+  --r:16px;
+  --ease:cubic-bezier(.22,.68,.28,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  min-height:100vh;padding:0 20px 72px;
+  background:
+    radial-gradient(82% 55% at 8% -6%, rgba(116,198,174,.11) 0%, transparent 55%),
+    radial-gradient(76% 52% at 96% 0%, rgba(226,140,99,.12) 0%, transparent 55%),
+    radial-gradient(60% 45% at 60% 108%, rgba(231,189,108,.06) 0%, transparent 60%),
+    linear-gradient(180deg,var(--bg-1),var(--bg-0) 46%);
+  background-attachment:fixed;color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+  line-height:1.75;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* 回首頁 */
+.back{
+  position:fixed;top:16px;left:16px;z-index:30;
+  padding:.42em .9em;font-size:.82rem;letter-spacing:.06em;
+  color:var(--dim);text-decoration:none;
+  border:1px solid var(--line);border-radius:999px;
+  background:rgba(11,13,17,.7);backdrop-filter:blur(6px);
+  transition:color .3s var(--ease),border-color .3s var(--ease),transform .3s var(--ease);
+}
+.back:hover,.back:focus-visible{color:var(--cel);border-color:rgba(116,198,174,.5);transform:translateX(-2px);outline:none}
+.back:focus-visible{box-shadow:0 0 0 3px rgba(116,198,174,.22)}
+
+.wrap{max-width:1120px;margin:0 auto;padding-top:78px}
+
+/* hero */
+.hero{text-align:center;margin-bottom:32px}
+.eyebrow{font-size:.76rem;letter-spacing:.26em;color:var(--cel);opacity:.92;margin-bottom:12px}
+h1{
+  font-family:"Noto Serif TC",Georgia,"Songti TC",serif;
+  font-size:clamp(2.5rem,8vw,4.6rem);font-weight:700;letter-spacing:.02em;line-height:1.04;
+  background:linear-gradient(112deg,#fff 2%,var(--cel) 38%,var(--gold) 70%,var(--clay) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:14px;
+}
+h1 .en{display:block;font-size:.32em;letter-spacing:.34em;font-weight:400;margin-top:.5em;color:var(--dim);
+  -webkit-text-fill-color:var(--dim);background:none}
+.hero .lede{max-width:52em;margin:0 auto;color:var(--dim);font-size:1.05rem}
+.hero .lede strong{color:var(--ink);font-weight:600}
+.hero .lede em{font-style:normal;color:var(--gold);font-weight:600}
+
+/* panel */
+.panel{
+  position:relative;border:1px solid var(--line);border-radius:var(--r);
+  background:linear-gradient(180deg,var(--panel),rgba(11,13,17,.34));
+  padding:24px;margin-bottom:22px;
+}
+
+/* studio grid */
+.studio{display:grid;grid-template-columns:minmax(0,1.34fr) minmax(268px,.86fr);gap:28px;align-items:start}
+
+/* 畫布舞台：aspect-ratio 提供實高，避免 canvas 無尺寸 */
+.stage{
+  position:relative;width:100%;max-width:640px;margin:0 auto;aspect-ratio:1;
+  border-radius:15px;overflow:hidden;border:1px solid var(--line);
+  background:#0a0c10;
+  box-shadow:0 34px 66px -34px rgba(0,0,0,.75), inset 0 0 0 1px rgba(255,255,255,.025);
+}
+@supports not (aspect-ratio: 1){ .stage{height:min(86vw,560px)} }
+.stage canvas{display:block;width:100%;height:100%;cursor:pointer;touch-action:manipulation}
+.stage::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:15px;
+  box-shadow:inset 0 0 90px rgba(0,0,0,.28)}
+.stage-cap{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  max-width:640px;margin:12px auto 0;font-size:.8rem;color:var(--dimmer)}
+.seedchip{font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.seedchip b{color:var(--dim);font-weight:700;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.hint{color:var(--dimmer)}
+
+/* controls column */
+.controls-col{display:flex;flex-direction:column;gap:18px}
+.field{display:flex;flex-direction:column;gap:9px}
+.field-lbl{font-size:.82rem;color:var(--dim);letter-spacing:.05em}
+
+/* buttons */
+.btn{
+  font:inherit;font-size:.88rem;padding:.56em 1.05em;border-radius:12px;cursor:pointer;
+  color:var(--ink);background:rgba(238,242,243,.055);border:1px solid var(--line);
+  display:inline-flex;align-items:center;justify-content:center;gap:.5em;
+  transition:transform .16s var(--ease),background .22s var(--ease),border-color .22s var(--ease),color .22s var(--ease),box-shadow .22s var(--ease);
+}
+.btn:hover{transform:translateY(-2px);border-color:rgba(116,198,174,.5);color:#fff}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(116,198,174,.3)}
+.btn .ico{font-size:1.02em;line-height:1}
+.btn.wide{width:100%}
+.btn.primary{background:linear-gradient(118deg,var(--cel),var(--gold));color:#0a1712;border-color:transparent;font-weight:700}
+.btn.primary:hover{box-shadow:0 12px 30px -14px rgba(116,198,174,.95)}
+.btn.primary.big{width:100%;font-size:1.02rem;padding:.8em 1.1em;border-radius:14px;letter-spacing:.02em}
+.btn.primary.big .ico{font-size:1.15em}
+
+/* segmented */
+.seg{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--panel);width:100%}
+.seg button{flex:1;border:none;background:transparent;color:var(--dim);font:inherit;font-size:.86rem;
+  padding:.5em .9em;border-radius:999px;cursor:pointer;
+  transition:background .24s var(--ease),color .24s var(--ease)}
+.seg button:hover{color:var(--ink)}
+.seg button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(116,198,174,.3)}
+.seg button[aria-pressed="true"]{background:linear-gradient(120deg,var(--cel),var(--gold));color:#0a1712;font-weight:700}
+
+/* range slider */
+.ctrl-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;gap:10px}
+.ctrl-top label{font-size:.82rem;color:var(--dim);letter-spacing:.04em}
+.ctrl-top .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:1rem;color:var(--ink)}
+.ctrl-top .val small{font-size:.7rem;color:var(--dimmer);font-weight:400;margin-left:.15em}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;cursor:pointer;
+  --pct:0%;--fill:var(--cel);--trackbg:rgba(120,130,140,.24);
+}
+input[type=range]:focus{outline:none}
+input[type=range]::-webkit-slider-runnable-track{height:7px;border-radius:99px;
+  background:linear-gradient(90deg,var(--fill) var(--pct),var(--trackbg) var(--pct))}
+input[type=range]::-moz-range-track{height:7px;border-radius:99px;background:var(--trackbg)}
+input[type=range]::-moz-range-progress{height:7px;border-radius:99px;background:var(--fill)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:21px;height:21px;border-radius:50%;margin-top:-7px;
+  background:#fff;border:2px solid rgba(11,13,17,.35);box-shadow:0 3px 9px rgba(0,0,0,.5);
+  transition:transform .15s var(--ease),box-shadow .2s var(--ease)}
+input[type=range]::-moz-range-thumb{width:19px;height:19px;border-radius:50%;background:#fff;border:2px solid rgba(11,13,17,.35);
+  box-shadow:0 3px 9px rgba(0,0,0,.5);transition:transform .15s var(--ease),box-shadow .2s var(--ease)}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.1)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.18)}
+input[type=range]:hover::-moz-range-thumb{transform:scale(1.1)}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 3px 9px rgba(0,0,0,.5),0 0 0 5px rgba(116,198,174,.4)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 3px 9px rgba(0,0,0,.5),0 0 0 5px rgba(116,198,174,.4)}
+
+/* swatches */
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.swatch{width:38px;height:38px;border-radius:11px;border:2px solid rgba(255,255,255,.12);cursor:pointer;padding:0;
+  position:relative;transition:transform .16s var(--ease),border-color .2s var(--ease),box-shadow .2s var(--ease)}
+.swatch:hover{transform:translateY(-2px) scale(1.04)}
+.swatch:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(116,198,174,.4)}
+.swatch[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px rgba(11,13,17,.9),0 0 0 4px var(--cel)}
+.swatch .nm{position:absolute;inset:auto 0 -1.5em 0;font-size:.62rem;color:var(--dimmer);text-align:center;opacity:0;transition:opacity .2s}
+.swatch:hover .nm,.swatch[aria-pressed="true"] .nm{opacity:1}
+
+/* switch */
+.switch{display:inline-flex;align-items:center;gap:.6em;cursor:pointer;user-select:none;font-size:.86rem;color:var(--ink)}
+.switch input{position:absolute;opacity:0;width:0;height:0}
+.switch-track{position:relative;width:44px;height:25px;border-radius:999px;flex:0 0 auto;
+  background:rgba(120,130,140,.32);border:1px solid var(--line);transition:background .28s var(--ease)}
+.switch-knob{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;
+  background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .28s var(--ease)}
+.switch input:checked ~ .switch-track{background:linear-gradient(120deg,var(--cel),var(--gold))}
+.switch input:checked ~ .switch-track .switch-knob{transform:translateX(19px)}
+.switch input:focus-visible ~ .switch-track{outline:none;box-shadow:0 0 0 4px rgba(116,198,174,.3)}
+.switch input:disabled ~ .switch-track{opacity:.4}
+.switch-text em{font-style:normal;color:var(--dimmer);font-size:.74rem;display:block;line-height:1.3}
+.toprow{display:flex;flex-direction:column;gap:14px}
+
+/* 關於 */
+.about h2{font-family:"Noto Serif TC",Georgia,serif;font-size:1.3rem;font-weight:700;margin-bottom:6px;letter-spacing:.02em}
+.about .sub{font-size:.9rem;color:var(--dim);margin-bottom:18px}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px}
+.fact{border:1px solid var(--line);border-radius:13px;background:var(--card);padding:16px 17px;
+  transition:transform .2s var(--ease),border-color .2s var(--ease)}
+.fact:hover{transform:translateY(-3px);border-color:rgba(116,198,174,.4)}
+.fact .f-yr{font-family:ui-monospace,Menlo,monospace;font-size:.74rem;letter-spacing:.06em;color:var(--gold);margin-bottom:6px}
+.fact h3{font-size:1rem;font-weight:700;margin-bottom:5px;color:var(--ink)}
+.fact p{font-size:.85rem;color:var(--dim);line-height:1.62}
+.fact p b{color:var(--cel);font-weight:600}
+
+/* footer */
+.foot{text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid var(--line);color:var(--dimmer)}
+.foot p{font-size:.86rem}
+.foot .src{font-size:.78rem;margin-top:6px}
+
+/* entrance */
+[data-fade]{opacity:0;transform:translateY(18px);animation:rise .66s var(--ease) forwards}
+[data-fade="1"]{animation-delay:.04s}[data-fade="2"]{animation-delay:.12s}
+[data-fade="3"]{animation-delay:.2s}[data-fade="4"]{animation-delay:.3s}
+[data-fade="5"]{animation-delay:.42s}[data-fade="6"]{animation-delay:.5s}
+@keyframes rise{to{opacity:1;transform:translateY(0)}}
+
+/* 響應式：桌面善用空間，窄螢幕單欄 */
+@media (max-width:880px){ .studio{grid-template-columns:1fr;gap:24px} }
+@media (max-width:560px){
+  body{padding:0 14px 60px}
+  .wrap{padding-top:70px}
+  .panel{padding:18px 15px}
+  .stage-cap{justify-content:center;text-align:center}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  [data-fade]{opacity:1;transform:none}
+  .btn:hover,.fact:hover,.swatch:hover{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="back" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">創意 · 娛樂 — 一種瓷磚，鋪出無窮圖樣</p>
+    <h1 data-fade="2">特魯謝瓷磚<span class="en">TRUCHET TILES</span></h1>
+    <p class="lede" data-fade="3">
+      每一格，只是<strong>兩條四分之一圓弧</strong>；每格隨機挑「兩種擺法之一」。
+      單看一格平淡無奇，可是當整片鋪滿，這些弧線會在格與格之間<strong>自動接起來</strong>，
+      長成蜿蜒、連綿、像迷宮又像水流的大圖樣。
+      按 <em>重新擲一次</em>——整片會以一道對角波浪翻面，重組成一幅你沒看過、卻同樣和諧的新圖。
+    </p>
+  </header>
+
+  <!-- ── 生成工作室 ── -->
+  <section class="panel" data-fade="4" aria-label="Truchet 瓷磚生成工作室">
+    <div class="studio">
+      <div class="stage-wrap">
+        <div class="stage">
+          <canvas id="cv" role="img" aria-label="Truchet 瓷磚生成藝術畫布；點擊任一格可翻轉該格"></canvas>
+        </div>
+        <div class="stage-cap">
+          <span class="seedchip">種子 <b id="seed">—</b></span>
+          <span class="hint">點任一格可翻轉它，看連通如何改變</span>
+        </div>
+      </div>
+
+      <div class="controls-col">
+        <div class="toprow">
+          <button type="button" id="reroll" class="btn primary big">
+            <span class="ico" aria-hidden="true">⤫</span>重新擲一次
+          </button>
+          <label class="switch" title="每隔數秒自動擲出新圖樣">
+            <input type="checkbox" id="auto">
+            <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+            <span class="switch-text">自動變換<em>每隔幾秒重擲一次</em></span>
+          </label>
+        </div>
+
+        <div class="field">
+          <span class="field-lbl">瓷磚形狀</span>
+          <div class="seg" role="group" aria-label="瓷磚形狀">
+            <button type="button" id="m-arc" aria-pressed="true">弧線</button>
+            <button type="button" id="m-diag" aria-pressed="false">斜線</button>
+          </div>
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-top">
+            <label for="s-n">格子密度</label>
+            <span class="val"><span id="s-n-val">14</span><small>× <span id="s-n-val2">14</span></small></span>
+          </div>
+          <input type="range" id="s-n" min="6" max="40" step="1" value="14" style="--fill:var(--cel)" aria-label="格子密度，每邊格數">
+        </div>
+
+        <div class="ctrl">
+          <div class="ctrl-top">
+            <label for="s-w">線條粗細</label>
+            <span class="val" id="s-w-val">中</span>
+          </div>
+          <input type="range" id="s-w" min="6" max="100" step="1" value="46" style="--fill:var(--clay)" aria-label="線條粗細">
+        </div>
+
+        <div class="field">
+          <span class="field-lbl">配色盤</span>
+          <div class="swatches" id="swatches" role="group" aria-label="配色盤"></div>
+        </div>
+
+        <div class="field">
+          <label class="switch" title="把接成同一條的弧線塗上同色">
+            <input type="checkbox" id="conn">
+            <span class="switch-track" aria-hidden="true"><span class="switch-knob"></span></span>
+            <span class="switch-text">依連通性上色<em>接成一條的線，同一個顏色</em></span>
+          </label>
+        </div>
+
+        <button type="button" id="download" class="btn wide">
+          <span class="ico" aria-hidden="true">⬇</span>下載這張 PNG
+        </button>
+      </div>
+    </div>
+    <p id="live" class="sr-only" role="status" aria-live="polite"></p>
+  </section>
+
+  <!-- ── 關於 Truchet ── -->
+  <section class="panel about" data-fade="5" aria-labelledby="about-h">
+    <h2 id="about-h">一塊瓷磚，三百年的圖樣</h2>
+    <p class="sub">同樣一格、隨機的朝向，就能不斷長出新圖——這個古老又現代的點子，來自一位神父與一位冶金學家。</p>
+    <div class="facts">
+      <div class="fact">
+        <div class="f-yr">1657–1729</div>
+        <h3>神父塞巴斯蒂安 · 特魯謝</h3>
+        <p><b>Sébastien Truchet</b> 是法國道明會神父，也是數學、水利與字體設計的多才之士——曾為皇家印刷廠設計字體。</p>
+      </div>
+      <div class="fact">
+        <div class="f-yr">1704</div>
+        <h3>《論組合》</h3>
+        <p>他在《<b>Mémoire sur les combinaisons</b>》裡研究：一塊沿對角線分成兩色三角形的方磚，用不同<b>朝向</b>排列，究竟能組出多少種圖樣。</p>
+      </div>
+      <div class="fact">
+        <div class="f-yr">1987</div>
+        <h3>史密斯讓它復興</h3>
+        <p>冶金學家 <b>Cyril Stanley Smith</b> 在 MIT 期刊《Leonardo》翻譯原文並延伸，讓 Truchet 瓷磚在數學與電腦藝術界重新流行。</p>
+      </div>
+      <div class="fact">
+        <div class="f-yr">弧線版</div>
+        <h3>Smith 瓷磚</h3>
+        <p>史密斯提出的「以<b>兩條四分之一圓弧</b>連接相鄰邊中點」版本，就是這頁的主角——最耐看的弧線 Truchet。</p>
+      </div>
+      <div class="fact">
+        <div class="f-yr">彩蛋</div>
+        <h3>10 PRINT 迷宮</h3>
+        <p>把每格換成隨機的「<b>／</b>」或「<b>＼</b>」斜線，就是知名的 Commodore 64 單行程式 <b>10&nbsp;PRINT</b> 迷宮——切到「斜線」就能看到。</p>
+      </div>
+      <div class="fact">
+        <div class="f-yr">為何相接</div>
+        <h3>祕密在邊的中點</h3>
+        <p>每條弧線的端點都落在<b>格邊的中點</b>，且垂直於邊。無論相鄰兩格怎麼擺，端點都對得上，於是線永遠接得起來、不斷裂。</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>每一片圖樣，都在你的瀏覽器裡即時擲出、即時繪成。</p>
+    <p class="src">資料來源：Truchet (1704)、Cyril Stanley Smith (1987)</p>
+  </footer>
+</main>
+
+<script>
+"use strict";
+//__TRUCHET_CORE_START__
+/* ==========================================================================
+ * Truchet 核心（純函式，無 DOM；node 測試會抽出這一段做斷言）
+ *   ‑ 亂數、瓷磚產生器、每格幾何、連通性（union‑find）
+ * ======================================================================== */
+
+/* 決定性偽亂數：mulberry32。同一 seed 必產生同一串亂數。 */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* 瓷磚產生器：回傳長度 n*n 的 Uint8Array，每格只可能是 0 或 1。
+ * 只依賴 (n, seed)，因此給定 seed 可完全重現同一張。 */
+function generateTiles(n, seed){
+  var rng = mulberry32((seed >>> 0) ^ (n * 0x9E3779B1));
+  var out = new Uint8Array(n * n);
+  for (var i = 0; i < n * n; i++){ out[i] = rng() < 0.5 ? 0 : 1; }
+  return out;
+}
+
+/* 一格四條邊的中點（格原點在左上，邊長 s）。弧線端點必為其中之一。 */
+function edgeMidpoints(r, c, s){
+  var x = c * s, y = r * s, h = s / 2;
+  return {
+    top:    { x: x + h, y: y     },
+    bottom: { x: x + h, y: y + s },
+    left:   { x: x,     y: y + h },
+    right:  { x: x + s, y: y + h }
+  };
+}
+
+/* 弧線瓷磚：回傳兩條四分之一圓弧。
+ *   arc[0] 一定含 top（上邊中點），arc[1] 一定含 bottom（下邊中點）——與連通性索引一致。
+ *   orient 0：左上角弧(top‑left) + 右下角弧(bottom‑right)
+ *   orient 1：右上角弧(top‑right) + 左下角弧(bottom‑left)
+ * 每條弧的圓心在某個格角、半徑 s/2，兩端點皆為邊中點且垂直於邊。 */
+function tileArcs(r, c, orient, s){
+  var m = edgeMidpoints(r, c, s);
+  var x = c * s, y = r * s, h = s / 2;
+  if (orient === 0){
+    return [
+      { cx: x,     cy: y,     r: h, a: m.top,    b: m.left  },
+      { cx: x + s, cy: y + s, r: h, a: m.bottom, b: m.right }
+    ];
+  }
+  return [
+    { cx: x + s, cy: y,     r: h, a: m.top,    b: m.right },
+    { cx: x,     cy: y + s, r: h, a: m.bottom, b: m.left  }
+  ];
+}
+
+/* 斜線瓷磚（10 PRINT 版）：一條對角線，端點在格角。
+ *   orient 0：＼（左上→右下）   orient 1：／（右上→左下） */
+function tileDiag(r, c, orient, s){
+  var x = c * s, y = r * s;
+  if (orient === 0){ return { a: { x: x, y: y }, b: { x: x + s, y: y + s } }; }
+  return { a: { x: x + s, y: y }, b: { x: x, y: y + s } };
+}
+
+/* 迷你 union‑find */
+function makeUF(size){
+  var p = new Int32Array(size);
+  for (var i = 0; i < size; i++){ p[i] = i; }
+  function find(x){ while (p[x] !== x){ p[x] = p[p[x]]; x = p[x]; } return x; }
+  function union(a, b){ a = find(a); b = find(b); if (a !== b){ p[a] = b; } }
+  return { find: find, union: union };
+}
+
+/* 弧線連通性所用的節點：以「邊的中點」為節點。
+ *   v 節點（垂直邊中點）：i in 0..n, r in 0..n-1  → id = i*n + r
+ *   h 節點（水平邊中點）：c in 0..n-1, j in 0..n  → id = (n+1)*n + c*(n+1) + j */
+function arcNodeIds(r, c, n){
+  var hBase = (n + 1) * n;
+  return {
+    top:    hBase + c * (n + 1) + r,
+    bottom: hBase + c * (n + 1) + (r + 1),
+    left:   c * n + r,
+    right:  (c + 1) * n + r
+  };
+}
+
+/* 計算弧線的連通元件；回傳每格兩條弧各自的顏色索引（已壓成 0..count-1）。 */
+function computeArcComponents(n, tiles){
+  var uf = makeUF(2 * n * (n + 1));
+  var r, c, id;
+  for (r = 0; r < n; r++){
+    for (c = 0; c < n; c++){
+      id = arcNodeIds(r, c, n);
+      if (tiles[r * n + c] === 0){ uf.union(id.top, id.left);  uf.union(id.bottom, id.right); }
+      else                       { uf.union(id.top, id.right); uf.union(id.bottom, id.left);  }
+    }
+  }
+  var arcComp = new Int32Array(n * n * 2), map = {}, next = 0, root;
+  for (r = 0; r < n; r++){
+    for (c = 0; c < n; c++){
+      id = arcNodeIds(r, c, n);
+      root = uf.find(id.top);    if (!(root in map)){ map[root] = next++; } arcComp[(r * n + c) * 2] = map[root];
+      root = uf.find(id.bottom); if (!(root in map)){ map[root] = next++; } arcComp[(r * n + c) * 2 + 1] = map[root];
+    }
+  }
+  return { arcComp: arcComp, count: next };
+}
+
+/* 斜線連通性：以格角為節點。corner(col,row) id = row*(n+1) + col */
+function cornerId(col, row, n){ return row * (n + 1) + col; }
+function computeDiagComponents(n, tiles){
+  var uf = makeUF((n + 1) * (n + 1));
+  var r, c;
+  for (r = 0; r < n; r++){
+    for (c = 0; c < n; c++){
+      if (tiles[r * n + c] === 0){ uf.union(cornerId(c, r, n),     cornerId(c + 1, r + 1, n)); }
+      else                       { uf.union(cornerId(c + 1, r, n), cornerId(c, r + 1, n));     }
+    }
+  }
+  var lineComp = new Int32Array(n * n), map = {}, next = 0, root;
+  for (r = 0; r < n; r++){
+    for (c = 0; c < n; c++){
+      root = tiles[r * n + c] === 0 ? uf.find(cornerId(c, r, n)) : uf.find(cornerId(c + 1, r, n));
+      if (!(root in map)){ map[root] = next++; }
+      lineComp[r * n + c] = map[root];
+    }
+  }
+  return { lineComp: lineComp, count: next };
+}
+//__TRUCHET_CORE_END__
+
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---- 配色盤（雅緻主題；深底用淺線、淺底用深線） ---- */
+  var PALETTES = [
+    { id:'celadon', name:'青瓷',  bg:'#e9efe7', glaze:['#356054','#5f9179'],
+      comps:['#2f5d51','#4f8f77','#79b39a','#c1874f','#9c6a45','#3f8188','#6aa9ab'] },
+    { id:'indigo',  name:'靛藍染', bg:'#14243a', glaze:['#c2daf0','#87b4df'],
+      comps:['#e9f0fb','#a9cdf0','#7cade4','#f2cd8c','#e7a2b1','#8fd9cf','#b6a8e8'] },
+    { id:'terra',   name:'陶窯',  bg:'#f2e7d6', glaze:['#a8492e','#d98a4e'],
+      comps:['#9c3f28','#c66a3c','#dfa257','#7a8b4f','#4f7d78','#b5793f','#8a463a'] },
+    { id:'sumi',    name:'墨',    bg:'#f5f2ea', glaze:['#2a2824','#57534a'],
+      comps:['#22201c','#4a463f','#6d675c','#8f887a','#38342d','#5c574d','#7e786b'] },
+    { id:'neon',    name:'霓虹',  bg:'#120f1e', glaze:['#ff5fae','#5fd8ff'],
+      comps:['#ff5fae','#5fd8ff','#c17bff','#9dff6b','#ffd15f','#ff7b6b','#5fffd0'] },
+    { id:'coral',   name:'珊瑚礁', bg:'#0e2230', glaze:['#ff9a76','#ffd08a'],
+      comps:['#ff9a76','#7fe0d2','#ffd08a','#ff8fae','#9ad2ff','#ffb35f','#79c7a0'] }
+  ];
+
+  /* ---- 動態偏好 ---- */
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+
+  /* ---- localStorage（前綴 truchet.） ---- */
+  var store = {
+    get: function(k, d){ try{ var v = localStorage.getItem('truchet.' + k); return v === null ? d : v; }catch(e){ return d; } },
+    set: function(k, v){ try{ localStorage.setItem('truchet.' + k, v); }catch(e){} }
+  };
+
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  var offA = document.createElement('canvas'), offB = document.createElement('canvas');
+  function octx(cvs){ return cvs.getContext('2d'); }
+  var W = 0, H = 0;                 // 裝置像素尺寸
+  var rafId = 0, anim = null;       // 單一動畫狀態機
+
+  var state = {
+    n: 14, thickness: 46, mode: 'arc', pal: 0, connectivity: false, auto: false,
+    seed: 1, tiles: null
+  };
+  function pal(){ return PALETTES[state.pal]; }
+
+  /* ---- 幾何 → 路徑 ---- */
+  function lineW(s){ return Math.max(1, s * (0.05 + 0.0036 * state.thickness)); }
+
+  function addArcPath(path, arc){
+    var a0 = Math.atan2(arc.a.y - arc.cy, arc.a.x - arc.cx);
+    var a1 = Math.atan2(arc.b.y - arc.cy, arc.b.x - arc.cx);
+    var diff = a1 - a0;
+    while (diff <= -Math.PI){ diff += 2 * Math.PI; }
+    while (diff > Math.PI){ diff -= 2 * Math.PI; }
+    path.moveTo(arc.a.x, arc.a.y);
+    path.arc(arc.cx, arc.cy, arc.r, a0, a1, diff < 0);   // 取 90° 的那一段
+  }
+  function addTilePath(path, r, c, orient, s){
+    if (state.mode === 'arc'){
+      var A = tileArcs(r, c, orient, s); addArcPath(path, A[0]); addArcPath(path, A[1]);
+    } else {
+      var L = tileDiag(r, c, orient, s); path.moveTo(L.a.x, L.a.y); path.lineTo(L.b.x, L.b.y);
+    }
+  }
+  function glazeGrad(g, side, palette){
+    var gr = g.createLinearGradient(0, 0, side, side), cs = palette.glaze;
+    for (var i = 0; i < cs.length; i++){ gr.addColorStop(cs.length === 1 ? 0 : i / (cs.length - 1), cs[i]); }
+    return gr;
+  }
+  function compColor(i, palette){
+    var cs = palette.comps, L = cs.length;
+    var step = (L % 3 !== 0) ? 3 : (L % 2 !== 0 ? 2 : 1);   // 打散相鄰元件顏色
+    return cs[((i * step) % L + L) % L];
+  }
+
+  /* ---- 完整繪製一幅（供主畫布與離屏共用）---- */
+  function drawScene(g, tiles, palette){
+    var w = g.canvas.width, h = g.canvas.height;
+    var side = Math.min(w, h), ox = (w - side) / 2, oy = (h - side) / 2, s = side / state.n, n = state.n;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = palette.bg; g.fillRect(0, 0, w, h);
+    g.save(); g.translate(ox, oy);
+    g.lineWidth = lineW(s);
+    g.lineCap = state.mode === 'arc' ? 'butt' : 'round';
+    g.lineJoin = 'round';
+    var r, c, idx;
+    if (state.connectivity){
+      var comp = state.mode === 'arc' ? computeArcComponents(n, tiles) : computeDiagComponents(n, tiles);
+      var byColor = {}, key, grp;
+      for (r = 0; r < n; r++){
+        for (c = 0; c < n; c++){
+          idx = r * n + c;
+          if (state.mode === 'arc'){
+            var A = tileArcs(r, c, tiles[idx], s);
+            key = comp.arcComp[idx * 2];     grp = byColor[key] || (byColor[key] = new Path2D()); addArcPath(grp, A[0]);
+            key = comp.arcComp[idx * 2 + 1]; grp = byColor[key] || (byColor[key] = new Path2D()); addArcPath(grp, A[1]);
+          } else {
+            key = comp.lineComp[idx]; grp = byColor[key] || (byColor[key] = new Path2D());
+            var L = tileDiag(r, c, tiles[idx], s); grp.moveTo(L.a.x, L.a.y); grp.lineTo(L.b.x, L.b.y);
+          }
+        }
+      }
+      for (key in byColor){ g.strokeStyle = compColor(+key, palette); g.stroke(byColor[key]); }
+    } else {
+      var path = new Path2D();
+      for (r = 0; r < n; r++){ for (c = 0; c < n; c++){ addTilePath(path, r, c, tiles[r * n + c], s); } }
+      g.strokeStyle = glazeGrad(g, side, palette); g.stroke(path);
+    }
+    g.restore();
+  }
+  function paintStatic(){ drawScene(ctx, state.tiles, pal()); }
+
+  /* ---- 對角波浪翻面（招牌哇時刻）---- */
+  function prog(t, r, c){
+    var n = state.n, idx = r * n + c;
+    if (anim.single >= 0){ return idx === anim.single ? (t / anim.cell) : 2; }
+    var d = r + c, maxD = (2 * (n - 1)) || 1;
+    var delay = (d / maxD) * (anim.dur - anim.cell);
+    return (t - delay) / anim.cell;
+  }
+  function paintFrame(t){
+    var w = W, h = H, side = Math.min(w, h), ox = (w - side) / 2, oy = (h - side) / 2, s = side / state.n, n = state.n;
+    var g = ctx;
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = pal().bg; g.fillRect(0, 0, w, h);
+    g.save(); g.translate(ox, oy);
+    g.lineWidth = lineW(s);
+    g.lineCap = state.mode === 'arc' ? 'butt' : 'round';
+    g.lineJoin = 'round';
+    var grad = glazeGrad(g, side, pal());
+    var staticPath = new Path2D(), band = [];
+    var r, c, p, idx;
+    for (r = 0; r < n; r++){
+      for (c = 0; c < n; c++){
+        idx = r * n + c; p = prog(t, r, c);
+        if (p <= 0){ addTilePath(staticPath, r, c, anim.old[idx], s); }
+        else if (p >= 1){ addTilePath(staticPath, r, c, anim.neo[idx], s); }
+        else { band.push(r); band.push(c); band.push(p); }
+      }
+    }
+    g.strokeStyle = grad; g.stroke(staticPath);
+    for (var i = 0; i < band.length; i += 3){
+      var br = band[i], bc = band[i + 1], bp = band[i + 2];
+      var showNew = bp >= 0.5;
+      var orient = (showNew ? anim.neo : anim.old)[br * n + bc];
+      var sx = Math.abs(Math.cos(bp * Math.PI)); if (sx < 0.0001){ sx = 0.0001; }
+      var cxc = bc * s + s / 2;
+      g.save();
+      g.globalAlpha = 0.55 + 0.45 * sx;              // 翻到側面時略暗，像實體卡片
+      g.translate(cxc, 0); g.scale(sx, 1); g.translate(-cxc, 0);
+      var pth = new Path2D(); addTilePath(pth, br, bc, orient, s);
+      g.strokeStyle = grad; g.stroke(pth);
+      g.restore();
+    }
+    g.restore(); g.globalAlpha = 1;
+  }
+  function flipLoop(now){
+    if (!anim){ return; }
+    if (document.hidden){ finishFlip(); return; }   // 分頁隱藏：直接收尾，不空轉
+    var t = now - anim.start;
+    paintFrame(t);
+    if (t >= anim.dur){ finishFlip(); return; }
+    rafId = requestAnimationFrame(flipLoop);
+  }
+  function startFlip(neo, single){
+    cancelRAF();
+    if (reduce){ state.tiles = neo; paintStatic(); persist(); return; }   // 降級：直接重繪
+    anim = {
+      old: state.tiles, neo: neo, start: performance.now(),
+      dur: single >= 0 ? 520 : 1050,
+      cell: single >= 0 ? 520 : 430,
+      single: single >= 0 ? single : -1
+    };
+    rafId = requestAnimationFrame(flipLoop);
+  }
+  function finishFlip(){
+    var neo = anim.neo; state.tiles = neo; anim = null;
+    if (state.connectivity && !reduce){
+      sizeOff();
+      state.connectivity = false; drawScene(octx(offA), state.tiles, pal());   // 翻面後的釉色
+      state.connectivity = true;  drawScene(octx(offB), state.tiles, pal());   // 綻放成連通色
+      animateBlit(offA, offB, 300, function(){ paintStatic(); });
+    } else {
+      paintStatic();
+    }
+    persist();
+  }
+
+  /* ---- 離屏交叉淡入：形狀 / 配色 / 連通 / 密度切換都走這條，過渡平滑 ---- */
+  function sizeOff(){
+    if (offA.width !== W || offA.height !== H){ offA.width = offB.width = W; offA.height = offB.height = H; }
+  }
+  function animateBlit(a, b, dur, after){
+    cancelRAF();
+    var start = performance.now();
+    function done(){ cancelRAF(); if (after){ after(); } }
+    function step(now){
+      if (document.hidden){ done(); return; }
+      var k = Math.min(1, (now - start) / dur), e = k * k * (3 - 2 * k);
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = 1; ctx.drawImage(a, 0, 0, W, H);
+      ctx.globalAlpha = e; ctx.drawImage(b, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+      if (k < 1){ rafId = requestAnimationFrame(step); } else { done(); }
+    }
+    rafId = requestAnimationFrame(step);
+  }
+  function transition(mutator){
+    cancelRAF();
+    if (reduce){ mutator(); paintStatic(); persist(); return; }
+    sizeOff();
+    drawScene(octx(offA), state.tiles, pal());   // 變更前
+    mutator();                                   // 改變狀態
+    drawScene(octx(offB), state.tiles, pal());   // 變更後
+    animateBlit(offA, offB, 340, function(){ paintStatic(); persist(); });
+  }
+
+  function cancelRAF(){ if (rafId){ cancelAnimationFrame(rafId); rafId = 0; } }
+
+  /* ---- dpr 安全的尺寸調整（先比較目標像素，相等才不重設，避免整張消失）---- */
+  function fit(){
+    var rect = cv.getBoundingClientRect();
+    if (rect.width === 0){ return; }
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var tw = Math.max(1, Math.round(rect.width * dpr));
+    var th = Math.max(1, Math.round(rect.height * dpr));
+    if (cv.width !== tw || cv.height !== th){ cv.width = tw; cv.height = th; }
+    W = cv.width; H = cv.height; sizeOff();
+  }
+
+  /* ---- 操作 ---- */
+  function newSeed(){ return ((Math.random() * 2147483647) >>> 0) || 1; }
+  function updateSeedUI(){ $('seed').textContent = '#' + state.seed.toString(36); }
+
+  function doReroll(){
+    state.seed = newSeed();
+    updateSeedUI();
+    var neo = generateTiles(state.n, state.seed);
+    startFlip(neo, -1);
+    announce('已重新擲出新圖樣，種子 ' + state.seed.toString(36) + '。');
+  }
+
+  var liveTimer = 0;
+  function announce(msg){
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(function(){ $('live').textContent = msg; }, 220);
+  }
+
+  function persist(){
+    store.set('mode', state.mode);
+    store.set('n', state.n);
+    store.set('thick', state.thickness);
+    store.set('pal', pal().id);
+    store.set('conn', state.connectivity ? '1' : '0');
+  }
+
+  /* ---- 自動變換（守門：隱藏/減動/動畫中一律不擲）---- */
+  var autoTimer = 0;
+  function scheduleAuto(){
+    clearTimeout(autoTimer);
+    if (state.auto && !reduce){ autoTimer = setTimeout(autoTick, 2600); }
+  }
+  function autoTick(){
+    autoTimer = 0;
+    if (state.auto && !document.hidden && !reduce && !anim){ doReroll(); }
+    scheduleAuto();
+  }
+
+  /* ---- 粗細滑桿文字 ---- */
+  function thickLabel(v){ return v < 28 ? '細' : (v < 58 ? '中' : (v < 82 ? '粗' : '很粗')); }
+
+  /* ---- 建立配色小方塊 ---- */
+  function buildSwatches(){
+    var wrap = $('swatches');
+    PALETTES.forEach(function(P, i){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'swatch';
+      b.setAttribute('aria-label', '配色：' + P.name);
+      b.setAttribute('aria-pressed', i === state.pal ? 'true' : 'false');
+      b.style.background = 'linear-gradient(135deg,' + P.bg + ' 0 50%,' + P.comps[1] + ' 50% 74%,' + P.comps[3] + ' 74% 100%)';
+      var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = P.name; b.appendChild(nm);
+      b.addEventListener('click', function(){
+        if (i === state.pal){ return; }
+        transition(function(){ state.pal = i; });
+        var btns = wrap.querySelectorAll('.swatch');
+        for (var k = 0; k < btns.length; k++){ btns[k].setAttribute('aria-pressed', k === i ? 'true' : 'false'); }
+        announce('配色已切換為' + P.name + '。');
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  function setSeg(mode){
+    $('m-arc').setAttribute('aria-pressed', mode === 'arc' ? 'true' : 'false');
+    $('m-diag').setAttribute('aria-pressed', mode === 'diag' ? 'true' : 'false');
+  }
+
+  /* ---- 綁定 ---- */
+  function bind(){
+    $('reroll').addEventListener('click', doReroll);
+
+    $('m-arc').addEventListener('click', function(){
+      if (state.mode === 'arc'){ return; }
+      transition(function(){ state.mode = 'arc'; }); setSeg('arc'); announce('已切換為弧線瓷磚。');
+    });
+    $('m-diag').addEventListener('click', function(){
+      if (state.mode === 'diag'){ return; }
+      transition(function(){ state.mode = 'diag'; }); setSeg('diag'); announce('已切換為斜線瓷磚。');
+    });
+
+    var sn = $('s-n');
+    sn.addEventListener('input', function(){
+      var v = parseInt(this.value, 10);
+      state.n = v;
+      this.style.setProperty('--pct', ((v - 6) / (40 - 6) * 100) + '%');
+      $('s-n-val').textContent = v; $('s-n-val2').textContent = v;
+      state.tiles = generateTiles(state.n, state.seed);
+      if (!anim){ cancelRAF(); paintStatic(); }               // 拖動時即時重繪
+    });
+    sn.addEventListener('change', function(){ persist(); announce('密度：每邊 ' + state.n + ' 格。'); });
+
+    var sw = $('s-w');
+    sw.addEventListener('input', function(){
+      var v = parseInt(this.value, 10);
+      state.thickness = v;
+      this.style.setProperty('--pct', ((v - 6) / (100 - 6) * 100) + '%');
+      $('s-w-val').textContent = thickLabel(v);
+      if (!anim){ cancelRAF(); paintStatic(); }
+    });
+    sw.addEventListener('change', persist);
+
+    $('conn').addEventListener('change', function(){
+      var on = this.checked;
+      transition(function(){ state.connectivity = on; });
+      announce(on ? '已開啟依連通性上色：接成一條的線同色。' : '已關閉連通性上色。');
+    });
+
+    $('auto').addEventListener('change', function(){
+      state.auto = this.checked;
+      if (state.auto){ scheduleAuto(); } else { clearTimeout(autoTimer); }
+    });
+
+    $('download').addEventListener('click', function(){
+      cancelRAF();
+      if (anim){ state.tiles = anim.neo; anim = null; }
+      paintStatic();                                          // 確保擷取到乾淨的一幀
+      try{
+        var url = cv.toDataURL('image/png');
+        var a = document.createElement('a');
+        a.download = 'truchet-' + state.seed.toString(36) + '.png';
+        a.href = url; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        announce('已下載目前這張圖樣。');
+      }catch(e){ announce('下載失敗，此環境不允許匯出畫布。'); }
+    });
+
+    /* 點單格：翻轉它、重算周圍連通 */
+    cv.addEventListener('click', function(e){
+      if (anim){ return; }
+      var rect = cv.getBoundingClientRect();
+      var side = Math.min(W, H), ox = (W - side) / 2, oy = (H - side) / 2, s = side / state.n;
+      var x = (e.clientX - rect.left) / rect.width * W - ox;
+      var y = (e.clientY - rect.top) / rect.height * H - oy;
+      if (x < 0 || y < 0 || x >= side || y >= side){ return; }
+      var c = Math.floor(x / s), r = Math.floor(y / s), idx = r * state.n + c;
+      var neo = state.tiles.slice(); neo[idx] ^= 1;
+      startFlip(neo, idx);
+      announce('已翻轉第 ' + (r + 1) + ' 列第 ' + (c + 1) + ' 格。');
+    });
+
+    /* resize 節流 + dpr 安全 */
+    var ro = new ResizeObserver(function(){
+      fit();
+      if (!anim){ cancelRAF(); paintStatic(); }
+    });
+    ro.observe(cv);
+
+    /* 分頁隱藏：收尾動畫、暫停自動變換 */
+    document.addEventListener('visibilitychange', function(){
+      if (document.hidden){
+        if (anim){ finishFlip(); }
+        clearTimeout(autoTimer);
+      } else if (state.auto){ scheduleAuto(); }
+    });
+
+    /* prefers-reduced-motion 動態監聽 */
+    var onMQ = function(ev){
+      reduce = ev.matches;
+      $('auto').disabled = reduce;
+      if (reduce){
+        clearTimeout(autoTimer);
+        cancelRAF();
+        if (anim){ state.tiles = anim.neo; anim = null; }
+        paintStatic();
+      }
+    };
+    if (mq.addEventListener){ mq.addEventListener('change', onMQ); } else if (mq.addListener){ mq.addListener(onMQ); }
+  }
+
+  /* ---- 初始化 ---- */
+  function init(){
+    /* 還原偏好（localStorage，前綴 truchet.） */
+    var m = store.get('mode', 'arc'); state.mode = (m === 'diag') ? 'diag' : 'arc';
+    var n = parseInt(store.get('n', 14), 10); if (isNaN(n) || n < 6 || n > 40){ n = 14; } state.n = n;
+    var th = parseInt(store.get('thick', 46), 10); if (isNaN(th) || th < 6 || th > 100){ th = 46; } state.thickness = th;
+    var pid = store.get('pal', 'celadon');
+    for (var i = 0; i < PALETTES.length; i++){ if (PALETTES[i].id === pid){ state.pal = i; break; } }
+    state.connectivity = store.get('conn', '0') === '1';
+
+    /* 套用到控制項 */
+    setSeg(state.mode);
+    $('s-n').value = state.n; $('s-n').style.setProperty('--pct', ((state.n - 6) / 34 * 100) + '%');
+    $('s-n-val').textContent = state.n; $('s-n-val2').textContent = state.n;
+    $('s-w').value = state.thickness; $('s-w').style.setProperty('--pct', ((state.thickness - 6) / 94 * 100) + '%');
+    $('s-w-val').textContent = thickLabel(state.thickness);
+    $('conn').checked = state.connectivity;
+    $('auto').disabled = reduce;
+
+    buildSwatches();
+    bind();
+
+    /* 開場：先擺一張擾動圖，再擲向初始圖（進場即示範哇時刻；減動則直接呈現） */
+    state.seed = newSeed();
+    updateSeedUI();
+    state.tiles = generateTiles(state.n, newSeed());     // 擾動起點
+    fit();
+    var target = generateTiles(state.n, state.seed);
+    if (reduce){ state.tiles = target; paintStatic(); }
+    else { startFlip(target, -1); }
+  }
+
+  if (document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', init); } else { init(); }
+})();
+</script>
+</body>
+</html>

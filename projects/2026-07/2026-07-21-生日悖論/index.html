@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生日悖論 · 23 個人的房間</title>
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  :root{
+    --bg:#0a0b16; --panel:rgba(18,20,42,.72); --panel2:rgba(12,15,34,.5);
+    --line:rgba(160,150,220,.16); --line-soft:rgba(160,150,220,.09);
+    --ink:#f1eefb; --dim:#a9a4cf; --faint:#726d9a;
+    --accent:#64b5f6;        /* 主色：網路趣聞・冷知識 */
+    --accent-d:#3f8fd6;
+    --gold:#f0c674;
+    --pink:#f48fb1;
+    --good:#7bd6a2;
+    --shadow:0 22px 48px rgba(0,0,0,.5);
+    --e-out:cubic-bezier(.22,1,.36,1);
+    --e-pop:cubic-bezier(.2,1.5,.4,1);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1100px 620px at 82% -8%, rgba(100,181,246,.16), transparent 60%),
+      radial-gradient(820px 560px at 6% 8%, rgba(244,143,177,.09), transparent 60%),
+      radial-gradient(760px 620px at 50% 118%, rgba(240,198,116,.07), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; line-height:1.6; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+    background-image:radial-gradient(rgba(241,238,251,.05) 1px, transparent 1.6px);
+    background-size:34px 34px;
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.72), transparent 72%);
+            mask-image:linear-gradient(180deg, rgba(0,0,0,.72), transparent 72%);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:10px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* ── 回首頁 ── */
+  .home{
+    position:fixed; top:15px; left:16px; z-index:40;
+    font-size:13px; color:var(--dim); text-decoration:none;
+    background:rgba(14,16,38,.72); border:1px solid var(--line);
+    padding:7px 14px 7px 12px; border-radius:999px; backdrop-filter:blur(8px);
+    transition:color .2s, border-color .2s, transform .2s;
+  }
+  .home:hover{color:var(--ink); border-color:var(--accent); transform:translateX(-2px)}
+
+  .wrap{position:relative; z-index:1; max-width:1000px; margin:0 auto; padding:0 22px 72px}
+
+  /* ── 進場 ── */
+  .rise{transition:opacity .7s ease var(--rd,0s), transform .7s var(--e-out) var(--rd,0s)}
+  body.preload .rise{opacity:0; transform:translateY(16px)}
+
+  /* ── 頁首 ── */
+  header{text-align:center; padding:76px 0 12px}
+  .kicker{
+    display:inline-flex; align-items:center; gap:9px;
+    font-family:var(--serif); font-size:11.5px; color:var(--accent);
+    letter-spacing:.3em; text-indent:.3em;
+    border:1px solid rgba(100,181,246,.36); border-radius:999px; padding:6px 15px 6px 18px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; margin-top:18px;
+    font-size:clamp(34px,7vw,58px); letter-spacing:.14em; text-indent:.14em;
+    background:linear-gradient(180deg,#fff 8%,#bcd9f7 96%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .lede{color:var(--dim); font-size:15.5px; margin:16px auto 0; max-width:640px; line-height:1.9}
+  .lede b{color:var(--ink); font-weight:600}
+
+  /* ── 區塊 ── */
+  section{padding:26px 0}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:22px;
+    box-shadow:var(--shadow); backdrop-filter:blur(10px);
+  }
+  .sec-head{display:flex; align-items:center; gap:13px; margin:0 2px 15px}
+  .sec-head .tag{font-family:var(--serif); font-size:11.5px; letter-spacing:.22em; color:var(--gold); white-space:nowrap}
+  .sec-head h2{
+    font-family:var(--serif); font-weight:700; letter-spacing:.05em; font-size:clamp(18px,3.4vw,24px);
+    background:linear-gradient(180deg,#fff 20%,#bcd9f7 98%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .sec-head .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+  p.body{font-size:14.5px; color:var(--dim); line-height:1.9; max-width:760px}
+  p.body b{color:var(--ink); font-weight:600}
+  p.body + p.body{margin-top:10px}
+
+  /* ── 賭一把 ── */
+  .bet{padding:22px 22px 24px}
+  .bet .q{font-family:var(--serif); font-size:clamp(16px,3.6vw,20px); color:var(--ink); letter-spacing:.02em}
+  .bet .hint{font-size:13px; color:var(--faint); margin-top:6px}
+  .chips{display:flex; flex-wrap:wrap; gap:9px; margin-top:16px}
+  .chip{
+    font-family:var(--serif); font-size:15px; font-weight:700; color:var(--dim); cursor:pointer;
+    background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:9px 16px;
+    transition:transform .16s var(--e-pop), color .2s, border-color .2s, background .2s;
+  }
+  .chip:hover{color:var(--ink); border-color:var(--accent); transform:translateY(-2px)}
+  .chip:active{transform:translateY(0) scale(.97)}
+  .chip.picked{color:#0a0b16; background:linear-gradient(180deg,#ffe6a6,var(--gold)); border-color:var(--gold)}
+  .reveal{overflow:hidden; max-height:0; opacity:0; transition:max-height .5s var(--e-out), opacity .5s ease, margin-top .5s var(--e-out); margin-top:0}
+  .reveal.on{max-height:340px; opacity:1; margin-top:18px}
+  .reveal-in{border-top:1px solid var(--line-soft); padding-top:16px}
+  .reveal .quip{font-size:14px; color:var(--dim); line-height:1.8}
+  .reveal .ans{font-family:var(--serif); margin-top:10px; font-size:clamp(20px,5vw,30px); font-weight:700; color:var(--ink)}
+  .reveal .ans b{color:var(--gold); font-size:1.32em; text-shadow:0 0 24px rgba(240,198,116,.4)}
+  .reveal .ans-sub{font-size:13.5px; color:var(--faint); margin-top:8px; line-height:1.8}
+  .gobtn{
+    margin-top:14px; font-family:inherit; font-size:13.5px; font-weight:600; cursor:pointer;
+    color:var(--accent); background:none; border:none; padding:0;
+    display:inline-flex; align-items:center; gap:6px; transition:gap .2s, color .2s;
+  }
+  .gobtn:hover{color:#9ccbf7; gap:11px}
+
+  /* ── 舞台 ── */
+  .stage{padding:22px 22px 24px}
+
+  .race{display:grid; grid-template-columns:1fr auto 1fr; align-items:stretch; gap:12px; margin-bottom:22px}
+  .score{text-align:center; padding:15px 12px 14px; border-radius:18px; background:var(--panel2); border:1px solid var(--line); position:relative}
+  .score .lab{font-size:11.5px; letter-spacing:.16em; color:var(--faint); display:flex; align-items:center; justify-content:center; gap:7px}
+  .score .dot{width:8px; height:8px; border-radius:50%}
+  .score.theory .dot{background:var(--accent); box-shadow:0 0 8px var(--accent)}
+  .score.emp .dot{background:var(--gold); box-shadow:0 0 8px var(--gold)}
+  .score .val{font-family:var(--serif); font-weight:700; font-size:clamp(30px,8vw,52px); line-height:1.12; font-variant-numeric:tabular-nums; margin-top:4px}
+  .score.theory .val{background:linear-gradient(180deg,#eaf4ff,#9cc7f5); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .score.emp .val{color:var(--gold)}
+  .score.emp.idle .val{color:var(--faint); font-size:clamp(26px,7vw,44px)}
+  .score .sub{font-size:11px; color:var(--faint); margin-top:4px; letter-spacing:.02em}
+  .over{position:absolute; top:9px; right:10px; font-size:10px; letter-spacing:.1em; color:#0a0b16;
+    background:linear-gradient(180deg,#ffe6a6,var(--gold)); padding:3px 8px; border-radius:999px; font-weight:700;
+    opacity:0; transform:scale(.7); transition:opacity .3s, transform .3s var(--e-pop)}
+  .over.on{opacity:1; transform:scale(1)}
+  .vs{display:flex; align-items:center; font-family:var(--serif); color:var(--faint); font-size:13px; letter-spacing:.1em}
+  .mcbar{height:4px; border-radius:999px; background:rgba(160,150,220,.14); margin-top:11px; overflow:hidden}
+  .mcbar i{display:block; height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,var(--gold),#ffd98a); transition:width .12s linear}
+
+  .stagemain{display:grid; grid-template-columns:1.28fr .82fr; gap:24px; align-items:start}
+
+  .roomwrap{position:relative}
+  .grid{
+    position:relative; display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(46px,1fr));
+    gap:8px;
+  }
+  .cell{
+    position:relative; aspect-ratio:1/1; border-radius:12px;
+    background:linear-gradient(180deg, rgba(32,36,68,.7), rgba(18,21,44,.72));
+    border:1px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    transition:transform .2s var(--e-out), border-color .35s, box-shadow .35s, background .35s;
+  }
+  .cell .face{
+    width:15px; height:15px; border-radius:50%;
+    background:radial-gradient(circle at 40% 34%, #b6bedd, #6d75a0);
+    box-shadow:inset 0 -2px 3px rgba(0,0,0,.32);
+    transition:background .35s, box-shadow .35s, transform .35s var(--e-pop);
+  }
+  .cell .md{font-size:10.5px; color:var(--faint); font-variant-numeric:tabular-nums; letter-spacing:.01em; transition:color .35s}
+  .cell.hit{
+    border-color:color-mix(in srgb,var(--hue) 72%,transparent);
+    background:linear-gradient(180deg, color-mix(in srgb,var(--hue) 24%, rgba(18,21,44,.72)), rgba(18,21,44,.78));
+    box-shadow:0 0 0 1px color-mix(in srgb,var(--hue) 46%,transparent), 0 8px 26px color-mix(in srgb,var(--hue) 30%,transparent);
+  }
+  .cell.hit .face{background:radial-gradient(circle at 40% 34%, #fff, var(--hue)); box-shadow:0 0 12px color-mix(in srgb,var(--hue) 85%,transparent); transform:scale(1.06)}
+  .cell.hit .md{color:color-mix(in srgb,var(--hue) 82%,#fff); font-weight:700}
+  .cell.hit::after{content:""; position:absolute; top:5px; right:6px; width:5px; height:5px; border-radius:50%; background:var(--hue); box-shadow:0 0 8px var(--hue)}
+  .cell.pop{animation:cellPop .24s var(--e-out) both}
+  .cell.pulse{animation:cellPulse .52s ease both}
+  @keyframes cellPop{from{opacity:0; transform:scale(.55)} to{opacity:1; transform:scale(1)}}
+  @keyframes cellPulse{0%{transform:scale(1)} 32%{transform:scale(1.16)} 100%{transform:scale(1)}}
+
+  .lines{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:3}
+  .lines line{stroke-linecap:round}
+
+  .confetti{position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:5}
+  .conf{position:absolute; width:7px; height:9px; border-radius:2px; opacity:1; will-change:transform;
+    animation:confDrop .95s cubic-bezier(.3,.6,.5,1) forwards}
+  @keyframes confDrop{ to{ transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)); opacity:0 } }
+
+  /* 控制欄 */
+  .panel{display:flex; flex-direction:column; gap:16px}
+  .ctl{display:flex; flex-direction:column; gap:9px}
+  .ctl-top{display:flex; align-items:baseline; justify-content:space-between; gap:8px}
+  .ctl-top label{font-size:12px; color:var(--faint); letter-spacing:.06em}
+  .nbadge{font-family:var(--serif); font-weight:700; font-size:22px; color:var(--ink)}
+  .nbadge b{color:var(--gold)}
+  .track{position:relative; padding-top:2px}
+  input[type=range]{
+    width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:999px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-d)); outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+    background:#fff; border:4px solid var(--accent-d); cursor:pointer; margin-top:0;
+    box-shadow:0 3px 10px rgba(0,0,0,.4); transition:transform .15s var(--e-pop);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.16)}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(1.06)}
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px; border-radius:50%; background:#fff; border:4px solid var(--accent-d); cursor:pointer;
+    box-shadow:0 3px 10px rgba(0,0,0,.4);
+  }
+  .tick23{position:absolute; top:14px; left:31.9%; transform:translateX(-50%); pointer-events:none; text-align:center}
+  .tick23::before{content:""; display:block; width:2px; height:8px; margin:0 auto 3px; border-radius:2px;
+    background:var(--gold); box-shadow:0 0 8px rgba(240,198,116,.6)}
+  .tick23 span{font-size:10px; color:var(--gold); letter-spacing:.08em; white-space:nowrap}
+
+  .btnrow{display:flex; gap:9px; flex-wrap:wrap}
+  .btn{
+    flex:1; min-width:118px; font-family:inherit; font-size:13.5px; font-weight:600; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#1d2142,#151833); border:1px solid var(--line); border-radius:13px; padding:11px 12px;
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    transition:transform .16s var(--e-pop), border-color .2s, box-shadow .2s, background .2s, opacity .2s;
+  }
+  .btn:hover{border-color:var(--accent); transform:translateY(-1px); box-shadow:0 8px 20px rgba(0,0,0,.35)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.primary{background:linear-gradient(180deg,#2a3358,#1b2144); border-color:rgba(240,198,116,.4)}
+  .btn.primary:hover{border-color:var(--gold); box-shadow:0 8px 22px rgba(240,198,116,.18)}
+  .btn[disabled]{opacity:.5; cursor:default; transform:none; box-shadow:none}
+  .btn .ico{font-size:15px; line-height:1}
+
+  .status{
+    font-size:13px; line-height:1.7; color:var(--dim); min-height:2.9em;
+    padding:12px 14px; border-radius:14px; background:var(--panel2); border:1px solid var(--line-soft);
+  }
+  .status b{color:var(--ink); font-weight:600}
+  .status .hitmark{color:var(--gold); font-weight:700}
+  .status .miss{color:var(--faint)}
+
+  /* ── 機率曲線 ── */
+  .curvecard{padding:20px 20px 18px}
+  .curvesvg{width:100%; display:block; margin-top:6px}
+  .curvesvg .area{fill:url(#curveFill)}
+  .curvesvg .curveline{fill:none; stroke:var(--accent); stroke-width:2.4}
+  .curvesvg .half{stroke:rgba(240,198,116,.5); stroke-width:1.3; stroke-dasharray:5 5}
+  .curvesvg .mark23{stroke:rgba(240,198,116,.32); stroke-width:1.2}
+  .curvesvg .mdot{fill:var(--accent)}
+  .curvesvg .guide{stroke:rgba(160,150,220,.28); stroke-width:1}
+  .curvesvg .live{fill:#fff; stroke:var(--gold); stroke-width:2.5}
+  .curvesvg text{font-family:var(--sans); fill:var(--faint); font-size:12px}
+  .curvesvg text.gold{fill:var(--gold)}
+  .curvesvg text.acc{fill:#9cc7f5}
+
+  .miles{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .mile{font-size:12px; color:var(--dim); background:var(--panel2); border:1px solid var(--line-soft); border-radius:999px; padding:6px 13px; font-variant-numeric:tabular-nums}
+  .mile b{color:var(--gold); font-weight:700}
+  .mile.pigeon b{color:var(--good)}
+
+  /* ── 說明 ── */
+  .explain{padding:22px}
+  .why{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:4px}
+  .why .box{background:var(--panel2); border:1px solid var(--line-soft); border-radius:16px; padding:16px 17px}
+  .why .box h3{font-family:var(--serif); font-size:15px; color:var(--ink); margin-bottom:7px; letter-spacing:.02em}
+  .why .box p{font-size:13.5px; color:var(--dim); line-height:1.85}
+  .why .box p b{color:var(--ink)}
+  .why .big{font-family:var(--serif); font-size:26px; font-weight:700; color:var(--gold); font-variant-numeric:tabular-nums}
+  .note{margin-top:16px; font-size:12.5px; color:var(--faint); line-height:1.8; border-left:2px solid var(--line); padding-left:13px}
+
+  footer{text-align:center; padding:38px 16px 0; color:var(--faint); font-size:12.5px; line-height:1.9}
+  footer .src{color:var(--faint); opacity:.8; margin-top:4px; font-size:11.5px}
+
+  /* ── 響應式 ── */
+  @media (max-width:720px){
+    .stagemain{grid-template-columns:1fr; gap:20px}
+    .why{grid-template-columns:1fr}
+  }
+  @media (max-width:560px){
+    .wrap{padding:0 16px 60px}
+    header{padding:66px 0 6px}
+    .stage,.bet,.explain{padding:18px 15px 20px}
+    .race{grid-template-columns:1fr; gap:9px}
+    .vs{display:none}
+    .grid{grid-template-columns:repeat(auto-fill,minmax(42px,1fr)); gap:7px}
+    .btn{min-width:0}
+  }
+
+  /* ── 減少動態：完整降級 ── */
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+    body.preload .rise{opacity:1; transform:none}
+    .confetti{display:none}
+  }
+</style>
+</head>
+<body class="preload">
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<div class="wrap">
+
+  <header>
+    <span class="kicker">網路趣聞・冷知識</span>
+    <h1>生日悖論</h1>
+    <p class="lede">一個房間裡要幾個人，才有<b>超過一半</b>的機率，出現兩個人同月同日生？直覺會喊出一兩百——正解卻小得離譜。滑一滑，親眼看它發生。</p>
+  </header>
+
+  <!-- 賭一把 -->
+  <section class="rise" style="--rd:.06s">
+    <div class="card bet">
+      <div class="q">先賭一把：要幾個人，才有過半機率撞生日？</div>
+      <div class="hint">別急著往下拉——憑直覺挑一個數字。</div>
+      <div class="chips" id="chips" role="group" aria-label="猜一個人數">
+        <button type="button" class="chip" data-n="23">23</button>
+        <button type="button" class="chip" data-n="41">41</button>
+        <button type="button" class="chip" data-n="50">50</button>
+        <button type="button" class="chip" data-n="100">100</button>
+        <button type="button" class="chip" data-n="180">180</button>
+        <button type="button" class="chip" data-n="366">366</button>
+      </div>
+      <div class="reveal" id="reveal" aria-live="polite">
+        <div class="reveal-in">
+          <p class="quip" id="quip"></p>
+          <p class="ans">答案是 <b>23</b> 人。</p>
+          <p class="ans-sub">只要 23 個人，就有 <b style="color:var(--gold)">50.7%</b> 的機率，其中至少兩人同月同日生——比多數人想的少了快十倍。</p>
+          <button type="button" class="gobtn" id="goStage">滑到 23，給我看 →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 舞台 -->
+  <section class="rise" style="--rd:.16s" id="stageSec">
+    <div class="card stage">
+
+      <div class="race">
+        <div class="score theory">
+          <span class="over" id="overHalf">已過半</span>
+          <div class="lab"><span class="dot"></span>理論機率</div>
+          <div class="val" id="theoryVal">0.0%</div>
+          <div class="sub">這 n 人裡任兩人同一天</div>
+        </div>
+        <div class="vs">vs</div>
+        <div class="score emp idle" id="empScore">
+          <div class="lab"><span class="dot"></span>實測頻率</div>
+          <div class="val" id="empVal">—</div>
+          <div class="sub" id="empSub">按「跑一萬次」實際模擬</div>
+          <div class="mcbar" aria-hidden="true"><i id="mcFill"></i></div>
+        </div>
+      </div>
+
+      <div class="stagemain">
+        <div class="roomwrap">
+          <div class="grid" id="grid" aria-hidden="true"></div>
+          <svg class="lines" id="lines" aria-hidden="true" viewBox="0 0 10 10" preserveAspectRatio="none">
+            <defs>
+              <filter id="lineGlow" filterUnits="userSpaceOnUse" x="0" y="0" width="10" height="10">
+                <feGaussianBlur stdDeviation="3" result="b"/>
+                <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+            <g id="linesG" filter="url(#lineGlow)"></g>
+          </svg>
+          <div class="confetti" id="confetti" aria-hidden="true"></div>
+        </div>
+
+        <div class="panel">
+          <div class="ctl">
+            <div class="ctl-top">
+              <label for="slider">房間人數</label>
+              <span class="nbadge"><b id="nVal">12</b> 人</span>
+            </div>
+            <div class="track">
+              <input type="range" id="slider" min="1" max="70" value="12" step="1"
+                     aria-label="房間人數" aria-valuemin="1" aria-valuemax="70" aria-valuenow="12" aria-valuetext="12 人">
+              <div class="tick23" aria-hidden="true"><span>23＝過半</span></div>
+            </div>
+          </div>
+          <div class="btnrow">
+            <button type="button" class="btn" id="reroll"><span class="ico">🎲</span>再擲一次</button>
+            <button type="button" class="btn primary" id="runMc"><span class="ico">⚡</span>跑一萬次</button>
+          </div>
+          <p class="status" id="status" role="status" aria-live="polite">拉動滑桿，讓房間長出人來。撞到生日的人會亮起同色、連成一線。</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 機率曲線 -->
+  <section class="rise" style="--rd:.26s">
+    <div class="card curvecard">
+      <div class="sec-head"><span class="tag">P(n)</span><h2>機率曲線</h2><span class="rule"></span></div>
+      <p class="body">這條藍線就是理論機率。它在 <b>23 人</b>處越過半數，之後幾乎貼著天花板——<b>57 人</b>就已經 99%。</p>
+      <svg class="curvesvg" id="curve" viewBox="0 0 700 214" role="img" aria-label="生日碰撞機率隨人數上升的曲線，在 23 人處越過 50%">
+        <defs>
+          <linearGradient id="curveFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="rgba(100,181,246,.32)"/>
+            <stop offset="1" stop-color="rgba(100,181,246,0)"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div class="miles">
+        <span class="mile">23 人 → <b>50.7%</b></span>
+        <span class="mile">41 人 → <b>90.3%</b></span>
+        <span class="mile">57 人 → <b>99.0%</b></span>
+        <span class="mile">70 人 → <b>99.9%</b></span>
+        <span class="mile pigeon">366 人 → <b>100%</b>（鴿籠原理）</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 為什麼 -->
+  <section class="rise" style="--rd:.36s">
+    <div class="card explain">
+      <div class="sec-head"><span class="tag">WHY</span><h2>為什麼這麼少？</h2><span class="rule"></span></div>
+      <p class="body">祕密在「<b>任意兩人</b>」這四個字。我們沒有指定是誰，只要房間裡湊得出<b>任何一對</b>同一天就算數。</p>
+      <div class="why">
+        <div class="box">
+          <h3>23 個人，藏著 253 對</h3>
+          <p><span class="big">C(23,2)＝253</span></p>
+          <p>23 個人能兩兩配出 <b>253 組</b>配對，每一組都是一次撞生日的機會。253 次機會湊在一起，過半也就不奇怪了——人數是線性增加，配對數卻是<b>平方</b>暴衝。</p>
+        </div>
+        <div class="box">
+          <h3>換成「跟你」同天就難了</h3>
+          <p>若問的是「有沒有人跟<b>你</b>同一天」，那只剩下 <b>n 組</b>配對，機率一下子掉回直覺——真的要 <b>253 人</b>才過半。差別全在於：是任兩人，還是指定一人。</p>
+        </div>
+      </div>
+      <p class="body" style="margin-top:16px">同一套數學，就是密碼學裡的「<b>生日攻擊</b>」：想撞出雜湊碰撞，平均只需約 √N 次嘗試，而不是 N 次——這正是安全雜湊的輸出必須夠長的原因。足球場上兩隊 22 人加一名主審，剛好 23 人，也常被拿來當現成的驗證樣本。</p>
+      <p class="note">機率以 365 天均勻分布計算，忽略閏日 2/29。現實中生日略有季節性，並非完全均勻——而在均勻假設下，過半所需人數其實是<b style="color:var(--dim)">上界</b>：真實世界只會更容易撞，不會更難。</p>
+    </div>
+  </section>
+
+  <footer>
+    23 個人，253 種可能——巧合，其實比你以為的還要勤奮。
+    <div class="src">資料來源：Wikipedia、Encyclopædia Britannica</div>
+  </footer>
+
+</div>
+
+<span class="sr-only" id="mcLive" aria-live="polite"></span>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+   * 純函式：生日悖論的數學核心（可被抽出單獨驗證）
+   * ============================================================ */
+
+  // 理論機率：n 人中至少兩人同一天（365 天均勻分布）
+  // P = 1 - ∏_{k=0}^{n-1} (1 - k/365)
+  function probability(n){
+    if(n <= 1) return 0;
+    if(n > 365) return 1;
+    var p = 1;
+    for(var k = 0; k < n; k++){ p *= (365 - k) / 365; }
+    return 1 - p;
+  }
+
+  // 一次蒙地卡羅試驗：隨機給 n 個人生日，有無碰撞（提早結束）
+  var _seen = new Uint8Array(365);
+  function trialCollision(n){
+    var touched = [];
+    var hit = false;
+    for(var i = 0; i < n; i++){
+      var d = (Math.random() * 365) | 0;   // 0..364
+      if(_seen[d]){ hit = true; break; }
+      _seen[d] = 1; touched.push(d);
+    }
+    for(var j = 0; j < touched.length; j++){ _seen[touched[j]] = 0; }
+    return hit;
+  }
+
+  // 抽一間房：回傳 n 個生日（day-of-year 0..364）
+  function sampleRoom(n){
+    var a = new Array(n);
+    for(var i = 0; i < n; i++){ a[i] = (Math.random() * 365) | 0; }
+    return a;
+  }
+
+  // 找出碰撞群組：同一天且人數 >= 2
+  function collisionGroups(days){
+    var map = new Map();
+    for(var i = 0; i < days.length; i++){
+      var d = days[i];
+      if(!map.has(d)) map.set(d, []);
+      map.get(d).push(i);
+    }
+    var groups = [];
+    map.forEach(function(idxs, day){ if(idxs.length >= 2) groups.push({ day: day, members: idxs }); });
+    return groups;
+  }
+
+  // day-of-year (0..364) → "M/D"（非閏年）
+  var MONTH_LEN = [31,28,31,30,31,30,31,31,30,31,30,31];
+  function dayToMD(d){
+    var m = 0;
+    while(d >= MONTH_LEN[m]){ d -= MONTH_LEN[m]; m++; }
+    return (m + 1) + '/' + (d + 1);
+  }
+
+  // 對外掛給測試使用（node 環境）
+  if(typeof module !== 'undefined' && module.exports){
+    module.exports = { probability: probability, trialCollision: trialCollision, sampleRoom: sampleRoom, collisionGroups: collisionGroups, dayToMD: dayToMD };
+    return;
+  }
+
+  /* ============================================================
+   * 環境與狀態
+   * ============================================================ */
+  var HUES = ['#f0c674','#f48fb1','#7bd6a2','#ba9df1','#4dd0e1','#ffa270','#8fd0ff','#e6e07a'];
+  var MIN_N = 1, MAX_N = 70, START_N = 12;
+
+  var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = mqReduce.matches;
+
+  var $ = function(id){ return document.getElementById(id); };
+  var grid = $('grid'), svg = $('lines'), linesG = $('linesG'), glowFilter = $('lineGlow'),
+      confetti = $('confetti'), slider = $('slider'), nVal = $('nVal'), status = $('status'),
+      theoryValEl = $('theoryVal'), empScore = $('empScore'), empVal = $('empVal'),
+      empSub = $('empSub'), mcFill = $('mcFill'), overHalf = $('overHalf'),
+      rerollBtn = $('reroll'), runMcBtn = $('runMc'), mcLive = $('mcLive');
+
+  var days = [];      // 目前房間的生日（長度 = currentN）
+  var people = [];     // 對應的 DOM：{el, faceEl, mdEl}
+  var currentN = START_N;
+  var prevHadCol = false;
+  var empN = null;    // 目前實測值對應的人數（null = 尚未跑）
+
+  /* ============================================================
+   * 數字滾動器（尊重減少動態與分頁隱藏）
+   * ============================================================ */
+  function makeRoller(el, decimals){
+    var cur = 0, target = 0, from = 0, t0 = 0, raf = 0, dur = 480;
+    function render(v){ el.textContent = v.toFixed(decimals) + '%'; }
+    function step(ts){
+      if(document.hidden){ cur = target; render(cur); raf = 0; return; }
+      if(!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      cur = from + (target - from) * e;
+      render(cur);
+      if(p < 1){ raf = requestAnimationFrame(step); }
+      else { cur = target; render(cur); raf = 0; }
+    }
+    return {
+      set: function(v, animate){
+        target = v;
+        if(!animate || reduced || document.hidden){
+          cur = v; render(v);
+          if(raf){ cancelAnimationFrame(raf); raf = 0; }
+          return;
+        }
+        from = cur; t0 = 0;
+        if(raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(step);
+      },
+      reset: function(){ if(raf){ cancelAnimationFrame(raf); raf = 0; } cur = 0; }
+    };
+  }
+  var theoryRoller = makeRoller(theoryValEl, 1);
+  var empRoller = makeRoller(empVal, 1);
+
+  /* ============================================================
+   * 房間：格子的建立與回收
+   * ============================================================ */
+  function makeCell(){
+    var el = document.createElement('div');
+    el.className = 'cell';
+    var face = document.createElement('span'); face.className = 'face';
+    var md = document.createElement('span'); md.className = 'md';
+    el.appendChild(face); el.appendChild(md);
+    return { el: el, faceEl: face, mdEl: md };
+  }
+
+  // 讓 DOM 格子數量對齊 n；newlyAdded 決定是否播放進場
+  function ensureEls(n, animateNew){
+    while(people.length < n){
+      var c = makeCell();
+      if(animateNew && !reduced){
+        c.el.classList.add('pop');
+        c.el.addEventListener('animationend', function(){ this.classList.remove('pop'); }, { once: true });
+      }
+      grid.appendChild(c.el);
+      people.push(c);
+    }
+    while(people.length > n){
+      var g = people.pop();
+      if(g.el.parentNode) g.el.parentNode.removeChild(g.el);
+    }
+  }
+
+  // 同步房間：reroll=整批重抽；否則保留舊人、只增減尾端
+  function syncRoom(n, reroll, animateNew){
+    if(reroll){
+      days = sampleRoom(n);
+    } else {
+      if(n < days.length){ days.length = n; }
+      else { while(days.length < n){ days.push((Math.random() * 365) | 0); } }
+    }
+    ensureEls(n, animateNew);
+    for(var i = 0; i < n; i++){ people[i].mdEl.textContent = dayToMD(days[i]); }
+  }
+
+  function pulse(el){
+    if(reduced) return;
+    el.classList.remove('pulse');
+    void el.offsetWidth;
+    el.classList.add('pulse');
+    el.addEventListener('animationend', function(){ this.classList.remove('pulse'); }, { once: true });
+  }
+
+  /* ============================================================
+   * 連線：SVG 疊層（userSpaceOnUse，可靠重播 dasharray）
+   * ============================================================ */
+  function sizeSvg(){
+    var W = grid.clientWidth, H = grid.clientHeight;
+    if(W === svg._w && H === svg._h) return;   // 先比較再寫，避免無謂重繪
+    svg._w = W; svg._h = H;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    glowFilter.setAttribute('width', W);
+    glowFilter.setAttribute('height', H);
+  }
+
+  function drawLines(groups, animate){
+    sizeSvg();
+    var segs = [];
+    for(var gi = 0; gi < groups.length; gi++){
+      var m = groups[gi].members, col = groups[gi].color;
+      for(var i = 0; i < m.length - 1; i++){
+        var a = people[m[i]].el, b = people[m[i+1]].el;
+        segs.push({
+          x1: a.offsetLeft + a.offsetWidth / 2, y1: a.offsetTop + a.offsetHeight / 2,
+          x2: b.offsetLeft + b.offsetWidth / 2, y2: b.offsetTop + b.offsetHeight / 2,
+          col: col
+        });
+      }
+    }
+    var op = segs.length > 8 ? 0.72 : 0.95;
+    var html = '';
+    for(var s = 0; s < segs.length; s++){
+      var g = segs[s];
+      html += '<line x1="' + g.x1 + '" y1="' + g.y1 + '" x2="' + g.x2 + '" y2="' + g.y2 +
+              '" stroke="' + g.col + '" stroke-width="2.6" stroke-opacity="' + op + '"/>';
+    }
+    linesG.innerHTML = html;
+
+    // 快照成陣列，避免快速重擲時 live collection 被換掉
+    var nodes = Array.prototype.slice.call(linesG.children);
+    if(animate && !reduced && nodes.length){
+      for(var k = 0; k < nodes.length; k++){
+        // 長度直接由已知座標算出，不從 DOM 讀 baseVal（更可攜、免依賴 SVGAnimatedLength）
+        var d = segs[k];
+        var len = Math.hypot(d.x2 - d.x1, d.y2 - d.y1);
+        nodes[k].style.transition = 'none';
+        nodes[k].style.strokeDasharray = len;
+        nodes[k].style.strokeDashoffset = len;
+      }
+      linesG.getBoundingClientRect();   // 強制 reflow
+      requestAnimationFrame(function(){
+        for(var q = 0; q < nodes.length; q++){
+          nodes[q].style.transition = 'stroke-dashoffset .6s cubic-bezier(.22,1,.36,1)';
+          nodes[q].style.strokeDashoffset = '0';
+        }
+      });
+    } else {
+      for(var z = 0; z < nodes.length; z++){
+        nodes[z].style.transition = 'none';
+        nodes[z].style.strokeDasharray = 'none';
+        nodes[z].style.strokeDashoffset = '0';
+      }
+    }
+  }
+
+  /* ============================================================
+   * 慶祝：彩帶（只用 transform/opacity）
+   * ============================================================ */
+  function burstConfetti(groups){
+    if(reduced || document.hidden) return;
+    var W = grid.clientWidth, H = grid.clientHeight;
+    var cols = groups.length ? groups.map(function(g){ return g.color; }) : HUES;
+    var N = Math.min(28, 14 + groups.length * 4);
+    for(var i = 0; i < N; i++){
+      var p = document.createElement('span');
+      p.className = 'conf';
+      p.style.left = (W * 0.5 + (Math.random() - 0.5) * W * 0.55) + 'px';
+      p.style.top = '4px';
+      p.style.background = cols[i % cols.length];
+      p.style.setProperty('--dx', ((Math.random() - 0.5) * 170) + 'px');
+      p.style.setProperty('--dy', (H * 0.66 + Math.random() * 70) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.animationDelay = (Math.random() * 0.12) + 's';
+      p.addEventListener('animationend', function(){ if(this.parentNode) this.parentNode.removeChild(this); }, { once: true });
+      confetti.appendChild(p);
+    }
+  }
+
+  /* ============================================================
+   * 綜合刷新：算群組、上色、連線、慶祝、播報
+   * ============================================================ */
+  function refresh(opts){
+    opts = opts || {};
+    var groups = collisionGroups(days);
+    for(var i = 0; i < groups.length; i++){ groups[i].color = HUES[i % HUES.length]; }
+
+    for(var p = 0; p < people.length; p++){
+      people[p].el.classList.remove('hit');
+      people[p].el.style.removeProperty('--hue');
+    }
+    for(var g = 0; g < groups.length; g++){
+      var m = groups[g].members;
+      for(var j = 0; j < m.length; j++){
+        var el = people[m[j]].el;
+        el.classList.add('hit');
+        el.style.setProperty('--hue', groups[g].color);
+      }
+    }
+
+    var hasCol = groups.length > 0;
+    var justHit = hasCol && !opts.silent && (!prevHadCol || opts.force);
+
+    drawLines(groups, justHit);
+    if(justHit){
+      burstConfetti(groups);
+      for(var c = 0; c < groups.length; c++){
+        var mm = groups[c].members;
+        for(var k = 0; k < mm.length; k++){ pulse(people[mm[k]].el); }
+      }
+    }
+    prevHadCol = hasCol;
+    updateStatus(groups);
+    updateOver();
+  }
+
+  function updateOver(){
+    if(currentN >= 23) overHalf.classList.add('on');
+    else overHalf.classList.remove('on');
+  }
+
+  function updateStatus(groups){
+    var pct = (probability(currentN) * 100).toFixed(1);
+    var txt;
+    if(groups.length === 0){
+      txt = '目前 <b>' + currentN + ' 人</b>：<span class="miss">這一間沒撞。</span>再擲幾次看看——理論上約 ' + pct + '% 的房間會撞到。';
+    } else if(groups.length === 1 && groups[0].members.length === 2){
+      var a = groups[0].members[0] + 1, b = groups[0].members[1] + 1, md = dayToMD(groups[0].day);
+      txt = '目前 <b>' + currentN + ' 人</b>：<span class="hitmark">撞了！</span>第 ' + a + ' 與第 ' + b + ' 人同是 <b>' + md + '</b> 生日。理論機率 ' + pct + '%。';
+    } else {
+      var pairs = 0;
+      for(var i = 0; i < groups.length; i++){ pairs += groups[i].members.length; }
+      txt = '目前 <b>' + currentN + ' 人</b>：<span class="hitmark">撞了！</span>共有 <b>' + groups.length + ' 組</b>、' + pairs + ' 人湊成同一天。理論機率 ' + pct + '%。';
+    }
+    status.innerHTML = txt;
+  }
+
+  /* ============================================================
+   * 曲線圖：一次建好靜態層，只移動即時點
+   * ============================================================ */
+  var CV = { W:700, H:214, L:38, R:14, T:14, B:30 };
+  var liveDot, liveGuide;
+  function cx(n){ return CV.L + (n - 1) / (MAX_N - 1) * (CV.W - CV.L - CV.R); }
+  function cy(pr){ return CV.T + (1 - pr) * (CV.H - CV.T - CV.B); }
+
+  function buildCurve(){
+    var el = $('curve');
+    var NS = 'http://www.w3.org/2000/svg';
+    function mk(tag, attrs){
+      var e = document.createElementNS(NS, tag);
+      for(var k in attrs){ e.setAttribute(k, attrs[k]); }
+      return e;
+    }
+    // 面積 + 曲線
+    var line = 'M';
+    for(var n = 1; n <= MAX_N; n++){ line += (n > 1 ? ' L' : ' ') + cx(n).toFixed(1) + ' ' + cy(probability(n)).toFixed(1); }
+    var area = line + ' L' + cx(MAX_N).toFixed(1) + ' ' + cy(0).toFixed(1) + ' L' + cx(1).toFixed(1) + ' ' + cy(0).toFixed(1) + ' Z';
+    el.appendChild(mk('path', { d: area, 'class': 'area' }));
+    // 基準與 50% 線
+    el.appendChild(mk('line', { x1: cx(1), y1: cy(0), x2: cx(MAX_N), y2: cy(0), 'class': 'guide' }));
+    el.appendChild(mk('line', { x1: cx(1), y1: cy(0.5), x2: cx(MAX_N), y2: cy(0.5), 'class': 'half' }));
+    var t50 = mk('text', { x: 4, y: cy(0.5) + 4, 'class': 'gold' }); t50.textContent = '50%'; el.appendChild(t50);
+    var t100 = mk('text', { x: 4, y: cy(1) + 10 }); t100.textContent = '100%'; el.appendChild(t100);
+    var t0 = mk('text', { x: 10, y: cy(0) - 6 }); t0.textContent = '0%'; el.appendChild(t0);
+    // 23 標記
+    el.appendChild(mk('line', { x1: cx(23), y1: cy(0), x2: cx(23), y2: cy(probability(23)), 'class': 'mark23' }));
+    // 里程碑點
+    [23,41,57,70].forEach(function(n){
+      el.appendChild(mk('circle', { cx: cx(n), cy: cy(probability(n)), r: 3, 'class': 'mdot' }));
+    });
+    // 曲線本體
+    el.appendChild(mk('path', { d: line, 'class': 'curveline' }));
+    // x 軸幾個標籤
+    [1,23,41,57,70].forEach(function(n){
+      var t = mk('text', { x: cx(n), y: CV.H - 8, 'text-anchor': 'middle', 'class': (n === 23 ? 'gold' : '') });
+      t.textContent = n; el.appendChild(t);
+    });
+    // 即時點與導引線
+    liveGuide = mk('line', { x1: cx(currentN), y1: cy(0), x2: cx(currentN), y2: cy(probability(currentN)), 'class': 'guide' });
+    liveDot = mk('circle', { cx: cx(currentN), cy: cy(probability(currentN)), r: 5, 'class': 'live' });
+    el.appendChild(liveGuide); el.appendChild(liveDot);
+  }
+
+  function moveCurveDot(n){
+    if(!liveDot) return;
+    var y = cy(probability(n));
+    liveDot.setAttribute('cx', cx(n)); liveDot.setAttribute('cy', y);
+    liveGuide.setAttribute('x1', cx(n)); liveGuide.setAttribute('x2', cx(n));
+    liveGuide.setAttribute('y2', y);
+  }
+
+  /* ============================================================
+   * 主要更新入口
+   * ============================================================ */
+  function setN(n, opts){
+    opts = opts || {};
+    n = Math.max(MIN_N, Math.min(MAX_N, n));
+    currentN = n;
+
+    if(slider.value != n) slider.value = n;
+    slider.setAttribute('aria-valuenow', n);
+    slider.setAttribute('aria-valuetext', n + ' 人');
+    nVal.textContent = n;
+
+    syncRoom(n, !!opts.reroll, opts.animateNew !== false);
+    theoryRoller.set(probability(n) * 100, opts.animate !== false);
+    moveCurveDot(n);
+
+    if(empN !== null && empN !== n){ resetEmpirical(); }
+
+    refresh({ force: !!opts.reroll, silent: !!opts.silent });
+  }
+
+  /* ============================================================
+   * 蒙地卡羅：分塊跑、分頁隱藏時暫停
+   * ============================================================ */
+  var mc = null;
+  function resetEmpirical(){
+    empN = null;
+    empScore.classList.add('idle');
+    empRoller.reset();
+    empVal.textContent = '—';
+    empSub.textContent = '按「跑一萬次」實際模擬';
+    mcFill.style.width = '0';
+  }
+
+  function cancelMc(){
+    if(mc){ if(mc.raf) cancelAnimationFrame(mc.raf); mc = null; }
+    runMcBtn.disabled = false;
+  }
+
+  function runMonteCarlo(){
+    if(mc) return;
+    var n = currentN, M = 10000, chunk = 500;
+    var done = 0, hits = 0;
+    empScore.classList.remove('idle');
+    empSub.textContent = '模擬中…';
+    runMcBtn.disabled = true;
+    mcLive.textContent = '';
+
+    function frame(){
+      if(document.hidden){ mc.paused = true; mc.raf = 0; return; }
+      var end = Math.min(done + chunk, M);
+      for(; done < end; done++){ if(trialCollision(n)) hits++; }
+      var freq = hits / done;
+      empRoller.set(freq * 100, true);
+      mcFill.style.width = (done / M * 100) + '%';
+      empSub.textContent = '撞到 ' + hits.toLocaleString() + ' / ' + done.toLocaleString();
+      if(done < M){ mc.raf = requestAnimationFrame(frame); }
+      else { finishMc(n, M, hits); }
+    }
+    mc = { raf: 0, resume: frame, paused: false };
+    mc.raf = requestAnimationFrame(frame);
+  }
+
+  function finishMc(n, M, hits){
+    var freq = hits / M;
+    empN = n;
+    empRoller.set(freq * 100, true);
+    mcFill.style.width = '100%';
+    empSub.textContent = '在 ' + M.toLocaleString() + ' 間房間中，撞到 ' + hits.toLocaleString() + ' 間';
+    var th = (probability(n) * 100).toFixed(1);
+    mcLive.textContent = n + ' 人跑一萬次：實測 ' + (freq * 100).toFixed(1) + '%，理論 ' + th + '%，幾乎一致。';
+    runMcBtn.disabled = false;
+    mc = null;
+  }
+
+  /* ============================================================
+   * 賭一把
+   * ============================================================ */
+  var QUIPS = {
+    23:  '一猜就中——你是不是早就聽過這一題？',
+    41:  '已經逼近直覺的極限了，但還是高估了將近一倍。',
+    50:  '比多數人準，可惜還多算了一倍有餘。',
+    100: '跟很多人一樣，直覺說「總得三位數吧」——其實遠遠不用。',
+    180: '「一年的一半」聽起來很合理，卻整整多了快八倍。',
+    366: '那是「保證」至少兩人同天的門檻（鴿籠原理）；但只問「過半」，23 人就夠。'
+  };
+  var chips = $('chips'), reveal = $('reveal'), quip = $('quip'), goStage = $('goStage');
+  chips.addEventListener('click', function(e){
+    var b = e.target.closest('.chip');
+    if(!b) return;
+    var g = b.getAttribute('data-n');
+    var cs = chips.querySelectorAll('.chip');
+    for(var i = 0; i < cs.length; i++) cs[i].classList.remove('picked');
+    b.classList.add('picked');
+    quip.textContent = '你猜 ' + g + ' 人。' + (QUIPS[g] || '');
+    reveal.classList.add('on');
+  });
+  goStage.addEventListener('click', function(){
+    var ss = $('stageSec');
+    if(ss.scrollIntoView) ss.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+    cancelMc();
+    setN(23, { reroll: true, animate: true });
+  });
+
+  /* ============================================================
+   * 事件接線
+   * ============================================================ */
+  slider.addEventListener('input', function(){
+    cancelMc();
+    setN(+slider.value, { animate: true });
+  });
+  rerollBtn.addEventListener('click', function(){
+    cancelMc();
+    setN(currentN, { reroll: true, animate: true });
+  });
+  runMcBtn.addEventListener('click', runMonteCarlo);
+
+  // 分頁重新可見：接續蒙地卡羅
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && mc && mc.paused){ mc.paused = false; mc.raf = requestAnimationFrame(mc.resume); }
+  });
+
+  // 版面尺寸變動：重畫連線（rAF 節流，不做逐幀回寫）
+  var roPending = false;
+  if('ResizeObserver' in window){
+    var ro = new ResizeObserver(function(){
+      if(roPending) return;
+      roPending = true;
+      requestAnimationFrame(function(){
+        roPending = false;
+        var groups = collisionGroups(days);
+        for(var i = 0; i < groups.length; i++){ groups[i].color = HUES[i % HUES.length]; }
+        drawLines(groups, false);
+      });
+    });
+    ro.observe(grid);
+  }
+
+  // 減少動態偏好動態切換
+  function onReduceChange(){ reduced = mqReduce.matches; }
+  if(mqReduce.addEventListener) mqReduce.addEventListener('change', onReduceChange);
+  else if(mqReduce.addListener) mqReduce.addListener(onReduceChange);
+
+  /* ============================================================
+   * 起始
+   * ============================================================ */
+  buildCurve();
+  setN(START_N, { reroll: true, animate: false, animateNew: false, silent: true });
+
+  window.addEventListener('load', function(){
+    requestAnimationFrame(function(){ document.body.classList.remove('preload'); });
+  });
+  // 保險：若 load 已過
+  if(document.readyState === 'complete'){ document.body.classList.remove('preload'); }
+
+})();
+</script>
+</body>
+</html>

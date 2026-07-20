@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>克拉德尼圖形 · 看得見的聲音</title>
+<meta name="description" content="一塊撒了細沙的方形金屬板，在共振頻率上，沙子會逃離劇烈振動處、聚到完全不動的節線上，排出對稱的幾何。滑動頻率，看聲音長出形狀。">
+<style>
+  :root{
+    --bg:#05070f; --ink:#f0f2fb; --dim:#a6aec9; --faint:#6d7593;
+    --line:rgba(150,165,220,.14); --line-soft:rgba(150,165,220,.08);
+    --panel:rgba(14,19,36,.66); --panel-2:rgba(20,26,46,.72);
+    --gold:#f0c674; --sci:#4dd0e1; --sci-deep:#2b93a6;
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+    --mono:"SFMono-Regular",ui-monospace,"Cascadia Mono","Consolas",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    min-height:100vh; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    line-height:1.6;
+  }
+  ::selection{background:rgba(240,198,116,.28)}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:10px}
+  a{color:inherit}
+
+  /* ── 背景：安靜的深空，只用靜態漸層與細格 ── */
+  #bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+  #bg::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(60% 42% at 50% -6%, rgba(77,208,225,.10), transparent 62%),
+      radial-gradient(48% 40% at 84% 8%, rgba(240,198,116,.06), transparent 60%),
+      radial-gradient(70% 60% at 50% 108%, rgba(120,140,220,.07), transparent 60%);
+  }
+  #bg::after{
+    content:"";position:absolute;inset:0;opacity:.34;
+    background-image:
+      linear-gradient(rgba(150,165,220,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(150,165,220,.05) 1px,transparent 1px);
+    background-size:62px 62px;
+    -webkit-mask-image:radial-gradient(122% 78% at 50% 0%,#000 0%,transparent 74%);
+    mask-image:radial-gradient(122% 78% at 50% 0%,#000 0%,transparent 74%);
+  }
+
+  main{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:0 22px 74px}
+
+  .home-link{
+    position:fixed;left:16px;top:14px;z-index:20;
+    font-size:12.5px;letter-spacing:.14em;color:var(--faint);
+    text-decoration:none;padding:7px 12px;border-radius:999px;
+    background:rgba(9,12,22,.5);border:1px solid var(--line-soft);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    transition:color .25s ease,border-color .25s ease,transform .25s ease;
+  }
+  .home-link:hover{color:var(--ink);border-color:var(--line);transform:translateX(-2px)}
+
+  /* ── 進場 ── */
+  .reveal{transition:opacity .7s ease var(--d,0s),transform .7s cubic-bezier(.2,.8,.3,1) var(--d,0s)}
+  body.preload .reveal{opacity:0;transform:translateY(16px)}
+
+  /* ── 頁首 ── */
+  .hero{max-width:770px;margin:0 auto;text-align:center;padding:66px 0 30px}
+  .kicker{
+    display:inline-flex;align-items:center;gap:13px;
+    font-family:var(--serif);font-size:11.5px;color:var(--gold);
+    letter-spacing:.4em;text-indent:.4em;margin-bottom:16px;
+  }
+  .kicker::before,.kicker::after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,rgba(240,198,116,.55))}
+  .kicker::after{background:linear-gradient(270deg,transparent,rgba(240,198,116,.55))}
+  h1{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(34px,6.2vw,58px);letter-spacing:.16em;text-indent:.16em;
+    background:linear-gradient(180deg,#ffffff 8%,#bcc6ef 96%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 28px rgba(140,165,255,.26));
+  }
+  .lede{margin:16px auto 0;max-width:640px;color:var(--dim);font-size:15.5px;line-height:1.95}
+  .lede b{color:var(--ink);font-weight:600}
+
+  /* ── 實驗區 ── */
+  .lab{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(304px,.88fr);gap:30px;align-items:start;margin-top:14px}
+  .stage{min-width:0}
+  .plate-wrap{position:relative;width:100%;max-width:600px;margin:0 auto}
+  .plate{
+    position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;
+    background:
+      radial-gradient(128% 120% at 30% 20%,#1c2436 0%,#141b2b 44%,#0a0e1a 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(150,165,220,.12),
+      inset 0 3px 34px rgba(0,0,0,.55),
+      inset 0 -2px 20px rgba(0,0,0,.4),
+      0 30px 64px -30px rgba(0,0,0,.85);
+  }
+  .plate::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:16px;
+    background:linear-gradient(135deg,rgba(255,255,255,.05),transparent 26%,transparent 74%,rgba(0,0,0,.14));
+    -webkit-mask-image:linear-gradient(#000,#000);
+  }
+  canvas.layer{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #field{z-index:2}
+  #sand{z-index:3}
+  .mount{
+    position:absolute;left:50%;top:50%;width:9px;height:9px;transform:translate(-50%,-50%);
+    border-radius:50%;z-index:3;pointer-events:none;
+    background:radial-gradient(circle at 40% 35%,#6a748f 0%,#2a3348 60%,#10151f 100%);
+    box-shadow:0 0 0 1px rgba(0,0,0,.5),0 1px 3px rgba(0,0,0,.6),inset 0 1px 1px rgba(255,255,255,.25);
+  }
+  .mode-tag{
+    position:absolute;left:12px;top:11px;z-index:5;pointer-events:none;
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:rgba(200,214,245,.72);
+    background:rgba(6,9,17,.5);border:1px solid var(--line-soft);
+    padding:4px 9px;border-radius:8px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  }
+  .legend{margin:14px auto 0;max-width:600px;display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:center;font-size:12.5px;color:var(--faint)}
+  .legend .k{display:inline-flex;align-items:center;gap:7px}
+  .swatch{width:22px;height:3px;border-radius:2px;display:inline-block}
+  .sw-sand{background:linear-gradient(90deg,rgba(236,214,150,.15),#f2e2a0);box-shadow:0 0 8px rgba(240,214,150,.6)}
+  .sw-node{background:var(--sci);box-shadow:0 0 8px rgba(77,208,225,.7)}
+
+  /* ── 控制面板 ── */
+  .panel{
+    position:relative;border-radius:16px;padding:20px 20px 18px;
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);
+    box-shadow:0 24px 54px -30px rgba(0,0,0,.8);
+  }
+  @media(min-width:901px){.panel{position:sticky;top:18px}}
+  .panel h2{
+    font-family:var(--serif);font-size:14px;font-weight:700;letter-spacing:.16em;text-indent:.16em;
+    color:var(--ink);display:flex;align-items:center;gap:9px;
+  }
+  .panel h2::before{content:"";width:15px;height:15px;border-radius:4px;background:linear-gradient(135deg,var(--sci),var(--sci-deep));box-shadow:0 0 12px rgba(77,208,225,.4)}
+  .panel-hint{margin-top:8px;font-size:12.5px;color:var(--faint);line-height:1.7}
+
+  .readout{
+    margin-top:15px;border-radius:12px;padding:13px 15px;
+    background:rgba(8,12,22,.5);border:1px solid var(--line-soft);
+    display:grid;grid-template-columns:auto 1fr;gap:5px 14px;align-items:baseline;
+  }
+  .ro-mode{grid-column:1;font-family:var(--serif);font-size:32px;font-weight:700;line-height:1;color:var(--gold);text-shadow:0 0 22px rgba(240,198,116,.3);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .ro-side{grid-column:2;display:flex;flex-direction:column;gap:3px;min-width:0}
+  .ro-row{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--dim)}
+  .ro-row b{color:var(--ink);font-weight:600;font-family:var(--mono);letter-spacing:.02em;font-size:11.5px}
+  .ro-row .cap{color:var(--faint)}
+
+  .ctl{margin-top:16px}
+  .ctl-label{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--dim);margin-bottom:9px}
+  .ctl-label .val{font-family:var(--mono);font-size:12px;color:var(--sci)}
+
+  /* range */
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--sci-deep),rgba(150,165,220,.18));border:1px solid var(--line-soft)}
+  input[type=range]::-moz-range-track{height:6px;border-radius:6px;background:linear-gradient(90deg,var(--sci-deep),rgba(150,165,220,.18));border:1px solid var(--line-soft)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:20px;height:20px;margin-top:-8px;border-radius:50%;
+    background:radial-gradient(circle at 38% 32%,#fff 0%,var(--gold) 46%,#c99a3f 100%);
+    border:1px solid rgba(0,0,0,.4);box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 4px rgba(240,198,116,.12);
+    transition:transform .12s ease,box-shadow .18s ease;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.4);
+    background:radial-gradient(circle at 38% 32%,#fff 0%,var(--gold) 46%,#c99a3f 100%);
+    box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 4px rgba(240,198,116,.12);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.08)}
+  input[type=range]:active::-webkit-slider-thumb{transform:scale(.94);box-shadow:0 2px 6px rgba(0,0,0,.6),0 0 0 6px rgba(240,198,116,.2)}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 2px 8px rgba(0,0,0,.5),0 0 0 5px rgba(240,198,116,.32)}
+  input[type=range]:focus-visible{outline:none}
+
+  /* preset gallery */
+  .presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:9px;margin-top:9px}
+  .preset{
+    position:relative;padding:6px 6px 5px;border-radius:11px;cursor:pointer;
+    background:rgba(9,13,24,.55);border:1px solid var(--line-soft);
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    transition:transform .16s ease,border-color .2s ease,box-shadow .2s ease,background .2s ease;
+  }
+  .preset canvas{width:100%;aspect-ratio:1/1;border-radius:7px;display:block;background:#0a0e18}
+  .preset .pl{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.02em}
+  .preset:hover{transform:translateY(-2px);border-color:var(--line);background:rgba(14,20,36,.7)}
+  .preset[aria-pressed=true]{border-color:var(--sci);box-shadow:0 0 0 1px var(--sci),0 8px 20px -12px rgba(77,208,225,.6)}
+  .preset[aria-pressed=true] .pl{color:var(--sci)}
+
+  /* toggle / seg buttons */
+  .row{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
+  .tgl{
+    flex:1 1 auto;min-width:0;font-family:inherit;font-size:12.5px;color:var(--dim);cursor:pointer;
+    padding:9px 12px;border-radius:10px;background:rgba(9,13,24,.5);border:1px solid var(--line-soft);
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;
+    transition:color .2s,border-color .2s,background .2s,transform .12s;
+  }
+  .tgl:hover{color:var(--ink);border-color:var(--line);background:rgba(15,21,38,.7)}
+  .tgl:active{transform:translateY(1px)}
+  .tgl .dot{width:8px;height:8px;border-radius:50%;background:var(--faint);box-shadow:none;transition:background .2s,box-shadow .2s;flex:0 0 auto}
+  .tgl[aria-pressed=true]{color:var(--ink);border-color:rgba(77,208,225,.55);background:rgba(24,52,60,.5)}
+  .tgl[aria-pressed=true] .dot{background:var(--sci);box-shadow:0 0 9px rgba(77,208,225,.9)}
+
+  .seg{display:inline-flex;background:rgba(9,13,24,.5);border:1px solid var(--line-soft);border-radius:10px;padding:3px;gap:2px}
+  .seg .cap{align-self:center;font-size:11.5px;color:var(--faint);padding:0 8px 0 6px;letter-spacing:.04em}
+  .seg button{
+    font-family:inherit;font-size:12px;color:var(--dim);cursor:pointer;border:0;background:transparent;
+    padding:7px 12px;border-radius:8px;transition:color .18s,background .18s;
+  }
+  .seg button:hover{color:var(--ink)}
+  .seg button[aria-pressed=true]{color:#06121a;background:linear-gradient(180deg,#8ee6f2,var(--sci));font-weight:600}
+
+  .btn{
+    font-family:inherit;font-size:12.5px;color:var(--ink);cursor:pointer;
+    padding:9px 14px;border-radius:10px;background:rgba(9,13,24,.5);border:1px solid var(--line);
+    display:inline-flex;align-items:center;gap:8px;transition:border-color .2s,background .2s,transform .12s;
+  }
+  .btn:hover{border-color:var(--gold);background:rgba(30,25,14,.4)}
+  .btn:active{transform:translateY(1px)}
+  .status{margin-top:12px;font-size:11.5px;color:var(--faint);line-height:1.6;min-height:1.4em}
+
+  /* ── 故事 ── */
+  .story{margin-top:54px;max-width:820px;margin-left:auto;margin-right:auto}
+  .story-head{text-align:center;margin-bottom:26px}
+  .story-head h2{font-family:var(--serif);font-size:clamp(21px,3.4vw,27px);font-weight:700;letter-spacing:.06em;color:var(--ink)}
+  .story-head p{margin-top:9px;color:var(--dim);font-size:14px}
+  .beats{display:grid;gap:14px}
+  .beat{
+    border-radius:14px;padding:18px 20px;background:var(--panel);border:1px solid var(--line-soft);
+    display:grid;grid-template-columns:76px 1fr;gap:6px 18px;align-items:start;
+  }
+  .beat .tag{
+    font-family:var(--serif);font-size:13px;font-weight:700;letter-spacing:.05em;
+    color:var(--gold);padding-top:2px;
+  }
+  .beat h3{grid-column:2;font-size:16px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+  .beat p{grid-column:2;margin-top:6px;color:var(--dim);font-size:14px;line-height:1.85}
+  .beat p b{color:var(--ink);font-weight:600}
+  .beat.hl{border-color:rgba(77,208,225,.32);background:linear-gradient(180deg,rgba(24,44,52,.5),var(--panel))}
+  .beat.hl .tag{color:var(--sci)}
+
+  footer{margin-top:44px;text-align:center;color:var(--faint);font-size:12px;line-height:1.7}
+
+  /* ── 響應式 ── */
+  @media(max-width:900px){
+    .lab{grid-template-columns:1fr;gap:20px;max-width:560px;margin:14px auto 0}
+    .hero{padding:58px 0 22px}
+  }
+  @media(max-width:560px){
+    main{padding:0 15px 60px}
+    .hero{padding:56px 0 18px}
+    .presets{grid-template-columns:repeat(auto-fill,minmax(60px,1fr))}
+    .beat{grid-template-columns:1fr;gap:3px}
+    .beat h3,.beat p{grid-column:1}
+    .beat .tag{padding-top:0}
+    .home-link{left:10px;top:10px}
+  }
+
+  @media(prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .reveal{transition:none!important}
+    body.preload .reveal{opacity:1;transform:none}
+    .home-link,.tgl,.btn,.preset,input[type=range]::-webkit-slider-thumb{transition:none!important}
+  }
+</style>
+</head>
+<body class="preload">
+<div id="bg" aria-hidden="true"></div>
+<a class="home-link" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main>
+  <header class="hero">
+    <div class="kicker reveal" style="--d:.04s">1787 · 沙子，聽得見聲音</div>
+    <h1 class="reveal" style="--d:.10s">克拉德尼圖形</h1>
+    <p class="lede reveal" style="--d:.16s">
+      一塊撒了細沙的方形金屬板，只要在對的頻率上共振，沙子就會<b>逃離</b>劇烈振動的地方、聚到完全不動的「<b>節線</b>」上，排出對稱得不可思議的幾何。<br>
+      滑動下面的頻率，看聲音長出形狀。
+    </p>
+  </header>
+
+  <section class="lab reveal" style="--d:.24s" aria-label="克拉德尼振動板互動實驗">
+    <div class="stage">
+      <div class="plate-wrap">
+        <div class="plate" id="plate">
+          <canvas id="field" class="layer" aria-hidden="true"></canvas>
+          <canvas id="sand" class="layer" aria-hidden="true"></canvas>
+          <span class="mount" aria-hidden="true"></span>
+          <span class="mode-tag" id="modeTag" aria-hidden="true">m 1 · n 2  −</span>
+        </div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span class="k"><span class="swatch sw-sand"></span>亮線＝節線（沙聚集的不動處）</span>
+        <span class="k"><span class="swatch sw-node"></span>青線＝理論節線 A(x,y)=0</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>振動台</h2>
+      <p class="panel-hint">拖動頻率滑桿，掃過一個個共振模態；或直接點下方的圖樣。每換一次，數千顆沙粒會即時重新遷徙、重組成新圖形。</p>
+
+      <div class="readout" role="group" aria-label="目前狀態">
+        <div class="ro-mode" id="roMode">(1 , 2)</div>
+        <div class="ro-side">
+          <div class="ro-row"><span class="cap">邊界條件</span><b id="roBoundary">反相（−）</b></div>
+          <div class="ro-row"><span class="cap">相對頻率</span><b id="roFreq">(m+2n)² ＝ 25</b></div>
+          <div class="ro-row"><span class="cap">相對基頻</span><b id="roRel">×1.00</b></div>
+        </div>
+      </div>
+
+      <div class="ctl">
+        <label class="ctl-label" for="freq"><span>頻率（掃過模態）</span><span class="val" id="freqVal">低音</span></label>
+        <input type="range" id="freq" min="0" max="20" step="1" value="0"
+               aria-label="頻率滑桿：由低到高掃過各個共振模態">
+      </div>
+
+      <div class="ctl">
+        <div class="ctl-label"><span>精選圖樣</span></div>
+        <div class="presets" id="presets" role="group" aria-label="精選模態圖樣"></div>
+      </div>
+
+      <div class="row">
+        <button class="tgl" id="boundaryBtn" type="button" aria-pressed="false"
+                aria-label="切換邊界條件：反相或同相">
+          <span class="dot"></span><span id="boundaryTxt">邊界：反相 −</span>
+        </button>
+        <button class="tgl" id="gridBtn" type="button" aria-pressed="false"
+                aria-label="顯示或隱藏理論節線">
+          <span class="dot"></span><span>理論節線</span>
+        </button>
+      </div>
+
+      <div class="row" style="align-items:center">
+        <div class="seg" role="group" aria-label="沙量">
+          <span class="cap">沙量</span>
+          <button type="button" data-density="2200" aria-pressed="false">疏</button>
+          <button type="button" data-density="3800" aria-pressed="true">中</button>
+          <button type="button" data-density="6000" aria-pressed="false">密</button>
+        </div>
+        <button class="btn" id="reBtn" type="button" aria-label="重新撒沙">↻ 重新撒沙</button>
+      </div>
+
+      <div class="row">
+        <button class="tgl" id="soundBtn" type="button" aria-pressed="false"
+                aria-label="開啟或關閉示意音，預設靜音">
+          <span class="dot"></span><span id="soundTxt">聲音（示意）· 關</span>
+        </button>
+      </div>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="story">
+    <div class="story-head reveal" style="--d:.30s">
+      <h2>沙子怎麼會知道往哪裡跑？</h2>
+      <p>一段兩百多年的故事，還有藏在圖案背後的物理。</p>
+    </div>
+    <div class="beats">
+      <article class="beat reveal" style="--d:.36s">
+        <div class="tag">1787</div>
+        <h3>「聲學之父」與他的沙</h3>
+        <p>德國物理學家<b>恩斯特·克拉德尼</b>（Ernst Chladni）在著作《聲學理論的發現》中公開了這個方法：在金屬板上撒一層細沙，用<b>琴弓拉奏板緣</b>使它共振，沙子便自動聚成清晰的線條圖案。這是人類第一次把「聲音的形狀」直接畫出來給眼睛看，他也因此被稱為「聲學之父」。</p>
+      </article>
+      <article class="beat reveal hl" style="--d:.42s">
+        <div class="tag">原理</div>
+        <h3>沙子往「不動的地方」逃</h3>
+        <p>板一共振就形成<b>駐波</b>：振動最劇烈的「腹點」不斷把沙子彈開，而完全靜止的「節點」與它們連成的「<b>節線</b>」則留得住沙。於是沙被一路篩選、堆積，親手描出這塊板此刻的振動模態。頻率一變，模態就換，圖形也跟著翻成另一張。</p>
+      </article>
+      <article class="beat reveal" style="--d:.48s">
+        <div class="tag">定律</div>
+        <h3>克拉德尼定律　f ∝ (m+2n)²</h3>
+        <p>對邊界固定的圓板，克拉德尼歸納出頻率與圖形的關係：<b>f ∝ (m+2n)²</b>，其中 m 是通過圓心的「直徑節線」數、n 是同心的「圓形節線」數。頻率越高，圖案越繁複。本頁以方板的經典疊加式近似示意，並用這條定律呈現各模態的相對頻率。</p>
+      </article>
+      <article class="beat reveal" style="--d:.54s">
+        <div class="tag">迴響</div>
+        <h3>從拿破崙的宮廷到今天</h3>
+        <p>克拉德尼帶著這套實驗遊歷歐洲，1809 年還在巴黎當著<b>拿破崙</b>面前示範；拿破崙深受震撼，設獎徵求它背後的數學理論（後由<b>蘇菲·熱爾曼</b>奪得）。兩百多年後，製琴師仍用同樣的原理替小提琴面板調音，物理課堂與當代的「聲音成形」（cymatics）藝術，也都是這塊沙板的後代。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="reveal" style="--d:.6s">
+    <p>資料來源：Ernst Chladni（1787）、Wikipedia。板上每一顆沙都是即時模擬，不是錄影。</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  'use strict';
+  var PI = Math.PI;
+
+  /* ═══════════ 純數值核心（可被 node 抽出測試） ═══════════ */
+
+  // 方板駐波位移振幅：經典疊加近似，x,y ∈ [0,1]，L 正規化為 1
+  //   反相(plus=false)：cos(mπx)cos(nπy) − cos(nπx)cos(mπy)
+  //   同相(plus=true) ：cos(mπx)cos(nπy) + cos(nπx)cos(mπy)
+  function amplitude(m, n, x, y, plus){
+    var mx = Math.cos(m*PI*x), my = Math.cos(m*PI*y);
+    var nx = Math.cos(n*PI*x), ny = Math.cos(n*PI*y);
+    return plus ? (mx*ny + nx*my) : (mx*ny - nx*my);
+  }
+
+  // 克拉德尼定律的相對頻率指標 f ∝ (m+2n)²
+  function freqOf(m, n){ var s = m + 2*n; return s*s; }
+
+  // 示意音頻率（僅供聽覺對照，非板的真實頻率），隨模態單調上升並限幅
+  function audibleFreq(m, n){
+    var k = (m + 2*n) / 5;
+    var f = 120 * Math.pow(k, 1.15);
+    return Math.max(110, Math.min(1200, f));
+  }
+
+  // 依 (m+2n)² 由低到高排序的模態頻譜（只取 m<n，避免與 (n,m) 的相同圖形重複）
+  function buildSpectrum(){
+    var arr = [], m, n;
+    for(m=1; m<=7; m++){
+      for(n=m+1; n<=7; n++){ arr.push({m:m, n:n, f:freqOf(m,n)}); }
+    }
+    arr.sort(function(a,b){ return (a.f-b.f) || (a.m-b.m) || (a.n-b.n); });
+    return arr;
+  }
+
+  // marching squares 邊索引：0上 1右 2下 3左
+  var MS = [
+    [], [3,2], [2,1], [3,1], [0,1], [0,3,2,1], [0,2], [0,3],
+    [0,3], [0,2], [0,1,3,2], [0,1], [3,1], [2,1], [3,2], []
+  ];
+
+  // 以 marching squares 求節線 A(x,y)=0 的線段集合（座標皆在 [0,1]）
+  function nodeSegments(m, n, plus, res){
+    res = res || 90;
+    var w = res + 1, g = new Float64Array(w*w), i, j;
+    for(j=0; j<w; j++){
+      for(i=0; i<w; i++){ g[j*w+i] = amplitude(m, n, i/res, j/res, plus); }
+    }
+    var segs = [], h = 1/res;
+    for(j=0; j<res; j++){
+      for(i=0; i<res; i++){
+        var tl = g[j*w+i], tr = g[j*w+i+1], br = g[(j+1)*w+i+1], bl = g[(j+1)*w+i];
+        var c = (tl>0?8:0) | (tr>0?4:0) | (br>0?2:0) | (bl>0?1:0);
+        var e = MS[c];
+        if(e.length === 0) continue;
+        var x0 = i*h, y0 = j*h;
+        var E = [
+          [x0 + (tl/(tl-tr))*h, y0],          // 上
+          [x0 + h, y0 + (tr/(tr-br))*h],       // 右
+          [x0 + (bl/(bl-br))*h, y0 + h],       // 下
+          [x0, y0 + (tl/(tl-bl))*h]            // 左
+        ];
+        for(var k=0; k<e.length; k+=2){
+          var a = E[e[k]], b = E[e[k+1]];
+          segs.push([a[0], a[1], b[0], b[1]]);
+        }
+      }
+    }
+    return segs;
+  }
+
+  // 粒子更新參數（經 node 數值調校：低模態約 1 秒可見遷徙，收斂後 |A| 均值 ~0.003–0.010）
+  var STEP = { probeBase:0.004, probeGain:0.016, jitter:0.009, shimmer:0.0005, candidates:2 };
+
+  // 單顆粒子一步：帶雜訊的隨機微擾梯度下降——朝隨機探測中 |A| 較小者移動，
+  // 探測半徑與殘留抖動皆正比於當地振幅，因此沙自然聚往 |A|≈0 的節線。
+  function stepParticle(p, m, n, plus, rng){
+    rng = rng || Math.random;
+    var a = amplitude(m, n, p.x, p.y, plus);
+    var mag = a < 0 ? -a : a;
+    var probe = STEP.probeBase + STEP.probeGain*mag;
+    var bx = p.x, by = p.y, bmag = mag, i, nx, ny, na, nm;
+    for(i=0; i<STEP.candidates; i++){
+      nx = p.x + (rng()*2-1)*probe;
+      ny = p.y + (rng()*2-1)*probe;
+      if(nx<0) nx=-nx; else if(nx>1) nx=2-nx;
+      if(ny<0) ny=-ny; else if(ny>1) ny=2-ny;
+      na = amplitude(m, n, nx, ny, plus);
+      nm = na < 0 ? -na : na;
+      if(nm < bmag){ bmag = nm; bx = nx; by = ny; }
+    }
+    var j = STEP.jitter*mag + STEP.shimmer;   // 腹點抖得大、節線幾乎不動；shimmer 讓沙保持一絲生氣
+    bx += (rng()*2-1)*j;
+    by += (rng()*2-1)*j;
+    if(bx<0) bx=-bx; else if(bx>1) bx=2-bx;
+    if(by<0) by=-by; else if(by>1) by=2-by;
+    p.x = bx; p.y = by;
+    return bmag;
+  }
+
+  // 沿固定 x、在 [y0,y1] 以二分法找節點（A 變號時）——供測試驗證 |A|≈0
+  function bisectNode(m, n, x, plus, y0, y1){
+    var a0 = amplitude(m, n, x, y0, plus), i, ym, am;
+    for(i=0; i<60; i++){
+      ym = 0.5*(y0+y1);
+      am = amplitude(m, n, x, ym, plus);
+      if(am === 0) return ym;
+      if((am<0) === (a0<0)){ y0 = ym; a0 = am; } else { y1 = ym; }
+    }
+    return 0.5*(y0+y1);
+  }
+
+  // 給 node 測試用
+  if(typeof module !== 'undefined' && module.exports){
+    module.exports = {
+      amplitude:amplitude, freqOf:freqOf, audibleFreq:audibleFreq,
+      buildSpectrum:buildSpectrum, nodeSegments:nodeSegments,
+      STEP:STEP, stepParticle:stepParticle, bisectNode:bisectNode, MS:MS
+    };
+  }
+
+  // node 端到此為止（無 DOM）
+  if(typeof document === 'undefined') return;
+
+  /* ═══════════ 以下為瀏覽器 UI ═══════════ */
+
+  var SAND = 'rgba(236,214,150,0.5)';
+  var FADE = 0.16;      // 每幀淡出比例（拖尾長度）
+  var GRAIN = 1.7;      // 沙粒邊長（CSS px，繪製時再乘 DPR）
+  var SETTLE = 260;     // 靜態/降級：一次同步沉降的步數
+
+  var spectrum = buildSpectrum();
+  var presetDefs = [
+    {m:1,n:2,plus:false}, {m:2,n:3,plus:false}, {m:3,n:4,plus:false},
+    {m:1,n:4,plus:false}, {m:2,n:5,plus:false}, {m:3,n:5,plus:false},
+    {m:4,n:5,plus:false}, {m:3,n:4,plus:true},  {m:2,n:4,plus:true}
+  ];
+
+  // 狀態
+  var m = 1, n = 2, plus = false, specIdx = 0;
+  var overlayOn = false, density = 3800;
+  var particles = [], curSegs = [];
+  var DPR = 1, reducedMode = false, onscreen = true, hidden = false, running = false, raf = 0;
+
+  // DOM
+  var $ = function(id){ return document.getElementById(id); };
+  var plate = $('plate'), field = $('field'), sand = $('sand');
+  var fctx = field.getContext('2d'), sctx = sand.getContext('2d');
+  var freq = $('freq'), freqVal = $('freqVal'), presetsBox = $('presets');
+  var roMode = $('roMode'), roBoundary = $('roBoundary'), roFreq = $('roFreq'), roRel = $('roRel');
+  var modeTag = $('modeTag'), statusEl = $('status');
+  var boundaryBtn = $('boundaryBtn'), boundaryTxt = $('boundaryTxt');
+  var gridBtn = $('gridBtn'), reBtn = $('reBtn'), soundBtn = $('soundBtn'), soundTxt = $('soundTxt');
+  var motionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ── localStorage（前綴 chladni.） ──
+  function save(k, v){ try{ localStorage.setItem('chladni.'+k, v); }catch(e){} }
+  function load(k){ try{ return localStorage.getItem('chladni.'+k); }catch(e){ return null; } }
+  function restore(){
+    var si = parseInt(load('mode'), 10);
+    if(si >= 0 && si < spectrum.length) specIdx = si;
+    if(load('plus') === '1') plus = true;
+    if(load('grid') === '1') overlayOn = true;
+    var d = parseInt(load('density'), 10);
+    if(d === 2200 || d === 3800 || d === 6000) density = d;
+    m = spectrum[specIdx].m; n = spectrum[specIdx].n;
+  }
+  function persist(){
+    save('mode', specIdx); save('plus', plus?'1':'0');
+    save('grid', overlayOn?'1':'0'); save('density', density);
+  }
+
+  // ── 畫布尺寸：以 DPR 回寫 width/height，先比對目標像素是否相等，避免每幀翻倍迴圈 ──
+  function fit(cv){
+    var r = cv.getBoundingClientRect();
+    var w = Math.max(1, Math.round(r.width*DPR));
+    var h = Math.max(1, Math.round(r.height*DPR));
+    if(cv.width === w && cv.height === h) return false;
+    cv.width = w; cv.height = h;
+    return true;
+  }
+  function onResize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    var fChanged = fit(field);
+    var sChanged = fit(sand);
+    if(fChanged) drawOverlay();
+    if(sChanged){ if(reducedMode) drawStatic(); }
+  }
+
+  // ── 節線疊加層（僅在模態／開關變動時重畫，不進 rAF） ──
+  function strokeSegs(ctx, segs, W, H){
+    ctx.beginPath();
+    for(var i=0; i<segs.length; i++){
+      var s = segs[i];
+      ctx.moveTo(s[0]*W, s[1]*H);
+      ctx.lineTo(s[2]*W, s[3]*H);
+    }
+    ctx.stroke();
+  }
+  function drawOverlay(){
+    var W = field.width, H = field.height;
+    fctx.setTransform(1,0,0,1,0,0);
+    fctx.clearRect(0,0,W,H);
+    if(!overlayOn) return;
+    fctx.lineCap = 'round';
+    fctx.strokeStyle = 'rgba(77,208,225,0.16)';
+    fctx.lineWidth = Math.max(2, 3*DPR);
+    strokeSegs(fctx, curSegs, W, H);
+    fctx.strokeStyle = 'rgba(160,238,248,0.62)';
+    fctx.lineWidth = Math.max(1, 1*DPR);
+    strokeSegs(fctx, curSegs, W, H);
+  }
+
+  // ── 沙粒即時繪製（拖尾＋加色堆疊，密處聚成發光節線） ──
+  function drawSandFrame(){
+    var W = sand.width, H = sand.height, gr = GRAIN*DPR, half = gr*0.5, i, p;
+    sctx.setTransform(1,0,0,1,0,0);
+    sctx.globalCompositeOperation = 'destination-out';
+    sctx.fillStyle = 'rgba(0,0,0,'+FADE+')';
+    sctx.fillRect(0,0,W,H);
+    for(i=0; i<particles.length; i++){ stepParticle(particles[i], m, n, plus); }
+    sctx.globalCompositeOperation = 'lighter';
+    sctx.fillStyle = SAND;
+    for(i=0; i<particles.length; i++){ p = particles[i]; sctx.fillRect(p.x*W-half, p.y*H-half, gr, gr); }
+    sctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── 靜態沉降（prefers-reduced-motion／離屏時直接呈現最終沙圖） ──
+  function drawStatic(){
+    var i, k;
+    for(k=0; k<SETTLE; k++){ for(i=0; i<particles.length; i++){ stepParticle(particles[i], m, n, plus); } }
+    var W = sand.width, H = sand.height, gr = GRAIN*DPR, half = gr*0.5, p;
+    sctx.setTransform(1,0,0,1,0,0);
+    sctx.globalCompositeOperation = 'source-over';
+    sctx.clearRect(0,0,W,H);
+    sctx.globalCompositeOperation = 'lighter';
+    sctx.fillStyle = SAND;
+    for(i=0; i<particles.length; i++){ p = particles[i]; sctx.fillRect(p.x*W-half, p.y*H-half, gr, gr); }
+    sctx.fillStyle = 'rgba(236,214,150,0.34)';
+    for(i=0; i<particles.length; i++){ p = particles[i]; sctx.fillRect(p.x*W-half, p.y*H-half, gr, gr); }
+    sctx.globalCompositeOperation = 'source-over';
+  }
+
+  // ── rAF 迴圈 ──
+  function frame(){
+    if(!running){ raf = 0; return; }
+    drawSandFrame();
+    raf = window.requestAnimationFrame(frame);
+  }
+  function updateRunning(){
+    var should = onscreen && !hidden && !reducedMode;
+    if(should === running) return;
+    running = should;
+    if(running && !raf){ raf = window.requestAnimationFrame(frame); }
+  }
+
+  // ── 撒沙 ──
+  function sprinkle(){
+    var arr = new Array(density), i;
+    for(i=0; i<density; i++){ arr[i] = { x:Math.random(), y:Math.random() }; }
+    particles = arr;
+  }
+
+  // ── 套用目前模態 ──
+  function applyMode(announce){
+    curSegs = nodeSegments(m, n, plus, 90);
+    drawOverlay();
+    updateReadout(announce);
+    if(audio && osc && soundOn){ osc.frequency.setTargetAtTime(audibleFreq(m,n), audio.currentTime, 0.06); }
+    if(reducedMode) drawStatic();
+    persist();
+  }
+
+  function updateReadout(announce){
+    var f = freqOf(m, n), rel = f/25;
+    roMode.textContent = '(' + m + ' , ' + n + ')';
+    roBoundary.textContent = plus ? '同相（＋）' : '反相（−）';
+    roFreq.textContent = '(m+2n)² ＝ ' + f;
+    roRel.textContent = '×' + rel.toFixed(2);
+    modeTag.textContent = 'm ' + m + ' · n ' + n + '  ' + (plus ? '＋' : '−');
+    boundaryTxt.textContent = plus ? '邊界：同相 ＋' : '邊界：反相 −';
+    boundaryBtn.setAttribute('aria-pressed', plus ? 'true' : 'false');
+    freqVal.textContent = freqLabel(f);
+    freq.setAttribute('aria-valuetext',
+      '第 ' + (specIdx+1) + ' 檔，模態 (' + m + ',' + n + ')，相對頻率 ' + rel.toFixed(2) + ' 倍');
+    // 精選按鈕 active 態
+    var kids = presetsBox.children, i, d;
+    for(i=0; i<kids.length; i++){
+      d = presetDefs[i];
+      kids[i].setAttribute('aria-pressed',
+        (d.m===m && d.n===n && d.plus===plus) ? 'true' : 'false');
+    }
+    if(announce){
+      statusEl.textContent = '模態 ' + m + '、' + n + '，' + (plus?'同相':'反相') +
+        '邊界，相對頻率 ' + rel.toFixed(2) + ' 倍，' +
+        (reducedMode ? '已顯示最終沙圖。' : '數千顆沙粒正重新聚攏成新圖形。');
+    }
+  }
+  function freqLabel(f){
+    if(f <= 49) return '低音';
+    if(f <= 121) return '中低';
+    if(f <= 196) return '中高';
+    return '高音';
+  }
+
+  // ── 選模態 ──
+  function selectSpectrum(idx, announce){
+    specIdx = Math.max(0, Math.min(spectrum.length-1, idx));
+    m = spectrum[specIdx].m; n = spectrum[specIdx].n;
+    freq.value = specIdx;
+    applyMode(announce);
+  }
+  function selectPreset(def){
+    plus = def.plus;
+    // 於頻譜中找對應 (m,n)
+    for(var i=0; i<spectrum.length; i++){
+      if(spectrum[i].m === def.m && spectrum[i].n === def.n){ specIdx = i; break; }
+    }
+    freq.value = specIdx;
+    m = def.m; n = def.n;
+    applyMode(true);
+  }
+
+  // ── 精選圖樣縮圖 ──
+  function buildPresets(){
+    presetDefs.forEach(function(def){
+      var btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'preset';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label',
+        '模態 ' + def.m + '、' + def.n + '，' + (def.plus?'同相':'反相') + '邊界');
+      var cv = document.createElement('canvas');
+      cv.width = 96; cv.height = 96;
+      var lb = document.createElement('span');
+      lb.className = 'pl';
+      lb.textContent = '(' + def.m + ',' + def.n + ')' + (def.plus ? '⁺' : '');
+      btn.appendChild(cv); btn.appendChild(lb);
+      btn.addEventListener('click', function(){ selectPreset(def); });
+      presetsBox.appendChild(btn);
+      drawThumb(cv, def);
+    });
+  }
+  function drawThumb(cv, def){
+    var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#0a0e18'; ctx.fillRect(0,0,W,H);
+    var segs = nodeSegments(def.m, def.n, def.plus, 34);
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(77,208,225,0.28)'; ctx.lineWidth = 2.4;
+    strokeSegs(ctx, segs, W, H);
+    ctx.strokeStyle = 'rgba(236,224,180,0.9)'; ctx.lineWidth = 1;
+    strokeSegs(ctx, segs, W, H);
+  }
+
+  // ── 聲音（Web Audio 純合成，預設靜音，需點擊啟動） ──
+  var audio = null, osc = null, gain = null, lpf = null, soundOn = false;
+  function toggleSound(){
+    if(!soundOn){
+      try{
+        if(!audio){
+          var AC = window.AudioContext || window.webkitAudioContext;
+          audio = new AC();
+          osc = audio.createOscillator(); osc.type = 'sine';
+          lpf = audio.createBiquadFilter(); lpf.type = 'lowpass'; lpf.frequency.value = 2400;
+          gain = audio.createGain(); gain.gain.value = 0;
+          osc.connect(lpf); lpf.connect(gain); gain.connect(audio.destination);
+          osc.frequency.value = audibleFreq(m, n);
+          osc.start();
+        }
+        if(audio.state === 'suspended') audio.resume();
+        osc.frequency.setTargetAtTime(audibleFreq(m,n), audio.currentTime, 0.04);
+        gain.gain.setTargetAtTime(0.06, audio.currentTime, 0.05);
+        soundOn = true;
+      }catch(e){ soundOn = false; }
+    } else {
+      if(gain) gain.gain.setTargetAtTime(0, audio.currentTime, 0.05);
+      soundOn = false;
+    }
+    soundBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+    soundTxt.textContent = '聲音（示意）· ' + (soundOn ? '開' : '關');
+  }
+
+  // ── 降級模式（reduced-motion）動態切換 ──
+  function applyReduced(){
+    reducedMode = motionMQ.matches;
+    updateRunning();
+    if(reducedMode){ drawStatic(); }
+  }
+
+  // ── 事件 ──
+  freq.addEventListener('input', function(){ selectSpectrum(parseInt(freq.value,10), true); });
+  boundaryBtn.addEventListener('click', function(){ plus = !plus; applyMode(true); });
+  gridBtn.addEventListener('click', function(){
+    overlayOn = !overlayOn;
+    gridBtn.setAttribute('aria-pressed', overlayOn ? 'true' : 'false');
+    drawOverlay(); persist();
+    statusEl.textContent = overlayOn ? '已顯示理論節線 A(x,y)=0。' : '已隱藏理論節線。';
+  });
+  reBtn.addEventListener('click', function(){
+    sprinkle();
+    if(reducedMode) drawStatic();
+    statusEl.textContent = '重新撒沙，沙粒由隨機位置再次遷徙。';
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-density]'), function(b){
+    b.addEventListener('click', function(){
+      density = parseInt(b.getAttribute('data-density'), 10);
+      Array.prototype.forEach.call(document.querySelectorAll('[data-density]'), function(o){
+        o.setAttribute('aria-pressed', o === b ? 'true' : 'false');
+      });
+      sprinkle();
+      if(reducedMode) drawStatic();
+      persist();
+      statusEl.textContent = '沙量已調整為約 ' + density + ' 顆。';
+    });
+  });
+  soundBtn.addEventListener('click', toggleSound);
+  document.addEventListener('visibilitychange', function(){ hidden = document.hidden; updateRunning(); });
+  if(motionMQ.addEventListener) motionMQ.addEventListener('change', applyReduced);
+  else if(motionMQ.addListener) motionMQ.addListener(applyReduced);
+
+  if('ResizeObserver' in window){
+    new ResizeObserver(onResize).observe(plate);
+  } else {
+    window.addEventListener('resize', onResize);
+  }
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){
+      onscreen = es[0].isIntersecting; updateRunning();
+    }, { threshold:0 }).observe(plate);
+  }
+
+  // ── 啟動 ──
+  function boot(){
+    restore();
+    freq.max = spectrum.length - 1;
+    freq.value = specIdx;
+    buildPresets();
+    // 同步沙量分段的 active 態
+    Array.prototype.forEach.call(document.querySelectorAll('[data-density]'), function(o){
+      o.setAttribute('aria-pressed', parseInt(o.getAttribute('data-density'),10) === density ? 'true' : 'false');
+    });
+    gridBtn.setAttribute('aria-pressed', overlayOn ? 'true' : 'false');
+    sprinkle();
+    curSegs = nodeSegments(m, n, plus, 90);
+    onResize();               // 初次量測並依 DPR 設定畫布
+    reducedMode = motionMQ.matches;
+    hidden = document.hidden;
+    updateReadout(false);
+    if(reducedMode){ drawStatic(); } else { updateRunning(); }
+    window.requestAnimationFrame(function(){ document.body.classList.remove('preload'); });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

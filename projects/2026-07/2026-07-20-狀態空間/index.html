@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>狀態空間 · 一道光掃過序列（Mamba / SSM）</title>
+<meta name="description" content="看一道光由左而右掃過一串 token，途中只維護一個固定大小的隱藏狀態：h ← A·h + B·x，y = C·h。點一個 token 標記為『要記住』，看狀態把它一路帶下去，這就是 Mamba 的『選擇性』。再對比 attention 的 O(N²)。純靜態、離線可用。">
+<style>
+/* ============================================================
+   狀態空間模型（Mamba / SSM）互動子頁面
+   單檔自包含；只用 transform/opacity 做連續動畫；零外部依賴
+   ============================================================ */
+:root{
+  --bg:#0a0b12; --bg2:#0e1020;
+  --ink:#e9ebf7; --ink-soft:#c3c8de; --muted:#949bba; --faint:#636a88;
+  --line:rgba(255,255,255,.09); --line-2:rgba(255,255,255,.055);
+  --panel:rgba(255,255,255,.032); --panel-2:rgba(255,255,255,.05);
+  --panel-brd:rgba(255,255,255,.08);
+  --cyan:#38d4ff; --cyan-2:#7cebff; --blue:#5b8cff;
+  --gold:#ffcd6b; --gold-2:#ffb040;
+  --violet:#b691ff; --green:#54e0a6; --coral:#ff7d84;
+  --shadow:0 24px 60px -28px rgba(0,0,0,.75);
+  --r-lg:22px; --r-md:15px; --r-sm:10px;
+  --step-dur:420ms;
+  --ff:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Roboto Mono",monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; font-family:var(--ff); color:var(--ink);
+  background:
+    radial-gradient(1100px 720px at 8% -8%, rgba(90,140,255,.14), transparent 60%),
+    radial-gradient(1000px 780px at 108% 6%, rgba(56,212,255,.12), transparent 58%),
+    radial-gradient(900px 900px at 60% 118%, rgba(182,145,255,.10), transparent 60%),
+    linear-gradient(180deg,var(--bg),var(--bg2));
+  background-attachment:fixed;
+  line-height:1.7; letter-spacing:.01em;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  overflow-x:hidden;
+}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:6px}
+
+/* 回首頁 */
+.back{
+  position:fixed; top:16px; left:16px; z-index:20;
+  display:inline-flex; align-items:center; gap:.4em;
+  padding:.5em .95em; font-size:.82rem; letter-spacing:.04em;
+  color:var(--ink-soft); text-decoration:none;
+  background:rgba(12,14,26,.62); border:1px solid var(--panel-brd);
+  border-radius:999px; backdrop-filter:blur(9px);
+  transition:transform .3s cubic-bezier(.2,.7,.2,1), color .3s, border-color .3s, background .3s;
+}
+.back:hover{transform:translateX(-3px); color:#fff; border-color:rgba(56,212,255,.5); background:rgba(16,20,36,.8)}
+.back:active{transform:translateX(-1px) scale(.98)}
+
+.page{max-width:1040px; margin:0 auto; padding:74px 20px 60px}
+
+/* ── 進場編排（總長 ≤1.2s）── */
+[data-fade]{opacity:0; transform:translateY(15px); animation:fadeUp .62s cubic-bezier(.2,.72,.2,1) forwards}
+[data-fade="1"]{animation-delay:.02s}
+[data-fade="2"]{animation-delay:.09s}
+[data-fade="3"]{animation-delay:.17s}
+[data-fade="4"]{animation-delay:.27s}
+[data-fade="5"]{animation-delay:.37s}
+[data-fade="6"]{animation-delay:.47s}
+[data-fade="7"]{animation-delay:.57s}
+[data-fade="8"]{animation-delay:.66s}
+@keyframes fadeUp{to{opacity:1; transform:none}}
+
+/* ── Hero ── */
+.hero{margin-bottom:34px}
+.eyebrow{
+  display:inline-flex; align-items:center; gap:.55em;
+  font-size:.78rem; letter-spacing:.22em; text-transform:uppercase;
+  color:var(--cyan-2); margin:0 0 .6em; font-weight:600;
+}
+.eyebrow::before{content:""; width:26px; height:1px; background:linear-gradient(90deg,transparent,var(--cyan))}
+h1{
+  margin:0 0 .28em; font-size:clamp(2.3rem,6.4vw,3.9rem); line-height:1.02;
+  font-weight:800; letter-spacing:-.02em;
+  background:linear-gradient(120deg,#fff 12%,var(--cyan-2) 52%,var(--violet) 96%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.hero .lede{
+  max-width:64ch; margin:.2em 0 0; font-size:clamp(1.02rem,2.3vw,1.16rem);
+  color:var(--ink-soft);
+}
+.hero .lede strong{color:#fff; font-weight:700}
+code{
+  font-family:var(--mono); font-size:.9em; color:var(--cyan-2);
+  background:rgba(56,212,255,.10); border:1px solid rgba(56,212,255,.18);
+  padding:.08em .42em; border-radius:6px; white-space:nowrap;
+}
+
+/* ── 區塊 ── */
+.panel{
+  margin-top:26px; padding:clamp(18px,3.4vw,30px);
+  background:var(--panel); border:1px solid var(--panel-brd);
+  border-radius:var(--r-lg); box-shadow:var(--shadow);
+  position:relative; overflow:hidden;
+}
+.panel::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+}
+.p-head{margin-bottom:18px}
+.p-head h2{
+  margin:0 0 .3em; font-size:clamp(1.18rem,3vw,1.5rem); font-weight:750; letter-spacing:-.01em;
+  display:flex; align-items:center; gap:.6em;
+}
+.p-head h2 .n{
+  display:inline-grid; place-items:center; width:1.7em; height:1.7em; flex:none;
+  font-size:.68em; font-weight:800; color:#05121a;
+  background:linear-gradient(140deg,var(--cyan),var(--blue)); border-radius:9px;
+  box-shadow:0 6px 16px -6px rgba(56,212,255,.7);
+}
+.p-head p{margin:0; color:var(--muted); font-size:.96rem; max-width:70ch}
+.p-head p strong{color:var(--ink-soft)}
+
+/* ── 舞台：token 光道 ── */
+.stage{--pad:2px}
+.lane-wrap{position:relative}
+.lane{
+  overflow-x:auto; overflow-y:hidden; padding:26px 6px 12px;
+  scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.2) transparent;
+  -webkit-overflow-scrolling:touch;
+  mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);
+}
+.lane::-webkit-scrollbar{height:7px}
+.lane::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16); border-radius:99px}
+.track{position:relative; display:inline-flex; gap:10px; padding:0 8px; min-width:100%; justify-content:center}
+.beam{
+  position:absolute; top:6px; bottom:6px; left:0; width:3px;
+  border-radius:99px; pointer-events:none; opacity:0;
+  background:linear-gradient(180deg,rgba(56,212,255,0),var(--cyan) 22%,var(--cyan-2) 50%,var(--cyan) 78%,rgba(56,212,255,0));
+  box-shadow:0 0 16px 3px rgba(56,212,255,.6), 0 0 42px 8px rgba(56,212,255,.28);
+  transform:translateX(0) translateX(-50%);
+  transition:transform var(--step-dur) cubic-bezier(.3,.8,.25,1), opacity .3s ease;
+  z-index:3;
+}
+.tok{
+  position:relative; flex:none; cursor:pointer;
+  min-width:46px; padding:.7em .5em; font-family:var(--ff);
+  font-size:clamp(1.02rem,2.6vw,1.32rem); font-weight:650; color:var(--ink-soft);
+  background:var(--panel-2); border:1px solid var(--line);
+  border-radius:13px; text-align:center;
+  transition:transform .34s cubic-bezier(.2,.7,.2,1), color .3s, border-color .3s, background .3s, box-shadow .34s;
+}
+.tok .lab{position:relative; z-index:1}
+.tok .pin{
+  position:absolute; top:-9px; right:-7px; width:19px; height:19px;
+  display:grid; place-items:center; font-size:11px; border-radius:50%;
+  background:linear-gradient(140deg,var(--gold),var(--gold-2)); color:#2a1800;
+  opacity:0; transform:scale(.5); transition:transform .3s cubic-bezier(.2,1.5,.4,1), opacity .3s;
+  box-shadow:0 3px 10px -2px rgba(255,176,64,.8); z-index:2;
+}
+.tok:hover{transform:translateY(-3px); color:#fff; border-color:rgba(56,212,255,.4)}
+.tok:active{transform:translateY(-1px) scale(.97)}
+.tok.marked{
+  color:#fff; border-color:rgba(255,205,107,.55);
+  background:linear-gradient(180deg,rgba(255,205,107,.14),rgba(255,176,64,.05));
+  box-shadow:0 0 0 1px rgba(255,205,107,.25), 0 10px 26px -14px rgba(255,176,64,.7);
+}
+.tok.marked .pin{opacity:1; transform:scale(1)}
+.tok.active{
+  color:#04121a; border-color:transparent; transform:translateY(-5px);
+  background:linear-gradient(180deg,var(--cyan-2),var(--cyan));
+  box-shadow:0 0 0 1px rgba(56,212,255,.5), 0 16px 30px -14px rgba(56,212,255,.85);
+}
+.tok.active.marked{background:linear-gradient(180deg,#ffe3a0,var(--gold)); border-color:transparent}
+.tok.carried::after{
+  content:""; position:absolute; left:12%; right:12%; bottom:-6px; height:3px; border-radius:99px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  box-shadow:0 0 10px 1px rgba(255,176,64,.55);
+}
+.tok.grab{animation:grabFlash .55s ease}
+@keyframes grabFlash{0%{box-shadow:0 0 0 1px rgba(255,205,107,.4)}40%{box-shadow:0 0 0 6px rgba(255,205,107,.28), 0 0 30px 6px rgba(255,176,64,.55)}100%{box-shadow:0 0 0 1px rgba(255,205,107,.25)}}
+.lane-hint{margin:.5em 2px 0; font-size:.86rem; color:var(--muted); text-align:center}
+.lane-hint b{color:var(--gold)}
+
+/* ── 隱藏狀態：bar 向量 ── */
+.state{
+  margin-top:22px; padding:18px 16px 14px;
+  background:linear-gradient(180deg,rgba(0,0,0,.22),rgba(0,0,0,.06));
+  border:1px solid var(--line-2); border-radius:var(--r-md);
+}
+.state-top{display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:12px; flex-wrap:wrap}
+.state-top h3{margin:0; font-size:.82rem; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:700}
+.state-eq{font-family:var(--mono); font-size:.82rem; color:var(--faint)}
+.state-eq b{color:var(--cyan-2)}
+.bars{display:flex; align-items:flex-end; gap:clamp(5px,1.6vw,11px); height:128px; padding:0 2px}
+.bar{position:relative; flex:1; height:100%; border-radius:7px 7px 4px 4px; background:rgba(255,255,255,.04); overflow:hidden}
+.bar .fill{
+  position:absolute; left:0; right:0; bottom:0; height:100%;
+  transform:scaleY(.03); transform-origin:bottom; border-radius:7px 7px 4px 4px;
+  background:linear-gradient(180deg,var(--cyan-2),var(--blue));
+  box-shadow:0 0 14px -2px rgba(56,212,255,.5) inset;
+  transition:transform var(--step-dur) cubic-bezier(.3,.8,.25,1), filter .3s, opacity .3s;
+  opacity:.9;
+}
+.bar.mem{background:rgba(255,205,107,.06)}
+.bar.mem .fill{background:linear-gradient(180deg,#ffe3a0,var(--gold-2)); box-shadow:0 0 16px 0 rgba(255,176,64,.5) inset}
+.bar.mem::before{
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  box-shadow:0 0 0 1px rgba(255,205,107,.22) inset; pointer-events:none;
+}
+.bar.mem.hot .fill{animation:barPop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes barPop{0%{filter:brightness(1.9)}100%{filter:brightness(1)}}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; font-size:.8rem; color:var(--muted)}
+.legend span{display:inline-flex; align-items:center; gap:.5em}
+.legend i{width:11px; height:11px; border-radius:3px; display:inline-block}
+.legend i.g{background:linear-gradient(180deg,#ffe3a0,var(--gold-2))}
+.legend i.c{background:linear-gradient(180deg,var(--cyan-2),var(--blue))}
+
+/* 讀數 pills */
+.readout{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+.pill{
+  flex:1; min-width:96px; padding:10px 13px; border-radius:12px;
+  background:rgba(255,255,255,.035); border:1px solid var(--line);
+}
+.pill .k{font-size:.72rem; letter-spacing:.08em; color:var(--muted); display:block}
+.pill .v{font-family:var(--mono); font-size:1.24rem; font-weight:700; color:#fff; line-height:1.3}
+.pill .v small{font-size:.62em; color:var(--faint); font-weight:500}
+.pill.acc .v{color:var(--cyan-2)}
+.pill.mem-p .v{color:var(--gold)}
+
+/* ── 控制列 ── */
+.controls{margin-top:20px; display:grid; gap:16px}
+.ctl-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+.btn{
+  display:inline-flex; align-items:center; gap:.5em; cursor:pointer;
+  padding:.66em 1.15em; font-family:var(--ff); font-size:.92rem; font-weight:650;
+  color:var(--ink); background:var(--panel-2); border:1px solid var(--line);
+  border-radius:11px; transition:transform .22s cubic-bezier(.2,.7,.2,1), background .25s, border-color .25s, color .25s;
+}
+.btn:hover{transform:translateY(-2px); border-color:rgba(56,212,255,.4); color:#fff}
+.btn:active{transform:translateY(0) scale(.97)}
+.btn .ic{font-size:1.05em; line-height:1}
+.btn.primary{
+  color:#04121a; border-color:transparent;
+  background:linear-gradient(135deg,var(--cyan-2),var(--cyan));
+  box-shadow:0 12px 26px -14px rgba(56,212,255,.9);
+}
+.btn.primary:hover{filter:brightness(1.06)}
+.sliders{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+.slider{display:grid; gap:7px}
+.slider .lab{display:flex; justify-content:space-between; align-items:baseline; font-size:.86rem; color:var(--ink-soft)}
+.slider .lab b{color:#fff; font-weight:650}
+.slider .lab .val{font-family:var(--mono); color:var(--cyan-2); font-size:.82rem}
+.slider .ends{display:flex; justify-content:space-between; font-size:.72rem; color:var(--faint); margin-top:-2px}
+input[type=range]{
+  -webkit-appearance:none; appearance:none; width:100%; height:6px; margin:6px 0;
+  background:linear-gradient(90deg,var(--cyan) var(--fillpct,40%),rgba(255,255,255,.12) var(--fillpct,40%));
+  border-radius:99px; cursor:pointer;
+}
+input[type=range].gold{background:linear-gradient(90deg,var(--gold) var(--fillpct,40%),rgba(255,255,255,.12) var(--fillpct,40%))}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+  background:#fff; border:3px solid var(--cyan); cursor:grab;
+  box-shadow:0 3px 12px -2px rgba(56,212,255,.8); transition:transform .18s, box-shadow .2s;
+}
+input[type=range].gold::-webkit-slider-thumb{border-color:var(--gold); box-shadow:0 3px 12px -2px rgba(255,176,64,.8)}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.16)}
+input[type=range]:active::-webkit-slider-thumb{cursor:grabbing; transform:scale(1.08)}
+input[type=range]::-moz-range-thumb{
+  width:18px; height:18px; border-radius:50%; background:#fff; border:3px solid var(--cyan);
+  cursor:grab; box-shadow:0 3px 12px -2px rgba(56,212,255,.8);
+}
+input[type=range].gold::-moz-range-thumb{border-color:var(--gold)}
+input[type=range]::-moz-range-track{height:6px; border-radius:99px; background:transparent}
+.presets{display:flex; gap:8px; flex-wrap:wrap}
+.chip{
+  cursor:pointer; padding:.5em .95em; font-size:.86rem; font-weight:600; color:var(--ink-soft);
+  background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:99px;
+  transition:transform .22s, color .25s, border-color .25s, background .25s;
+}
+.chip:hover{transform:translateY(-2px); color:#fff; border-color:rgba(56,212,255,.4)}
+.chip[aria-pressed="true"]{
+  color:#04121a; border-color:transparent;
+  background:linear-gradient(135deg,var(--cyan-2),var(--cyan));
+}
+.ctl-label{font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin-right:2px; align-self:center}
+
+/* ── 對比：SSM vs Attention ── */
+.cmp-grid{display:grid; grid-template-columns:1.15fr .85fr; gap:22px; align-items:start}
+.chart-box{position:relative}
+.chart-box svg{width:100%; height:auto; display:block; overflow:visible}
+.axis-line{stroke:rgba(255,255,255,.16); stroke-width:1.4}
+.grid-line{stroke:rgba(255,255,255,.055); stroke-width:1}
+.axis-txt{fill:var(--faint); font-size:12px; font-family:var(--mono)}
+.curve{fill:none; stroke-width:3.4; stroke-linecap:round}
+.curve-lbl{font-family:var(--ff); font-size:13px; font-weight:700}
+.guide{stroke:rgba(255,255,255,.28); stroke-width:1.3; stroke-dasharray:3 4}
+.cmp-side{display:grid; gap:12px}
+.stat{
+  padding:14px 16px; border-radius:var(--r-md); border:1px solid var(--line);
+  background:rgba(255,255,255,.03);
+}
+.stat .st-k{font-size:.8rem; letter-spacing:.06em; display:flex; align-items:center; gap:.5em; margin-bottom:2px}
+.stat .st-k i{width:10px; height:10px; border-radius:3px}
+.stat.ssm .st-k i{background:var(--green)} .stat.attn .st-k i{background:var(--coral)}
+.stat .st-v{font-family:var(--mono); font-size:1.5rem; font-weight:750; color:#fff; line-height:1.25}
+.stat.ssm .st-v{color:var(--green)} .stat.attn .st-v{color:var(--coral)}
+.stat .st-sub{font-size:.8rem; color:var(--muted); margin-top:1px}
+.cmp-note{
+  grid-column:1/-1; margin-top:2px; padding:14px 16px; border-radius:var(--r-md);
+  background:rgba(90,140,255,.07); border:1px solid rgba(90,140,255,.18);
+  font-size:.92rem; color:var(--ink-soft);
+}
+.cmp-note b{color:#fff}
+.cmp-slider{grid-column:1/-1}
+
+/* ── 重點卡 ── */
+.facts{margin-top:26px}
+.facts h2{font-size:clamp(1.15rem,3vw,1.44rem); margin:0 0 16px; font-weight:750}
+.fact-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+.fact{
+  padding:18px; border-radius:var(--r-md); background:var(--panel);
+  border:1px solid var(--panel-brd); transition:transform .3s cubic-bezier(.2,.7,.2,1), border-color .3s, background .3s;
+}
+.fact:hover{transform:translateY(-4px); border-color:rgba(56,212,255,.35); background:rgba(255,255,255,.05)}
+.fact .fno{font-family:var(--mono); font-size:.9rem; font-weight:700; color:var(--cyan-2); margin-bottom:6px}
+.fact.warn .fno{color:var(--gold)} .fact.mix .fno{color:var(--violet)}
+.fact h3{margin:0 0 .4em; font-size:1.04rem; font-weight:700}
+.fact p{margin:0; font-size:.9rem; color:var(--muted)}
+.fact p strong{color:var(--ink-soft)}
+
+/* footer */
+.foot{margin-top:38px; text-align:center; color:var(--faint); font-size:.84rem}
+.foot .src{color:var(--muted)}
+
+.sr-only{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+/* ── 響應式 ── */
+@media (max-width:860px){
+  .cmp-grid{grid-template-columns:1fr}
+  .fact-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:560px){
+  .page{padding:66px 15px 48px}
+  .sliders{grid-template-columns:1fr}
+  .fact-grid{grid-template-columns:1fr}
+  .bars{height:104px}
+  .state-eq{width:100%}
+  .btn{flex:1; justify-content:center}
+  .readout .pill{min-width:calc(50% - 5px)}
+}
+
+/* ── prefers-reduced-motion：完整降級 ── */
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important}
+  [data-fade]{opacity:1; transform:none}
+}
+.reduced .beam,.reduced .bar .fill,.reduced .tok{transition:none !important}
+</style>
+</head>
+<body>
+<a class="back" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="page">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">學習新知 · Mamba / 狀態空間模型</p>
+    <h1 data-fade="2">一道光，掃過整個序列</h1>
+    <p class="lede" data-fade="3">
+      Transformer 靠「回頭看」整串文字來理解每個字；<strong>狀態空間模型（SSM）</strong>換了個做法——
+      像一道光由左而右掃過序列，途中只維護<strong>一個固定大小的隱藏狀態</strong>。
+      每讀一個 token，就用遞迴式 <code>h ← A·h + B·x</code> 更新它、再輸出 <code>y = C·h</code>。
+      2023 年的 <strong>Mamba</strong> 更進一步：讓模型<strong>依當前輸入決定</strong>要記住還是遺忘——這就是「選擇性」。
+    </p>
+  </header>
+
+  <!-- ① 掃描舞台 -->
+  <section class="panel" data-fade="4" aria-labelledby="h-scan">
+    <div class="p-head">
+      <h2 id="h-scan"><span class="n">1</span>看著光掃過去</h2>
+      <p>按 <strong>▶ 播放</strong>，光掃過每個 token 時就更新下方的隱藏狀態向量。
+        <strong>點一個 token 標記為「要記住」</strong>（金色圖釘），看那個值被<strong>記憶通道</strong>一路帶下去。</p>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="lane-wrap">
+        <div class="lane" id="lane">
+          <div class="track" id="track">
+            <span class="beam" id="beam" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+      <p class="lane-hint">掃描時，<b>金色底線</b>代表這段區間裡，記憶通道正把某個被標記的 token 帶著走。</p>
+
+      <div class="state">
+        <div class="state-top">
+          <h3>隱藏狀態 h（固定大小）</h3>
+          <span class="state-eq"><b>h</b> ← A·h + B·x&nbsp;&nbsp;·&nbsp;&nbsp;<b>y</b> = C·h</span>
+        </div>
+        <div class="bars" id="bars" role="img" aria-label="隱藏狀態向量，每根長條是一個維度"></div>
+        <div class="legend">
+          <span><i class="g"></i>記憶通道（選擇性：抓住並保留）</span>
+          <span><i class="c"></i>上下文狀態（受遺忘閘影響）</span>
+        </div>
+        <div class="readout">
+          <div class="pill"><span class="k">遺忘閘 Δ（步長）</span><span class="v" id="rd-delta">0.35</span></div>
+          <div class="pill acc"><span class="k">保留率 a = e<sup>−Δ</sup></span><span class="v" id="rd-a">0.70</span></div>
+          <div class="pill mem-p"><span class="k">記憶通道</span><span class="v" id="rd-mem">空</span></div>
+          <div class="pill"><span class="k">輸出 y = C·h</span><span class="v" id="rd-y">0.00</span></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="ctl-row" role="group" aria-label="播放控制">
+          <button class="btn primary" id="btn-play" aria-label="播放掃描"><span class="ic" id="play-ic">▶</span><span id="play-tx">播放</span></button>
+          <button class="btn" id="btn-step" aria-label="前進一步"><span class="ic">⏭</span>單步</button>
+          <button class="btn" id="btn-reset" aria-label="重設到開頭"><span class="ic">↺</span>重設</button>
+        </div>
+        <div class="sliders">
+          <div class="slider">
+            <label class="lab" for="sp-forget"><b>遺忘閘 Δ</b><span class="val" id="sp-forget-val">0.35</span></label>
+            <input type="range" id="sp-forget" class="gold" min="8" max="260" value="35" aria-describedby="forget-ends">
+            <div class="ends" id="forget-ends"><span>記很久（慢忘）</span><span>秒忘（快忘）</span></div>
+          </div>
+          <div class="slider">
+            <label class="lab" for="sp-speed"><b>掃描速度</b><span class="val" id="sp-speed-val">中</span></label>
+            <input type="range" id="sp-speed" min="1" max="5" value="3">
+            <div class="ends"><span>慢</span><span>快</span></div>
+          </div>
+        </div>
+        <div class="ctl-row">
+          <span class="ctl-label">例句</span>
+          <div class="presets" id="presets" role="group" aria-label="選擇例句"></div>
+        </div>
+      </div>
+      <p class="sr-only" id="live" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <!-- ② SSM vs Attention -->
+  <section class="panel" data-fade="5" aria-labelledby="h-cmp">
+    <div class="p-head">
+      <h2 id="h-cmp"><span class="n">2</span>為什麼它更省：O(N) vs O(N²)</h2>
+      <p>Attention 每輸出一個字，都要和<strong>前面所有字</strong>算一次配對，成本隨長度<strong>平方成長</strong>、還要快取每個 token 的 K/V。
+        SSM 只帶著<strong>一個固定大小的狀態</strong>往前走——線性時間、不需要 KV cache。拖動下方滑桿看差距。</p>
+    </div>
+    <div class="cmp-grid">
+      <div class="chart-box">
+        <svg id="chart" viewBox="0 0 680 320" role="img" aria-label="計算量隨序列長度成長：SSM 線性、Attention 平方">
+          <defs>
+            <linearGradient id="gQuad" gradientUnits="userSpaceOnUse" x1="54" y1="278" x2="54" y2="18">
+              <stop offset="0" stop-color="#ff7d84" stop-opacity=".55"/>
+              <stop offset="1" stop-color="#ff9d5c"/>
+            </linearGradient>
+            <linearGradient id="gLin" gradientUnits="userSpaceOnUse" x1="54" y1="278" x2="656" y2="262">
+              <stop offset="0" stop-color="#54e0a6"/>
+              <stop offset="1" stop-color="#38d4ff"/>
+            </linearGradient>
+          </defs>
+          <!-- 座標軸（實色描邊，非漸層，避免水平/垂直線不繪製）-->
+          <g id="grid"></g>
+          <line class="axis-line" x1="54" y1="18" x2="54" y2="278"/>
+          <line class="axis-line" x1="54" y1="278" x2="656" y2="278"/>
+          <text class="axis-txt" x="656" y="298" text-anchor="end">序列長度 L →</text>
+          <text class="axis-txt" x="48" y="24" text-anchor="end">計算量</text>
+          <!-- 曲線群組：drop-shadow 掛在 g 上，不掛個別路徑 -->
+          <g style="filter:drop-shadow(0 6px 14px rgba(0,0,0,.5))">
+            <path id="curveQuad" class="curve" stroke="url(#gQuad)"/>
+            <path id="curveLin" class="curve" stroke="url(#gLin)"/>
+          </g>
+          <line id="guide" class="guide" x1="0" y1="18" x2="0" y2="278" style="opacity:0"/>
+          <circle id="dotQuad" r="6" fill="#ff9d5c" stroke="#1a0d10" stroke-width="2" style="opacity:0"/>
+          <circle id="dotLin" r="6" fill="#54e0a6" stroke="#06140f" stroke-width="2" style="opacity:0"/>
+          <text id="lblQuad" class="curve-lbl" fill="#ff9d5c" text-anchor="end">Attention · O(N²)</text>
+          <text id="lblLin" class="curve-lbl" fill="#54e0a6" text-anchor="end">SSM · O(N)</text>
+        </svg>
+      </div>
+      <div class="cmp-side">
+        <div class="stat ssm">
+          <div class="st-k"><i></i>SSM 狀態更新</div>
+          <div class="st-v"><span id="st-ssm">24</span> 次</div>
+          <div class="st-sub">∝ L　·　狀態大小固定、無 KV cache</div>
+        </div>
+        <div class="stat attn">
+          <div class="st-k"><i></i>Attention 配對</div>
+          <div class="st-v"><span id="st-attn">576</span> 次</div>
+          <div class="st-sub">∝ L²　·　需快取 <span id="st-kv">24</span> 個 token 的 K/V</div>
+        </div>
+      </div>
+      <div class="cmp-slider slider">
+        <label class="lab" for="sp-len"><b>序列長度 L</b><span class="val"><span id="len-val">24</span> tokens</span></label>
+        <input type="range" id="sp-len" min="2" max="128" value="24">
+        <div class="ends"><span>短</span><span>長（長上下文）</span></div>
+      </div>
+      <p class="cmp-note">
+        長度<strong>翻倍</strong>時：SSM 成本只 <b>×2</b>，Attention 成本卻 <b>×4</b>。
+        少了注意力矩陣與 KV cache，Mamba 能用更大 batch，推論吞吐量約為同級 Transformer 的 <b>4–5 倍</b>。
+      </p>
+    </div>
+  </section>
+
+  <!-- ③ 重點 -->
+  <section class="facts" data-fade="6" aria-labelledby="h-facts">
+    <h2 id="h-facts">帶走這幾個重點</h2>
+    <div class="fact-grid">
+      <article class="fact">
+        <div class="fno">h ← A·h + B·x</div>
+        <h3>一個往前走的狀態</h3>
+        <p>SSM 不回頭看整串文字，只帶著一個<strong>固定大小</strong>的隱藏狀態往前掃：每步遞迴更新、輸出 <code>y = C·h</code>。長度翻倍，成本只翻倍。</p>
+      </article>
+      <article class="fact">
+        <div class="fno">選擇性</div>
+        <h3>會挑重點的 SSM</h3>
+        <p>Mamba 讓 <strong>B、C 與步長 Δ 隨當前輸入變化</strong>（A 也透過 Δ 一起被調變）。模型因此能「選擇」記住或略過某個 token——修正了 S4 等傳統 SSM <strong>靜態參數、無法依內容推理</strong>的限制。</p>
+      </article>
+      <article class="fact">
+        <div class="fno">≈ 5×</div>
+        <h3>不用 KV cache</h3>
+        <p>沒有注意力矩陣，就不必為每個 token 快取 K/V。狀態大小固定、可用更大 batch，<strong>推論吞吐量約為同級 Transformer 的 4–5 倍</strong>，複雜度隨長度線性成長。</p>
+      </article>
+      <article class="fact">
+        <div class="fno">3B ＞ 同級</div>
+        <h3>小模型打大模型</h3>
+        <p>在語言建模上，<strong>Mamba-3B 勝過同尺寸的 Transformer</strong>，並可比肩約<strong>兩倍大</strong>的 Transformer。</p>
+      </article>
+      <article class="fact warn">
+        <div class="fno">取捨</div>
+        <h3>它也有弱點</h3>
+        <p>把整個上下文壓進固定狀態，代價是在<strong>精確複製長輸入、in-context learning、induction heads</strong> 這類需要逐字回查的能力上較弱。</p>
+      </article>
+      <article class="fact mix">
+        <div class="fno">混合架構</div>
+        <h3>各取所長</h3>
+        <p>後續研究（如 <strong>NVIDIA 2024</strong>）把 Transformer 與 Mamba 混搭，往往比純架構更好——注意力負責精準回查，SSM 負責高效長程。</p>
+      </article>
+    </div>
+    <p class="lane-hint" style="margin-top:14px; text-align:left; color:var(--faint)">
+      這頁的狀態是一維、EMA 式的直覺示意（把玩用）；真實 Mamba 是多維、硬體感知的平行掃描，但數學核心相同：<code>h ← A·h + B·x</code>、<code>y = C·h</code>。
+    </p>
+  </section>
+
+  <footer class="foot">
+    <p class="src">資料來源：arXiv (Mamba, 2023)</p>
+  </footer>
+</main>
+
+<!-- ============ SSM 核心：純函式，可被 node 測試（無 DOM 依賴）============ -->
+<script id="ssm-core">
+(function (root) {
+  'use strict';
+  // 一步遞迴： h_t = a·h_{t-1} + b·x_t
+  function ssmStep(h, x, a, b) { return a * h + b * x; }
+  // 輸出投影： y_t = c·h_t
+  function ssmOutput(h, c) { return c * h; }
+  // 由左而右線性掃描；params 可為常數 {a,b,c} 或逐步陣列 [{a,b,c},…]
+  // （逐步陣列就是「選擇性 SSM」：參數隨輸入變化）。回傳每一步的 { h, y }。
+  function ssmScan(xs, params, h0) {
+    var h = (h0 === undefined || h0 === null) ? 0 : h0;
+    var out = [];
+    for (var t = 0; t < xs.length; t++) {
+      var p = Array.isArray(params) ? params[t] : params;
+      var c = (p.c === undefined) ? 1 : p.c;
+      h = ssmStep(h, xs[t], p.a, p.b);
+      out.push({ h: h, y: ssmOutput(h, c) });
+    }
+    return out;
+  }
+  // 離散化： Ā = exp(Δ·A)。取穩定極點 A=-1 時 a = exp(-Δ) ∈ (0,1)：
+  // Δ 越大 → a 越小 → 遺忘越快。
+  function discretizeA(delta, aCont) {
+    return Math.exp(delta * (aCont === undefined ? -1 : aCont));
+  }
+  // 零階保持下的輸入增益： B̄ = (1 - a)·B —— Mamba 式的「輸入相依 EMA 閘」。
+  function inputGain(a) { return 1 - a; }
+
+  var api = {
+    ssmStep: ssmStep, ssmOutput: ssmOutput, ssmScan: ssmScan,
+    discretizeA: discretizeA, inputGain: inputGain
+  };
+  root.SSM = api;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
+})(typeof window !== 'undefined' ? window : this);
+</script>
+
+<!-- ============ 頁面互動 ============ -->
+<script>
+(function () {
+  'use strict';
+  var SSM = window.SSM;
+  var $ = function (id) { return document.getElementById(id); };
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+
+  /* prefers-reduced-motion（用 matchMedia change 動態監聽）*/
+  var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = mqReduce.matches;
+  function applyReduced() {
+    reduced = mqReduce.matches;
+    document.body.classList.toggle('reduced', reduced);
+    updatePlayUI();
+    if (reduced) stopLoop();
+  }
+  if (mqReduce.addEventListener) mqReduce.addEventListener('change', applyReduced);
+  else if (mqReduce.addListener) mqReduce.addListener(applyReduced);
+
+  /* ---- 參數 ---- */
+  var BAR_COUNT = 10;          // dim0 = 記憶通道；dim1..9 = 上下文
+  var PRESETS = [
+    { label: '買牛奶',  tokens: ['請', '記得', '幫', '我', '買', '牛奶'], mark: 5 },
+    { label: '藏鑰匙',  tokens: ['鑰匙', '放在', '門口', '的', '鞋櫃', '裡'], mark: 4 },
+    { label: '點拿鐵',  tokens: ['他', '點了', '一杯', '冰', '拿鐵'], mark: 4 }
+  ];
+
+  /* ---- 確定性雜湊（FNV-1a），讓每個 token 的向量穩定 ---- */
+  function hashStr(s) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function tokenEmbed(tok) {
+    var e = [];
+    for (var i = 0; i < BAR_COUNT; i++) { e.push((hashStr(tok + '#' + i) % 2000) / 1000 - 1); } // [-1,1)
+    return e;
+  }
+  function salienceOf(tok) { return 0.62 + 0.36 * ((hashStr(tok + '*') % 1000) / 1000); } // [0.62,0.98]
+  var Cvec = [1.0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]; // 輸出權重 C（記憶通道權重較大）
+
+  /* ---- 狀態 ---- */
+  var S = {
+    pi: 0, tokens: [], marks: [], embeds: [], salience: [],
+    idx: -1, playing: false, resting: false,
+    speed: 3, delta: 0.35, lastGrab: -1
+  };
+
+  /* localStorage（前綴 ssm.）*/
+  try {
+    var sd = parseFloat(localStorage.getItem('ssm.delta'));
+    if (!isNaN(sd)) S.delta = clamp(sd, 0.08, 2.6);
+    var ss = parseInt(localStorage.getItem('ssm.speed'), 10);
+    if (!isNaN(ss)) S.speed = clamp(ss, 1, 5);
+  } catch (e) {}
+
+  var track = $('track'), beam = $('beam'), lane = $('lane'), barsEl = $('bars');
+  var chipEls = [];
+
+  /* ---- 建立 bar 元素 ---- */
+  (function buildBars() {
+    for (var i = 0; i < BAR_COUNT; i++) {
+      var bar = document.createElement('div');
+      bar.className = 'bar' + (i === 0 ? ' mem' : '');
+      var fill = document.createElement('span'); fill.className = 'fill';
+      bar.appendChild(fill); barsEl.appendChild(bar);
+    }
+  })();
+  var fills = barsEl.querySelectorAll('.fill');
+  var barDivs = barsEl.querySelectorAll('.bar');
+
+  /* ---- 載入例句 ---- */
+  function loadPreset(pi) {
+    S.pi = pi;
+    var p = PRESETS[pi];
+    S.tokens = p.tokens.slice();
+    S.marks = p.tokens.map(function (_, i) { return i === p.mark; });
+    S.embeds = S.tokens.map(tokenEmbed);
+    S.salience = S.tokens.map(salienceOf);
+    S.idx = -1; S.resting = false;
+    buildTokens();
+    render(false);
+  }
+  function buildTokens() {
+    // 清掉舊的 token（保留 beam）
+    var old = track.querySelectorAll('.tok');
+    for (var k = 0; k < old.length; k++) track.removeChild(old[k]);
+    chipEls = [];
+    S.tokens.forEach(function (tok, i) {
+      var b = document.createElement('button');
+      b.className = 'tok' + (S.marks[i] ? ' marked' : '');
+      b.type = 'button';
+      b.setAttribute('aria-pressed', S.marks[i] ? 'true' : 'false');
+      b.setAttribute('aria-label', 'token「' + tok + '」，按 Enter 切換是否要記住');
+      b.innerHTML = '<span class="lab">' + tok + '</span><span class="pin" aria-hidden="true">★</span>';
+      b.addEventListener('click', function () { toggleMark(i); });
+      track.appendChild(b); chipEls.push(b);
+    });
+  }
+  function toggleMark(i) {
+    S.marks[i] = !S.marks[i];
+    chipEls[i].classList.toggle('marked', S.marks[i]);
+    chipEls[i].setAttribute('aria-pressed', S.marks[i] ? 'true' : 'false');
+    render(false);
+    announce((S.marks[i] ? '已標記「' : '已取消「') + S.tokens[i] + '」' + (S.marks[i] ? '為要記住' : ''));
+  }
+
+  /* ---- 模擬：跑到第 upto 步（含）為止，回傳可渲染的狀態 ---- */
+  function simulate(upto) {
+    var a = SSM.discretizeA(S.delta);       // a = exp(-Δ)
+    var g = SSM.inputGain(a);               // 1 - a
+    var holdA = 0.90 + 0.09 * a;            // 記憶通道的保留率（有高地板，仍受遺忘閘些微影響）
+    var h = new Array(BAR_COUNT); for (var i = 0; i < BAR_COUNT; i++) h[i] = 0;
+    var mem = 0, memActive = false, grabFrom = -1;
+    for (var t = 0; t <= upto; t++) {
+      var e = S.embeds[t];
+      // 上下文維度：輸入相依 EMA（就是離散化後的 h ← a·h + (1-a)·Bx）
+      for (var d = 1; d < BAR_COUNT; d++) { h[d] = SSM.ssmStep(h[d], e[d], a, g); }
+      // 記憶通道（選擇性）：碰到被標記的 token 就「抓住」，其後「保留」
+      if (S.marks[t]) { mem = S.salience[t]; memActive = true; grabFrom = t; }
+      else if (memActive) { mem = mem * holdA; if (Math.abs(mem) < 0.04) { memActive = false; mem = 0; grabFrom = -1; } }
+    }
+    h[0] = mem;
+    // 輸出 y = C·h
+    var y = 0; for (var d2 = 0; d2 < BAR_COUNT; d2++) y += Cvec[d2] * h[d2];
+    return { h: h, mem: mem, memActive: memActive, grabFrom: memActive ? grabFrom : -1, y: y, a: a };
+  }
+
+  /* ---- 渲染 ---- */
+  var prevGrab = -1;
+  function render(fromStep) {
+    var sim = simulate(S.idx);
+    // bars
+    for (var i = 0; i < BAR_COUNT; i++) {
+      var mag = clamp(Math.abs(sim.h[i]), 0, 1);
+      fills[i].style.transform = 'scaleY(' + (0.03 + 0.97 * mag) + ')';
+      fills[i].style.opacity = i === 0 ? (sim.memActive ? 1 : 0.28) : (0.55 + 0.45 * mag);
+    }
+    // 記憶通道抓取瞬間的脈衝
+    var newGrab = sim.grabFrom;
+    if (fromStep && newGrab !== -1 && newGrab !== prevGrab && !reduced) {
+      barDivs[0].classList.remove('hot'); void barDivs[0].offsetWidth; barDivs[0].classList.add('hot');
+      if (chipEls[newGrab]) { chipEls[newGrab].classList.remove('grab'); void chipEls[newGrab].offsetWidth; chipEls[newGrab].classList.add('grab'); }
+    }
+    prevGrab = newGrab;
+    // beam + token 樣式
+    for (var c = 0; c < chipEls.length; c++) {
+      var on = (c === S.idx);
+      chipEls[c].classList.toggle('active', on);
+      var carried = (sim.grabFrom !== -1 && c >= sim.grabFrom && c <= S.idx);
+      chipEls[c].classList.toggle('carried', carried);
+    }
+    if (S.idx < 0) { beam.style.opacity = '0'; }
+    else if (chipEls[S.idx]) {
+      var el = chipEls[S.idx];
+      beam.style.opacity = '1';
+      beam.style.transform = 'translateX(' + (el.offsetLeft + el.offsetWidth / 2) + 'px) translateX(-50%)';
+      if (el.scrollIntoView) el.scrollIntoView({ inline: 'center', block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    }
+    // 讀數
+    $('rd-delta').textContent = S.delta.toFixed(2);
+    $('rd-a').textContent = sim.a.toFixed(2);
+    $('rd-y').textContent = (sim.y >= 0 ? '' : '') + sim.y.toFixed(2);
+    var memBox = $('rd-mem');
+    if (sim.memActive && sim.grabFrom !== -1) { memBox.textContent = S.tokens[sim.grabFrom]; memBox.parentElement.style.opacity = '1'; }
+    else { memBox.innerHTML = '空'; }
+  }
+
+  /* ---- 播報（aria-live）---- */
+  var liveEl = $('live');
+  function announce(msg) { liveEl.textContent = ''; liveEl.textContent = msg; }
+
+  /* ---- 步進 / 迴圈 ---- */
+  function intervalMs() { return 1080 - S.speed * 160; }     // 速度 1→920 … 5→280
+  function stepDurMs() { return clamp(intervalMs() * 0.72, 130, 640); }
+  function applyStepDur() { $('stage').style.setProperty('--step-dur', stepDurMs() + 'ms'); }
+  var REST_MS = 1300;
+
+  function advance() {
+    if (S.resting) { S.resting = false; S.idx = -1; render(false); return; }
+    if (S.idx >= S.tokens.length - 1) { S.resting = true; render(false); return; }
+    S.idx++;
+    render(true);
+    if (S.marks[S.idx]) announce('掃到「' + S.tokens[S.idx] + '」，記住了');
+  }
+
+  var rafId = 0, lastT = 0, acc = 0;
+  function loop(now) {
+    if (!S.playing) { rafId = 0; return; }
+    if (!lastT) lastT = now;
+    acc += (now - lastT); lastT = now;
+    var thr = S.resting ? REST_MS : intervalMs();
+    if (acc >= thr) { acc = 0; advance(); }
+    rafId = requestAnimationFrame(loop);
+  }
+  function startLoop() { if (reduced || rafId) return; lastT = 0; acc = 0; rafId = requestAnimationFrame(loop); }
+  function stopLoop() { if (rafId) { cancelAnimationFrame(rafId); rafId = 0; } }
+
+  function updatePlayUI() {
+    var ic = $('play-ic'), tx = $('play-tx'), btn = $('btn-play');
+    if (reduced) { ic.textContent = '⤓'; tx.textContent = '跑到底'; btn.setAttribute('aria-label', '直接顯示最終狀態'); return; }
+    if (S.playing) { ic.textContent = '❚❚'; tx.textContent = '暫停'; btn.setAttribute('aria-label', '暫停掃描'); }
+    else { ic.textContent = '▶'; tx.textContent = '播放'; btn.setAttribute('aria-label', '播放掃描'); }
+  }
+  function play() {
+    if (reduced) { S.idx = S.tokens.length - 1; S.resting = false; render(false); announce('已顯示掃完後的最終狀態'); return; }
+    if (S.idx >= S.tokens.length - 1 && !S.resting) { S.idx = -1; } // 從頭播
+    S.playing = true; updatePlayUI(); startLoop();
+  }
+  function pause() { S.playing = false; updatePlayUI(); stopLoop(); }
+
+  /* ---- 事件接線 ---- */
+  $('btn-play').addEventListener('click', function () { S.playing ? pause() : play(); });
+  $('btn-step').addEventListener('click', function () { pause(); advance(); });
+  $('btn-reset').addEventListener('click', function () { pause(); S.idx = -1; S.resting = false; render(false); announce('已重設到開頭'); });
+
+  var spForget = $('sp-forget');
+  spForget.value = Math.round(S.delta * 100);
+  spForget.addEventListener('input', function () {
+    S.delta = clamp(parseInt(this.value, 10) / 100, 0.08, 2.6);
+    $('sp-forget-val').textContent = S.delta.toFixed(2);
+    setFill(this);
+    try { localStorage.setItem('ssm.delta', String(S.delta)); } catch (e) {}
+    render(false);
+  });
+
+  var spSpeed = $('sp-speed');
+  spSpeed.value = S.speed;
+  var SPEED_TX = { 1: '很慢', 2: '慢', 3: '中', 4: '快', 5: '很快' };
+  spSpeed.addEventListener('input', function () {
+    S.speed = parseInt(this.value, 10);
+    $('sp-speed-val').textContent = SPEED_TX[S.speed];
+    setFill(this);
+    applyStepDur();
+    try { localStorage.setItem('ssm.speed', String(S.speed)); } catch (e) {}
+  });
+
+  function setFill(el) {
+    var pct = (el.value - el.min) / (el.max - el.min) * 100;
+    el.style.setProperty('--fillpct', pct + '%');
+  }
+
+  /* 例句 chips */
+  (function buildPresets() {
+    var wrap = $('presets');
+    PRESETS.forEach(function (p, i) {
+      var b = document.createElement('button');
+      b.className = 'chip'; b.type = 'button';
+      b.textContent = p.label;
+      b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        pause();
+        var all = wrap.querySelectorAll('.chip');
+        for (var k = 0; k < all.length; k++) all[k].setAttribute('aria-pressed', 'false');
+        b.setAttribute('aria-pressed', 'true');
+        prevGrab = -1;
+        loadPreset(i);
+        announce('已切換例句：' + p.label);
+      });
+      wrap.appendChild(b);
+    });
+  })();
+
+  /* 分頁隱藏時暫停掃描 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { stopLoop(); }
+    else if (S.playing && !reduced) { startLoop(); }
+  });
+
+  /* resize：重新定位光束 */
+  var rt;
+  window.addEventListener('resize', function () {
+    clearTimeout(rt);
+    rt = setTimeout(function () { render(false); }, 120);
+  });
+
+  /* ============ 對比圖：SSM (線性) vs Attention (平方) ============ */
+  var LMAX = 128;
+  var PAD_L = 54, PAD_R = 24, PAD_T = 18, PAD_B = 42;
+  var VW = 680, VH = 320;
+  var plotW = VW - PAD_L - PAD_R, plotH = VH - PAD_T - PAD_B;
+  var yScale = plotH / (LMAX * LMAX);
+  function xOf(L) { return PAD_L + (L / LMAX) * plotW; }
+  function yLin(L) { return PAD_T + plotH - L * yScale; }
+  function yQuad(L) { return PAD_T + plotH - L * L * yScale; }
+
+  (function buildChart() {
+    // 網格線（實色，非漸層）
+    var g = $('grid'), gh = '';
+    for (var k = 1; k <= 4; k++) {
+      var yy = PAD_T + plotH - (k / 4) * plotH;
+      gh += '<line class="grid-line" x1="' + PAD_L + '" y1="' + yy.toFixed(1) + '" x2="' + (VW - PAD_R) + '" y2="' + yy.toFixed(1) + '"/>';
+    }
+    g.innerHTML = gh;
+    // 平方曲線（由左而右取樣 → 動畫方向正確）
+    var qd = 'M' + xOf(0).toFixed(1) + ' ' + yQuad(0).toFixed(1);
+    for (var L = 1; L <= LMAX; L += 2) qd += ' L' + xOf(L).toFixed(1) + ' ' + yQuad(L).toFixed(1);
+    qd += ' L' + xOf(LMAX).toFixed(1) + ' ' + yQuad(LMAX).toFixed(1);
+    $('curveQuad').setAttribute('d', qd);
+    // 線性曲線（左→右）
+    $('curveLin').setAttribute('d', 'M' + xOf(0).toFixed(1) + ' ' + yLin(0).toFixed(1) + ' L' + xOf(LMAX).toFixed(1) + ' ' + yLin(LMAX).toFixed(1));
+    // 標籤位置
+    $('lblQuad').setAttribute('x', xOf(LMAX) - 4); $('lblQuad').setAttribute('y', yQuad(LMAX * 0.86));
+    $('lblLin').setAttribute('x', xOf(LMAX) - 4); $('lblLin').setAttribute('y', yLin(LMAX) - 10);
+  })();
+
+  var chartDrawn = false;
+  function drawInCurves() {
+    if (chartDrawn) return; chartDrawn = true;
+    ['curveQuad', 'curveLin'].forEach(function (id, i) {
+      var p = $(id);
+      if (reduced) { p.style.strokeDasharray = 'none'; p.style.strokeDashoffset = '0'; return; }
+      var len = p.getTotalLength();
+      p.style.transition = 'none';
+      p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+      p.getBoundingClientRect(); // 強制 reflow
+      requestAnimationFrame(function () {
+        p.style.transition = 'stroke-dashoffset 1150ms cubic-bezier(.2,.7,.2,1) ' + (i * 120) + 'ms';
+        p.style.strokeDashoffset = '0';
+      });
+    });
+  }
+
+  function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+  function rollTo(el, to) {
+    var from = parseFloat(el.dataset.v || '0') || 0; el.dataset.v = to;
+    if (reduced) { el.textContent = fmt(to); return; }
+    if (el._raf) cancelAnimationFrame(el._raf);
+    var t0 = performance.now(), dur = 420;
+    function tick(now) {
+      var k = clamp((now - t0) / dur, 0, 1), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (k < 1) el._raf = requestAnimationFrame(tick);
+    }
+    el._raf = requestAnimationFrame(tick);
+  }
+
+  function updateChart(L, roll) {
+    $('len-val').textContent = L;
+    if (roll) { rollTo($('st-ssm'), L); rollTo($('st-attn'), L * L); rollTo($('st-kv'), L); }
+    else { $('st-ssm').textContent = fmt(L); $('st-ssm').dataset.v = L; $('st-attn').textContent = fmt(L * L); $('st-attn').dataset.v = L * L; $('st-kv').textContent = fmt(L); $('st-kv').dataset.v = L; }
+    var dq = $('dotQuad'), dl = $('dotLin'), gu = $('guide');
+    dq.setAttribute('cx', xOf(L)); dq.setAttribute('cy', yQuad(L)); dq.style.opacity = '1';
+    dl.setAttribute('cx', xOf(L)); dl.setAttribute('cy', yLin(L)); dl.style.opacity = '1';
+    gu.setAttribute('x1', xOf(L)); gu.setAttribute('x2', xOf(L)); gu.style.opacity = '1';
+  }
+
+  var spLen = $('sp-len');
+  spLen.addEventListener('input', function () { setFill(this); updateChart(parseInt(this.value, 10), true); });
+
+  // 進入視窗才畫線（漸進揭示）
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { if (en.isIntersecting) { drawInCurves(); io.disconnect(); } });
+    }, { threshold: 0.25 });
+    io.observe($('chart'));
+  } else { drawInCurves(); }
+
+  /* ============ 啟動 ============ */
+  applyReduced();
+  applyStepDur();
+  setFill(spForget); setFill(spSpeed); setFill(spLen);
+  $('sp-forget-val').textContent = S.delta.toFixed(2);
+  $('sp-speed-val').textContent = SPEED_TX[S.speed];
+  loadPreset(0);
+  updateChart(24, false);
+})();
+</script>
+</body>
+</html>

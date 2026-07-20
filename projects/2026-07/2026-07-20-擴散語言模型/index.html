@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>擴散語言模型 · 讓整句話從雜訊裡一起浮現</title>
+<meta name="description" content="大多數聊天機器人一個字接一個字由左往右寫；擴散語言模型讓整句話先是一片遮罩，再用少少幾步平行定稿。按下播放，看同一句話用兩種方式並排賽跑。">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  :root{
+    --bg:#0a0b16; --bg2:#0f1024;
+    --panel:rgba(19,20,40,.72); --panel2:#15162e;
+    --line:rgba(150,140,220,.16); --line-soft:rgba(150,140,220,.09);
+    --ink:#f2f0fb; --dim:#a9a3d1; --faint:#6f6a99;
+    --brand:#8e90ff; --brand-d:#5c5ee2;      /* 品牌 靛紫 */
+    --diff:#f3b45f; --diff-d:#c98a35;         /* 擴散：定稿=暖金 */
+    --diff-glow:rgba(243,180,95,.45);
+    --auto:#54d1e6; --auto-d:#2597ab;         /* 自迴歸：定稿=冷青 */
+    --auto-glow:rgba(84,209,230,.4);
+    --gold:#f0c674;
+    --shadow:0 22px 48px rgba(0,0,0,.5);
+    --e-out:cubic-bezier(.22,1,.36,1);
+    --e-pop:cubic-bezier(.2,1.5,.4,1);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 560px at 82% -6%, rgba(142,144,255,.15), transparent 60%),
+      radial-gradient(860px 600px at 4% 4%, rgba(243,180,95,.06), transparent 62%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; line-height:1.6; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+  body::before{ /* 雜訊質感（點陣） */
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.55;
+    background-image:radial-gradient(rgba(242,240,251,.05) 1px, transparent 1.6px);
+    background-size:32px 32px;
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.8), transparent 76%);
+            mask-image:linear-gradient(180deg, rgba(0,0,0,.8), transparent 76%);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--brand); outline-offset:3px; border-radius:8px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;padding:0}
+
+  /* 回首頁 */
+  .home{
+    position:fixed; top:15px; left:16px; z-index:30;
+    font-size:13px; color:var(--dim); text-decoration:none;
+    background:rgba(14,15,36,.72); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; backdrop-filter:blur(8px);
+    transition:color .2s, border-color .2s, transform .2s;
+  }
+  .home:hover, .home:focus-visible{color:var(--ink); border-color:var(--brand); transform:translateX(-2px)}
+  .skip{position:fixed; top:12px; left:50%; transform:translateX(-50%) translateY(-120%);
+    z-index:40; background:var(--brand); color:#0a0b16; font-weight:700; font-size:13px;
+    padding:8px 16px; border-radius:999px; text-decoration:none; transition:transform .2s}
+  .skip:focus{transform:translateX(-50%) translateY(0)}
+
+  .wrap{position:relative; z-index:1; max-width:960px; margin:0 auto; padding:0 22px 76px}
+
+  /* 進場編排 */
+  .rise{transition:opacity .7s ease var(--rd,0s), transform .7s var(--e-out) var(--rd,0s)}
+  html.js body.preload .rise{opacity:0; transform:translateY(16px)}
+
+  /* 頁首 */
+  header{text-align:center; padding:74px 0 20px}
+  .kicker{
+    display:inline-block; font-family:var(--serif); font-size:11.5px; color:var(--brand);
+    letter-spacing:.32em; text-indent:.32em;
+    border:1px solid rgba(142,144,255,.34); border-radius:999px; padding:6px 16px 6px 20px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; margin-top:18px;
+    font-size:clamp(34px,7.4vw,60px); letter-spacing:.16em; text-indent:.16em;
+    background:linear-gradient(180deg,#fff 6%,#c9caff 58%,#8e90ff 128%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .sub-en{font-family:var(--serif); font-size:12.5px; letter-spacing:.36em; text-indent:.36em;
+    color:var(--faint); text-transform:uppercase; margin-top:8px}
+  .lede{color:var(--dim); font-size:15.5px; margin:18px auto 0; max-width:640px; letter-spacing:.01em}
+  .lede2{color:var(--faint); font-size:13.5px; margin:10px auto 0; max-width:600px}
+  .lede b{color:var(--ink); font-weight:600}
+
+  h2{
+    font-family:var(--serif); font-weight:700; font-size:clamp(18px,2.6vw,21px); letter-spacing:.03em;
+    display:flex; align-items:baseline; gap:11px; flex-wrap:wrap;
+  }
+  h2 .sub{font-family:var(--sans); font-weight:500; font-size:12.5px; color:var(--faint); letter-spacing:.01em}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    box-shadow:var(--shadow); backdrop-filter:blur(10px);
+    padding:22px 22px 24px; margin-top:20px;
+  }
+  .card-head{margin-bottom:16px}
+
+  /* 例句 chips */
+  .chips{display:flex; flex-wrap:wrap; gap:9px; margin-bottom:20px}
+  .chip{
+    font-family:inherit; font-size:13px; color:var(--dim); cursor:pointer;
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:999px;
+    padding:8px 15px; transition:transform .15s var(--e-pop), border-color .2s, color .2s, background .2s;
+  }
+  .chip:hover{color:var(--ink); border-color:var(--brand); transform:translateY(-1px)}
+  .chip[aria-pressed="true"]{
+    color:#0a0b16; font-weight:700; background:linear-gradient(180deg,#a9abff,var(--brand-d)); border-color:transparent;
+  }
+
+  /* 軌道 */
+  .lane{margin:18px 0 2px}
+  .lane + .lane{margin-top:22px}
+  .lane-head{display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap}
+  .lane-name{font-size:13.5px; font-weight:700; letter-spacing:.02em; display:inline-flex; align-items:center; gap:8px}
+  .lane-name::before{content:""; width:9px; height:9px; border-radius:50%; display:inline-block}
+  .lane-name.diff{color:var(--diff)}
+  .lane-name.diff::before{background:var(--diff); box-shadow:0 0 9px var(--diff-glow)}
+  .lane-name.auto{color:var(--auto)}
+  .lane-name.auto::before{background:var(--auto); box-shadow:0 0 9px var(--auto-glow)}
+  .lane-status{font-size:11.5px; color:var(--faint); border:1px solid var(--line); border-radius:999px; padding:3px 10px}
+  .lane-status.run{color:var(--brand); border-color:rgba(142,144,255,.4)}
+  .lane-status.done{color:var(--gold); border-color:rgba(240,198,116,.4); background:rgba(240,198,116,.07)}
+  .lane-step{margin-left:auto; font-size:12.5px; color:var(--dim); font-variant-numeric:tabular-nums}
+  .lane-step b{color:var(--ink); font-weight:700}
+
+  .track{display:flex; flex-wrap:wrap; gap:8px; padding:14px; border-radius:14px;
+    background:radial-gradient(120% 140% at 50% 0%, rgba(24,26,52,.6), rgba(9,10,22,.5));
+    border:1px solid var(--line-soft); min-height:64px; align-content:flex-start}
+
+  /* token 方塊：寬度永遠由 .txt 撐出（即使遮罩時也保留），只用 opacity/transform 過場，杜絕 reflow */
+  .blk{position:relative; display:inline-flex; align-items:center; justify-content:center;
+    padding:8px 11px; border-radius:10px; min-height:42px;
+    font-size:17.5px; font-weight:600; letter-spacing:.02em;
+    background:transparent; transition:background .4s ease, border-color .4s ease;
+    border:1px solid transparent;}
+  .blk .txt{position:relative; z-index:3; opacity:0; white-space:nowrap;
+    transform:translateY(3px) scale(.94);
+    transition:opacity .42s var(--e-out), transform .5s var(--e-pop), color .3s, text-shadow .3s}
+  .blk .msk{position:absolute; inset:0; z-index:1; border-radius:10px; opacity:1;
+    border:1px solid var(--line);
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.03) 0 3px, transparent 3px 6px),
+      linear-gradient(180deg, #262742, #1b1c34);
+    transition:opacity .4s ease}
+  .blk .gho{position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center;
+    font-weight:500; opacity:0; white-space:nowrap; overflow:hidden; max-width:100%;
+    transition:opacity .25s ease; pointer-events:none}
+  .track.diff .gho{color:rgba(243,180,95,.5)}
+  .track.auto .gho{color:rgba(84,209,230,.46)}
+  .blk:not(.done) .gho{opacity:.4}
+
+  .blk.done{background:rgba(255,255,255,.02)}
+  .blk.done .msk{opacity:0}
+  .blk.done .gho{opacity:0}
+  .blk.done .txt{opacity:1; transform:none}
+  .track.diff .blk.done{border-color:rgba(243,180,95,.28); background:rgba(243,180,95,.09)}
+  .track.diff .blk.done .txt{color:var(--diff); text-shadow:0 0 13px var(--diff-glow)}
+  .track.auto .blk.done{border-color:rgba(84,209,230,.26); background:rgba(84,209,230,.08)}
+  .track.auto .blk.done .txt{color:var(--auto); text-shadow:0 0 13px var(--auto-glow)}
+
+  .track.flash{animation:flash .7s var(--e-out)}
+  @keyframes flash{0%{transform:scale(1)}30%{transform:scale(1.012)}100%{transform:scale(1)}}
+
+  /* 進度條 */
+  .bar{height:4px; border-radius:99px; background:rgba(255,255,255,.05); margin-top:11px; overflow:hidden}
+  .bar-fill{display:block; height:100%; border-radius:99px; transform:scaleX(0); transform-origin:left center;
+    transition:transform .32s var(--e-out)}
+  .bar-fill.diff{background:linear-gradient(90deg,var(--diff-d),var(--diff))}
+  .bar-fill.auto{background:linear-gradient(90deg,var(--auto-d),var(--auto))}
+
+  .result{margin-top:20px; font-size:14px; color:var(--dim); line-height:1.7; min-height:22px; letter-spacing:.01em}
+  .result b{color:var(--ink); font-weight:600}
+
+  /* 播放控制 */
+  .transport{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:20px}
+  .btn{font-family:inherit; font-size:13.5px; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#20223e,#171930); border:1px solid var(--line);
+    padding:10px 17px; border-radius:12px; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .15s var(--e-pop), border-color .2s, background .2s, opacity .2s, filter .2s}
+  .btn:hover{border-color:var(--brand); transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn.ghost{background:transparent; color:var(--dim)}
+  .btn.primary{background:linear-gradient(180deg,#a9abff,var(--brand-d)); border:none; color:#0a0b16; font-weight:700}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn:disabled{opacity:.4; cursor:not-allowed; transform:none; filter:none}
+  .btn .ico{font-size:12px; line-height:1}
+
+  .knobs{display:grid; grid-template-columns:1.4fr 1fr; gap:18px 24px; margin-top:20px; align-items:start}
+  @media (max-width:620px){ .knobs{grid-template-columns:1fr; gap:16px} }
+  .knob{display:flex; flex-direction:column; gap:8px; font-size:12.5px; color:var(--dim)}
+  .knob-k{display:flex; justify-content:space-between; align-items:baseline}
+  .knob-k b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+  .knob-note{font-size:11.5px; color:var(--faint); letter-spacing:.01em}
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:99px;
+    background:linear-gradient(90deg,var(--brand),var(--line)); outline:none; cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:#fff; border:3px solid var(--brand-d); cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.4);
+    transition:transform .15s var(--e-pop)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid var(--brand-d); cursor:pointer}
+
+  .seg{display:inline-flex; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:11px; padding:3px; gap:2px}
+  .seg button{font-family:inherit; font-size:12.5px; color:var(--dim); cursor:pointer; background:transparent;
+    border:none; padding:7px 15px; border-radius:8px; transition:color .2s, background .2s}
+  .seg button:hover{color:var(--ink)}
+  .seg button[aria-pressed="true"]{color:#0a0b16; font-weight:700; background:linear-gradient(180deg,#a9abff,var(--brand-d))}
+
+  /* 步數對照（速度計） */
+  .meter{display:flex; flex-direction:column; gap:12px; margin-top:16px}
+  .meter-row{display:grid; grid-template-columns:64px 1fr auto; align-items:center; gap:12px}
+  .meter-lab{font-size:13px; font-weight:700}
+  .meter-lab.diff{color:var(--diff)} .meter-lab.auto{color:var(--auto)}
+  .meter-bar-wrap{height:14px; border-radius:99px; background:rgba(255,255,255,.05); overflow:hidden}
+  .meter-bar{display:block; height:100%; border-radius:99px; transform:scaleX(0); transform-origin:left center;
+    transition:transform .7s var(--e-out)}
+  .meter-bar.diff{background:linear-gradient(90deg,var(--diff-d),var(--diff))}
+  .meter-bar.auto{background:linear-gradient(90deg,var(--auto-d),var(--auto))}
+  .meter-num{font-size:13.5px; color:var(--dim); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .meter-num b{color:var(--ink); font-weight:700; font-size:16px}
+  .meter-note{margin-top:16px; font-size:13.5px; color:var(--dim); line-height:1.8; letter-spacing:.01em}
+  .meter-note b{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
+  .meter-note #meterX{color:var(--gold)}
+
+  /* 事實卡 */
+  .story{margin-top:38px}
+  .sec-head{display:flex; align-items:center; gap:14px; margin:0 4px 18px}
+  .sec-head h2{white-space:nowrap; background:linear-gradient(180deg,#fff 18%,#c9caff 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .sec-head .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+  .story-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+  @media (max-width:640px){ .story-grid{grid-template-columns:1fr} }
+  .scard{position:relative; overflow:hidden; padding:20px 20px 17px; border-radius:16px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px);
+    transition:transform .2s var(--e-out), border-color .2s}
+  .scard:hover{transform:translateY(-2px); border-color:rgba(142,144,255,.32)}
+  .scard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--brand),var(--diff))}
+  .scard .n{font-family:var(--mono); font-size:11px; color:var(--brand); letter-spacing:.14em}
+  .scard h3{font-family:var(--serif); font-size:16.5px; font-weight:700; margin:7px 0 9px; letter-spacing:.02em}
+  .scard p{font-size:13.5px; color:var(--dim); line-height:1.82}
+  .scard p b{color:var(--ink); font-weight:600}
+  .scard .metric{font-family:var(--mono); color:var(--diff); font-weight:600}
+
+  footer{margin-top:42px; text-align:center; color:var(--faint); font-size:12px; line-height:1.7; letter-spacing:.02em}
+  footer .src{margin-top:5px; color:var(--faint); opacity:.85}
+  footer b{color:var(--dim); font-weight:600}
+
+  @media (max-width:560px){
+    .wrap{padding:0 15px 58px}
+    header{padding:58px 0 14px}
+    .card{padding:17px 15px 19px; border-radius:16px}
+    .blk{font-size:16px; padding:7px 9px; min-height:38px}
+    .track{padding:11px; gap:7px}
+    .lane-step{margin-left:0}
+    h1{letter-spacing:.1em; text-indent:.1em}
+    .meter-row{grid-template-columns:52px 1fr auto; gap:9px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html.js body.preload .rise{opacity:1; transform:none}
+    .rise{transition:none!important}
+    .blk .txt,.blk .msk,.blk .gho{transition:none!important}
+    .blk .gho, .track .gho{display:none}
+    .bar-fill,.meter-bar{transition:none!important}
+    .track.flash{animation:none!important}
+    .btn,.chip{transition:border-color .2s, color .2s, background .2s}
+  }
+</style>
+</head>
+<body class="preload">
+<a class="home" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+<a class="skip" href="#player">跳到去噪播放器</a>
+
+<div class="wrap">
+  <header>
+    <span class="kicker rise">AI 前沿 · 生成的另一條路</span>
+    <h1 class="rise" style="--rd:.06s">擴散語言模型</h1>
+    <p class="sub-en rise" style="--rd:.1s">Diffusion Language Models</p>
+    <p class="lede rise" style="--rd:.14s">
+      大多數聊天機器人是<b>一個字接一個字</b>、由左往右寫出來的。擴散語言模型走的是另一條路：
+      整句話一開始是<b>一整排遮罩</b>，再經過少少幾步，讓所有字<b>同時、平行地</b>從雜訊裡浮現、逐步定稿。
+    </p>
+    <p class="lede2 rise" style="--rd:.18s">按下播放，讓同一句話用兩種方式並排賽跑——你會親眼看到差別。</p>
+  </header>
+
+  <!-- ═══════ 去噪播放器（哇時刻） ═══════ -->
+  <section class="card rise" id="player" style="--rd:.24s" aria-label="去噪播放器">
+    <div class="card-head">
+      <h2>去噪播放器 <span class="sub">同一句話，兩種生成方式並排賽跑</span></h2>
+    </div>
+
+    <div class="chips" id="chips" role="group" aria-label="選擇例句"></div>
+    <p class="sr-only" id="srSentence" aria-live="polite"></p>
+
+    <!-- 擴散軌 -->
+    <div class="lane">
+      <div class="lane-head">
+        <span class="lane-name diff">擴散 · 平行去噪</span>
+        <span class="lane-status" id="diffStatus">待機</span>
+        <span class="lane-step">步數 <b id="diffStep">0</b> / <b id="diffTot">0</b></span>
+      </div>
+      <div class="track diff" id="diffTrack" aria-hidden="true"></div>
+      <div class="bar"><span class="bar-fill diff" id="diffBar"></span></div>
+    </div>
+
+    <!-- 自迴歸軌 -->
+    <div class="lane">
+      <div class="lane-head">
+        <span class="lane-name auto">自迴歸 · 逐字生成</span>
+        <span class="lane-status" id="arStatus">待機</span>
+        <span class="lane-step">步數 <b id="arStep">0</b> / <b id="arTot">0</b></span>
+      </div>
+      <div class="track auto" id="arTrack" aria-hidden="true"></div>
+      <div class="bar"><span class="bar-fill auto" id="arBar"></span></div>
+    </div>
+
+    <p class="result" id="result" role="status" aria-live="polite">按「播放」，看整句話從一整排遮罩裡浮現。</p>
+
+    <div class="transport" role="group" aria-label="播放控制">
+      <button class="btn primary" id="playBtn" aria-label="播放或暫停去噪">
+        <span class="ico" id="playIco" aria-hidden="true">▶</span><span id="playTxt">播放</span>
+      </button>
+      <button class="btn" id="stepBtn" aria-label="單步前進一步">單步</button>
+      <button class="btn ghost" id="resetBtn" aria-label="重設，回到全遮罩">↺ 重設</button>
+    </div>
+
+    <div class="knobs">
+      <label class="knob">
+        <span class="knob-k">去噪步數<b id="stepsVal">5</b></span>
+        <input type="range" id="stepsRange" min="3" max="12" step="1" value="5" aria-label="擴散去噪步數，越少一次平行定稿的字越多">
+        <em class="knob-note">步數越少，一次平行定稿的字越多</em>
+      </label>
+      <div class="knob">
+        <span class="knob-k">播放速度</span>
+        <div class="seg" id="speedSeg" role="group" aria-label="播放速度">
+          <button type="button" data-v="slow" aria-pressed="false">慢</button>
+          <button type="button" data-v="normal" aria-pressed="true">中</button>
+          <button type="button" data-v="fast" aria-pressed="false">快</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ 步數對照（速度計） ═══════ -->
+  <section class="card rise" style="--rd:.3s" aria-label="步數與長度對照">
+    <h2>步數 vs 長度 <span class="sub">為什麼平行去噪會快</span></h2>
+    <div class="meter">
+      <div class="meter-row">
+        <span class="meter-lab diff">擴散</span>
+        <span class="meter-bar-wrap"><span class="meter-bar diff" id="meterDiff"></span></span>
+        <span class="meter-num"><b id="meterDiffN">5</b> 步</span>
+      </div>
+      <div class="meter-row">
+        <span class="meter-lab auto">自迴歸</span>
+        <span class="meter-bar-wrap"><span class="meter-bar auto" id="meterAuto"></span></span>
+        <span class="meter-num"><b id="meterAutoN">11</b> 步</span>
+      </div>
+    </div>
+    <p class="meter-note">
+      這句話有 <b id="meterLen">11</b> 個 token。自迴歸得一步一步走完 <b id="meterLen2">11</b> 步；
+      擴散用固定的 <b id="meterS">5</b> 步就把它們<b>平行定稿</b>——這一句約快 <b id="meterX">2.2×</b>。
+      關鍵在於：自迴歸的步數會<b>隨句子長度增加</b>，擴散卻能用少數步數一次搞定，句子越長差距越大。
+    </p>
+  </section>
+
+  <!-- ═══════ 事實卡 ═══════ -->
+  <section class="story rise" style="--rd:.36s" aria-label="真實世界裡的擴散語言模型">
+    <div class="sec-head"><h2>這不只是動畫</h2><span class="rule"></span></div>
+    <div class="story-grid">
+      <article class="scard">
+        <div class="n">LLaDA · 2025</div>
+        <h3>從頭訓練，也能到 <span class="metric">8B</span></h3>
+        <p>
+          LLaDA 證明「離散遮罩擴散」可以<b>從頭訓練到 8B 規模</b>，表現可比肩 LLaMA3 等自迴歸模型。
+          它的前向過程就是把文字裡的 token 一步步<b>遮罩</b>，直到整句被蓋滿；反向過程則學會反覆<b>預測、還原</b>被遮罩的 token。
+          因為每一步能同時預測多個位置，它<b>天生支援平行生成</b>——正是上面那條擴散軌在做的事。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">Mercury · 2025.02</div>
+        <h3>第一個商用擴散 LLM</h3>
+        <p>
+          2025 年 2 月，Inception Labs 推出 Mercury——<b>第一個商用的擴散式大型語言模型</b>。
+          其中 Mercury Coder Mini 在 H100 上達到約 <span class="metric">1,109 tokens/秒</span>，
+          比同級的自迴歸模型<b>快約 5～10 倍</b>。速度優勢，正來自「用少數步數平行產出」。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">Gemini Diffusion · 2025.05</div>
+        <h3>Google 也下場了</h3>
+        <p>
+          2025 年 5 月的 Google I/O，Google 發表了實驗性的文字擴散模型 <b>Gemini Diffusion</b>，
+          速度約 <span class="metric">1,479 tokens/秒</span>，大約是 Gemini 2.0 Flash Lite 的<b>五倍</b>。
+          兩大陣營先後投入，說明平行去噪不再只是論文裡的點子。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">影像 vs 文字</div>
+        <h3>影像加雜訊，文字加遮罩</h3>
+        <p>
+          影像的擴散是逐步加上、再去除<b>高斯雜訊</b>（連續的像素可以直接被噪點污染）。
+          文字是<b>離散</b>的、沒辦法直接摻高斯雜訊，於是改成逐步<b>遮罩／去遮罩</b> token。
+          骨架一樣是「先破壞、再學會還原」，只是破壞的方式不同——這也是本頁用一排遮罩方塊、而非雪花點來示意的原因。
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="rise" style="--rd:.42s">
+    <p>頁面上的去噪動畫是<b>示意</b>：用預先寫好的定稿順序腳本，呈現「平行、非從左到右」的生成概念，並非真的模型輸出。</p>
+    <p class="src">資料來源：arXiv、Inception Labs、Google</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = (s, r) => (r||document).querySelector(s);
+  const $$ = (s, r) => Array.prototype.slice.call((r||document).querySelectorAll(s));
+
+  /* ==== dlm-core:start （純函式與例句資料，無 DOM 依賴，可被抽出做單元測試） ==== */
+  // 例句：每個 token 是一個顯示單位；order 是「定稿順序」——order[i] 為第 i 個被定稿的位置索引。
+  // 刻意讓關鍵名詞先定稿、虛詞最後，讓平行去噪看起來明顯「不是從左到右」。
+  const EXAMPLES = [
+    { tag:"整句浮現",
+      tokens:["擴散","模型","讓","整句","話","從","一片","雜訊","裡","同時","浮現"],
+      order:[0,1,7,10,3,9,6,4,2,5,8] },
+    { tag:"逐字 vs 整句",
+      tokens:["與其","一個","一個","字","慢慢","寫","不如","整句","一起","並行","定稿"],
+      order:[10,9,7,3,5,4,8,1,2,0,6] },
+    { tag:"LLaDA 8B",
+      tokens:["LLaDA","用","遮罩","擴散","把","語言","模型","練到","8B","規模"],
+      order:[0,8,2,3,6,9,5,7,1,4] },
+    { tag:"Mercury 速度",
+      tokens:["Mercury","每秒","吐出","上千","token","比","自迴歸","快","好幾倍"],
+      order:[0,4,3,6,7,8,1,2,5] },
+    { tag:"不必從左到右",
+      tokens:["這句話","其實","不必","從","左","到","右","也","一樣","通順"],
+      order:[9,0,2,8,4,6,1,7,3,5] }
+  ];
+
+  // order 是否為 0..n-1 的排列（測試與載入時的健檢用）
+  function dlmIsPermutation(order, n){
+    if(!Array.isArray(order) || order.length !== n) return false;
+    const seen = new Array(n).fill(false);
+    for(let i=0;i<order.length;i++){
+      const v = order[i];
+      if(!Number.isInteger(v) || v<0 || v>=n || seen[v]) return false;
+      seen[v] = true;
+    }
+    return true;
+  }
+
+  // 給定 token 數與去噪步數，回傳長度 steps+1 的「累積定稿數」排程。
+  // 性質：counts[0]=0、counts[steps]=n、且單調不減（對非負整數序列做四捨五入仍單調不減）。
+  function dlmDiffusionCounts(n, steps){
+    const s = Math.max(1, steps|0);
+    const out = [];
+    for(let k=0;k<=s;k++) out.push(Math.round(n * k / s));
+    return out;
+  }
+
+  // 給定定稿順序 order 與已定稿數 count，回傳「各位置是否已定稿」的布林陣列（依位置索引排列）。
+  function dlmFinalizedByPosition(order, count){
+    const n = order.length;
+    const fin = new Array(n).fill(false);
+    const c = Math.max(0, Math.min(n, count|0));
+    for(let i=0;i<c;i++) fin[order[i]] = true;
+    return fin;
+  }
+
+  // 擴散：回傳長度 steps+1 的陣列，每個元素是該步各位置的定稿布林陣列。
+  function dlmDiffusionStates(order, steps){
+    const counts = dlmDiffusionCounts(order.length, steps);
+    return counts.map(c => dlmFinalizedByPosition(order, c));
+  }
+
+  // 自迴歸：第 k 步剛好定稿「前 k 個位置」（由左到右）。回傳長度 n+1 的陣列。
+  function dlmAutoregressiveStates(n){
+    const out = [];
+    for(let k=0;k<=n;k++){
+      const fin = new Array(n).fill(false);
+      for(let i=0;i<k;i++) fin[i] = true;
+      out.push(fin);
+    }
+    return out;
+  }
+
+  // 把 token 接成一句話：latin/數字與相鄰 token 之間補一個空白，讓中英混排好讀。
+  function dlmJoinSentence(tokens){
+    let s = "";
+    for(let i=0;i<tokens.length;i++){
+      if(i>0){
+        const prev = tokens[i-1], cur = tokens[i];
+        if(/[A-Za-z0-9]$/.test(prev) || /^[A-Za-z0-9]/.test(cur)) s += " ";
+      }
+      s += tokens[i];
+    }
+    return s;
+  }
+  /* ==== dlm-core:end ==== */
+
+  // 載入時健檢：每個例句的 order 必須是合法排列，否則跳過該句（避免壞資料讓畫面錯亂）
+  const VALID = EXAMPLES.filter(ex => dlmIsPermutation(ex.order, ex.tokens.length));
+
+  /* ════════════════ 減弱動態（動態監聽 change） ════════════════ */
+  const RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let reduce = RM.matches;
+  RM.addEventListener("change", e => { reduce = e.matches; onReduceChange(); });
+
+  /* ════════════════ 偏好（localStorage 前綴 dlm.） ════════════════ */
+  const PREF_KEY = "dlm.prefs";
+  function loadPrefs(){
+    try{ const p = JSON.parse(localStorage.getItem(PREF_KEY)); return (p && typeof p==="object") ? p : {}; }
+    catch(e){ return {}; }
+  }
+  function savePrefs(){
+    try{ localStorage.setItem(PREF_KEY, JSON.stringify({ ex:curIdx, steps:S, speed:speedKey })); }catch(e){}
+  }
+  const prefs = loadPrefs();
+
+  /* ════════════════ 狀態 ════════════════ */
+  const SPEED = { slow:900, normal:520, fast:270 };
+  const GHOST_POOL = "擴散遮罩雜訊語言模型平行序列預測還原信心浮現定稿整句字的一二三你我他MERCURYtoken8B▓▒░".split("");
+
+  let curIdx = 0, cur = VALID[0];
+  let N = cur.tokens.length, S = 5;
+  let diffStates = [], arStates = [];
+  let diffBlks = [], arBlks = [];
+  let tickT = 0, diffDone = false, arDone = false;
+  let playing = false, raf = null, lastTick = 0, lastShimmer = 0;
+  let speedKey = "normal", tickMs = SPEED.normal;
+
+  /* ════════════════ 建立／更新方塊 ════════════════ */
+  function buildTrack(container, tokens){
+    container.textContent = "";
+    const blks = [];
+    const frag = document.createDocumentFragment();
+    tokens.forEach(t => {
+      const b = document.createElement("span"); b.className = "blk";
+      const txt = document.createElement("span"); txt.className = "txt"; txt.textContent = t;
+      const msk = document.createElement("span"); msk.className = "msk"; msk.setAttribute("aria-hidden","true");
+      const gho = document.createElement("span"); gho.className = "gho"; gho.setAttribute("aria-hidden","true");
+      b.appendChild(txt); b.appendChild(msk); b.appendChild(gho);
+      frag.appendChild(b);
+      blks.push({ el:b, gho:gho, done:false });
+    });
+    container.appendChild(frag);
+    return blks;
+  }
+
+  function applyStates(blks, finArr){
+    for(let i=0;i<blks.length;i++){
+      const on = !!finArr[i];
+      if(on && !blks[i].done){ blks[i].done = true; blks[i].el.classList.add("done"); blks[i].gho.textContent = ""; }
+      else if(!on && blks[i].done){ blks[i].done = false; blks[i].el.classList.remove("done"); }
+    }
+  }
+
+  function clearGhosts(blks){ for(let i=0;i<blks.length;i++) blks[i].gho.textContent = ""; }
+
+  function shimmer(blks){
+    if(reduce) return;
+    for(let i=0;i<blks.length;i++){
+      if(!blks[i].done) blks[i].gho.textContent = GHOST_POOL[(Math.random()*GHOST_POOL.length)|0];
+    }
+  }
+
+  /* ════════════════ 顯示更新 ════════════════ */
+  function setBar(el, r){ el.style.transform = "scaleX(" + Math.max(0, Math.min(1, r)) + ")"; }
+
+  function updateCounters(kd, ka){
+    $("#diffStep").textContent = kd; $("#arStep").textContent = ka;
+    setBar($("#diffBar"), S ? kd/S : 0);
+    setBar($("#arBar"), N ? ka/N : 0);
+  }
+
+  function setStatus(el, text, cls){ el.textContent = text; el.className = "lane-status" + (cls ? " "+cls : ""); }
+
+  function updatePlay(running){
+    $("#playIco").textContent = running ? "⏸" : "▶";
+    $("#playTxt").textContent = reduce ? "顯示結果" : (running ? "暫停" : ((diffDone && arDone) ? "重播" : "播放"));
+  }
+
+  function rollNum(el, to, dur, suffix, decimals){
+    suffix = suffix || ""; decimals = decimals || 0;
+    const from = parseFloat(el.dataset.v || "0");
+    if(reduce || dur <= 0 || from === to){ el.textContent = to.toFixed(decimals) + suffix; el.dataset.v = to; return; }
+    const t0 = performance.now();
+    (function fr(now){
+      let p = Math.min(1, (now - t0) / dur); const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = (from + (to - from) * e).toFixed(decimals) + suffix;
+      if(p < 1) requestAnimationFrame(fr);
+      else { el.textContent = to.toFixed(decimals) + suffix; el.dataset.v = to; }
+    })(t0);
+  }
+
+  function updateMeter(){
+    const ratio = N / S;
+    setBar($("#meterDiff"), S / N);
+    setBar($("#meterAuto"), 1);
+    rollNum($("#meterDiffN"), S, 500, "", 0);
+    rollNum($("#meterAutoN"), N, 500, "", 0);
+    $("#meterLen").textContent = N; $("#meterLen2").textContent = N; $("#meterS").textContent = S;
+    rollNum($("#meterX"), ratio, 650, "×", 1);
+  }
+
+  /* ════════════════ rAF 迴圈（分頁隱藏時暫停運算） ════════════════ */
+  function startLoop(){ if(raf == null){ lastTick = performance.now(); lastShimmer = 0; raf = requestAnimationFrame(loop); } }
+  function stopLoop(){ if(raf != null){ cancelAnimationFrame(raf); raf = null; } }
+
+  function loop(ts){
+    raf = requestAnimationFrame(loop);
+    if(document.hidden || !playing) return;      // 分頁隱藏或非播放中：不做任何運算或繪製
+    if(ts - lastShimmer >= 90){ shimmer(diffBlks); shimmer(arBlks); lastShimmer = ts; }
+    if(ts - lastTick >= tickMs){ lastTick = ts; advance(); }
+  }
+
+  /* ════════════════ 播放邏輯 ════════════════ */
+  function advance(){
+    tickT++;
+    const kd = Math.min(tickT, S), ka = Math.min(tickT, N);
+    applyStates(diffBlks, diffStates[kd]);
+    applyStates(arBlks, arStates[ka]);
+    updateCounters(kd, ka);
+
+    if(kd >= S && !diffDone){
+      diffDone = true;
+      setStatus($("#diffStatus"), "完成", "done");
+      if(!reduce) flash($("#diffTrack"));
+      if(!arDone) $("#result").textContent = "擴散在第 " + S + " 步就整句定稿了，自迴歸還在一個字一個字往下寫……";
+    }
+    if(ka >= N && !arDone){ arDone = true; setStatus($("#arStatus"), "完成", "done"); }
+
+    if(diffDone && arDone) finishAll();
+  }
+
+  function finishAll(){
+    stopLoop(); playing = false;
+    updatePlay(false);
+    const sent = dlmJoinSentence(cur.tokens);
+    $("#result").innerHTML = "定稿：<b>" + escapeHtml(sent) + "</b>　—　擴散只用 " + S + " 步，自迴歸走了 " + N + " 步。";
+  }
+
+  function flash(el){ el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+
+  function play(){
+    if(playing) return;
+    playing = true; updatePlay(true);
+    if(!diffDone) setStatus($("#diffStatus"), "去噪中", "run");
+    if(!arDone) setStatus($("#arStatus"), "生成中", "run");
+    if(diffDone && arDone) return; // 理論上不會發生（重播前已重設）
+    startLoop();
+  }
+
+  function pause(){
+    playing = false; updatePlay(false); stopLoop();
+    if(!diffDone) setStatus($("#diffStatus"), "已暫停");
+    if(!arDone) setStatus($("#arStatus"), "已暫停");
+  }
+
+  function jumpToEnd(){
+    stopLoop(); playing = false;
+    tickT = Math.max(S, N);
+    applyStates(diffBlks, diffStates[S]);
+    applyStates(arBlks, arStates[N]);
+    updateCounters(S, N);
+    diffDone = true; arDone = true;
+    setStatus($("#diffStatus"), "完成", "done");
+    setStatus($("#arStatus"), "完成", "done");
+    finishAll();
+  }
+
+  function playPause(){
+    if(reduce){ jumpToEnd(); return; }         // 減弱動態：直接顯示最終定稿，不做逐步動畫
+    if(diffDone && arDone){ resetPlayback(); }  // 已完成 → 這次按下等於「重播」，先重設再播
+    if(playing) pause(); else play();
+  }
+
+  function stepOnce(){
+    // 單步：離散前進一步（減弱動態下也可用，只是沒有過場動畫）
+    if(playing) pause();
+    if(diffDone && arDone) resetPlayback();
+    if(!reduce){ shimmer(diffBlks); shimmer(arBlks); }
+    if(!diffDone && !$("#diffStatus").classList.contains("run")) setStatus($("#diffStatus"), "去噪中", "run");
+    if(!arDone && !$("#arStatus").classList.contains("run")) setStatus($("#arStatus"), "生成中", "run");
+    advance();
+  }
+
+  function resetPlayback(){
+    stopLoop(); playing = false; tickT = 0; diffDone = false; arDone = false;
+    applyStates(diffBlks, diffStates[0]);
+    applyStates(arBlks, arStates[0]);
+    clearGhosts(diffBlks); clearGhosts(arBlks);
+    updateCounters(0, 0);
+    setStatus($("#diffStatus"), "待機");
+    setStatus($("#arStatus"), "待機");
+    updatePlay(false);
+    $("#result").textContent = "按「播放」，看整句話從一整排遮罩裡浮現。";
+  }
+
+  function onReduceChange(){
+    if(reduce && playing) pause();
+    updatePlay(playing);
+    // 切到減弱動態時，清掉正在跳動的候選字
+    if(reduce){ for(let i=0;i<diffBlks.length;i++) diffBlks[i].gho.textContent=""; for(let i=0;i<arBlks.length;i++) arBlks[i].gho.textContent=""; }
+  }
+
+  /* ════════════════ 例句 / 步數 / 速度 ════════════════ */
+  function rebuild(idx){
+    curIdx = idx; cur = VALID[idx];
+    N = cur.tokens.length;
+    const rng = $("#stepsRange");
+    rng.max = N;                                  // 步數上限＝該句長度（步數多於長度沒有意義）
+    S = Math.max(3, Math.min(N, parseInt(rng.value, 10) || 5));
+    rng.value = S; $("#stepsVal").textContent = S;
+
+    diffStates = dlmDiffusionStates(cur.order, S);
+    arStates = dlmAutoregressiveStates(N);
+
+    diffBlks = buildTrack($("#diffTrack"), cur.tokens);
+    arBlks = buildTrack($("#arTrack"), cur.tokens);
+    $("#diffTot").textContent = S; $("#arTot").textContent = N;
+
+    $("#srSentence").textContent = "本例句：" + dlmJoinSentence(cur.tokens);
+    updateChips();
+    updateMeter();
+    resetPlayback();
+    savePrefs();
+  }
+
+  function onStepsChange(){
+    const rng = $("#stepsRange");
+    S = Math.max(3, Math.min(N, parseInt(rng.value, 10) || 5));
+    rng.value = S; $("#stepsVal").textContent = S;
+    diffStates = dlmDiffusionStates(cur.order, S);
+    $("#diffTot").textContent = S;
+    updateMeter();
+    resetPlayback();
+    savePrefs();
+  }
+
+  /* ════════════════ chips ════════════════ */
+  function buildChips(){
+    const c = $("#chips"); c.textContent = "";
+    VALID.forEach((ex, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = ex.tag;
+      b.setAttribute("aria-pressed", i === curIdx ? "true" : "false");
+      b.addEventListener("click", () => { if(i !== curIdx) rebuild(i); });
+      c.appendChild(b);
+    });
+  }
+  function updateChips(){
+    $$("#chips .chip").forEach((b, i) => b.setAttribute("aria-pressed", i === curIdx ? "true" : "false"));
+  }
+
+  function escapeHtml(s){ return s.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c])); }
+
+  /* ════════════════ 綁定 ════════════════ */
+  $("#playBtn").addEventListener("click", playPause);
+  $("#stepBtn").addEventListener("click", stepOnce);
+  $("#resetBtn").addEventListener("click", () => { resetPlayback(); $("#result").textContent = "已重設，整句回到全遮罩狀態。"; });
+  $("#stepsRange").addEventListener("input", onStepsChange);
+
+  $$("#speedSeg button").forEach(b => {
+    b.addEventListener("click", () => {
+      $$("#speedSeg button").forEach(x => x.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+      speedKey = b.dataset.v; tickMs = SPEED[speedKey] || SPEED.normal;
+      savePrefs();
+    });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    // 分頁隱藏時暫停播放；rAF 迴圈本身也會在 document.hidden 時略過運算，這裡讓狀態一致
+    if(document.hidden && playing) pause();
+  });
+
+  /* ════════════════ 啟動 ════════════════ */
+  (function init(){
+    // 套用偏好（含健檢與夾限）
+    speedKey = (prefs.speed && SPEED[prefs.speed]) ? prefs.speed : "normal";
+    tickMs = SPEED[speedKey];
+    $$("#speedSeg button").forEach(x => x.setAttribute("aria-pressed", x.dataset.v === speedKey ? "true" : "false"));
+
+    let startIdx = 0;
+    if(Number.isInteger(prefs.ex) && prefs.ex >= 0 && prefs.ex < VALID.length) startIdx = prefs.ex;
+    if(Number.isInteger(prefs.steps)) $("#stepsRange").value = prefs.steps;
+
+    buildChips();
+    rebuild(startIdx);
+    updatePlay(false);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("preload")));
+  })();
+})();
+</script>
+</body>
+</html>

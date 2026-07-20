@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>頓悟 · 神經網路的延遲泛化（grokking）</title>
+<meta name="description" content="訓練準確率早早衝上 100%，測試準確率卻長時間卡在亂猜水準——直到某一步「突然」躍升、逼近滿分。這一刻叫頓悟。切換權重衰減，看曲線的形狀真的不同。">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  :root{
+    --bg:#080a18; --bg2:#0e1030; --panel:rgba(17,19,42,.74); --panel2:#141634;
+    --line:rgba(150,155,222,.15); --line-soft:rgba(150,155,222,.08);
+    --ink:#f1f0fb; --dim:#a8a5cf; --faint:#6d6b99;
+    --train:#ffb74d; --train-d:#d98e2a;   /* 訓練／死背 · 琥珀（學習新知主色）*/
+    --test:#40dcc9;  --test-d:#1f9f92;     /* 測試／泛化 · 青 */
+    --grok:#ffe08a;  --grok2:#fff4cf;      /* 頓悟閃光 · 亮金 */
+    --accent:#ffb74d;
+    --shadow:0 22px 48px rgba(0,0,0,.5);
+    --e-out:cubic-bezier(.22,1,.36,1);
+    --e-pop:cubic-bezier(.2,1.5,.4,1);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 560px at 84% -8%, rgba(64,220,201,.12), transparent 60%),
+      radial-gradient(900px 620px at 4% 4%, rgba(255,183,77,.08), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; line-height:1.6; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{ /* 方格質感 */
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.55;
+    background-image:radial-gradient(rgba(241,240,251,.045) 1px, transparent 1.6px);
+    background-size:34px 34px;
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.7), transparent 74%);
+            mask-image:linear-gradient(180deg, rgba(0,0,0,.7), transparent 74%);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--grok); outline-offset:3px; border-radius:8px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .home{
+    position:fixed; top:15px; left:16px; z-index:30;
+    font-size:13px; color:var(--dim); text-decoration:none;
+    background:rgba(14,16,38,.72); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; backdrop-filter:blur(8px);
+    transition:color .2s, border-color .2s, transform .2s;
+  }
+  .home:hover, .home:focus-visible{color:var(--ink); border-color:var(--accent); transform:translateX(-2px)}
+
+  .wrap{position:relative; z-index:1; max-width:980px; margin:0 auto; padding:0 22px 72px}
+
+  /* 進場 */
+  .rise{transition:opacity .7s ease var(--rd,0s), transform .7s var(--e-out) var(--rd,0s)}
+  body.preload .rise{opacity:0; transform:translateY(16px)}
+
+  header{text-align:center; padding:70px 0 20px}
+  .kicker{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:var(--serif); font-size:11.5px; color:var(--accent);
+    letter-spacing:.34em; text-indent:.34em;
+    border:1px solid rgba(255,183,77,.32); border-radius:999px; padding:6px 15px 6px 19px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; margin-top:18px;
+    font-size:clamp(36px,7.4vw,62px); letter-spacing:.22em; text-indent:.22em;
+    background:linear-gradient(180deg,#fff 6%,#ffe0b0 58%,#ffb74d 130%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .subtitle{margin-top:8px; font-size:12.5px; color:var(--faint); letter-spacing:.28em; text-indent:.28em}
+  .lede{color:var(--dim); font-size:15px; margin:16px auto 0; max-width:640px; letter-spacing:.01em}
+  .lede b{color:var(--ink); font-weight:600}
+  .lede .g{color:var(--grok); font-weight:600}
+
+  h2{
+    font-family:var(--serif); font-weight:700; font-size:clamp(18px,2.6vw,21px); letter-spacing:.03em;
+    display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  }
+  h2 .sub{font-family:var(--sans); font-weight:500; font-size:12.5px; color:var(--faint); letter-spacing:.01em}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    box-shadow:var(--shadow); backdrop-filter:blur(10px);
+    padding:20px 20px 22px; margin-top:18px;
+  }
+
+  .stage-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px}
+  .badge{
+    font-size:12px; padding:5px 12px; border-radius:999px; border:1px solid var(--line);
+    color:var(--dim); white-space:nowrap; transition:color .3s, border-color .3s, background .3s;
+  }
+  .badge.mem{color:var(--train); border-color:rgba(255,183,77,.4); background:rgba(255,183,77,.08)}
+  .badge.grok{color:var(--grok); border-color:rgba(255,224,138,.5); background:rgba(255,224,138,.1)}
+  .badge.gen{color:var(--test); border-color:rgba(64,220,201,.45); background:rgba(64,220,201,.08)}
+
+  /* 圖表 */
+  .chartWrap{
+    position:relative; margin-top:14px; border-radius:14px; overflow:hidden;
+    border:1px solid var(--line-soft);
+    background:radial-gradient(120% 130% at 50% 6%, rgba(24,26,58,.6), rgba(8,9,22,.5));
+  }
+  #chart{display:block; width:100%; aspect-ratio:1000/548}
+  .chart-cap{
+    position:absolute; right:10px; bottom:8px; font-size:11px; color:var(--faint);
+    background:rgba(8,9,22,.5); padding:3px 9px; border-radius:999px; pointer-events:none; backdrop-filter:blur(4px);
+  }
+  .legend{display:flex; gap:16px; margin-top:11px; font-size:12.5px; color:var(--dim); flex-wrap:wrap}
+  .legend span{display:inline-flex; align-items:center; gap:7px}
+  .legend .dot{width:10px; height:10px; border-radius:50%; background:var(--c); display:inline-block; box-shadow:0 0 8px var(--c)}
+
+  /* 相位籌碼 */
+  .phases{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px}
+  .phase{
+    border:1px solid var(--line); border-radius:13px; padding:11px 8px; text-align:center;
+    background:rgba(255,255,255,.02); opacity:.5;
+    transition:border-color .35s, background .35s, transform .35s, box-shadow .35s, opacity .35s;
+  }
+  .phase b{display:block; font-family:var(--serif); font-size:15.5px; letter-spacing:.05em; color:var(--ink)}
+  .phase span{display:block; font-size:10px; color:var(--faint); letter-spacing:.09em; margin-top:3px; text-transform:uppercase}
+  .phase.on{opacity:1; transform:translateY(-2px)}
+  .phase[data-phase=mem].on{border-color:var(--train-d); background:rgba(255,183,77,.1); box-shadow:0 6px 20px rgba(255,183,77,.12)}
+  .phase[data-phase=gen].on{border-color:var(--test-d); background:rgba(64,220,201,.1); box-shadow:0 6px 20px rgba(64,220,201,.14)}
+  .phase[data-phase=grok].on{border-color:var(--grok); background:rgba(255,224,138,.12); animation:pulse 1.15s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 16px rgba(255,224,138,.18)}50%{box-shadow:0 0 30px rgba(255,224,138,.36)}}
+
+  /* 讀數 */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px}
+  .stat{
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; display:flex; flex-direction:column; gap:4px;
+  }
+  .stat-k{font-size:11px; color:var(--faint); letter-spacing:.02em}
+  .stat-v{font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); transition:color .2s}
+  .stat-v.train{color:var(--train)} .stat-v.test{color:var(--test)}
+  .stat-v.bump{animation:bump .5s var(--e-pop)}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.24)}100%{transform:scale(1)}}
+
+  /* 播放列 */
+  .scrub{display:flex; align-items:center; gap:12px; margin-top:16px; flex-wrap:wrap}
+  .btn{
+    font-family:inherit; font-size:13.5px; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#20233f,#171a30); border:1px solid var(--line);
+    padding:9px 16px; border-radius:11px; white-space:nowrap;
+    transition:transform .15s var(--e-pop), border-color .2s, background .2s, opacity .2s;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .btn:hover{border-color:var(--test); transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn.ghost{background:transparent; color:var(--dim)}
+  .btn.primary{background:linear-gradient(180deg,#6ff0e2,var(--test-d)); border:none; color:#04262b; font-weight:700; min-width:104px; justify-content:center}
+  .btn.primary:hover{border-color:transparent; filter:brightness(1.06)}
+
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; flex:1; min-width:170px; height:5px; border-radius:99px;
+    background:linear-gradient(90deg,var(--test) 0%,var(--test) var(--fill,0%),var(--line) var(--fill,0%));
+    outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:17px; height:17px; border-radius:50%;
+    background:#fff; border:3px solid var(--test-d); cursor:pointer; transition:transform .15s var(--e-pop);
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  input[type=range]::-moz-range-thumb{width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid var(--test-d); cursor:pointer}
+
+  /* 權重衰減開關 */
+  .wd-row{
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin-top:16px;
+    padding:14px 16px; border-radius:14px; background:rgba(255,255,255,.025); border:1px solid var(--line);
+  }
+  .switch{display:inline-flex; align-items:center; gap:12px; cursor:pointer; user-select:none}
+  .switch input{position:absolute; opacity:0; width:1px; height:1px}
+  .track{
+    width:48px; height:27px; border-radius:999px; flex:0 0 auto;
+    background:rgba(255,255,255,.08); border:1px solid var(--line); position:relative;
+    transition:background .28s, border-color .28s;
+  }
+  .thumb{
+    position:absolute; top:2px; left:2px; width:21px; height:21px; border-radius:50%;
+    background:var(--faint); transition:transform .3s var(--e-pop), background .28s;
+  }
+  .switch input:checked + .track{background:linear-gradient(90deg, rgba(64,220,201,.4), rgba(64,220,201,.2)); border-color:var(--test-d)}
+  .switch input:checked + .track .thumb{transform:translateX(21px); background:var(--test)}
+  .switch input:focus-visible + .track{outline:2px solid var(--grok); outline-offset:3px}
+  .switch-label{font-size:14px; color:var(--ink); font-weight:600}
+  .switch-label .en{font-size:11px; color:var(--faint); font-weight:400; letter-spacing:.04em}
+  .wd-hint{font-size:12.5px; color:var(--dim); flex:1; min-width:220px; line-height:1.65}
+  .wd-hint b{color:var(--ink)}
+
+  .chart-caption{
+    margin-top:15px; font-size:13.5px; color:var(--dim); line-height:1.75; min-height:24px;
+    letter-spacing:.01em; border-left:2px solid var(--line); padding-left:12px;
+    transition:border-color .35s;
+  }
+  .chart-caption b{color:var(--ink)}
+
+  /* 故事卡 */
+  .story{margin-top:36px}
+  .story .sec-head{display:flex; align-items:center; gap:14px; margin:0 4px 18px}
+  .story .sec-head h2{font-size:clamp(19px,3.4vw,25px); white-space:nowrap;
+    background:linear-gradient(180deg,#fff 18%,#ffddb0 98%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .story .sec-head .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+  .story-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+  @media (max-width:640px){ .story-grid{grid-template-columns:1fr} }
+  .scard{position:relative; overflow:hidden; padding:18px 19px 16px; border-radius:16px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px)}
+  .scard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--train),var(--test))}
+  .scard .n{font-family:var(--serif); font-size:11.5px; color:var(--accent); letter-spacing:.24em}
+  .scard h3{font-family:var(--serif); font-size:16.5px; font-weight:700; margin:6px 0 9px; letter-spacing:.03em}
+  .scard p{font-size:13.5px; color:var(--dim); line-height:1.8}
+  .scard p b{color:var(--ink); font-weight:600}
+  .scard p code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; color:var(--grok); background:rgba(255,224,138,.08); padding:1px 5px; border-radius:5px}
+
+  footer{margin-top:40px; text-align:center; color:var(--faint); font-size:12px; letter-spacing:.02em}
+
+  @media (max-width:560px){
+    .wrap{padding:0 15px 56px}
+    header{padding:56px 0 16px}
+    .card{padding:16px 14px 18px; border-radius:16px}
+    #chart{aspect-ratio:1000/620}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .phases{gap:8px}
+    .phase b{font-size:14px}
+    h1{letter-spacing:.14em; text-indent:.14em}
+    .btn{padding:9px 13px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .rise{transition:none!important} body.preload .rise{opacity:1;transform:none}
+    .stat-v.bump{animation:none!important}
+    .phase[data-phase=grok].on{animation:none!important}
+    .btn,.badge,.phase,.track,.thumb{transition:border-color .2s, color .2s, background .2s}
+  }
+</style>
+</head>
+<body class="preload">
+<a class="home" href="../../../index.html" aria-label="回到首頁">← 回首頁</a>
+
+<div class="wrap">
+  <header>
+    <span class="kicker rise">學 習 新 知 · 延 遲 泛 化</span>
+    <h1 class="rise" style="--rd:.06s">頓悟</h1>
+    <div class="subtitle rise" style="--rd:.1s">GROKKING · DELAYED GENERALIZATION</div>
+    <p class="lede rise" style="--rd:.16s">
+      神經網路有時會先把答案<b>全部背起來</b>——訓練準確率衝上 100%，測試卻卡在亂猜。
+      然後，在漫長的死背之後，測試準確率會<span class="g">突然</span>起飛、逼近滿分。
+      這一刻，就叫頓悟。
+    </p>
+  </header>
+
+  <!-- ═══ 訓練過程模擬器 ═══ -->
+  <section class="card rise" style="--rd:.22s" aria-label="訓練過程模擬器">
+    <div class="stage-head">
+      <h2>訓練過程模擬器 <span class="sub">看測試曲線在死背之後猛然頓悟</span></h2>
+      <div class="badge mem" id="phaseBadge">死背期</div>
+    </div>
+
+    <div class="chartWrap" id="chartWrap">
+      <canvas id="chart" role="img" aria-label="訓練過程折線圖：橫軸為對數訓練步數，縱軸為準確率。琥珀線是訓練準確率，青線是測試準確率。"></canvas>
+      <div class="chart-cap">示意曲線 · 確定性函式生成</div>
+    </div>
+    <div class="legend" aria-hidden="true">
+      <span><i class="dot" style="--c:var(--train)"></i>訓練準確率</span>
+      <span><i class="dot" style="--c:var(--test)"></i>測試準確率</span>
+      <span><i class="dot" style="--c:var(--grok)"></i>頓悟時刻</span>
+    </div>
+
+    <div class="phases" role="group" aria-label="訓練相位">
+      <div class="phase" data-phase="mem" id="phMem"><b>死背期</b><span>memorization</span></div>
+      <div class="phase" data-phase="grok" id="phGrok"><b>頓悟</b><span>grokking</span></div>
+      <div class="phase" data-phase="gen" id="phGen"><b>泛化</b><span>generalization</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="stat-k">訓練步數</span><span class="stat-v" id="stStep">1</span></div>
+      <div class="stat"><span class="stat-k">訓練準確率</span><span class="stat-v train" id="stTrain">—</span></div>
+      <div class="stat"><span class="stat-k">測試準確率</span><span class="stat-v test" id="stTest">—</span></div>
+      <div class="stat"><span class="stat-k">目前相位</span><span class="stat-v" id="stPhase">死背期</span></div>
+    </div>
+
+    <div class="scrub" role="group" aria-label="播放控制">
+      <button class="btn primary" id="btnPlay" aria-label="播放或暫停訓練動畫">▶ 播放</button>
+      <button class="btn ghost" id="btnReplay" aria-label="從第一步重播">↺ 重播</button>
+      <input type="range" id="scrub" min="0" max="599" value="0" step="1" aria-label="訓練步數進度（可拖曳）">
+    </div>
+
+    <div class="wd-row">
+      <label class="switch">
+        <input type="checkbox" id="wd" checked aria-label="權重衰減開關">
+        <span class="track"><span class="thumb"></span></span>
+        <span class="switch-label">權重衰減 <span class="en">weight decay</span></span>
+      </label>
+      <p class="wd-hint" id="wdHint"><b>開啟：</b>一段死背之後，測試曲線會頓悟躍升，追上訓練。</p>
+    </div>
+
+    <p class="chart-caption" id="phaseCaption" role="status" aria-live="polite">按下播放，看兩條曲線隨訓練步數畫出來。</p>
+    <p class="sr-only" role="status" aria-live="assertive" id="live"></p>
+  </section>
+
+  <!-- ═══ 說明 ═══ -->
+  <section class="story rise" style="--rd:.3s" aria-label="頓悟現象的背景說明">
+    <div class="sec-head"><h2>一場遲來的理解</h2><span class="rule"></span></div>
+    <div class="story-grid">
+      <article class="scard">
+        <div class="n">壹</div>
+        <h3>先背起來，很久以後才懂</h3>
+        <p>
+          2022 年 OpenAI 的 <b>Power 等人</b>在<b>模加法</b>（modular arithmetic）這類「演算法資料集」上訓練小網路時發現：
+          模型很快就把訓練題全部背下來（訓練準確率接近 100%），測試準確率卻長時間貼在亂猜水準。
+          直到訓練損失幾乎不再下降的<b>很久以後</b>，測試準確率才「突然」開始上升、逼近 100%——
+          延遲泛化，像一次<b>相變</b>（phase transition）。他們把它命名為 grokking。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">貳</div>
+        <h3>從記憶，切換到規則</h3>
+        <p>
+          一個主流假說：網路一開始待在 <b>lazy training</b>——權重幾乎不離開初始值，只夠死背；
+          之後才切換到 <b>rich regime</b>，權重朝任務真正相關的方向移動，學到<b>更簡單、更一般</b>的表徵。
+          這個「記憶 → 泛化」的轉變，正是頓悟發生的那一刻。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">參</div>
+        <h3>權重衰減是關鍵推手</h3>
+        <p>
+          <code>weight decay</code>（權重衰減，一種不讓權重長太大的正則化）對誘發頓悟很重要。
+          上面的開關就在示範這件事：<b>開啟</b>時，死背之後測試曲線會躍升；
+          <b>關閉</b>時，模型容易停在死背、測試準確率遲遲上不來。（本頁曲線為示意，非真實訓練數據。）
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">肆</div>
+        <h3>不只是玩具任務</h3>
+        <p>
+          早期以為頓悟只出現在模加法這類玩具題目。但 <b>2024–2025</b> 的研究顯示它更普遍：
+          在 <b>CIFAR-10</b> 上訓練 CNN、在 <b>Imagenette</b> 上訓練 ResNet 也觀察得到延遲泛化
+          （見 <code>Deep Networks Always Grok…</code>, arXiv:2402.15555）。頓悟可能是深度學習裡相當一般的現象。
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="rise" style="--rd:.38s">資料來源：arXiv（Power et al. 2022 等）</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(s){ return document.querySelector(s); };
+
+  /* ════════════════════ 減弱動態（matchMedia 動態監聽） ════════════════════ */
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var reduce = RM.matches;
+
+  /* ════════════════════════════════════════════════════════════════════════
+   * ==GROK-CORE-START==
+   * 曲線生成核心：純函式、無 DOM 依賴，可被 node 抽出做斷言驗證。
+   * 一切以「對數訓練步數」ls ∈ [0, logMax] 為自變數（step = 10^ls）。
+   *   訓練準確率 grokTrainAcc：快速飽和的 sigmoid（死背很快就成功）。
+   *   測試準確率 grokTestAcc：
+   *     權重衰減開 → 長平台後在 grokOn.logCenter 附近急劇躍升（相變）。
+   *     權重衰減關 → 極緩爬升、封頂於 grokOff.cap，始終低、不躍升（停在死背）。
+   * ════════════════════════════════════════════════════════════════════════ */
+  var GROK_CFG = {
+    N: 600,            // 取樣點數
+    logMax: 6,         // 步數 10^0 .. 10^6
+    baseline: 0.04,    // 亂猜水準
+    ceil: 0.995,       // 接近 100%
+    train:  { logCenter: Math.log10(160),   k: 3.2 },  // 訓練：step≈160 過半，step≈3000 已封頂
+    grokOn: { logCenter: Math.log10(50000), k: 6.0 },  // 頓悟：step≈5萬 附近急躍
+    grokOff:{ cap: 0.13, power: 1.5 }                   // 無權重衰減：緩爬至 0.13 封頂
+  };
+  function grokSig(x){ return 1 / (1 + Math.exp(-x)); }
+  function grokTrainAcc(ls, c){
+    return c.baseline + (c.ceil - c.baseline) * grokSig(c.train.k * (ls - c.train.logCenter));
+  }
+  function grokTestAcc(ls, wd, c){
+    if (wd){
+      return c.baseline + (c.ceil - c.baseline) * grokSig(c.grokOn.k * (ls - c.grokOn.logCenter));
+    }
+    return c.baseline + (c.grokOff.cap - c.baseline) * Math.pow(ls / c.logMax, c.grokOff.power);
+  }
+  function grokCurves(wd, c){
+    c = c || GROK_CFG;
+    var N = c.N, step = new Array(N), logStep = new Array(N), train = new Array(N), test = new Array(N);
+    for (var i = 0; i < N; i++){
+      var ls = (i / (N - 1)) * c.logMax;
+      logStep[i] = ls;
+      step[i] = Math.pow(10, ls);
+      train[i] = grokTrainAcc(ls, c);
+      test[i]  = grokTestAcc(ls, wd, c);
+    }
+    return { step: step, logStep: logStep, train: train, test: test };
+  }
+  // 相位判定：test 貼底 → 死背；上升中 → 頓悟；已高 → 泛化。
+  function grokPhase(train, test, c){
+    c = c || GROK_CFG;
+    var lo = c.baseline + 0.12;
+    if (test >= 0.85) return "gen";
+    if (test > lo)    return "grok";
+    return "mem";
+  }
+  // 測試曲線首次越過 0.5 的索引（頓悟點）；從不越過回傳 -1。
+  function grokGrokIndex(test){
+    for (var i = 0; i < test.length; i++){ if (test[i] >= 0.5) return i; }
+    return -1;
+  }
+  /* ==GROK-CORE-END== */
+
+  /* ════════════════════ 繪圖用顏色 ════════════════════ */
+  var COL = {
+    ink:"#f1f0fb", dim:"#a8a5cf", faint:"#6d6b99",
+    axis:"rgba(150,155,222,.36)",
+    grid:"rgba(150,155,222,.09)",
+    train:"#ffb74d", trainGlow:"rgba(255,183,77,.5)",
+    test:"#40dcc9",  testGlow:"rgba(64,220,201,.55)",
+    grok:"#ffe08a",  grok2:"#fff4cf",
+    baseline:"rgba(168,165,207,.45)",
+    bandMem:"rgba(255,183,77,.045)",
+    bandGrok:"rgba(255,224,138,.075)",
+    bandGen:"rgba(64,220,201,.05)"
+  };
+  var FONT = '"Noto Sans TC","Microsoft JhengHei",sans-serif';
+
+  /* ════════════════════ localStorage（前綴 grok.） ════════════════════ */
+  var WD_KEY = "grok.weightDecay";
+  function loadWd(){ try{ var v = localStorage.getItem(WD_KEY); return v === null ? true : v === "1"; } catch(e){ return true; } }
+  function saveWd(b){ try{ localStorage.setItem(WD_KEY, b ? "1" : "0"); } catch(e){} }
+
+  /* ════════════════════ 狀態 ════════════════════ */
+  var N = GROK_CFG.N;
+  var wd = loadWd();
+  var curves = null, grokIndex = -1, bandGrokStart = -1, bandGenStart = -1;
+  var progress = 0, prevProgress = 0;
+  var playing = false, wasPlaying = false, raf = null;
+  var startTime = 0, flashStart = -1, flashUntil = 0;
+  var grokFired = false, lastPhase = null;
+  var DURATION = 4000, FLASH_DUR = 1050;
+
+  var chart = $("#chart"), scrub = $("#scrub"), wdBox = $("#wd");
+  var stStep = $("#stStep"), stTrain = $("#stTrain"), stTest = $("#stTest"), stPhase = $("#stPhase");
+  var phaseBadge = $("#phaseBadge"), phaseCaption = $("#phaseCaption"), liveEl = $("#live");
+  var btnPlay = $("#btnPlay"), btnReplay = $("#btnReplay"), wdHint = $("#wdHint");
+  var chips = { mem: $("#phMem"), grok: $("#phGrok"), gen: $("#phGen") };
+  var NAME = { mem:"死背期", grok:"頓悟", gen:"泛化" };
+
+  function clamp(v, lo, hi){ return v < lo ? lo : (v > hi ? hi : v); }
+  function at(arr, p){
+    var i = Math.floor(p);
+    if (i >= N - 1) return arr[N - 1];
+    if (i < 0) return arr[0];
+    return arr[i] + (arr[i + 1] - arr[i]) * (p - i);
+  }
+  function announce(t){ liveEl.textContent = t; }
+
+  function buildCurves(){
+    curves = grokCurves(wd, GROK_CFG);
+    grokIndex = grokGrokIndex(curves.test);
+    bandGrokStart = -1; bandGenStart = -1;
+    for (var i = 0; i < N; i++){
+      if (bandGrokStart < 0 && curves.test[i] >= 0.2) bandGrokStart = i;
+      if (bandGenStart  < 0 && curves.test[i] >= 0.85) bandGenStart = i;
+    }
+  }
+
+  /* ════════════════════ 畫布（比較目標像素尺寸才重設，避免翻倍） ════════════════════ */
+  function fitCanvas(cv){
+    var rect = cv.getBoundingClientRect();
+    var cssW = Math.max(1, rect.width), cssH = Math.max(1, rect.height);
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var pxW = Math.round(cssW * dpr), pxH = Math.round(cssH * dpr);
+    if (cv.width !== pxW || cv.height !== pxH){ cv.width = pxW; cv.height = pxH; }
+    var ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx: ctx, cssW: cssW, cssH: cssH };
+  }
+
+  function drawChart(prog, now){
+    var f = fitCanvas(chart), ctx = f.ctx, W = f.cssW, H = f.cssH;
+    ctx.clearRect(0, 0, W, H);
+    var padL = 46, padR = 16, padT = 16, padB = 32;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var logMax = GROK_CFG.logMax;
+    function X(ls){ return padL + (ls / logMax) * plotW; }
+    function Y(acc){ return padT + (1 - acc) * plotH; }
+
+    /* 相位背景色帶 */
+    function band(x0, x1, color){
+      if (x1 <= x0) return;
+      ctx.fillStyle = color; ctx.fillRect(x0, padT, x1 - x0, plotH);
+    }
+    if (wd && bandGrokStart >= 0){
+      var xG = X(curves.logStep[bandGrokStart]);
+      var xN = bandGenStart >= 0 ? X(curves.logStep[bandGenStart]) : X(logMax);
+      band(padL, xG, COL.bandMem);
+      band(xG, xN, COL.bandGrok);
+      band(xN, padL + plotW, COL.bandGen);
+    } else {
+      band(padL, padL + plotW, COL.bandMem);
+    }
+
+    /* 網格 + 軸標籤 */
+    ctx.font = "11px " + FONT;
+    ctx.strokeStyle = COL.grid; ctx.lineWidth = 1;
+    // 縱向（對數步數）
+    var xLab = ["10⁰","10¹","10²","10³","10⁴","10⁵","10⁶"];
+    ctx.textBaseline = "top";
+    for (var g = 0; g <= logMax; g++){
+      var x = X(g);
+      ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + plotH); ctx.stroke();
+      ctx.fillStyle = COL.faint;
+      ctx.textAlign = g === 0 ? "left" : (g === logMax ? "right" : "center");
+      ctx.fillText(xLab[g], x, padT + plotH + 7);
+    }
+    // 橫向（準確率）
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    var yLab = [0, 0.25, 0.5, 0.75, 1];
+    for (var yi = 0; yi < yLab.length; yi++){
+      var y = Y(yLab[yi]);
+      ctx.strokeStyle = COL.grid; ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+      ctx.fillStyle = COL.faint; ctx.fillText(Math.round(yLab[yi] * 100) + "%", padL - 7, y);
+    }
+
+    /* 亂猜基準線 */
+    var yb = Y(GROK_CFG.baseline);
+    ctx.save();
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = COL.baseline; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, yb); ctx.lineTo(padL + plotW, yb); ctx.stroke();
+    ctx.restore();
+    ctx.font = "10.5px " + FONT; ctx.fillStyle = COL.baseline;
+    ctx.textAlign = "left"; ctx.textBaseline = "bottom";
+    ctx.fillText("亂猜水準", padL + 6, yb - 3);
+
+    /* 一條曲線畫到 prog（含插值的尖端） */
+    function curve(arr, color, glow, width){
+      ctx.save();
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.strokeStyle = color; ctx.lineWidth = width;
+      if (glow){ ctx.shadowColor = glow; ctx.shadowBlur = 11; }
+      ctx.beginPath();
+      var last = Math.floor(prog);
+      for (var i = 0; i <= last; i++){
+        var xx = X(curves.logStep[i]), yy = Y(arr[i]);
+        if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+      }
+      ctx.lineTo(X(at(curves.logStep, prog)), Y(at(arr, prog)));
+      ctx.stroke();
+      ctx.restore();
+    }
+    curve(curves.train, COL.train, COL.trainGlow, 2.4);
+    curve(curves.test,  COL.test,  COL.testGlow,  2.6);
+
+    /* 頓悟點：靜態光暈 + 標籤（reduced-motion 也看得到） */
+    if (wd && grokIndex >= 0 && prog >= grokIndex - 0.5){
+      var gx = X(curves.logStep[grokIndex]), gy = Y(curves.test[grokIndex]);
+      ctx.save();
+      ctx.shadowColor = "rgba(255,224,138,.85)"; ctx.shadowBlur = 15;
+      ctx.fillStyle = COL.grok2; ctx.beginPath(); ctx.arc(gx, gy, 3.3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      ctx.font = "600 11.5px " + FONT; ctx.fillStyle = "rgba(255,224,138,.92)";
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillText("頓悟", gx, gy - 10);
+    }
+
+    /* 頓悟閃光（只在播放越過頓悟點時、且非 reduced-motion） */
+    if (!reduce && grokIndex >= 0 && now < flashUntil && flashStart >= 0){
+      var t = (now - flashStart) / FLASH_DUR;
+      if (t >= 0 && t < 1){
+        var fx = X(curves.logStep[grokIndex]), fy = Y(curves.test[grokIndex]);
+        var ease = 1 - Math.pow(1 - t, 3);
+        var a = (1 - t);
+        var R = 16 + ease * 74;
+        var rg = ctx.createRadialGradient(fx, fy, 0, fx, fy, R);
+        rg.addColorStop(0,   "rgba(255,244,207," + (a * 0.9) + ")");
+        rg.addColorStop(0.4, "rgba(255,224,138," + (a * 0.45) + ")");
+        rg.addColorStop(1,   "rgba(255,224,138,0)");
+        ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(fx, fy, R, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "rgba(255,244,207," + (a * 0.7) + ")"; ctx.lineWidth = 1.6 * a + 0.4;
+        ctx.beginPath(); ctx.arc(fx, fy, 10 + ease * 62, 0, Math.PI * 2); ctx.stroke();
+      }
+    }
+
+    /* 播放頭 + 兩條曲線上的點 */
+    var px = X(at(curves.logStep, prog));
+    ctx.save();
+    ctx.strokeStyle = "rgba(241,240,251,.22)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(px, padT); ctx.lineTo(px, padT + plotH); ctx.stroke();
+    ctx.restore();
+    function dot(y, color, glow){
+      ctx.save();
+      ctx.shadowColor = glow; ctx.shadowBlur = 10;
+      ctx.fillStyle = color; ctx.beginPath(); ctx.arc(px, y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    dot(Y(at(curves.train, prog)), COL.train, COL.trainGlow);
+    dot(Y(at(curves.test, prog)),  COL.test,  COL.testGlow);
+  }
+
+  /* ════════════════════ 讀數與相位 ════════════════════ */
+  function bump(el){ el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+
+  function setPhase(ph, tr){
+    for (var k in chips){ if (chips.hasOwnProperty(k)) chips[k].classList.toggle("on", k === ph); }
+    phaseBadge.textContent = NAME[ph];
+    phaseBadge.className = "badge " + ph;
+    stPhase.textContent = NAME[ph];
+    var cap;
+    if (ph === "mem"){
+      cap = tr < 0.5 ? "訓練剛起步，模型還在把資料擬合起來，兩條線都貼著亂猜水準。"
+                     : "模型正在<b>死背</b>訓練題——訓練準確率已經封頂，測試卻卡在亂猜水準。";
+    } else if (ph === "grok"){
+      cap = "測試準確率<b>突然起飛</b>！模型正從「記憶」切換到真正的規則。";
+    } else {
+      cap = "<b>頓悟完成</b>——模型學會了通則，測試準確率追上了訓練。";
+    }
+    phaseCaption.innerHTML = cap;
+    phaseCaption.style.borderColor = ph === "grok" ? "var(--grok)" : (ph === "gen" ? "var(--test-d)" : "var(--train-d)");
+    lastPhase = ph;
+  }
+
+  function updateReadouts(){
+    var tr = at(curves.train, progress), te = at(curves.test, progress);
+    var st = Math.pow(10, at(curves.logStep, progress));
+    stStep.textContent = Math.round(st).toLocaleString("en-US");
+    stTrain.textContent = (tr * 100).toFixed(1) + "%";
+    stTest.textContent  = (te * 100).toFixed(1) + "%";
+    var ph = grokPhase(tr, te, GROK_CFG);
+    if (ph !== lastPhase) setPhase(ph, tr);
+  }
+
+  function updateScrubFill(){
+    scrub.style.setProperty("--fill", (progress / (N - 1) * 100) + "%");
+  }
+
+  /* ════════════════════ 進度套用與繪製 ════════════════════ */
+  function applyProgress(p, now, fromPlay){
+    progress = clamp(p, 0, N - 1);
+    scrub.value = Math.round(progress);
+    updateScrubFill();
+    updateReadouts();
+    if (fromPlay && wd && !reduce && grokIndex >= 0 && !grokFired &&
+        prevProgress < grokIndex && progress >= grokIndex){
+      fireGrok(now);
+    }
+    prevProgress = progress;
+  }
+  function render(now){ drawChart(progress, now || performance.now()); }
+
+  function fireGrok(now){
+    grokFired = true;
+    flashStart = now; flashUntil = now + FLASH_DUR;
+    bump(stTest);
+    announce("頓悟！測試準確率正躍升到約 99%，模型學會了通則。");
+    ensureLoop();
+  }
+
+  /* ════════════════════ 播放迴圈（分頁隱藏時不運算） ════════════════════ */
+  function ensureLoop(){ if (raf == null) raf = requestAnimationFrame(loop); }
+  function loop(now){
+    if (document.hidden){ raf = requestAnimationFrame(loop); return; }
+    if (playing){
+      var p = ((now - startTime) / DURATION) * (N - 1);
+      var end = false;
+      if (p >= N - 1){ p = N - 1; end = true; }
+      applyProgress(p, now, true);
+      if (end){ playing = false; setPlayBtn(false); onEnd(); }
+    }
+    render(now);
+    if (playing || now < flashUntil) raf = requestAnimationFrame(loop);
+    else raf = null;
+  }
+
+  function setPlayBtn(on){ btnPlay.textContent = on ? "⏸ 暫停" : "▶ 播放"; }
+
+  function play(){
+    if (reduce){ jumpTo(N - 1); return; }
+    if (progress >= N - 1){ progress = 0; prevProgress = 0; grokFired = false; }
+    playing = true; setPlayBtn(true);
+    startTime = performance.now() - (progress / (N - 1)) * DURATION;
+    ensureLoop();
+  }
+  function pause(){ playing = false; setPlayBtn(false); }
+  function togglePlay(){ playing ? pause() : play(); }
+  function replay(){
+    grokFired = false; prevProgress = 0; flashStart = -1; flashUntil = 0;
+    if (reduce){ jumpTo(N - 1); return; }
+    progress = 0; playing = true; setPlayBtn(true);
+    startTime = performance.now(); ensureLoop();
+  }
+  // 立即跳到某進度（拖曳／reduced-motion），不做逐步動畫。
+  function jumpTo(p){
+    playing = false; setPlayBtn(false);
+    applyProgress(p, performance.now(), false);
+    render();
+  }
+  function onEnd(){
+    render(performance.now());
+    if (wd) announce("到達 100 萬步：測試準確率約 99%，頓悟已完成。");
+    else    announce("到達 100 萬步：測試準確率仍低，此範圍內未發生頓悟——模型停在死背。");
+  }
+
+  /* ════════════════════ 權重衰減切換 ════════════════════ */
+  function applyWd(){
+    wd = wdBox.checked; saveWd(wd);
+    buildCurves();
+    grokFired = (wd && grokIndex >= 0 && progress >= grokIndex);
+    prevProgress = progress;
+    flashStart = -1; flashUntil = 0;
+    wdHint.innerHTML = wd
+      ? "<b>開啟：</b>一段死背之後，測試曲線會頓悟躍升，追上訓練。"
+      : "<b>關閉：</b>模型停在死背——測試準確率始終上不去。";
+    lastPhase = null; // 逼 setPhase 重跑
+    updateReadouts();
+    render();
+    announce(wd ? "已開啟權重衰減：死背之後會發生頓悟。" : "已關閉權重衰減：模型停在死背，不會頓悟。");
+  }
+
+  /* ════════════════════ 事件 ════════════════════ */
+  btnPlay.addEventListener("click", togglePlay);
+  btnReplay.addEventListener("click", replay);
+  scrub.addEventListener("input", function(e){ jumpTo(parseInt(e.target.value, 10) || 0); });
+  wdBox.checked = wd;
+  wdBox.addEventListener("change", applyWd);
+
+  RM.addEventListener("change", function(e){
+    reduce = e.matches;
+    if (reduce){
+      if (playing){ pause(); }
+      grokFired = true; flashStart = -1; flashUntil = 0;
+      jumpTo(N - 1);
+    } else {
+      render();
+    }
+  });
+
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden){ if (playing){ wasPlaying = true; pause(); } }
+    else if (wasPlaying && !reduce){ wasPlaying = false; play(); }
+  });
+
+  new ResizeObserver(function(){ render(); }).observe($("#chartWrap"));
+
+  /* ════════════════════ 啟動 ════════════════════ */
+  buildCurves();
+  if (reduce){ progress = N - 1; grokFired = true; }
+  else { progress = 0; }
+  scrub.value = Math.round(progress);
+  updateScrubFill();
+  updateReadouts();
+  render();
+
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    document.body.classList.remove("preload");
+    if (!reduce && !document.hidden) replay();  // 進場後自動播一次，直接送上頓悟
+  });});
+})();
+</script>
+</body>
+</html>

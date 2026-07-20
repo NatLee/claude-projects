@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>退火 · 模擬退火解旅行推銷員問題</title>
+<meta name="description" content="看一條纏成一團的路線在模擬退火裡慢慢解開、收斂成最短環——並與純爬山並排對照，看它如何越過山谷找到更短的路。">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  :root{
+    --bg:#0a0b16; --bg2:#0f1026; --panel:rgba(18,20,42,.72); --panel2:#161936;
+    --line:rgba(160,150,220,.16); --line-soft:rgba(160,150,220,.09);
+    --ink:#f1eefb; --dim:#a9a4cf; --faint:#6f6a97;
+    --sci:#4dd0e1;          /* 科學趣聞 青 */
+    --sci-d:#1f93a3;
+    --gold:#f0c674;
+    --warm:#ff9466;         /* 高溫／爬山卡住 警示暖色 */
+    --good:#7bd6a2;
+    --shadow:0 22px 48px rgba(0,0,0,.5);
+    --e-out:cubic-bezier(.22,1,.36,1);
+    --e-pop:cubic-bezier(.2,1.5,.4,1);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 560px at 82% -6%, rgba(77,208,225,.14), transparent 60%),
+      radial-gradient(860px 600px at 6% 8%, rgba(240,198,116,.07), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; line-height:1.6; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{ /* 方格質感 */
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.6;
+    background-image:radial-gradient(rgba(241,238,251,.045) 1px, transparent 1.6px);
+    background-size:34px 34px;
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.75), transparent 74%);
+            mask-image:linear-gradient(180deg, rgba(0,0,0,.75), transparent 74%);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:8px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .home{
+    position:fixed; top:15px; left:16px; z-index:30;
+    font-size:13px; color:var(--dim); text-decoration:none;
+    background:rgba(14,16,38,.72); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; backdrop-filter:blur(8px);
+    transition:color .2s, border-color .2s, transform .2s;
+  }
+  .home:hover, .home:focus-visible{color:var(--ink); border-color:var(--sci); transform:translateX(-2px)}
+
+  .wrap{position:relative; z-index:1; max-width:1000px; margin:0 auto; padding:0 22px 72px}
+
+  /* 進場 */
+  .rise{transition:opacity .7s ease var(--rd,0s), transform .7s var(--e-out) var(--rd,0s)}
+  body.preload .rise{opacity:0; transform:translateY(16px)}
+
+  header{text-align:center; padding:70px 0 22px}
+  .kicker{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:var(--serif); font-size:11.5px; color:var(--sci);
+    letter-spacing:.34em; text-indent:.34em;
+    border:1px solid rgba(77,208,225,.34); border-radius:999px; padding:6px 15px 6px 19px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; margin-top:18px;
+    font-size:clamp(34px,7vw,58px); letter-spacing:.2em; text-indent:.2em;
+    background:linear-gradient(180deg,#fff 8%,#a9ecf3 60%,#4dd0e1 130%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .lede{
+    color:var(--dim); font-size:15px; margin:16px auto 0; max-width:620px; letter-spacing:.01em;
+  }
+  .lede b{color:var(--ink); font-weight:600}
+
+  h2{
+    font-family:var(--serif); font-weight:700; font-size:clamp(18px,2.6vw,21px); letter-spacing:.03em;
+    display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  }
+  h2 .sub{font-family:var(--sans); font-weight:500; font-size:12.5px; color:var(--faint); letter-spacing:.01em}
+  h2 .vs{font-family:var(--sans); font-size:13px; color:var(--faint); font-weight:400}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    box-shadow:var(--shadow); backdrop-filter:blur(10px);
+    padding:20px 20px 22px; margin-top:18px;
+  }
+
+  /* ── 主舞台 ── */
+  .stage-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px}
+  .badge{
+    font-size:12px; padding:5px 12px; border-radius:999px; border:1px solid var(--line);
+    color:var(--dim); white-space:nowrap; transition:color .25s, border-color .25s, background .25s;
+  }
+  .badge.run{color:var(--sci); border-color:rgba(77,208,225,.45); background:rgba(77,208,225,.08)}
+  .badge.done{color:var(--gold); border-color:rgba(240,198,116,.45); background:rgba(240,198,116,.08)}
+
+  .stageCanvasWrap{
+    position:relative; border-radius:14px; overflow:hidden; border:1px solid var(--line-soft);
+    background:radial-gradient(120% 120% at 50% 8%, rgba(24,34,56,.65), rgba(8,9,20,.55));
+    touch-action:none;
+  }
+  #stageCv{display:block; width:100%; aspect-ratio:1000/620; cursor:crosshair}
+  .stage-hint{
+    position:absolute; left:12px; bottom:10px; font-size:12px; color:var(--faint);
+    background:rgba(8,9,20,.55); padding:4px 10px; border-radius:999px; pointer-events:none;
+    backdrop-filter:blur(4px);
+  }
+
+  .toolbar{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:14px}
+  .sep{width:1px; align-self:stretch; background:var(--line); margin:0 2px}
+  .numctl{
+    display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--dim);
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:11px; padding:6px 12px;
+  }
+  .numctl input{
+    width:52px; background:transparent; border:none; color:var(--ink); font:inherit; font-variant-numeric:tabular-nums;
+    text-align:center; font-size:13.5px;
+  }
+  .numctl input:focus-visible{outline:none}
+  .numctl input::-webkit-outer-spin-button,.numctl input::-webkit-inner-spin-button{opacity:.6}
+
+  .btn{
+    font-family:inherit; font-size:13.5px; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#20233f,#171a30); border:1px solid var(--line);
+    padding:9px 16px; border-radius:11px; transition:transform .15s var(--e-pop), border-color .2s, background .2s, opacity .2s;
+    display:inline-flex; align-items:center; gap:7px;
+  }
+  .btn:hover{border-color:var(--sci); transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn.ghost{background:transparent; color:var(--dim)}
+  .btn.primary{background:linear-gradient(180deg,#6fe3f0,var(--sci-d)); border:none; color:#04262b; font-weight:700}
+  .btn.primary:hover{border-color:transparent; filter:brightness(1.06)}
+  .btn:disabled{opacity:.38; cursor:not-allowed; transform:none; filter:none}
+
+  .sliders{display:grid; grid-template-columns:repeat(3,1fr); gap:14px 18px; margin-top:16px}
+  @media (max-width:700px){ .sliders{grid-template-columns:1fr} }
+  .ctl{display:flex; flex-direction:column; gap:6px; font-size:12.5px; color:var(--dim)}
+  .ctl-k{display:flex; justify-content:space-between; align-items:baseline}
+  .ctl-k b{color:var(--ink); font-variant-numeric:tabular-nums; font-weight:600; transition:color .2s}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:5px; border-radius:99px;
+    background:linear-gradient(90deg,var(--sci),var(--line)); outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:#fff; border:3px solid var(--sci-d); cursor:pointer; transition:transform .15s var(--e-pop);
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+  input[type=range]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid var(--sci-d); cursor:pointer;
+  }
+
+  .stats{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-top:18px}
+  @media (max-width:760px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  .stat{
+    background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:12px;
+    padding:10px 12px; display:flex; flex-direction:column; gap:4px;
+  }
+  .stat-k{font-size:11px; color:var(--faint); letter-spacing:.02em}
+  .stat-v{font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); transition:color .2s}
+  .stat-v.good{color:var(--good)}
+  .stat-v.warm{color:var(--warm)}
+  .stat-v.bump{animation:bump .45s var(--e-pop)}
+  @keyframes bump{0%{transform:scale(1)}45%{transform:scale(1.22)}100%{transform:scale(1)}}
+
+  /* ── 圖表 ── */
+  .chart-card canvas{width:100%; height:200px; display:block; margin-top:12px; border-radius:12px}
+  #chartCv,#cmpChartCv{background:rgba(255,255,255,.02); border:1px solid var(--line-soft)}
+  /* #cmpChartCv 不在 .chart-card 內，必須自己給明確尺寸。
+     canvas 若沒有 CSS 高度，版面高度會取自 height 屬性；fitCanvas 會用 dpr 放大後寫回該屬性，
+     再被 ResizeObserver 觸發重畫，形成每幀翻倍的回饋迴圈（150→300→600…），
+     最後畫布大到配置失敗，整張圖就消失。給定 CSS 尺寸即可切斷這個迴圈。 */
+  #cmpChartCv{width:100%; height:200px; display:block; margin-top:12px; border-radius:12px}
+  .legend{display:flex; gap:16px; margin-top:10px; font-size:12px; color:var(--dim); flex-wrap:wrap}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  .legend .dot{width:8px; height:8px; border-radius:50%; background:var(--c); display:inline-block}
+
+  /* ── 比一比 ── */
+  .panel-lede{color:var(--faint); font-size:13px; line-height:1.75; margin-top:8px; max-width:760px}
+  .cmp-controls{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px}
+  .cmp-nn{font-size:12.5px; color:var(--dim)}
+  .cmp-nn b{color:var(--ink); font-variant-numeric:tabular-nums}
+  .cmp-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:16px}
+  @media (max-width:760px){ .cmp-grid{grid-template-columns:1fr} }
+  .cmp-col{display:flex; flex-direction:column; gap:8px}
+  .cmp-head{display:flex; align-items:center; gap:8px; font-size:13px; color:var(--dim); font-weight:600}
+  .cmp-head .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .cmp-head .dot.warm{background:var(--warm); box-shadow:0 0 8px var(--warm)}
+  .cmp-head .dot.sci{background:var(--sci); box-shadow:0 0 8px var(--sci)}
+  .cmp-cv{
+    width:100%; aspect-ratio:1000/620; display:block; border-radius:12px;
+    border:1px solid var(--line-soft); background:radial-gradient(120% 120% at 50% 8%, rgba(24,34,56,.6), rgba(8,9,20,.5));
+  }
+  .cmp-len{font-size:13px; color:var(--dim); text-align:center}
+  .cmp-len b{font-size:16px; color:var(--ink); font-variant-numeric:tabular-nums; transition:color .2s}
+  .cmp-len b.bump{animation:bump .45s var(--e-pop)}
+  .cmp-result{
+    margin-top:14px; text-align:center; font-size:13.5px; color:var(--dim); min-height:20px; letter-spacing:.01em;
+  }
+  .cmp-result b{color:var(--gold)}
+  .cmp-result.win b{color:var(--good)}
+
+  /* ── 故事卡 ── */
+  .story{margin-top:34px}
+  .story .sec-head{display:flex; align-items:center; gap:14px; margin:0 4px 18px}
+  .story .sec-head h2{font-size:clamp(19px,3.4vw,25px); white-space:nowrap;
+    background:linear-gradient(180deg,#fff 20%,#a9ecf3 98%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .story .sec-head .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+  .story-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+  @media (max-width:640px){ .story-grid{grid-template-columns:1fr} }
+  .scard{position:relative; overflow:hidden; padding:18px 19px 16px; border-radius:16px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px)}
+  .scard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background:linear-gradient(180deg,var(--sci),var(--gold))}
+  .scard .n{font-family:var(--serif); font-size:11.5px; color:var(--sci); letter-spacing:.24em}
+  .scard h3{font-family:var(--serif); font-size:16.5px; font-weight:700; margin:6px 0 9px; letter-spacing:.03em}
+  .scard p{font-size:13.5px; color:var(--dim); line-height:1.78}
+  .scard p b{color:var(--ink); font-weight:600}
+  .scard p code{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12.5px; color:var(--gold); background:rgba(240,198,116,.08); padding:1px 5px; border-radius:5px}
+
+  footer{margin-top:40px; text-align:center; color:var(--faint); font-size:12px; letter-spacing:.02em}
+
+  @media (max-width:560px){
+    .wrap{padding:0 15px 56px}
+    header{padding:56px 0 16px}
+    .card{padding:16px 14px 18px; border-radius:16px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .toolbar{gap:7px}
+    .btn{padding:9px 13px; font-size:13px}
+    .stage-hint{font-size:11px; left:8px; bottom:8px}
+    h1{letter-spacing:.12em; text-indent:.12em}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .rise{transition:none!important} body.preload .rise{opacity:1;transform:none}
+    .stat-v.bump,.cmp-len b.bump{animation:none!important}
+    .btn,.badge{transition:border-color .2s, color .2s, background .2s}
+  }
+</style>
+</head>
+<body class="preload">
+<a class="home" href="../../../index.html" aria-label="回到首頁">← 回首頁</a>
+
+<div class="wrap">
+  <header>
+    <span class="kicker rise">科 學 趣 聞 · 組 合 最 佳 化</span>
+    <h1 class="rise" style="--rd:.06s">退火</h1>
+    <p class="lede rise" style="--rd:.12s">
+      把一條纏成一團的巡迴路線，交給一個<b>會故意讓它先變糟</b>的演算法。
+      溫度夠高時，它甚至會接受更差的解——畫面上路線真的會變醜、變亂；
+      但正是這股躁動，讓它跳出死胡同，最後緩緩收斂成一個乾淨的環。
+    </p>
+  </header>
+
+  <!-- ═══ 主舞台 ═══ -->
+  <section class="card rise" style="--rd:.18s" aria-label="模擬退火主舞台">
+    <div class="stage-head">
+      <h2>主舞台 <span class="sub">按開始，看路線自己解開纏繞</span></h2>
+      <div class="badge" id="statusBadge">尚未開始</div>
+    </div>
+
+    <div class="stageCanvasWrap" id="stageWrap">
+      <canvas id="stageCv" tabindex="0" role="img" aria-label="城市與路線畫布。點擊或聚焦後按 Enter 可新增城市，顯示目前的巡迴路徑"></canvas>
+      <p class="stage-hint" id="stageHint">點畫布新增城市 · 至少需要 4 座才能開始</p>
+    </div>
+
+    <div class="toolbar" role="group" aria-label="城市與模擬控制">
+      <label class="numctl">
+        <span>城市數</span>
+        <input type="number" id="nInput" min="4" max="120" value="36" aria-label="要生成的城市數量（4 至 120）">
+      </label>
+      <button class="btn" id="btnRandom" aria-label="依城市數隨機生成城市">🎲 隨機生成</button>
+      <button class="btn ghost" id="btnClear" aria-label="清空所有城市">清空</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="btn primary" id="btnPlay" aria-label="開始或暫停模擬退火"><span id="playIco">▶</span><span id="playTxt">開始</span></button>
+      <button class="btn" id="btnStep" aria-label="手動單步執行一次疊代">單步</button>
+      <button class="btn ghost" id="btnReset" aria-label="重新打亂路線、重設本輪模擬">↺ 重來</button>
+    </div>
+
+    <div class="sliders">
+      <label class="ctl">
+        <span class="ctl-k">初始溫度<b id="valT0">×1.00</b></span>
+        <input type="range" id="rngT0" min="0.05" max="2.5" step="0.05" value="1" aria-label="初始溫度強度倍率，相對於路線平均邊長">
+      </label>
+      <label class="ctl">
+        <span class="ctl-k">冷卻率 α<b id="valAlpha">0.9985</b></span>
+        <input type="range" id="rngAlpha" min="0.95" max="0.999" step="0.0005" value="0.9985" aria-label="冷卻率，越接近 1 降溫越慢、探索越久">
+      </label>
+      <label class="ctl">
+        <span class="ctl-k">動畫速度<b id="valSpeed">10</b></span>
+        <input type="range" id="rngSpeed" min="1" max="40" step="1" value="10" aria-label="每個畫格執行的疊代數">
+      </label>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><span class="stat-k">目前路徑長度</span><span class="stat-v" id="stLen">—</span></div>
+      <div class="stat"><span class="stat-k">歷史最佳長度</span><span class="stat-v good" id="stBest">—</span></div>
+      <div class="stat"><span class="stat-k">目前溫度</span><span class="stat-v warm" id="stTemp">—</span></div>
+      <div class="stat"><span class="stat-k">接受率</span><span class="stat-v" id="stAcc">—</span></div>
+      <div class="stat"><span class="stat-k">迭代次數</span><span class="stat-v" id="stIter">0</span></div>
+    </div>
+    <p class="sr-only" role="status" aria-live="polite" id="live"></p>
+  </section>
+
+  <!-- ═══ 圖表 ═══ -->
+  <section class="card chart-card rise" style="--rd:.24s" aria-label="路徑長度變化圖">
+    <h2>路徑長度 vs 迭代 <span class="sub">鋸齒，是退火故意接受的「變差」</span></h2>
+    <canvas id="chartCv" role="img" aria-label="路徑長度隨迭代次數變化的折線圖，灰線是目前路徑、金線是歷史最佳"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="--c:var(--dim)"></i>目前路徑長度</span>
+      <span><i class="dot" style="--c:var(--gold)"></i>歷史最佳長度</span>
+    </div>
+  </section>
+
+  <!-- ═══ 比一比：純爬山 vs 退火 ═══ -->
+  <section class="card rise" style="--rd:.30s" aria-label="純爬山與退火並排對照">
+    <h2>純爬山 <span class="vs">vs</span> 退火</h2>
+    <p class="panel-lede">
+      把溫度<b>釘死在 0</b>，Metropolis 準則就只剩「變好才走」——這正是爬山法：一路下坡，
+      一旦四周的小變動都讓路線變差，就再也走不出去。退火則允許它在高溫時故意往「更差」的方向走幾步，
+      越過那道坎。兩邊用<b>同一組城市、同一份隨機初始路線、同樣的疊代預算</b>公平出發，只有接受準則不同。
+    </p>
+    <div class="cmp-controls">
+      <button class="btn primary" id="btnCmpRun" aria-label="用目前的城市開始並排比較">開始比較</button>
+      <span class="cmp-nn" id="cmpNNInfo">貪婪最近鄰起手：按下開始比較後顯示</span>
+    </div>
+    <div class="cmp-grid">
+      <div class="cmp-col">
+        <div class="cmp-head"><span class="dot warm"></span>純爬山（T 固定 = 0）</div>
+        <canvas class="cmp-cv" id="hcCv" role="img" aria-label="純爬山模擬畫布，顯示目前路線"></canvas>
+        <div class="cmp-len">長度 <b id="hcLen">—</b></div>
+      </div>
+      <div class="cmp-col">
+        <div class="cmp-head"><span class="dot sci"></span>退火（Metropolis 準則）</div>
+        <canvas class="cmp-cv" id="saCv" role="img" aria-label="退火模擬畫布，顯示目前路線"></canvas>
+        <div class="cmp-len">長度 <b id="saLen">—</b></div>
+      </div>
+    </div>
+    <canvas id="cmpChartCv" role="img" aria-label="純爬山與退火的路徑長度隨迭代變化對照圖"></canvas>
+    <div class="legend">
+      <span><i class="dot" style="--c:var(--warm)"></i>純爬山</span>
+      <span><i class="dot" style="--c:var(--sci)"></i>退火</span>
+    </div>
+    <p class="cmp-result" id="cmpResult" role="status" aria-live="polite">按下「開始比較」，看兩邊分出高下。</p>
+  </section>
+
+  <!-- ═══ 說明 ═══ -->
+  <section class="story rise" style="--rd:.36s" aria-label="方法與背景說明">
+    <div class="sec-head"><h2>爐火裡的最佳化</h2><span class="rule"></span></div>
+    <div class="story-grid">
+      <article class="scard">
+        <div class="n">壹</div>
+        <h3>推銷員的難題</h3>
+        <p>
+          旅行推銷員問題（TSP）：給一群城市與兩兩之間的距離，找一條<b>走遍每座城市恰好一次、最後回到起點</b>的最短路線。
+          城市一多，候選路線數就以階乘暴增——光是 <b>15</b> 座城市，不同繞法就超過
+          <b>435 億</b>（(15−1)!/2 = 43,589,145,600）種，逐一窮舉早已不可行。
+          1972 年 Richard Karp 證明與 TSP 緊密相關的漢米爾頓迴圈問題屬於 <b>NP-complete</b>，
+          TSP（最佳化版本）因此被歸類為 <b>NP-hard</b>：目前沒有已知演算法能在多項式時間內保證找到最佳解，也普遍相信不存在。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">貳</div>
+        <h3>借自冶金的名字</h3>
+        <p>
+          「退火」一詞真的借自冶金：把金屬加熱到高溫，讓原子有能量掙脫不穩定的排列，
+          再<b>緩慢降溫</b>，使它們有機會落進能量更低、更穩定的晶格——冷得太快，反而會卡進充滿內應力的亞穩態（急冷淬火因此變脆）。
+          這套「用溫度控制隨機接受壞結果」的機率規則，源自 <b>Metropolis、Rosenbluth、Rosenbluth、Teller 與 Teller</b>
+          1953 年發表於《The Journal of Chemical Physics》的蒙地卡羅演算法；1983 年，IBM 的
+          <b>Kirkpatrick、Gelatt 與 Vecchi</b> 把它直接搬進組合最佳化，發表於《Science》——退火不再只屬於金屬，也能拿來解 TSP、晶片佈局這類問題。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">參</div>
+        <h3>Metropolis 準則</h3>
+        <p>
+          每一步都對目前路線做一個小變動——這裡用 <b>2-opt</b>：任選路線上兩段邊，把中間那段<b>反過來接</b>，
+          算出長度變化 Δ（增量計算，不必整條路線重新加總）。<b>Δ&lt;0（變短）一定接受</b>；
+          <b>Δ&gt;0（變長）則以機率 <code>exp(−Δ/T)</code> 決定接不接受</b>——溫度 T 越高，接受變差的機率越大。
+          隨著 T 依冷卻排程 <code>T ← T₀·α^t</code> 一路降低，接受變差的機率趨近於 0，行為自然收斂成只挑好路走的爬山法。
+        </p>
+      </article>
+      <article class="scard">
+        <div class="n">肆</div>
+        <h3>不保證最佳，但夠用</h3>
+        <p>
+          退火<b>不保證找到最佳解</b>——它終究是機率式搜尋，冷得太快一樣會卡進局部最佳；
+          但比起窮舉暴力法，它用可控的時間換到「夠好」的答案，這正是它在晶片繞線、排程、蛋白質摺疊等現實工程裡活了超過四十年的原因。
+          這頁的取捨很直接：拉慢冷卻率 α、拉高初始溫度，探索更充分但要等更久；反過來則收斂快，卻更容易卡在較差的環。
+          左邊「純爬山 vs 退火」就是這個取捨最直接的示範。
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="rise" style="--rd:.42s">資料來源：Kirkpatrick, Gelatt &amp; Vecchi 1983《Science》、Metropolis et al. 1953、Wikipedia</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const $ = s => document.querySelector(s);
+
+  /* ════════════════════ 減弱動態 ════════════════════ */
+  const RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let reduce = RM.matches;
+  RM.addEventListener("change", e => { reduce = e.matches; onReduceChange(); });
+
+  /* ════════════════════ TSP 核心（純函式，無 DOM 依賴） ════════════════════ */
+  function tspDist(a, b) { const dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy); }
+
+  function tspTourLength(cities, tour) {
+    let sum = 0; const n = tour.length;
+    for (let i = 0; i < n; i++) {
+      const a = cities[tour[i]], b = cities[tour[(i + 1) % n]];
+      sum += tspDist(a, b);
+    }
+    return sum;
+  }
+
+  function tspRandomTour(n, rng) {
+    const rf = rng || Math.random;
+    const t = new Array(n);
+    for (let i = 0; i < n; i++) t[i] = i;
+    for (let i = n - 1; i > 0; i--) {
+      const j = Math.floor(rf() * (i + 1));
+      const tmp = t[i]; t[i] = t[j]; t[j] = tmp;
+    }
+    return t;
+  }
+
+  function tspNearestNeighborTour(cities, start) {
+    const n = cities.length;
+    start = start || 0;
+    const visited = new Array(n).fill(false);
+    const tour = [start]; visited[start] = true;
+    let cur = start;
+    for (let k = 1; k < n; k++) {
+      let best = -1, bestD = Infinity;
+      for (let j = 0; j < n; j++) {
+        if (visited[j]) continue;
+        const d = tspDist(cities[cur], cities[j]);
+        if (d < bestD) { bestD = d; best = j; }
+      }
+      tour.push(best); visited[best] = true; cur = best;
+    }
+    return tour;
+  }
+
+  // 隨機選一組合法的 2-opt 邊索引 (i,j)：0<=i<j<=n-1 且 j-i>=2（避免退化成沒有作用的翻轉）
+  function tspRandomTwoOptIndices(n, rng) {
+    const rf = rng || Math.random;
+    let i, j;
+    do {
+      i = Math.floor(rf() * n);
+      j = Math.floor(rf() * n);
+      if (i > j) { const t = i; i = j; j = t; }
+    } while (j - i < 2);
+    return [i, j];
+  }
+
+  // 反轉 tour[i+1..j] 後，長度的「增量」——只看四個端點，O(1)
+  function tspTwoOptDelta(cities, tour, i, j) {
+    const n = tour.length;
+    const a = cities[tour[i]], b = cities[tour[(i + 1) % n]];
+    const c = cities[tour[j]], d = cities[tour[(j + 1) % n]];
+    const before = tspDist(a, b) + tspDist(c, d);
+    const after = tspDist(a, c) + tspDist(b, d);
+    return after - before;
+  }
+
+  function tspApplyTwoOpt(tour, i, j) {
+    let lo = i + 1, hi = j;
+    while (lo < hi) { const t = tour[lo]; tour[lo] = tour[hi]; tour[hi] = t; lo++; hi--; }
+  }
+
+  // Metropolis 準則：Δ<=0 必接受；Δ>0 以 exp(-Δ/T) 機率接受（T<=0 時視為恆拒絕，即純爬山）
+  function tspMetropolisAccept(delta, T, rng) {
+    if (delta <= 0) return true;
+    if (T <= 0) return false;
+    const p = Math.exp(-delta / T);
+    return (rng ? rng() : Math.random()) < p;
+  }
+
+  // 依 T0、α、目標溫度比例，估算冷卻到接近 0 需要多少次疊代
+  function tspMaxIters(T0, alpha, tStopRatio) {
+    tStopRatio = tStopRatio || 1e-4;
+    if (!(T0 > 0) || !(alpha > 0) || alpha >= 1) return 2000;
+    return Math.ceil(Math.log(tStopRatio) / Math.log(alpha));
+  }
+
+  // 建立一次退火／爬山的執行狀態
+  function tspCreateRun(cities, initialTour, opts) {
+    const tour = initialTour.slice();
+    const length = tspTourLength(cities, tour);
+    return {
+      cities, tour, length,
+      bestTour: tour.slice(), bestLength: length,
+      T0: opts.T0, T: opts.T0, alpha: opts.alpha,
+      iter: 0, maxIter: opts.maxIter,
+      rng: opts.rng || Math.random,
+      fixedZero: !!opts.fixedZero,  // true = 純爬山：T 全程視為 0
+      acceptCount: 0, lastAccepted: false,
+      done: false
+    };
+  }
+
+  // 執行一次疊代（一次 2-opt 提案 + Metropolis 判定）
+  function tspStep(state) {
+    const n = state.tour.length;
+    if (n < 4 || state.done) return state;
+    const [i, j] = tspRandomTwoOptIndices(n, state.rng);
+    const delta = tspTwoOptDelta(state.cities, state.tour, i, j);
+    const useT = state.fixedZero ? 0 : state.T;
+    const accept = tspMetropolisAccept(delta, useT, state.rng);
+    if (accept) {
+      tspApplyTwoOpt(state.tour, i, j);
+      state.length += delta;
+      if (state.length < state.bestLength - 1e-9) {
+        state.bestLength = state.length;
+        state.bestTour = state.tour.slice();
+      }
+      state.acceptCount++;
+    }
+    state.lastAccepted = accept;
+    state.iter++;
+    if (!state.fixedZero) state.T = state.T0 * Math.pow(state.alpha, state.iter);
+    if (state.iter >= state.maxIter) state.done = true;
+    return state;
+  }
+
+  /* ════════════════════ localStorage（前綴 anneal.） ════════════════════ */
+  const PREF_KEY = "anneal.prefs";
+  function loadPrefs() {
+    try { const p = JSON.parse(localStorage.getItem(PREF_KEY)); return p && typeof p === "object" ? p : {}; }
+    catch (e) { return {}; }
+  }
+  function savePrefs(p) { try { localStorage.setItem(PREF_KEY, JSON.stringify(p)); } catch (e) {} }
+  const prefs = Object.assign({ n: 36, t0f: 1.0, alpha: 0.9985, speed: 10 }, loadPrefs());
+
+  /* ════════════════════ 世界座標與畫布 ════════════════════ */
+  const VW = 1000, VH = 620;
+  const MIN_N = 4, MAX_N = 120;
+  const MIN_CITY_DIST = 24; // 世界單位：新增城市時的最小間距，避免重疊
+
+  function makeTransform(cssW, cssH) {
+    const scale = Math.max(0.0001, Math.min(cssW / VW, cssH / VH));
+    const offX = (cssW - VW * scale) / 2, offY = (cssH - VH * scale) / 2;
+    return {
+      toScreen(x, y) { return { x: offX + x * scale, y: offY + y * scale }; },
+      toWorld(px, py) { return { x: (px - offX) / scale, y: (py - offY) / scale }; }
+    };
+  }
+
+  function fitCanvas(cv) {
+    const rect = cv.getBoundingClientRect();
+    const cssW = Math.max(1, rect.width), cssH = Math.max(1, rect.height);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const pxW = Math.round(cssW * dpr), pxH = Math.round(cssH * dpr);
+    if (cv.width !== pxW || cv.height !== pxH) { cv.width = pxW; cv.height = pxH; }
+    const ctx = cv.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { ctx, cssW, cssH, tf: makeTransform(cssW, cssH) };
+  }
+
+  function hexToRgb(h) {
+    const n = parseInt(h.replace("#", ""), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+  function lerpColor(hexA, hexB, t) {
+    t = Math.max(0, Math.min(1, t));
+    const a = hexToRgb(hexA), b = hexToRgb(hexB);
+    const r = Math.round(a.r + (b.r - a.r) * t);
+    const g = Math.round(a.g + (b.g - a.g) * t);
+    const bl = Math.round(a.b + (b.b - a.b) * t);
+    return "rgb(" + r + "," + g + "," + bl + ")";
+  }
+
+  function drawTour(ctx, cssW, cssH, tf, cities, tour, opts) {
+    ctx.clearRect(0, 0, cssW, cssH);
+    if (!cities.length) return;
+    if (tour && tour.length > 1) {
+      ctx.save();
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.strokeStyle = opts.color; ctx.lineWidth = opts.lineWidth || 2;
+      ctx.globalAlpha = opts.alpha != null ? opts.alpha : 1;
+      ctx.beginPath();
+      const n = tour.length;
+      for (let i = 0; i <= n; i++) {
+        const c = cities[tour[i % n]];
+        const p = tf.toScreen(c.x, c.y);
+        if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.save();
+    ctx.fillStyle = opts.cityColor || "#f1eefb";
+    const r = opts.cityR || 4;
+    cities.forEach(c => {
+      const p = tf.toScreen(c.x, c.y);
+      ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
+    });
+    if (opts.showStart && tour && tour.length) {
+      const c = cities[tour[0]]; const p = tf.toScreen(c.x, c.y);
+      ctx.strokeStyle = opts.startColor || "#f0c674"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r + 3.5, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawLineChart(ctx, cssW, cssH, series) {
+    ctx.clearRect(0, 0, cssW, cssH);
+    const pad = { l: 6, r: 6, t: 10, b: 6 };
+    const w = cssW - pad.l - pad.r, h = cssH - pad.t - pad.b;
+    let lo = Infinity, hi = -Infinity, maxLen = 0;
+    series.forEach(s => {
+      maxLen = Math.max(maxLen, s.data.length);
+      for (let i = 0; i < s.data.length; i++) { const v = s.data[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+    });
+    if (!isFinite(lo) || !isFinite(hi) || maxLen < 2) return;
+    if (hi - lo < 1e-6) { hi += 1; lo -= 1; }
+    const padY = (hi - lo) * 0.08;
+    lo -= padY; hi += padY;
+    const maxPts = 900;
+    series.forEach(s => {
+      const data = s.data; const n = data.length; if (n < 2) return;
+      const stride = Math.max(1, Math.ceil(n / maxPts));
+      ctx.save();
+      ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 1.6;
+      ctx.lineJoin = "round"; ctx.lineCap = "round";
+      ctx.globalAlpha = s.alpha != null ? s.alpha : 1;
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < n; i += stride) {
+        const x = pad.l + (i / (maxLen - 1)) * w;
+        const y = pad.t + h - ((data[i] - lo) / (hi - lo)) * h;
+        if (!started) { ctx.moveTo(x, y); started = true; } else { ctx.lineTo(x, y); }
+      }
+      const lastX = pad.l + ((n - 1) / (maxLen - 1)) * w;
+      const lastY = pad.t + h - ((data[n - 1] - lo) / (hi - lo)) * h;
+      ctx.lineTo(lastX, lastY);
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  /* ════════════════════ rAF 迴圈（分頁隱藏時暫停） ════════════════════ */
+  function makeLoop(stepFn) {
+    let id = null;
+    function tick() {
+      id = requestAnimationFrame(tick);
+      if (document.hidden) return; // 分頁隱藏／離屏：不做任何運算或繪製
+      stepFn();
+    }
+    return {
+      start() { if (id == null) id = requestAnimationFrame(tick); },
+      stop() { if (id != null) { cancelAnimationFrame(id); id = null; } },
+      get running() { return id != null; }
+    };
+  }
+
+  /* ════════════════════ 主舞台狀態 ════════════════════ */
+  let cities = [];
+  let run = null;
+  let historyLen = [], historyBest = [];
+  const stEls = {
+    len: $("#stLen"), best: $("#stBest"), temp: $("#stTemp"), acc: $("#stAcc"), iter: $("#stIter")
+  };
+  const liveEl = $("#live");
+  function announce(text) { liveEl.textContent = text; }
+
+  function currentT0() {
+    const factor = parseFloat($("#rngT0").value);
+    const avgEdge = cities.length >= 2 ? tspTourLength(cities, tspRandomTour(cities.length)) / cities.length : 60;
+    return Math.max(0.5, factor * avgEdge);
+  }
+  function currentAlpha() { return parseFloat($("#rngAlpha").value); }
+  function currentSpeed() { return parseInt($("#rngSpeed").value, 10); }
+
+  function scaleIterByN(n) { return Math.max(0.5, Math.min(6, n / 20)); }
+
+  function regenerateCities(n) {
+    n = Math.max(MIN_N, Math.min(MAX_N, n | 0));
+    const pad = 40;
+    cities = [];
+    for (let i = 0; i < n; i++) {
+      cities.push({ x: pad + Math.random() * (VW - 2 * pad), y: pad + Math.random() * (VH - 2 * pad) });
+    }
+    resetRun("已生成 " + n + " 座城市。");
+  }
+
+  function clearCities() {
+    cities = [];
+    resetRun("已清空城市。");
+  }
+
+  function addCityAt(pt) {
+    for (const c of cities) { if (Math.hypot(c.x - pt.x, c.y - pt.y) < MIN_CITY_DIST) return; }
+    if (cities.length >= MAX_N) return;
+    cities.push({ x: pt.x, y: pt.y });
+    resetRun("已新增第 " + cities.length + " 座城市。");
+  }
+
+  function resetRun(msg) {
+    mainLoop.stop();
+    if (cities.length >= MIN_N) {
+      const t0 = currentT0(), alpha = currentAlpha();
+      const maxIter = Math.min(40000, Math.round(tspMaxIters(t0, alpha) * scaleIterByN(cities.length)));
+      const initTour = tspRandomTour(cities.length);
+      run = tspCreateRun(cities, initTour, { T0: t0, alpha, maxIter });
+    } else {
+      run = null;
+    }
+    historyLen = []; historyBest = [];
+    if (run) { historyLen.push(run.length); historyBest.push(run.bestLength); }
+    setBadge("尚未開始");
+    updatePlayButton(false);
+    updateStats(true);
+    drawStage();
+    drawChart();
+    $("#btnPlay").disabled = !run;
+    $("#btnStep").disabled = !run;
+    if (msg) announce(msg);
+    $("#stageHint").textContent = cities.length < MIN_N
+      ? "點畫布新增城市 · 至少需要 4 座才能開始（目前 " + cities.length + " 座）"
+      : "點畫布可再新增城市，或直接按開始";
+  }
+
+  function setBadge(text, cls) {
+    const b = $("#statusBadge");
+    b.textContent = text;
+    b.className = "badge" + (cls ? (" " + cls) : "");
+  }
+
+  function updatePlayButton(running) {
+    $("#playIco").textContent = running ? "⏸" : "▶";
+    $("#playTxt").textContent = reduce ? (running ? "暫停" : "跑到收斂") : (running ? "暫停" : "開始");
+  }
+
+  function bumpEl(el) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+
+  function updateStats(force) {
+    if (!run) {
+      stEls.len.textContent = "—"; stEls.best.textContent = "—"; stEls.temp.textContent = "—";
+      stEls.acc.textContent = "—"; stEls.iter.textContent = "0";
+      return;
+    }
+    const prevBest = stEls.best.textContent;
+    stEls.len.textContent = run.length.toFixed(1);
+    const bestTxt = run.bestLength.toFixed(1);
+    if (force || bestTxt !== prevBest) { stEls.best.textContent = bestTxt; if (!force) bumpEl(stEls.best); }
+    stEls.temp.textContent = (run.fixedZero ? 0 : run.T).toFixed(run.T < 10 ? 2 : 1);
+    stEls.acc.textContent = run.iter > 0 ? Math.round((run.acceptCount / run.iter) * 100) + "%" : "—";
+    stEls.iter.textContent = run.iter.toLocaleString("zh-Hant-TW");
+  }
+
+  function drawStage() {
+    const { ctx, cssW, cssH, tf } = fitCanvas($("#stageCv"));
+    const T0 = run ? run.T0 : 1;
+    const ratio = run ? Math.min(1, run.T / T0) : 0;
+    const color = run ? lerpColor("#4dd0e1", "#ff9466", ratio) : "#6f6a97";
+    drawTour(ctx, cssW, cssH, tf, cities, run ? run.tour : null, {
+      color, lineWidth: 2.2, cityColor: "#f1eefb", cityR: 4.4, showStart: true
+    });
+  }
+
+  function drawChart() {
+    const { ctx, cssW, cssH } = fitCanvas($("#chartCv"));
+    drawLineChart(ctx, cssW, cssH, [
+      { data: historyLen, color: "rgba(169,164,207,.85)", width: 1.3, alpha: .85 },
+      { data: historyBest, color: "#f0c674", width: 2 }
+    ]);
+  }
+
+  function stepMain(count) {
+    if (!run) return;
+    for (let k = 0; k < count && !run.done; k++) tspStep(run);
+    historyLen.push(run.length); historyBest.push(run.bestLength);
+    if (historyLen.length > 40000) { historyLen.splice(0, historyLen.length - 40000); historyBest.splice(0, historyBest.length - 40000); }
+    if (run.done) {
+      mainLoop.stop();
+      setBadge("已收斂", "done");
+      updatePlayButton(false);
+      announce("已收斂。最終路徑長度 " + run.length.toFixed(1) + "，歷史最佳 " + run.bestLength.toFixed(1) + "，共 " + run.iter + " 次疊代。");
+    }
+  }
+
+  const mainLoop = makeLoop(() => {
+    stepMain(currentSpeed());
+    updateStats(false);
+    drawStage();
+    drawChart();
+  });
+
+  function playPause() {
+    if (!run) return;
+    if (reduce) {
+      // 降級：不跑連續動畫，直接同步跑到收斂或到底，一次性跳到結果
+      setBadge("模擬中…", "run");
+      while (!run.done) tspStep(run);
+      historyLen.push(run.length); historyBest.push(run.bestLength);
+      setBadge("已收斂", "done");
+      updateStats(true);
+      drawStage(); drawChart();
+      announce("已跳到結果。最終路徑長度 " + run.length.toFixed(1) + "，歷史最佳 " + run.bestLength.toFixed(1) + "，共 " + run.iter + " 次疊代。");
+      return;
+    }
+    if (mainLoop.running) {
+      mainLoop.stop(); updatePlayButton(false); setBadge("已暫停");
+    } else if (!run.done) {
+      mainLoop.start(); updatePlayButton(true); setBadge("模擬中…", "run");
+      announce("開始模擬退火。");
+    }
+  }
+
+  function stepOnce() {
+    if (!run) return;
+    mainLoop.stop(); updatePlayButton(false);
+    stepMain(1);
+    updateStats(false); drawStage(); drawChart();
+    if (!run.done) setBadge("已暫停");
+  }
+
+  function onReduceChange() {
+    if (reduce && mainLoop.running) { mainLoop.stop(); setBadge("已暫停"); }
+    updatePlayButton(mainLoop.running);
+    if (reduce && cmpLoop.running) {
+      cmpLoop.stop();
+      $("#cmpResult").textContent = "已切換為減弱動態，比較已暫停——再按一次「開始比較」會直接跳到結果。";
+    }
+  }
+
+  /* ════════════════════ 主舞台：互動 ════════════════════ */
+  $("#nInput").value = prefs.n;
+  $("#rngT0").value = prefs.t0f; $("#valT0").textContent = "×" + (+prefs.t0f).toFixed(2);
+  $("#rngAlpha").value = prefs.alpha; $("#valAlpha").textContent = (+prefs.alpha).toFixed(4);
+  $("#rngSpeed").value = prefs.speed; $("#valSpeed").textContent = prefs.speed;
+
+  $("#btnRandom").addEventListener("click", () => {
+    const n = Math.max(MIN_N, Math.min(MAX_N, parseInt($("#nInput").value, 10) || MIN_N));
+    $("#nInput").value = n;
+    prefs.n = n; savePrefs(prefs);
+    regenerateCities(n);
+  });
+  $("#btnClear").addEventListener("click", clearCities);
+  $("#btnPlay").addEventListener("click", playPause);
+  $("#btnStep").addEventListener("click", stepOnce);
+  $("#btnReset").addEventListener("click", () => resetRun("已重新打亂路線。"));
+
+  $("#rngT0").addEventListener("input", e => {
+    $("#valT0").textContent = "×" + (+e.target.value).toFixed(2);
+    prefs.t0f = +e.target.value; savePrefs(prefs);
+  });
+  $("#rngAlpha").addEventListener("input", e => {
+    $("#valAlpha").textContent = (+e.target.value).toFixed(4);
+    prefs.alpha = +e.target.value; savePrefs(prefs);
+  });
+  $("#rngSpeed").addEventListener("input", e => {
+    $("#valSpeed").textContent = e.target.value;
+    prefs.speed = +e.target.value; savePrefs(prefs);
+  });
+
+  const stageCv = $("#stageCv");
+  function pointFromEvent(evt) {
+    const rect = stageCv.getBoundingClientRect();
+    const cssW = rect.width, cssH = rect.height;
+    const tf = makeTransform(cssW, cssH);
+    return tf.toWorld(evt.clientX - rect.left, evt.clientY - rect.top);
+  }
+  stageCv.addEventListener("pointerdown", evt => {
+    const pt = pointFromEvent(evt);
+    if (pt.x < 0 || pt.x > VW || pt.y < 0 || pt.y > VH) return;
+    addCityAt(pt);
+  });
+  stageCv.addEventListener("keydown", evt => {
+    if (evt.key === "Enter" || evt.key === " ") {
+      evt.preventDefault();
+      const pad = 60;
+      addCityAt({ x: pad + Math.random() * (VW - 2 * pad), y: pad + Math.random() * (VH - 2 * pad) });
+    }
+  });
+
+  new ResizeObserver(() => { drawStage(); }).observe($("#stageWrap"));
+  new ResizeObserver(() => { drawChart(); }).observe($("#chartCv"));
+
+  /* ════════════════════ 比一比：純爬山 vs 退火 ════════════════════ */
+  let cmpHC = null, cmpSA = null, cmpNN = null, cmpHistHC = [], cmpHistSA = [];
+
+  function startComparison() {
+    if (cities.length < MIN_N) return;
+    cmpLoop.stop();
+    const cCities = cities.map(c => ({ x: c.x, y: c.y }));
+    const initTour = tspRandomTour(cCities.length);
+    const t0 = currentT0(), alpha = currentAlpha();
+    const maxIter = Math.min(40000, Math.round(tspMaxIters(t0, alpha) * scaleIterByN(cCities.length)));
+    cmpHC = tspCreateRun(cCities, initTour, { T0: t0, alpha, maxIter, fixedZero: true });
+    cmpSA = tspCreateRun(cCities, initTour, { T0: t0, alpha, maxIter, fixedZero: false });
+    cmpNN = tspNearestNeighborTour(cCities, 0);
+    const nnLen = tspTourLength(cCities, cmpNN);
+    const randLen = tspTourLength(cCities, initTour);
+    $("#cmpNNInfo").innerHTML = "隨機起始 <b>" + randLen.toFixed(1) + "</b> → 貪婪最近鄰 <b>" + nnLen.toFixed(1) + "</b>" +
+      "（開局就短了 " + Math.max(0, Math.round((1 - nnLen / randLen) * 100)) + "%）";
+    cmpHistHC = [cmpHC.length]; cmpHistSA = [cmpSA.length];
+    $("#hcLen").textContent = cmpHC.length.toFixed(1);
+    $("#saLen").textContent = cmpSA.length.toFixed(1);
+    $("#cmpResult").className = "cmp-result";
+    $("#cmpResult").textContent = "比較進行中……";
+    cmpDraw();
+    if (reduce) {
+      while (!cmpHC.done) tspStep(cmpHC);
+      while (!cmpSA.done) tspStep(cmpSA);
+      cmpHistHC.push(cmpHC.length); cmpHistSA.push(cmpSA.length);
+      cmpFinish();
+      return;
+    }
+    cmpLoop.start();
+  }
+
+  const cmpLoop = makeLoop(() => {
+    const speed = currentSpeed();
+    for (let k = 0; k < speed; k++) { if (!cmpHC.done) tspStep(cmpHC); if (!cmpSA.done) tspStep(cmpSA); }
+    cmpHistHC.push(cmpHC.length); cmpHistSA.push(cmpSA.length);
+    if (cmpHistHC.length > 40000) { cmpHistHC.splice(0, cmpHistHC.length - 40000); cmpHistSA.splice(0, cmpHistSA.length - 40000); }
+    $("#hcLen").textContent = cmpHC.length.toFixed(1);
+    $("#saLen").textContent = cmpSA.length.toFixed(1);
+    cmpDraw();
+    if (cmpHC.done && cmpSA.done) { cmpLoop.stop(); cmpFinish(); }
+  });
+
+  function cmpFinish() {
+    $("#hcLen").textContent = cmpHC.length.toFixed(1);
+    $("#saLen").textContent = cmpSA.length.toFixed(1);
+    bumpEl($("#hcLen")); bumpEl($("#saLen"));
+    cmpDraw();
+    const hc = cmpHC.length, sa = cmpSA.length;
+    const el = $("#cmpResult");
+    if (sa < hc - 1e-6) {
+      const pct = Math.round((1 - sa / hc) * 100);
+      el.className = "cmp-result win";
+      el.innerHTML = "純爬山 <b>" + hc.toFixed(1) + "</b>　退火 <b>" + sa.toFixed(1) + "</b> → 退火短了約 <b>" + pct + "%</b>，越過了爬山法卡住的山谷。";
+    } else if (Math.abs(sa - hc) <= 1e-6) {
+      el.className = "cmp-result";
+      el.innerHTML = "純爬山 <b>" + hc.toFixed(1) + "</b>　退火 <b>" + sa.toFixed(1) + "</b> → 這組城市剛好打平。";
+    } else {
+      const pct = Math.round((1 - hc / sa) * 100);
+      el.className = "cmp-result";
+      el.innerHTML = "純爬山 <b>" + hc.toFixed(1) + "</b>　退火 <b>" + sa.toFixed(1) + "</b>（這回爬山法短了 " + pct + "%——多跑幾次或拉高初始溫度，退火通常會反超）。";
+    }
+    announce(el.textContent);
+  }
+
+  function cmpDraw() {
+    if (cmpHC) {
+      const { ctx, cssW, cssH, tf } = fitCanvas($("#hcCv"));
+      const c1 = "#ff9466", c0 = "#8a5b46";
+      const t = cmpHC.iter / Math.max(1, cmpHC.maxIter);
+      drawTour(ctx, cssW, cssH, tf, cmpHC.cities, cmpHC.tour, { color: lerpColor(c0, c1, 0.3), lineWidth: 2, cityColor: "#f1eefb", cityR: 3.6 });
+    }
+    if (cmpSA) {
+      const { ctx, cssW, cssH, tf } = fitCanvas($("#saCv"));
+      const ratio = Math.min(1, cmpSA.T / Math.max(1e-9, cmpSA.T0));
+      const color = lerpColor("#4dd0e1", "#ff9466", ratio);
+      drawTour(ctx, cssW, cssH, tf, cmpSA.cities, cmpSA.tour, { color, lineWidth: 2, cityColor: "#f1eefb", cityR: 3.6 });
+    }
+    const { ctx, cssW, cssH } = fitCanvas($("#cmpChartCv"));
+    drawLineChart(ctx, cssW, cssH, [
+      { data: cmpHistHC, color: "#ff9466", width: 1.6 },
+      { data: cmpHistSA, color: "#4dd0e1", width: 1.6 }
+    ]);
+  }
+
+  $("#btnCmpRun").addEventListener("click", startComparison);
+  new ResizeObserver(() => cmpDraw()).observe($("#hcCv"));
+  new ResizeObserver(() => cmpDraw()).observe($("#cmpChartCv"));
+
+  /* ════════════════════ 啟動 ════════════════════ */
+  regenerateCities(prefs.n);
+  updatePlayButton(false);
+  requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("preload")));
+})();
+</script>
+</body>
+</html>

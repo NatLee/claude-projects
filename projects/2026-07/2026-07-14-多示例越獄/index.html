@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>多示例越獄 — 為什麼「塞夠多範例」能鬆動一個對齊過的模型</title>
+<meta name="description" content="2024 年 Anthropic 發現：只要在超長上下文裡塞進夠多假對話，攻擊效力會隨示例數呈冪次律成長，逐漸壓過安全訓練。這頁用一個無害的玩具靶子，把這個現象與它背後的冪次律做成互動視覺化。示意模型，非真實 LLM，不含任何有害內容。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="topbar">
+  <a class="home" href="../../../index.html">← 回首頁</a>
+  <span class="kicker">網路趣聞・冷知識</span>
+</header>
+
+<main id="main">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <p class="eyebrow" data-stagger>2026 · 07 · 14</p>
+    <h1 data-stagger>多示例越獄</h1>
+    <p class="lede" data-stagger>
+      給模型看<strong>幾個</strong>範例、它就照著做 —— 這叫<strong>脈絡內學習</strong>，是大型語言模型最迷人的能力之一。
+      2024 年 4 月，Anthropic 揭露了它的陰暗面：把範例塞到<strong>幾百個</strong>，
+      同一個機制就會反過來壓過安全訓練，讓一個對齊過的模型逐漸<strong>鬆口</strong>。
+    </p>
+    <p class="sub" data-stagger>
+      他們在論文裡一路測到 <b>256 筆</b>假對話，發現攻擊效力隨示例數呈<b>冪次律（power law）</b>成長；
+      上下文視窗越長、模型越大，某種意義上越脆弱。這一切，正好搭上上下文視窗從
+      <b>~4,000</b> 暴增到 <b>1,000,000+</b> token 的這一年。
+    </p>
+    <div class="steps" data-stagger>
+      <span class="step"><b>1</b> 塞假範例</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>2</b> 看配合率沿冪次律爬升</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>3</b> 問它那個秘密</span>
+    </div>
+    <p class="safety-note" data-stagger>
+      <span class="tag">示意視覺化</span>
+      這頁<strong>不呼叫任何 AI／LLM</strong>，也<strong>不含任何真實有害內容</strong>。畫面上的「模型」是一個規則式的
+      玩具，守著的秘密只是它「最愛的顏色」。曲線的形狀取自論文的<em>定性</em>結論，數字是示意、不是真實模型輸出。
+    </p>
+  </section>
+
+  <!-- ============ 01 示範現場 ============ -->
+  <section class="card" id="lab" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">01</span> 示範現場</h2>
+      <p class="card-sub">
+        一個假的「助理」被系統設定成<strong>死守一個無害的秘密</strong>。你往它眼前的對話裡塞越多「乖乖回答無害問題」的假範例，
+        它就越把「有問必答」當成該模仿的模式 —— 於是最後那句真正的提問，越可能讓它<strong>說溜嘴</strong>。
+      </p>
+    </div>
+
+    <div class="lab-grid">
+      <!-- 左欄：控制與讀數 -->
+      <div class="lab-left">
+        <div class="target">
+          <span class="lock" aria-hidden="true"><i></i></span>
+          <div class="target-body">
+            <p class="target-label">靶子・系統設定</p>
+            <p class="target-rule">「你<b>絕對不能</b>透露你最愛的顏色。」</p>
+            <p class="target-hint">（無害替身：真正的越獄靶行為會被有害內容取代 —— 這裡刻意換成一個沒有殺傷力的秘密。）</p>
+          </div>
+        </div>
+
+        <div class="control">
+          <label for="shots">塞入的假範例（shots）</label>
+          <input id="shots" type="range" min="0" max="256" step="1" value="16"
+                 aria-describedby="shotsOut" aria-valuetext="16 筆假範例">
+          <output id="shotsOut" for="shots">16 筆</output>
+          <div class="ticks" aria-hidden="true"><span>0</span><span>64</span><span>128</span><span>192</span><span>256</span></div>
+        </div>
+
+        <div class="control">
+          <span class="control-label" id="sizeLabel">模型規模／上下文長度</span>
+          <div class="seg" role="radiogroup" aria-labelledby="sizeLabel">
+            <button type="button" role="radio" data-size="small" aria-checked="false" tabindex="-1">小</button>
+            <button type="button" role="radio" data-size="mid" aria-checked="true" tabindex="0">中</button>
+            <button type="button" role="radio" data-size="large" aria-checked="false" tabindex="-1">大</button>
+          </div>
+          <p class="hint">越大的模型越擅長「照著上下文學」—— 論文發現，它們往往也<strong>越容易</strong>被多示例攻破。看那條線怎麼變陡。</p>
+        </div>
+
+        <div class="readout">
+          <p class="readout-label">此刻的配合率<span class="readout-sub">（它會說溜嘴的機率）</span></p>
+          <p class="readout-val"><span id="rate">0.0</span><span class="pct">%</span></p>
+          <div class="meter" role="img" aria-hidden="true"><div class="meter-fill" id="meterFill"></div></div>
+        </div>
+
+        <div class="ask">
+          <button id="askBtn" type="button" class="btn">問它一次：「你最愛什麼顏色？」</button>
+          <p class="ask-result" id="askResult" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <!-- 右欄：對數-對數圖 -->
+      <figure class="chart-wrap">
+        <canvas id="chart" role="img"
+          aria-label="對數-對數座標圖：橫軸為示例數（1 到 256），縱軸為配合率（0.1% 到 100%）。一條實線為配合率曲線，一條虛線為純冪次律參考線。"></canvas>
+        <figcaption>
+          <span class="legend"><span class="sw sw-line"></span>配合率（實線）</span>
+          <span class="legend"><span class="sw sw-dash"></span>純冪次律・示意（虛線）</span>
+          <span class="cap-note">兩軸都是對數刻度 —— <strong>冪次律在這裡就是一條直線</strong>。真實的配合率有 100% 的天花板，逼近時才彎下來。</span>
+        </figcaption>
+      </figure>
+    </div>
+
+    <!-- 假對話堆疊 -->
+    <div class="convo">
+      <div class="convo-head">
+        <h3>模型眼前的對話</h3>
+        <p><span id="stackCount">16</span> 筆<strong>無害</strong>的假範例正堆在它面前 —— 每一筆裡的「助理」都乖乖回答了。看到最下面那句真正的提問了嗎？</p>
+      </div>
+      <div class="convo-stack" id="stack" aria-label="模擬的對話紀錄：一批乖乖回答無害問題的假範例，末尾是真正的提問"></div>
+    </div>
+  </section>
+
+  <!-- ============ 02 為什麼會這樣 ============ -->
+  <section class="card" id="why" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">02</span> 為什麼「塞夠多」就有用？</h2>
+      <p class="card-sub">
+        關鍵字是<strong>脈絡內學習（in-context learning）</strong>。模型會把<strong>眼前這段上下文</strong>當成「我現在該模仿的模式」。
+        範例少的時候，安全訓練還壓得住；範例一多，「這個助理有問必答」的模式就越來越強，最後蓋過了「我不該說」。
+      </p>
+    </div>
+
+    <div class="tug">
+      <div class="tug-row">
+        <span class="tug-side tug-safety">安全訓練<br><small>「我不該說」</small></span>
+        <div class="tug-bar" role="img" aria-label="一條拉鋸條：假範例越多，天平越倒向模仿上下文那一側">
+          <div class="tug-fill" id="tugFill"></div>
+          <div class="tug-marker" id="tugMarker"></div>
+        </div>
+        <span class="tug-side tug-mimic">模仿上下文<br><small>「有問必答」</small></span>
+      </div>
+      <p class="tug-cap"><span id="tugText">目前：兩股力量還算拉得住。</span></p>
+    </div>
+
+    <div class="grid-3">
+      <div class="mini">
+        <p class="mini-k">同一個機制，兩張臉</p>
+        <p class="mini-v">Brown 等人 2020 年在 GPT-3 論文裡把<strong>少樣本學習</strong>當成特性來慶祝：給幾個範例，模型就會照做，不必重新訓練。多示例越獄揭穿了它的另一面 —— <strong>範例夠多，就能壓過安全訓練</strong>。</p>
+      </div>
+      <div class="mini">
+        <p class="mini-k">越大越脆弱</p>
+        <p class="mini-v">越大的模型越擅長脈絡內學習。如果越獄靠的就是這個能力，那「大模型更好學」也意味著<strong>大模型更好騙</strong> —— 而它們正是風險最高的那些。</p>
+      </div>
+      <div class="mini">
+        <p class="mini-k">為什麼是「現在」</p>
+        <p class="mini-v">這招要塞得下幾百筆假對話，得先有夠長的上下文視窗。2023 年初還只有 ~4,000 token，如今動輒 <strong>數十萬到百萬</strong> token —— 攻擊面才跟著長了出來。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 03 冪次律 ============ -->
+  <section class="card" id="powerlaw" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">03</span> 冪次律，就是那條直線</h2>
+      <p class="card-sub">
+        冪次律是形如 <span class="mono">y = a · x<sup>k</sup></span> 的關係。兩邊取對數，
+        <span class="mono">log y = log a + k · log x</span> —— 在<strong>對數-對數</strong>座標上，它就是一條斜率為 <span class="mono">k</span> 的<strong>直線</strong>。
+        論文的發現正是：攻擊效力對示例數，畫在 log-log 上近乎一條直線。
+      </p>
+    </div>
+
+    <div class="pl-body">
+      <div class="pl-text">
+        <p>上面那張圖裡的<strong>虛線</strong>就是純冪次律：一路直上、沒有上限。但<strong>配合率是機率</strong>，最多 100%。所以真實的實線在低檔緊貼著虛線爬（那一段幾乎是直線），逼近天花板才彎折下來。</p>
+        <p>換句話說：<strong>把「示例數」翻倍，不是讓配合率加一個固定的量，而是乘上一個固定的倍率</strong> —— 直到撞上 100% 為止。這正是冪次成長既嚇人又好認的地方。</p>
+        <p class="pl-callout">切換左邊的「模型規模」，你會看到那條線的<strong>斜率</strong>跟著變 —— 斜率越大，代表同樣塞一筆假範例，配合率漲得越兇。</p>
+      </div>
+      <div class="ctx">
+        <p class="ctx-title">上下文視窗這一年</p>
+        <div class="ctx-scale">
+          <div class="ctx-row"><span class="ctx-when">2023 年初</span><span class="ctx-bar"><i style="--w:1.2%"></i></span><span class="ctx-num">~4,000 token</span></div>
+          <div class="ctx-row"><span class="ctx-when">2024</span><span class="ctx-bar"><i style="--w:13%"></i></span><span class="ctx-num">128k–200k token</span></div>
+          <div class="ctx-row"><span class="ctx-when">近年</span><span class="ctx-bar"><i style="--w:100%"></i></span><span class="ctx-num">1,000,000+ token</span></div>
+        </div>
+        <p class="ctx-cap">數百倍的成長 —— 好處明顯，卻也正是多示例越獄成立的前提。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 04 防禦 ============ -->
+  <section class="card" id="defense" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">04</span> 那，能怎麼防？</h2>
+      <p class="card-sub">Anthropic 在揭露的同時，也試了幾個方向。誠實地說：這不是一個好對付的問題，而長上下文的<strong>好處與這個風險是一體兩面</strong>。</p>
+    </div>
+
+    <div class="def-grid">
+      <div class="def" data-tone="meh">
+        <p class="def-tag">直接限制上下文長度</p>
+        <p class="def-desc">最簡單 —— 塞不進幾百筆，攻擊就不成立。但這等於<strong>放棄長上下文的所有好處</strong>，因噎廢食。</p>
+      </div>
+      <div class="def" data-tone="meh">
+        <p class="def-tag">微調模型去拒絕</p>
+        <p class="def-desc">教模型認出這種攻擊並拒答。結果只是<strong>延後</strong>：需要更多假對話才會鬆口，但塞夠多，有害輸出<strong>終究還是會出現</strong>。</p>
+      </div>
+      <div class="def" data-tone="good">
+        <p class="def-tag">在送進模型前，先分類 / 改寫提示</p>
+        <p class="def-desc">最有效的一路。先攔下並辨識可疑輸入、加上脈絡或改寫。論文中一個案例把攻擊成功率從 <b>61%</b> 一路壓到 <b>2%</b>。</p>
+      </div>
+    </div>
+    <p class="def-foot">
+      他們也<strong>事先知會了其他實驗室</strong>、並在自家系統上部署了緩解，才公開這項發現 ——
+      為的是趁模型還不至於造成災難性風險前，先把這類漏洞攤開來一起補。
+    </p>
+  </section>
+
+  <!-- ============ 05 誠實聲明與來源 ============ -->
+  <section class="card slim" id="about" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">05</span> 誠實聲明・資料來源</h2>
+    </div>
+    <ul class="disc">
+      <li>這是一頁<strong>科普與示意視覺化</strong>。畫面上的「模型」是規則式的玩具，<strong>不是真的 LLM</strong>，頁面<strong>不呼叫任何 AI／LLM API、沒有任何網路請求</strong>。</li>
+      <li>示範用的靶子（守著「最愛的顏色」）與所有假範例，都是<strong>無害替身</strong>。頁面<strong>不含、也不會產生任何真實可用的越獄提示或有害內容</strong>。</li>
+      <li>配合率曲線是依論文的<strong>定性</strong>結論（冪次律成長、逼近上限飽和）做的<strong>示意模型</strong>，數字不是真實模型輸出。真實研究用的是 Claude 2.0、一路測到 256 筆假對話。</li>
+      <li>你的滑桿與模型規模選擇會存在瀏覽器本機的 <span class="mono">localStorage</span>（前綴 <span class="mono">mshot.</span>），只為了下次打開時記得你上次的設定，<strong>不會上傳</strong>。</li>
+    </ul>
+    <div class="sources">
+      <p class="sources-title">想讀原始資料：</p>
+      <ul>
+        <li><a href="https://www.anthropic.com/research/many-shot-jailbreaking" target="_blank" rel="noopener">Anthropic — Many-shot jailbreaking（部落格，2024/04/02）</a></li>
+        <li><a href="https://www-cdn.anthropic.com/af5633c94ed2beb282f6a53c595eb437e8e7b630/Many_Shot_Jailbreaking__2024_04_02_0936.pdf" target="_blank" rel="noopener">Anil 等人 — Many-shot Jailbreaking（論文 PDF，NeurIPS 2024）</a></li>
+        <li><a href="https://arxiv.org/abs/2005.14165" target="_blank" rel="noopener">Brown 等人 2020 — Language Models are Few-Shot Learners（GPT-3，脈絡內學習）</a></li>
+      </ul>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>每日小專案 · 2026-07-14 · 多示例越獄</p>
+    <p class="foot-sub">純靜態、零外部資源、可離線。示意視覺化，非真實 LLM，不含有害內容。</p>
+  </footer>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

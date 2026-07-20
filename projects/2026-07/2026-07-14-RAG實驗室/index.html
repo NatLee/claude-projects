@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG 實驗室 — 為什麼你餵了資料，它還是答錯</title>
+<meta name="description" content="把 RAG（檢索增強生成）的完整流水線攤開來、可互動地跑一遍：切塊、嵌入、稀疏／語意／混合檢索、抽取式生成，並揭露 Lost in the Middle、切塊陷阱、檢索更多不等於更好三個實務寶藏。純靜態、零外部資源、不呼叫任何 LLM。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到主要內容</a>
+
+<a class="back-link" href="../../../index.html" aria-label="回到首頁">
+  <span aria-hidden="true">←</span> 回首頁
+</a>
+
+<!-- ============================ HERO ============================ -->
+<header class="hero" role="banner">
+  <canvas id="hero-canvas" class="hero-canvas" aria-hidden="true"></canvas>
+  <div class="hero-inner">
+    <p class="eyebrow" data-reveal>學習新知 · 檢索增強生成</p>
+    <h1 class="hero-title" data-reveal>RAG 實驗室</h1>
+    <p class="hero-sub" data-reveal>為什麼你餵了資料，它還是答錯？</p>
+    <p class="hero-lead" data-reveal>
+      RAG（Retrieval-Augmented Generation，檢索增強生成）是今天「讓 LLM 讀你的文件再回答」的主流做法。
+      這頁把它的<strong>完整流水線</strong>攤開、讓你親手跑一遍，並揭露三個一般教學不講、但實務上會咬人的隱藏寶藏。
+      全站<strong>純靜態、零外部資源、不呼叫任何 LLM</strong>——所有檢索都在你的瀏覽器裡當場計算。
+    </p>
+    <div class="hero-tags" data-reveal>
+      <span class="htag t-rose">寶藏一 · Lost in the Middle</span>
+      <span class="htag t-amber">寶藏二 · 切塊的代價</span>
+      <span class="htag t-violet">寶藏三 · 檢索更多 ≠ 更好</span>
+    </div>
+    <a class="hero-cta" href="#qa" data-reveal>直接開跑 ↓</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ==================== 知識庫 ==================== -->
+  <section class="sec" id="kb" aria-labelledby="kb-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">01</span>
+      <div>
+        <h2 id="kb-h">知識庫</h2>
+        <p class="sec-desc">RAG 要有東西可讀。這裡內建一份虛構的產品手冊當語料——前後一致、可被問答。所有檢索與「答案」都只從這裡來。</p>
+      </div>
+    </div>
+    <div class="kb-wrap" data-reveal>
+      <div class="kb-titlebar">
+        <span class="kb-name">雲雀智能 · 候鳥 M2 智慧義式咖啡機 · 使用手冊</span>
+        <button id="kb-toggle" class="btn-ghost" aria-expanded="false" aria-controls="kb-panel">展開全部 23 段 ▼</button>
+      </div>
+      <p id="kb-meta" class="kb-meta"></p>
+      <div id="kb-panel" class="kb-panel" aria-label="知識庫全文">
+        <ul id="kb-list" class="kb-list"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 切塊實驗室 ==================== -->
+  <section class="sec" id="chunk" aria-labelledby="chunk-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">02</span>
+      <div>
+        <h2 id="chunk-h">切塊實驗室</h2>
+        <p class="sec-desc">文件太長塞不進去，得先切成小塊（chunk）。切太大會稀釋主題、切太小會把一個答案劈成兩半。拖拉看看切法怎麼改變。</p>
+      </div>
+    </div>
+
+    <div class="panel" data-reveal>
+      <div class="controls">
+        <div class="ctrl">
+          <label for="ctrl-size">chunk 大小（字元）<output id="ctrl-size-val" class="ctrl-val">110</output></label>
+          <input type="range" id="ctrl-size" min="30" max="220" step="5" value="110" aria-describedby="ctrl-size-hint">
+          <span id="ctrl-size-hint" class="ctrl-hint">越大越完整，但主題越雜、越容易 Lost in the Middle。</span>
+        </div>
+        <div class="ctrl">
+          <label for="ctrl-overlap">重疊 overlap（字元）<output id="ctrl-overlap-val" class="ctrl-val">22</output></label>
+          <input type="range" id="ctrl-overlap" min="0" max="109" step="2" value="22" aria-describedby="ctrl-overlap-hint">
+          <span id="ctrl-overlap-hint" class="ctrl-hint">讓相鄰塊共享邊界文字，避免答案被切在縫上。常見抓 chunk 的 10–20%。</span>
+        </div>
+      </div>
+
+      <div id="chunk-stats" class="statbar">
+        <div class="stat"><span class="stat-n" id="stat-count" data-v="0">0</span><span class="stat-l">chunk 數</span></div>
+        <div class="stat"><span class="stat-n" id="stat-avg" data-v="0">0</span><span class="stat-l">平均字數</span></div>
+        <div class="stat"><span class="stat-n" id="stat-ovl" data-v="0">0</span><span class="stat-l">重疊字數</span></div>
+        <div class="stat"><span class="stat-n" id="stat-eff">0%</span><span class="stat-l">重疊比例</span></div>
+      </div>
+
+      <div id="chunk-cards" class="chunk-cards" aria-live="polite" aria-label="切塊結果"></div>
+    </div>
+  </section>
+
+  <!-- ==================== 問答台 ==================== -->
+  <section class="sec" id="qa" aria-labelledby="qa-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">03</span>
+      <div>
+        <h2 id="qa-h">問答台 · 看整條流水線亮起來</h2>
+        <p class="sec-desc">輸入問題，看它一路走過：切塊 → 嵌入／索引 → 檢索 top-k（附相似度分數）→ 組上下文 → 抽取答案。每一步都看得見。</p>
+      </div>
+    </div>
+
+    <div class="panel" data-reveal>
+      <div class="qa-bar">
+        <input type="text" id="qa-input" class="qa-input" placeholder="問點關於候鳥 M2 的問題，例如：保固期是多久？"
+               aria-label="輸入問題" autocomplete="off">
+        <button id="qa-run" class="btn-primary" type="button">執行檢索 ↵</button>
+      </div>
+
+      <div class="qa-opts">
+        <div class="opt-group" role="group" aria-label="檢索方法">
+          <span class="opt-label">檢索方法</span>
+          <div id="qa-methods" class="seg">
+            <button class="seg-btn" type="button" data-method="sparse" aria-pressed="false">稀疏 BM25</button>
+            <button class="seg-btn" type="button" data-method="dense" aria-pressed="false">語意向量</button>
+            <button class="seg-btn active" type="button" data-method="hybrid" aria-pressed="true">混合 RRF</button>
+          </div>
+        </div>
+        <div class="opt-group">
+          <label class="opt-label" for="ctrl-topk">top-k <output id="ctrl-topk-val" class="ctrl-val">3</output></label>
+          <input type="range" id="ctrl-topk" min="1" max="8" step="1" value="3">
+        </div>
+      </div>
+
+      <div class="qa-samples-wrap">
+        <span class="samples-label">範例問題：</span>
+        <div id="qa-samples" class="chips"></div>
+      </div>
+
+      <!-- 流水線 -->
+      <div class="pipeline-wrap">
+        <div id="pipeline" class="pipeline" aria-hidden="true"></div>
+      </div>
+
+      <div class="qa-grid">
+        <div class="qa-col">
+          <h3 class="mini-h">檢索到的 top-k <span class="mini-note">相似度長條為當前結果內正規化</span></h3>
+          <div id="qa-results" class="qa-results" aria-live="polite" aria-label="檢索結果"></div>
+        </div>
+        <div class="qa-col">
+          <h3 class="mini-h">組成的上下文</h3>
+          <div id="qa-context" class="qa-context" aria-live="polite" aria-label="組上下文"></div>
+        </div>
+      </div>
+
+      <div class="answer-box">
+        <div class="answer-head">
+          <h3 class="mini-h">抽取式「答案」</h3>
+          <span class="badge-honest" title="本頁不呼叫任何 LLM">誠實模式 · 非 LLM 生成</span>
+        </div>
+        <div id="qa-answer" class="qa-answer" aria-live="polite"></div>
+        <p class="disclaimer">
+          真實 RAG 在這一步會把上面的 chunks 連同問題餵給 LLM 來<em>生成</em>回答。這裡為了自包含、不連網，改用<strong>抽取式</strong>（從最相關 chunk 挑出最能回答的句子）示範。
+          重點不在於句子多漂亮，而在於讓你看見：<strong>答案的品質，完全取決於檢索到什麼</strong>。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== 寶藏一：Lost in the Middle ==================== -->
+  <section class="sec treasure" id="litm" aria-labelledby="litm-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num t-rose">寶藏一</span>
+      <div>
+        <h2 id="litm-h">Lost in the Middle · 放中間就被忽略</h2>
+        <p class="sec-desc">
+          Liu et al.（2023）發現：當關鍵資訊放在長上下文的<strong>開頭或結尾</strong>時，模型表現最好；放在<strong>中間</strong>時明顯變差，形成一條 <strong>U 形</strong>曲線。
+          意涵很反直覺——「檢索更多、把重要的塞中間」反而更糟。
+        </p>
+      </div>
+    </div>
+
+    <div class="panel litm-panel" data-reveal>
+      <div class="litm-left">
+        <p class="litm-task">把「★ 正解 chunk」拖到上下文的不同位置，看模型讀到它的機率怎麼變：</p>
+        <div id="litm-slots" class="litm-slots" aria-hidden="true"></div>
+        <div class="ctrl">
+          <label for="ctrl-litm">正解 chunk 的位置<span class="pos-hint">（開頭 → 結尾）</span></label>
+          <input type="range" id="ctrl-litm" min="0" max="100" step="1" value="50" aria-describedby="litm-verdict">
+        </div>
+        <div id="litm-presets" class="chips">
+          <button class="chip" type="button" data-pos="0">丟最前面</button>
+          <button class="chip" type="button" data-pos="50">塞正中央</button>
+          <button class="chip" type="button" data-pos="100">放最後面</button>
+        </div>
+      </div>
+      <div class="litm-right">
+        <div class="litm-readout">
+          <span class="litm-prob-n" id="litm-prob" data-v="0">0%</span>
+          <span class="litm-prob-l">模擬讀取機率</span>
+        </div>
+        <canvas id="litm-canvas" class="litm-canvas" role="img" aria-label="讀取機率隨位置變化的 U 形曲線"></canvas>
+        <p id="litm-verdict" class="litm-verdict" aria-live="polite"></p>
+      </div>
+    </div>
+    <p class="fineprint">曲線為依 Liu et al. (2023, TACL 2024) 之定性結論（U 形、開頭/結尾優於中間、開頭略高的 primacy）所做的<strong>示意</strong>，非論文實測準確率。心理學上對應「序列位置效應」的初始／新近效應。</p>
+  </section>
+
+  <!-- ==================== 寶藏二：切壞的代價 ==================== -->
+  <section class="sec treasure" id="split" aria-labelledby="split-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num t-amber">寶藏二</span>
+      <div>
+        <h2 id="split-h">切壞的代價 · 答案被切在縫上</h2>
+        <p class="sec-desc">如果 chunk 邊界剛好穿過答案，關鍵詞和答案值就會落在不同塊裡——你檢索到含關鍵詞的那塊，卻少了答案。加一點重疊，就能把答案縫回來。</p>
+      </div>
+    </div>
+
+    <div class="panel" data-reveal>
+      <p class="split-passage">示範句：<span class="mono">「產品說明。候鳥M2的建議萃取溫度預設為92度。」</span>　問題：<span class="mono">「萃取溫度預設是幾度？」</span></p>
+      <div id="split-toggle" class="seg seg-wide" role="group" aria-label="切法">
+        <button class="seg-btn active" type="button" data-mode="bad" aria-pressed="true">😱 切壞（size=18, overlap=0）</button>
+        <button class="seg-btn" type="button" data-mode="fixed" aria-pressed="false">🩹 修好（size=18, overlap=10）</button>
+      </div>
+      <div id="split-cards" class="split-cards" aria-live="polite"></div>
+      <div id="split-verdict" class="split-verdict" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ==================== 寶藏三：檢索更多 ≠ 更好 ==================== -->
+  <section class="sec treasure" id="morek" aria-labelledby="morek-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num t-violet">寶藏三</span>
+      <div>
+        <h2 id="morek-h">檢索更多 ≠ 更好 · 雜訊會稀釋訊號</h2>
+        <p class="sec-desc">直覺以為「top-k 拉大、多塞一點總比較保險」。但拉大 k，越多看似相關卻不含答案的 chunk（hard negatives）會混進上下文，稀釋訊號、甚至誤導生成。</p>
+      </div>
+    </div>
+
+    <div class="panel" data-reveal>
+      <p class="morek-q">固定問題：<span class="mono">「候鳥M2的保固期是多久？」</span>（正解含「24個月」）</p>
+      <div class="ctrl">
+        <label for="ctrl-morek">top-k = <output id="morek-kval" class="ctrl-val">3</output></label>
+        <input type="range" id="ctrl-morek" min="1" max="10" step="1" value="3">
+      </div>
+      <div class="morek-meter" aria-hidden="true">
+        <div class="meter-row">
+          <span class="meter-tag sig">相關訊號 <b id="morek-signal-n">0</b></span>
+          <div class="meter-track"><div id="morek-signal" class="meter-fill sig"></div></div>
+        </div>
+        <div class="meter-row">
+          <span class="meter-tag noise">雜訊 chunk <b id="morek-noise-n">0</b></span>
+          <div class="meter-track"><div id="morek-noise" class="meter-fill noise"></div></div>
+        </div>
+      </div>
+      <div id="morek-list" class="morek-list" aria-live="polite"></div>
+      <p id="morek-verdict" class="morek-verdict" aria-live="polite"></p>
+      <p class="fineprint">研究佐證：有實驗顯示語料規模放大 20 倍時，向量式 RAG 準確率從 58.6% 掉到 43.2%（相對下降約 26%）；而與正解共享實體、術語的「hard negatives」比不相關內容更會誤導模型。</p>
+    </div>
+  </section>
+
+  <!-- ==================== 稀疏 vs 稠密 ==================== -->
+  <section class="sec" id="compare" aria-labelledby="cmp-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">04</span>
+      <div>
+        <h2 id="cmp-h">稀疏 vs 稠密 · 兩種檢索的直覺</h2>
+        <p class="sec-desc">上面的三個檢索按鈕背後是兩種世界觀。它們各有盲點，所以實務常把兩者混合。</p>
+      </div>
+    </div>
+    <div class="cmp-grid">
+      <article class="cmp-card c-sparse" data-reveal>
+        <h3>稀疏檢索 · BM25 / TF-IDF</h3>
+        <p>比對<strong>字面詞</strong>：一個詞出現在越少文件就越有鑑別力（IDF，Spärck Jones 1972）；同一詞在文件裡出現越多次分數越高、但會<em>飽和</em>，且長文件會被<em>長度正規化</em>壓一下（BM25，Robertson &amp; Zaragoza 2009）。</p>
+        <p class="cmp-good">👍 精準、可解釋、對專有名詞／型號／錯誤碼超強。</p>
+        <p class="cmp-bad">👎 換句話說就抓不到：「頻寬」查不到「網速」。</p>
+      </article>
+      <article class="cmp-card c-dense" data-reveal>
+        <h3>稠密檢索 · 語意向量</h3>
+        <p>把文字變成<strong>向量</strong>，用餘弦相似度比對<em>意思</em>。本頁無法下載預訓練嵌入，於是用本語料當場算的「詞共現 → PPMI → 截斷 SVD（LSA）」自製語意向量——Levy &amp; Goldberg (2014) 指出 word2vec 本質上就是在對 PMI 矩陣做隱式分解。</p>
+        <p class="cmp-good">👍 抓得到同義／改寫，容忍用詞不同。</p>
+        <p class="cmp-bad">👎 可能被「語意相近但答錯」的內容騙到；精確符號反而弱。</p>
+      </article>
+      <article class="cmp-card c-hybrid" data-reveal>
+        <h3>混合 · Reciprocal Rank Fusion</h3>
+        <p>兩邊各跑一次，再用 RRF 融合：對每個 chunk 把它在各名單的<strong>名次</strong>倒數相加（分數 = Σ 1/(k+rank)，k 常取 60，Cormack 2009）。只看名次、不管原始分數，避開了兩種分數不可比的問題。</p>
+        <p class="cmp-good">👍 兼顧字面與語意，通常比單用一種穩。</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ==================== 參考資料 ==================== -->
+  <section class="sec" id="refs" aria-labelledby="refs-h">
+    <div class="sec-head" data-reveal>
+      <span class="sec-num">05</span>
+      <div>
+        <h2 id="refs-h">資料來源</h2>
+        <p class="sec-desc">核心主張與數字皆可回溯至下列文獻（點擊可開啟）。</p>
+      </div>
+    </div>
+    <ul class="ref-list" data-reveal>
+      <li><a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">Lewis et al. (2020) — Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</a>，NeurIPS 2020（Facebook AI）。把<strong>參數記憶</strong>（預訓練 seq2seq）與<strong>非參數檢索</strong>（維基百科向量索引）結合，減少幻覺、知識可更新。</li>
+      <li><a href="https://aclanthology.org/2024.tacl-1.9/" target="_blank" rel="noopener">Liu et al. (2023/2024) — Lost in the Middle: How Language Models Use Long Contexts</a>，TACL 2024, 12:157–173。關鍵資訊在開頭/結尾表現最佳、中間最差的 <strong>U 形</strong>曲線。</li>
+      <li><a href="https://www.staff.city.ac.uk/~sbrp622/idf.html" target="_blank" rel="noopener">Spärck Jones (1972) — A statistical interpretation of term specificity</a>，Journal of Documentation。IDF 的起源：越罕見的詞越有鑑別力。</li>
+      <li><a href="https://www.nowpublishers.com/article/Details/INR-019" target="_blank" rel="noopener">Robertson &amp; Zaragoza (2009) — The Probabilistic Relevance Framework: BM25 and Beyond</a>，Foundations and Trends in IR, 3(4):333–389。BM25 的詞頻飽和與長度正規化。</li>
+      <li><a href="https://papers.nips.cc/paper/5477-neural-word-embedding-as-implicit-matrix-factorization" target="_blank" rel="noopener">Levy &amp; Goldberg (2014) — Neural Word Embedding as Implicit Matrix Factorization</a>，NIPS 2014。word2vec ≈ 對 (shifted) PMI 矩陣做隱式分解——本頁自製語意向量的理論依據。</li>
+      <li><a href="https://dl.acm.org/doi/10.1145/1571941.1572114" target="_blank" rel="noopener">Cormack et al. (2009) — Reciprocal Rank Fusion outperforms Condorcet…</a>，SIGIR 2009。混合檢索用的 RRF。</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p><strong>誠實聲明</strong>：本頁完全不呼叫任何 LLM 或 AI API、不做任何 fetch。所有切塊、BM25/TF-IDF、語意向量（PPMI+SVD）、RRF 混合與抽取式「生成」都在你的瀏覽器裡當場計算。知識庫為虛構產品手冊。</p>
+  <p class="foot-sub">RAG 實驗室 · 每日小專案 · 2026-07-14　|　偏好設定存於瀏覽器 localStorage（<span class="mono">rag.</span> 前綴）</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>湧現幻覺 · 突然開竅，是真的湧現還是你選錯了尺？</title>
+<meta name="description" content="大型語言模型的能力真的會「突然湧現」，還是只是你選了一把不連續的尺？親手切換評分指標與步數，看同一條進步曲線在斷崖與緩坡之間變形。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="back" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main class="page">
+
+  <header class="hero">
+    <p class="eyebrow" data-fade="1">學習新知 · 湧現，還是幻覺？</p>
+    <h1 data-fade="2">湧現幻覺</h1>
+    <p class="sub" data-fade="3">突然開竅，是真的湧現，還是你選錯了尺？</p>
+    <p class="lede" data-fade="4">
+      大型語言模型有個著名說法：某些能力在規模夠大之前幾乎是零，過了某個門檻<strong>突然出現</strong>——這叫<strong>湧現能力</strong>。
+      浪漫，也嚇人。但 2023 年一篇拿下 <strong>NeurIPS 傑出論文獎</strong>的研究反問：這種「突然」，很多時候只是<strong>你選了一把不連續的尺</strong>（評分指標）造成的錯覺。
+      換一把平滑的尺，同一個模型的進步其實是<strong>平滑、可預測</strong>的。這頁讓你親手切換，看同一件事在斷崖與緩坡之間變形。
+    </p>
+  </header>
+
+  <!-- ── 門檻幻覺產生器 ── -->
+  <section class="panel" data-fade="5" aria-labelledby="h-gen">
+    <div class="panel-head">
+      <h2 id="h-gen"><span class="step">1</span>門檻幻覺產生器</h2>
+      <p>底層有一條<strong>平滑上升</strong>的曲線：每一步（每個 token）的正確機率 <b class="mono">p</b> 隨規模平滑變好。你不能改它——你只能<strong>換一把尺來量它</strong>。</p>
+    </div>
+
+    <div class="seg" role="radiogroup" aria-label="選擇評分指標">
+      <button class="seg-btn" id="segExact" role="radio" aria-checked="true"  data-mode="exact">Exact match<small>整題全對</small></button>
+      <button class="seg-btn" id="segCont"  role="radio" aria-checked="false" data-mode="cont">連續指標<small>部分給分</small></button>
+      <button class="seg-btn" id="segBoth"  role="radio" aria-checked="false" data-mode="both">並排對照<small>斷崖 vs 緩坡</small></button>
+    </div>
+
+    <figure class="chart-wrap">
+      <div class="chart-box">
+        <canvas id="chart" role="img"
+          aria-label="表現對模型規模的曲線圖。x 軸為模型規模（對數），y 軸為表現百分比。"></canvas>
+      </div>
+      <figcaption class="legend" id="legend" aria-hidden="true">
+        <span class="lg lg-under"><i></i>底層真實改善 p</span>
+        <span class="lg lg-exact"><i></i>Exact match ＝ p<sup>k</sup></span>
+        <span class="lg lg-cont"><i></i>連續指標 ＝ p</span>
+      </figcaption>
+    </figure>
+
+    <div class="controls">
+      <label class="slider">
+        <span>步數 k ＝ <b id="kOut">10</b></span>
+        <input type="range" id="kRange" min="1" max="40" step="1" value="10"
+          aria-label="每題的步數或 token 數 k">
+        <em id="kNote">一題有 k 步，Exact match 要每步都對</em>
+      </label>
+      <div class="ctl-btns">
+        <button class="btn primary" id="sweepBtn" aria-pressed="false">
+          <span class="ico" aria-hidden="true">▶</span><span id="sweepText">看門檻長出來</span></button>
+        <button class="btn ghost" id="resetBtn"><span class="ico" aria-hidden="true">↺</span>重設</button>
+      </div>
+    </div>
+
+    <dl class="readout" id="readout" aria-live="polite" aria-label="目前這把尺量出來的結果">
+      <div><dt>這把尺</dt><dd id="rMetric">Exact match</dd></div>
+      <div><dt>看起來的湧現點</dt><dd id="rThresh">—</dd></div>
+      <div><dt>銳利度（最大斜率）</dt><dd id="rSlope">—</dd></div>
+      <div><dt>比底層晚了</dt><dd id="rDelay">—</dd></div>
+    </dl>
+    <p class="verdict" id="verdict" aria-live="polite"></p>
+  </section>
+
+  <!-- ── 為什麼會這樣 ── -->
+  <section class="panel" data-fade="6" aria-labelledby="h-why">
+    <div class="panel-head">
+      <h2 id="h-why"><span class="step">2</span>斷崖，是從「整題全對」長出來的</h2>
+      <p>把一題想成一條鏈：k 個步驟，<strong>每一步都要對</strong>，整題才給分。若每步正確機率是 <b class="mono">p</b> 且大致獨立，整題全對的機率就是 <b class="mono">p</b> 的 <b class="mono">k</b> 次方。</p>
+    </div>
+    <div class="chain-demo">
+      <div class="chain" id="chain" aria-hidden="true"></div>
+      <div class="chain-math">
+        <p><span class="mono">p</span> ＝ 每一步正確 ＝ <b id="cP">0.90</b>　·　<span class="mono">k</span> ＝ <b id="cK">10</b> 步</p>
+        <p class="chain-eq"><span class="mono">p<sup>k</sup></span> ＝ 整題全對 ＝ <b id="cPk" class="big">0.35</b></p>
+        <p class="chain-note" id="cNote">每步 9 成、看似很強，整題卻只剩三分之一會對。k 再往上加，這個數字就墜崖——這不是模型變笨，是尺在放大。</p>
+      </div>
+    </div>
+    <p class="why-foot">
+      直覺就在這裡：<strong>只要底層 p 還沒非常接近 1，p<sup>k</sup> 就會被壓在接近零</strong>；等 p 終於逼近 1，p<sup>k</sup> 才在很短的規模區間內暴衝上來——於是「看起來」有個門檻。
+      k 越大，門檻<strong>越晚、越陡</strong>。把尺換成「<strong>算對幾成</strong>」（部分給分／每步正確率／1−編輯距離），量到的就是 p 本身：一條平滑緩坡，<strong>和 k 無關</strong>。
+    </p>
+  </section>
+
+  <!-- ── 兩種讀法 ── -->
+  <section class="facts" data-fade="7" aria-labelledby="h-two">
+    <h2 id="h-two">同一張圖，兩種讀法</h2>
+    <div class="two-col">
+      <article class="side side-wei">
+        <p class="side-tag">湧現說</p>
+        <h3>Wei 等人（2022）</h3>
+        <p>〈Emergent Abilities of Large Language Models〉（TMLR）主張：有些能力<strong>小模型近乎隨機、過了某個規模才陡升</strong>，無法從小模型外推預測。兩個迷人之處是「<strong>銳利</strong>」（幾乎瞬間從沒有變有）與「<strong>不可預測</strong>」（出現在難以預料的規模）。</p>
+        <p class="side-foot">代表例：多位數加法、字母重組、大規模多任務理解（MMLU）等；後續整理出上百項這類任務。</p>
+      </article>
+      <article class="side side-sch">
+        <p class="side-tag">幻覺說</p>
+        <h3>Schaeffer 等人（2023）</h3>
+        <p>〈Are Emergent Abilities of Large Language Models a Mirage?〉（NeurIPS 2023 傑出論文）主張：所謂湧現，很大程度是<strong>指標的假象</strong>。用<strong>非線性／不連續</strong>的尺（如 exact match、多選題全對）會把平滑的底層改善壓成陡跳；換成<strong>線性／連續</strong>的尺（每 token 正確機率、編輯距離、部分給分），同一份進步就變平滑、可預測。</p>
+        <p class="side-foot">他們發現：宣稱的湧現裡，超過 <strong>92%</strong> 只用了兩種尺——Multiple Choice Grade 與 Exact String Match，兩者都不連續／非線性。</p>
+      </article>
+    </div>
+    <p class="balance">
+      這不是說規模不重要，也不是說所有湧現都是假象——這場辯論仍在進行，也有人認為某些湧現確實存在。
+      它提醒的是一件更基本的事：在驚呼「它突然開竅了」之前，<strong>先問你用的是哪一把尺</strong>。
+    </p>
+  </section>
+
+  <!-- ── 三個延伸 ── -->
+  <section class="facts" data-fade="8" aria-label="延伸事實">
+    <div class="fact-grid">
+      <article class="fact">
+        <div class="fact-no">p<sup>k</sup></div>
+        <h3>次方，是門檻的來源</h3>
+        <p>多步任務用 exact match，成功率約等於單步準確率的 <strong>k 次方</strong>。每步 9 成、10 步只剩 <strong>0.35</strong>、40 步只剩 <strong>0.015</strong>；要等 p 逼近 1，整題才會過關。<strong>次方把平滑變成了斷崖。</strong></p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">3＋2</div>
+        <h3>他們怎麼驗證</h3>
+        <p>Schaeffer 等人用一個簡單數學模型提出解釋，再三路驗證：在 InstructGPT／GPT-3 上驗證三個預測、在 BIG-Bench 做兩個預測的統合分析，還<strong>反過來在視覺任務上「製造」出從沒看過的假湧現</strong>——只要挑一把非線性的尺。</p>
+      </article>
+      <article class="fact">
+        <div class="fact-no">會移動</div>
+        <h3>湧現點是可以搬動的</h3>
+        <p>在這頁把 k 從 1 拉到 40，「看起來的湧現點」會往右滑好幾個數量級，甚至在換成連續指標時<strong>整個消失</strong>。一個會隨你選尺而移動、消失的門檻，恐怕不是模型的本質，而是量法的產物。</p>
+      </article>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p><strong>這頁是數學示意，不是真實模型的實測數據。</strong>底層用一條可控的平滑曲線（logistic）代表「每一步的正確機率隨規模平滑上升」，再套上不同指標，演示「指標如何製造門檻」。真實論文正是用同一個機制，解釋了大量所謂的湧現。</p>
+    <p class="src">資料來源：
+      <a href="https://arxiv.org/abs/2206.07682" target="_blank" rel="noopener">Wei et al. 2022, Emergent Abilities of LLMs (TMLR), arXiv:2206.07682</a>；
+      <a href="https://arxiv.org/abs/2304.15004" target="_blank" rel="noopener">Schaeffer, Miranda &amp; Koyejo 2023, Are Emergent Abilities a Mirage? (NeurIPS 2023 傑出論文), arXiv:2304.15004</a>；
+      平衡觀點另見 <a href="https://blog.neurips.cc/2023/12/11/announcing-the-neurips-2023-paper-awards/" target="_blank" rel="noopener">NeurIPS 2023 Paper Awards</a>。
+    </p>
+    <p class="src">純靜態、零外部資源、離線可用。所有計算都在你的瀏覽器裡當場完成。設定存在本機 localStorage，key 一律 <code>emg.</code> 前綴。</p>
+  </footer>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>

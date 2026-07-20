@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知識庫下毒・PoisonedRAG 實驗室</title>
+<meta name="description" content="親手往 RAG 的知識庫塞幾筆動過手腳的文件，看 AI 自信地講出攻擊者要的錯誤答案，再打開防禦把它擋下。純前端規則式模擬的資安教育實驗室。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip-link" href="#lab">跳到實驗室</a>
+
+<!-- 環境背景：知識場 -->
+<canvas id="field" class="field" aria-hidden="true"></canvas>
+
+<header class="site-head" role="banner">
+  <a class="back-link" href="../../../index.html" aria-label="回到每日小專案首頁">
+    <span aria-hidden="true">←</span> 回首頁
+  </a>
+  <div class="head-tools">
+    <span class="disclaimer-pill" title="這頁不呼叫任何 AI，全部是純 JavaScript 的規則式模擬">
+      <span class="dot" aria-hidden="true"></span> 規則式模擬・非真實 LLM
+    </span>
+    <button id="motionToggle" class="ghost-btn" type="button" aria-pressed="false" title="減少動態效果">
+      減少動態
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="hero reveal" id="top">
+    <p class="eyebrow">網路趣聞・冷知識 ／ 資安</p>
+    <h1 class="title">知識庫下毒<span class="title-sub">PoisonedRAG</span></h1>
+    <p class="lede">
+      RAG 讓大型語言模型先去讀「外部知識庫」再回答——知識能更新、幻覺變少。
+      但這也開了一扇後門：<strong>攻擊者不必碰模型，只要往知識庫塞幾筆動過手腳的文件，
+      就能讓 AI 自信地講出攻擊者指定的答案。</strong>
+    </p>
+    <p class="lede-2">
+      這是一座<strong>下毒實驗室</strong>。你會先看它乾淨地答對，接著親手下毒、看答案當場翻掉，
+      最後打開防禦把同一份毒文件擋下。情境是無害的（虛構咖啡機 FAQ），示範的是<em>漏洞的形狀</em>。
+    </p>
+
+    <!-- RAG 流程小圖 -->
+    <div class="flow" role="img" aria-label="RAG 流程：問題經過檢索器，從知識庫取出最相關的 top-k 文件，交給生成步驟產生答案；毒文件從知識庫這一站滲入。">
+      <div class="flow-node"><span class="flow-k">問題</span><span class="flow-d">你問什麼</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node"><span class="flow-k">檢索器</span><span class="flow-d">BM25 / TF-IDF</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node danger"><span class="flow-k">知識庫</span><span class="flow-d">毒文件從這裡滲入</span><span class="flow-tag">攻擊面</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node"><span class="flow-k">Top-k</span><span class="flow-d">最相關幾筆</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node"><span class="flow-k">生成</span><span class="flow-d">抽取式示範</span></div>
+      <div class="flow-arrow" aria-hidden="true">→</div>
+      <div class="flow-node"><span class="flow-k">答案</span><span class="flow-d">取決於檢索到什麼</span></div>
+    </div>
+  </section>
+
+  <!-- 實驗室 -->
+  <section class="lab reveal" id="lab" aria-label="下毒實驗室">
+    <div class="lab-grid">
+
+      <!-- 左：知識庫 -->
+      <div class="panel kb-panel">
+        <div class="panel-head">
+          <h2>知識庫</h2>
+          <span class="count-badge" id="kbCount" aria-live="polite">0 筆</span>
+        </div>
+        <p class="panel-sub">虛構品牌「霧島珈琲」智慧手沖機 M1 的 FAQ。提問後，被檢索到的文件會亮起並標上分數。</p>
+        <ul class="kb-list" id="kbList" aria-label="知識庫文件清單"></ul>
+      </div>
+
+      <!-- 中：控制 -->
+      <div class="panel ctrl-panel">
+        <div class="panel-head"><h2>提問</h2></div>
+        <div class="qchips" id="qChips" role="group" aria-label="預設問題"></div>
+        <label class="field-label" for="qInput">或自己問一句</label>
+        <div class="ask-row">
+          <input id="qInput" type="text" class="text-input" placeholder="例如：霧島 M1 的退貨期限是幾天？" autocomplete="off" aria-label="輸入你的問題">
+          <button id="askBtn" class="primary-btn" type="button">檢索並作答</button>
+        </div>
+
+        <div class="ctrl-block">
+          <div class="ctrl-row">
+            <span class="ctrl-name">檢索器</span>
+            <div class="seg" role="radiogroup" aria-label="選擇檢索器">
+              <button class="seg-btn is-on" id="rBm25" role="radio" aria-checked="true" type="button">BM25</button>
+              <button class="seg-btn" id="rTfidf" role="radio" aria-checked="false" type="button">TF-IDF 餘弦</button>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <label class="ctrl-name" for="kSlider">檢索筆數 k</label>
+            <div class="slider-wrap">
+              <input id="kSlider" type="range" min="1" max="6" value="3" step="1" aria-describedby="kVal">
+              <output id="kVal" class="k-val">3</output>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl-block defense-block">
+          <div class="ctrl-row ctrl-row-title">
+            <span class="ctrl-name">防禦模式</span>
+            <span class="hint">關閉＝裸奔的 RAG</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="defWhitelist">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label"><strong>來源白名單</strong>只信任官方知識庫，外部注入一律不檢索</span>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="defPerplexity">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label"><strong>困惑度過濾</strong>用語言模型抓「讀起來怪」的異常文本</span>
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="defMajority">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label"><strong>知識庫擴充 + 多數決</strong>多取幾筆、以多數答案稀釋單筆毒文件</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 右：結果與答案 -->
+      <div class="panel out-panel">
+        <div class="panel-head"><h2>檢索結果</h2><span class="count-badge subtle" id="retrieverTag">BM25・top-3</span></div>
+        <ol class="results" id="results" aria-label="檢索到的文件排名"></ol>
+
+        <div class="answer-card" aria-live="polite" id="answerCard">
+          <div class="answer-head">
+            <span class="answer-eyebrow">生成的答案<span class="tiny">（抽取式）</span></span>
+            <span class="verdict" id="verdict" data-state="idle">尚未提問</span>
+          </div>
+          <p class="answer-text" id="answerText">選一個問題，或自己輸入一句，按「檢索並作答」。</p>
+          <div class="answer-meta">
+            <span class="conf" id="answerConf" hidden>信心 <b>—</b></span>
+            <span class="cite" id="answerCite"></span>
+          </div>
+        </div>
+        <p class="extractive-note">
+          真實 RAG 這一步會把 top-k 餵給 LLM 生成。這裡用<strong>抽取式</strong>——直接挑最相關文件裡最相關的那句當答案。
+          刻意如此，就是要讓你看見：<em>答案完全取決於檢索到什麼。</em>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 下毒工作台 -->
+  <section class="bench reveal" aria-label="下毒工作台">
+    <div class="section-head">
+      <h2>下毒工作台</h2>
+      <p>一份成功的毒文件要同時滿足<strong>兩個條件</strong>：<span class="cond cond-r">① 被檢索到</span>（塞進問題關鍵字）＋<span class="cond cond-g">② 誘導答案</span>（寫入目標錯誤答案）。缺一不可。</p>
+    </div>
+
+    <div class="bench-grid">
+      <div class="panel bench-preset">
+        <h3>一鍵注入預設毒文件</h3>
+        <p class="panel-sub">針對三個預設問題各備一份。加進去後，回上面對同一題重新提問。</p>
+        <div id="presetPoison" class="preset-poison"></div>
+      </div>
+
+      <div class="panel bench-compose">
+        <h3>自己撰寫毒文件</h3>
+        <div class="compose-form">
+          <label class="field-label" for="cpQuestion">要攻擊哪個問題</label>
+          <select id="cpQuestion" class="text-input"></select>
+
+          <label class="field-label" for="cpKeywords">① 檢索誘餌<span class="tiny">要塞進問題關鍵字，毒文件才會被檢索到</span></label>
+          <input id="cpKeywords" type="text" class="text-input" placeholder="霧島 M1 退貨 期限 幾天" autocomplete="off">
+
+          <label class="field-label" for="cpAnswer">② 目標錯誤答案<span class="tiny">要植入的（無害但錯的）答案</span></label>
+          <input id="cpAnswer" type="text" class="text-input" placeholder="999 天" autocomplete="off">
+
+          <label class="switch inline">
+            <input type="checkbox" id="cpStealth">
+            <span class="switch-track" aria-hidden="true"></span>
+            <span class="switch-label"><strong>隱蔽模式</strong>寫成通順句子，躲開困惑度過濾</span>
+          </label>
+
+          <div class="compose-preview" id="cpPreview" aria-live="polite">
+            <span class="cp-label">合成的毒文件預覽</span>
+            <div class="cp-body"><span class="cp-r"></span> <span class="cp-g"></span></div>
+          </div>
+
+          <button id="addPoisonBtn" class="danger-btn" type="button">注入知識庫</button>
+        </div>
+      </div>
+
+      <div class="panel bench-clean">
+        <h3>自由沙盒</h3>
+        <p class="panel-sub">也能加入你自己的「可信文件」，或全部重置從頭玩。</p>
+        <label class="field-label" for="clnText">新增一筆可信文件</label>
+        <textarea id="clnText" class="text-input area" rows="3" placeholder="霧島 M1 的保固期是兩年……"></textarea>
+        <div class="bench-actions">
+          <button id="addCleanBtn" class="ghost-btn" type="button">加入可信文件</button>
+          <button id="clearPoisonBtn" class="ghost-btn" type="button">清除所有毒文件</button>
+          <button id="resetBtn" class="ghost-btn danger-ghost" type="button">全部重置</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 佔比面板 -->
+    <div class="panel ratio-panel" aria-live="polite">
+      <div class="ratio-cell">
+        <span class="ratio-num" id="ratioTotal">0</span>
+        <span class="ratio-cap">知識庫文件</span>
+      </div>
+      <div class="ratio-op" aria-hidden="true">內含</div>
+      <div class="ratio-cell danger">
+        <span class="ratio-num" id="ratioPoison">0</span>
+        <span class="ratio-cap">筆毒文件</span>
+      </div>
+      <div class="ratio-op" aria-hidden="true">＝</div>
+      <div class="ratio-cell">
+        <span class="ratio-num"><span id="ratioPct">0</span><span class="ratio-unit">%</span></span>
+        <span class="ratio-cap">佔比</span>
+      </div>
+      <p class="ratio-echo" id="ratioEcho">
+        對照論文：只要在<strong>數百萬筆</strong>的知識庫裡，為每個目標問題注入<strong>約 5 筆</strong>毒文件，
+        PoisonedRAG 就能達到約 <strong>90%</strong> 的攻擊成功率。極少數，就夠。
+      </p>
+    </div>
+  </section>
+
+  <!-- 為什麼 / 原理 -->
+  <section class="explain reveal" aria-label="原理說明">
+    <div class="section-head">
+      <h2>為什麼幾筆就夠？</h2>
+    </div>
+    <div class="cards-3">
+      <article class="idea-card">
+        <span class="idea-ord">01</span>
+        <h3>兩個條件，缺一不可</h3>
+        <p><b class="cond-r">檢索條件</b>：毒文件必須先被檢索到，所以要嵌入攻擊者問題的關鍵字。<br>
+        <b class="cond-g">生成條件</b>：檢索到之後，內容要能誘導出目標答案。PoisonedRAG 把毒文件拆成兩截，各自負責一個條件。</p>
+      </article>
+      <article class="idea-card">
+        <span class="idea-ord">02</span>
+        <h3>Top-k 是個窄門</h3>
+        <p>模型只讀檢索排進前 k 名的少數文件。你不必贏過整個資料庫，只要在「那一題」上擠進前幾名。一筆精準命中關鍵字的毒文件，往往就能擠掉真文件。</p>
+      </article>
+      <article class="idea-card">
+        <span class="idea-ord">03</span>
+        <h3>模型太相信檢索內容</h3>
+        <p>RAG 的設計就是「以檢索到的內容為準」。當毒文件贏了檢索，模型會用它、還講得很有信心——這正是 <b>indirect prompt injection</b>：把錯誤資訊藏進模型會讀到的資料裡。</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- 防禦 -->
+  <section class="explain reveal" aria-label="防禦說明">
+    <div class="section-head">
+      <h2>防禦：能擋，但別高枕無憂</h2>
+      <p>上面三個開關對應三種常見防禦。把它們打開，同一份毒文件會被擋下或被稀釋——但精心構造的毒文件仍可能繞過。</p>
+    </div>
+    <div class="cards-3">
+      <article class="def-card">
+        <h3>來源白名單</h3>
+        <p>只檢索可信來源的文件。外部注入直接出局。</p>
+        <p class="def-limit">繞過：一旦攻擊者攻陷了「可信來源」本身（供應鏈、開放編輯的維基、被駭的網站），白名單就失效。</p>
+      </article>
+      <article class="def-card">
+        <h3>困惑度過濾</h3>
+        <p>用語言模型量文本「讀起來多順」，過濾異常拼湊的文字。關鍵字硬塞的毒文件會被抓。</p>
+        <p class="def-limit">繞過：論文指出，用 LLM 寫得很通順的毒文件困惑度很低——試試「隱蔽模式」，它就溜過去了。</p>
+      </article>
+      <article class="def-card">
+        <h3>知識庫擴充 + 多數決</h3>
+        <p>多取幾筆、讓多數的真文件把單筆毒文件稀釋掉。</p>
+        <p class="def-limit">繞過：這只是抬高門檻。攻擊者多塞幾筆湊成多數（論文注入 5 筆去主導 top-k），一樣翻盤。</p>
+      </article>
+    </div>
+    <p class="honest-line">誠實說：這些防禦都能被更強的攻擊部分繞過。真正的重點是——<strong>檢索資料的來源必須可信，且不能無條件相信檢索到的內容。</strong></p>
+  </section>
+
+  <!-- 聲明與來源 -->
+  <section class="foot-explain reveal" aria-label="聲明與資料來源">
+    <div class="foot-grid">
+      <div class="disclaimer-box">
+        <h3>老實交代</h3>
+        <ul>
+          <li><strong>不呼叫任何 AI／LLM API。</strong>檢索是真的（BM25、TF-IDF 餘弦，正確實作）；生成是<strong>抽取式</strong>示範，直接挑句子，不是真模型。</li>
+          <li><strong>無害情境。</strong>知識庫是虛構咖啡機 FAQ，下毒效果只是把「7 天」變「999 天」這類無害的錯答案。目的是理解機制，不是攻擊真實系統。</li>
+          <li><strong>規模是示意。</strong>瀏覽器裡放不下數百萬筆；佔比面板呈現的是縮小版，論文的真實規模寫在對照文字裡。</li>
+          <li><strong>純前端、零外部資源、可離線。</strong>沒有 fetch、沒有追蹤。你的自訂內容只存在瀏覽器 localStorage（前綴 <code>poison.</code>）。</li>
+        </ul>
+      </div>
+      <div class="sources-box">
+        <h3>資料來源</h3>
+        <ul>
+          <li>Zou, Geng, Wang, Jia（2024）《PoisonedRAG: Knowledge Corruption Attacks to Retrieval-Augmented Generation of Large Language Models》，USENIX Security 2025。
+            <a href="https://arxiv.org/abs/2402.07867" target="_blank" rel="noopener noreferrer">arXiv:2402.07867</a>
+            ・<a href="https://github.com/sleeepeer/PoisonedRAG" target="_blank" rel="noopener noreferrer">開源程式碼</a></li>
+          <li>OWASP Gen AI Security Project，LLM01:2025 Prompt Injection（含 indirect prompt injection）。
+            <a href="https://genai.owasp.org/llmrisk/llm01-prompt-injection/" target="_blank" rel="noopener noreferrer">genai.owasp.org</a></li>
+          <li>Okapi BM25 與 TF-IDF：資訊檢索的經典稀疏排序法（本頁採用的正確公式）。</li>
+        </ul>
+        <p class="src-note">數字查證日期 2026-07-14。核心引用：注入約 5 筆／目標問題、知識庫數百萬筆、約 90% 攻擊成功率（NQ 97%、HotpotQA 99%、MS-MARCO 91%，PaLM 2）。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <p>每日小專案 ・ 2026-07-14 ・ 知識庫下毒 PoisonedRAG</p>
+  <p class="foot-mini">教育用途的規則式模擬。看懂漏洞，是為了把系統做得更安全。</p>
+</footer>
+
+<!-- 螢幕閱讀器即時播報區 -->
+<div class="sr-only" role="status" aria-live="polite" id="srStatus"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

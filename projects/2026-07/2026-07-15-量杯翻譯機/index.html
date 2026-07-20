@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>量杯翻譯機 · 一杯到底幾克</title>
+<meta name="description" content="把美式食譜的「一杯」「一大匙」翻成公克。選材料、輸入份量，秤針立刻擺到重量——同樣一杯，蜂蜜是可可粉的四倍重。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="home-link" href="../../../index.html">← 回首頁</a>
+
+<header class="head">
+  <p class="eyebrow" data-anim>KITCHEN CONVERTER</p>
+  <h1 data-anim>量杯翻譯機</h1>
+  <p class="sub" data-anim>外國食譜說「一杯麵粉」，你的秤想知道那是幾克。<br>選材料、按份量，指針立刻替你翻譯。</p>
+</header>
+
+<main class="wrap">
+
+  <!-- 舞台：秤 + 量杯 -->
+  <section class="stage" data-anim>
+    <div class="gauge-box">
+      <svg class="gauge" id="gauge" viewBox="0 0 300 176" role="img" aria-hidden="true">
+        <defs>
+          <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#d9ad5c"/>
+            <stop offset="1" stop-color="#a9791f"/>
+          </linearGradient>
+        </defs>
+        <!-- track -->
+        <path id="track" d="M 30 150 A 120 120 0 0 1 270 150" fill="none"
+              stroke="#e7ddc6" stroke-width="14" stroke-linecap="round"/>
+        <!-- progress -->
+        <path id="progArc" d="M 30 150 A 120 120 0 0 1 270 150" fill="none"
+              stroke="url(#brass)" stroke-width="14" stroke-linecap="round"
+              stroke-dasharray="377" stroke-dashoffset="377"/>
+        <g id="ticks"></g>
+        <!-- needle -->
+        <g id="needle" transform="rotate(-90 150 150)">
+          <line x1="150" y1="150" x2="150" y2="44" stroke="#3a332b" stroke-width="3.4" stroke-linecap="round"/>
+          <circle cx="150" cy="44" r="4.4" fill="#c96f4a"/>
+        </g>
+        <circle cx="150" cy="150" r="9" fill="#3a332b"/>
+        <circle cx="150" cy="150" r="3.4" fill="#f2b705"/>
+      </svg>
+      <div class="readout">
+        <div class="gval-line">
+          <span class="gval" id="gVal" aria-live="polite">120</span><span class="gunit" id="gUnit">克</span>
+        </div>
+        <div class="gsub" id="gSub">1 杯 中筋麵粉</div>
+      </div>
+    </div>
+
+    <div class="cup-box">
+      <svg class="cup" id="cup" viewBox="0 0 200 216" role="img" aria-label="量杯示意">
+        <defs>
+          <clipPath id="cupClip"><path d="M44 40 H156 L150 190 Q150 200 140 200 H60 Q50 200 50 190 Z"/></clipPath>
+          <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.42"/>
+            <stop offset="0.25" stop-color="#ffffff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#000000" stop-opacity="0.08"/>
+          </linearGradient>
+        </defs>
+        <!-- glass body -->
+        <path class="glass" d="M44 40 H156 L150 190 Q150 200 140 200 H60 Q50 200 50 190 Z"/>
+        <!-- fill -->
+        <g clip-path="url(#cupClip)">
+          <rect id="cupFill" x="40" y="40" width="120" height="164" fill="#e6d8ba"
+                transform="translate(0,164) scale(1,0)"/>
+          <ellipse id="cupMeniscus" cx="100" cy="204" rx="58" ry="6" fill="#ffffff" opacity="0.28"/>
+        </g>
+        <!-- gloss + rim over fill -->
+        <path d="M44 40 H156 L150 190 Q150 200 140 200 H60 Q50 200 50 190 Z" fill="url(#gloss)" clip-path="url(#cupClip)"/>
+        <path class="glass-rim" d="M44 40 H156 L150 190 Q150 200 140 200 H60 Q50 200 50 190 Z" fill="none"/>
+        <!-- spout -->
+        <path class="glass-rim" d="M156 40 q12 2 12 12" fill="none"/>
+        <!-- handle -->
+        <path class="handle" d="M156 78 q34 6 34 40 t-34 40" fill="none"/>
+        <!-- side ticks -->
+        <g id="cupTicks" font-size="10" fill="#9a8f79" font-family="inherit"></g>
+      </svg>
+      <div class="cup-label"><span class="swatch" id="cupSwatch"></span><span id="cupName">中筋麵粉</span></div>
+      <div class="cup-over" id="cupOver" hidden>滿出來了 · <b id="cupOverX">×1</b> 杯</div>
+    </div>
+  </section>
+
+  <!-- 控制台 -->
+  <section class="panel controls" data-anim>
+    <div class="field">
+      <span class="flabel">材料</span>
+      <div class="chips" id="chips" role="listbox" aria-label="選擇材料"></div>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="field">
+        <span class="flabel" id="amtLabel">份量</span>
+        <div class="amount">
+          <button class="step" id="stepDown" type="button" aria-label="減少">−</button>
+          <input id="amt" class="amt" type="number" inputmode="decimal" value="1" min="0" step="0.25" aria-label="份量數值">
+          <button class="step" id="stepUp" type="button" aria-label="增加">＋</button>
+        </div>
+      </div>
+
+      <div class="field" id="unitField">
+        <span class="flabel">單位</span>
+        <div class="seg" id="units" role="radiogroup" aria-label="單位"></div>
+      </div>
+    </div>
+
+    <div class="ctrl-grid">
+      <div class="field">
+        <span class="flabel">方向</span>
+        <div class="seg" id="dir" role="radiogroup" aria-label="換算方向">
+          <button type="button" data-dir="v2w" role="radio" aria-checked="true" class="on">量杯 → 公克</button>
+          <button type="button" data-dir="w2v" role="radio" aria-checked="false">公克 → 量杯</button>
+        </div>
+      </div>
+
+      <div class="field" id="cupStdField">
+        <span class="flabel">「一杯」是哪種杯 <span class="q" id="cupWhy" tabindex="0" role="button" aria-label="說明各種杯的差別">?</span></span>
+        <div class="seg small" id="cupstd" role="radiogroup" aria-label="量杯標準"></div>
+      </div>
+    </div>
+
+    <p class="hint" id="hint"></p>
+  </section>
+
+  <!-- 哇時刻：同樣一杯，差很大 -->
+  <section class="panel compare" data-anim>
+    <h2>同樣「一杯」，秤起來差很大</h2>
+    <p class="lead">量杯量的是<b>體積</b>，秤量的是<b>重量</b>。所以「一杯」到底幾克，完全看你裝的是什麼——</p>
+    <div class="bars" id="bars"></div>
+    <p class="insight" id="insight"></p>
+  </section>
+
+  <!-- 附贈：烤箱溫度 -->
+  <section class="panel oven" data-anim>
+    <h2>順便：烤箱溫度 °F ⇄ °C</h2>
+    <div class="oven-row">
+      <label class="temp"><input id="ovenF" type="number" inputmode="numeric" value="350"><span>°F</span></label>
+      <span class="eq">＝</span>
+      <label class="temp"><input id="ovenC" type="number" inputmode="numeric" value="177"><span>°C</span></label>
+    </div>
+    <div class="presets" id="ovenPresets"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p>資料來源：King Arthur Baking Ingredient Weight Chart（純液體採實測密度）。</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

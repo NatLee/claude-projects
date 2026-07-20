@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="dark">
+<title>星空製造所 · 描繪你的專屬星座</title>
+<style>
+  :root{
+    /* 色票 */
+    --gold:#e7c87a;
+    --gold-soft:rgba(231,200,122,.62);
+    --gold-line:rgba(231,200,122,.22);
+    --ink:#f4f1e9;
+    --ink-2:rgba(244,241,233,.72);
+    --ink-3:rgba(244,241,233,.46);
+    --line:rgba(244,241,233,.14);
+    --serif: Georgia, "Times New Roman", "Songti TC", "Noto Serif TC", "Source Han Serif TC", serif;
+    --sans: "Helvetica Neue", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif;
+    --ease-out: cubic-bezier(.22,1,.36,1);
+    /* 間距節奏 */
+    --sp-1:6px; --sp-2:10px; --sp-3:14px; --sp-4:20px; --sp-5:28px;
+    /* 字級階梯 */
+    --fs-1:11px; --fs-2:12.5px; --fs-3:13.5px; --fs-4:15px; --fs-5:20px;
+    /* 圓角與控制項高度 */
+    --r-sm:9px; --r-md:12px; --r-lg:18px;
+    --ctl-h:38px; --ctl-h-sm:30px;
+    --panel-w:374px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; height:100%; overflow:hidden; background:#05060d; }
+  body{ font-family:var(--sans); color:var(--ink); -webkit-font-smoothing:antialiased; user-select:none; }
+
+  /* ---------- entry choreography (everything settles within 1.2s) ---------- */
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes fadeUp{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:none; } }
+  @keyframes ruleGrow{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+  @keyframes dockUp{ from{ opacity:0; transform:translateY(18px); } to{ opacity:1; transform:none; } }
+  @keyframes hintFloat{ 0%,100%{ transform:translate(-50%,-50%); } 50%{ transform:translate(-50%,calc(-50% - 6px)); } }
+  @keyframes countPop{ 0%{ transform:scale(1); } 40%{ transform:scale(1.45); } 100%{ transform:scale(1); } }
+  @keyframes itemIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+
+  /* ---------- 星空本體：永遠是主角，滿版且不被控制項壓住 ---------- */
+  #sky{ position:fixed; inset:0; z-index:0; display:block; cursor:crosshair;
+    animation:fadeIn .6s ease both; }
+  #sky:focus-visible{ outline:1px solid rgba(231,200,122,.55); outline-offset:-3px; }
+  .vignette{ position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 42%, transparent 38%, rgba(3,4,10,.6) 100%); }
+
+  .glass{ background:rgba(16,22,48,.55); backdrop-filter:blur(15px) saturate(125%);
+    -webkit-backdrop-filter:blur(15px) saturate(125%);
+    border:1px solid rgba(231,200,122,.18); box-shadow:0 10px 44px rgba(0,0,0,.5); }
+
+  /* ---------- title & home link ---------- */
+  .title-block{ position:fixed; top:var(--sp-4); left:var(--sp-5); z-index:5; pointer-events:none; }
+  .home-link{ display:inline-block; pointer-events:auto; margin-bottom:var(--sp-2);
+    font-size:var(--fs-2); letter-spacing:.18em; color:var(--gold-soft); text-decoration:none;
+    transition:color .25s ease, transform .25s var(--ease-out);
+    animation:fadeIn .5s ease .55s both; }
+  .home-link:hover{ color:var(--gold); transform:translateX(-3px); }
+  .home-link:focus-visible{ outline:2px solid rgba(231,200,122,.7); outline-offset:3px; border-radius:4px; color:var(--gold); }
+  .title-block h1{ margin:0; font-family:var(--serif); font-weight:600;
+    font-size:clamp(22px,3vw,36px); letter-spacing:.14em; color:#f7f1e4;
+    text-shadow:0 2px 24px rgba(0,0,0,.7);
+    animation:fadeUp .6s var(--ease-out) .05s both; }
+  .rule{ width:54px; height:1px; margin:var(--sp-2) 0 var(--sp-1); transform-origin:left center;
+    background:linear-gradient(90deg,var(--gold),transparent);
+    animation:ruleGrow .5s var(--ease-out) .35s both; }
+  .title-block .sub{ font-size:var(--fs-1); letter-spacing:.34em; color:var(--gold); opacity:.85;
+    animation:fadeIn .5s ease .45s both; }
+
+  /* ---------- 空狀態：第一次進來要立刻知道怎麼玩 ---------- */
+  .hint{ position:fixed; top:46%; left:50%; transform:translate(-50%,-50%); z-index:4;
+    pointer-events:none; text-align:center; color:rgba(244,241,233,.62);
+    letter-spacing:.2em; font-size:var(--fs-4); transition:opacity 1.1s ease; line-height:2;
+    animation:fadeIn .7s ease .5s both, hintFloat 7s ease-in-out 1.4s infinite; }
+  .hint .big{ font-family:var(--serif); font-size:19px; color:rgba(244,241,233,.78); letter-spacing:.14em; }
+  .hint .kbd-tip{ font-size:var(--fs-1); letter-spacing:.12em; color:var(--ink-3); margin-top:var(--sp-1); }
+  .hint.hidden{ animation:none; opacity:0; }
+  /* 面板打開時，提示文字要跟著讓開——不能用 transform（已被 hintFloat 動畫佔用，寫了會被蓋掉），改推 left。 */
+  body.panel-open .hint{ left:calc(50% - var(--panel-w) / 2); }
+
+  /* ---------- 共用控制項：按鈕 / 輸入框（全站同一套） ---------- */
+  .btn{ font:inherit; cursor:pointer; white-space:nowrap;
+    display:inline-flex; align-items:center; justify-content:center; gap:var(--sp-1);
+    height:var(--ctl-h); padding:0 var(--sp-3); border-radius:var(--r-md);
+    font-size:var(--fs-3); letter-spacing:.04em;
+    border:1px solid var(--gold-line); background:rgba(231,200,122,.08); color:var(--gold);
+    transition:transform .18s var(--ease-out), background .2s ease, border-color .2s ease, filter .2s ease, color .2s ease; }
+  .btn:hover{ background:rgba(231,200,122,.18); border-color:rgba(231,200,122,.38); transform:translateY(-1px); }
+  .btn:active{ transform:translateY(0) scale(.97); }
+  .btn:focus-visible{ outline:2px solid rgba(231,200,122,.8); outline-offset:2px; }
+  .btn-sm{ height:var(--ctl-h-sm); padding:0 var(--sp-2); font-size:var(--fs-2); border-radius:var(--r-sm); }
+  .btn-primary{ position:relative; overflow:hidden;
+    background:linear-gradient(135deg,#eccf86,#d4a85a); color:#1c1505; border:none;
+    font-weight:700; box-shadow:0 4px 18px rgba(231,200,122,.28); }
+  .btn-primary::after{ content:''; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.4) 50%,transparent 68%);
+    transform:translateX(-130%); }
+  .btn-primary:hover{ filter:brightness(1.07); background:linear-gradient(135deg,#eccf86,#d4a85a); }
+  .btn-primary:hover::after{ transform:translateX(130%); transition:transform .7s ease; }
+  .btn-ghost{ background:transparent; color:var(--ink-2); border:1px solid rgba(244,241,233,.18); }
+  .btn-ghost:hover{ background:rgba(244,241,233,.08); border-color:rgba(244,241,233,.3); color:var(--ink); }
+
+  .inp{ font:inherit; font-size:var(--fs-3); height:var(--ctl-h);
+    background:rgba(255,255,255,.06); border:1px solid rgba(244,241,233,.16);
+    color:var(--ink); border-radius:var(--r-md); padding:0 var(--sp-3); outline:none; user-select:text;
+    transition:border-color .2s ease, background .2s ease; }
+  .inp:focus{ border-color:rgba(231,200,122,.55); background:rgba(255,255,255,.1); }
+  .inp:focus-visible{ outline:2px solid rgba(231,200,122,.45); outline-offset:1px; }
+  .inp::placeholder{ color:var(--ink-3); }
+
+  /* ---------- 右上工具列：夜空工具 + 收藏面板開關 ---------- */
+  .rail{ position:fixed; top:var(--sp-4); right:var(--sp-4); z-index:6;
+    display:flex; align-items:center; gap:var(--sp-2);
+    transition:transform .46s var(--ease-out);
+    animation:fadeIn .5s ease .35s both; }        /* 只動 opacity，把 transform 留給面板連動 */
+  body.panel-open .rail{ transform:translateX(calc(-1 * var(--panel-w))); }
+  /* 窄桌機開面板時 rail 往左退，會壓到主標題——收成純圖示讓出空間（aria-label 仍在，不影響朗讀） */
+  @media (max-width:840px){
+    body.panel-open .rail .rail-label{ display:none; }
+    body.panel-open .rail .btn{ padding:0 var(--sp-2); }
+  }
+  .rail .ico{ font-size:var(--fs-4); line-height:1; }
+  .badge{ display:none; min-width:19px; height:19px; padding:0 5px; border-radius:999px;
+    background:rgba(231,200,122,.18); border:1px solid rgba(231,200,122,.4);
+    font-size:var(--fs-1); line-height:17px; text-align:center; color:var(--gold); }
+  .badge.on{ display:inline-block; }
+  .badge.pop{ animation:countPop .38s cubic-bezier(.34,1.56,.64,1); }
+
+  /* ---------- 底部工作台：分段揭露，沒連星時只剩一條細細的提示 ---------- */
+  .dock-wrap{ position:fixed; left:50%; bottom:var(--sp-5); z-index:6;
+    width:min(760px,94vw); pointer-events:none;
+    transform:translateX(-50%); transition:transform .46s var(--ease-out); }
+  /* 面板打開時，工作台不只是「平移」，可用寬度也要真的扣掉面板，
+     否則窄桌機（721～980px）會被切掉左緣、右緣又被面板壓住。
+     寬度不做過場（不做 layout 動畫），位移仍交給 transform。
+     因為 wrap 是置中的，寬度變化不會讓 dock 跳動：
+     dock 左緣 = 50%W - w/2 + (w - dockW)/2 = 50%W - dockW/2，與 w 無關。 */
+  body.panel-open .dock-wrap{ width:min(760px, calc(94vw - var(--panel-w)));
+    transform:translateX(calc(-50% - var(--panel-w) / 2)); }
+
+  .dock{ pointer-events:auto; width:-webkit-fit-content; width:fit-content; max-width:100%; margin:0 auto;
+    display:flex; flex-direction:column; gap:var(--sp-2);
+    padding:var(--sp-2) var(--sp-3); border-radius:var(--r-lg);
+    animation:dockUp .7s var(--ease-out) .25s both; }
+  .dock-status{ display:flex; align-items:center; gap:var(--sp-3); min-height:var(--ctl-h-sm); }
+  .counter{ display:inline-flex; align-items:center; height:var(--ctl-h-sm); padding:0 var(--sp-3);
+    border-radius:999px; border:1px solid rgba(231,200,122,.28);
+    color:var(--gold); font-size:var(--fs-2); white-space:nowrap; letter-spacing:.06em; }
+  .counter b{ display:inline-block; font-weight:600; min-width:1ch; text-align:center; }
+  .counter.pop b{ animation:countPop .38s cubic-bezier(.34,1.56,.64,1); }
+  .dock-tip{ flex:1; font-size:var(--fs-2); color:var(--ink-3); letter-spacing:.08em; line-height:1.5; }
+  .dock-form{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-2);
+    padding-top:var(--sp-2); border-top:1px solid var(--line);
+    animation:itemIn .34s var(--ease-out); }
+  /* 命名列被壓縮時（例如 721～980px 的窄桌機把側欄打開）要「換行」而不是「硬擠」：
+     flex-basis 給理想寬度、flex-grow 吃掉剩餘空間、min-width:0 解除 flex item 的
+     自動最小尺寸；空間不足時整欄換到下一行，placeholder 不會被切到只剩幾個 px。
+     注意：手機版 .dock-form 會轉成直排，此時 flex-basis 會被當成「高度」，
+     所以 <560px 區塊必須把 flex 還原成 0 0 auto（見下方 media query）。 */
+  #nameInput{ flex:1 1 148px; min-width:0; }
+  #storyInput{ flex:1 1 236px; min-width:0; }
+  .dock-form .btn{ flex:0 0 auto; }
+  #btnClear{ animation:itemIn .3s var(--ease-out); }
+  /* 三個階段：0 顆星（只有提示）→ 1 顆星（可清除）→ 2 顆以上（可命名） */
+  .dock[data-stage="empty"] .dock-form,
+  .dock[data-stage="one"] .dock-form,
+  .dock[data-stage="empty"] #btnClear{ display:none; }
+
+  /* ---------- 側欄面板（預設收合） ---------- */
+  /* 收合時 visibility:hidden，讓它退出定位順序：否則面板只是被 transform 推到畫面外，
+     裡面的關閉鈕、分頁、每個星座的「移除」都還能被 Tab 聚焦——鍵盤使用者會在看不見的
+     地方誤刪星座。visibility 用 0s 延遲切換，不會產生 layout 動畫。
+     （反向：面板打開且全螢幕覆蓋時，背景那一層改由 JS 的 syncInert() 設 inert。） */
+  .panel{ position:fixed; top:0; right:0; height:100%; width:var(--panel-w); max-width:90vw; z-index:8;
+    transform:translateX(106%); visibility:hidden;
+    transition:transform .46s var(--ease-out), visibility 0s linear .46s;
+    display:flex; flex-direction:column; border-radius:0; border-left:1px solid rgba(231,200,122,.2); }
+  .panel.open{ transform:none; visibility:visible;
+    transition:transform .46s var(--ease-out), visibility 0s linear 0s; }
+  .panel-head,.tabs,.pane{ opacity:0; transform:translateX(16px);
+    transition:opacity .4s ease, transform .5s var(--ease-out); }
+  .panel.open .panel-head{ transition-delay:.06s; }
+  .panel.open .tabs{ transition-delay:.12s; }
+  .panel.open .pane{ transition-delay:.18s; }
+  .panel.open .panel-head,.panel.open .tabs,.panel.open .pane{ opacity:1; transform:none; }
+
+  .panel-head{ padding:var(--sp-5) var(--sp-4) var(--sp-3); border-bottom:1px solid rgba(231,200,122,.14); position:relative; }
+  .panel-head .x{ position:absolute; top:var(--sp-3); right:var(--sp-2); cursor:pointer; color:rgba(244,241,233,.55);
+    font-size:var(--fs-5); line-height:1; padding:6px 8px; background:none; border:none; border-radius:8px;
+    transition:color .2s ease, transform .2s var(--ease-out); }
+  .panel-head .x:hover{ color:var(--gold); transform:rotate(90deg); }
+  .panel-head .x:focus-visible{ outline:2px solid rgba(231,200,122,.7); }
+  .panel-head h2{ margin:0; font-family:var(--serif); font-weight:600; font-size:var(--fs-5); letter-spacing:.1em; }
+  .stats{ margin-top:var(--sp-2); font-size:var(--fs-2); color:var(--ink-2); letter-spacing:.05em; line-height:1.8; }
+  .stats b{ color:var(--gold); font-weight:600; font-size:var(--fs-4); }
+  .stats .stat-dot{ margin:0 8px; color:rgba(231,200,122,.4); }
+  .stats .stat-name{ font-size:var(--fs-2); font-family:var(--serif); }
+
+  .tabs{ display:flex; gap:var(--sp-1); padding:var(--sp-3) var(--sp-4) 0; position:relative; }
+  .tab{ flex:1; cursor:pointer; text-align:center; padding:9px 0 11px; font-size:var(--fs-3); letter-spacing:.08em;
+    background:none; border:none; font-family:inherit; color:rgba(244,241,233,.55); transition:color .25s ease; }
+  .tab:hover{ color:rgba(244,241,233,.8); }
+  .tab.active{ color:var(--gold); }
+  .tab:focus-visible{ outline:2px solid rgba(231,200,122,.7); outline-offset:-2px; border-radius:6px; }
+  .tab-ind{ position:absolute; bottom:0; height:2px; background:var(--gold); border-radius:2px;
+    pointer-events:none; transition:transform .35s var(--ease-out); }
+
+  .pane{ flex:1; overflow-y:auto; padding:var(--sp-3) var(--sp-4) var(--sp-5); }
+  .pane::-webkit-scrollbar{ width:8px; }
+  .pane::-webkit-scrollbar-thumb{ background:rgba(231,200,122,.2); border-radius:8px; }
+  .empty{ text-align:center; color:var(--ink-3); font-size:var(--fs-3); line-height:1.9; padding:40px 10px; }
+
+  /* ---------- gallery item ---------- */
+  .g-item{ display:flex; gap:var(--sp-3); padding:var(--sp-3); margin-bottom:var(--sp-2); border-radius:13px;
+    background:rgba(255,255,255,.035); border:1px solid rgba(244,241,233,.08); position:relative;
+    animation:itemIn .4s var(--ease-out) both;
+    transition:background .2s ease, border-color .2s ease, transform .25s var(--ease-out); }
+  .g-item:hover{ background:rgba(231,200,122,.07); border-color:rgba(231,200,122,.22); transform:translateY(-2px); }
+  .g-item canvas{ border-radius:var(--r-sm); background:rgba(4,6,16,.7); flex-shrink:0; }
+  .g-meta{ flex:1; min-width:0; }
+  .g-name{ font-family:var(--serif); font-size:var(--fs-4); color:#f7f1e4; letter-spacing:.05em; }
+  .g-story{ font-size:var(--fs-2); color:rgba(244,241,233,.62); margin-top:4px; line-height:1.55;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .g-date{ font-size:var(--fs-1); color:var(--gold-soft); margin-top:var(--sp-1); letter-spacing:.08em; }
+  .g-del{ position:absolute; top:8px; right:10px; cursor:pointer; color:rgba(244,241,233,.32);
+    font-size:var(--fs-4); line-height:1; padding:4px 7px; border-radius:6px; background:none; border:none;
+    opacity:0; transition:opacity .2s ease, color .2s ease, transform .2s var(--ease-out); }
+  .g-item:hover .g-del, .g-item:focus-within .g-del, .g-del:focus-visible{ opacity:1; }
+  .g-del:hover{ color:#e88; background:rgba(255,120,120,.1); transform:scale(1.12); }
+  .g-del:focus-visible{ outline:2px solid rgba(255,136,136,.7); }
+
+  /* ---------- inspire card ---------- */
+  .card{ padding:var(--sp-3); margin-bottom:var(--sp-3); border-radius:13px;
+    background:rgba(255,255,255,.035); border:1px solid rgba(244,241,233,.08);
+    animation:itemIn .4s var(--ease-out) both;
+    transition:border-color .25s ease, transform .25s var(--ease-out); }
+  .card:hover{ border-color:rgba(159,216,236,.3); transform:translateY(-2px); }
+  .card-top{ display:flex; align-items:center; gap:var(--sp-3); }
+  .card canvas{ border-radius:var(--r-sm); background:rgba(4,6,16,.7); flex-shrink:0; }
+  .card-title{ font-family:var(--serif); font-size:17px; color:#f7f1e4; letter-spacing:.05em; }
+  .card-en{ font-size:var(--fs-1); color:rgba(231,200,122,.7); letter-spacing:.14em; margin-top:3px; text-transform:uppercase; }
+  .card-fact{ font-size:var(--fs-3); color:rgba(244,241,233,.78); line-height:1.78; margin:var(--sp-3) 0; letter-spacing:.02em; }
+  .card .btn{ width:100%; }
+
+  /* ---------- toast（跟著工作台走，永遠浮在它正上方） ---------- */
+  .toast{ position:absolute; left:50%; bottom:calc(100% + var(--sp-3)); z-index:1;
+    max-width:100%; transform:translate(-50%,16px);
+    padding:var(--sp-3) var(--sp-4); border-radius:13px; font-size:var(--fs-3); letter-spacing:.06em; color:#f7f1e4;
+    opacity:0; pointer-events:none; transition:opacity .4s var(--ease-out), transform .4s var(--ease-out); }
+  .toast.show{ opacity:1; transform:translate(-50%,0); }
+  .toast .star{ color:var(--gold); }
+
+  /* 只給螢幕閱讀器：把「已連幾顆星 + 下一步該做什麼」合成一則播報 */
+  .sr-only{ position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; border:0; }
+
+  /* ---------- responsive ---------- */
+  @media (max-width:720px){
+    .title-block{ top:var(--sp-3); left:var(--sp-3); }
+    .rail{ top:var(--sp-3); right:var(--sp-3); }
+    /* 這個尺寸以下面板是全螢幕覆蓋，JS 的 syncInert() 會把底下的
+       夜空 / 空狀態提示 / 右上工具列 / 底部工作台整層設成 inert，
+       焦點不會 Tab 到看不見的地方；所以 rail 與工作台都不必再閃避面板，
+       寬度與位移一併還原。 */
+    .panel{ width:100%; max-width:100%; }
+    body.panel-open .rail{ transform:none; }
+    body.panel-open .dock-wrap{ width:min(760px,94vw); transform:translateX(-50%); }
+    body.panel-open .hint{ left:50%; }     /* 全螢幕浮層本來就該整個蓋住，不必閃避 */
+    .hint{ top:42%; font-size:var(--fs-3); width:88vw; }
+    /* 改 flex-basis（不是 width）：上面 #storyInput 已寫死 basis，width 會被忽略 */
+    #storyInput{ flex-basis:180px; }
+  }
+  @media (max-width:560px){
+    /* 手機：工作台變成貼底抽屜，單欄流暢 */
+    .dock-wrap{ left:0; bottom:0; width:100%; transform:none; }
+    body.panel-open .dock-wrap{ width:100%; transform:none; }
+    .dock{ width:100%; border-radius:var(--r-lg) var(--r-lg) 0 0; border-left:none; border-right:none; border-bottom:none;
+      padding:var(--sp-3) var(--sp-3) calc(var(--sp-3) + env(safe-area-inset-bottom,0px)); }
+    .dock-status{ flex-wrap:wrap; gap:var(--sp-2); }
+    .dock-status #btnClear{ margin-left:auto; }   /* 提示換行後，清除仍靠右 */
+    .dock-tip{ order:3; flex:1 0 100%; }
+    /* 直排：flex-basis 在 column 方向會變成「高度」，所以把 flex 還原成 0 0 auto，
+       高度交還給 .inp 的 height，寬度用 100% 撐滿——單欄堆疊不受 basis 影響。 */
+    .dock-form{ flex-direction:column; flex-wrap:nowrap; align-items:stretch; }
+    #nameInput,#storyInput{ flex:0 0 auto; width:100%; }
+    .dock-form .btn{ flex:0 0 auto; width:100%; }
+    .rail .rail-label{ display:none; }     /* 手機只留圖示，仍有 aria-label */
+    .rail .btn{ padding:0 var(--sp-2); }
+    .title-block h1{ font-size:22px; }
+    .title-block .sub{ display:none; }
+  }
+
+  /* ---------- reduced motion: everything settles instantly ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.01ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:.01ms !important; }
+    /* duration 的覆寫救不到 delay：面板收合時 visibility 有 .46s 延遲，不清掉的話
+       關閉後那 460ms 內子元素仍可被 Tab 到；入場動畫的 delay 也會讓內容延後才出現。 */
+    *,*::before,*::after{ transition-delay:0s !important; animation-delay:0s !important; }
+    .panel-head,.tabs,.pane{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+  <canvas id="sky" tabindex="0"
+    aria-label="夜空畫布：點擊星星把它們連成星座；聚焦後也可用方向鍵選星，按 Enter 或空白鍵連接"></canvas>
+  <div class="vignette"></div>
+
+  <div class="title-block">
+    <a class="home-link" href="../../../index.html" aria-label="回到首頁">← 回首頁</a>
+    <h1>星空製造所</h1>
+    <div class="rule"></div>
+    <div class="sub">CONSTELLATION ATELIER</div>
+  </div>
+
+  <div class="hint" id="hint">
+    <div class="big">點擊夜空中的星星</div>
+    把它們一顆顆連起來，<br>就成了專屬於你的星座
+    <div class="kbd-tip">也可按 Tab 聚焦夜空，用方向鍵選星、Enter 連接</div>
+  </div>
+
+  <!-- 右上：夜空工具 + 收藏面板開關 -->
+  <div class="rail" role="group" aria-label="夜空工具">
+    <button class="btn btn-ghost" id="btnRespawn" title="重新生成背景星點" aria-label="重新撒下背景星點">
+      <span class="ico" aria-hidden="true">↻</span><span class="rail-label">撒星</span>
+    </button>
+    <button class="btn btn-ghost" id="panelToggle" aria-controls="panel" aria-expanded="false"
+      title="我的星空" aria-label="開啟或收合「我的星空」面板">
+      <span class="ico" aria-hidden="true">✦</span><span class="rail-label">我的星空</span>
+      <span class="badge" id="toggleBadge" aria-hidden="true">0</span>
+    </button>
+  </div>
+
+  <!-- 底部工作台：只在需要時展開，讓星空保持主角 -->
+  <div class="dock-wrap">
+    <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
+    <div class="dock glass" id="dock" data-stage="empty" role="group" aria-label="星座工作台">
+      <!-- 計數與階段提示合併成單一 live region（由 JS 的 announceStage() 寫入），
+           避免計數器與提示兩個 aria-live 互相打斷 -->
+      <span class="sr-only" id="dockLive" aria-live="polite" aria-atomic="true"></span>
+      <div class="dock-status">
+        <span class="counter" id="counter">✦ 已連接 <b id="countNum">0</b> 顆星</span>
+        <span class="dock-tip" id="dockTip">點一下夜空，放下第一顆星</span>
+        <button class="btn btn-ghost btn-sm" id="btnClear" aria-label="清除目前的連線">清除</button>
+      </div>
+      <div class="dock-form">
+        <input class="inp" id="nameInput" maxlength="14" placeholder="為星座命名…" aria-label="星座名稱">
+        <input class="inp" id="storyInput" maxlength="60" placeholder="寫一句星語（可留空）…" aria-label="星語（可留空）">
+        <button class="btn btn-primary" id="btnFinish">✧ 完成命名</button>
+      </div>
+    </div>
+  </div>
+
+  <aside class="panel glass" id="panel" aria-label="我的星空面板">
+    <div class="panel-head">
+      <button class="x" id="panelClose" aria-label="關閉面板">✕</button>
+      <h2>我的星空</h2>
+      <div class="stats" id="stats">尚未命名任何星座</div>
+    </div>
+    <div class="tabs" role="tablist" aria-label="面板分頁">
+      <button class="tab active" id="tabMine" role="tab" aria-selected="true" aria-controls="paneMine">我的星座</button>
+      <button class="tab" id="tabInspire" role="tab" aria-selected="false" aria-controls="paneInspire">靈感星圖</button>
+      <span class="tab-ind" id="tabInd" aria-hidden="true"></span>
+    </div>
+    <div class="pane" id="paneMine" role="tabpanel" aria-labelledby="tabMine">
+      <div class="empty" id="galEmpty">夜空還是空的。<br>連起幾顆星，留下第一個星座吧。</div>
+      <div id="gallery"></div>
+    </div>
+    <div class="pane" id="paneInspire" role="tabpanel" aria-labelledby="tabInspire" style="display:none">
+      <div id="inspire"></div>
+    </div>
+  </aside>
+
+<script>
+(function(){
+  "use strict";
+  var TAU = Math.PI*2;
+  var canvas = document.getElementById('sky');
+  var ctx = canvas.getContext('2d');
+  var W=0, H=0, dpr=1, grad=null;
+
+  var stars=[];            // {nx,ny,r,baseA,tw,ph,ig}
+  var currentPath=[];      // {nx,ny}
+  var saved=[];            // {name,story,points:[{nx,ny}],color,ts}
+  var effects=[];          // ripples & sparkles
+  var shooters=[];         // shooting stars
+  var births=[];           // naming-ceremony animations {con,start}
+  var ghost=null;          // {segs,zh,en,start}
+  var mouse={x:-1,y:-1};
+  var par={x:0,y:0,tx:0,ty:0};   // gentle parallax offset
+  var igniteT0=0;
+  var kbIdx=-1, kbOn=false;      // keyboard star cursor
+  var STORE='starlab.constellations.v1';
+  var UI_STORE='starlab.ui.v1';            // 介面偏好（側欄收合與否）
+  var ui={ panelOpen:false };              // 預設收合：星空才是主角
+  var booted=false;                        // init 跑完才開始對 live region 播報
+  var PALETTE=['#e8c98a','#84d6e8','#e89bb0','#b69ce8','#92e8c0','#f0b48a','#9ec6f0','#e6d27a'];
+
+  // ---- Real constellation lore (facts verified via web sources, see 說明.md) ----
+  var INSPIRE = {
+    orion:{ zh:'獵戶座', en:'Orion',
+      fact:'全天最好認的星座之一。左肩的「參宿四」(Betelgeuse) 是一顆紅超巨星，距地球約 548 光年，已步入生命尾聲，未來十萬年內可能化作超新星謝幕；右腳的「參宿七」(Rigel) 則是藍超巨星，名列全天第七亮星。中央斜排成線的三顆，就是著名的「獵戶腰帶」。',
+      segs:[ [[0.38,0.22],[0.62,0.20]], [[0.62,0.20],[0.58,0.50]], [[0.38,0.22],[0.42,0.50]],
+             [[0.42,0.50],[0.50,0.50],[0.58,0.50]], [[0.58,0.50],[0.60,0.82]], [[0.42,0.50],[0.36,0.80]] ] },
+    dipper:{ zh:'北斗七星', en:'Big Dipper',
+      fact:'它其實是大熊座的一部分，七顆星排成一支勺子。把勺口最外緣的「天樞」與「天璇」連線往外延伸約五倍，就能找到幾乎不動的「北極星」——古人靠它在夜裡辨方向。',
+      segs:[ [[0.92,0.30],[0.78,0.36],[0.64,0.42],[0.52,0.50],[0.30,0.54],[0.34,0.74],[0.56,0.70],[0.52,0.50]] ] },
+    scorpius:{ zh:'天蠍座', en:'Scorpius',
+      fact:'心臟位置的紅色亮星「心宿二」(Antares) 是一顆紅超巨星，亮度足以與獵戶座的參宿四匹敵。神話裡天蠍與獵戶被放在天空兩端，永不相遇——一個升起，另一個就落下。',
+      segs:[ [[0.30,0.16],[0.40,0.16],[0.50,0.22],[0.52,0.34],[0.50,0.48],[0.52,0.60],[0.60,0.70],[0.70,0.72],[0.74,0.62],[0.68,0.54]] ] },
+    crux:{ zh:'南十字座', en:'Crux',
+      fact:'全天 88 個星座中最小的一個（只有 68 平方度），卻非常好認。十字的長軸延伸出去正好指向南天極，在沒有 GPS 的年代，是南半球航海者尋找正南方的指南針，也被畫進澳洲與紐西蘭的國旗。',
+      segs:[ [[0.50,0.14],[0.50,0.86]], [[0.28,0.46],[0.72,0.52]] ] }
+  };
+
+  // ---------- helpers ----------
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function randn(){ return (Math.random()+Math.random()+Math.random()-1.5)/1.5; }
+  function clamp01(t){ return t<0?0:(t>1?1:t); }
+  function easeOutCubic(t){ return 1-Math.pow(1-t,3); }
+  function hexRGBA(hex,a){
+    var h=hex.replace('#',''); var r=parseInt(h.substring(0,2),16),
+        g=parseInt(h.substring(2,4),16), b=parseInt(h.substring(4,6),16);
+    return 'rgba('+r+','+g+','+b+','+a+')';
+  }
+
+  // ---------- reduced motion ----------
+  var motionMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = motionMq.matches;
+  function onMotionChange(){
+    reduced = motionMq.matches;
+    if(reduced){ stopLoop(); effects=[]; shooters=[]; births=[]; par.x=0; par.y=0; renderOnce(); }
+    else{ startLoop(); }
+  }
+  if(motionMq.addEventListener) motionMq.addEventListener('change', onMotionChange);
+  else if(motionMq.addListener) motionMq.addListener(onMotionChange);
+
+  // ---------- render loop control (pauses when tab hidden / reduced motion) ----------
+  var rafId=0, running=false;
+  function loopFrame(now){
+    if(!running) return;
+    draw(now);
+    rafId=requestAnimationFrame(loopFrame);
+  }
+  function startLoop(){
+    if(running || reduced || document.hidden) return;
+    running=true; rafId=requestAnimationFrame(loopFrame);
+  }
+  function stopLoop(){
+    running=false;
+    if(rafId){ cancelAnimationFrame(rafId); rafId=0; }
+  }
+  function renderOnce(){ draw(performance.now()); }
+  function repaint(){ if(reduced) renderOnce(); }
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden) stopLoop();
+    else if(reduced) renderOnce();
+    else startLoop();
+  });
+
+  // ---------- sizing ----------
+  function resize(){
+    W=window.innerWidth; H=window.innerHeight;
+    dpr=Math.min(window.devicePixelRatio||1, 2);
+    canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
+    canvas.style.width=W+'px'; canvas.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    grad=ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#0b1230'); grad.addColorStop(0.45,'#080c20');
+    grad.addColorStop(1,'#04050c');
+  }
+
+  // ---------- stars ----------
+  function genStars(){
+    stars=[]; kbIdx=-1;
+    igniteT0=performance.now();
+    var i;
+    for(i=0;i<155;i++){
+      var bright=Math.random()<0.12;
+      stars.push({ nx:Math.random(), ny:Math.random(),
+        r: bright? (1.3+Math.random()*0.9) : (0.4+Math.random()*0.95),
+        baseA: bright? (0.85+Math.random()*0.15) : (0.45+Math.random()*0.45),
+        tw: 0.5+Math.random()*2.0, ph: Math.random()*TAU, ig: Math.random()*0.6 });
+    }
+    // Milky-Way band: fainter, denser along a gentle diagonal
+    for(i=0;i<95;i++){
+      var t=Math.random();
+      var lx=lerp(0.04,0.96,t), ly=lerp(0.80,0.20,t);
+      var nx=lx+randn()*0.05, ny=ly+randn()*0.11;
+      if(nx<0||nx>1||ny<0||ny>1){ i--; continue; }
+      stars.push({ nx:nx, ny:ny, r:0.3+Math.random()*0.8,
+        baseA:0.18+Math.random()*0.42, tw:0.4+Math.random()*1.6, ph:Math.random()*TAU,
+        ig: Math.random()*0.6 });
+    }
+  }
+
+  function nearestStar(px,py){
+    // px,py are canvas coords; star layer is shifted by parallax
+    var sx=px-par.x, sy=py-par.y;
+    var best=null, bd=Infinity;
+    for(var i=0;i<stars.length;i++){
+      var dx=stars[i].nx*W-sx, dy=stars[i].ny*H-sy, d=dx*dx+dy*dy;
+      if(d<bd){ bd=d; best=stars[i]; }
+    }
+    return best;
+  }
+
+  // ---------- persistence ----------
+  function load(){
+    try{
+      var raw=localStorage.getItem(STORE);
+      if(raw){
+        var o=JSON.parse(raw);
+        // 只接受陣列：舊資料損毀或型別不對時退回空清單，
+        // 否則後續的 push/length/map 會靜靜地壞掉。
+        saved = Array.isArray(o) ? o : [];
+      }
+    }
+    catch(e){ saved=[]; }
+  }
+  function persist(){
+    try{ localStorage.setItem(STORE, JSON.stringify(saved)); }catch(e){}
+  }
+  function loadUI(){
+    try{
+      var raw=localStorage.getItem(UI_STORE);
+      if(raw){ var o=JSON.parse(raw); if(o && typeof o.panelOpen==='boolean') ui.panelOpen=o.panelOpen; }
+    }catch(e){}
+  }
+  function persistUI(){
+    try{ localStorage.setItem(UI_STORE, JSON.stringify(ui)); }catch(e){}
+  }
+
+  // ---------- drawing primitives ----------
+  function strokePath(pts,color,alpha,w,dash){
+    if(pts.length<1) return;
+    ctx.save();
+    ctx.strokeStyle=hexRGBA(color,alpha); ctx.lineWidth=w;
+    ctx.lineJoin='round'; ctx.lineCap='round';
+    if(dash) ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+    for(var i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.stroke(); ctx.restore();
+  }
+  function node(x,y,color,scale){
+    scale=scale||1;
+    ctx.beginPath(); ctx.fillStyle=hexRGBA(color,0.16);
+    ctx.arc(x,y,8*scale,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.fillStyle=hexRGBA(color,0.85);
+    ctx.arc(x,y,3*scale,0,TAU); ctx.fill();
+    ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,0.95)';
+    ctx.arc(x,y,1.2*scale,0,TAU); ctx.fill();
+  }
+  function pathLens(pts){
+    var lens=[], total=0;
+    for(var i=1;i<pts.length;i++){
+      var dx=pts[i][0]-pts[i-1][0], dy=pts[i][1]-pts[i-1][1];
+      var l=Math.sqrt(dx*dx+dy*dy); lens.push(l); total+=l;
+    }
+    return {lens:lens, total:total};
+  }
+  function partialPts(pts,f){
+    if(f>=1 || pts.length<2) return pts;
+    if(f<=0) return [pts[0]];
+    var pl=pathLens(pts), target=pl.total*f, acc=0, out=[pts[0]];
+    for(var i=0;i<pl.lens.length;i++){
+      if(acc+pl.lens[i]<=target){ out.push(pts[i+1]); acc+=pl.lens[i]; }
+      else{
+        var r=pl.lens[i]>0 ? (target-acc)/pl.lens[i] : 0;
+        out.push([lerp(pts[i][0],pts[i+1][0],r), lerp(pts[i][1],pts[i+1][1],r)]);
+        break;
+      }
+    }
+    return out;
+  }
+
+  // ---------- main render ----------
+  function draw(now){
+    ctx.fillStyle=grad; ctx.fillRect(0,0,W,H);
+    if(!reduced){
+      par.x+=(par.tx-par.x)*0.05;
+      par.y+=(par.ty-par.y)*0.05;
+    }
+    ctx.save();
+    ctx.translate(par.x,par.y);
+    drawBand();
+    drawStars(now);
+    drawSaved();
+    drawBirths(now);
+    drawCurrent();
+    drawReticle(now);
+    drawGhost(now);
+    if(!reduced){
+      updateShooters(now);
+      updateEffects(now);
+    }
+    ctx.restore();
+  }
+
+  function drawBand(){
+    ctx.save();
+    ctx.translate(W*0.5,H*0.5); ctx.rotate(-0.52);
+    var g=ctx.createLinearGradient(0,-H*0.5,0,H*0.5);
+    g.addColorStop(0,'rgba(120,140,210,0)');
+    g.addColorStop(0.5,'rgba(120,140,210,0.05)');
+    g.addColorStop(1,'rgba(120,140,210,0)');
+    ctx.fillStyle=g; ctx.fillRect(-W,-H*0.32,W*2,H*0.64);
+    ctx.restore();
+  }
+
+  function drawStars(now){
+    var t=now*0.001, e=(now-igniteT0)/1000;
+    for(var i=0;i<stars.length;i++){
+      var s=stars[i], a;
+      if(reduced){ a=s.baseA*0.85; }
+      else{
+        a=s.baseA*(0.6+0.4*Math.sin(t*s.tw+s.ph));
+        var f=clamp01((e-s.ig)/0.45);      // ignition: stars fade in one after another
+        a*=f*(2-f);
+      }
+      var x=s.nx*W, y=s.ny*H;
+      if(s.r>1.1){
+        ctx.beginPath(); ctx.fillStyle='rgba(231,220,200,'+(a*0.18)+')';
+        ctx.arc(x,y,s.r*3.2,0,TAU); ctx.fill();
+      }
+      ctx.beginPath(); ctx.fillStyle='rgba(255,253,247,'+a+')';
+      ctx.arc(x,y,s.r,0,TAU); ctx.fill();
+    }
+  }
+
+  function centroid(pts){
+    var cx=0,cy=0; for(var i=0;i<pts.length;i++){ cx+=pts[i][0]; cy+=pts[i][1]; }
+    return [cx/pts.length, cy/pts.length];
+  }
+
+  function birthFor(con){
+    for(var i=0;i<births.length;i++) if(births[i].con===con) return true;
+    return false;
+  }
+
+  function drawSaved(){
+    for(var c=0;c<saved.length;c++){
+      var con=saved[c], col=con.color||'#e8c98a';
+      if(birthFor(con)) continue;   // ceremony animation draws it instead
+      var pts=con.points.map(function(p){ return [p.nx*W, p.ny*H]; });
+      strokePath(pts,col,0.42,1.3);
+      for(var i=0;i<pts.length;i++) node(pts[i][0],pts[i][1],col,0.85);
+      var cc=centroid(pts);
+      ctx.save();
+      ctx.font='600 13px Georgia, "Songti TC", serif';
+      ctx.textAlign='center'; ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=8;
+      ctx.fillStyle=hexRGBA(col,0.62);
+      ctx.fillText(con.name, cc[0], cc[1]-16);
+      ctx.restore();
+    }
+  }
+
+  // ---------- naming ceremony: golden light traces the constellation ----------
+  function drawBirths(now){
+    for(var i=births.length-1;i>=0;i--){
+      var b=births[i], t=(now-b.start)/2200;
+      if(t>=1){ births.splice(i,1); continue; }
+      var con=b.con, col=con.color||'#e8c98a';
+      var pts=con.points.map(function(p){ return [p.nx*W, p.ny*H]; });
+      var f=easeOutCubic(clamp01(t/0.55));
+      var vis=partialPts(pts,f);
+      if(vis.length>1){
+        strokePath(vis,col,0.16,5);          // soft glow underlay
+        strokePath(vis,col,0.95,1.8);        // bright core line
+      }
+      if(f<1 && vis.length){                 // glowing tracer head
+        var hp=vis[vis.length-1];
+        ctx.beginPath(); ctx.fillStyle=hexRGBA(col,0.25);
+        ctx.arc(hp[0],hp[1],9,0,TAU); ctx.fill();
+        ctx.beginPath(); ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.arc(hp[0],hp[1],2.4,0,TAU); ctx.fill();
+      }
+      var pl=pathLens(pts), acc=0;           // nodes flare as the light passes
+      for(var k=0;k<pts.length;k++){
+        var frac=pl.total>0 ? acc/pl.total : 0;
+        if(frac<=f){
+          var sc=1+Math.max(0, 0.5-(f-frac)*2.5);
+          node(pts[k][0],pts[k][1],col,sc);
+        }
+        if(k<pl.lens.length) acc+=pl.lens[k];
+      }
+      var cc=centroid(pts);
+      if(t>0.42){                            // expanding halo ring
+        var ra=clamp01((t-0.42)/0.58);
+        ctx.save();
+        ctx.strokeStyle=hexRGBA(col,(1-ra)*0.45); ctx.lineWidth=1.4;
+        ctx.beginPath(); ctx.arc(cc[0],cc[1],12+easeOutCubic(ra)*78,0,TAU); ctx.stroke();
+        ctx.restore();
+      }
+      if(t>0.5){                             // name rises into place
+        var na=clamp01((t-0.5)/0.3);
+        ctx.save();
+        ctx.font='600 13px Georgia, "Songti TC", serif';
+        ctx.textAlign='center';
+        ctx.shadowColor=hexRGBA(col,0.8); ctx.shadowBlur=14*(1-na)+6;
+        ctx.fillStyle=hexRGBA(col, 0.62+0.3*(1-na));
+        ctx.fillText(con.name, cc[0], cc[1]-16+(1-easeOutCubic(na))*8);
+        ctx.restore();
+      }
+    }
+  }
+
+  function drawCurrent(){
+    if(currentPath.length===0) return;
+    var pts=currentPath.map(function(p){ return [p.nx*W, p.ny*H]; });
+    if(mouse.x>=0 && pts.length>=1){
+      strokePath([pts[pts.length-1],[mouse.x-par.x,mouse.y-par.y]], '#e7c87a', 0.28, 1.1, [4,6]);
+    }
+    strokePath(pts,'#f0d488',0.9,1.7);
+    for(var i=0;i<pts.length;i++) node(pts[i][0],pts[i][1],'#f3dc9a',1.1);
+  }
+
+  function drawReticle(now){
+    if(!kbOn || kbIdx<0 || kbIdx>=stars.length) return;
+    var s=stars[kbIdx], x=s.nx*W, y=s.ny*H;
+    ctx.save();
+    ctx.strokeStyle='rgba(159,216,236,0.9)'; ctx.lineWidth=1.2;
+    ctx.setLineDash([3,4]);
+    if(!reduced) ctx.lineDashOffset=-now*0.02;
+    var rr=reduced? 9 : 9+Math.sin(now*0.004)*1.5;
+    ctx.beginPath(); ctx.arc(x,y,rr,0,TAU); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawGhost(now){
+    if(!ghost) return;
+    var age=(now-ghost.start)/6500;
+    if(age>=1){ ghost=null; return; }
+    var a = reduced? 0.85 : (age<0.12 ? age/0.12 : (age>0.8 ? (1-age)/0.2 : 1));
+    var size=Math.min(W,H)*0.52, ox=W*0.5-size/2, oy=H*0.46-size/2;
+    var N=ghost.segs.length;
+    var tf = reduced? 1 : clamp01((now-ghost.start)/1200);   // lines trace in, one segment after another
+    for(var s=0;s<N;s++){
+      var pts=ghost.segs[s].map(function(p){ return [ox+p[0]*size, oy+p[1]*size]; });
+      var sf=easeOutCubic(clamp01(tf*N-s));
+      var vis=partialPts(pts,sf);
+      if(vis.length>1) strokePath(vis,'#9fd8ec',a*0.6,1.4,[2,7]);
+      var pl=pathLens(pts), acc=0;
+      for(var i=0;i<pts.length;i++){
+        var fr=pl.total>0 ? acc/pl.total : 0;
+        if(fr<=sf) node(pts[i][0],pts[i][1],'#bfe6f4',0.8);
+        if(i<pl.lens.length) acc+=pl.lens[i];
+      }
+    }
+    ctx.save();
+    ctx.textAlign='center'; ctx.fillStyle=hexRGBA('#e7c87a',a*0.9);
+    ctx.font='600 26px Georgia, "Songti TC", serif';
+    ctx.shadowColor='rgba(0,0,0,0.7)'; ctx.shadowBlur=10;
+    ctx.fillText(ghost.zh, W*0.5, oy-22);
+    ctx.font='12px "Helvetica Neue", "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", system-ui, sans-serif';
+    ctx.fillStyle=hexRGBA('#9fd8ec',a*0.7);
+    ctx.fillText(ghost.en.toUpperCase()+'　·　靈感星圖', W*0.5, oy-4);
+    ctx.restore();
+  }
+
+  // ---------- shooting stars ----------
+  function maybeShoot(){
+    if(Math.random()<0.006 && shooters.length<2){
+      var fromLeft=Math.random()<0.5;
+      shooters.push({ x: fromLeft? W*(0.05+Math.random()*0.3): W*(0.65+Math.random()*0.3),
+        y: H*(0.02+Math.random()*0.25),
+        vx: (fromLeft?1:-1)*(3+Math.random()*3), vy: 2.4+Math.random()*3.2,
+        life:0, max:60+Math.random()*40 });
+    }
+  }
+  function updateShooters(){
+    maybeShoot();
+    for(var i=shooters.length-1;i>=0;i--){
+      var s=shooters[i]; s.x+=s.vx; s.y+=s.vy; s.life++;
+      var fade = s.life<10 ? s.life/10 : (s.life>s.max-20 ? (s.max-s.life)/20 : 1);
+      if(fade<0) fade=0;
+      var tx=s.x-s.vx*5, ty=s.y-s.vy*5;
+      var g=ctx.createLinearGradient(s.x,s.y,tx,ty);
+      g.addColorStop(0,'rgba(255,250,235,'+(0.85*fade)+')');
+      g.addColorStop(1,'rgba(255,250,235,0)');
+      ctx.save(); ctx.strokeStyle=g; ctx.lineWidth=1.6; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(s.x,s.y); ctx.lineTo(tx,ty); ctx.stroke(); ctx.restore();
+      if(s.life>=s.max || s.x<-50||s.x>W+50||s.y>H+50) shooters.splice(i,1);
+    }
+  }
+
+  // ---------- effects (ripples & sparkles) ----------
+  function ripple(x,y){
+    if(reduced) return;
+    effects.push({type:'r',x:x,y:y,start:performance.now(),dur:700});
+  }
+  function burst(x,y,color){
+    if(reduced) return;
+    for(var i=0;i<10;i++){
+      var ang=Math.random()*TAU, sp=0.6+Math.random()*1.8;
+      effects.push({type:'s',x:x,y:y,vx:Math.cos(ang)*sp,vy:Math.sin(ang)*sp,
+        start:performance.now(),dur:900+Math.random()*500,color:color});
+    }
+  }
+  function updateEffects(now){
+    for(var i=effects.length-1;i>=0;i--){
+      var e=effects[i], age=(now-e.start)/e.dur;
+      if(age>=1){ effects.splice(i,1); continue; }
+      if(e.type==='r'){
+        ctx.save(); ctx.strokeStyle=hexRGBA('#f0d488',(1-age)*0.7);
+        ctx.lineWidth=1.4; ctx.beginPath();
+        ctx.arc(e.x,e.y,4+age*22,0,TAU); ctx.stroke(); ctx.restore();
+      }else{
+        var x=e.x+e.vx*age*60, y=e.y+e.vy*age*60;
+        ctx.beginPath(); ctx.fillStyle=hexRGBA(e.color||'#f0d488',(1-age)*0.9);
+        ctx.arc(x,y,1.6*(1-age)+0.4,0,TAU); ctx.fill();
+      }
+    }
+  }
+
+  // ---------- interaction ----------
+  function connectStar(s){
+    if(!s) return;
+    var last=currentPath[currentPath.length-1];
+    if(last && Math.abs(last.nx-s.nx)<1e-6 && Math.abs(last.ny-s.ny)<1e-6) return;
+    currentPath.push({nx:s.nx,ny:s.ny});
+    ripple(s.nx*W, s.ny*H);
+    updateCounter();
+    document.getElementById('hint').classList.add('hidden');
+    repaint();
+  }
+  function addStar(px,py){ connectStar(nearestStar(px,py)); }
+
+  function finish(){
+    var name=document.getElementById('nameInput').value.trim();
+    if(currentPath.length<2){ toast('至少連起 <span class="star">2 顆星</span> 才能命名'); return; }
+    if(!name){ toast('幫這個星座取個名字吧 <span class="star">✦</span>'); document.getElementById('nameInput').focus(); return; }
+    var story=document.getElementById('storyInput').value.trim();
+    var color=PALETTE[saved.length % PALETTE.length];
+    var con={ name:name, story:story, points:currentPath.slice(), color:color, ts:Date.now() };
+    saved.push(con);
+    persist();
+    var pts=currentPath.map(function(p){ return [p.nx*W,p.ny*H]; });
+    var cc=centroid(pts); burst(cc[0],cc[1],color);
+    for(var i=0;i<pts.length;i++) burst(pts[i][0],pts[i][1],color);
+    if(!reduced) births.push({con:con, start:performance.now()});
+    currentPath=[];
+    document.getElementById('nameInput').value='';
+    document.getElementById('storyInput').value='';
+    updateCounter(); renderGallery(); updateStats();
+    toast('<span class="star">✦</span> 「'+name+'」 誕生了');
+    repaint();
+  }
+
+  function clearCurrent(){
+    currentPath=[];
+    // 命名列會被 stage 收起來，值不清掉的話下一個星座會撿到上一個的殘留文字（finish() 也是這樣清）
+    document.getElementById('nameInput').value='';
+    document.getElementById('storyInput').value='';
+    updateCounter(); repaint();
+  }
+  function respawn(){ genStars(); toast('<span class="star">✦</span> 已重新撒下星點'); repaint(); }
+
+  function updateCounter(){
+    var n=currentPath.length;
+    document.getElementById('countNum').textContent=n;
+    var c=document.getElementById('counter');
+    c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop');
+    syncDock();
+    // 播報一定要留在這裡，不能塞進 syncDock()——syncDock() 在 stage 沒變時會提前 return，
+    // 連到第 3、4、5 顆星時 stage 一直是 ready，播報就永遠發不出來。
+    announceStage(n);
+  }
+
+  // ---------- 工作台分段揭露：0 顆星只留提示，連了星才長出命名欄位 ----------
+  var TIPS={
+    empty:'點一下夜空，放下第一顆星',
+    one:'再連一顆星，就能為它命名',
+    ready:'取個名字，Ctrl + Enter 可快速完成'
+  };
+  function stageOf(n){ return n===0 ? 'empty' : (n===1 ? 'one' : 'ready'); }
+
+  // 螢幕閱讀器的唯一回饋來源：連了幾顆星 + 下一步該做什麼
+  function announceStage(n){
+    if(!booted) return;   // 初始化時不要無故朗讀一次
+    document.getElementById('dockLive').textContent='已連接 '+n+' 顆星。'+TIPS[stageOf(n)];
+  }
+
+  function syncDock(){
+    var dock=document.getElementById('dock');
+    var stage=stageOf(currentPath.length);
+    if(dock.getAttribute('data-stage')===stage) return;
+    var focused = dock.contains(document.activeElement) ? document.activeElement : null;
+    dock.setAttribute('data-stage',stage);
+    document.getElementById('dockTip').textContent=TIPS[stage];
+    // 剛被 display:none 收起來的控制項若正握著焦點，把焦點還給夜空，不要讓它掉到 body。
+    // 不能比對 document.activeElement===document.body：瀏覽器的 focus fix-up 要等到下一次
+    // style/layout flush 才做，此刻 activeElement 仍是那顆按鈕。改讀 offsetParent——
+    // 讀它會強制 layout，null 就代表該元素（或其祖先）真的已經 display:none 了。
+    if(focused && focused.offsetParent===null && canvas.focus){
+      canvas.focus({preventScroll:true});
+    }
+  }
+
+  // ---------- rolling numbers ----------
+  function animateNum(el,from,to){
+    if(reduced || from===to || document.hidden){ el.textContent=to; return; }
+    var t0=performance.now(), dur=550;
+    function step(now){
+      var t=Math.min(1,(now-t0)/dur); t=easeOutCubic(t);
+      el.textContent=Math.round(from+(to-from)*t);
+      if(t<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  var prevStats={c:0, st:0};
+  function updateStats(){
+    var el=document.getElementById('stats');
+    var badge=document.getElementById('toggleBadge');
+    if(saved.length===0){
+      el.textContent='尚未命名任何星座';
+      badge.classList.remove('on');
+      prevStats={c:0, st:0};
+      return;
+    }
+    var totalStars=0; for(var i=0;i<saved.length;i++) totalStars+=saved[i].points.length;
+    el.innerHTML='已命名 <b id="statC">0</b> 座星座<span class="stat-dot">·</span>連接 <b id="statS">0</b> 顆星<br>最近：<b class="stat-name"></b>';
+    el.querySelector('.stat-name').textContent=saved[saved.length-1].name;
+    animateNum(document.getElementById('statC'), prevStats.c, saved.length);
+    animateNum(document.getElementById('statS'), prevStats.st, totalStars);
+    badge.classList.add('on');
+    if(badge.textContent!==String(saved.length)){
+      badge.textContent=saved.length;
+      badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop');
+    }
+    prevStats={c:saved.length, st:totalStars};
+  }
+
+  // ---------- gallery & inspire rendering ----------
+  function drawMini(cv,segs,color){
+    var c=cv.getContext('2d'), w=cv.width, h=cv.height, pad=11;
+    c.clearRect(0,0,w,h);
+    // fit all points into box
+    var minx=1,miny=1,maxx=0,maxy=0,k,j,p;
+    for(k=0;k<segs.length;k++) for(j=0;j<segs[k].length;j++){
+      p=segs[k][j]; if(p[0]<minx)minx=p[0]; if(p[0]>maxx)maxx=p[0];
+      if(p[1]<miny)miny=p[1]; if(p[1]>maxy)maxy=p[1];
+    }
+    var sw=Math.max(maxx-minx,0.001), sh=Math.max(maxy-miny,0.001);
+    var sc=Math.min((w-pad*2)/sw,(h-pad*2)/sh);
+    var offx=(w-sw*sc)/2-minx*sc, offy=(h-sh*sc)/2-miny*sc;
+    function M(p){ return [offx+p[0]*sc, offy+p[1]*sc]; }
+    for(k=0;k<segs.length;k++){
+      var pts=segs[k].map(M);
+      c.strokeStyle=hexRGBA(color,0.6); c.lineWidth=1.1; c.lineJoin='round'; c.lineCap='round';
+      c.beginPath(); c.moveTo(pts[0][0],pts[0][1]);
+      for(j=1;j<pts.length;j++) c.lineTo(pts[j][0],pts[j][1]);
+      c.stroke();
+      for(j=0;j<pts.length;j++){
+        c.beginPath(); c.fillStyle=hexRGBA(color,0.25); c.arc(pts[j][0],pts[j][1],3,0,TAU); c.fill();
+        c.beginPath(); c.fillStyle='rgba(255,255,255,0.95)'; c.arc(pts[j][0],pts[j][1],1.3,0,TAU); c.fill();
+      }
+    }
+  }
+
+  function renderGallery(){
+    var box=document.getElementById('gallery');
+    var empty=document.getElementById('galEmpty');
+    box.innerHTML='';
+    empty.style.display = saved.length? 'none':'block';
+    var order=0;
+    for(var i=saved.length-1;i>=0;i--){
+      (function(idx,ord){
+        var con=saved[idx];
+        var item=document.createElement('div'); item.className='g-item';
+        item.style.animationDelay=(Math.min(ord,8)*45)+'ms';
+        var cv=document.createElement('canvas'); cv.width=92; cv.height=66;
+        item.appendChild(cv);
+        var meta=document.createElement('div'); meta.className='g-meta';
+        var d=new Date(con.ts);
+        meta.innerHTML='<div class="g-name"></div>'+
+          (con.story?'<div class="g-story"></div>':'')+
+          '<div class="g-date">'+(d.getMonth()+1)+' / '+d.getDate()+'　·　'+con.points.length+' 顆星</div>';
+        meta.querySelector('.g-name').textContent=con.name;
+        if(con.story) meta.querySelector('.g-story').textContent='「'+con.story+'」';
+        item.appendChild(meta);
+        var del=document.createElement('button'); del.className='g-del'; del.textContent='✕';
+        del.title='移除這個星座';
+        del.setAttribute('aria-label','移除星座「'+con.name+'」');
+        del.onclick=function(ev){ ev.stopPropagation();
+          saved.splice(idx,1); persist(); renderGallery(); updateStats(); repaint(); };
+        item.appendChild(del);
+        box.appendChild(item);
+        drawMini(cv,[con.points.map(function(p){return [p.nx,p.ny];})],con.color||'#e8c98a');
+      })(i,order++);
+    }
+  }
+
+  function renderInspire(){
+    var box=document.getElementById('inspire'); box.innerHTML='';
+    var keys=['orion','dipper','scorpius','crux'];
+    keys.forEach(function(key,ki){
+      var d=INSPIRE[key];
+      var card=document.createElement('div'); card.className='card';
+      card.style.animationDelay=(ki*45)+'ms';
+      var top=document.createElement('div'); top.className='card-top';
+      var cv=document.createElement('canvas'); cv.width=80; cv.height=74;
+      top.appendChild(cv);
+      var tt=document.createElement('div');
+      tt.innerHTML='<div class="card-title">'+d.zh+'</div><div class="card-en">'+d.en+'</div>';
+      top.appendChild(tt);
+      card.appendChild(top);
+      var fact=document.createElement('div'); fact.className='card-fact'; fact.textContent=d.fact;
+      card.appendChild(fact);
+      var btn=document.createElement('button'); btn.className='btn'; btn.textContent='✦ 投影到星空';
+      btn.setAttribute('aria-label','把'+d.zh+'投影到星空');
+      btn.onclick=function(){
+        ghost={segs:d.segs,zh:d.zh,en:d.en,start:performance.now()};
+        if(window.innerWidth<=720) closePanel(true);   // 手機：讓出畫面，但不改變使用者的收合偏好
+        toast('<span class="star">✦</span> 正在星空投影：'+d.zh);
+        if(reduced){
+          renderOnce();
+          setTimeout(function(){ ghost=null; if(reduced) renderOnce(); }, 6500);
+        }
+      };
+      card.appendChild(btn);
+      box.appendChild(card);
+      drawMini(cv,d.segs,'#9fd8ec');
+    });
+  }
+
+  // ---------- toast ----------
+  var toastT=null;
+  function toast(html){
+    var el=document.getElementById('toast');
+    el.innerHTML=html; el.classList.add('show');
+    if(toastT) clearTimeout(toastT);
+    toastT=setTimeout(function(){ el.classList.remove('show'); }, 2600);
+  }
+
+  // ---------- panel（預設收合；狀態記在 localStorage） ----------
+  // ≤720px 時面板是全螢幕覆蓋層，背景那一整層必須退出 tab order，
+  // 否則焦點會 Tab 到被蓋住、看不見的夜空與工作台上。
+  var bgLayers=[ canvas,
+                 document.getElementById('hint'),
+                 document.querySelector('.title-block'),   // 裡面有「← 回首頁」，漏掉會讓焦點 Tab 到看不見的連結
+                 document.querySelector('.rail'),
+                 document.querySelector('.dock-wrap') ];
+  function syncInert(){
+    var open=document.getElementById('panel').classList.contains('open');
+    var block = open && window.innerWidth<=720;
+    for(var i=0;i<bgLayers.length;i++){
+      if(bgLayers[i]) bgLayers[i].toggleAttribute('inert', block);
+    }
+  }
+  function openPanel(skipSave){
+    document.getElementById('panel').classList.add('open');
+    document.body.classList.add('panel-open');
+    document.getElementById('panelToggle').setAttribute('aria-expanded','true');
+    syncInert();
+    positionTabInd();
+    if(!skipSave){ ui.panelOpen=true; persistUI(); }
+  }
+  function closePanel(skipSave){
+    var panel=document.getElementById('panel');
+    var refocus = panel.contains(document.activeElement);
+    panel.classList.remove('open');
+    document.body.classList.remove('panel-open');
+    document.getElementById('panelToggle').setAttribute('aria-expanded','false');
+    syncInert();   // 必須先解除背景的 inert，下面那行才聚焦得回 panelToggle
+    if(refocus) document.getElementById('panelToggle').focus();
+    if(!skipSave){ ui.panelOpen=false; persistUI(); }
+  }
+  function togglePanel(){
+    if(document.getElementById('panel').classList.contains('open')){
+      closePanel();
+    }else{
+      openPanel();
+      var x=document.getElementById('panelClose');
+      if(x.focus) x.focus({preventScroll:true});
+    }
+  }
+  var curTab='mine';
+  function applyTabInd(){
+    var t1=document.getElementById('tabMine'), t2=document.getElementById('tabInspire');
+    var dx = curTab==='mine' ? 0 : (t2.offsetLeft - t1.offsetLeft);
+    document.getElementById('tabInd').style.transform='translateX('+dx+'px)';
+  }
+  function positionTabInd(){
+    var t1=document.getElementById('tabMine');
+    var ind=document.getElementById('tabInd');
+    ind.style.left=t1.offsetLeft+'px';
+    ind.style.width=t1.offsetWidth+'px';
+    applyTabInd();
+  }
+  function switchTab(which){
+    curTab=which;
+    var mine=which==='mine';
+    var tm=document.getElementById('tabMine'), ti=document.getElementById('tabInspire');
+    tm.classList.toggle('active',mine); ti.classList.toggle('active',!mine);
+    tm.setAttribute('aria-selected',mine?'true':'false');
+    ti.setAttribute('aria-selected',!mine?'true':'false');
+    document.getElementById('paneMine').style.display=mine?'block':'none';
+    document.getElementById('paneInspire').style.display=mine?'none':'block';
+    applyTabInd();
+  }
+
+  // ---------- wire up ----------
+  canvas.addEventListener('click',function(e){
+    kbOn=false;
+    var r=canvas.getBoundingClientRect();
+    addStar(e.clientX-r.left, e.clientY-r.top);
+  });
+  canvas.addEventListener('mousemove',function(e){
+    var r=canvas.getBoundingClientRect();
+    mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top;
+    par.tx=((e.clientX/Math.max(1,W))-0.5)*10;
+    par.ty=((e.clientY/Math.max(1,H))-0.5)*8;
+  });
+  canvas.addEventListener('mouseleave',function(){ mouse.x=-1; mouse.y=-1; par.tx=0; par.ty=0; });
+
+  // keyboard star selection: arrows pick a star, Enter/Space connects
+  function nearestIdx(px,py){
+    var best=-1, bd=Infinity;
+    for(var i=0;i<stars.length;i++){
+      var dx=stars[i].nx*W-px, dy=stars[i].ny*H-py, d=dx*dx+dy*dy;
+      if(d<bd){ bd=d; best=i; }
+    }
+    return best;
+  }
+  function stepStar(idx,key){
+    var dx=0,dy=0;
+    if(key==='ArrowLeft')dx=-1; else if(key==='ArrowRight')dx=1;
+    else if(key==='ArrowUp')dy=-1; else dy=1;
+    var cx=stars[idx].nx*W, cy=stars[idx].ny*H;
+    var best=idx, bd=Infinity;
+    for(var i=0;i<stars.length;i++){
+      if(i===idx) continue;
+      var px=stars[i].nx*W-cx, py=stars[i].ny*H-cy;
+      var proj=px*dx+py*dy; if(proj<=0) continue;
+      var d=Math.sqrt(px*px+py*py);
+      if(proj/d<0.5) continue;           // stay within a ~60° cone
+      var score=d+(d-proj)*1.5;          // prefer well-aligned stars
+      if(score<bd){ bd=score; best=i; }
+    }
+    return best;
+  }
+  canvas.addEventListener('keydown',function(e){
+    var k=e.key;
+    if(k==='ArrowLeft'||k==='ArrowRight'||k==='ArrowUp'||k==='ArrowDown'){
+      e.preventDefault(); kbOn=true;
+      kbIdx = (kbIdx<0||kbIdx>=stars.length) ? nearestIdx(W/2,H/2) : stepStar(kbIdx,k);
+      repaint();
+    }else if((k==='Enter'||k===' ') && kbOn && kbIdx>=0 && kbIdx<stars.length){
+      e.preventDefault();
+      connectStar(stars[kbIdx]);
+    }
+  });
+  canvas.addEventListener('blur',function(){ kbOn=false; repaint(); });
+
+  document.getElementById('btnFinish').onclick=finish;
+  document.getElementById('btnClear').onclick=clearCurrent;
+  document.getElementById('btnRespawn').onclick=respawn;
+  document.getElementById('panelToggle').onclick=togglePanel;
+  document.getElementById('panelClose').onclick=function(){ closePanel(); };
+  document.getElementById('tabMine').onclick=function(){ switchTab('mine'); };
+  document.getElementById('tabInspire').onclick=function(){ switchTab('inspire'); };
+  document.querySelector('.tabs').addEventListener('keydown',function(e){
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+      e.preventDefault();
+      var next = curTab==='mine' ? 'inspire' : 'mine';
+      switchTab(next);
+      document.getElementById(next==='mine'?'tabMine':'tabInspire').focus();
+    }
+  });
+
+  function ctrlEnter(e){ if((e.ctrlKey||e.metaKey)&&e.key==='Enter') finish(); }
+  document.getElementById('nameInput').addEventListener('keydown',ctrlEnter);
+  document.getElementById('storyInput').addEventListener('keydown',ctrlEnter);
+  document.addEventListener('keydown',function(e){
+    // Esc 先關最上層的浮層；否則手上有未完成的連線時，想關面板卻會把連線靜默清掉
+    if(e.key==='Escape'){
+      if(document.getElementById('panel').classList.contains('open')) closePanel();
+      else if(currentPath.length) clearCurrent();
+    }
+  });
+  window.addEventListener('resize',function(){
+    resize(); positionTabInd(); syncInert(); repaint();   // 跨越 720px 界線時要重算 inert
+  });
+
+  // ---------- init ----------
+  resize(); genStars(); load(); loadUI();
+  renderGallery(); renderInspire(); updateStats(); updateCounter(); positionTabInd();
+  // 側欄預設收合；只有使用者上一次自己把它留在展開狀態、且畫面夠寬時才自動展開
+  if(ui.panelOpen && window.innerWidth>980) openPanel(true);
+  syncInert();
+  booted=true;   // 之後的計數變化才會送進 aria-live
+  if(reduced) renderOnce(); else startLoop();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>霍夫曼編碼 · 常用字給短碼</title>
+<meta name="description" content="真的能用的文字壓縮工具：由下而上長出霍夫曼樹，常用字自動拿到最短的碼，實際壓縮率逼近夏農熵的理論下界。附 1952 年那個不想考期末考的 MIT 學生，如何解開連老師都沒解開的難題。">
+<script>document.documentElement.classList.add("js");</script>
+<style>
+  :root{
+    --bg:#0a0b16; --ink:#f1eefb; --dim:#a9a4cf; --faint:#6f6a97;
+    --line:rgba(160,150,220,.16); --line-soft:rgba(160,150,220,.09);
+    --panel:rgba(18,20,42,.72); --panel2:#161936;
+    --gold:#f0c674;
+    --brand:#81c784; --brand-deep:#4f9d5b; --brand-soft:rgba(129,199,132,.14);
+    --warn:#f0a35f;
+    --shadow:0 22px 48px rgba(0,0,0,.5);
+    --e-out:cubic-bezier(.22,1,.36,1);
+    --e-pop:cubic-bezier(.2,1.5,.4,1);
+    --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+    --sans:"Noto Sans TC","Microsoft JhengHei","PingFang TC",system-ui,sans-serif;
+    --mono:"SFMono-Regular",ui-monospace,"Menlo","Consolas",monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1000px 560px at 84% -8%, rgba(129,199,132,.13), transparent 60%),
+      radial-gradient(860px 600px at 4% 6%, rgba(240,198,116,.07), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans);
+    min-height:100vh; line-height:1.65; overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.55;
+    background-image:radial-gradient(rgba(241,238,251,.045) 1px, transparent 1.6px);
+    background-size:32px 32px;
+    -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.75), transparent 74%);
+            mask-image:linear-gradient(180deg, rgba(0,0,0,.75), transparent 74%);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:8px}
+  .sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  button{font-family:inherit}
+
+  .home{
+    position:fixed; top:15px; left:16px; z-index:30;
+    font-size:13px; color:var(--dim); text-decoration:none;
+    background:rgba(14,16,38,.72); border:1px solid var(--line);
+    padding:7px 14px; border-radius:999px; backdrop-filter:blur(8px);
+    transition:color .2s, border-color .2s, transform .2s;
+  }
+  .home:hover{color:var(--ink); border-color:var(--brand); transform:translateX(-2px)}
+
+  .wrap{position:relative; z-index:1; max-width:1000px; margin:0 auto; padding:0 22px 72px}
+
+  /* 進場 stagger */
+  .rise{transition:opacity .7s ease var(--rd,0s), transform .7s var(--e-out) var(--rd,0s)}
+  body.preload .rise{opacity:0; transform:translateY(16px)}
+
+  header.hero{text-align:center; padding:72px 0 22px}
+  .kicker{
+    display:inline-flex; align-items:center; gap:10px;
+    font-family:var(--serif); font-size:11.5px; color:var(--brand);
+    letter-spacing:.32em; text-indent:.32em;
+    border:1px solid rgba(129,199,132,.34); border-radius:999px; padding:6px 15px 6px 19px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:700; margin-top:18px;
+    font-size:clamp(32px,6.4vw,54px); letter-spacing:.1em; text-indent:.1em;
+    background:linear-gradient(180deg,#fff 10%,#bfe9c2 96%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .hero .sub{color:var(--dim); font-size:15px; margin-top:14px; max-width:34em; margin-left:auto; margin-right:auto}
+  .hero .sub b{color:var(--ink); font-weight:600}
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    box-shadow:var(--shadow); backdrop-filter:blur(10px);
+    padding:20px 20px 22px; margin-top:18px;
+  }
+  .card-head{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:4px}
+  .card-head h2{font-family:var(--serif); font-weight:700; font-size:19px; letter-spacing:.03em}
+  .card-head .num{font-family:var(--serif); color:var(--brand); font-size:12px; letter-spacing:.2em; margin-right:8px}
+  .card-lead{color:var(--faint); font-size:13px; margin-top:2px; line-height:1.7}
+
+  /* ── 輸入區 ── */
+  textarea#inputText{
+    width:100%; margin-top:14px; resize:vertical; min-height:104px;
+    background:#12142c; border:1px solid var(--line); border-radius:14px; color:var(--ink);
+    font-family:var(--sans); font-size:14.5px; line-height:1.7; padding:13px 15px;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  textarea#inputText:focus-visible{outline:none; border-color:var(--brand); box-shadow:0 0 0 3px rgba(129,199,132,.16)}
+  .input-meta{display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11.5px; color:var(--faint)}
+  .input-meta .cnt b{color:var(--dim); font-variant-numeric:tabular-nums}
+  .examples{display:flex; gap:8px; flex-wrap:wrap; margin-top:13px}
+  .ex-btn{
+    font-size:12.5px; color:var(--dim); cursor:pointer; background:rgba(255,255,255,.03);
+    border:1px solid var(--line); padding:7px 13px; border-radius:999px;
+    transition:border-color .2s, color .2s, transform .15s var(--e-pop), background .2s;
+  }
+  .ex-btn:hover{border-color:var(--brand); color:var(--ink); transform:translateY(-1px)}
+  .ex-btn:active{transform:translateY(0) scale(.97)}
+  .ex-btn.active{border-color:var(--brand); color:var(--ink); background:rgba(129,199,132,.12)}
+
+  /* ── 頻率長條 ── */
+  .freqlist{margin-top:14px; display:flex; flex-direction:column; gap:6px; max-height:360px; overflow-y:auto; padding-right:4px}
+  .freqrow{display:grid; grid-template-columns:34px 1fr 60px; align-items:center; gap:10px; font-size:12.5px}
+  .freqrow .ch{
+    font-family:var(--mono); font-weight:700; text-align:center; color:var(--ink);
+    background:#161936; border:1px solid var(--line); border-radius:8px; padding:4px 0; font-size:12px;
+  }
+  .freqrow .bartrack{position:relative; height:16px; background:rgba(255,255,255,.04); border-radius:6px; overflow:hidden}
+  .freqrow .barfill{position:absolute; inset:0 auto 0 0; width:0%; border-radius:6px;
+    background:linear-gradient(90deg,var(--brand-deep),var(--brand)); transition:width .6s var(--e-out)}
+  .freqrow .pct{text-align:right; color:var(--faint); font-variant-numeric:tabular-nums; font-size:11.5px}
+  .freqrow .cnt{color:var(--dim)}
+
+  /* ── 樹 ── */
+  .tree-controls{display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-top:12px}
+  .btn{
+    font-family:inherit; font-size:13px; color:var(--ink); cursor:pointer;
+    background:linear-gradient(180deg,#1c2a1e,#141a2e); border:1px solid var(--line);
+    padding:8px 15px; border-radius:11px; transition:transform .15s var(--e-pop), border-color .2s, background .2s;
+  }
+  .btn:hover{border-color:var(--brand); transform:translateY(-1px)}
+  .btn:active{transform:translateY(0) scale(.97)}
+  .btn:disabled{opacity:.4; cursor:default; transform:none}
+  .btn.ghost{background:transparent; color:var(--dim)}
+  .btn.primary{background:linear-gradient(180deg,#9fdba3,var(--brand-deep)); border:none; color:#0e1a10; font-weight:700}
+  .tree-status{margin-top:12px; font-size:13px; color:var(--dim); min-height:20px}
+  .tree-status b{color:var(--brand); font-weight:700}
+  .tree-progress{font-size:11.5px; color:var(--faint); margin-top:2px; font-variant-numeric:tabular-nums}
+  .tree-wrap{margin-top:12px; border:1px solid var(--line-soft); border-radius:14px; background:radial-gradient(120% 140% at 50% 0%, rgba(30,40,30,.5), rgba(10,11,24,.35));
+    overflow:auto; max-height:480px; display:flex; justify-content:center; padding:10px}
+  svg.huff-svg{display:block}
+  .huff-node .disc{fill:#141a2e; stroke:rgba(200,220,200,.45); stroke-width:2; transition:stroke .25s, fill .25s}
+  .huff-node.leaf .disc{stroke:rgba(129,199,132,.55)}
+  .huff-node .halo{fill:transparent; opacity:0; transition:opacity .3s, fill .3s}
+  .huff-node.active .halo{fill:var(--brand-soft); opacity:1}
+  .huff-node.picking .halo{fill:rgba(240,198,116,.4); opacity:1; animation:huffPulse .85s ease-in-out infinite}
+  .huff-node.absorbed .disc{opacity:.5}
+  .huff-node.absorbed .halo{opacity:0}
+  .huff-node .ch{fill:var(--ink); font:600 9px var(--sans); text-anchor:middle; dominant-baseline:central}
+  .huff-node .wt{fill:var(--dim); font:600 7.5px var(--sans); text-anchor:middle; dominant-baseline:central}
+  .huff-node .pop{transform-box:fill-box; transform-origin:center; transition:opacity .32s var(--e-pop), transform .32s var(--e-pop)}
+  .huff-node.entering .pop{opacity:0; transform:scale(.35)}
+  .huff-edge{stroke:url(#huffEdgeGrad); stroke-width:2.2; fill:none; stroke-linecap:round}
+  #gHuffEdges{filter:drop-shadow(0 0 4px rgba(129,199,132,.3))}
+  @keyframes huffPulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+  /* ── 碼表 ── */
+  .codelist{margin-top:14px; display:flex; flex-direction:column; gap:5px; max-height:420px; overflow-y:auto; padding-right:4px}
+  .coderow{display:grid; grid-template-columns:34px 1fr auto 100px; align-items:center; gap:10px; font-size:12.5px; padding:3px 0}
+  .coderow .ch{font-family:var(--mono); font-weight:700; text-align:center; color:var(--ink);
+    background:#161936; border:1px solid var(--line); border-radius:8px; padding:4px 0; font-size:12px}
+  .coderow .bits{font-family:var(--mono); letter-spacing:.06em; color:var(--dim); word-break:break-all; font-size:12px}
+  .coderow .len{color:var(--faint); font-size:11px; text-align:right; font-variant-numeric:tabular-nums}
+  .coderow .lenbar{height:8px; border-radius:4px; background:rgba(255,255,255,.05); overflow:hidden; position:relative}
+  .coderow .lenbar i{position:absolute; inset:0 auto 0 0; display:block; border-radius:4px}
+
+  /* ── 對照統計 ── */
+  .statgrid{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px}
+  @media (max-width:680px){ .statgrid{grid-template-columns:1fr 1fr} }
+  .statbox{background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:14px; padding:14px 14px 12px; text-align:center}
+  .statbox .lbl{font-size:11px; color:var(--faint); letter-spacing:.04em}
+  .statbox .val{font-family:var(--serif); font-weight:700; font-size:24px; margin-top:6px; font-variant-numeric:tabular-nums; color:var(--ink)}
+  .statbox .unit{font-size:11px; color:var(--faint); margin-top:2px}
+  .statbox.hi .val{color:var(--brand)}
+
+  .ratio-hero{margin-top:16px; text-align:center; padding:22px 16px 20px; border-radius:16px;
+    background:linear-gradient(180deg,rgba(129,199,132,.14),rgba(129,199,132,.03)); border:1px solid rgba(129,199,132,.34)}
+  .ratio-hero .biglbl{font-size:12px; color:var(--brand); letter-spacing:.12em}
+  .ratio-hero .bignum{font-family:var(--serif); font-weight:700; font-size:clamp(40px,9vw,64px); color:var(--ink); font-variant-numeric:tabular-nums; line-height:1.1; margin-top:4px}
+  .ratio-hero .bignum span{font-size:.45em; color:var(--brand)}
+  .ratio-hero .sub{font-size:12.5px; color:var(--dim); margin-top:6px}
+
+  .sidebyside{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:14px; margin-top:16px; padding:14px 16px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.02)}
+  .sidebyside .side{text-align:center}
+  .sidebyside .side .t{font-size:11px; color:var(--faint)}
+  .sidebyside .side .n{font-family:var(--serif); font-size:22px; font-weight:700; margin-top:4px; font-variant-numeric:tabular-nums}
+  .sidebyside .gap{text-align:center; font-size:11px; color:var(--gold)}
+  .sidebyside .gap .n{font-family:var(--serif); font-size:16px; font-weight:700; color:var(--gold)}
+  @media (max-width:560px){ .sidebyside{grid-template-columns:1fr}; .sidebyside .gap{padding:4px 0} }
+
+  .compare3{display:flex; flex-direction:column; gap:10px; margin-top:16px}
+  .c3row{display:grid; grid-template-columns:76px 1fr 52px; align-items:center; gap:10px; font-size:12.5px}
+  .c3row .nm{color:var(--dim)}
+  .c3row .bartrack{height:20px; background:rgba(255,255,255,.04); border-radius:7px; overflow:hidden}
+  .c3row .barfill{height:100%; width:0%; border-radius:7px; transition:width .8s var(--e-out); background:linear-gradient(90deg,var(--brand-deep),var(--brand))}
+  .c3row .pct{text-align:right; font-variant-numeric:tabular-nums; color:var(--ink); font-weight:600}
+
+  /* ── 位元串 ── */
+  .bitbox{margin-top:14px; background:#0e0f22; border:1px solid var(--line); border-radius:12px; padding:13px 15px;
+    font-family:var(--mono); font-size:12px; color:var(--dim); word-break:break-all; letter-spacing:.03em; line-height:1.8}
+  .bitbox b{color:var(--brand)}
+  .bitrow-actions{display:flex; gap:9px; flex-wrap:wrap; margin-top:11px; align-items:center}
+  .verify-banner{margin-top:12px; padding:11px 14px; border-radius:12px; font-size:13px; border:1px solid var(--line); background:rgba(255,255,255,.02); transition:border-color .3s, background .3s}
+  .verify-banner.ok{border-color:rgba(129,199,132,.5); background:rgba(129,199,132,.08); color:var(--brand)}
+  .verify-banner b{font-weight:700}
+  .copy-note{font-size:11.5px; color:var(--faint)}
+
+  /* ── 原理卡／故事卡 ── */
+  .sec-head{display:flex; align-items:center; gap:14px; margin:40px 4px 16px}
+  .sec-head h2{font-family:var(--serif); font-weight:700; letter-spacing:.06em; white-space:nowrap;
+    font-size:clamp(19px,3.4vw,25px);
+    background:linear-gradient(180deg,#fff 20%,#bfe9c2 98%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+  .sec-head .rule{flex:1; height:1px; background:linear-gradient(90deg,var(--line),transparent)}
+  .sec-lead{margin:-8px 4px 16px; color:var(--faint); font-size:13px}
+
+  .grid2{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+  @media (max-width:640px){ .grid2{grid-template-columns:1fr} }
+  .pcard{position:relative; overflow:hidden; padding:18px 19px 16px; border-radius:16px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px)}
+  .pcard::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:linear-gradient(180deg,var(--brand),var(--gold))}
+  .pcard .n{font-family:var(--serif); font-size:11px; color:var(--brand); letter-spacing:.22em}
+  .pcard h3{font-family:var(--serif); font-size:16px; font-weight:700; margin:6px 0 9px; letter-spacing:.02em}
+  .pcard p{font-size:13.2px; color:var(--dim); line-height:1.78}
+  .pcard p b{color:var(--ink); font-weight:600}
+  .pcard .formula{margin-top:10px; font-family:var(--mono); font-size:13px; color:var(--gold); background:rgba(240,198,116,.08);
+    border:1px solid rgba(240,198,116,.25); border-radius:10px; padding:9px 12px; letter-spacing:.02em}
+
+  .storywrap{display:flex; flex-direction:column; gap:12px}
+  .sbeat{display:grid; grid-template-columns:64px 1fr; gap:16px; padding:16px 18px; border-radius:16px;
+    background:var(--panel); border:1px solid var(--line); box-shadow:var(--shadow); backdrop-filter:blur(10px)}
+  @media (max-width:560px){ .sbeat{grid-template-columns:1fr; gap:6px} }
+  .sbeat .yr{font-family:var(--serif); font-weight:700; color:var(--brand); font-size:13px; letter-spacing:.04em; padding-top:2px}
+  .sbeat h3{font-family:var(--serif); font-size:15.5px; font-weight:700; margin-bottom:6px}
+  .sbeat p{font-size:13.2px; color:var(--dim); line-height:1.8}
+  .sbeat p b{color:var(--ink); font-weight:600}
+  .sbeat q{color:var(--ink); font-style:italic}
+  .sbeat.hi{border-color:rgba(129,199,132,.4)}
+  .sbeat.hi .yr{color:var(--gold)}
+
+  footer{margin-top:44px; text-align:center; color:var(--faint); font-size:12px; letter-spacing:.02em}
+
+  @media (max-width:560px){
+    header.hero{padding-top:60px}
+    .card{padding:16px 15px 18px}
+    .statgrid{grid-template-columns:1fr 1fr; gap:9px}
+    .coderow{grid-template-columns:30px 1fr auto 74px}
+    .freqrow{grid-template-columns:30px 1fr 50px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .rise{transition:none!important} body.preload .rise{opacity:1;transform:none}
+    .huff-node .pop{transition:opacity .12s linear}
+    .huff-node.entering .pop{transform:none}
+    .huff-node.picking .halo{animation:none; opacity:.85}
+    .freqrow .barfill, .c3row .barfill{transition:none}
+  }
+</style>
+</head>
+<body class="preload">
+<a class="home" href="../../../index.html" aria-label="回到首頁">← 回首頁</a>
+
+<div class="wrap">
+  <header class="hero">
+    <span class="kicker rise">1952 · 由下而上長出的最佳解</span>
+    <h1 class="rise" style="--rd:.05s">霍夫曼編碼</h1>
+    <p class="sub rise" style="--rd:.10s">
+      貼一段文字，看它<b>怎麼被壓縮</b>：常用的字自動拿到最短的碼、罕見的字才用長碼——
+      而且壓縮出來的位元數，會逼近一個叫「夏農熵」的理論極限，近到讓人意外。
+    </p>
+  </header>
+
+  <!-- ① 輸入 -->
+  <section class="card rise" style="--rd:.16s" aria-label="輸入文字">
+    <div class="card-head"><h2><span class="num">01</span>輸入文字</h2></div>
+    <p class="card-lead">貼上或輸入任何文字，也可以先點下面的範例看看。</p>
+    <label class="sr-only" for="inputText">要壓縮的文字</label>
+    <textarea id="inputText" maxlength="1200" placeholder="在這裡輸入或貼上文字……" spellcheck="false"></textarea>
+    <div class="input-meta">
+      <span class="cnt"><b id="charCount">0</b> 個字元 · <b id="distinctCount">0</b> 種相異符號</span>
+      <span>最多 1200 字</span>
+    </div>
+    <div class="examples" role="group" aria-label="範例文字">
+      <button class="ex-btn" data-ex="zh">一段中文</button>
+      <button class="ex-btn" data-ex="en">一段英文</button>
+      <button class="ex-btn" data-ex="rep">高重複文字</button>
+    </div>
+  </section>
+
+  <!-- ② 頻率 -->
+  <section class="card rise" style="--rd:.19s" aria-label="字元頻率">
+    <div class="card-head"><h2><span class="num">02</span>字元頻率（由高到低）</h2></div>
+    <p class="card-lead">出現越多次的字元，等一下在樹裡會越晚被合併、碼也會越短。</p>
+    <div class="freqlist" id="freqList"></div>
+  </section>
+
+  <!-- ③ 樹 -->
+  <section class="card rise" style="--rd:.22s" aria-label="霍夫曼樹建構動畫">
+    <div class="card-head"><h2><span class="num">03</span>由下而上長出霍夫曼樹</h2></div>
+    <p class="card-lead">每一步都從目前的節點裡挑出<b style="color:var(--ink)">權重最小的兩個</b>，合併成一個新節點放回去——直到只剩一個根。發亮的節點就是「目前池子裡還在等的節點」。</p>
+    <div class="tree-controls">
+      <button class="btn primary" id="btnPlay" aria-label="播放或暫停建樹動畫">⏸ 暫停</button>
+      <button class="btn ghost" id="btnReplay" aria-label="重新播放建樹動畫">↺ 重播</button>
+      <button class="btn ghost" id="btnSkip" aria-label="跳過動畫，直接顯示完整的樹">⏭ 顯示完整樹</button>
+    </div>
+    <p class="tree-status" id="treeStatus" aria-live="polite">請先輸入文字。</p>
+    <p class="tree-progress" id="treeProgress"></p>
+    <div class="tree-wrap" id="treeWrap">
+      <svg class="huff-svg" id="treeSvg" role="img" aria-label="霍夫曼樹視覺化"></svg>
+    </div>
+  </section>
+
+  <!-- ④ 碼表 -->
+  <section class="card rise" style="--rd:.26s" aria-label="霍夫曼碼表">
+    <div class="card-head"><h2><span class="num">04</span>碼表</h2></div>
+    <p class="card-lead">每個字元對應一組 0/1 前綴碼——注意上面的短碼、下面的長碼，長度直接對應出現頻率。</p>
+    <div class="codelist" id="codeList"></div>
+  </section>
+
+  <!-- ⑤ 三者對照 -->
+  <section class="card rise" style="--rd:.29s" aria-label="壓縮效果統計">
+    <div class="card-head"><h2><span class="num">05</span>原始 vs 霍夫曼 vs 理論極限</h2></div>
+    <p class="card-lead">固定長度編碼（每個符號都用一樣的位元數）、霍夫曼壓縮後、以及夏農熵算出的理論下界——三個數字放在一起比。</p>
+    <div class="statgrid">
+      <div class="statbox"><div class="lbl">固定長度編碼</div><div class="val" id="statFixed">0</div><div class="unit">bits</div></div>
+      <div class="statbox hi"><div class="lbl">霍夫曼編碼後</div><div class="val" id="statHuff">0</div><div class="unit">bits</div></div>
+      <div class="statbox"><div class="lbl">夏農熵下界</div><div class="val" id="statEntropy">0</div><div class="unit">bits</div></div>
+    </div>
+    <div class="ratio-hero">
+      <div class="biglbl">壓縮率</div>
+      <div class="bignum"><span id="ratioNum">0</span><span>%</span></div>
+      <div class="sub" id="ratioSub">比固定長度編碼省下的位元比例</div>
+    </div>
+    <div class="sidebyside">
+      <div class="side"><div class="t">霍夫曼　平均每符號</div><div class="n" id="avgHuffBits">0</div></div>
+      <div class="gap">差距<div class="n" id="gapBits">0</div></div>
+      <div class="side"><div class="t">夏農熵　每符號極限</div><div class="n" id="avgEntropyBits">0</div></div>
+    </div>
+    <p class="card-lead" style="margin-top:14px">同樣的演算法，套在不同「重複性」的文字上，壓縮率差很多：</p>
+    <div class="compare3" id="compare3"></div>
+  </section>
+
+  <!-- ⑥ 位元串與還原 -->
+  <section class="card rise" style="--rd:.33s" aria-label="編碼結果與解碼驗證">
+    <div class="card-head"><h2><span class="num">06</span>編碼後的位元串 · 解碼還原</h2></div>
+    <p class="card-lead">這是文字真正被壓縮成的 0/1 序列（過長會截斷顯示）；按下驗證，程式會把它解碼回文字，逐字元比對是否完全相同。</p>
+    <div class="bitbox" id="bitDisplay">—</div>
+    <div class="bitrow-actions">
+      <button class="btn" id="btnVerify" aria-label="解碼還原並驗證是否與原文完全相同">▶ 解碼還原驗證</button>
+      <button class="btn ghost" id="btnFullBits" aria-label="展開或收合完整位元串">展開完整位元串</button>
+      <button class="btn ghost" id="btnCopyBits" aria-label="複製位元串到剪貼簿">複製位元串</button>
+      <span class="copy-note" id="copyNote" aria-live="polite"></span>
+    </div>
+    <div class="verify-banner" id="verifyBanner" aria-live="polite">尚未驗證。</div>
+  </section>
+
+  <!-- 原理 -->
+  <div class="sec-head rise" style="--rd:.36s"><h2>為什麼行得通</h2><span class="rule"></span></div>
+  <p class="sec-lead rise" style="--rd:.38s">四個支撐這個工具的核心概念。</p>
+  <div class="grid2 rise" style="--rd:.40s">
+    <article class="pcard">
+      <div class="n">壹</div>
+      <h3>前綴碼：不用分隔符也能唯一解碼</h3>
+      <p>霍夫曼碼有個規則：<b>沒有任何一個字的碼，會是另一個字的碼的開頭</b>（前綴）。解碼時只要從樹根出發、照著位元一路往下走，一撞到葉子就代表一個字結束了、立刻跳回根重新走——不需要逗號、空格或任何分隔符號，位元串貼在一起也不會讀錯。這正是摩斯電碼做不到、卻是霍夫曼碼的基本設計。</p>
+    </article>
+    <article class="pcard">
+      <div class="n">貳</div>
+      <h3>為什麼這是「逐字元」最佳解</h3>
+      <p>在任何最佳前綴碼裡，<b>出現次數最少的兩個符號，一定深度最深、而且互為兄弟節點</b>——不然把它們换到更淺的位置只會讓總長度變長。霍夫曼的演算法每一步都把當下最小的兩個合併成一對兄弟，等於直接照著這個性質施工，因此保證每一步都不會比最佳解差，最終蓋出來的就是最佳樹。</p>
+    </article>
+    <article class="pcard">
+      <div class="n">參</div>
+      <h3>它輸給算術編碼與 LZ77／LZ78 的原因</h3>
+      <p>霍夫曼碼有個天生的限制：<b>每個符號至少要花掉 1 個完整位元</b>，就算某個符號機率高達 90%、理論上只需要 0.15 bit 也一樣。算術編碼把整段訊息編成單一個小數，能讓平均長度真正逼近熵，不受「整數位元」限制；LZ77／LZ78 這類字典法則是看「重複出現的字串」而不只是單一符號頻率，能抓到霍夫曼這種逐字元模型完全看不到的高階規律（例如英文裡常見的 "the"、程式碼裡的縮排）。</p>
+    </article>
+    <article class="pcard">
+      <div class="n">肆</div>
+      <h3>夏農熵與複雜度</h3>
+      <p>熵衡量一段訊息「平均每個符號帶有多少資訊量」，是任何逐字元編碼都不可能低於的理論下界：</p>
+      <div class="formula">H(X) = − Σᵢ p(xᵢ) · log₂ p(xᵢ)</div>
+      <p style="margin-top:9px">建樹本身則是靠<b>優先佇列（最小堆積）</b>：每次取出兩個最小節點、合併回堆積，共 n−1 次，每次 O(log n)，整體<b>時間複雜度 O(n log n)</b>（n 為相異符號數）。</p>
+    </article>
+  </div>
+
+  <!-- 故事 -->
+  <div class="sec-head rise" style="--rd:.43s"><h2>不想考期末考,結果打敗了教授</h2><span class="rule"></span></div>
+  <p class="sec-lead rise" style="--rd:.45s">1952 年，一個 25 歲研究生的學期報告，如何解開連他老師都卡關的難題。</p>
+  <div class="storywrap rise" style="--rd:.47s">
+    <article class="sbeat">
+      <div class="yr">1951</div>
+      <div>
+        <h3>一道「二選一」的作業</h3>
+        <p>大衛・霍夫曼（David Huffman）是 MIT 電機系的研究生，修了 Robert M. Fano 開的資訊理論課。Fano 給全班一個選擇：<b>考期末考，或者交一篇學期報告</b>。報告題目是找出「最有效率」的二進位編碼方式——霍夫曼不想考試，選了報告。</p>
+      </div>
+    </article>
+    <article class="sbeat">
+      <div class="yr">秘密</div>
+      <div>
+        <h3>老師沒說的事</h3>
+        <p>Fano 沒告訴學生：這其實是一個<b>他自己與資訊理論之父 Claude Shannon 都還沒解開</b>的公開難題。他們發展出的「由上而下」建樹法（後稱 Shannon–Fano coding）並不保證是最佳解。霍夫曼後來說，若當初知道是老師和 Shannon 都卡關的題目，他大概想都不敢想。</p>
+      </div>
+    </article>
+    <article class="sbeat">
+      <div class="yr">轉折</div>
+      <div>
+        <h3>正要把筆記丟進垃圾桶</h3>
+        <p>霍夫曼在這題上耗了好幾個月，試過各種方法都無法證明是最佳解，最後打算放棄、改去讀書準備期末考。<b>就在他把筆記丟進垃圾桶的那一刻</b>，靈感忽然出現——由下而上，每次只合併當下最小的兩個。他形容：<q>那是我這輩子最獨特的一刻，像是絕對的靈光乍現。</q></p>
+      </div>
+    </article>
+    <article class="sbeat hi">
+      <div class="yr">1952</div>
+      <div>
+        <h3>比老師和夏農都厲害</h3>
+        <p>由下而上的合併法，被證明<b>永遠是最佳解</b>——而 Fano 與 Shannon 由上而下的作法只是近似值。Fano 看到答案時說了句：<q>就這樣而已？</q>霍夫曼把成果寫成論文〈A Method for the Construction of Minimum-Redundancy Codes〉，1952 年發表於 Proceedings of the IRE。他唯一實質的獎勵，是<b>免修那場期末考</b>。今天，你手機裡的 ZIP、JPEG、傳真機、Wi-Fi 訊號，幾乎都還在用這位研究生想出來的方法。</p>
+      </div>
+    </article>
+  </div>
+
+  <footer class="rise" style="--rd:.50s">資料來源：Huffman 1952、Fano 1949、Scientific American 1991、MIT／MAA、Quanta Magazine</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  /* ===================================================================
+     HUFF_CORE_START — 純函式演算法核心（無 DOM 依賴，供 node --check 抽取測試）
+     =================================================================== */
+  function huffCountFreq(text){
+    var freq = new Map();
+    var order = [];
+    var chars = Array.from(text);
+    for (var i=0;i<chars.length;i++){
+      var ch = chars[i];
+      if (!freq.has(ch)){ freq.set(ch, 0); order.push(ch); }
+      freq.set(ch, freq.get(ch)+1);
+    }
+    return { freq: freq, order: order, total: chars.length };
+  }
+
+  function HuffMinHeap(){ this.a = []; }
+  HuffMinHeap.prototype.size = function(){ return this.a.length; };
+  HuffMinHeap.prototype.less = function(x,y){
+    if (x.weight !== y.weight) return x.weight < y.weight;
+    return x.seq < y.seq;
+  };
+  HuffMinHeap.prototype.push = function(node){
+    var a = this.a; a.push(node);
+    var i = a.length-1;
+    while (i>0){
+      var p = (i-1)>>1;
+      if (this.less(a[i],a[p])){ var t=a[i]; a[i]=a[p]; a[p]=t; i=p; }
+      else break;
+    }
+  };
+  HuffMinHeap.prototype.pop = function(){
+    var a = this.a;
+    var top = a[0];
+    var last = a.pop();
+    if (a.length){
+      a[0] = last;
+      var i=0, n=a.length;
+      while (true){
+        var l=i*2+1, r=i*2+2, s=i;
+        if (l<n && this.less(a[l],a[s])) s=l;
+        if (r<n && this.less(a[r],a[s])) s=r;
+        if (s===i) break;
+        var t=a[i]; a[i]=a[s]; a[s]=t; i=s;
+      }
+    }
+    return top;
+  };
+
+  function huffBuildTree(freq, order){
+    var heap = new HuffMinHeap();
+    var seq = 0;
+    order.forEach(function(ch){
+      heap.push({ char:ch, weight:freq.get(ch), left:null, right:null, isLeaf:true, seq:seq++, mergeStep:-1 });
+    });
+    var merges = [];
+    var step = 0;
+    while (heap.size() > 1){
+      var a = heap.pop();
+      var b = heap.pop();
+      var parent = { char:null, weight:a.weight+b.weight, left:a, right:b, isLeaf:false, seq:seq++, mergeStep:step };
+      merges.push({ a:a, b:b, parent:parent, step:step });
+      step++;
+      heap.push(parent);
+    }
+    var root = heap.size() ? heap.pop() : null;
+    return { root: root, merges: merges };
+  }
+
+  function huffGenerateCodes(root){
+    var codes = {};
+    if (!root) return codes;
+    if (root.isLeaf){ codes[root.char] = "0"; return codes; }
+    (function walk(node, prefix){
+      if (node.isLeaf){ codes[node.char] = prefix; return; }
+      walk(node.left, prefix+"0");
+      walk(node.right, prefix+"1");
+    })(root, "");
+    return codes;
+  }
+
+  function huffEncode(text, codes){
+    var out = [];
+    var chars = Array.from(text);
+    for (var i=0;i<chars.length;i++){
+      var c = codes[chars[i]];
+      if (c===undefined) return null;
+      out.push(c);
+    }
+    return out.join("");
+  }
+
+  function huffDecode(bits, root){
+    if (!root) return "";
+    if (root.isLeaf){
+      var s = "";
+      for (var i=0;i<bits.length;i++) s += root.char;
+      return s;
+    }
+    var out = [];
+    var node = root;
+    for (var i=0;i<bits.length;i++){
+      node = (bits[i]==="0") ? node.left : node.right;
+      if (node.isLeaf){ out.push(node.char); node = root; }
+    }
+    return out.join("");
+  }
+
+  function huffEntropy(freq, total){
+    if (!total) return 0;
+    var h = 0;
+    freq.forEach(function(count){
+      var p = count/total;
+      h -= p * Math.log2(p);
+    });
+    return h;
+  }
+
+  function huffFixedBitsPerSymbol(distinctCount){
+    return Math.max(1, Math.ceil(Math.log2(Math.max(distinctCount,1))));
+  }
+  /* ===================================================================
+     HUFF_CORE_END
+     =================================================================== */
+
+  var $ = function(s){ return document.querySelector(s); };
+  var clamp = function(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); };
+  var SVGNS = "http://www.w3.org/2000/svg";
+
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var reduceMotion = RM.matches;
+  RM.addEventListener("change", function(e){
+    reduceMotion = e.matches;
+    if (Tree.current && Tree.current.playing){ Tree.jumpToEnd(); }
+  });
+
+  /* ── localStorage（前綴 huff.） ── */
+  var LS_INPUT = "huff.input";
+  function saveInput(v){ try{ localStorage.setItem(LS_INPUT, v); }catch(e){} }
+  function loadInput(){ try{ return localStorage.getItem(LS_INPUT); }catch(e){ return null; } }
+
+  /* ── 範例文字 ── */
+  var EXAMPLES = {
+    zh: "你今天過得好嗎？我今天很忙，一直在開會，中午都沒時間吃飯，只好隨便買個便當，邊吃邊回訊息。晚上終於有空，想找你聊聊天，順便問問你最近好不好。",
+    en: "the quick brown fox jumps over the lazy dog again and again, the dog does not seem to mind at all, it just keeps sleeping in the warm afternoon sun while the fox runs past.",
+    rep: "哈".repeat(70) + "，笑死我了！"
+  };
+
+  function labelFor(ch){
+    if (ch === " ") return "␣";
+    if (ch === "\n") return "⏎";
+    if (ch === "\t") return "⇥";
+    return ch;
+  }
+  function fmtPct(x){ return (x*100).toFixed(1); }
+  function fmtNum(x, d){ d = d===undefined?0:d; return x.toLocaleString("zh-Hant-TW", {minimumFractionDigits:d, maximumFractionDigits:d}); }
+  function escapeHtml(s){
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+  /* ===================================================================
+     數字滾動動畫
+     =================================================================== */
+  function animateNumber(el, from, to, duration, fmt){
+    if (reduceMotion || Math.abs(to-from) < 1e-9){ el.textContent = fmt(to); return; }
+    var start = null;
+    function frame(ts){
+      if (document.hidden){ requestAnimationFrame(frame); return; }
+      if (start===null) start = ts;
+      var t = Math.min(1, (ts-start)/duration);
+      var eased = 1 - Math.pow(1-t, 3);
+      el.textContent = fmt(from + (to-from)*eased);
+      if (t < 1) requestAnimationFrame(frame);
+      else el.textContent = fmt(to);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ===================================================================
+     樹的版面配置：leaf x 用中序走訪（避免交叉線），y 用實際深度
+     =================================================================== */
+  function computeLayout(root){
+    if (!root) return null;
+    var counter = { n:0 };
+    (function assignX(node){
+      if (!node) return;
+      if (node.isLeaf){ node._x = counter.n++; return; }
+      assignX(node.left); assignX(node.right);
+    })(root);
+    var leafCount = Math.max(counter.n, 1);
+    var maxDepth = 0;
+    (function assignDepth(node, d){
+      if (!node) return;
+      node._depth = d;
+      if (d > maxDepth) maxDepth = d;
+      if (!node.isLeaf){ assignDepth(node.left, d+1); assignDepth(node.right, d+1); }
+    })(root, 0);
+    (function assignInternalX(node){
+      if (!node || node.isLeaf) return;
+      assignInternalX(node.left); assignInternalX(node.right);
+      node._x = (node.left._x + node.right._x) / 2;
+    })(root);
+
+    var xGap = clamp(680 / Math.max(leafCount-1, 1), 30, 78);
+    var leftPad = 40, rightPad = 40;
+    var yGap = clamp(300 / Math.max(maxDepth, 1), 38, 64);
+    var topPad = 30, bottomPad = 40;
+
+    var width = leftPad + rightPad + xGap * Math.max(leafCount-1, 0);
+    var height = topPad + yGap * maxDepth + bottomPad;
+
+    (function toPixels(node){
+      if (!node) return;
+      node.px = leftPad + node._x * xGap;
+      node.py = topPad + node._depth * yGap;
+      if (!node.isLeaf){ toPixels(node.left); toPixels(node.right); }
+    })(root);
+
+    return { width: Math.max(width, 160), height: Math.max(height, 90), leafCount: leafCount, maxDepth: maxDepth };
+  }
+
+  /* ===================================================================
+     霍夫曼樹動畫播放器
+     =================================================================== */
+  var Tree = {
+    svgEl: null, statusEl: null, progressEl: null, playBtn: null,
+    current: null,
+
+    init: function(){
+      this.svgEl = $("#treeSvg");
+      this.statusEl = $("#treeStatus");
+      this.progressEl = $("#treeProgress");
+      this.playBtn = $("#btnPlay");
+    },
+
+    clearSvg: function(){
+      while (this.svgEl.firstChild) this.svgEl.removeChild(this.svgEl.firstChild);
+    },
+
+    build: function(root, layout){
+      var self = this;
+      self.clearSvg();
+      self.svgEl.setAttribute("viewBox", "0 0 "+layout.width+" "+layout.height);
+      self.svgEl.setAttribute("width", layout.width);
+      self.svgEl.setAttribute("height", layout.height);
+
+      var defs = document.createElementNS(SVGNS, "defs");
+      var grad = document.createElementNS(SVGNS, "linearGradient");
+      grad.setAttribute("id", "huffEdgeGrad");
+      grad.setAttribute("gradientUnits", "userSpaceOnUse");
+      grad.setAttribute("x1", "0"); grad.setAttribute("y1", "0");
+      grad.setAttribute("x2", String(layout.width)); grad.setAttribute("y2", String(layout.height));
+      var s1 = document.createElementNS(SVGNS, "stop"); s1.setAttribute("offset","0"); s1.setAttribute("stop-color","#a8e6ad");
+      var s2 = document.createElementNS(SVGNS, "stop"); s2.setAttribute("offset","1"); s2.setAttribute("stop-color","#4f9d5b");
+      grad.appendChild(s1); grad.appendChild(s2);
+      defs.appendChild(grad);
+      self.svgEl.appendChild(defs);
+
+      var gEdges = document.createElementNS(SVGNS, "g"); gEdges.setAttribute("id","gHuffEdges");
+      var gNodes = document.createElementNS(SVGNS, "g"); gNodes.setAttribute("id","gHuffNodes");
+      self.svgEl.appendChild(gEdges); self.svgEl.appendChild(gNodes);
+
+      var nodeEls = new Map();
+
+      function makeNodeEl(node, extraClass, animate){
+        var outer = document.createElementNS(SVGNS, "g");
+        outer.setAttribute("class", "huff-node "+extraClass+(animate?" entering":" active"));
+        outer.setAttribute("transform", "translate("+node.px+","+node.py+")");
+        var inner = document.createElementNS(SVGNS, "g");
+        inner.setAttribute("class", "pop");
+        var halo = document.createElementNS(SVGNS, "circle"); halo.setAttribute("class","halo"); halo.setAttribute("r","15");
+        var disc = document.createElementNS(SVGNS, "circle"); disc.setAttribute("class","disc"); disc.setAttribute("r","11");
+        inner.appendChild(halo); inner.appendChild(disc);
+        if (node.isLeaf){
+          var ch = document.createElementNS(SVGNS, "text"); ch.setAttribute("class","ch"); ch.setAttribute("y","-1"); ch.textContent = labelFor(node.char);
+          var wt = document.createElementNS(SVGNS, "text"); wt.setAttribute("class","wt"); wt.setAttribute("y","8"); wt.textContent = node.weight;
+          inner.appendChild(ch); inner.appendChild(wt);
+          var title = document.createElementNS(SVGNS, "title");
+          title.textContent = "字元「"+labelFor(node.char)+"」，出現 "+node.weight+" 次";
+          inner.appendChild(title);
+        } else {
+          var wt2 = document.createElementNS(SVGNS, "text"); wt2.setAttribute("class","wt"); wt2.setAttribute("y","3"); wt2.textContent = node.weight;
+          inner.appendChild(wt2);
+          var title2 = document.createElementNS(SVGNS, "title");
+          title2.textContent = "合併節點，權重 "+node.weight;
+          inner.appendChild(title2);
+        }
+        outer.appendChild(inner);
+        gNodes.appendChild(outer);
+        nodeEls.set(node, { g: outer });
+        if (animate){
+          requestAnimationFrame(function(){ outer.classList.remove("entering"); });
+        }
+        return outer;
+      }
+
+      // 葉節點：一開始就全部顯示，代表初始的優先佇列
+      (function eachLeaf(node){
+        if (!node) return;
+        if (node.isLeaf){ makeNodeEl(node, "leaf", false); return; }
+        eachLeaf(node.left); eachLeaf(node.right);
+      })(root);
+
+      function drawEdge(parentNode, childNode, animate, drawMs){
+        var d = "M"+parentNode.px+" "+parentNode.py+" L"+childNode.px+" "+childNode.py;
+        var p = document.createElementNS(SVGNS, "path");
+        p.setAttribute("d", d);
+        p.setAttribute("class", "huff-edge");
+        gEdges.appendChild(p);
+        var len = p.getTotalLength() || 1;
+        if (!animate){
+          p.style.strokeDasharray = "none";
+          p.style.strokeDashoffset = "0";
+          return;
+        }
+        p.style.transition = "none";
+        p.style.strokeDasharray = len;
+        p.style.strokeDashoffset = len;
+        void p.getBoundingClientRect();
+        requestAnimationFrame(function(){
+          p.style.transition = "stroke-dashoffset "+drawMs+"ms "+"cubic-bezier(.22,1,.36,1)";
+          p.style.strokeDashoffset = "0";
+        });
+      }
+
+      function revealStep(m, animate, timing, cb){
+        var aEl = nodeEls.get(m.a), bEl = nodeEls.get(m.b);
+        function afterPulse(){
+          makeNodeEl(m.parent, "internal", animate);
+          drawEdge(m.parent, m.a, animate, timing.draw);
+          drawEdge(m.parent, m.b, animate, timing.draw);
+          if (aEl){ aEl.g.classList.remove("active","picking"); aEl.g.classList.add("absorbed"); }
+          if (bEl){ bEl.g.classList.remove("active","picking"); bEl.g.classList.add("absorbed"); }
+          if (animate) setTimeout(function(){ cb && cb(); }, timing.draw + 60);
+          else cb && cb();
+        }
+        if (animate){
+          if (aEl) aEl.g.classList.add("picking");
+          if (bEl) bEl.g.classList.add("picking");
+          setTimeout(afterPulse, timing.pick);
+        } else {
+          afterPulse();
+        }
+      }
+
+      return { nodeEls: nodeEls, revealStep: revealStep };
+    },
+
+    timing: function(mergeCount){
+      var unit = clamp(9000 / (Math.max(mergeCount,1) * 2.4), 70, 480);
+      return { pick: Math.round(unit), draw: Math.round(unit*1.1), pause: Math.round(unit*0.5) };
+    },
+
+    start: function(root, merges){
+      var self = this;
+      if (self.current && self.current.timer) clearTimeout(self.current.timer);
+      document.removeEventListener("visibilitychange", self._onVis);
+      self.playBtn.disabled = false;
+      self.playBtn.textContent = "⏸ 暫停";
+
+      if (!root){
+        self.clearSvg();
+        self.statusEl.textContent = "請先輸入文字。";
+        self.progressEl.textContent = "";
+        self.current = null;
+        return;
+      }
+      var layout = computeLayout(root);
+      var built = self.build(root, layout);
+      self.current = {
+        root: root, merges: merges, layout: layout,
+        nodeEls: built.nodeEls, revealStep: built.revealStep,
+        idx: 0, playing: false, timer: null, resumePending: false,
+        timing: self.timing(merges.length)
+      };
+
+      if (root.isLeaf || merges.length === 0){
+        self.statusEl.textContent = "只有一種字元——它自己就是整棵樹，不需要合併。";
+        self.progressEl.textContent = "";
+        self.playBtn.disabled = true;
+        return;
+      }
+      self.progressEl.textContent = "第 0 ／ "+merges.length+" 步";
+      if (reduceMotion){ self.jumpToEnd(); return; }
+      self.play();
+    },
+
+    _onVis: function(){
+      var c = Tree.current;
+      if (!document.hidden && c && c.resumePending){
+        c.resumePending = false;
+        Tree.step();
+      }
+    },
+
+    play: function(){
+      var c = this.current;
+      if (!c || c.root.isLeaf) return;
+      c.playing = true;
+      this.playBtn.textContent = "⏸ 暫停";
+      document.addEventListener("visibilitychange", this._onVis);
+      this.step();
+    },
+
+    pause: function(){
+      var c = this.current;
+      if (!c) return;
+      c.playing = false;
+      if (c.timer){ clearTimeout(c.timer); c.timer = null; }
+      this.playBtn.textContent = "▶ 繼續";
+    },
+
+    togglePlay: function(){
+      var c = this.current;
+      if (!c || c.idx >= c.merges.length) return;
+      if (c.playing) this.pause(); else this.play();
+    },
+
+    scheduleNext: function(delay){
+      var c = this.current;
+      if (!c) return;
+      if (document.hidden){ c.resumePending = true; return; }
+      c.timer = setTimeout(this.step.bind(this), delay);
+    },
+
+    step: function(){
+      var self = this;
+      var c = this.current;
+      if (!c || c.idx >= c.merges.length){ this.finish(); return; }
+      var m = c.merges[c.idx];
+      c.revealStep(m, true, c.timing, function(){
+        c.idx++;
+        self.progressEl.textContent = "第 "+c.idx+" ／ "+c.merges.length+" 步";
+        var lbl = m.a.isLeaf ? "「"+escapeHtml(labelFor(m.a.char))+"」("+m.a.weight+")" : "節點("+m.a.weight+")";
+        var lbl2 = m.b.isLeaf ? "「"+escapeHtml(labelFor(m.b.char))+"」("+m.b.weight+")" : "節點("+m.b.weight+")";
+        self.statusEl.innerHTML = "合併 "+lbl+" 與 "+lbl2+" → 新節點（權重 <b>"+m.parent.weight+"</b>）";
+        if (c.idx >= c.merges.length){ self.finish(); return; }
+        if (c.playing) self.scheduleNext(c.timing.pause);
+      });
+    },
+
+    finish: function(){
+      var c = this.current;
+      if (!c) return;
+      c.playing = false;
+      this.playBtn.textContent = "已完成";
+      this.playBtn.disabled = true;
+      this.statusEl.innerHTML = "<b>完成！</b>經過 "+c.merges.length+" 次合併，霍夫曼樹建好了。";
+      this.progressEl.textContent = "第 "+c.merges.length+" ／ "+c.merges.length+" 步（完成）";
+    },
+
+    jumpToEnd: function(){
+      var c = this.current;
+      if (!c) return;
+      this.pause();
+      while (c.idx < c.merges.length){
+        var m = c.merges[c.idx];
+        c.revealStep(m, false, c.timing, null);
+        c.idx++;
+      }
+      this.finish();
+    },
+
+    replay: function(){
+      if (!this.current) return;
+      this.start(this.current.root, this.current.merges);
+    }
+  };
+
+  /* ===================================================================
+     主流程：計算 + 各區塊渲染
+     =================================================================== */
+  var App = { lastBuild: null };
+
+  function computeAll(text){
+    var fc = huffCountFreq(text);
+    var built = huffBuildTree(fc.freq, fc.order);
+    var codes = huffGenerateCodes(built.root);
+    var bits = huffEncode(text, codes) || "";
+    var entropyPerSym = huffEntropy(fc.freq, fc.total);
+    var distinct = fc.order.length;
+    var fixedPerSym = huffFixedBitsPerSymbol(distinct);
+    var fixedBits = fc.total * fixedPerSym;
+    var huffBits = bits.length;
+    var entropyBits = entropyPerSym * fc.total;
+    return {
+      text: text, freq: fc.freq, order: fc.order, total: fc.total,
+      root: built.root, merges: built.merges, codes: codes, bits: bits,
+      entropyPerSym: entropyPerSym, distinct: distinct,
+      fixedPerSym: fixedPerSym, fixedBits: fixedBits, huffBits: huffBits, entropyBits: entropyBits
+    };
+  }
+
+  function renderFreq(build){
+    var wrap = $("#freqList");
+    wrap.textContent = "";
+    if (!build.total){ wrap.innerHTML = '<p class="card-lead">目前沒有內容。</p>'; return; }
+    var rows = build.order.slice().sort(function(a,b){ return build.freq.get(b) - build.freq.get(a); });
+    var max = build.freq.get(rows[0]) || 1;
+    rows.forEach(function(ch){
+      var count = build.freq.get(ch);
+      var pct = count / build.total;
+      var row = document.createElement("div");
+      row.className = "freqrow";
+      row.innerHTML =
+        '<span class="ch">'+escapeHtml(labelFor(ch))+'</span>' +
+        '<span class="bartrack"><span class="barfill"></span></span>' +
+        '<span class="pct"><span class="cnt">'+count+'</span> · '+fmtPct(pct)+'%</span>';
+      wrap.appendChild(row);
+      var fill = row.querySelector(".barfill");
+      requestAnimationFrame(function(){ fill.style.width = (count/max*100)+"%"; });
+    });
+  }
+
+  function renderCodeTable(build){
+    var wrap = $("#codeList");
+    wrap.textContent = "";
+    if (!build.total){ wrap.innerHTML = '<p class="card-lead">目前沒有內容。</p>'; return; }
+    var rows = build.order.slice().sort(function(a,b){ return build.freq.get(b) - build.freq.get(a); });
+    var maxLen = 1;
+    rows.forEach(function(ch){ maxLen = Math.max(maxLen, build.codes[ch].length); });
+    rows.forEach(function(ch){
+      var code = build.codes[ch];
+      var len = code.length;
+      var t = len / maxLen;
+      // 短碼綠、長碼金——線性內插
+      var r = Math.round(129 + (240-129)*t), g = Math.round(199 + (198-199)*t), b = Math.round(132 + (116-132)*t);
+      var row = document.createElement("div");
+      row.className = "coderow";
+      row.innerHTML =
+        '<span class="ch">'+escapeHtml(labelFor(ch))+'</span>' +
+        '<span class="bits">'+code+'</span>' +
+        '<span class="len">'+len+' bit'+(len>1?"s":"")+'</span>' +
+        '<span class="lenbar"><i></i></span>';
+      wrap.appendChild(row);
+      var bar = row.querySelector(".lenbar i");
+      bar.style.background = "rgb("+r+","+g+","+b+")";
+      requestAnimationFrame(function(){ bar.style.width = (len/maxLen*100)+"%"; bar.style.transition = "width .6s var(--e-out)"; });
+    });
+  }
+
+  function renderStats(build){
+    animateNumber($("#statFixed"), 0, build.fixedBits, 800, function(v){ return Math.round(v).toLocaleString(); });
+    animateNumber($("#statHuff"), 0, build.huffBits, 800, function(v){ return Math.round(v).toLocaleString(); });
+    animateNumber($("#statEntropy"), 0, build.entropyBits, 800, function(v){ return Math.round(v).toLocaleString(); });
+
+    var ratio = build.fixedBits > 0 ? (1 - build.huffBits/build.fixedBits) : 0;
+    animateNumber($("#ratioNum"), 0, Math.max(ratio*100,0), 1000, function(v){ return v.toFixed(1); });
+    $("#ratioSub").textContent = build.total ? ("比固定長度的 "+build.fixedBits.toLocaleString()+" bits，省下了這麼多") : "請先輸入文字";
+
+    var avgHuff = build.total ? build.huffBits/build.total : 0;
+    var avgEnt = build.entropyPerSym;
+    animateNumber($("#avgHuffBits"), 0, avgHuff, 800, function(v){ return v.toFixed(3)+" bit"; });
+    animateNumber($("#avgEntropyBits"), 0, avgEnt, 800, function(v){ return v.toFixed(3)+" bit"; });
+    var gap = avgHuff - avgEnt;
+    $("#gapBits").textContent = "";
+    animateNumber($("#gapBits"), 0, gap, 800, function(v){ return "+"+v.toFixed(3)+" bit"; });
+  }
+
+  function renderCompare3(){
+    var wrap = $("#compare3");
+    wrap.textContent = "";
+    var defs = [ ["中文", EXAMPLES.zh], ["英文", EXAMPLES.en], ["高重複", EXAMPLES.rep] ];
+    var results = defs.map(function(d){
+      var b = computeAll(d[1]);
+      var ratio = b.fixedBits>0 ? (1 - b.huffBits/b.fixedBits) : 0;
+      return { name:d[0], ratio: ratio };
+    });
+    var maxRatio = Math.max.apply(null, results.map(function(r){ return r.ratio; }).concat([0.01]));
+    results.forEach(function(r){
+      var row = document.createElement("div");
+      row.className = "c3row";
+      row.innerHTML =
+        '<span class="nm">'+r.name+'</span>' +
+        '<span class="bartrack"><span class="barfill"></span></span>' +
+        '<span class="pct">'+fmtPct(r.ratio)+'%</span>';
+      wrap.appendChild(row);
+      var fill = row.querySelector(".barfill");
+      requestAnimationFrame(function(){ fill.style.width = (r.ratio/maxRatio*100)+"%"; });
+    });
+  }
+
+  var showFullBits = false;
+  function renderBits(build){
+    var el = $("#bitDisplay");
+    if (!build.total){ el.textContent = "—"; $("#btnFullBits").disabled = true; $("#btnCopyBits").disabled = true; return; }
+    $("#btnFullBits").disabled = false; $("#btnCopyBits").disabled = false;
+    var bits = build.bits;
+    if (showFullBits || bits.length <= 260){
+      el.innerHTML = bits + "　<b>（共 "+bits.length+" bits）</b>";
+    } else {
+      el.innerHTML = bits.slice(0,260) + " …　<b>（共 "+bits.length+" bits，已截斷顯示）</b>";
+    }
+    $("#btnFullBits").textContent = showFullBits ? "收合位元串" : "展開完整位元串";
+  }
+
+  function renderVerify(){
+    var banner = $("#verifyBanner");
+    banner.className = "verify-banner";
+    banner.textContent = "尚未驗證。";
+  }
+
+  function runVerify(build){
+    var banner = $("#verifyBanner");
+    if (!build.total){
+      banner.className = "verify-banner";
+      banner.textContent = "沒有內容可驗證。";
+      return;
+    }
+    var decoded = huffDecode(build.bits, build.root);
+    var ok = decoded === build.text;
+    banner.className = "verify-banner" + (ok ? " ok" : "");
+    banner.innerHTML = ok
+      ? "✓ <b>還原成功</b>：解碼出 "+Array.from(decoded).length+" 個字元，與原文逐字元完全相同。"
+      : "✗ 還原失敗，請回報這個問題。";
+  }
+
+  function renderAll(text){
+    var build = computeAll(text);
+    App.lastBuild = build;
+    $("#charCount").textContent = build.total;
+    $("#distinctCount").textContent = build.distinct;
+    renderFreq(build);
+    renderCodeTable(build);
+    renderStats(build);
+    renderBits(build);
+    renderVerify();
+    Tree.start(build.root, build.merges);
+    return build;
+  }
+
+  /* ===================================================================
+     互動接線
+     =================================================================== */
+  var inputEl = $("#inputText");
+  var debounceTimer = null;
+  function onInputChange(){
+    saveInput(inputEl.value);
+    $("#charCount").textContent = Array.from(inputEl.value).length;
+    document.querySelectorAll(".ex-btn").forEach(function(b){ b.classList.remove("active"); });
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function(){ renderAll(inputEl.value); }, 550);
+  }
+  inputEl.addEventListener("input", onInputChange);
+
+  document.querySelectorAll(".ex-btn").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var key = btn.dataset.ex;
+      inputEl.value = EXAMPLES[key];
+      saveInput(inputEl.value);
+      document.querySelectorAll(".ex-btn").forEach(function(b){ b.classList.remove("active"); });
+      btn.classList.add("active");
+      clearTimeout(debounceTimer);
+      renderAll(inputEl.value);
+    });
+  });
+
+  $("#btnPlay").addEventListener("click", function(){ Tree.togglePlay(); });
+  $("#btnReplay").addEventListener("click", function(){ Tree.replay(); });
+  $("#btnSkip").addEventListener("click", function(){ Tree.jumpToEnd(); });
+
+  $("#btnVerify").addEventListener("click", function(){
+    if (App.lastBuild) runVerify(App.lastBuild);
+  });
+  $("#btnFullBits").addEventListener("click", function(){
+    showFullBits = !showFullBits;
+    if (App.lastBuild) renderBits(App.lastBuild);
+  });
+  $("#btnCopyBits").addEventListener("click", function(){
+    if (!App.lastBuild) return;
+    var note = $("#copyNote");
+    var text = App.lastBuild.bits;
+    function done(ok){ note.textContent = ok ? "已複製到剪貼簿。" : "複製失敗，請手動選取。"; setTimeout(function(){ note.textContent=""; }, 2400); }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ done(false); });
+    } else {
+      done(false);
+    }
+  });
+
+  /* ===================================================================
+     啟動
+     =================================================================== */
+  Tree.init();
+  var saved = loadInput();
+  inputEl.value = (saved !== null && saved !== "") ? saved : EXAMPLES.zh;
+  if (inputEl.value === EXAMPLES.zh){ var b0 = document.querySelector('.ex-btn[data-ex="zh"]'); if (b0) b0.classList.add("active"); }
+  renderAll(inputEl.value);
+  renderCompare3();
+
+  requestAnimationFrame(function(){ document.body.classList.remove("preload"); });
+})();
+</script>
+</body>
+</html>

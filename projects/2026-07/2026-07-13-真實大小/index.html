@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>真實大小 · 地圖說的謊，親手拆穿</title>
+<meta name="description" content="把國家從地圖上拿起來，拖到赤道——看麥卡托投影如何把格陵蘭吹成非洲那麼大。互動式地圖投影失真實驗室。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="home-link" href="../../../index.html">← 回首頁</a>
+
+<header class="hd">
+  <p class="kicker" data-anim="1">學習新知 · 地圖投影</p>
+  <h1 data-anim="2">真實大小</h1>
+  <p class="sub" data-anim="3">你從小看的世界地圖，把離赤道越遠的地方吹得越大。<br>
+  把國家從它的位置<strong>拿起來</strong>、拖到赤道——看它縮成原形。</p>
+</header>
+
+<main class="wrap">
+
+  <section class="stage-col" data-anim="4">
+    <div class="stage" id="stage">
+      <canvas id="map" tabindex="0" role="application"
+        aria-label="世界地圖。從右側清單選國家放到地圖上（最多 4 個可同時比較），用滑鼠拖曳或方向鍵移動焦點國家，Delete 鍵把它移除，觀察面積放大倍率的變化。"></canvas>
+      <div class="hint" id="hint">👉 從右邊挑國家（最多 4 個），把它們拖到赤道比大小</div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <p class="stage-note">灰色虛線＝它原本的位置。地圖上的搬運是<strong>球面上的剛體移動</strong>：形狀與真實面積都沒變，變的只有「投影怎麼畫它」。</p>
+  </section>
+
+  <aside class="side">
+
+    <div class="card readout" data-anim="5" aria-live="polite">
+      <div class="ro-head">
+        <span class="ro-emoji" id="roEmoji">🗺️</span>
+        <div>
+          <div class="ro-name">
+            <span class="ro-slot" id="roSlot" aria-hidden="true" hidden></span><span id="roName">還沒挑國家</span>
+          </div>
+          <div class="ro-lat" id="roLat">從下方清單選一個</div>
+        </div>
+      </div>
+
+      <div class="ratio-box">
+        <div class="ratio-label">此刻在地圖上被放大</div>
+        <div class="ratio-num" id="ratioNum">×<span id="ratioVal">—</span></div>
+        <div class="ratio-bar"><div class="ratio-fill" id="ratioFill"></div></div>
+      </div>
+
+      <div class="bars">
+        <div class="bar-row">
+          <span class="bar-key">真實面積</span>
+          <div class="bar-track"><div class="bar-fill true" id="barTrue"></div></div>
+          <span class="bar-val" id="valTrue">—</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-key">地圖上看起來</span>
+          <div class="bar-track"><div class="bar-fill fake" id="barFake"></div></div>
+          <span class="bar-val" id="valFake">—</span>
+        </div>
+      </div>
+
+      <p class="truth" id="truthLine">拖到赤道（0°）就會揭曉它的真面目。</p>
+    </div>
+
+    <div class="card controls" data-anim="6">
+      <div class="proj-switch">
+        <span class="proj-cap">投影法</span>
+        <div class="seg" role="group" aria-label="切換投影法">
+          <button class="seg-btn is-on" id="btnMerc" aria-pressed="true">麥卡托</button>
+          <button class="seg-btn" id="btnEE" aria-pressed="false">等積 Equal&nbsp;Earth</button>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="btnEquator" disabled>⬇ 送焦點到赤道</button>
+        <button class="btn" id="btnHome" disabled>↩ 送回原位</button>
+      </div>
+      <button class="btn wide" id="btnAllEquator" disabled>⬇⬇ 全部拉到赤道一起比</button>
+    </div>
+
+    <div class="card tray" data-anim="7">
+      <!-- 內層 wrapper：進場動畫掛在 .tray[data-anim] 上，「放不下了」的抖動掛在這一層，
+           兩個 animation 才不會爭同一個元素（爭了會把進場動畫的 fill-mode 洗掉 → 整張卡變透明）。 -->
+      <div class="tray-inner" id="trayInner">
+        <div class="tray-head">
+          <h2>地圖上的國家</h2>
+          <span class="tray-count" id="trayCount">0 / 4</span>
+          <button class="tray-clear" id="btnClear" disabled aria-label="把地圖上的國家全部清空">清空</button>
+        </div>
+        <ul class="tray-list" id="trayList"></ul>
+        <p class="tray-note" id="trayNote" aria-live="polite">還沒有國家在地圖上——從下方清單挑一個放上來。</p>
+      </div>
+    </div>
+
+    <div class="card shelf" data-anim="8">
+      <div class="shelf-head">
+        <h2>把國家搬下來</h2>
+        <span class="prog" id="prog">已揭穿 0 / 26</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      <div class="chips" id="chips"></div>
+      <p class="shelf-note">點一下放上地圖、再點一下拿掉。把一個國家帶到赤道，就算「揭穿」一次。</p>
+    </div>
+
+  </aside>
+</main>
+
+<section class="facts" data-anim="9">
+  <h2>為什麼地圖會說謊？</h2>
+  <div class="fact-grid">
+    <article class="fact">
+      <h3>它本來不是拿來比大小的</h3>
+      <p>1569 年，佛蘭德製圖家 <strong>Gerardus Mercator</strong> 為<strong>航海</strong>設計了這個投影：它保角，海圖上一條直線就是一個固定羅盤方位，領航員照著開就到得了。代價是——面積得犧牲。</p>
+    </article>
+    <article class="fact">
+      <h3>放大倍率 ≈ sec²(緯度)</h3>
+      <p>緯度越高，被吹得越大：<strong>0°→×1、60°→×4、75°→約×15</strong>。取格陵蘭的中位緯度 73°，面積放大約 <strong>11.7 倍</strong>。<br>但格陵蘭整塊橫跨 60°–84°N，越北的部分被吹得越兇——本頁把整個形狀即時積分，算出它實際被放大 <strong>約 16.5 倍</strong>。</p>
+    </article>
+    <article class="fact">
+      <h3>格陵蘭 vs 非洲：差 14 倍</h3>
+      <p>地圖上兩者差不多大，實際上格陵蘭 <strong>2,166,086 km²</strong>、非洲 <strong>30,043,862 km²</strong>——非洲是它的 <strong>約 13.9 倍</strong>。格陵蘭甚至比剛果民主共和國（2,344,858 km²）還小。</p>
+    </article>
+    <article class="fact">
+      <h3>這件事今天還在吵</h3>
+      <p>2017 年<strong>波士頓公立學校</strong>改採等積的 Gall–Peters 投影；<strong>2025 年 8 月，非洲聯盟表態支持「Correct The Map」運動</strong>，呼籲改用 2018 年發表的 <strong>Equal Earth</strong> 投影——因為被畫小的，從來不只是幾平方公里。</p>
+    </article>
+  </div>
+  <p class="src">資料來源：Wikipedia〈Mercator projection〉、Britannica、Visual Capitalist、NPR（2025-08-21 / 2026-01-07）、The Conversation、correctthemap.org。國界幾何：Natural Earth（110m）。</p>
+</section>
+
+<footer class="ft">
+  <a href="../../../index.html">← 回每日小專案</a>
+  <span>2026-07-13 · 每日小專案</span>
+</footer>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

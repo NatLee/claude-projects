@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分數生成 — 在瀏覽器裡訓練一個分數網路，看隨機點順著箭頭流成形狀</title>
+<meta name="description" content="AI 生成模型的另一條路：不學機率分布本身，而是學它的梯度場——分數 ∇log p，也就是「指向資料密度變高的方向」的箭頭。當場訓練一個 noise-conditional 分數網路，畫出它的分數場，再用退火 Langevin 動力學讓一群隨機點順著箭頭流回目標形狀。重現 Song & Ermon 2019 的 NCSN。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="skip" href="#main">跳到主要內容</a>
+
+<header class="topbar" id="topbar">
+  <a class="home" href="../../../index.html">← 回首頁</a>
+  <span class="kicker">學習新知</span>
+</header>
+
+<main id="main">
+
+  <section class="hero">
+    <p class="eyebrow" data-stagger>2026 · 07 · 14</p>
+    <h1 data-stagger>分數生成</h1>
+    <p class="lede" data-stagger>
+      要教電腦「畫出像資料的東西」，最直覺的想法是學會資料的<strong>機率分布</strong> p(x)。
+      但 2019 年 Song &amp; Ermon 提出一條美得驚人的捷徑——<strong>別學分布，學它的箭頭</strong>。
+      每個點都畫一個箭頭，指向<strong>密度變高的方向</strong>，這個箭頭場就叫<strong>分數</strong>
+      <code>s(x) = ∇ₓ log p(x)</code>。學會箭頭之後，從隨機點出發、<strong>順著箭頭一步步走</strong>，就長出新樣本。
+    </p>
+    <p class="sub" data-stagger>
+      這一頁不放假動畫：你會在瀏覽器裡<strong>真的訓練</strong>一個分數網路（用 denoising score matching、真的反向傳播），
+      <strong>親眼看見那張分數場</strong>，再讓一群隨機點<strong>順著箭頭流回你選的形狀</strong>。
+      而且會當場拆穿論文的靈魂：為什麼<strong>只用單一噪聲級會迷路</strong>，非得用<strong>多噪聲級退火</strong>不可。
+    </p>
+    <div class="steps" data-stagger>
+      <span class="step"><b>1</b> 選一個分布 · 訓練分數網路</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>2</b> 看見分數場（箭頭）</span>
+      <span class="arrow" aria-hidden="true">→</span>
+      <span class="step"><b>3</b> 順著箭頭流回家</span>
+    </div>
+  </section>
+
+  <!-- ============ 步驟一：訓練分數網路 ============ -->
+  <section class="card" id="trainCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">01</span> 訓練一個分數網路</h2>
+      <p class="card-sub">
+        選一個 2D 目標分布（用點雲表示），或自己塗一團點。接著訓練一個小 MLP
+        <code>s_θ(x, y, σ)</code>：對一個「被加了 σ 級高斯噪聲的點」，它要吐出<strong>把它推回乾淨點的方向</strong>
+        （這就是分數，數學上 <code>≈ −(x̃−x)/σ²</code>）。用的是 <strong>denoising score matching</strong>——
+        不需要知道歸一化常數 Z，梯度自己反向傳播算、Adam 更新，全部在這台瀏覽器裡跑，數秒收斂。
+      </p>
+    </div>
+
+    <div class="train-grid">
+      <div class="panel">
+        <h3 class="panel-title">目標分布（點雲）</h3>
+        <canvas id="targetCv" class="cloud-cv target" role="img"
+          aria-label="目前選擇的目標分布點雲，也是自己畫時的繪圖區"></canvas>
+        <div class="seg wrap" id="shapeSeg" role="group" aria-label="選擇目標分布">
+          <button type="button" data-v="twopeak" aria-pressed="true">雙峰</button>
+          <button type="button" data-v="blobs" aria-pressed="false">星系</button>
+          <button type="button" data-v="moons" aria-pressed="false">雙月</button>
+          <button type="button" data-v="spiral" aria-pressed="false">螺旋</button>
+          <button type="button" data-v="glyph" aria-pressed="false">一個字</button>
+          <button type="button" data-v="draw" aria-pressed="false">自己畫</button>
+        </div>
+        <div class="glyph-wrap" id="glyphWrap" hidden>
+          <label for="glyphInput" class="hint-sm">打一個字：</label>
+          <input id="glyphInput" class="glyph-input" type="text" maxlength="2" value="分"
+            aria-label="要生成的字" autocomplete="off">
+          <span class="hint-sm">會把這個字的筆畫取樣成點雲。</span>
+        </div>
+        <div class="draw-tools" id="drawTools" hidden>
+          <span class="hint-sm">用滑鼠或手指在上面塗，塗越多點越好。</span>
+          <button class="btn tiny ghost" id="clearDraw" type="button">清空</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3 class="panel-title">設定與學習曲線</h3>
+        <div class="setting">
+          <label id="rangeLabel">噪聲範圍 σ</label>
+          <div class="seg small" id="rangeSeg" role="group" aria-labelledby="rangeLabel">
+            <button type="button" data-v="narrow" aria-pressed="false">窄</button>
+            <button type="button" data-v="std" aria-pressed="true">標準</button>
+            <button type="button" data-v="wide" aria-pressed="false">寬</button>
+          </div>
+        </div>
+        <div class="setting">
+          <label id="effLabel">訓練程度</label>
+          <div class="seg small" id="effortSeg" role="group" aria-labelledby="effLabel">
+            <button type="button" data-v="fast" aria-pressed="false">快</button>
+            <button type="button" data-v="std" aria-pressed="true">標準</button>
+            <button type="button" data-v="fine" aria-pressed="false">精細</button>
+          </div>
+        </div>
+        <canvas id="curve" class="curve" role="img"
+          aria-label="訓練損失隨步數下降的曲線（紫到青漸層）"></canvas>
+        <div class="legend"><span class="lg lg-loss">DSM 損失 ‖s_θ − 目標‖²（越低越好）</span></div>
+        <div class="stats">
+          <div class="stat"><span class="stat-k">步數</span><span class="stat-v" id="statStep">0 / 3800</span></div>
+          <div class="stat"><span class="stat-k">Loss</span><span class="stat-v accent" id="statLoss">—</span></div>
+        </div>
+        <div class="progress"><span class="progress-fill" id="trainBar"></span></div>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="trainBtn" type="button">開始訓練</button>
+      <p class="status" id="trainStatus" role="status" aria-live="polite">
+        選好分布就按「開始訓練」。這個網路現在還沒學過任何東西。</p>
+    </div>
+  </section>
+
+  <!-- ============ 哇時刻一：分數場 ============ -->
+  <section class="card locked" id="fieldCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">02</span> 看見分數場</h2>
+      <p class="card-sub">
+        這就是網路學到的<strong>那張箭頭場</strong>：每一格的琥珀色箭頭，指向該處<strong>資料密度變高的方向</strong>。
+        拉動下面的 σ 滑桿切換噪聲級——<strong>大噪聲時場很平滑、指向整團資料的重心；小噪聲時場很銳利、緊貼形狀輪廓。</strong>
+        （亮點會沿著箭頭慢慢流動，那是示蹤粒子。）
+        <span class="lock-note">（先在上面把網路訓練完，這裡才會解鎖）</span>
+      </p>
+    </div>
+
+    <div class="field-wrap">
+      <canvas id="fieldCv" class="field-cv" role="img"
+        aria-label="分數場：一格一格的箭頭，指向資料密度變高的方向"></canvas>
+      <div class="field-side">
+        <div class="sig-readout">
+          <span class="sig-k">噪聲級</span>
+          <span class="sig-v">σ = <b id="sigVal">—</b></span>
+        </div>
+        <p class="field-mode" id="fieldMode" role="status" aria-live="polite">拉滑桿看場怎麼變。</p>
+        <div class="slider-row">
+          <label for="sigSlider" class="scrub-label">σ：小 ←→ 大</label>
+          <input type="range" id="sigSlider" min="0" max="100" value="50" step="1"
+            aria-label="噪聲級 σ，左端最小、右端最大">
+        </div>
+        <button class="chip" id="fieldShowData" type="button" aria-pressed="false">顯示目標點雲</button>
+        <ul class="field-legend">
+          <li><span class="dot arrow"></span>箭頭：分數方向 ∇log p（長度＝強度）</li>
+          <li><span class="dot data"></span>亮點：沿分數流動的示蹤粒子</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 哇時刻二：粒子順著分數流回家 ============ -->
+  <section class="card locked" id="sampleCard" data-stagger>
+    <div class="card-head">
+      <h2><span class="num">03</span> 順著分數流回家：單一噪聲級 vs 多噪聲級退火</h2>
+      <p class="card-sub">
+        撒一群<strong>隨機點</strong>，讓它們順著分數場走 <strong>Langevin 動力學</strong>：
+        <code>x ← x + (α/2)·s_θ(x,σ) + √α·z</code>——一半是「往箭頭方向走」，一半是「隨機抖動」。
+        兩邊<strong>從同一團噪聲出發</strong>：左邊只用<strong>單一（最小）噪聲級</strong>，
+        右邊走完整條<strong>退火階梯</strong>（σ 由大到小）。看誰能流回家。
+        <span class="lock-note">（先在上面把網路訓練完，這裡才會解鎖）</span>
+      </p>
+    </div>
+
+    <div class="dual-view">
+      <figure class="view-col">
+        <figcaption class="view-cap">
+          <span class="dir">單一噪聲級 · 只用 σ 最小</span>
+          <span class="lvl">平均離目標 <b id="nnSingle">—</b></span>
+        </figcaption>
+        <canvas id="singleCv" class="sample-cv" role="img" aria-label="只用單一噪聲級的 Langevin 採樣，粒子多半在低密度區迷路"></canvas>
+      </figure>
+      <div class="view-mid" aria-hidden="true">
+        <span class="mid-vs">vs</span>
+      </div>
+      <figure class="view-col hero-col">
+        <figcaption class="view-cap">
+          <span class="dir accent">多噪聲級退火 · σ 由大到小</span>
+          <span class="lvl"><b id="nnAnneal">—</b> · <span id="annealSig">σ = —</span> · <span id="annealPct">0%</span></span>
+        </figcaption>
+        <canvas id="annealCv" class="sample-cv hero-cv" role="img" aria-label="多噪聲級退火 Langevin 採樣，粒子順著分數場流動、聚成目標形狀"></canvas>
+      </figure>
+    </div>
+
+    <p class="verdict" id="verdict" role="status" aria-live="polite">訓練完後，按「撒一團隨機點」開始對照。</p>
+    <p class="live" id="sampleLive" role="status" aria-live="polite"></p>
+
+    <div class="transport">
+      <button class="btn primary" id="sampleBtn" type="button" disabled>撒一團隨機點，開始採樣</button>
+      <button class="btn ghost" id="replayBtn" type="button">重撒一團</button>
+    </div>
+
+    <div class="tune-grid">
+      <div class="setting">
+        <label id="lLabel">噪聲級數 L</label>
+        <div class="seg small" id="lSeg" role="group" aria-labelledby="lLabel">
+          <button type="button" data-v="5" aria-pressed="false">5</button>
+          <button type="button" data-v="10" aria-pressed="true">10</button>
+          <button type="button" data-v="20" aria-pressed="false">20</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label id="stepsLabel">每級步數</label>
+        <div class="seg small" id="stepsSeg" role="group" aria-labelledby="stepsLabel">
+          <button type="button" data-v="12" aria-pressed="false">12</button>
+          <button type="button" data-v="24" aria-pressed="true">24</button>
+          <button type="button" data-v="40" aria-pressed="false">40</button>
+        </div>
+      </div>
+      <div class="setting">
+        <label id="epsLabel">Langevin 步長</label>
+        <div class="seg small" id="epsSeg" role="group" aria-labelledby="epsLabel">
+          <button type="button" data-v="small" aria-pressed="true">小</button>
+          <button type="button" data-v="mid" aria-pressed="false">中</button>
+          <button type="button" data-v="large" aria-pressed="false">大</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="counter">你已經採樣 <b id="runCount">0</b> 次</p>
+  </section>
+
+  <!-- ============ 說明 ============ -->
+  <section class="prose" data-stagger>
+    <h2>分數（∇log p）到底是什麼？</h2>
+    <p>
+      想像資料分布是一片地形，<strong>密度越高的地方越高</strong>。分數就是這片地形每一點的<strong>坡度方向</strong>——
+      指向「往哪走會更像真實資料」。用數學寫是 <code>s(x) = ∇ₓ log p(x)</code>，即對數密度的梯度（又叫 Stein score）。
+      這個想法的根在 <strong>Hyvärinen（2005）</strong>的 score matching：只要能對上分數，就等於學會了分布，
+      而且<strong>完全不需要那個惱人的歸一化常數 Z</strong>——因為對 log 取梯度時，常數 Z 直接消失。
+      這正是相對於能量模型的關鍵優勢。
+    </p>
+
+    <h2>怎麼在不知道 p 的情況下學會分數？——denoising score matching</h2>
+    <p>
+      我們手上只有一堆資料點，沒有 p 的公式，怎麼算 ∇log p？<strong>Vincent（2011）</strong>給了一個漂亮的等價：
+      拿一個乾淨點 <code>x</code>，加一團標準高斯噪聲得到 <code>x̃ = x + σ·ε</code>，
+      那麼「被噪聲擾動後的分布」的分數，剛好就是<strong>把 x̃ 推回 x 的方向</strong>：
+      <code>∇ log p_σ(x̃) = −(x̃−x)/σ² = −ε/σ</code>。
+      於是訓練變得超簡單：給網路看一個加噪點，要它<strong>預測當初加了哪團噪聲</strong>（本頁網路的原始輸出學的是 <code>−ε</code>，
+      分數 <code>s_θ = 輸出/σ</code>）。損失就是一個再普通不過的均方誤差，梯度自己反向傳播。
+      學會之後，網路對<strong>任何一點</strong>都能吐出一個指向資料的箭頭——那就是上面那張分數場。
+    </p>
+
+    <h2>本頁的靈魂：為什麼非得用「多噪聲級 + 退火」不可？</h2>
+    <p>
+      這是整篇論文最關鍵、也最容易被略過的一段。如果<strong>只用單一個小噪聲級</strong>，兩個致命問題會冒出來：
+    </p>
+    <p>
+      <strong>（1）流形假設 / 低密度區問題。</strong>真實資料通常擠在一個低維流形上，大片空間幾乎沒有資料。
+      在這些<strong>低密度區，分數估得很差</strong>（網路根本沒在那裡看過訓練樣本）。
+      偏偏採樣是從隨機噪聲出發的——起點正好落在這些沒人指路的荒地裡，箭頭要嘛是零、要嘛亂指，粒子就<strong>迷路、走不到資料上</strong>。
+      <strong>（2）混不動。</strong>當資料有好幾團、彼此被低密度區隔開時，小噪聲級的 Langevin <strong>跨不過中間的鴻溝</strong>，
+      粒子被困在起點附近的那一團，導致<strong>各團的比例完全錯掉</strong>。
+    </p>
+    <p>
+      <strong>解法：一連串由大到小的噪聲級 σ₁&gt;σ₂&gt;…&gt;σ_L。</strong>
+      用<strong>一個</strong> noise-conditional 網路同時學所有噪聲級的分數；採樣時做<strong>退火 Langevin</strong>：
+      <strong>先在大噪聲下</strong>——這時整個空間都被噪聲填滿、分數到處都有效、幾團資料被抹成一大團——
+      粒子能輕鬆找到資料的大致位置與比例；<strong>再逐級調小噪聲</strong>，一步步把粗略的團塊<strong>精修</strong>成清晰的形狀。
+      每一級的步長 <code>α_i = ε·σ_i²/σ_L²</code>：大噪聲時步子大（敢跨越鴻溝），小噪聲時步子小（細細打磨）。
+      上面那個對照就是這件事——左邊單一噪聲級迷在鴻溝裡、比例錯亂；右邊退火漂亮收斂。
+    </p>
+
+    <h2>這跟擴散模型是什麼關係？</h2>
+    <p>
+      是<strong>殊途同歸的兄弟</strong>。擴散模型（DDPM，Ho 等人 2020）訓練網路去<strong>預測被加進去的噪聲 ε</strong>；
+      而這裡的分數 <code>s_θ = −ε/σ</code>——<strong>兩者其實在學同一個東西</strong>，只差一個 σ 的縮放。
+      2020 年 Song 等人的 <strong>Score SDE</strong> 論文更用一條隨機微分方程把<strong>分數式生成</strong>與<strong>擴散</strong>統一了起來：
+      加噪是一條前向 SDE，生成是它的<strong>反向 SDE</strong>，而反向 SDE 需要的唯一資訊，正是<strong>分數</strong>。
+      你今天在 DALL·E、Stable Diffusion 背後看到的一切，這條 2019 年的「分數」路線是它的直系祖先之一。
+    </p>
+
+    <h2>誠實說明</h2>
+    <p>
+      這是不折不扣的 <strong>2D 教學版</strong>：分布只是幾百個點、網路只有幾千個參數。
+      真實的 NCSN 在<strong>高維影像</strong>上做同一件事，網路是大型 CNN，噪聲級可達上百個。
+      但<strong>分數場 + 退火 Langevin 的骨架，跟論文一模一樣</strong>。
+      另外要老實講：單一噪聲級的失敗，在<strong>分離、不等重</strong>的分布（像「雙峰」「星系」）上最明顯；
+      換成<strong>連通</strong>的分布（像「螺旋」），沒有低密度鴻溝可迷路，兩種方法就差不多——這也是誠實的一面。
+      這頁的核心程式在 node 裡實測過：反向傳播梯度與數值梯度的<strong>最大相對誤差只有 3×10⁻⁸</strong>；
+      訓練後退火生成的點雲，到目標的平均最近鄰距離<strong>只有純噪聲的約 1/82</strong>（雙峰）；
+      而在雙峰上，<strong>單一噪聲級的誤差是多噪聲級退火的約 11 倍</strong>（星系約 3 倍）——論文的核心論證，被量化了出來。
+    </p>
+  </section>
+
+  <section class="sources" data-stagger>
+    <h2>資料來源</h2>
+    <ul>
+      <li><a href="https://arxiv.org/abs/1907.05600" target="_blank" rel="noopener">Song &amp; Ermon (2019) — Generative Modeling by Estimating Gradients of the Data Distribution (NeurIPS 2019, arXiv:1907.05600)</a>：本頁重現的 NCSN 原論文，提出多噪聲級分數估計 + 退火 Langevin。</li>
+      <li><a href="https://www.jmlr.org/papers/v6/hyvarinen05a.html" target="_blank" rel="noopener">Hyvärinen (2005) — Estimation of Non-Normalized Statistical Models by Score Matching (JMLR 6:695–709)</a>：score matching 的源頭，證明可在不知歸一化常數下估計模型。</li>
+      <li><a href="https://www.iro.umontreal.ca/~vincentp/Publications/smdae_techreport.pdf" target="_blank" rel="noopener">Vincent (2011) — A Connection Between Score Matching and Denoising Autoencoders (Neural Computation 23:1661–1674)</a>：denoising score matching，本頁的訓練目標。</li>
+      <li><a href="https://arxiv.org/abs/2006.09011" target="_blank" rel="noopener">Song &amp; Ermon (2020) — Improved Techniques for Training Score-Based Generative Models (arXiv:2006.09011)</a>：噪聲級排程的實務技巧（σ₁ ≈ 資料最大間距、幾何等比、步長選擇）。</li>
+      <li><a href="https://arxiv.org/abs/2006.11239" target="_blank" rel="noopener">Ho, Jain &amp; Abbeel (2020) — Denoising Diffusion Probabilistic Models / DDPM (arXiv:2006.11239)</a>：擴散模型；與分數式生成殊途同歸。</li>
+      <li><a href="https://arxiv.org/abs/2011.13456" target="_blank" rel="noopener">Song, Sohl-Dickstein, Kingma, Kumar, Ermon &amp; Poole (2021) — Score-Based Generative Modeling through SDEs (ICLR 2021, arXiv:2011.13456)</a>：用隨機微分方程統一分數式生成與擴散。</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="foot">
+  <p>每日小專案 · 2026-07-14 · 全部在你的瀏覽器裡跑，沒有任何網路請求、沒有外部模型檔。</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

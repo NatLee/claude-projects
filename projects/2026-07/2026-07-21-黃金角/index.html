@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>137.5° · 向日葵藏著的角度</title>
+<style>
+  :root{
+    --bg:#17110b; --bg2:#20160d; --ink:#f4e9d8; --dim:#b8a488; --faint:#7c6b53;
+    --gold:#f6b731; --amber:#e9902f; --sienna:#a5561f;
+    --line:#3a2c1c; --card:rgba(48,35,22,.55); --card-brd:rgba(246,183,49,.16);
+    --overlay:#6fd3c8;
+    --ease:cubic-bezier(.22,.61,.36,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 620px at 50% -8%, #2a1c0f 0%, transparent 60%),
+      radial-gradient(900px 700px at 82% 108%, #241a10 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    line-height:1.6; min-height:100vh; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:26px 20px 60px}
+
+  /* ---------- 進場 ---------- */
+  .rise{opacity:0; transform:translateY(14px); animation:rise .7s var(--ease) forwards; animation-delay:var(--d,0s)}
+  @keyframes rise{to{opacity:1; transform:none}}
+
+  /* ---------- 頁首 ---------- */
+  .home{display:inline-flex; align-items:center; gap:.4em; color:var(--faint);
+    text-decoration:none; font-size:.82rem; letter-spacing:.04em; transition:color .25s, transform .25s}
+  .home:hover,.home:focus-visible{color:var(--gold); transform:translateX(-3px)}
+  .home:focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:6px}
+  header.top{margin:20px 0 22px}
+  .kick{font-size:.74rem; letter-spacing:.42em; color:var(--amber); text-transform:uppercase; font-weight:700}
+  h1{margin:.16em 0 .1em; font-size:clamp(2.9rem,10vw,5.4rem); font-weight:800; letter-spacing:-.01em;
+    line-height:.98; background:linear-gradient(96deg,var(--gold),#ffdd7a 42%,var(--amber));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{color:var(--dim); font-size:clamp(1rem,2.4vw,1.18rem); max-width:40ch}
+  .sub b{color:var(--ink); font-weight:600}
+
+  /* ---------- 版面 ---------- */
+  .stagewrap{display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:26px; align-items:start}
+  @media(max-width:760px){ .stagewrap{grid-template-columns:1fr} }
+
+  .panel{position:relative}
+  .stage{position:relative; width:100%; aspect-ratio:1/1; max-width:560px; margin:0 auto;
+    border-radius:18px; overflow:hidden;
+    background:radial-gradient(circle at 50% 46%, #241708 0%, #17100a 72%);
+    box-shadow:0 24px 70px -30px rgba(0,0,0,.9), inset 0 0 0 1px rgba(246,183,49,.08);
+    transition:box-shadow .5s var(--ease)}
+  .stage.aligned{box-shadow:0 24px 80px -26px rgba(246,183,49,.42), inset 0 0 0 1px rgba(246,183,49,.32)}
+  canvas{display:block; width:100%; height:100%}
+
+  .badge{position:absolute; top:12px; left:12px; display:flex; align-items:center; gap:.4em;
+    padding:.32em .7em; border-radius:999px; font-size:.78rem; font-weight:700; letter-spacing:.02em;
+    color:#20160a; background:linear-gradient(96deg,var(--gold),#ffdd7a);
+    box-shadow:0 6px 20px -6px rgba(246,183,49,.7);
+    opacity:0; transform:translateY(-6px) scale(.96); transition:opacity .4s, transform .4s var(--ease); pointer-events:none}
+  .badge.on{opacity:1; transform:none}
+
+  /* ---------- 控制卡 ---------- */
+  .ctrl{background:var(--card); border:1px solid var(--card-brd); border-radius:16px; padding:18px 17px;
+    backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px)}
+  .readout{text-align:center; margin-bottom:6px}
+  .readout .val{font-size:2.7rem; font-weight:800; letter-spacing:-.01em; line-height:1;
+    font-variant-numeric:tabular-nums; color:var(--ink)}
+  .readout .val .deg{color:var(--gold)}
+  .readout .cap{font-size:.78rem; color:var(--faint); letter-spacing:.06em; margin-top:.35em}
+
+  label.lab{display:flex; justify-content:space-between; align-items:baseline;
+    font-size:.8rem; color:var(--dim); margin:16px 0 7px; letter-spacing:.03em}
+  label.lab .n{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:6px; border-radius:99px;
+    background:linear-gradient(90deg,var(--sienna),var(--amber),var(--gold)); outline:none; cursor:pointer; margin:2px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; border-radius:50%;
+    background:#fff5df; border:3px solid var(--amber); box-shadow:0 2px 8px rgba(0,0,0,.5); transition:transform .15s, box-shadow .2s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.14)}
+  input[type=range]::-moz-range-thumb{width:20px; height:20px; border-radius:50%; background:#fff5df; border:3px solid var(--amber)}
+  input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(246,183,49,.4)}
+
+  .btn-align{width:100%; margin-top:16px; padding:.72em 1em; border:none; border-radius:11px; cursor:pointer;
+    font-size:.98rem; font-weight:800; letter-spacing:.02em; color:#241608;
+    background:linear-gradient(96deg,var(--gold),#ffdd7a 55%,var(--amber));
+    box-shadow:0 10px 26px -12px rgba(246,183,49,.75); transition:transform .18s var(--ease), box-shadow .25s, filter .2s}
+  .btn-align:hover{transform:translateY(-2px); box-shadow:0 16px 32px -12px rgba(246,183,49,.85)}
+  .btn-align:active{transform:translateY(0)}
+  .btn-align:focus-visible{outline:2px solid #fff5df; outline-offset:3px}
+
+  .presets{display:flex; flex-wrap:wrap; gap:7px; margin-top:14px}
+  .chip{flex:1 1 auto; padding:.5em .2em; border:1px solid var(--line); border-radius:9px; cursor:pointer;
+    background:rgba(255,255,255,.02); color:var(--dim); font-size:.82rem; font-weight:600;
+    font-variant-numeric:tabular-nums; transition:border-color .2s, color .2s, background .2s, transform .15s}
+  .chip:hover{color:var(--ink); border-color:var(--amber); transform:translateY(-1px)}
+  .chip:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+
+  .seg-wrap{margin-top:16px}
+  .seg{display:flex; gap:5px; margin-top:7px; background:rgba(0,0,0,.22); padding:4px; border-radius:11px}
+  .seg button{flex:1; padding:.46em 0; border:none; border-radius:8px; cursor:pointer; background:transparent;
+    color:var(--dim); font-size:.86rem; font-weight:700; font-variant-numeric:tabular-nums; transition:background .22s, color .22s}
+  .seg button[aria-pressed=true]{background:linear-gradient(96deg,rgba(111,211,200,.9),rgba(111,211,200,.7)); color:#08201d}
+  .seg button:focus-visible{outline:2px solid var(--overlay); outline-offset:2px}
+  .seg-note{font-size:.76rem; color:var(--faint); margin-top:8px; min-height:1.2em; transition:color .25s}
+  .seg-note b{color:var(--overlay); font-weight:700}
+
+  /* ---------- 說明列 ---------- */
+  .explain{margin:30px auto 0; max-width:760px; display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+  @media(max-width:640px){ .explain{grid-template-columns:1fr} }
+  .ex{background:var(--card); border:1px solid rgba(246,183,49,.1); border-radius:13px; padding:15px 16px}
+  .ex h3{margin:0 0 .35em; font-size:.94rem; color:var(--gold); font-weight:700; display:flex; align-items:center; gap:.45em}
+  .ex p{margin:0; font-size:.85rem; color:var(--dim)}
+  .ex p b{color:var(--ink); font-weight:600}
+
+  footer{margin-top:34px; text-align:center; color:var(--faint); font-size:.78rem}
+
+  @media(prefers-reduced-motion:reduce){
+    .rise{animation:none; opacity:1; transform:none}
+    *{transition-duration:.001s !important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home rise" href="../../../index.html" style="--d:.02s">← 回每日小專案</a>
+
+  <header class="top">
+    <div class="kick rise" style="--d:.06s">Phyllotaxis · 葉序</div>
+    <h1 class="rise" style="--d:.12s">137.5°</h1>
+    <p class="sub rise" style="--d:.18s">向日葵不會數數，卻總把種子排成完美的螺旋。祕密只是一個角度——<b>每顆種子都比前一顆多轉 137.5°</b>。差一點點，整片就散開。</p>
+  </header>
+
+  <div class="stagewrap">
+    <div class="panel rise" style="--d:.28s">
+      <div class="stage" id="stage">
+        <canvas id="cv" aria-label="依分歧角排列的種子圖樣，會即時隨角度改變"></canvas>
+        <div class="badge" id="badge" aria-hidden="true">✦ 黃金角</div>
+      </div>
+    </div>
+
+    <aside class="ctrl rise" style="--d:.36s">
+      <div class="readout">
+        <div class="val"><span id="angleVal">137.5</span><span class="deg">°</span></div>
+        <div class="cap">分歧角　DIVERGENCE ANGLE</div>
+      </div>
+
+      <label class="lab" for="angle">角度 <span class="n" id="angleLab">137.5°</span></label>
+      <input id="angle" type="range" min="60" max="180" step="0.1" value="137.5" aria-describedby="angleVal">
+
+      <button class="btn-align" id="alignBtn" type="button">✦ 對齊黃金角</button>
+
+      <div class="presets" role="group" aria-label="快速角度">
+        <button class="chip" type="button" data-a="90">90°</button>
+        <button class="chip" type="button" data-a="120">120°</button>
+        <button class="chip" type="button" data-a="137.3">137.3°</button>
+        <button class="chip" type="button" data-a="150">150°</button>
+      </div>
+
+      <label class="lab" for="count" style="margin-top:20px">種子數 <span class="n" id="countLab">800</span></label>
+      <input id="count" type="range" min="150" max="1400" step="10" value="800">
+
+      <div class="seg-wrap">
+        <label class="lab" style="margin-bottom:0">顯示螺旋臂</label>
+        <div class="seg" role="group" aria-label="螺旋臂數">
+          <button type="button" data-f="0" aria-pressed="true">關閉</button>
+          <button type="button" data-f="34" aria-pressed="false">34</button>
+          <button type="button" data-f="55" aria-pressed="false">55</button>
+          <button type="button" data-f="89" aria-pressed="false">89</button>
+        </div>
+        <p class="seg-note" id="segNote" aria-live="polite"></p>
+      </div>
+    </aside>
+  </div>
+
+  <section class="explain rise" style="--d:.5s" aria-label="這是什麼">
+    <div class="ex">
+      <h3>🌻 為什麼是它</h3>
+      <p>黃金角 = 360°×(2−φ) ≈ <b>137.508°</b>。φ 是最「難被分數逼近」的數，所以每顆種子都落在前面全部種子留下的最大空隙裡，<b>誰也不擋誰的光</b>。</p>
+    </div>
+    <div class="ex">
+      <h3>🔢 34、55、89</h3>
+      <p>對齊黃金角時，肉眼會浮出兩組反向螺旋，數目永遠是<b>相鄰的斐波那契數</b>。花沒有在數，這只是黃金角的必然結果。</p>
+    </div>
+    <div class="ex">
+      <h3>🎚️ razor's edge</h3>
+      <p>把角度撥到 <b>137.3°</b> 或 137.7°，螺旋就鬆開成緩緩繞行的手臂；撥到整除的角度（如 90°）則塌成放射狀輪輻。golden 是一條刀鋒。</p>
+    </div>
+  </section>
+
+  <footer>把玩：拖動角度、或按「對齊黃金角」。　資料來源：Helmut Vogel (1979)、Wikipedia</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var PHI = (1 + Math.sqrt(5)) / 2;
+  var GOLDEN = 360 * (2 - PHI);            // 137.50776…
+  var LS = "phyllo.state";
+
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var stage = document.getElementById("stage");
+  var badge = document.getElementById("badge");
+  var angleEl = document.getElementById("angle");
+  var countEl = document.getElementById("count");
+  var angleVal = document.getElementById("angleVal");
+  var angleLab = document.getElementById("angleLab");
+  var countLab = document.getElementById("countLab");
+  var segNote = document.getElementById("segNote");
+
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var W = 0, H = 0, R = 0, dpr = 1;
+
+  // ---- 狀態 ----
+  var state = { angle: 137.5, n: 800, f: 0 };
+  try {
+    var saved = JSON.parse(localStorage.getItem(LS) || "null");
+    if (saved && typeof saved.angle === "number") {
+      state.angle = clamp(saved.angle, 60, 180);
+      state.n = clamp(saved.n || 800, 150, 1400);
+      state.f = [0,34,55,89].indexOf(saved.f) >= 0 ? saved.f : 0;
+    }
+  } catch (e) {}
+
+  function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+  function save(){ try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+
+  // ---- 純函式：Vogel 模型座標 ----
+  // 回傳 [{x,y,r,i}]，中心在 (0,0)，最外圈落在半徑 maxR
+  function seedPositions(n, angleDeg, maxR){
+    n = Math.max(1, Math.round(n));
+    var a = angleDeg * Math.PI / 180;
+    var c = maxR / Math.sqrt(n - 1 || 1);     // r = c·√i，使最外種子 ≈ maxR
+    var pts = new Array(n);
+    for (var i = 0; i < n; i++){
+      var r = c * Math.sqrt(i);
+      var t = i * a;
+      pts[i] = { x: Math.cos(t) * r, y: Math.sin(t) * r, r: r, i: i };
+    }
+    pts._c = c;
+    return pts;
+  }
+  window.__seedPositions = seedPositions;   // 供離線測試
+
+  function seedColor(rn){                    // rn: 0(中心)→1(外緣)
+    var r = Math.round(255 + (150 - 255) * rn);
+    var g = Math.round(198 + (74  - 198) * rn);
+    var b = Math.round(66  + (24  - 66 ) * rn);
+    return "rgb(" + r + "," + g + "," + b + ")";
+  }
+
+  // ---- 尺寸（給定 CSS 尺寸 × dpr，不回寫 CSS，避免回饋迴圈）----
+  function fit(){
+    var rect = cv.getBoundingClientRect();
+    if (!rect.width) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = Math.round(rect.width); H = Math.round(rect.height);
+    cv.width = Math.round(rect.width * dpr);
+    cv.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    R = Math.min(W, H) / 2 - 16;
+    draw(shown);
+  }
+
+  // ---- 繪製 ----
+  var pts = seedPositions(state.n, state.angle, 200);
+  var shown = state.n;
+
+  function rebuild(){ pts = seedPositions(state.n, state.angle, R || 200); }
+
+  function draw(k){
+    if (!W) return;
+    var c = pts._c || 1;
+    var dot = Math.max(1.1, c * 0.60);
+    ctx.clearRect(0, 0, W, H);
+    ctx.save();
+    ctx.translate(W / 2, H / 2);
+
+    // 種子
+    var lim = Math.min(k, pts.length);
+    for (var i = 0; i < lim; i++){
+      var p = pts[i];
+      var rn = R ? p.r / R : 0;
+      ctx.beginPath();
+      ctx.fillStyle = seedColor(rn > 1 ? 1 : rn);
+      ctx.arc(p.x, p.y, dot, 0, 6.2832);
+      ctx.fill();
+    }
+
+    // 螺旋臂：連接 i 與 i+F，得 F 條螺旋
+    if (state.f > 0 && lim > state.f){
+      ctx.lineWidth = Math.max(1, dot * 0.5);
+      ctx.strokeStyle = "rgba(111,211,200,.55)";
+      ctx.lineCap = "round";
+      var F = state.f;
+      for (var s = 0; s < F; s++){
+        ctx.beginPath();
+        var first = true;
+        for (var j = s; j < lim; j += F){
+          var q = pts[j];
+          if (first){ ctx.moveTo(q.x, q.y); first = false; }
+          else ctx.lineTo(q.x, q.y);
+        }
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // ---- 生長動畫（一次性，≤1.1s；隱藏或減動時直接完成）----
+  var raf = 0, growStart = 0, growDur = 1000;
+  function stopGrow(){ if (raf){ cancelAnimationFrame(raf); raf = 0; } }
+  function grow(){
+    stopGrow();
+    if (RM.matches || document.hidden){ shown = pts.length; draw(shown); return; }
+    growStart = 0;
+    raf = requestAnimationFrame(growStep);
+  }
+  function growStep(ts){
+    if (document.hidden){ shown = pts.length; draw(shown); raf = 0; return; }
+    if (!growStart) growStart = ts;
+    var t = (ts - growStart) / growDur;
+    if (t >= 1){ shown = pts.length; draw(shown); raf = 0; return; }
+    // easeOutCubic
+    var e = 1 - Math.pow(1 - t, 3);
+    shown = Math.max(1, Math.round(pts.length * e));
+    draw(shown);
+    raf = requestAnimationFrame(growStep);
+  }
+
+  // ---- 角度過渡（撥桿/預設會平滑掃到目標，順便當作「哇」時刻）----
+  var aRaf = 0;
+  function stopAngleAnim(){ if (aRaf){ cancelAnimationFrame(aRaf); aRaf = 0; } }
+  function animateAngleTo(target){
+    stopAngleAnim(); stopGrow();
+    if (RM.matches){ state.angle = target; syncAngleUI(); rebuild(); shown = pts.length; draw(shown); commit(); return; }
+    var from = state.angle, start = 0, dur = 620;
+    function step(ts){
+      if (!start) start = ts;
+      var t = (ts - start) / dur;
+      if (t >= 1) t = 1;
+      var e = 1 - Math.pow(1 - t, 3);
+      state.angle = from + (target - from) * e;
+      syncAngleUI(); rebuild(); shown = pts.length; draw(shown);
+      if (t < 1) aRaf = requestAnimationFrame(step);
+      else { aRaf = 0; state.angle = target; syncAngleUI(); commit(); }
+    }
+    aRaf = requestAnimationFrame(step);
+  }
+
+  // ---- UI 同步 ----
+  function fmt(a){ return (Math.round(a * 10) / 10).toFixed(1); }
+  function isGolden(a){ return Math.abs(a - GOLDEN) < 0.05; }
+  function syncAngleUI(){
+    var f = fmt(state.angle);
+    angleVal.textContent = f;
+    angleLab.textContent = f + "°";
+    if (Math.abs(parseFloat(angleEl.value) - state.angle) > 0.001) angleEl.value = fmt(state.angle);
+    var g = isGolden(state.angle);
+    badge.classList.toggle("on", g);
+    stage.classList.toggle("aligned", g);
+  }
+  function segLabel(){
+    if (state.f === 0){ segNote.textContent = ""; return; }
+    var golden = isGolden(state.angle);
+    segNote.innerHTML = golden
+      ? "看見 <b>" + state.f + " 條</b>乾淨的螺旋臂——斐波那契數。"
+      : "現在不是黃金角，" + state.f + " 條線纏得亂——按「對齊黃金角」再看。";
+  }
+  function commit(){ state.angle = clamp(state.angle, 60, 180); save(); }
+
+  // ---- 事件 ----
+  angleEl.addEventListener("input", function(){
+    stopAngleAnim(); stopGrow();
+    state.angle = parseFloat(angleEl.value);
+    syncAngleUI(); segLabel(); rebuild(); shown = pts.length; draw(shown); commit();
+  });
+  countEl.addEventListener("input", function(){
+    stopAngleAnim(); stopGrow();
+    state.n = parseInt(countEl.value, 10); countLab.textContent = state.n;
+    rebuild(); shown = pts.length; draw(shown); commit();
+  });
+  document.getElementById("alignBtn").addEventListener("click", function(){
+    animateAngleTo(GOLDEN);
+    // 對齊後短暫延遲更新螺旋說明
+    setTimeout(function(){ segLabel(); }, 660);
+  });
+  var chips = document.querySelectorAll(".chip");
+  for (var ci = 0; ci < chips.length; ci++){
+    chips[ci].addEventListener("click", function(){
+      animateAngleTo(parseFloat(this.getAttribute("data-a")));
+      setTimeout(function(){ segLabel(); }, 660);
+    });
+  }
+  var segBtns = document.querySelectorAll(".seg button");
+  for (var si = 0; si < segBtns.length; si++){
+    segBtns[si].addEventListener("click", function(){
+      for (var k = 0; k < segBtns.length; k++) segBtns[k].setAttribute("aria-pressed", "false");
+      this.setAttribute("aria-pressed", "true");
+      state.f = parseInt(this.getAttribute("data-f"), 10);
+      segLabel(); draw(shown); save();
+    });
+  }
+
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden){ stopGrow(); stopAngleAnim(); shown = pts.length; if (W) draw(shown); }
+  });
+  RM.addEventListener("change", function(){ stopGrow(); stopAngleAnim(); shown = pts.length; if (W) draw(shown); });
+
+  var rz;
+  window.addEventListener("resize", function(){ clearTimeout(rz); rz = setTimeout(fit, 160); });
+
+  // ---- 初始化 ----
+  angleEl.value = fmt(state.angle);
+  countEl.value = state.n;
+  countLab.textContent = state.n;
+  for (var sb = 0; sb < segBtns.length; sb++){
+    segBtns[sb].setAttribute("aria-pressed", parseInt(segBtns[sb].getAttribute("data-f"),10) === state.f ? "true" : "false");
+  }
+  syncAngleUI();
+  fit();
+  rebuild();
+  shown = 0;
+  draw(shown);
+  segLabel();
+  // 稍待進場動畫再生長
+  setTimeout(grow, RM.matches ? 0 : 420);
+})();
+</script>
+</body>
+</html>

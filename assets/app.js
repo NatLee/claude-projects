@@ -378,7 +378,7 @@ function countUp(el, to) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const n = chrono.length;
-    const mx = Math.max(30, W * .05), myT = 56, myB = 74;
+    const mx = Math.max(30, W * .05), myT = 56, myB = 104;
     const uw = W - mx * 2, uh = H - myT - myB;
     const perRow = Math.max(5, Math.min(14, Math.round(uw / 88)));
     const rows = Math.max(1, Math.ceil(n / perRow));
@@ -391,8 +391,9 @@ function countUp(el, to) {
       const by = myT + rowH * (r + .5);
       const h1 = hashStr(it.p.dir), h2 = hashStr(it.p.title + it.p.date);
       const x = bx + (h1 - .5) * Math.min(40, uw / perRow * .5);
-      /* 底緣留 70px 淨空：最下排星星不被「今晚最亮的星」卡片壓住 */
-      const y = Math.min(H - 70, by + (h2 - .5) * Math.min(rowH * .62, 52));
+      /* 底緣留 100px 淨空：卡片會往上疊 56px，加上今日之星的光暈/脈動環約 30px，
+         留 100px 才不會讓最亮的星壓到「今晚最亮的星」卡片頂緣。 */
+      const y = Math.min(H - 100, by + (h2 - .5) * Math.min(rowH * .62, 52));
       const mm = it.p.date.slice(5, 7);
       const mkey = it.p.date.slice(0, 7);
       const label = (mkey !== lastMonth) ? `${Number(mm)} 月` : "";

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>指尖里程表 · 你的手指今天走了多遠？</title>
+<meta name="description" content="打一段字，看你的手指在 QWERTY、Dvorak、Colemak 三種鍵盤配置上分別走了多少公尺。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="home-link" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="hero-kicker reveal" style="--d:0ms">冷知識 · 你每天摸一萬次的東西</div>
+  <h1 class="hero-title reveal" style="--d:80ms">指尖里程表</h1>
+  <p class="hero-sub reveal" style="--d:180ms">
+    你的手指在鍵盤上是會<em>移動</em>的，而且移動得比你想像中遠。<br>
+    打一段字——同一段字，換三種配置，看看差多少。
+  </p>
+  <div class="hero-scroll reveal" style="--d:320ms" aria-hidden="true"><span></span></div>
+</header>
+
+<main>
+
+<!-- ══════════ 儀器 ══════════ -->
+<section class="instrument reveal" style="--d:400ms" aria-labelledby="inst-h">
+  <h2 id="inst-h" class="sr-only">指尖里程量測</h2>
+
+  <div class="input-block">
+    <label class="input-label" for="src">在這裡打字，或貼上一段英文</label>
+    <textarea id="src" rows="3" spellcheck="false" autocomplete="off"
+      placeholder="the quick brown fox jumps over the lazy dog…"
+      aria-describedby="src-hint"></textarea>
+    <p id="src-hint" class="sr-only">輸入的文字會即時換算成三種鍵盤配置下的手指移動距離。</p>
+
+    <div class="chips" role="group" aria-label="範例文字">
+      <button type="button" class="chip" data-preset="0">🦊 經典測試句</button>
+      <button type="button" class="chip" data-preset="1">✉️ 一封工作信</button>
+      <button type="button" class="chip" data-preset="2">⌨️ 打字機時代</button>
+      <button type="button" class="chip chip-ghost" id="clear-btn">清空</button>
+      <button type="button" class="chip chip-play" id="demo-btn" aria-label="自動示範打字">▶ 自動示範</button>
+    </div>
+  </div>
+
+  <!-- 三支里程表 -->
+  <div class="meters" id="meters">
+    <article class="meter" data-layout="qwerty">
+      <div class="meter-head">
+        <span class="meter-name">QWERTY</span>
+        <span class="meter-tag">1873</span>
+      </div>
+      <div class="meter-read"><span class="meter-num" data-num="qwerty">0.00</span><span class="meter-unit">公尺</span></div>
+      <div class="meter-bar"><i data-bar="qwerty"></i></div>
+      <div class="meter-foot" data-delta="qwerty">基準</div>
+    </article>
+    <article class="meter" data-layout="dvorak">
+      <div class="meter-head">
+        <span class="meter-name">Dvorak</span>
+        <span class="meter-tag">1936</span>
+      </div>
+      <div class="meter-read"><span class="meter-num" data-num="dvorak">0.00</span><span class="meter-unit">公尺</span></div>
+      <div class="meter-bar"><i data-bar="dvorak"></i></div>
+      <div class="meter-foot" data-delta="dvorak">—</div>
+    </article>
+    <article class="meter" data-layout="colemak">
+      <div class="meter-head">
+        <span class="meter-name">Colemak</span>
+        <span class="meter-tag">2006</span>
+      </div>
+      <div class="meter-read"><span class="meter-num" data-num="colemak">0.00</span><span class="meter-unit">公尺</span></div>
+      <div class="meter-bar"><i data-bar="colemak"></i></div>
+      <div class="meter-foot" data-delta="colemak">—</div>
+    </article>
+  </div>
+
+  <!-- 鍵盤 -->
+  <div class="board-block">
+    <div class="tabs" role="tablist" aria-label="切換鍵盤配置">
+      <button type="button" role="tab" class="tab is-on" data-tab="qwerty" aria-selected="true">QWERTY</button>
+      <button type="button" role="tab" class="tab" data-tab="dvorak" aria-selected="false">Dvorak</button>
+      <button type="button" role="tab" class="tab" data-tab="colemak" aria-selected="false">Colemak</button>
+    </div>
+
+    <div class="board-wrap">
+      <svg id="board" viewBox="0 0 756 204" role="img" aria-label="鍵盤示意圖，按鍵顏色越亮代表被按得越多，圓點是八根手指的位置">
+        <g id="keys"></g>
+        <g id="trails" class="trails"></g>
+        <g id="fingers"></g>
+      </svg>
+    </div>
+
+    <p class="board-legend">
+      <span class="lg lg-heat"></span>越亮＝按得越多
+      <span class="lg lg-dot"></span>八個圓點＝八根手指，虛線是它們剛剛走過的路
+    </p>
+  </div>
+
+  <!-- 三項指標 -->
+  <div class="stats" id="stats" aria-live="polite">
+    <div class="stat">
+      <div class="stat-num"><span data-stat="home">0</span><i>%</i></div>
+      <div class="stat-label">待在主行</div>
+      <div class="stat-note">手指不必離開起始位置的比例</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num"><span data-stat="sfb">0</span><i>%</i></div>
+      <div class="stat-label">同指連擊</div>
+      <div class="stat-note">同一根手指連按兩個不同鍵，卡頓的來源</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num"><span data-stat="alt">0</span><i>%</i></div>
+      <div class="stat-label">左右換手</div>
+      <div class="stat-note">一手打完換另一手，越高越流暢</div>
+    </div>
+  </div>
+
+  <!-- 揭曉 -->
+  <div class="reveal-card" id="verdict" hidden aria-live="polite">
+    <div class="verdict-glow" aria-hidden="true"></div>
+    <p class="verdict-lead">同樣這 <b data-v="chars">0</b> 個字，你的手指在 QWERTY 上多走了</p>
+    <p class="verdict-big"><span data-v="gap">0</span><i>公尺</i></p>
+    <p class="verdict-sub">比最短的 <b data-v="best">Colemak</b> 多了 <b data-v="pct">0</b>%。<br>
+      以每天敲 3,000 個字元估算，一年下來大約多走 <b data-v="km">0</b> 公里。</p>
+  </div>
+
+  <p class="odo" id="odo" hidden>你在這台里程表上，累積走了 <b id="odo-num">0</b> 公尺。</p>
+</section>
+
+<!-- ══════════ 查證 ══════════ -->
+<section class="story reveal" style="--d:480ms" aria-labelledby="story-h">
+  <h2 id="story-h" class="story-title">那……為什麼是 QWERTY？</h2>
+
+  <div class="cards">
+    <article class="card">
+      <div class="card-no">01</div>
+      <h3>「它被設計來拖慢你」</h3>
+      <p>流傳最廣的說法：打字機的連桿太容易互撞，於是 Sholes 故意把常用字母拆散，好讓打字員慢一點。聽起來合理，還帶點反派感——但這個故事沒有同時代的文件撐得住。</p>
+    </article>
+    <article class="card card-hi">
+      <div class="card-no">02</div>
+      <h3>真正的使用者是電報員</h3>
+      <p>京都大學安岡孝一與安岡素子追查早期原型與客戶名單後主張：鍵盤是<em>跟著電報員一路改出來的</em>。他們得把摩斯電碼即時抄成文字，而字母序排列讓人分不清 Z 和 SE——排列是為了抄得<em>更快</em>，不是更慢。</p>
+    </article>
+    <article class="card">
+      <div class="card-no">03</div>
+      <h3>那換掉它值得嗎</h3>
+      <p>Dvorak 1944 年的海軍實驗宣稱速度提升可達 75%，但那場實驗由持有專利的 Dvorak 本人督導；1990 年〈Fable of the Keys〉逐條挑出它的方法學問題，也被反過來質疑立場。<em>上面的公尺數是真的，速度會不會變快則遠沒有定論</em>——距離只是舒適度的一個側面。</p>
+    </article>
+  </div>
+
+  <p class="kicker-line">一個為了 1870 年代的問題而生的排列，活過了那個問題本身，然後決定了幾十億隻手指每天怎麼移動。</p>
+</section>
+
+</main>
+
+<footer class="foot">
+  <p>指尖里程表 · 量的是距離，不是對錯。</p>
+  <p class="foot-src">資料來源：安岡孝一與安岡素子、Colemak.com、Smithsonian Magazine</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

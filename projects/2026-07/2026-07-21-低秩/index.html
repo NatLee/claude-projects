@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用兩張瘦矩陣重建一張圖 · LoRA 低秩微調</title>
+<style>
+:root{
+  --bg:#0a0f0e; --panel:#121a19; --panel2:#0e1514; --ink:#e9f4f1; --muted:#9db8b2; --faint:#5c716c;
+  --line:rgba(140,220,200,.12);
+  --a:#43e0c4; --b:#7aa2ff; --gold:#ffd36b;
+  --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(760px 440px at 15% -6%,rgba(67,224,196,.08),transparent 70%),radial-gradient(620px 400px at 90% 3%,rgba(122,162,255,.06),transparent 70%)}
+main,header,footer{position:relative;z-index:1}
+.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+.home:hover{color:var(--ink);transform:translateX(-3px)}
+.home:focus-visible{outline:2px solid var(--a);outline-offset:3px;color:var(--ink)}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}body.still .reveal{opacity:1;transform:none;transition:none}
+
+.hero{max-width:820px;margin:0 auto;padding:118px 28px 30px;text-align:center}
+.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+h1{font-family:var(--serif);font-size:clamp(2.2rem,6.2vw,3.7rem);line-height:1.09;margin:0 0 20px;
+  background:linear-gradient(180deg,#f6fffd 10%,#bfe0d9 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:1.04rem;color:var(--muted);margin:0 auto;max-width:33em}
+.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--a)}
+
+.stage{max-width:1000px;margin:6px auto 0;padding:0 24px}
+.lab{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+@media (max-width:820px){.lab{grid-template-columns:1fr}}
+.viewer{background:linear-gradient(160deg,#111a18,#0a0f0e);border:1px solid var(--line);border-radius:20px;padding:16px}
+.imgrow{display:flex;gap:14px;align-items:center;justify-content:center}
+.imcell{text-align:center}
+.imcell canvas{width:100%;max-width:230px;aspect-ratio:1/1;display:block;border-radius:12px;image-rendering:pixelated;background:#0a0f0e}
+.imcell .cap{font-size:.74rem;color:var(--faint);margin-top:8px}
+.approx{font-family:var(--mono);font-size:1.6rem;color:var(--faint)}
+@media (max-width:520px){.imrow{flex-direction:column}.approx{transform:rotate(90deg)}}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:18px}
+.p-h{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+.rankbig{font-family:var(--mono);font-size:2rem;color:var(--ink);text-align:center}
+.rankbig small{display:block;font-size:.72rem;color:var(--gold);margin-top:2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:linear-gradient(90deg,#20302c,#43e0c4);outline:none;margin-top:12px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--a);cursor:pointer;box-shadow:0 0 0 4px rgba(67,224,196,.18)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:none;border-radius:50%;background:var(--a);cursor:pointer}
+.bar{display:flex;flex-direction:column;gap:5px}
+.bar .lb{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.bar .lb b{font-family:var(--mono);color:var(--ink)}
+.track{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.fill{height:100%;border-radius:99px;transition:width .35s cubic-bezier(.3,.8,.3,1)}
+.fill.err{background:linear-gradient(90deg,#ff7a9c,#ffb06b)}
+.fill.sto{background:linear-gradient(90deg,#5b8bff,var(--b))}
+.msg{font-size:.82rem;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-height:3em}
+.msg b{color:var(--a)}
+
+.note{max-width:1000px;margin:34px auto 0;padding:0 24px}
+.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 20px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media (max-width:720px){.cards{grid-template-columns:1fr}}
+.nc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .3s,border-color .3s}
+.nc:hover{transform:translateY(-4px);border-color:rgba(140,220,200,.22)}
+.nc .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;margin-bottom:10px;color:var(--faint)}
+.nc h3{font-size:1.02rem;margin:0 0 8px}.nc p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}.nc em{font-style:normal;color:var(--ink)}
+.kl{margin:26px auto 0;max-width:44em;font-family:var(--serif);font-size:1.06rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:22px;border-top:1px solid var(--line)}
+footer{max-width:1000px;margin:52px auto 0;padding:22px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
+footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body class="still">
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="kick reveal" style="--d:0ms">高效微調 · LoRA</div>
+  <h1 class="reveal" style="--d:80ms">用兩張瘦矩陣，逼近一張大圖</h1>
+  <p class="sub reveal" style="--d:170ms">要調整一個大模型，你以為得改動它那張巨大的權重表。其實不必——大多數有用的改動都是<em>低秩</em>的，可以用兩張又瘦又長的小矩陣相乘來逼近。拉「秩」滑桿，看右邊只用幾條成分就把左圖重建得幾乎一樣。</p>
+</header>
+
+<main>
+<section class="stage reveal" style="--d:250ms">
+  <div class="lab">
+    <div class="viewer">
+      <div class="imgrow">
+        <div class="imcell"><canvas id="orig" aria-label="原始矩陣（滿秩）"></canvas><div class="cap">原始（滿秩 20）</div></div>
+        <div class="approx">≈</div>
+        <div class="imcell"><canvas id="approx" aria-label="低秩重建結果"></canvas><div class="cap" id="acap">低秩重建（秩 4）</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div>
+        <div class="p-h">保留的秩（成分數）</div>
+        <div class="rankbig"><span id="rankV">4</span><small id="paramV">存 2×64×4＝512 個數（原本 4096）</small></div>
+        <input id="rank" type="range" min="1" max="20" value="4" step="1" aria-label="低秩近似的秩">
+      </div>
+      <div class="bar">
+        <div class="lb"><span>重建誤差</span><b id="errV">—</b></div>
+        <div class="track"><div class="fill err" id="errF" style="width:40%"></div></div>
+      </div>
+      <div class="bar">
+        <div class="lb"><span>要存的數字量</span><b id="stoV">—</b></div>
+        <div class="track"><div class="fill sto" id="stoF" style="width:12%"></div></div>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+  </div>
+</section>
+
+<section class="note reveal" style="--d:0ms">
+  <h2>不動大山，只加兩片小坡</h2>
+  <div class="cards">
+    <article class="nc">
+      <div class="n">問題</div>
+      <h3>微調太貴</h3>
+      <p>要把大模型調去做新任務，全參數微調得更新那張 d×d 的巨大權重表、還得為每個任務各存一份——又慢又佔空間。</p>
+    </article>
+    <article class="nc">
+      <div class="n">LoRA 的洞見</div>
+      <h3>改動是低秩的</h3>
+      <p>凍住原本的權重 <em>W</em> 不動，只學一個小小的更新 <em>ΔW＝B·A</em>：B 是 d×r、A 是 r×d，秩 r 很小。要存的從 d² 掉到 2dr——常常只有原本的 <em>不到 1%</em>。</p>
+    </article>
+    <article class="nc">
+      <div class="n">好處</div>
+      <h3>一個底、很多外掛</h3>
+      <p>同一個大模型當底座，每個任務只掛一份幾 MB 的 LoRA 小補丁，隨插隨換。這就是為什麼你能在自己電腦上微調巨大的開源模型。</p>
+    </article>
+  </div>
+  <p class="kl">左邊這張圖的每一「成分」，就像 ΔW 的一個秩。你會發現：只留最重要的幾個，就抓住了幾乎全部的樣子——這正是低秩微調敢只動 1% 參數的底氣。</p>
+</section>
+</main>
+
+<footer>
+  <p>大模型不動，只學一點點差。</p>
+  <p class="src">資料來源：Hu et al.「LoRA」(2021)</p>
+</footer>
+
+<script>
+"use strict";
+/* ===== 低秩近似（純函式，供 node 斷言） ===== */
+var D=64, RMAX=20;
+/* 造一個秩=RMAX 的矩陣：M = Σ σ_i u_i v_iᵀ，σ 遞減；u,v 為結構化向量 */
+function uvec(i,x){ var f=(i+1); return Math.sin((f*1.3)*Math.PI*x + i*0.7) * Math.cos((i*0.5+0.4)*Math.PI*x); }
+function vvec(i,y){ var f=(i+1); return Math.cos((f*1.1)*Math.PI*y + i*0.5) * Math.sin((i*0.6+0.3)*Math.PI*y + 0.2); }
+function sigma(i){ return Math.pow(0.66, i); }          /* 奇異值遞減 */
+/* rank-k 近似在 (px,py)∈[0,1] 的值 */
+function approxAt(px,py,k){ var s=0,i; for(i=0;i<k;i++){ s += sigma(i)*uvec(i,px)*vvec(i,py); } return s; }
+function fullAt(px,py){ return approxAt(px,py,RMAX); }
+/* 相對 Frobenius 誤差：sqrt(Σ_{i≥k} σ_i²)/sqrt(Σ σ_i²)（因 u,v 成分近似正交，用 σ 能量估計） */
+function relError(k){
+  var tail=0,tot=0,i; for(i=0;i<RMAX;i++){ var e=sigma(i)*sigma(i); tot+=e; if(i>=k)tail+=e; }
+  return Math.sqrt(tail/tot);
+}
+function storage(k,d){ d=d||D; return 2*d*k; }          /* B(d×k)+A(k×d) */
+function fullStorage(d){ d=d||D; return d*d; }
+function compression(k,d){ return storage(k,d)/fullStorage(d); }
+
+if(typeof module==='object'&&module.exports){
+  module.exports={D,RMAX,sigma,approxAt,fullAt,relError,storage,fullStorage,compression};
+}
+
+/* ===== 瀏覽器端 ===== */
+if(typeof document!=='undefined')(function(){
+  var mR=window.matchMedia('(prefers-reduced-motion:reduce)'),reduced=mR.matches;
+  var origC=document.getElementById('orig'), apC=document.getElementById('approx');
+  var octx=origC.getContext('2d'), actx=apC.getContext('2d');
+  var rank=4;
+
+  /* 預算滿秩場的值域 */
+  var vmin=1e9,vmax=-1e9,i,j;
+  for(j=0;j<D;j++)for(i=0;i<D;i++){ var v=fullAt(i/(D-1),j/(D-1)); if(v<vmin)vmin=v; if(v>vmax)vmax=v; }
+  function col(v){ var t=(v-vmin)/(vmax-vmin); t=Math.max(0,Math.min(1,t));
+    /* 深→青綠→白 */
+    return 'rgb('+Math.round(10+t*80)+','+Math.round(30+t*205)+','+Math.round(40+t*175)+')'; }
+
+  function paint(cvs,ctx,k){
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    var r=cvs.getBoundingClientRect(); var w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
+    if(cvs.width!==w||cvs.height!==h){cvs.width=w;cvs.height=h;}
+    var cw=cvs.width/D, ch=cvs.height/D;
+    for(var jj=0;jj<D;jj++)for(var ii=0;ii<D;ii++){ var v=approxAt(ii/(D-1),jj/(D-1),k); ctx.fillStyle=col(v); ctx.fillRect(Math.floor(ii*cw),Math.floor(jj*ch),Math.ceil(cw),Math.ceil(ch)); }
+  }
+  function update(){
+    paint(origC,octx,RMAX); paint(apC,actx,rank);
+    document.getElementById('rankV').textContent=rank;
+    document.getElementById('acap').textContent='低秩重建（秩 '+rank+'）';
+    var sto=storage(rank), full=fullStorage();
+    document.getElementById('paramV').textContent='存 2×'+D+'×'+rank+'＝'+sto+' 個數（原本 '+full+'）';
+    var err=relError(rank);
+    document.getElementById('errV').textContent=(err*100).toFixed(1)+'%';
+    document.getElementById('errF').style.width=Math.max(2,err*100)+'%';
+    var comp=compression(rank);
+    document.getElementById('stoV').textContent=(comp*100).toFixed(0)+'%（省 '+(100-comp*100).toFixed(0)+'%）';
+    document.getElementById('stoF').style.width=Math.max(2,comp*100)+'%';
+    var msg=document.getElementById('msg');
+    if(rank<=2) msg.innerHTML='只用 <b>'+rank+'</b> 個成分就抓到大致輪廓——細節還沒回來，但已經很像了。';
+    else if(rank>=RMAX) msg.innerHTML='秩拉到滿，<b>完全重建</b>原圖，但要存的數字也回到最多。';
+    else msg.innerHTML='秩 <b>'+rank+'</b>：誤差已降到 '+(err*100).toFixed(0)+'%，卻只要存原本的 '+(comp*100).toFixed(0)+'%。這就是 LoRA 的划算之處。';
+  }
+  document.getElementById('rank').addEventListener('input',function(){ rank=+this.value; update(); });
+  window.addEventListener('resize',update);
+  mR.addEventListener('change',function(e){reduced=e.matches;});
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) update(); });
+
+  requestAnimationFrame(function(){
+    document.body.classList.remove('still');
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(function(n){io.observe(n);});
+  });
+  update();
+})();
+</script>
+</body>
+</html>

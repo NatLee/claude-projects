@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>把大模型壓小 · 量化與 1.58 位元</title>
+<style>
+:root{
+  --bg:#0c0a10; --panel:#16131d; --panel2:#110e18; --ink:#efeafb; --muted:#b1a8c6; --faint:#685f80;
+  --line:rgba(180,160,235,.12);
+  --hi:#b98cff; --pos:#5ee0c0; --neg:#ff7ab0; --gold:#f5c451;
+  --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(760px 440px at 15% -6%,rgba(185,140,255,.09),transparent 70%),radial-gradient(620px 400px at 90% 3%,rgba(94,224,192,.06),transparent 70%)}
+main,header,footer{position:relative;z-index:1}
+.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+.home:hover{color:var(--ink);transform:translateX(-3px)}
+.home:focus-visible{outline:2px solid var(--hi);outline-offset:3px;color:var(--ink)}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}body.still .reveal{opacity:1;transform:none;transition:none}
+
+.hero{max-width:820px;margin:0 auto;padding:118px 28px 30px;text-align:center}
+.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+h1{font-family:var(--serif);font-size:clamp(2.3rem,6.4vw,3.8rem);line-height:1.08;margin:0 0 20px;
+  background:linear-gradient(180deg,#fbf9ff 10%,#c8bce8 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:1.04rem;color:var(--muted);margin:0 auto;max-width:33em}
+.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--hi)}
+
+.stage{max-width:1000px;margin:6px auto 0;padding:0 24px}
+.lab{display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+@media (max-width:820px){.lab{grid-template-columns:1fr}}
+.viewer{position:relative;background:linear-gradient(160deg,#14111c,#0c0a10);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.cw{position:relative;width:100%;aspect-ratio:1/1;max-height:52vh}
+#grid{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:pixelated}
+.vtag{position:absolute;top:12px;left:14px;font-family:var(--mono);font-size:.72rem;color:var(--faint);pointer-events:none}
+.levels{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 12px;background:linear-gradient(0deg,rgba(12,10,16,.9),transparent);display:flex;gap:3px;align-items:flex-end;height:60px}
+.levels i{flex:1;background:var(--hi);border-radius:2px 2px 0 0;opacity:.85}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:18px}
+.p-h{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+.prec{font-family:var(--mono);font-size:1.7rem;color:var(--ink);text-align:center}
+.prec small{display:block;font-size:.72rem;color:var(--gold);letter-spacing:.06em;margin-top:2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;background:linear-gradient(90deg,#2a2540,#b98cff);outline:none;margin-top:12px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--hi);cursor:pointer;box-shadow:0 0 0 4px rgba(185,140,255,.18)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:none;border-radius:50%;background:var(--hi);cursor:pointer}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.66rem;color:var(--faint);margin-top:6px}
+.stat{display:flex;flex-direction:column;gap:12px}
+.bar{display:flex;flex-direction:column;gap:5px}
+.bar .lb{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted)}
+.bar .lb b{font-family:var(--mono);color:var(--ink)}
+.track{height:10px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.fill{height:100%;border-radius:99px;transition:width .4s cubic-bezier(.3,.8,.3,1),background .3s}
+.fill.size{background:linear-gradient(90deg,#7a6bff,var(--hi))}
+.fill.q{background:linear-gradient(90deg,#5ee0c0,#9bf0d8)}
+.tern{font-size:.82rem;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-height:2.4em}
+.tern b{color:var(--pos)}
+
+.note{max-width:1000px;margin:34px auto 0;padding:0 24px}
+.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 20px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media (max-width:720px){.cards{grid-template-columns:1fr}}
+.nc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .3s,border-color .3s}
+.nc:hover{transform:translateY(-4px);border-color:rgba(180,160,235,.22)}
+.nc .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;margin-bottom:10px;color:var(--faint)}
+.nc h3{font-size:1.02rem;margin:0 0 8px}.nc p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}.nc em{font-style:normal;color:var(--ink)}
+.kl{margin:26px auto 0;max-width:44em;font-family:var(--serif);font-size:1.06rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:22px;border-top:1px solid var(--line)}
+footer{max-width:1000px;margin:52px auto 0;padding:22px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
+footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body class="still">
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="kick reveal" style="--d:0ms">模型壓縮 · 量化</div>
+  <h1 class="reveal" style="--d:80ms">把大模型塞進手機</h1>
+  <p class="sub reveal" style="--d:170ms">一個大模型有幾千億個「權重」，原本每個用 16 位元存。量化就是<em>用更少的位元存每個權重</em>——從連續值，一路砍到只剩 −1、0、+1 三種。神奇的是：砍到很兇，它還是幾乎一樣聰明。拉滑桿試試。</p>
+</header>
+
+<main>
+<section class="stage reveal" style="--d:250ms">
+  <div class="lab">
+    <div class="viewer">
+      <div class="cw">
+        <canvas id="grid" role="img" aria-label="一片代表模型權重的平滑色塊，隨著位元數下降，會被壓成越來越少的階梯狀色階。"></canvas>
+        <div class="vtag" id="vtag">權重（連續值）</div>
+        <div class="levels" id="levels" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div>
+        <div class="p-h">精度</div>
+        <div class="prec"><span id="precName">FP16</span><small id="precBits">16 位元 · 65536 階</small></div>
+        <input id="bits" type="range" min="0" max="4" step="1" value="0" aria-label="精度（位元）">
+        <div class="ticks"><span>FP16</span><span>INT8</span><span>INT4</span><span>2-bit</span><span>1.58</span></div>
+      </div>
+      <div class="stat">
+        <div class="bar">
+          <div class="lb"><span>模型大小（假想 7B）</span><b id="sizeV">14.0 GB</b></div>
+          <div class="track"><div class="fill size" id="sizeF" style="width:100%"></div></div>
+        </div>
+        <div class="bar">
+          <div class="lb"><span>保留的能力（示意）</span><b id="qV">100%</b></div>
+          <div class="track"><div class="fill q" id="qF" style="width:100%"></div></div>
+        </div>
+      </div>
+      <div class="tern" id="tern">每個權重用 16 位元浮點數存，幾乎連續。</div>
+    </div>
+  </div>
+</section>
+
+<section class="note reveal" style="--d:0ms">
+  <h2>少即是多</h2>
+  <div class="cards">
+    <article class="nc">
+      <div class="n">為什麼要壓</div>
+      <h3>裝不下</h3>
+      <p>一個 70B 模型用 FP16 要 140 GB，塞不進一般顯卡、更別說手機。量化把<em>每個權重的位元數</em>砍半再砍半，記憶體、頻寬、耗電跟著一起降。</p>
+    </article>
+    <article class="nc">
+      <div class="n">為什麼還行</div>
+      <h3>神經網路很皮實</h3>
+      <p>權重不需要那麼精確。INT8、INT4 的<em>訓練後量化</em>幾乎不掉分，早已是部署 LLM 的日常。多出來的誤差，大模型自己吸收得掉。</p>
+    </article>
+    <article class="nc">
+      <div class="n">2024 · 極限</div>
+      <h3>1.58 位元</h3>
+      <p>微軟 BitNet b1.58 把每個權重壓成 <em>−1、0、+1</em> 三種（log₂3≈1.58 位元）。從頭訓練下，它在數十億參數規模能追平 FP16 的表現，記憶體卻少好幾倍——連乘法都幾乎變成加減法。</p>
+    </article>
+  </div>
+  <p class="kl">當權重只剩三個值，矩陣乘法裡最貴的乘法幾乎消失了。把模型變小，有時不只是省空間，而是換一種更省電的算法。</p>
+</section>
+</main>
+
+<footer>
+  <p>同一個腦，換個更省的記法。</p>
+  <p class="src">資料來源：Microsoft「BitNet b1.58」(2024)、量化部署文獻</p>
+</footer>
+
+<script>
+"use strict";
+/* ===== 量化（純函式，供 node 斷言） ===== */
+var MODES=[
+  {name:'FP16', bits:16, levels:65536, bytes:2,    q:1.00},
+  {name:'INT8', bits:8,  levels:256,   bytes:1,    q:0.995},
+  {name:'INT4', bits:4,  levels:16,    bytes:0.5,  q:0.97},
+  {name:'2-bit',bits:2,  levels:4,     bytes:0.25, q:0.90},
+  {name:'1.58', bits:1.58,levels:3,    bytes:0.198,q:0.955}   /* BitNet：三元、從頭訓練 → 回升 */
+];
+/* 把 x∈[-1,1] 量化到 L 個等距階（含端點）；L>=2 */
+function quantizeToLevels(x, L){
+  if(L<=1) return 0;
+  x=Math.max(-1,Math.min(1,x));
+  var step=2/(L-1);
+  return Math.round((x+1)/step)*step - 1;
+}
+/* 三元量化：以門檻分成 -1/0/+1 */
+function ternary(x, thr){ thr=thr==null?0.33:thr; if(x> thr) return 1; if(x< -thr) return -1; return 0; }
+function quantMode(x, mode){ if(mode.levels===3) return ternary(x); if(mode.levels>=65536) return x; return quantizeToLevels(x, mode.levels); }
+/* 假想 params 參數量在該精度下的大小（GB） */
+function modelSizeGB(params, bytesPerParam){ return params*bytesPerParam/1e9; }
+
+if(typeof module==='object'&&module.exports){
+  module.exports={MODES,quantizeToLevels,ternary,quantMode,modelSizeGB};
+}
+
+/* ===== 瀏覽器端 ===== */
+if(typeof document!=='undefined')(function(){
+  var mR=window.matchMedia('(prefers-reduced-motion:reduce)'),reduced=mR.matches;
+  var cv=document.getElementById('grid'), ctx=cv.getContext('2d');
+  var PARAMS=7e9;
+  var idx=0;
+  /* 產生一張平滑的權重場（固定，用簡單多頻正弦，值域 -1..1） */
+  var FN=72, field=[];
+  for(var j=0;j<FN;j++){ field[j]=[]; for(var i=0;i<FN;i++){ var x=i/FN, y=j/FN;
+    var v=0.6*Math.sin(6.2*x+1.1)*Math.cos(5.1*y) + 0.4*Math.sin(9*y+2*x) ; field[j][i]=Math.max(-1,Math.min(1,v)); } }
+
+  function colorFor(v){ /* -1藍紫→0深→+1綠 */
+    if(v>=0){ var t=v; return 'rgb('+Math.round(30+ t*64)+','+Math.round(40+t*184)+','+Math.round(60+t*140)+')'; }
+    var s=-v; return 'rgb('+Math.round(30+s*195)+','+Math.round(40+s*80)+','+Math.round(60+s*120)+')';
+  }
+  var dpr=1,W=0,H=0;
+  function size(){ var r=cv.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
+    var w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
+    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;} W=cv.width;H=cv.height; }
+  function draw(){
+    size(); var mode=MODES[idx]; var cw=W/FN, ch=H/FN;
+    for(var j=0;j<FN;j++)for(var i=0;i<FN;i++){
+      var v=quantMode(field[j][i], mode);
+      ctx.fillStyle=colorFor(v); ctx.fillRect(Math.floor(i*cw),Math.floor(j*ch),Math.ceil(cw),Math.ceil(ch));
+    }
+    /* 階梯直方圖 */
+    var lv=document.getElementById('levels'); lv.innerHTML='';
+    var L=mode.levels>=65536?24:mode.levels;
+    for(var k=0;k<Math.min(L,24);k++){ var e=document.createElement('i'); e.style.height=(20+70*(k+1)/Math.min(L,24))+'%';
+      var vv= L<=3? (k-1) : (-1 + 2*k/(L-1)); e.style.background=colorFor(Math.max(-1,Math.min(1,vv))); lv.appendChild(e); }
+  }
+  function update(){
+    var m=MODES[idx];
+    document.getElementById('precName').textContent=m.name;
+    document.getElementById('precBits').textContent = (m.levels===3?'1.58 位元 · 三元 {−1,0,+1}': m.bits+' 位元 · '+m.levels+' 階');
+    document.getElementById('vtag').textContent = m.levels>=65536?'權重（連續值）':'權重（量化成 '+m.levels+' 階）';
+    var gb=modelSizeGB(PARAMS,m.bytes);
+    document.getElementById('sizeV').textContent=gb.toFixed(gb<2?2:1)+' GB';
+    document.getElementById('sizeF').style.width=(m.bytes/2*100)+'%';
+    document.getElementById('qV').textContent=Math.round(m.q*100)+'%';
+    document.getElementById('qF').style.width=(m.q*100)+'%';
+    var tern=document.getElementById('tern');
+    if(m.levels===3) tern.innerHTML='每個權重只剩 <b>−1、0、+1</b> 三種。乘法退化成加減法——這就是 BitNet 1.58 的魔法：又小又省電，還幾乎不掉分。';
+    else if(m.levels>=65536) tern.textContent='每個權重用 16 位元浮點數存，幾乎連續。';
+    else tern.textContent='每個權重壓到 '+m.levels+' 個階梯值。大小砍到 '+(m.bytes/2*100)+'%，能力幾乎沒掉。';
+    draw();
+  }
+  var bitsEl=document.getElementById('bits');
+  bitsEl.addEventListener('input',function(){ idx=+this.value; update(); });
+  window.addEventListener('resize',draw);
+  mR.addEventListener('change',function(e){reduced=e.matches;});
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) draw(); });
+
+  requestAnimationFrame(function(){
+    document.body.classList.remove('still');
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(function(n){io.observe(n);});
+  });
+  update();
+})();
+</script>
+</body>
+</html>

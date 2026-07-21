@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>會自己長回來的圖案 · 形態發生與神經細胞自動機</title>
+<style>
+:root{
+  --bg:#080b0d; --panel:#111619; --panel2:#0c1113; --ink:#e8f2f0; --muted:#98b3ae; --faint:#57706b;
+  --line:rgba(120,220,200,.13);
+  --a:#2fe0b0; --b:#7ad0ff; --gold:#ffd36b;
+  --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(760px 440px at 15% -6%,rgba(47,224,176,.08),transparent 70%),radial-gradient(620px 400px at 90% 3%,rgba(122,208,255,.06),transparent 70%)}
+main,header,footer{position:relative;z-index:1}
+.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+.home:hover{color:var(--ink);transform:translateX(-3px)}
+.home:focus-visible{outline:2px solid var(--a);outline-offset:3px;color:var(--ink)}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}body.still .reveal{opacity:1;transform:none;transition:none}
+
+.hero{max-width:820px;margin:0 auto;padding:118px 28px 30px;text-align:center}
+.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+h1{font-family:var(--serif);font-size:clamp(2.3rem,6.4vw,3.8rem);line-height:1.08;margin:0 0 20px;
+  background:linear-gradient(180deg,#f4fffb 10%,#bfe4dc 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:1.04rem;color:var(--muted);margin:0 auto;max-width:33em}
+.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--a)}
+
+.stage{max-width:1000px;margin:6px auto 0;padding:0 24px}
+.lab{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media (max-width:820px){.lab{grid-template-columns:1fr}}
+.viewer{position:relative;background:#05080a;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.cw{position:relative;width:100%;aspect-ratio:1/1;max-height:60vh}
+#sim{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;image-rendering:pixelated}
+.vtag{position:absolute;top:12px;left:14px;font-family:var(--mono);font-size:.72rem;color:rgba(220,240,235,.6);pointer-events:none;text-shadow:0 1px 4px #000}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.p-h{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:9px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg button{font:inherit;font-size:.82rem;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:9px 6px;border-radius:10px;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+.seg button[aria-pressed="true"]{color:#06110e;background:var(--a);border-color:transparent;font-weight:700}
+.seg button:focus-visible{outline:2px solid var(--a);outline-offset:2px}
+.row{display:flex;gap:9px}
+.btn{flex:1;font-family:inherit;font-size:.88rem;font-weight:700;color:#06110e;background:linear-gradient(135deg,#7cf0d4,var(--a));border:none;border-radius:12px;padding:12px;cursor:pointer;transition:transform .2s,filter .2s;box-shadow:0 6px 18px rgba(47,224,176,.2)}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.05)}.btn:active{transform:translateY(0) scale(.99)}
+.btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.btn.sec{color:var(--ink);background:var(--panel2);border:1px solid var(--line);box-shadow:none;font-weight:600}
+.tip{font-size:.82rem;color:var(--muted);background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;line-height:1.7}
+.tip b{color:var(--a)}
+
+.note{max-width:1000px;margin:34px auto 0;padding:0 24px}
+.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 20px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media (max-width:720px){.cards{grid-template-columns:1fr}}
+.nc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .3s,border-color .3s}
+.nc:hover{transform:translateY(-4px);border-color:rgba(120,220,200,.22)}
+.nc .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;margin-bottom:10px;color:var(--faint)}
+.nc h3{font-size:1.02rem;margin:0 0 8px}.nc p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}.nc em{font-style:normal;color:var(--ink)}
+.kl{margin:26px auto 0;max-width:44em;font-family:var(--serif);font-size:1.06rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:22px;border-top:1px solid var(--line)}
+footer{max-width:1000px;margin:52px auto 0;padding:22px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
+footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body class="still">
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="kick reveal" style="--d:0ms">形態發生 · 自我修復</div>
+  <h1 class="reveal" style="--d:80ms">會自己長回來的圖案</h1>
+  <p class="sub reveal" style="--d:170ms">沒有藍圖、沒有總指揮，只有一堆只看得到鄰居的小格子，各自照同一條簡單規則反應。它們卻能自己長出斑點與迷宮般的花紋——而且你<em>抹掉一塊，它會長回來</em>。在圖上塗抹或擦除試試。</p>
+</header>
+
+<main>
+<section class="stage reveal" style="--d:250ms">
+  <div class="lab">
+    <div class="viewer">
+      <div class="cw">
+        <canvas id="sim" role="img" aria-label="反應擴散模擬：一片會自我組織成花紋、並在被破壞後長回來的圖案。可用滑鼠塗抹。"></canvas>
+        <div class="vtag" id="vtag">在圖上按住拖曳＝播種 · 長按空白處看它擴散</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div>
+        <div class="p-h">花紋樣式</div>
+        <div class="seg" id="preset">
+          <button type="button" data-p="spots" aria-pressed="true">斑點</button>
+          <button type="button" data-p="coral" aria-pressed="false">珊瑚</button>
+          <button type="button" data-p="maze" aria-pressed="false">迷宮</button>
+          <button type="button" data-p="mitosis" aria-pressed="false">分裂</button>
+        </div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="play" aria-pressed="true">⏸ 暫停</button>
+        <button type="button" class="btn sec" id="damage">✂ 破壞一塊</button>
+      </div>
+      <div class="row">
+        <button type="button" class="btn sec" id="seed" style="flex:1">✦ 重新播種</button>
+      </div>
+      <div class="tip" id="tip">試試按 <b>破壞一塊</b>：中間會被挖空，然後看邊緣的花紋自己爬回來、把洞補起來——沒有人告訴它「這裡該長什麼」。</div>
+    </div>
+  </div>
+</section>
+
+<section class="note reveal" style="--d:0ms">
+  <h2>從鄰居，長出整體</h2>
+  <div class="cards">
+    <article class="nc">
+      <div class="n">1952 · 圖靈</div>
+      <h3>斑馬為什麼有紋</h3>
+      <p>圖靈提出：兩種會擴散、又互相促進與抑制的化學物質，光靠局部反應就能自己冒出斑點與條紋。這頁跑的正是這種<em>反應擴散</em>系統，動物花紋的數學原型。</p>
+    </article>
+    <article class="nc">
+      <div class="n">自我修復</div>
+      <h3>沒有藍圖的韌性</h3>
+      <p>每個格子只看得到鄰居、只照同一條規則走，卻能在被破壞後<em>重新長回</em>原來的花紋。整體的樣子不存在任何單一格子裡，而是從局部互動裡「湧現」出來。</p>
+    </article>
+    <article class="nc">
+      <div class="n">2020 · AI 版</div>
+      <h3>神經細胞自動機</h3>
+      <p>把「格子的更新規則」換成一個<em>學出來的小神經網路</em>，就是 Growing Neural CA：能從一顆細胞長成指定圖案，被切掉一角還會自己補全——生物的形態發生，被寫進了模型。</p>
+    </article>
+  </div>
+  <p class="kl">你身上每個細胞也只看得到隔壁，卻能一起長成一隻手、一顆心。生命最深的把戲之一，就是「沒有藍圖，也能長出形狀」。</p>
+</section>
+</main>
+
+<footer>
+  <p>規則很小，花紋很大。</p>
+  <p class="src">資料來源：Turing (1952)、Gray–Scott 模型、Mordvintsev et al. Distill (2020)</p>
+</footer>
+
+<script>
+"use strict";
+/* ===== Gray–Scott 反應擴散（純函式核心，供 node 斷言） ===== */
+/* 5 點拉普拉斯（環繞邊界） */
+function lap(field, w, h, x, y){
+  var xm=(x-1+w)%w, xp=(x+1)%w, ym=(y-1+h)%h, yp=(y+1)%h, c=y*w+x;
+  return field[y*w+xm]+field[y*w+xp]+field[ym*w+x]+field[yp*w+x] - 4*field[c];
+}
+/* 單步 Gray–Scott，回傳新的 {U,V}（不就地修改） */
+function gsStep(U,V,w,h,p){
+  var Du=p.Du,Dv=p.Dv,f=p.f,k=p.k,dt=p.dt==null?1:p.dt;
+  var nU=new Float32Array(U.length), nV=new Float32Array(V.length), i,x,y;
+  for(y=0;y<h;y++)for(x=0;x<w;x++){
+    i=y*w+x; var u=U[i],v=V[i], uvv=u*v*v;
+    nU[i]=u + (Du*lap(U,w,h,x,y) - uvv + f*(1-u))*dt;
+    nV[i]=v + (Dv*lap(V,w,h,x,y) + uvv - (f+k)*v)*dt;
+  }
+  return {U:nU,V:nV};
+}
+var PRESETS={
+  spots:{Du:0.16,Dv:0.08,f:0.035,k:0.065,dt:1},
+  coral:{Du:0.16,Dv:0.08,f:0.0545,k:0.062,dt:1},
+  maze:{Du:0.16,Dv:0.08,f:0.029,k:0.057,dt:1},
+  mitosis:{Du:0.16,Dv:0.08,f:0.0367,k:0.0649,dt:1}
+};
+if(typeof module==='object'&&module.exports){
+  module.exports={lap,gsStep,PRESETS};
+}
+
+/* ===== 瀏覽器端 ===== */
+if(typeof document!=='undefined')(function(){
+  var mR=window.matchMedia('(prefers-reduced-motion:reduce)'),reduced=mR.matches;
+  var cv=document.getElementById('sim'), ctx=cv.getContext('2d');
+  var W=150,H=150, U,V, img, buf, params=Object.assign({},PRESETS.spots), playing=true, raf=0;
+
+  function alloc(){ U=new Float32Array(W*H); V=new Float32Array(W*H); for(var i=0;i<W*H;i++){U[i]=1;V[i]=0;} img=ctx.createImageData(W,H); buf=new Uint8ClampedArray(img.data.length); }
+  function seedCenter(){ for(var i=0;i<W*H;i++){U[i]=1;V[i]=0;} var cx=W/2,cy=H/2; for(var y=cy-9;y<cy+9;y++)for(var x=cx-9;x<cx+9;x++){ if(x<0||y<0||x>=W||y>=H)continue; var i=(y|0)*W+(x|0); U[i]=0.5; V[i]=0.25+Math.random()*0.15; } scatter(18); }
+  function scatter(n){ for(var s=0;s<n;s++){ var x=(Math.random()*W)|0,y=(Math.random()*H)|0,i=y*W+x; V[i]=Math.min(1,V[i]+0.5); } }
+  function damage(){ var cx=(W*(0.3+Math.random()*0.4))|0, cy=(H*(0.3+Math.random()*0.4))|0, r=22; for(var y=-r;y<=r;y++)for(var x=-r;x<=r;x++){ if(x*x+y*y>r*r)continue; var xx=cx+x,yy=cy+y; if(xx<0||yy<0||xx>=W||yy>=H)continue; var i=yy*W+xx; U[i]=1; V[i]=0; } }
+
+  function stepN(n){ for(var s=0;s<n;s++){ var r=gsStep(U,V,W,H,params); U=r.U; V=r.V; } }
+  function render(){
+    for(var i=0;i<W*H;i++){ var v=V[i]; var t=Math.max(0,Math.min(1,v*3.4));
+      /* 深底→青綠→亮 */
+      var r=8+t*40, g=18+t*210, b=26+t*150; var o=i*4; buf[o]=r; buf[o+1]=g; buf[o+2]=b; buf[o+3]=255; }
+    img.data.set(buf);
+    /* 放大繪到畫布 */
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    var rect=cv.getBoundingClientRect(); var cw=Math.max(1,Math.round(rect.width*dpr)),ch=Math.max(1,Math.round(rect.height*dpr));
+    if(cv.width!==cw||cv.height!==ch){cv.width=cw;cv.height=ch;}
+    /* 用離屏 imageData → 暫存 canvas → drawImage 放大 */
+    if(!render._tmp){ render._tmp=document.createElement('canvas'); render._tmp.width=W; render._tmp.height=H; render._tc=render._tmp.getContext('2d'); }
+    render._tc.putImageData(img,0,0);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(render._tmp,0,0,W,H,0,0,cv.width,cv.height);
+  }
+  function frame(){ raf=0; if(playing && !reduced){ stepN(10); } render(); if(playing && !reduced) schedule(); }
+  function schedule(){ if(!raf) raf=requestAnimationFrame(frame); }
+
+  function setPlay(p){ playing=p; var b=document.getElementById('play'); b.setAttribute('aria-pressed',p?'true':'false'); b.textContent=p?'⏸ 暫停':'▶ 繼續'; if(p) schedule(); }
+
+  /* 滑鼠播種 */
+  var painting=false;
+  function paintAt(e){ var r=cv.getBoundingClientRect(); var x=((e.clientX-r.left)/r.width*W)|0, y=((e.clientY-r.top)/r.height*H)|0;
+    for(var dy=-4;dy<=4;dy++)for(var dx=-4;dx<=4;dx++){ var xx=x+dx,yy=y+dy; if(xx<0||yy<0||xx>=W||yy>=H)continue; if(dx*dx+dy*dy>16)continue; var i=yy*W+xx; V[i]=Math.min(1,V[i]+0.6); U[i]=Math.max(0,U[i]-0.2); } if(!playing) render(); }
+  cv.addEventListener('pointerdown',function(e){ painting=true; cv.setPointerCapture(e.pointerId); paintAt(e); });
+  cv.addEventListener('pointermove',function(e){ if(painting) paintAt(e); });
+  cv.addEventListener('pointerup',function(){ painting=false; });
+
+  document.getElementById('play').addEventListener('click',function(){ setPlay(!playing); });
+  document.getElementById('damage').addEventListener('click',function(){ damage(); if(!playing) render(); });
+  document.getElementById('seed').addEventListener('click',function(){ seedCenter(); render(); });
+  document.querySelectorAll('#preset button').forEach(function(b){ b.addEventListener('click',function(){ params=Object.assign({},PRESETS[b.dataset.p]); document.querySelectorAll('#preset button').forEach(function(o){o.setAttribute('aria-pressed',o===b?'true':'false');}); seedCenter(); render(); }); });
+
+  document.addEventListener('visibilitychange',function(){ if(document.hidden){ if(raf){cancelAnimationFrame(raf);raf=0;} } else if(playing&&!reduced) schedule(); });
+  mR.addEventListener('change',function(e){ reduced=e.matches; if(reduced){ if(raf){cancelAnimationFrame(raf);raf=0;} } else if(playing) schedule(); });
+  window.addEventListener('resize',render);
+
+  requestAnimationFrame(function(){
+    document.body.classList.remove('still');
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(function(n){io.observe(n);});
+  });
+
+  alloc(); seedCenter();
+  if(reduced){ stepN(600); render(); setPlay(false); } else { render(); schedule(); }
+})();
+</script>
+</body>
+</html>

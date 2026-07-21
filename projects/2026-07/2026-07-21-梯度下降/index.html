@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>滾下山的球 · 神經網路是怎麼學的</title>
+<style>
+:root{
+  --bg:#0b0a12; --panel:#15131f; --panel2:#100e18; --ink:#efeafc; --muted:#b3a9cc; --faint:#6b6086;
+  --line:rgba(180,160,240,.13);
+  --gd:#f2c14e; --mo:#5ee6c0; --ad:#7aa2ff; --ball:#ff7ab0; --gold:#f2c14e;
+  --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(780px 440px at 16% -6%,rgba(122,162,255,.09),transparent 70%),
+             radial-gradient(640px 400px at 90% 3%,rgba(94,230,192,.06),transparent 70%)}
+main,header,footer{position:relative;z-index:1}
+.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+.home:hover{color:var(--ink);transform:translateX(-3px)}
+.home:focus-visible{outline:2px solid var(--ad);outline-offset:3px;color:var(--ink)}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}
+body.still .reveal{opacity:1;transform:none;transition:none}
+
+.hero{max-width:820px;margin:0 auto;padding:118px 28px 34px;text-align:center}
+.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+h1{font-family:var(--serif);font-size:clamp(2.4rem,6.6vw,3.9rem);line-height:1.07;margin:0 0 20px;letter-spacing:.01em;
+  background:linear-gradient(180deg,#fbf9ff 10%,#c7bce8 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:1.04rem;color:var(--muted);margin:0 auto;max-width:33em}
+.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--ad)}
+
+.stage{max-width:1020px;margin:6px auto 0;padding:0 24px}
+.field{position:relative;background:linear-gradient(160deg,#100e1a,#0b0a12);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.field-wrap{position:relative;width:100%;aspect-ratio:16/9;max-height:56vh}
+@media (max-width:640px){.field-wrap{aspect-ratio:1/1}}
+#plot{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.hint{position:absolute;top:14px;left:16px;font-family:var(--mono);font-size:.72rem;color:var(--faint);pointer-events:none}
+
+.controls{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-top:16px}
+@media (max-width:720px){.controls{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.card h2{font-size:.75rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin:0 0 12px}
+.seg{display:flex;gap:5px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px}
+.seg button{flex:1;font:inherit;font-size:.82rem;color:var(--muted);background:none;border:none;padding:8px 6px;border-radius:999px;cursor:pointer;transition:color .2s,background .2s;white-space:nowrap}
+.seg button[aria-pressed="true"]{color:#0b0a12;font-weight:700}
+.seg.opt button[aria-pressed="true"][data-o="gd"]{background:var(--gd)}
+.seg.opt button[aria-pressed="true"][data-o="mo"]{background:var(--mo)}
+.seg.opt button[aria-pressed="true"][data-o="ad"]{background:var(--ad)}
+.seg.land button[aria-pressed="true"]{background:var(--ink);color:#0b0a12}
+.seg button:focus-visible{outline:2px solid var(--ad);outline-offset:2px}
+.range{display:flex;align-items:center;gap:12px;margin-top:14px}
+.range label{font-size:.82rem;color:var(--muted);white-space:nowrap}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:99px;background:linear-gradient(90deg,#2a2740,#7aa2ff);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--ad);cursor:pointer;box-shadow:0 0 0 4px rgba(122,162,255,.18)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:var(--ad);cursor:pointer}
+.range b{font-family:var(--mono);font-size:1rem;color:var(--ink);min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:9px;margin-top:14px}
+.btn{flex:1;font-family:inherit;font-size:.9rem;font-weight:700;color:#0b0a12;background:linear-gradient(135deg,#a9c2ff,var(--ad));border:none;border-radius:12px;padding:12px;cursor:pointer;transition:transform .2s,filter .2s;box-shadow:0 6px 18px rgba(122,162,255,.22)}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.05)}
+.btn:active{transform:translateY(0) scale(.99)}
+.btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.btn.sec{color:var(--ink);background:var(--panel2);border:1px solid var(--line);box-shadow:none;font-weight:600}
+.stat{display:flex;gap:18px;margin-top:14px}
+.stat div{flex:1}
+.stat b{display:block;font-family:var(--mono);font-size:1.3rem;color:var(--ink);font-variant-numeric:tabular-nums}
+.stat span{font-size:.72rem;color:var(--faint)}
+.warn{margin-top:10px;font-size:.8rem;color:var(--gd);min-height:1.2em}
+
+.note{max-width:1020px;margin:34px auto 0;padding:0 24px}
+.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 20px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+@media (max-width:720px){.cards{grid-template-columns:1fr}}
+.nc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .3s,border-color .3s}
+.nc:hover{transform:translateY(-4px);border-color:rgba(180,160,240,.24)}
+.nc .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;margin-bottom:10px;color:var(--faint)}
+.nc h3{font-size:1.02rem;margin:0 0 8px}.nc p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}.nc em{font-style:normal;color:var(--ink)}
+.kl{margin:28px auto 0;max-width:44em;font-family:var(--serif);font-size:1.06rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:22px;border-top:1px solid var(--line)}
+footer{max-width:1020px;margin:56px auto 0;padding:22px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
+footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body class="still">
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="kick reveal" style="--d:0ms">機器學習的核心 · 最佳化</div>
+  <h1 class="reveal" style="--d:80ms">滾下山的球</h1>
+  <p class="sub reveal" style="--d:170ms">神經網路「學習」，說穿了就是<em>把誤差當成一座山，讓參數這顆球滾到谷底</em>。每一步往最陡的下坡走一小步——步伐太小走不動，太大會彈飛，還可能卡在半山腰的小坑裡。放顆球下去看看。</p>
+</header>
+
+<main>
+<section class="stage reveal" style="--d:250ms">
+  <div class="field">
+    <div class="field-wrap">
+      <canvas id="plot" role="img" aria-label="損失地景與一顆做梯度下降的球。橫軸是參數、縱軸是誤差；球沿著曲線往低處滾。點曲線任一處可放球。"></canvas>
+      <div class="hint" id="hint">點曲線任一處放球 · 或按「放球」</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="card">
+      <h2>地景 · 最佳化器</h2>
+      <div class="seg land" role="group" aria-label="選擇地景" id="land" style="margin-bottom:9px">
+        <button type="button" data-l="bowl" aria-pressed="true">單谷（碗）</button>
+        <button type="button" data-l="well" aria-pressed="false">雙谷（有陷阱）</button>
+      </div>
+      <div class="seg opt" role="group" aria-label="選擇最佳化器" id="opt">
+        <button type="button" data-o="gd" aria-pressed="true">梯度下降</button>
+        <button type="button" data-o="mo" aria-pressed="false">＋動量</button>
+        <button type="button" data-o="ad" aria-pressed="false">Adam</button>
+      </div>
+      <div class="range">
+        <label for="lr">學習率</label>
+        <input id="lr" type="range" min="0.01" max="2.6" step="0.01" value="0.35" aria-label="學習率">
+        <b id="lrv">0.35</b>
+      </div>
+    </div>
+    <div class="card">
+      <h2>狀態</h2>
+      <div class="stat">
+        <div><b id="iter">0</b><span>步數</span></div>
+        <div><b id="loss">—</b><span>目前誤差</span></div>
+        <div><b id="xval">—</b><span>參數 x</span></div>
+      </div>
+      <div class="row">
+        <button type="button" class="btn" id="run">▶ 自動下降</button>
+        <button type="button" class="btn sec" id="step">單步</button>
+        <button type="button" class="btn sec" id="drop">🎲 放球</button>
+      </div>
+      <p class="warn" id="warn"></p>
+    </div>
+  </div>
+</section>
+
+<section class="note reveal" style="--d:0ms">
+  <h2>步伐的藝術</h2>
+  <div class="cards">
+    <article class="nc">
+      <div class="n">學習率太大</div>
+      <h3>彈飛</h3>
+      <p>步伐一大，球越過谷底衝到對面更高處，來回彈跳甚至<em>越滾越高</em>發散。把碗地景的學習率拉過 2 試試——它會爆走。</p>
+    </article>
+    <article class="nc">
+      <div class="n">卡在半山腰</div>
+      <h3>局部最小</h3>
+      <p>雙谷地景裡，純梯度下降滾進第一個坑就停了，即使旁邊有更深的谷。加上<em>動量</em>（帶著慣性）常能衝過小坡、找到更低的谷。</p>
+    </article>
+    <article class="nc">
+      <div class="n">自動調步伐</div>
+      <h3>Adam</h3>
+      <p>真實訓練幾乎都用 Adam：它替每個參數<em>各自</em>估計合適的步伐（用梯度的一階、二階動量），對學習率沒那麼敏感，收斂又快又穩。</p>
+    </article>
+  </div>
+  <p class="kl">一個有幾千億參數的大模型，就是在一座幾千億維的山裡，靠這個「往下坡走一小步」重複幾兆次，慢慢滾向它的谷底。</p>
+</section>
+</main>
+
+<footer>
+  <p>學習，就是找到那個谷。</p>
+  <p class="src">資料來源：Ruder「梯度下降最佳化演算法綜述」、Kingma &amp; Ba (Adam, 2015)</p>
+</footer>
+
+<script>
+"use strict";
+/* ===== 地景與最佳化器（純函式，供 node 斷言） ===== */
+function lossBowl(x){ return 0.5*x*x; }
+function gradBowl(x){ return x; }
+/* 雙谷：左谷 x≈−2.3 是全域最小、右谷 x≈1.3 是局部陷阱（靠 0.6x 的傾斜拉出高低差） */
+function lossWell(x){ return 0.05*Math.pow(x*x-4,2) + 0.6*x + 1.6; }
+function gradWell(x){ return 0.05*2*(x*x-4)*2*x + 0.6; }   /* = 0.2 x (x²−4) + 0.6 */
+
+function lossOf(land,x){ return land==='well'? lossWell(x) : lossBowl(x); }
+function gradOf(land,x){ return land==='well'? gradWell(x) : gradBowl(x); }
+
+/* 單步更新，回傳新狀態 {x, v, m, s, t} */
+function stepOpt(opt, land, st, lr){
+  var g = gradOf(land, st.x);
+  var x=st.x, v=st.v||0, m=st.m||0, s=st.s||0, t=(st.t||0)+1, nx;
+  if(opt==='gd'){ nx = x - lr*g; }
+  else if(opt==='mo'){ v = 0.9*v - lr*g; nx = x + v; }
+  else { /* adam */
+    var b1=0.9,b2=0.999,eps=1e-8;
+    m = b1*m + (1-b1)*g; s = b2*s + (1-b2)*g*g;
+    var mh=m/(1-Math.pow(b1,t)), sh=s/(1-Math.pow(b2,t));
+    nx = x - (lr) * mh/(Math.sqrt(sh)+eps);
+  }
+  return { x:nx, v:v, m:m, s:s, t:t };
+}
+function numGrad(land,x){ var h=1e-5; return (lossOf(land,x+h)-lossOf(land,x-h))/(2*h); }
+
+if(typeof module==='object'&&module.exports){
+  module.exports={lossBowl,gradBowl,lossWell,gradWell,lossOf,gradOf,stepOpt,numGrad};
+}
+
+/* ===== 瀏覽器端 ===== */
+if(typeof document!=='undefined')(function(){
+  var cv=document.getElementById('plot'), ctx=cv.getContext('2d');
+  var mR=window.matchMedia('(prefers-reduced-motion:reduce)'), reduced=mR.matches;
+  var land='bowl', opt='gd', lr=0.35;
+  var st={x:2.6,v:0,m:0,s:0,t:0}, trail=[], running=false, raf=0, diverged=false;
+  var XMIN=-3.4, XMAX=3.4;
+
+  var iterEl=document.getElementById('iter'), lossEl=document.getElementById('loss'), xEl=document.getElementById('xval'), warnEl=document.getElementById('warn');
+
+  var dpr=1,W=0,H=0;
+  function size(){ var r=cv.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
+    var w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
+    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;} W=cv.width;H=cv.height; }
+  function yRange(){ /* 依地景估 y 範圍 */
+    var lo=Infinity,hi=-Infinity;for(var x=XMIN;x<=XMAX;x+=0.05){var y=lossOf(land,x);if(y<lo)lo=y;if(y>hi)hi=y;}
+    return [lo-0.3,(hi-lo)*0.62+lo+0.3]; }
+  function sx(x){ return W*0.06 + (W*0.88)*((x-XMIN)/(XMAX-XMIN)); }
+  function sy(y,yr){ return H*0.10 + (H*0.82)*(1-(y-yr[0])/(yr[1]-yr[0])); }
+
+  function draw(){
+    size(); ctx.clearRect(0,0,W,H);
+    var yr=yRange(), x,y;
+    /* 填色曲線下方 */
+    ctx.beginPath(); ctx.moveTo(sx(XMIN),sy(lossOf(land,XMIN),yr));
+    for(x=XMIN;x<=XMAX;x+=0.03){ ctx.lineTo(sx(x),sy(lossOf(land,x),yr)); }
+    ctx.lineTo(sx(XMAX),H); ctx.lineTo(sx(XMIN),H); ctx.closePath();
+    var g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'rgba(122,162,255,.12)'); g.addColorStop(1,'rgba(122,162,255,0)');
+    ctx.fillStyle=g; ctx.fill();
+    /* 曲線 */
+    ctx.beginPath(); ctx.moveTo(sx(XMIN),sy(lossOf(land,XMIN),yr));
+    for(x=XMIN;x<=XMAX;x+=0.02){ ctx.lineTo(sx(x),sy(lossOf(land,x),yr)); }
+    ctx.strokeStyle='rgba(200,190,235,.8)'; ctx.lineWidth=2*dpr; ctx.lineJoin='round'; ctx.stroke();
+    /* 軌跡 */
+    var oc = opt==='gd'?'#f2c14e':opt==='mo'?'#5ee6c0':'#7aa2ff';
+    if(trail.length>1){
+      ctx.beginPath();
+      for(var i=0;i<trail.length;i++){ var px=sx(trail[i]), py=sy(lossOf(land,trail[i]),yr); if(i===0)ctx.moveTo(px,py); else ctx.lineTo(px,py); }
+      ctx.strokeStyle=oc; ctx.globalAlpha=.5; ctx.lineWidth=1.6*dpr; ctx.stroke(); ctx.globalAlpha=1;
+    }
+    /* 球 */
+    var bx=sx(st.x), by=sy(lossOf(land,st.x),yr);
+    ctx.beginPath(); ctx.arc(bx,by,7.5*dpr,0,7); ctx.fillStyle='#ff7ab0';
+    ctx.shadowColor='rgba(255,122,176,.7)'; ctx.shadowBlur=12*dpr; ctx.fill(); ctx.shadowBlur=0;
+    /* 梯度箭頭（下坡方向） */
+    if(!diverged){
+      var gg=gradOf(land,st.x), dir=gg>0?-1:1, ax=bx+dir*26*dpr;
+      ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.6*dpr;
+      ctx.beginPath(); ctx.moveTo(bx,by-12*dpr); ctx.lineTo(ax,by-12*dpr); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ax,by-12*dpr); ctx.lineTo(ax-dir*6*dpr,by-16*dpr); ctx.lineTo(ax-dir*6*dpr,by-8*dpr); ctx.closePath(); ctx.fillStyle='rgba(255,255,255,.5)'; ctx.fill();
+    }
+  }
+  function updateStats(){
+    iterEl.textContent=st.t;
+    var L=lossOf(land,st.x);
+    lossEl.textContent=isFinite(L)?L.toFixed(3):'∞';
+    xEl.textContent=isFinite(st.x)?st.x.toFixed(2):'—';
+    if(diverged){ warnEl.textContent='⚠ 發散了！步伐太大，球彈飛出去。'; }
+    else if(Math.abs(gradOf(land,st.x))<0.02){ warnEl.textContent='✓ 到谷底了（梯度≈0）'; }
+    else warnEl.textContent='';
+  }
+  function doStep(){
+    if(diverged) return;
+    st=stepOpt(opt,land,st,lr);
+    if(!isFinite(st.x)||Math.abs(st.x)>1e4){ diverged=true; running=false; setRun(); updateStats(); return; }
+    trail.push(st.x); if(trail.length>400)trail.shift();
+    updateStats(); draw();
+  }
+  function tick(){ raf=0; if(!running)return; for(var k=0;k<1;k++)doStep(); if(running&&!diverged) schedule(); }
+  function schedule(){ if(!raf) raf=requestAnimationFrame(tick); }
+
+  function reset(x0){
+    st={x:x0,v:0,m:0,s:0,t:0}; trail=[x0]; diverged=false; running=false; setRun(); updateStats(); draw();
+  }
+  function setRun(){ var b=document.getElementById('run'); b.textContent=(running?'⏸ 暫停':'▶ 自動下降'); }
+
+  document.getElementById('lr').addEventListener('input',function(){ lr=+this.value; document.getElementById('lrv').textContent=lr.toFixed(2); });
+  document.getElementById('run').addEventListener('click',function(){ if(diverged)reset(land==='well'?1.9:2.6); running=!running; setRun(); if(running){ if(reduced){ for(var i=0;i<80&&!diverged;i++)doStep(); running=false; setRun(); } else schedule(); } });
+  document.getElementById('step').addEventListener('click',function(){ running=false; setRun(); doStep(); });
+  document.getElementById('drop').addEventListener('click',function(){ reset(XMIN+ Math.random()*(XMAX-XMIN)); });
+  document.querySelectorAll('#land button').forEach(function(b){ b.addEventListener('click',function(){ land=b.dataset.l; document.querySelectorAll('#land button').forEach(function(o){o.setAttribute('aria-pressed',o===b?'true':'false');}); reset(land==='well'?1.9:2.6); }); });
+  document.querySelectorAll('#opt button').forEach(function(b){ b.addEventListener('click',function(){ opt=b.dataset.o; document.querySelectorAll('#opt button').forEach(function(o){o.setAttribute('aria-pressed',o===b?'true':'false');}); st.v=st.m=st.s=st.t=0; }); });
+
+  cv.addEventListener('click',function(e){
+    var r=cv.getBoundingClientRect(); var px=(e.clientX-r.left)/r.width;
+    var x = XMIN + (px-0.06/1)/(0.88)*(XMAX-XMIN);
+    x=Math.max(XMIN,Math.min(XMAX,x)); reset(x);
+  });
+
+  document.addEventListener('visibilitychange',function(){ if(document.hidden){ running=false; setRun(); } });
+  mR.addEventListener('change',function(e){ reduced=e.matches; });
+  window.addEventListener('resize',draw);
+
+  requestAnimationFrame(function(){
+    document.body.classList.remove('still');
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(function(n){io.observe(n);});
+  });
+  reset(2.6);
+})();
+</script>
+</body>
+</html>

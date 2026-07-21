@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>無中生有 · 從一縷能量湊出整個宇宙</title>
+<style>
+  :root{
+    --bg:#080611; --bg2:#0d0a1e; --ink:#f2ecff; --dim:#b6acce; --faint:#726990;
+    --gold:#ffd570; --amber:#ffb24a; --cyan:#78e6d6; --violet:#b98cff; --pink:#ff9cc9;
+    --line:#241d3d; --panel:rgba(24,19,44,.62); --panel-brd:rgba(185,140,255,.16);
+    --slot:rgba(12,9,26,.7);
+    --ease:cubic-bezier(.22,.61,.36,1);
+    --pop:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 720px at 50% -12%, #1b1440 0%, transparent 60%),
+      radial-gradient(900px 640px at 88% 8%, #241033 0%, transparent 55%),
+      radial-gradient(1000px 800px at 6% 100%, #0b1a33 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    line-height:1.6; min-height:100vh; -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:24px 20px 72px; position:relative; z-index:1}
+
+  /* ---------- 星空底 ---------- */
+  #stars{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+  #stars i{position:absolute; width:2px; height:2px; border-radius:50%; background:#fff;
+    opacity:.5; animation:tw var(--t,4s) ease-in-out var(--td,0s) infinite}
+  @keyframes tw{0%,100%{opacity:.14; transform:scale(.7)} 50%{opacity:.9; transform:scale(1.2)}}
+
+  /* ---------- 進場 ---------- */
+  .rise{opacity:0; transform:translateY(15px); animation:rise .72s var(--ease) forwards; animation-delay:var(--d,0s)}
+  @keyframes rise{to{opacity:1; transform:none}}
+
+  /* ---------- 頁首 ---------- */
+  .home{display:inline-flex; align-items:center; gap:.4em; color:var(--faint);
+    text-decoration:none; font-size:.82rem; letter-spacing:.04em; transition:color .25s, transform .25s}
+  .home:hover,.home:focus-visible{color:var(--gold); transform:translateX(-3px)}
+  .home:focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:6px}
+  header.top{margin:18px 0 6px}
+  .kick{font-size:.72rem; letter-spacing:.4em; color:var(--violet); text-transform:uppercase; font-weight:700}
+  h1{margin:.12em 0 .12em; font-size:clamp(2.8rem,10vw,5rem); font-weight:800; letter-spacing:-.01em; line-height:.98;
+    background:linear-gradient(96deg,var(--gold),#fff2c4 34%,var(--cyan) 74%,var(--violet));
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{color:var(--dim); font-size:clamp(1rem,2.3vw,1.14rem); max-width:44ch}
+  .sub b{color:var(--ink); font-weight:600}
+
+  /* ---------- 版面 ---------- */
+  .board{display:grid; grid-template-columns:340px minmax(0,1fr); gap:24px; align-items:start; margin-top:22px}
+  @media(max-width:820px){ .board{grid-template-columns:1fr; gap:18px} }
+
+  .panel{background:var(--panel); border:1px solid var(--panel-brd); border-radius:18px;
+    padding:18px; backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
+    box-shadow:0 24px 60px -34px rgba(0,0,0,.85)}
+  .left{position:sticky; top:14px; display:flex; flex-direction:column; gap:14px}
+  @media(max-width:820px){ .left{position:sticky; top:0; z-index:5;
+    background:linear-gradient(180deg, rgba(10,7,22,.94), rgba(10,7,22,.82)); border-radius:0 0 18px 18px;
+    margin:0 -20px; padding:14px 20px 16px; backdrop-filter:blur(12px)} }
+
+  .lbl{font-size:.72rem; letter-spacing:.16em; color:var(--faint); text-transform:uppercase; font-weight:700; margin:0 0 10px}
+
+  /* ---------- 工作台 ---------- */
+  .bench{display:flex; align-items:center; justify-content:center; gap:10px}
+  .slot{position:relative; width:92px; height:92px; border-radius:20px; background:var(--slot);
+    border:1.5px dashed rgba(185,140,255,.32); display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; cursor:pointer; transition:transform .25s var(--pop), border-color .25s, box-shadow .3s; padding:4px; color:inherit; font-family:inherit}
+  .slot:focus-visible{outline:2px solid var(--cyan); outline-offset:3px}
+  .slot .em{font-size:2rem; line-height:1; filter:drop-shadow(0 3px 8px rgba(0,0,0,.5))}
+  .slot .nm{font-size:.72rem; color:var(--dim); max-width:84px; text-align:center; word-break:break-all}
+  .slot.filled{border-style:solid; border-color:rgba(255,213,112,.5); background:radial-gradient(circle at 50% 38%, rgba(255,213,112,.16), var(--slot) 70%)}
+  .slot.empty .ph{font-size:1.5rem; color:var(--faint); opacity:.5}
+  .op{font-size:1.5rem; color:var(--violet); font-weight:700; user-select:none}
+  .bench.hit .slot.filled{animation:hit .5s var(--ease)}
+  @keyframes hit{40%{transform:scale(1.12); box-shadow:0 0 0 6px rgba(255,213,112,.18)} 100%{transform:none}}
+  .bench.miss{animation:shake .42s ease}
+  @keyframes shake{10%,90%{transform:translateX(-2px)} 30%,70%{transform:translateX(5px)} 50%{transform:translateX(-6px)}}
+  .bench.miss .slot{border-color:rgba(255,120,120,.6)}
+
+  /* ---------- 最新發現卡 ---------- */
+  .card{margin-top:14px; border-radius:16px; padding:15px 16px; min-height:104px; position:relative; overflow:hidden;
+    background:linear-gradient(160deg, rgba(40,31,72,.8), rgba(18,14,34,.7)); border:1px solid var(--panel-brd)}
+  .card .cem{font-size:2.1rem; line-height:1}
+  .card .cbadge{display:inline-block; font-size:.66rem; font-weight:800; letter-spacing:.1em; padding:.16em .6em;
+    border-radius:999px; margin-left:8px; vertical-align:middle}
+  .card .cbadge.new{background:linear-gradient(90deg,var(--gold),var(--amber)); color:#241500}
+  .card .cbadge.old{background:rgba(120,230,214,.16); color:var(--cyan)}
+  .card .cname{font-weight:800; font-size:1.16rem; margin:.15em 0 .1em}
+  .card .cfact{color:var(--dim); font-size:.9rem; line-height:1.55}
+  .card .chint{color:var(--faint); font-size:.86rem}
+  .card.flash{animation:flash .8s var(--ease)}
+  @keyframes flash{0%{transform:scale(.97); box-shadow:0 0 0 0 rgba(255,213,112,0)}
+    30%{box-shadow:0 0 30px -4px rgba(255,213,112,.5)} 100%{transform:none; box-shadow:none}}
+
+  /* ---------- 進度＆控制 ---------- */
+  .prog{display:flex; align-items:baseline; gap:8px; margin-bottom:8px}
+  .prog .big{font-size:1.5rem; font-weight:800; color:var(--gold); font-variant-numeric:tabular-nums}
+  .prog .tot{color:var(--faint); font-size:.9rem}
+  .bar{height:7px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden}
+  .bar>i{display:block; height:100%; width:0; border-radius:99px;
+    background:linear-gradient(90deg,var(--violet),var(--cyan),var(--gold)); transition:width .6s var(--ease)}
+  .ctrls{display:flex; gap:9px; margin-top:13px}
+  .btn{flex:1; appearance:none; border:1px solid var(--panel-brd); background:rgba(255,255,255,.045); color:var(--ink);
+    font-family:inherit; font-size:.9rem; font-weight:600; padding:.62em .5em; border-radius:11px; cursor:pointer;
+    transition:transform .18s var(--pop), background .22s, border-color .22s}
+  .btn:hover{background:rgba(185,140,255,.14); border-color:rgba(185,140,255,.42)}
+  .btn:active{transform:translateY(1px) scale(.98)}
+  .btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+  .btn.ghost{flex:0 0 auto; color:var(--faint)}
+
+  /* ---------- 圖鑑 ---------- */
+  .codexhead{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(78px,1fr)); gap:10px}
+  .cell{position:relative; aspect-ratio:1/1; border-radius:14px; border:1px solid var(--line);
+    background:rgba(255,255,255,.02); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+    color:inherit; font-family:inherit; cursor:default; padding:5px; transition:transform .2s var(--pop), border-color .22s, background .22s, box-shadow .3s}
+  .cell .e{font-size:1.72rem; line-height:1; filter:drop-shadow(0 3px 7px rgba(0,0,0,.45))}
+  .cell .n{font-size:.72rem; color:var(--dim); text-align:center; line-height:1.15; word-break:break-all}
+  .cell.locked{border-style:dashed; border-color:rgba(255,255,255,.06)}
+  .cell.locked .e{font-size:1.4rem; opacity:.28; filter:none}
+  .cell.locked .n{display:none}
+  .cell.found{cursor:pointer; background:linear-gradient(165deg, rgba(46,36,80,.5), rgba(20,15,38,.4))}
+  .cell.found:hover{transform:translateY(-3px); border-color:rgba(185,140,255,.5); box-shadow:0 12px 26px -14px rgba(120,90,200,.7)}
+  .cell.found:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+  .cell.sel{border-color:var(--gold); box-shadow:0 0 0 2px rgba(255,213,112,.35), 0 10px 26px -12px rgba(255,180,74,.6)}
+  .cell .cnt{position:absolute; top:5px; right:5px; min-width:18px; height:18px; border-radius:999px;
+    background:linear-gradient(90deg,var(--gold),var(--amber)); color:#241500; font-size:.68rem; font-weight:800;
+    display:flex; align-items:center; justify-content:center; padding:0 4px}
+  .cell.base{border-color:rgba(120,230,214,.22)}
+  .cell.reveal{animation:reveal .7s var(--pop)}
+  @keyframes reveal{0%{transform:scale(.3) rotate(-12deg); opacity:0}
+    60%{transform:scale(1.14) rotate(3deg); opacity:1} 100%{transform:none}}
+  .cell.pulse{animation:pulse 1.1s var(--ease) 2}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(185,140,255,0)} 50%{box-shadow:0 0 0 4px rgba(185,140,255,.5)}}
+  .cell.finale .e{animation:spin 6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- 火花 ---------- */
+  .spark{position:fixed; z-index:40; width:8px; height:8px; border-radius:50%; pointer-events:none;
+    background:var(--gold); animation:spark .72s var(--ease) forwards}
+  @keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.2); opacity:0}}
+
+  /* ---------- 完結慶祝 ---------- */
+  .fin{position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:24px;
+    background:radial-gradient(circle at 50% 40%, rgba(30,20,60,.86), rgba(6,5,15,.95))}
+  .fin.on{display:flex; animation:fade .5s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .fin .box{max-width:440px; text-align:center; animation:rise .7s var(--pop)}
+  .fin .fem{font-size:4.6rem; animation:spin 7s linear infinite; display:inline-block}
+  .fin h2{font-size:2rem; margin:.2em 0 .3em;
+    background:linear-gradient(96deg,var(--gold),var(--cyan),var(--violet)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .fin p{color:var(--dim); font-size:1rem; line-height:1.7}
+  .fin .btn{display:inline-block; flex:0; margin-top:16px; padding:.7em 1.6em}
+
+  footer{margin-top:34px; color:var(--faint); font-size:.82rem; text-align:center; line-height:1.7}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation-duration:.001s!important; animation-iteration-count:1!important; transition-duration:.04s!important}
+    #stars i{opacity:.5}
+    .cell.finale .e,.fin .fem{animation:none}
+  }
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="stars" aria-hidden="true"></div>
+<div class="wrap">
+  <a class="home rise" href="../../../index.html" style="--d:.02s">← 回每日小專案</a>
+  <header class="top">
+    <div class="kick rise" style="--d:.08s">宇宙合成 · 收集圖鑑</div>
+    <h1 class="rise" style="--d:.14s">無中生有</h1>
+    <p class="sub rise" style="--d:.22s">點兩個元素，把它們湊在一起。從<b>一縷能量</b>開始，一路湊出恆星、海洋、生命，直到<b>整個文明</b>——看看你能不能填滿這 36 格宇宙圖鑑。</p>
+  </header>
+
+  <div class="board">
+    <!-- 左：工作台 -->
+    <section class="panel left rise" style="--d:.3s" aria-label="工作台">
+      <div>
+        <p class="lbl">工作台</p>
+        <div class="bench" id="bench">
+          <button class="slot empty" id="slotA" aria-label="第一格，空的"><span class="ph">＋</span></button>
+          <span class="op" aria-hidden="true">＋</span>
+          <button class="slot empty" id="slotB" aria-label="第二格，空的"><span class="ph">＋</span></button>
+        </div>
+        <div class="card" id="card">
+          <p class="chint" id="cardHint">在右邊的圖鑑點一個元素，再點一個，就會湊湊看。相同的兩個也可以喔（試試能量＋能量）。</p>
+        </div>
+      </div>
+      <div>
+        <div class="prog">
+          <span class="big"><span id="pFound">3</span></span>
+          <span class="tot">/ <span id="pTotal">36</span> 個元素</span>
+        </div>
+        <div class="bar"><i id="pBar"></i></div>
+        <div class="ctrls">
+          <button class="btn" id="hintBtn">💡 提示</button>
+          <button class="btn ghost" id="resetBtn" aria-label="重新開始">↺</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 右：圖鑑 -->
+    <section class="panel rise" style="--d:.38s" aria-label="宇宙圖鑑">
+      <div class="codexhead">
+        <p class="lbl" style="margin:0">宇宙圖鑑</p>
+        <p class="chint" style="margin:0" id="codexNote">點亮的可以點來合成</p>
+      </div>
+      <div class="grid" id="grid"></div>
+    </section>
+  </div>
+
+  <footer>從能量到文明，元素卡上的數字都經得起查證。資料來源：NASA、Wikipedia</footer>
+</div>
+
+<div class="fin" id="fin" role="dialog" aria-modal="true" aria-labelledby="finTitle">
+  <div class="box">
+    <div class="fem">🎁</div>
+    <h2 id="finTitle">你把整個宇宙湊出來了</h2>
+    <p id="finMsg"></p>
+    <button class="btn" id="finClose">回頭再看看圖鑑</button>
+  </div>
+</div>
+
+<p class="sr" id="live" aria-live="polite"></p>
+
+<script>
+/* === COSMOS_DATA_START === 元素與配方（唯一資料來源；tools 測試會抽這段驗證） === */
+const ELEMENTS = [
+  { id:"能量",   emoji:"⚡", base:true,  fact:"一切的起點。宇宙約 138 億年前從一場大霹靂展開，最初只有純粹的能量。" },
+  { id:"空間",   emoji:"🌌", base:true,  fact:"舞台。大霹靂不是在空間裡爆炸，而是空間本身開始膨脹——直到今天還在變大。" },
+  { id:"時間",   emoji:"⏳", base:true,  fact:"節拍器。有了時間，一切才分得出先後與變化。" },
+  { id:"粒子",   emoji:"🔴", fact:"E=mc²：能量能凝結成物質。大霹靂後不到一秒，第一批基本粒子就出現了。" },
+  { id:"光",     emoji:"💡", fact:"宇宙間最快的信使，每秒約 30 萬公里——沒有任何東西追得上它。" },
+  { id:"重力",   emoji:"🕳️", fact:"愛因斯坦說：重力不是力，而是有質量的東西把「時空」壓出了凹陷。" },
+  { id:"原子",   emoji:"⚛️", fact:"大霹靂後約 38 萬年，宇宙終於冷到讓電子被抓住、形成第一批原子，宇宙也第一次變透明。" },
+  { id:"恆星",   emoji:"⭐", fact:"重力把氫聚成一團、壓到核心點火。第一批恆星約在大霹靂後 1 億年亮起。" },
+  { id:"星系",   emoji:"🌀", fact:"重力把上千億顆恆星攏成一座島。我們的銀河系，就是其中一座。" },
+  { id:"超新星", emoji:"💥", fact:"大質量恆星壯烈的謝幕：一瞬間的爆炸，可以比整個星系還亮。" },
+  { id:"重元素", emoji:"🧪", fact:"碳、氧、鐵都是在恆星爐心與超新星裡鍛造的。你血液裡的鐵，來自一顆死去的星——我們是星塵做的。" },
+  { id:"星塵",   emoji:"✨", fact:"超新星把鍛造好的元素撒回太空，成為下一代恆星與行星的原料。" },
+  { id:"行星",   emoji:"🪐", fact:"星塵在重力下越滾越大、黏成一顆球。地球約在 45.4 億年前這樣誕生。" },
+  { id:"月亮",   emoji:"🌙", fact:"一般認為月球來自一場遠古大碰撞濺出的碎片，再慢慢聚成球。" },
+  { id:"水",     emoji:"💧", fact:"兩個氫配一個氧。宇宙裡到處都有水——連星際塵埃裡都藏著冰。" },
+  { id:"海洋",   emoji:"🌊", fact:"生命的搖籃。地球約七成被海覆蓋，最早的生命也是在海裡登場。" },
+  { id:"雲",     emoji:"☁️", fact:"水汽升上天空、遇冷凝成無數小水滴——一朵看似輕飄的雲，其實重達好幾百噸。" },
+  { id:"彩虹",   emoji:"🌈", fact:"陽光穿過水滴被折射、拆成七色。彩虹其實是一個完整的圓，只是地平線擋住了下半圈。" },
+  { id:"有機分子", emoji:"🧫", fact:"1953 年米勒把水、氣體與電火花放進燒瓶，幾天後竟自己冒出了胺基酸——生命的積木。" },
+  { id:"生命",   emoji:"🦠", fact:"地球最早的生命證據約在 35–38 億年前。從那一刻起，物質開始會自我複製。" },
+  { id:"植物",   emoji:"🌱", fact:"學會用光合作用把陽光變成食物，還順手把氧氣吐給了全世界。" },
+  { id:"氧氣",   emoji:"🫧", fact:"約 24 億年前，藍綠菌吐出的氧氣灌滿大氣——史上最大的一次「空氣污染」，卻打開了複雜生命的大門。" },
+  { id:"火",     emoji:"🔥", fact:"火不是一種物質，而是一場劇烈的氧化反應：要燒得起來，得先有氧氣。" },
+  { id:"動物",   emoji:"🐟", fact:"氧氣變多之後，會動、會吃、會躲的動物才登上舞台。" },
+  { id:"恐龍",   emoji:"🦕", fact:"稱霸地球超過 1.6 億年，直到 6600 萬年前一顆隕石，讓整齣戲重寫劇本。" },
+  { id:"大腦",   emoji:"🧠", fact:"幾億年演化出的最複雜構造：一團會用電訊號思考的神經。" },
+  { id:"人類",   emoji:"🧑", fact:"智人約在 30 萬年前的非洲登場——會用火、會說故事、會問「為什麼」。" },
+  { id:"好奇心", emoji:"💭", fact:"人類最強的超能力：老是想知道下一個會是什麼。" },
+  { id:"語言",   emoji:"🗣️", fact:"兩個人之間最偉大的發明：讓想法能離開一顆大腦，住進另一顆。" },
+  { id:"文明",   emoji:"🏛️", fact:"火與語言聚起了村落、城市與規則——人類開始一起做大事。" },
+  { id:"文字",   emoji:"✍️", fact:"把聲音變成看得見的符號，記憶第一次可以活得比人還久。" },
+  { id:"電",     emoji:"🔌", fact:"文明馴服的一種看不見的力量，點亮了整個現代世界。" },
+  { id:"電腦",   emoji:"💻", fact:"用電來思考的機器：把邏輯和文字，一起塞進了矽晶片裡。" },
+  { id:"網路",   emoji:"🌐", fact:"把全世界的電腦連成一張網，一則訊息瞬間就能跨過半個地球。" },
+  { id:"AI",     emoji:"🤖", fact:"讓機器模仿大腦來學習——這一次，是我們親手造出來的好奇心。" },
+  { id:"每日小專案", emoji:"🎁", finale:true, fact:"……然後它每天早上，替你湊出一個新的小驚喜。（沒錯，就是你正在玩的這一個。）" },
+];
+// 配方：不分先後的兩個元素 → 產物
+const RECIPES = [
+  ["能量","能量","粒子"],
+  ["能量","空間","光"],
+  ["空間","時間","重力"],
+  ["粒子","粒子","原子"],
+  ["原子","重力","恆星"],
+  ["恆星","重力","星系"],
+  ["恆星","時間","超新星"],
+  ["超新星","原子","重元素"],
+  ["超新星","空間","星塵"],
+  ["星塵","重力","行星"],
+  ["行星","星塵","月亮"],
+  ["原子","重元素","水"],
+  ["行星","水","海洋"],
+  ["水","空間","雲"],
+  ["光","水","彩虹"],
+  ["海洋","能量","有機分子"],
+  ["有機分子","時間","生命"],
+  ["生命","光","植物"],
+  ["植物","時間","氧氣"],
+  ["能量","氧氣","火"],
+  ["生命","氧氣","動物"],
+  ["動物","動物","恐龍"],
+  ["動物","時間","大腦"],
+  ["大腦","時間","人類"],
+  ["人類","時間","好奇心"],
+  ["人類","人類","語言"],
+  ["語言","火","文明"],
+  ["語言","文明","文字"],
+  ["文明","能量","電"],
+  ["電","文字","電腦"],
+  ["電腦","電腦","網路"],
+  ["電腦","大腦","AI"],
+  ["AI","好奇心","每日小專案"],
+];
+/* === COSMOS_DATA_END === */
+
+(function(){
+  "use strict";
+  var LS = "cosmos.found";
+  var RM = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var reduce = RM.matches;
+  RM.addEventListener("change", function(e){ reduce = e.matches; });
+
+  var byId = {};
+  ELEMENTS.forEach(function(e){ byId[e.id] = e; });
+  var BASES = ELEMENTS.filter(function(e){ return e.base; }).map(function(e){ return e.id; });
+  var FINALE = ELEMENTS.filter(function(e){ return e.finale; }).map(function(e){ return e.id; })[0];
+  var MILESTONES = {
+    "生命":"🌱 有東西開始呼吸了……生命出現！",
+    "人類":"🧑 一種會問「為什麼」的動物登場了。"
+  };
+
+  // 配方查表：排序後的兩個 id → 產物
+  function pkey(a,b){ return [a,b].sort().join("␟"); }
+  var PAIR = {};
+  RECIPES.forEach(function(r){ PAIR[pkey(r[0],r[1])] = r[2]; });
+
+  // ---------- 狀態 ----------
+  var found = load();
+  var slots = [];      // 目前工作台的元素 id（0~2 個）
+  var busy = false;    // 合成動畫中鎖住輸入
+
+  function load(){
+    var s = new Set(BASES);
+    try{
+      var raw = JSON.parse(localStorage.getItem(LS) || "[]");
+      if(Array.isArray(raw)) raw.forEach(function(id){ if(byId[id]) s.add(id); });
+    }catch(e){}
+    return s;
+  }
+  function save(){
+    try{ localStorage.setItem(LS, JSON.stringify(Array.from(found))); }catch(e){}
+  }
+
+  // ---------- DOM ----------
+  var grid = document.getElementById("grid");
+  var slotEls = [document.getElementById("slotA"), document.getElementById("slotB")];
+  var bench = document.getElementById("bench");
+  var card = document.getElementById("card");
+  var live = document.getElementById("live");
+  var pFound = document.getElementById("pFound");
+  var pBar = document.getElementById("pBar");
+  document.getElementById("pTotal").textContent = ELEMENTS.length;
+
+  var cellEls = {};
+  ELEMENTS.forEach(function(e){
+    var b = document.createElement("button");
+    b.className = "cell";
+    b.dataset.id = e.id;
+    b.innerHTML = '<span class="e"></span><span class="n"></span><span class="cnt" hidden></span>';
+    b.addEventListener("click", function(){ pick(e.id); });
+    grid.appendChild(b);
+    cellEls[e.id] = b;
+    paintCell(e.id, false);
+  });
+
+  function paintCell(id, revealAnim){
+    var e = byId[id], b = cellEls[id];
+    var has = found.has(id);
+    b.classList.toggle("found", has);
+    b.classList.toggle("locked", !has);
+    b.classList.toggle("base", !!e.base);
+    b.classList.toggle("finale", has && !!e.finale);
+    b.disabled = !has;
+    b.querySelector(".e").textContent = has ? e.emoji : "？";
+    b.querySelector(".n").textContent = has ? e.id : "";
+    b.setAttribute("aria-label", has ? ("元素 " + e.id + "，點擊放入工作台") : "尚未發現的元素");
+    if(revealAnim && !reduce){
+      b.classList.remove("reveal"); void b.offsetWidth; b.classList.add("reveal");
+    }
+  }
+
+  function updateProgress(){
+    var n = found.size;
+    pFound.textContent = n;
+    pBar.style.width = (n / ELEMENTS.length * 100) + "%";
+  }
+
+  // ---------- 工作台 ----------
+  function renderSlots(){
+    slotEls.forEach(function(el, i){
+      var id = slots[i];
+      if(id){
+        var e = byId[id];
+        el.className = "slot filled";
+        el.innerHTML = '<span class="em">'+e.emoji+'</span><span class="nm">'+e.id+'</span>';
+        el.setAttribute("aria-label", "第"+(i+1)+"格："+e.id+"，點擊取出");
+      }else{
+        el.className = "slot empty";
+        el.innerHTML = '<span class="ph">＋</span>';
+        el.setAttribute("aria-label", "第"+(i+1)+"格，空的");
+      }
+    });
+    // 圖鑑上標記目前在工作台裡的數量
+    ELEMENTS.forEach(function(e){
+      var c = slots.filter(function(x){ return x === e.id; }).length;
+      var b = cellEls[e.id];
+      var cnt = b.querySelector(".cnt");
+      b.classList.toggle("sel", c > 0);
+      if(c > 0){ cnt.hidden = false; cnt.textContent = c; } else { cnt.hidden = true; }
+    });
+  }
+
+  function pick(id){
+    if(busy || !found.has(id)) return;
+    if(slots.length >= 2) slots = [];
+    slots.push(id);
+    renderSlots();
+    if(slots.length === 2) combine();
+  }
+
+  slotEls.forEach(function(el, i){
+    el.addEventListener("click", function(){
+      if(busy) return;
+      if(slots[i]){ slots.splice(i,1); renderSlots(); }
+    });
+  });
+
+  function combine(){
+    busy = true;
+    var a = slots[0], b = slots[1];
+    var res = PAIR[pkey(a,b)];
+    setTimeout(function(){
+      if(!res){
+        if(!reduce){ bench.classList.remove("miss"); void bench.offsetWidth; bench.classList.add("miss"); }
+        say("這兩個湊不出新東西，換個組合試試。", null);
+        setTimeout(function(){ bench.classList.remove("miss"); slots = []; renderSlots(); busy = false; }, reduce?10:430);
+        return;
+      }
+      var isNew = !found.has(res);
+      if(!reduce){ bench.classList.remove("hit"); void bench.offsetWidth; bench.classList.add("hit"); }
+      if(isNew){
+        found.add(res); save();
+        paintCell(res, true); updateProgress();
+        burst(cellEls[res]);
+      }
+      showCard(res, isNew);
+      say((isNew ? "湊出了新元素：" : "又湊出了：") + res + "。" + byId[res].fact, res);
+      setTimeout(function(){
+        bench.classList.remove("hit"); slots = []; renderSlots(); busy = false;
+        if(isNew && res === FINALE) celebrate();
+        else if(isNew && MILESTONES[res]) say(MILESTONES[res], res);
+      }, reduce?10:520);
+    }, reduce?10:260);
+  }
+
+  // ---------- 卡片＆播報 ----------
+  function showCard(id, isNew){
+    var e = byId[id];
+    card.innerHTML =
+      '<div><span class="cem">'+e.emoji+'</span>'+
+      '<span class="cbadge '+(isNew?'new':'old')+'">'+(isNew?'新發現':'已發現過')+'</span></div>'+
+      '<div class="cname">'+e.id+'</div><div class="cfact">'+e.fact+'</div>';
+    if(!reduce){ card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash"); }
+  }
+  function say(msg){ live.textContent = ""; setTimeout(function(){ live.textContent = msg; }, 30); }
+
+  // ---------- 火花 ----------
+  function burst(anchor){
+    if(reduce || !anchor) return;
+    var r = anchor.getBoundingClientRect();
+    var cx = r.left + r.width/2, cy = r.top + r.height/2;
+    var cols = ["var(--gold)","var(--cyan)","var(--violet)","var(--pink)"];
+    for(var i=0;i<12;i++){
+      var s = document.createElement("div");
+      s.className = "spark";
+      var ang = Math.PI*2*i/12, dist = 34 + Math.random()*30;
+      s.style.left = cx+"px"; s.style.top = cy+"px";
+      s.style.background = cols[i % cols.length];
+      s.style.setProperty("--dx", Math.cos(ang)*dist+"px");
+      s.style.setProperty("--dy", Math.sin(ang)*dist+"px");
+      document.body.appendChild(s);
+      s.addEventListener("animationend", function(){ this.remove(); });
+    }
+  }
+
+  // ---------- 提示 ----------
+  var hintBtn = document.getElementById("hintBtn");
+  var codexNote = document.getElementById("codexNote");
+  hintBtn.addEventListener("click", function(){
+    if(busy) return;
+    var ids = Array.from(found);
+    for(var i=0;i<ids.length;i++){
+      for(var j=i;j<ids.length;j++){
+        var r = PAIR[pkey(ids[i], ids[j])];
+        if(r && !found.has(r)){
+          flashHint(ids[i]); flashHint(ids[j]);
+          codexNote.textContent = "試試看這兩個發亮的～";
+          say("提示：把 " + ids[i] + " 和 " + ids[j] + " 湊在一起。");
+          setTimeout(function(){ codexNote.textContent = "點亮的可以點來合成"; }, 3200);
+          return;
+        }
+      }
+    }
+    say(found.size >= ELEMENTS.length ? "太厲害了，36 格全部發現完畢！" : "目前的元素暫時湊不出新東西了。");
+    codexNote.textContent = found.size >= ELEMENTS.length ? "全部發現完畢 🎉" : "點亮的可以點來合成";
+  });
+  function flashHint(id){
+    var b = cellEls[id];
+    b.classList.remove("pulse"); void b.offsetWidth; b.classList.add("pulse");
+    b.scrollIntoView({block:"nearest", behavior: reduce ? "auto" : "smooth"});
+    setTimeout(function(){ b.classList.remove("pulse"); }, 2400);
+  }
+
+  // ---------- 重來 ----------
+  document.getElementById("resetBtn").addEventListener("click", function(){
+    if(busy) return;
+    if(!window.confirm("重新開始？已發現的元素會全部清空。")) return;
+    found = new Set(BASES); save(); slots = [];
+    ELEMENTS.forEach(function(e){ paintCell(e.id, false); });
+    renderSlots(); updateProgress();
+    card.innerHTML = '<p class="chint">從頭再來一次。點兩個元素，湊湊看會變出什麼。</p>';
+    say("已重新開始，回到最初的三種元素。");
+  });
+
+  // ---------- 完結慶祝 ----------
+  var fin = document.getElementById("fin");
+  document.getElementById("finClose").addEventListener("click", function(){ fin.classList.remove("on"); });
+  function celebrate(){
+    document.getElementById("finMsg").textContent =
+      "從一縷能量，你一路湊到了「每日小專案」——" +
+      (found.size >= ELEMENTS.length ? "而且 36 格全部集滿了！" : "宇宙的最後一塊拼圖。") +
+      "謝謝你陪它從無到有。";
+    fin.classList.add("on");
+    if(reduce) return;
+    var box = fin.querySelector(".box");
+    for(var i=0;i<26;i++) setTimeout(function(){ burst(box); }, Math.random()*700);
+  }
+
+  // ---------- 星空 ----------
+  (function(){
+    var wrap = document.getElementById("stars"), n = reduce ? 26 : 54, html = "";
+    for(var i=0;i<n;i++){
+      html += '<i style="left:'+ (Math.random()*100).toFixed(2) +'%;top:'+ (Math.random()*100).toFixed(2) +
+        '%;--t:'+ (2.5+Math.random()*4).toFixed(1) +'s;--td:'+ (Math.random()*4).toFixed(1) +'s;transform:scale('+ (0.5+Math.random()*1.4).toFixed(2) +')"></i>';
+    }
+    wrap.innerHTML = html;
+  })();
+
+  // ---------- 啟動 ----------
+  renderSlots(); updateProgress();
+})();
+</script>
+</body>
+</html>

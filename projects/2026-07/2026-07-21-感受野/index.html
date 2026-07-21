@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>看見一條線的神經元 · 感受野與 CNN</title>
+<style>
+:root{
+  --bg:#0b0c10; --panel:#161821; --panel2:#101219; --ink:#eef1f7; --muted:#a6afc2; --faint:#646d82;
+  --line:rgba(180,190,220,.12);
+  --on:#ff8f5e; --fire:#ffd36b; --edge:#6ad0ff; --gold:#ffd36b;
+  --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(760px 440px at 15% -6%,rgba(255,143,94,.07),transparent 70%),radial-gradient(640px 400px at 90% 3%,rgba(106,208,255,.06),transparent 70%)}
+main,header,footer{position:relative;z-index:1}
+.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+.home:hover{color:var(--ink);transform:translateX(-3px)}
+.home:focus-visible{outline:2px solid var(--edge);outline-offset:3px;color:var(--ink)}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
+.reveal.in{opacity:1;transform:none}body.still .reveal{opacity:1;transform:none;transition:none}
+
+.hero{max-width:820px;margin:0 auto;padding:118px 28px 30px;text-align:center}
+.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+h1{font-family:var(--serif);font-size:clamp(2.3rem,6.4vw,3.8rem);line-height:1.08;margin:0 0 20px;
+  background:linear-gradient(180deg,#fbfdff 10%,#c3cbe0 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{font-size:1.04rem;color:var(--muted);margin:0 auto;max-width:33em}
+.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--edge)}
+
+.stage{max-width:1000px;margin:6px auto 0;padding:0 24px}
+.lab{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+@media (max-width:820px){.lab{grid-template-columns:1fr}}
+.viewer{position:relative;background:linear-gradient(160deg,#12141c,#0b0c10);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.cw{position:relative;width:100%;aspect-ratio:1/1;max-height:56vh}
+#rf{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab}
+#rf:active{cursor:grabbing}
+.vtag{position:absolute;top:12px;left:14px;font-family:var(--mono);font-size:.72rem;color:var(--faint);pointer-events:none}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.p-h{font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.meter{text-align:center}
+.meter .big{font-family:var(--mono);font-size:2.6rem;font-weight:600;line-height:1;color:var(--fire);font-variant-numeric:tabular-nums;transition:color .2s}
+.meter .u{font-size:.74rem;color:var(--faint)}
+.bars{display:flex;gap:3px;align-items:flex-end;height:44px;margin-top:10px;justify-content:center}
+.bars i{width:5px;background:var(--fire);border-radius:2px;opacity:.25;transition:opacity .1s}
+.range{display:flex;align-items:center;gap:12px}
+.range label{font-size:.82rem;color:var(--muted);white-space:nowrap;min-width:3.6em}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:6px;border-radius:99px;background:linear-gradient(90deg,#26303f,#6ad0ff);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--edge);cursor:pointer;box-shadow:0 0 0 4px rgba(106,208,255,.16)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;border-radius:50%;background:var(--edge);cursor:pointer}
+.range b{font-family:var(--mono);font-size:.95rem;color:var(--ink);min-width:3.2em;text-align:right}
+.tuning{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.tuning canvas{width:100%;height:96px;display:block}
+.btn{font-family:inherit;font-size:.86rem;font-weight:600;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px;cursor:pointer;transition:border-color .2s,color .2s}
+.btn:hover{border-color:color-mix(in srgb,var(--edge) 45%,transparent)}
+.btn:focus-visible{outline:2px solid var(--edge);outline-offset:2px}
+
+.note{max-width:1000px;margin:34px auto 0;padding:0 24px}
+.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 20px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media (max-width:720px){.cards{grid-template-columns:1fr}}
+.nc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .3s,border-color .3s}
+.nc:hover{transform:translateY(-4px);border-color:rgba(180,190,220,.22)}
+.nc .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;margin-bottom:10px;color:var(--faint)}
+.nc h3{font-size:1.02rem;margin:0 0 8px}.nc p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}.nc em{font-style:normal;color:var(--ink)}
+.kl{margin:26px auto 0;max-width:44em;font-family:var(--serif);font-size:1.06rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:22px;border-top:1px solid var(--line)}
+footer{max-width:1000px;margin:52px auto 0;padding:22px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
+footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body class="still">
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="kick reveal" style="--d:0ms">視覺皮層 · Hubel &amp; Wiesel</div>
+  <h1 class="reveal" style="--d:80ms">看見一條線的神經元</h1>
+  <p class="sub reveal" style="--d:170ms">你大腦視覺皮層裡，有一整群神經元<em>只對特定角度的線條</em>興奮。把光棒轉到它偏好的方向，它就狂放電；轉歪一點，它就沈默。這個 1959 年的發現，六十年後成了每一個影像 AI 的第一層。</p>
+</header>
+
+<main>
+<section class="stage reveal" style="--d:250ms">
+  <div class="lab">
+    <div class="viewer">
+      <div class="cw">
+        <canvas id="rf" role="img" aria-label="一個簡單細胞的感受野，中間是偏好方向的興奮條，上面疊著一根可旋轉、可拖曳的光棒刺激。"></canvas>
+        <div class="vtag" id="vtag">拖曳可平移光棒 · 用滑桿旋轉</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="meter">
+        <div class="p-h">神經元放電率</div>
+        <div class="big" id="fire">0</div>
+        <div class="u">相對強度（0–100）</div>
+        <div class="bars" id="bars" aria-hidden="true"></div>
+      </div>
+      <div class="range">
+        <label for="ang">光棒角度</label>
+        <input id="ang" type="range" min="0" max="180" value="20" aria-label="光棒角度" aria-describedby="fire">
+        <b id="angv">20°</b>
+      </div>
+      <div class="range">
+        <label for="pos">光棒位置</label>
+        <input id="pos" type="range" min="-1" max="1" step="0.02" value="0" aria-label="光棒橫向位置">
+        <b id="posv">0.0</b>
+      </div>
+      <div>
+        <div class="p-h" style="margin-bottom:8px">方向調諧曲線（放電 vs 角度）</div>
+        <div class="tuning"><canvas id="tune" aria-hidden="true"></canvas></div>
+      </div>
+      <button type="button" class="btn" id="align">↧ 對齊到偏好方向（看它爆發）</button>
+    </div>
+  </div>
+</section>
+
+<section class="note reveal" style="--d:0ms">
+  <h2>從一條線，到看懂世界</h2>
+  <div class="cards">
+    <article class="nc">
+      <div class="n">1959</div>
+      <h3>意外的發現</h3>
+      <p>Hubel 與 Wiesel 記錄貓的視覺皮層，怎麼弄都沒反應，直到換玻片時<em>邊緣掃過螢幕</em>——神經元突然狂叫。原來它要的是「特定角度的邊」。這讓他們拿下 1981 年諾貝爾獎。</p>
+    </article>
+    <article class="nc">
+      <div class="n">簡單 → 複雜</div>
+      <h3>一層疊一層</h3>
+      <p>「簡單細胞」挑剔角度與位置；「複雜細胞」把幾個簡單細胞合起來，對位置<em>寬容</em>——不管邊出現在哪，只要角度對就反應。特徵一層層被抽象。</p>
+    </article>
+    <article class="nc">
+      <div class="n">→ CNN</div>
+      <h3>AI 的第一層</h3>
+      <p>卷積神經網路的第一層濾鏡，訓練完幾乎總是長成一堆<em>邊緣偵測器</em>，跟這裡的感受野驚人地像。生物視覺的藍圖，被搬進了機器。</p>
+    </article>
+  </div>
+  <p class="kl">你此刻讀這行字，靠的正是幾百萬個「只認一條線」的神經元，各自報告自己看到的那一小段邊——拼起來，就是整個世界。</p>
+</section>
+</main>
+
+<footer>
+  <p>先看懂邊，才看懂形。</p>
+  <p class="src">資料來源：Hubel &amp; Wiesel（1962）、NobelPrize.org 1981</p>
+</footer>
+
+<script>
+"use strict";
+/* ===== 感受野與反應（純函式，供 node 斷言） ===== */
+var PREF=20*Math.PI/180;             /* 此細胞偏好角度：20° */
+var GRID=33;                          /* 取樣格數 */
+/* Gabor 感受野：沿偏好方向拉長的正弦包絡（中間興奮、兩側抑制） */
+function gabor(x,y,theta){
+  var xr= x*Math.cos(theta)+y*Math.sin(theta);
+  var yr=-x*Math.sin(theta)+y*Math.cos(theta);
+  var sigX=0.32,sigY=0.55,freq=2.1;
+  return Math.exp(-(xr*xr)/(2*sigX*sigX)-(yr*yr)/(2*sigY*sigY))*Math.cos(2*Math.PI*freq*xr);
+}
+/* 光棒刺激：角度 theta、橫向偏移 off，寬度 w 的亮帶（1/0） */
+function bar(x,y,theta,off,w){
+  var xr= x*Math.cos(theta)+y*Math.sin(theta) - off;
+  return Math.abs(xr) < (w||0.16) ? 1 : 0;
+}
+/* 神經元反應＝感受野與刺激的重疊積分，整流(取正)後正規化到 0..100 */
+function respRaw(theta,off){
+  var s=0,i,j,x,y,step=2/(GRID-1);
+  for(i=0;i<GRID;i++) for(j=0;j<GRID;j++){
+    x=-1+i*step; y=-1+j*step;
+    s += gabor(x,y,PREF) * bar(x,y,theta,off,0.16);
+  }
+  return s;
+}
+var _MAX = respRaw(PREF,0) || 1;
+function response(theta,off){ return Math.max(0, respRaw(theta,off))/_MAX*100; }
+function tuningCurve(off,n){
+  n=n||37; var arr=[],k; for(k=0;k<n;k++){ var th=k/(n-1)*Math.PI; arr.push(response(th,off||0)); } return arr;
+}
+
+if(typeof module==='object'&&module.exports){
+  module.exports={PREF,gabor,bar,respRaw,response,tuningCurve};
+}
+
+/* ===== 瀏覽器端 ===== */
+if(typeof document!=='undefined')(function(){
+  var mR=window.matchMedia('(prefers-reduced-motion:reduce)'),reduced=mR.matches;
+  var cv=document.getElementById('rf'), ctx=cv.getContext('2d');
+  var tune=document.getElementById('tune'), tctx=tune.getContext('2d');
+  var fireEl=document.getElementById('fire'), barsEl=document.getElementById('bars');
+  var angEl=document.getElementById('ang'), posEl=document.getElementById('pos');
+  var theta=20*Math.PI/180, off=0;
+
+  var NB=16, bars=[];
+  for(var b=0;b<NB;b++){ var e=document.createElement('i'); e.style.height='10%'; barsEl.appendChild(e); bars.push(e); }
+
+  var dpr=1,W=0,H=0;
+  function size(c){ var r=c.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
+    var w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
+    if(c.width!==w||c.height!==h){c.width=w;c.height=h;} return [c.width,c.height]; }
+
+  function drawRF(){
+    var d=size(cv); W=d[0];H=d[1]; ctx.clearRect(0,0,W,H);
+    /* 感受野底圖 */
+    var N=90, step=2/(N-1), img=ctx.createImageData(W,H);
+    /* 先畫低解析格點成塊 */
+    var cell=Math.ceil(W/N);
+    for(var i=0;i<N;i++)for(var j=0;j<N;j++){
+      var x=-1+i*step, y=-1+j*step, g=gabor(x,y,PREF);
+      var r,gg,bl;
+      if(g>0){ r=255; gg=143+ (1-Math.min(1,g))*40; bl=94; } else { r=60; gg=110; bl=180; }
+      var a=Math.min(0.9,Math.abs(g))*0.85;
+      ctx.fillStyle='rgba('+r+','+Math.round(gg)+','+bl+','+a.toFixed(3)+')';
+      ctx.fillRect(Math.round(i*W/N),Math.round(j*H/N),cell,cell);
+    }
+    /* 光棒 */
+    ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(-theta+Math.PI/2);
+    var barW=0.16*W/2*2, offPx=off*W/2;
+    ctx.translate(offPx,0);
+    var grd=ctx.createLinearGradient(-barW/2,0,barW/2,0);
+    grd.addColorStop(0,'rgba(255,255,255,0)');grd.addColorStop(.5,'rgba(255,255,255,.92)');grd.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=grd; ctx.fillRect(-barW/2,-H,barW,H*2); ctx.restore();
+  }
+  function drawTune(){
+    var d=size(tune),w=d[0],h=d[1]; tctx.clearRect(0,0,w,h);
+    var arr=tuningCurve(off,49), i;
+    /* 偏好角度標線 */
+    var px=(PREF/Math.PI)*w; tctx.strokeStyle='rgba(255,211,107,.35)';tctx.setLineDash([3,4]);tctx.beginPath();tctx.moveTo(px,0);tctx.lineTo(px,h);tctx.stroke();tctx.setLineDash([]);
+    tctx.beginPath();
+    for(i=0;i<arr.length;i++){ var x=i/(arr.length-1)*w, y=h-6-(arr[i]/100)*(h-12); if(i===0)tctx.moveTo(x,y);else tctx.lineTo(x,y); }
+    tctx.strokeStyle='#6ad0ff';tctx.lineWidth=2*dpr;tctx.lineJoin='round';tctx.stroke();
+    /* 目前角度點 */
+    var cx=(theta/Math.PI)*w, cy=h-6-(response(theta,off)/100)*(h-12);
+    tctx.fillStyle='#ffd36b';tctx.beginPath();tctx.arc(cx,cy,4*dpr,0,7);tctx.fill();
+  }
+  function update(){
+    var r=response(theta,off);
+    fireEl.textContent=Math.round(r);
+    fireEl.style.color = r>66?'#ffd36b': r>30?'#ffb06b':'#8a93a6';
+    var lit=Math.round(r/100*NB);
+    for(var i=0;i<NB;i++) bars[i].style.opacity = i<lit? '1':'0.22';
+    drawRF(); drawTune();
+  }
+
+  angEl.addEventListener('input',function(){ theta=+this.value*Math.PI/180; document.getElementById('angv').textContent=this.value+'°'; update(); });
+  posEl.addEventListener('input',function(){ off=+this.value; document.getElementById('posv').textContent=(+this.value).toFixed(1); update(); });
+  document.getElementById('align').addEventListener('click',function(){
+    var target=Math.round(PREF*180/Math.PI);
+    if(reduced){ angEl.value=target; posEl.value=0; theta=PREF; off=0; document.getElementById('angv').textContent=target+'°'; document.getElementById('posv').textContent='0.0'; update(); return; }
+    var startA=+angEl.value, startO=off, t0=performance.now();
+    (function anim(t){ var k=Math.min(1,(t-t0)/500); k=k*k*(3-2*k);
+      angEl.value=Math.round(startA+(target-startA)*k); theta=+angEl.value*Math.PI/180;
+      off=startO*(1-k); posEl.value=off;
+      document.getElementById('angv').textContent=angEl.value+'°'; document.getElementById('posv').textContent=off.toFixed(1);
+      update(); if(k<1&&!document.hidden) requestAnimationFrame(anim);
+    })(t0);
+  });
+
+  /* 拖曳平移光棒（沿垂直偏好方向） */
+  var dragging=false;
+  function ptrOff(e){ var r=cv.getBoundingClientRect(); var mx=((e.clientX-r.left)/r.width*2-1); var my=((e.clientY-r.top)/r.height*2-1);
+    off=Math.max(-1,Math.min(1, mx*Math.cos(theta)+my*Math.sin(theta))); posEl.value=off; document.getElementById('posv').textContent=off.toFixed(1); update(); }
+  cv.addEventListener('pointerdown',function(e){ dragging=true; cv.setPointerCapture(e.pointerId); ptrOff(e); });
+  cv.addEventListener('pointermove',function(e){ if(dragging) ptrOff(e); });
+  cv.addEventListener('pointerup',function(){ dragging=false; });
+
+  mR.addEventListener('change',function(e){ reduced=e.matches; });
+  window.addEventListener('resize',update);
+
+  requestAnimationFrame(function(){
+    document.body.classList.remove('still');
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(function(n){io.observe(n);});
+  });
+  update();
+})();
+</script>
+</body>
+</html>

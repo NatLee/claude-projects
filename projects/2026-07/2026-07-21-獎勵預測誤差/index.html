@@ -3,212 +3,168 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>大腦裡的驚喜訊號 · 多巴胺與獎勵預測誤差</title>
+<title>訓練一隻狗 · 多巴胺與獎勵預測誤差</title>
 <style>
 :root{
-  --bg:#0a0910; --panel:#16121d; --panel2:#110d18; --ink:#efeafa; --muted:#b3a8c8; --faint:#685d80;
-  --line:rgba(185,160,240,.12);
-  --burst:#ffce54; --dip:#5b8bff; --cue:#5ee0b0; --rew:#ff7ab0; --gold:#ffce54;
+  --bg:#0a0910; --panel:#16121d; --ink:#efeafa; --dim:#b3a8c8; --faint:#685d80;
+  --burst:#ffce54; --dip:#5b8bff; --bell:#5ee0b0; --treat:#ff7ab0; --gold:#ffce54; --line:rgba(185,160,240,.12);
   --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(760px 440px at 15% -6%,rgba(255,206,84,.06),transparent 70%),radial-gradient(620px 400px at 90% 3%,rgba(91,139,255,.06),transparent 70%)}
-main,header,footer{position:relative;z-index:1}
-.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.8;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(680px 380px at 50% -6%,rgba(255,206,84,.07),transparent 70%)}
+main{position:relative;z-index:1}
+.home{position:fixed;top:20px;left:22px;z-index:30;font-size:.78rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 11px;border-radius:8px;background:rgba(10,9,16,.5);backdrop-filter:blur(6px);transition:color .25s,transform .25s}
 .home:hover{color:var(--ink);transform:translateX(-3px)}
 .home:focus-visible{outline:2px solid var(--burst);outline-offset:3px;color:var(--ink)}
-.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
-.reveal.in{opacity:1;transform:none}body.still .reveal{opacity:1;transform:none;transition:none}
 
-.hero{max-width:820px;margin:0 auto;padding:118px 28px 28px;text-align:center}
-.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
-h1{font-family:var(--serif);font-size:clamp(2.2rem,6.2vw,3.7rem);line-height:1.09;margin:0 0 20px;
-  background:linear-gradient(180deg,#fbf9ff 10%,#c8bce8 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{font-size:1.02rem;color:var(--muted);margin:0 auto;max-width:33em}
-.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--burst)}
+.wrap{max-width:660px;margin:0 auto;padding:88px 22px 10px;text-align:center}
+.tag{font-family:var(--mono);font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+h1{font-family:var(--serif);font-size:clamp(2rem,6vw,3.1rem);margin:0 0 12px;line-height:1.14}
+.stand{font-size:1.06rem;color:var(--dim);margin:0 auto;max-width:26em}
+.stand em{color:var(--ink);font-style:normal}
 
-.stage{max-width:960px;margin:6px auto 0;padding:0 24px}
-.viewer{background:linear-gradient(160deg,#15111d,#0a0910);border:1px solid var(--line);border-radius:20px;padding:20px}
-.scene{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;font-size:.78rem;color:var(--faint)}
-.canvas-wrap{position:relative;width:100%;aspect-ratio:16/7;max-height:40vh}
-@media (max-width:640px){.canvas-wrap{aspect-ratio:4/3}}
+.pen{background:linear-gradient(180deg,var(--panel),#0d0a16);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:22px}
+.dog{font-size:3.2rem;line-height:1;transition:transform .18s,filter .2s;display:inline-block}
+.dog.happy{transform:scale(1.15) translateY(-6px);filter:drop-shadow(0 0 18px rgba(255,206,84,.7))}
+.dog.sad{transform:scale(.94);filter:grayscale(.4) brightness(.8)}
+.mood{min-height:2.4em;font-size:1.06rem;color:var(--dim);margin:6px 0 2px;transition:color .2s}
+.mood b{color:var(--ink)} .mood.happy b{color:var(--burst)} .mood.sad b{color:var(--dip)}
+.cnt{font-family:var(--mono);font-size:.78rem;color:var(--faint)}
+
+.scene{display:flex;justify-content:space-between;font-size:.76rem;color:var(--faint);margin:16px 4px 4px}
+.scene .bell{color:var(--bell)} .scene .treat{color:var(--treat)}
+.canvas-wrap{position:relative;width:100%;aspect-ratio:16/6;max-height:150px}
+@media (max-width:560px){.canvas-wrap{aspect-ratio:2/1}}
 #trace{position:absolute;inset:0;width:100%;height:100%;display:block}
-.controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:16px}
-.btn{font-family:inherit;font-size:.9rem;font-weight:700;color:#0a0910;background:linear-gradient(135deg,#ffe08a,var(--burst));border:none;border-radius:12px;padding:12px 18px;cursor:pointer;transition:transform .2s,filter .2s;box-shadow:0 6px 18px rgba(255,206,84,.2)}
+.caplabel{font-size:.72rem;color:var(--faint);text-align:center;margin-top:4px}
+
+.acts{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.btn{font-family:inherit;font-size:.92rem;font-weight:700;color:#0a0910;background:linear-gradient(135deg,#ffe08a,var(--burst));border:none;border-radius:12px;padding:12px 18px;cursor:pointer;transition:transform .18s,filter .2s;box-shadow:0 6px 18px rgba(255,206,84,.2)}
 .btn:hover{transform:translateY(-2px);filter:brightness(1.05)}.btn:active{transform:translateY(0) scale(.99)}
 .btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
-.btn.sec{color:var(--ink);background:var(--panel2);border:1px solid var(--line);box-shadow:none;font-weight:600}
-.toggle{display:flex;align-items:center;gap:8px;font-size:.84rem;color:var(--muted);margin-left:auto;cursor:pointer;user-select:none}
-.toggle input{appearance:none;width:38px;height:22px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);position:relative;cursor:pointer;transition:background .2s}
-.toggle input::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .2s,background .2s}
-.toggle input:checked{background:var(--rew)}
-.toggle input:checked::after{transform:translateX(16px);background:#fff}
-.status{margin-top:14px;font-size:.9rem;color:var(--muted);text-align:center;min-height:2.6em}
-.status b{color:var(--burst)}
-.status .cnt{font-family:var(--mono);color:var(--ink)}
+.btn.ghost{color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);box-shadow:none;font-weight:600}
 
-.note{max-width:960px;margin:34px auto 0;padding:0 24px}
-.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 20px}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media (max-width:720px){.cards{grid-template-columns:1fr}}
-.nc{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;transition:transform .3s,border-color .3s}
-.nc:hover{transform:translateY(-4px);border-color:rgba(185,160,240,.22)}
-.nc .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.08em;margin-bottom:10px;color:var(--faint)}
-.nc h3{font-size:1.02rem;margin:0 0 8px}.nc p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}.nc em{font-style:normal;color:var(--ink)}
-.kl{margin:26px auto 0;max-width:44em;font-family:var(--serif);font-size:1.06rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:22px;border-top:1px solid var(--line)}
-footer{max-width:960px;margin:52px auto 0;padding:22px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
-footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
+.reveal{max-width:600px;margin:56px auto 0;padding:0 22px;opacity:0;transform:translateY(24px);transition:opacity .8s,transform .8s}
+.reveal.in{opacity:1;transform:none}
+.reveal p{font-size:1.04rem;color:var(--dim);margin:0 0 16px}.reveal p em{color:var(--ink);font-style:normal}
+.reveal .big{font-family:var(--serif);font-size:clamp(1.5rem,4.2vw,2.1rem);color:var(--ink);margin:0 0 16px;text-align:center}
+.coda{font-family:var(--serif);font-size:1.1rem;line-height:1.9;color:var(--dim);text-align:center;border-top:1px solid var(--line);padding-top:24px;margin-top:8px}.coda b{color:var(--ink)}
+footer{text-align:center;padding:36px 22px 60px;color:var(--faint);font-size:.78rem}footer .src{opacity:.8;margin-top:4px}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
-<body class="still">
+<body>
 
 <a class="home" href="../../../index.html">← 回首頁</a>
 
-<header class="hero">
-  <div class="kick reveal" style="--d:0ms">神經科學 × 強化學習</div>
-  <h1 class="reveal" style="--d:80ms">大腦裡的驚喜訊號</h1>
-  <p class="sub reveal" style="--d:170ms">多巴胺不是「快樂分子」，而是<em>驚喜</em>訊號：它報告的是「比預期更好或更差」。看一個多巴胺神經元學會一個線索——它的放電會從獎勵，一格一格<em>倒退</em>到那個預告獎勵的信號上。這正是強化學習的核心。</p>
-</header>
-
 <main>
-<section class="stage reveal" style="--d:250ms">
-  <div class="viewer">
-    <div class="scene"><span style="color:var(--cue)">▲ 線索出現</span><span>時間 →</span><span style="color:var(--rew)">🍎 獎勵時刻</span></div>
-    <div class="canvas-wrap">
-      <canvas id="trace" role="img" aria-label="多巴胺神經元在一次試驗中的放電：基準線之上是興奮爆發、之下是抑制。橫軸為試驗內的時間，標出線索與獎勵時刻。"></canvas>
-    </div>
-    <div class="controls">
-      <button type="button" class="btn" id="one">▶ 跑 1 次試驗</button>
-      <button type="button" class="btn sec" id="ten">⏩ 一路跑到學會</button>
-      <button type="button" class="btn sec" id="reset">↺ 重置學習</button>
-      <label class="toggle"><input type="checkbox" id="omit" aria-label="這次略過獎勵"><span>這次略過獎勵</span></label>
-    </div>
-    <p class="status" id="status">目前是「還沒學會」的第 <span class="cnt">0</span> 次。跑一次試驗，看多巴胺在<b>獎勵時刻</b>爆一下——因為獎勵來得意外。</p>
-  </div>
-</section>
+<div class="wrap">
+  <div class="tag">神經科學 × 強化學習</div>
+  <h1>訓練一隻狗</h1>
+  <p class="stand">這是你的狗。搖鈴、給零食，看牠腦中那股「<em>驚喜</em>」——多巴胺——怎麼從零食，一路倒退，跑到那個預告零食的鈴聲上。多巴胺不是「快樂」，是「比預期更好」。</p>
+</div>
 
-<section class="note reveal" style="--d:0ms">
-  <h2>它報告的是「意外」</h2>
-  <div class="cards">
-    <article class="nc">
-      <div class="n">意外的獎勵</div>
-      <h3>爆一下</h3>
-      <p>還沒學會時，獎勵是驚喜——多巴胺在<em>獎勵時刻</em>大爆發。這股「比預期更好」的訊號，就是要大腦：記住剛剛發生了什麼。</p>
-    </article>
-    <article class="nc">
-      <div class="n">學會之後</div>
-      <h3>爆點往前移</h3>
-      <p>當線索能<em>預告</em>獎勵，爆發一格格倒退、最後落在<em>線索</em>上；獎勵本身變得意料之中，反而沒反應了。驚喜移到了「第一個能預測好事的瞬間」。</p>
-    </article>
-    <article class="nc">
-      <div class="n">說好的沒來</div>
-      <h3>掉一下</h3>
-      <p>學會後如果<em>略過獎勵</em>，多巴胺會在該給的時刻<em>掉到基準線以下</em>——這是「比預期更差」的負向誤差，大腦用它來修正預期。</p>
-    </article>
+<div class="wrap" style="padding-top:0">
+  <div class="pen">
+    <div class="dog" id="dog" aria-hidden="true">🐕</div>
+    <p class="mood" id="mood"><b>牠還不懂鈴聲的意思。</b>搖個鈴、給牠零食試試。</p>
+    <div class="cnt">已訓練 <span id="n">0</span> 次</div>
+
+    <div class="scene"><span class="bell">🔔 鈴響</span><span>時間 →</span><span class="treat" id="treatLab">🦴 零食</span></div>
+    <div class="canvas-wrap"><canvas id="trace" role="img" aria-label="狗的多巴胺放電：基準線之上是興奮、之下是失望。橫軸為一次試驗的時間，標出鈴響與零食時刻。"></canvas></div>
+    <p class="caplabel">牠腦中的多巴胺：<span style="color:var(--burst)">向上＝興奮（比預期更好）</span>　<span style="color:var(--dip)">向下＝失望（比預期更差）</span></p>
+
+    <div class="acts">
+      <button type="button" class="btn" id="one">🔔 搖鈴＋給零食</button>
+      <button type="button" class="btn ghost" id="ten">⏩ 一路訓練到牠學會</button>
+      <button type="button" class="btn ghost" id="omit">🔔 搖鈴…但不給</button>
+      <button type="button" class="btn ghost" id="reset">↺ 重新養一隻</button>
+    </div>
   </div>
-  <p class="kl">Schultz 等人發現的這個訊號，和電腦科學裡的「時序差分（TD）誤差」幾乎一模一樣。也就是說：驅動 AlphaGo 學會下棋的那條數學，很可能也正在你腦中，教你什麼值得期待。</p>
+</div>
+
+<section class="reveal" id="rev">
+  <p class="big">牠報告的，是「意外」</p>
+  <p>還沒學會時，零食是驚喜，多巴胺在<em>零食那一刻</em>大爆發。訓練幾次後，鈴聲能可靠預告零食，爆發就<em>一格格倒退到鈴聲上</em>；零食本身變得理所當然，反而沒反應了。而你剛剛搖鈴卻不給時，牠在該有零食的時刻<em>掉到基準線以下</em>——那是「比預期更差」的失望。</p>
+  <p>Wolfram Schultz 記錄猴子的多巴胺神經元，看到的正是這三件事。更妙的是：這個訊號和電腦科學裡的<em>時序差分（TD）誤差</em>幾乎一模一樣——驅動 AlphaGo 學會下棋的那條數學，很可能也正在你的狗（和你）腦中，教牠什麼值得期待。</p>
+  <p class="coda">不是快樂，是「比想的更好」。<b>期待落空的那一下失望，也一樣寫在同一條訊號裡。</b></p>
 </section>
 </main>
 
 <footer>
-  <p>不是快樂，是「比想的更好」。</p>
+  <p>牠愛的不是零食，是「有零食」這個驚喜。</p>
   <p class="src">資料來源：Schultz, Dayan &amp; Montague《Science》(1997)、TD 學習</p>
 </footer>
 
 <script>
 "use strict";
 /* ===== 時序差分(TD)學習與多巴胺誤差（純函式，供 node 斷言） ===== */
-/* 一次試驗：更新價值 V（僅線索之後可有價值），回傳新 V 與每個時刻的預測誤差 delta */
 function tdTrial(V, p, omit){
   var T=V.length, gamma=p.gamma, alpha=p.alpha, tCue=p.tCue, tRew=p.tReward, R=p.R;
   var r=new Array(T).fill(0); if(!omit) r[tRew]=R;
   var delta=new Array(T).fill(0), t;
   for(t=0;t<T;t++){ var Vnext=(t+1<T)?V[t+1]:0; delta[t]=r[t]+gamma*Vnext-V[t]; }
   var nV=V.slice();
-  /* 線索出現本身不可預測（試驗間隔隨機），故線索當下與之前(t<=tCue)價值恆為 0；
-     只更新線索之後的狀態。如此「進入線索」這個轉移永遠帶正誤差 → 爆發最終落在線索上、不會消失。 */
   for(t=tCue+1;t<T;t++){ nV[t]=V[t]+alpha*delta[t]; }
   return { V:nV, delta:delta };
 }
-/* 連跑 n 次（每次都給獎勵），回傳最終 V 與最後一次 delta */
 function train(V, p, n){ var cur=V.slice(), last=null, i; for(i=0;i<n;i++){ var r=tdTrial(cur,p,false); cur=r.V; last=r.delta; } return { V:cur, delta:last }; }
 function argmax(arr){ var bi=0,i; for(i=1;i<arr.length;i++) if(arr[i]>arr[bi]) bi=i; return bi; }
+if(typeof module==='object'&&module.exports){ module.exports={tdTrial,train,argmax}; }
 
-if(typeof module==='object'&&module.exports){
-  module.exports={tdTrial,train,argmax};
-}
-
-/* ===== 瀏覽器端 ===== */
+/* ===== 瀏覽器端：養狗 ===== */
 if(typeof document!=='undefined')(function(){
   var mR=window.matchMedia('(prefers-reduced-motion:reduce)'),reduced=mR.matches;
   var cv=document.getElementById('trace'), ctx=cv.getContext('2d');
   var P={ gamma:0.92, alpha:0.28, tCue:5, tReward:15, R:1, T:22 };
   var V=new Array(P.T).fill(0), delta=new Array(P.T).fill(0), trials=0, lastOmit=false;
-  var statusEl=document.getElementById('status');
+  var moodEl=document.getElementById('mood'), dogEl=document.getElementById('dog');
 
   var dpr=1,W=0,H=0;
-  function size(){ var r=cv.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
-    var w=Math.max(1,Math.round(r.width*dpr)),h=Math.max(1,Math.round(r.height*dpr));
-    if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;} W=cv.width;H=cv.height; }
-  function xOf(t){ return W*0.06 + (W*0.88)*(t/(P.T-1)); }
+  function size(){ dpr=Math.min(2,window.devicePixelRatio||1); var w=Math.max(1,Math.round(cv.clientWidth*dpr)),h=Math.max(1,Math.round(cv.clientHeight*dpr)); if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;} W=cv.width;H=cv.height; }
+  function xOf(t){ return W*0.06+(W*0.88)*(t/(P.T-1)); }
   var baseY;
   function draw(){
-    size(); ctx.clearRect(0,0,W,H); baseY=H*0.62;
-    /* 基準線 */
-    ctx.strokeStyle='rgba(190,180,215,.35)';ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(W*0.03,baseY);ctx.lineTo(W*0.97,baseY);ctx.stroke();
-    ctx.fillStyle='rgba(190,180,215,.5)';ctx.font=(10*dpr)+'px ui-monospace,monospace';ctx.textAlign='left';ctx.fillText('基準放電',W*0.035,baseY-4*dpr);
-    /* 線索/獎勵標線 */
-    [[P.tCue,'線索','#5ee0b0'],[P.tReward, lastOmit?'(略過)':'獎勵', lastOmit?'#8a93a6':'#ff7ab0']].forEach(function(g){
-      var x=xOf(g[0]); ctx.strokeStyle=g[2]+'55';ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(x,H*0.08);ctx.lineTo(x,H*0.9);ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle=g[2];ctx.textAlign='center';ctx.fillText(g[1],x,H*0.9+12*dpr);
-    });
-    /* 多巴胺柱：delta 正=爆發(上,金)、負=抑制(下,藍) */
-    var maxA=Math.max(0.3, P.R);
-    for(var t=0;t<P.T;t++){ var d=delta[t]; if(Math.abs(d)<0.008)continue;
-      var x=xOf(t), bw=Math.max(3,W*0.02), hgt=(d/maxA)*(H*0.44);
-      ctx.fillStyle = d>0? 'rgba(255,206,84,0.92)':'rgba(91,139,255,0.9)';
-      if(d>0){ ctx.shadowColor='rgba(255,206,84,.6)';ctx.shadowBlur=8*dpr; }
-      ctx.fillRect(x-bw/2, baseY-Math.max(0,hgt), bw, Math.abs(hgt)); ctx.shadowBlur=0;
-    }
-  }
+    size(); ctx.clearRect(0,0,W,H); baseY=H*0.6;
+    ctx.strokeStyle='rgba(190,180,215,.3)';ctx.lineWidth=1*dpr;ctx.beginPath();ctx.moveTo(W*0.03,baseY);ctx.lineTo(W*0.97,baseY);ctx.stroke();
+    [[P.tCue,'🔔','#5ee0b0'],[P.tReward,lastOmit?'∅':'🦴',lastOmit?'#8a93a6':'#ff7ab0']].forEach(function(g){
+      var x=xOf(g[0]); ctx.strokeStyle=g[2]+'55';ctx.setLineDash([3,5]);ctx.beginPath();ctx.moveTo(x,H*0.08);ctx.lineTo(x,H*0.92);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=g[2];ctx.font=(12*dpr)+'px sans-serif';ctx.textAlign='center';ctx.fillText(g[1],x,H*0.99); });
+    var maxA=Math.max(0.3,P.R);
+    for(var t=0;t<P.T;t++){ var d=delta[t]; if(Math.abs(d)<0.008)continue; var x=xOf(t),bw=Math.max(3,W*0.02),hgt=(d/maxA)*(H*0.42);
+      ctx.fillStyle= d>0?'rgba(255,206,84,0.92)':'rgba(91,139,255,0.9)'; if(d>0){ctx.shadowColor='rgba(255,206,84,.6)';ctx.shadowBlur=8*dpr;}
+      ctx.fillRect(x-bw/2,baseY-Math.max(0,hgt),bw,Math.abs(hgt)); ctx.shadowBlur=0; } }
 
-  function afterUpdate(omit){
+  function react(omit){
     lastOmit=omit;
-    var peak=argmax(delta.map(function(d){return d;}));
     var atCue=delta[P.tCue], atRew=delta[P.tReward];
-    var learned = atCue>0.15 && Math.abs(atRew)<0.15;
-    if(omit && atRew<-0.1){
-      statusEl.innerHTML='第 <span class="cnt">'+trials+'</span> 次：<b style="color:var(--dip)">說好的獎勵沒來</b>——多巴胺在該給的時刻掉到基準線<b style="color:var(--dip)">以下</b>，這是負向預測誤差。';
-    } else if(learned){
-      statusEl.innerHTML='第 <span class="cnt">'+trials+'</span> 次：<b>學會了！</b>爆發已經移到<b style="color:var(--cue)">線索</b>上，獎勵本身變得意料之中、幾乎沒反應。';
-    } else if(trials===0){
-      statusEl.innerHTML='目前是「還沒學會」的第 <span class="cnt">0</span> 次。跑一次試驗，看多巴胺在<b style="color:var(--rew)">獎勵時刻</b>爆一下——因為獎勵來得意外。';
-    } else {
-      statusEl.innerHTML='第 <span class="cnt">'+trials+'</span> 次：爆發正一格格從獎勵<b>倒退</b>往線索靠近……再多跑幾次。';
-    }
+    var learned=atCue>0.15&&Math.abs(atRew)<0.15;
+    dogEl.className='dog';
+    if(omit&&atRew<-0.1){ dogEl.className='dog sad'; moodEl.className='mood sad'; moodEl.innerHTML='第 '+trials+' 次：你搖了鈴卻<b>沒給零食</b>——牠在該有零食的時刻失望了一下（掉到基準線以下）。'; }
+    else if(learned){ dogEl.className='dog happy'; moodEl.className='mood happy'; moodEl.innerHTML='<b>牠學會了！</b>鈴聲一響牠就興奮起來——零食反而變得理所當然、沒反應了。'; }
+    else if(trials===0){ moodEl.className='mood'; moodEl.innerHTML='<b>牠還不懂鈴聲的意思。</b>搖個鈴、給牠零食試試。'; }
+    else { dogEl.className='dog happy'; moodEl.className='mood happy'; moodEl.innerHTML='第 '+trials+' 次：牠的興奮正一格格從零食<b>倒退</b>往鈴聲靠近……再多練幾次。'; }
+    setTimeout(function(){ if(!moodEl.classList.contains('sad')) dogEl.classList.remove('happy'); }, reduced?0:700);
   }
-  function runOne(){ var omit=document.getElementById('omit').checked; var r=tdTrial(V,P,omit); delta=r.delta; if(!omit){ V=r.V; } trials++; document.getElementById('omit').checked=false; draw(); afterUpdate(omit); }
-  function runMany(){ for(var i=0;i<80;i++){ var r=tdTrial(V,P,false); V=r.V; delta=r.delta; trials++; if(delta[P.tCue]>0.25 && Math.abs(delta[P.tReward])<0.05) break; } draw(); afterUpdate(false); }
-  function reset(){ V=new Array(P.T).fill(0); delta=new Array(P.T).fill(0); trials=0; lastOmit=false; document.getElementById('omit').checked=false; draw(); afterUpdate(false); }
+  function one(){ var omit=false; var r=tdTrial(V,P,omit); delta=r.delta; V=r.V; trials++; document.getElementById('n').textContent=trials; draw(); react(false); }
+  function batch(){ for(var i=0;i<80;i++){ var r=tdTrial(V,P,false); V=r.V; delta=r.delta; trials++; if(delta[P.tCue]>0.25&&Math.abs(delta[P.tReward])<0.05)break; } document.getElementById('n').textContent=trials; draw(); react(false); }
+  function omit(){ var r=tdTrial(V,P,true); delta=r.delta; /* 不更新 V（沒給就不學新的） */ trials++; document.getElementById('n').textContent=trials; draw(); react(true); }
+  function reset(){ V=new Array(P.T).fill(0); delta=new Array(P.T).fill(0); trials=0; lastOmit=false; document.getElementById('n').textContent=0; dogEl.className='dog'; draw(); react(false); }
 
-  document.getElementById('one').addEventListener('click',runOne);
-  document.getElementById('ten').addEventListener('click',runMany);
+  document.getElementById('one').addEventListener('click',one);
+  document.getElementById('ten').addEventListener('click',batch);
+  document.getElementById('omit').addEventListener('click',omit);
   document.getElementById('reset').addEventListener('click',reset);
   window.addEventListener('resize',draw);
   mR.addEventListener('change',function(e){reduced=e.matches;});
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) draw(); });
-
-  requestAnimationFrame(function(){
-    document.body.classList.remove('still');
-    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -8% 0px'});
-    document.querySelectorAll('.reveal').forEach(function(n){io.observe(n);});
-  });
-  /* 初始：先示範一次未學會的獎勵爆發 */
-  (function initShow(){ var r=tdTrial(V,P,false); delta=r.delta; draw(); })();
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
+  io.observe(document.getElementById('rev'));
+  (function(){ var r=tdTrial(V,P,false); delta=r.delta; draw(); })();
 })();
 </script>
 </body>

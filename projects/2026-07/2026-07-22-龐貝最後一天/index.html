@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>龐貝：最後一天 · 你的選擇，寫進了灰燼裡</title>
+<style>
+  :root{
+    --bg:#0c0a09; --bg2:#14100c; --ink:#efe6db; --dim:#b7a894; --faint:#7d6f5e;
+    --ember:#eb8a3c; --ember2:#f4b064; --ash:#9a8f82; --sage:#8fc79a; --dust:#caa06a;
+    --peril:#e0705a; --line:#2a2118; --panel:rgba(28,22,16,.66); --brd:rgba(235,138,60,.16);
+    --ease:cubic-bezier(.22,.61,.36,1); --pop:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1200px 700px at 50% -14%, #2a1a0e 0%, transparent 58%),
+      radial-gradient(800px 560px at 88% 106%, #1a1109 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Serif TC","Songti TC","Noto Sans TC","PingFang TC","Microsoft JhengHei",serif;
+    line-height:1.75; min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  .wrap{max-width:820px; margin:0 auto; padding:24px 20px 72px; position:relative; z-index:1}
+
+  #ash{position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden}
+  #ash i{position:absolute; top:-12px; width:5px; height:5px; border-radius:50%; background:#b9ac9a; opacity:.16;
+    animation:fall var(--t,11s) linear var(--td,0s) infinite}
+  @keyframes fall{to{transform:translateY(104vh) translateX(var(--dx,20px)); opacity:0}}
+
+  .rise{opacity:0; transform:translateY(14px); animation:rise .7s var(--ease) forwards; animation-delay:var(--d,0s)}
+  @keyframes rise{to{opacity:1; transform:none}}
+
+  .home{display:inline-flex; align-items:center; gap:.4em; color:var(--faint); text-decoration:none;
+    font-size:.82rem; letter-spacing:.04em; transition:color .25s, transform .25s; font-family:"Noto Sans TC",sans-serif}
+  .home:hover,.home:focus-visible{color:var(--ember); transform:translateX(-3px)}
+  .home:focus-visible{outline:2px solid var(--ember); outline-offset:3px; border-radius:6px}
+  header.top{margin:18px 0 8px}
+  .kick{font-size:.72rem; letter-spacing:.4em; color:var(--dust); text-transform:uppercase; font-weight:700; font-family:"Noto Sans TC",sans-serif}
+  h1{margin:.12em 0; font-size:clamp(2.4rem,8vw,4rem); font-weight:800; letter-spacing:.02em; line-height:1.05;
+    background:linear-gradient(94deg,var(--ember2),#ffe0b0 46%,var(--ember)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{color:var(--dim); font-size:clamp(1rem,2.2vw,1.1rem); max-width:44ch; font-family:"Noto Sans TC",sans-serif}
+
+  .scene{background:var(--panel); border:1px solid var(--brd); border-radius:16px; padding:24px 22px; margin-top:20px;
+    backdrop-filter:blur(7px); box-shadow:0 26px 60px -34px rgba(0,0,0,.9); min-height:210px}
+  .scene .story{font-size:1.16rem; line-height:1.95; color:#f0e7dc}
+  .scene .story p{margin:0 0 .7em}
+  .scene .story .lead{color:var(--ember2); font-weight:600}
+  .fadein{animation:fadein .6s var(--ease) both}
+  @keyframes fadein{from{opacity:0; transform:translateY(8px)}to{opacity:1; transform:none}}
+
+  .choices{display:flex; flex-direction:column; gap:10px; margin-top:20px}
+  .choice{appearance:none; text-align:left; font-family:inherit; font-size:1.02rem; color:var(--ink);
+    background:linear-gradient(100deg, rgba(235,138,60,.09), rgba(255,255,255,.02)); border:1px solid var(--brd);
+    border-radius:12px; padding:.85em 1em .85em 2.4em; cursor:pointer; position:relative; line-height:1.5;
+    transition:transform .16s var(--pop), background .22s, border-color .22s}
+  .choice::before{content:"›"; position:absolute; left:1em; top:.72em; color:var(--ember); font-size:1.3rem; font-weight:800; transition:transform .22s}
+  .choice:hover{background:linear-gradient(100deg, rgba(235,138,60,.2), rgba(235,138,60,.05)); border-color:rgba(235,138,60,.5); transform:translateX(3px)}
+  .choice:hover::before{transform:translateX(3px)}
+  .choice:active{transform:translateX(3px) scale(.99)}
+  .choice:focus-visible{outline:2px solid var(--ember); outline-offset:2px}
+
+  /* 結局 */
+  .ending .etag{display:inline-block; font-family:"Noto Sans TC",sans-serif; font-size:.72rem; font-weight:800;
+    letter-spacing:.12em; padding:.24em .7em; border-radius:999px; margin-bottom:12px}
+  .ending.survive .etag{background:rgba(143,199,154,.16); color:var(--sage); border:1px solid rgba(143,199,154,.4)}
+  .ending.perish .etag{background:rgba(224,112,90,.14); color:var(--peril); border:1px solid rgba(224,112,90,.4)}
+  .ending h2{font-size:1.7rem; margin:.1em 0 .4em; font-weight:800}
+  .ending.survive h2{color:var(--sage)} .ending.perish h2{color:var(--ember2)}
+  .ending .note{margin-top:16px; padding:14px 16px; border-left:3px solid var(--dust); border-radius:0 10px 10px 0;
+    background:rgba(202,160,106,.08); font-family:"Noto Sans TC",sans-serif; font-size:.94rem; color:var(--dim); line-height:1.7}
+  .ending .note b{color:var(--dust); font-weight:700}
+  .again{margin-top:20px; display:flex; gap:10px; flex-wrap:wrap}
+  .btn{appearance:none; font-family:"Noto Sans TC",sans-serif; font-size:.94rem; font-weight:600; color:var(--ink);
+    background:rgba(255,255,255,.05); border:1px solid var(--brd); border-radius:11px; padding:.66em 1.2em; cursor:pointer;
+    transition:transform .16s var(--pop), background .22s, border-color .22s}
+  .btn:hover{background:rgba(235,138,60,.16); border-color:rgba(235,138,60,.45)}
+  .btn:active{transform:translateY(1px) scale(.98)}
+  .btn:focus-visible{outline:2px solid var(--ember); outline-offset:2px}
+  .btn.primary{background:linear-gradient(160deg,var(--ember),#c96a24); color:#1a0f06; border-color:transparent}
+
+  /* 收集牆 */
+  .wallwrap{margin-top:22px; background:var(--panel); border:1px solid var(--brd); border-radius:16px; padding:16px 18px; backdrop-filter:blur(7px)}
+  .wallhd{display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; font-family:"Noto Sans TC",sans-serif}
+  .wallhd .t{font-size:.72rem; letter-spacing:.16em; color:var(--faint); text-transform:uppercase; font-weight:700}
+  .wallhd .c{color:var(--dim); font-size:.9rem} .wallhd .c b{color:var(--ember2); font-size:1.05rem; font-variant-numeric:tabular-nums}
+  .wall{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:9px}
+  .slot{border:1px solid var(--line); border-radius:11px; padding:10px 11px; min-height:58px; display:flex; flex-direction:column; gap:3px;
+    background:rgba(255,255,255,.015); font-family:"Noto Sans TC",sans-serif; transition:border-color .3s, background .3s}
+  .slot .si{font-size:1.1rem} .slot .st{font-size:.86rem; font-weight:600; color:var(--ink); line-height:1.3}
+  .slot.locked{opacity:.55} .slot.locked .st{color:var(--faint)}
+  .slot.got.survive{border-color:rgba(143,199,154,.38); background:rgba(143,199,154,.06)}
+  .slot.got.perish{border-color:rgba(224,112,90,.32); background:rgba(224,112,90,.05)}
+  .slot.new{animation:pop .6s var(--pop)}
+  @keyframes pop{0%{transform:scale(.6); opacity:0}70%{transform:scale(1.08)}100%{transform:none}}
+
+  footer{margin-top:30px; color:var(--faint); font-size:.82rem; text-align:center; font-family:"Noto Sans TC",sans-serif}
+  .spark{position:fixed; z-index:40; width:7px; height:7px; border-radius:50%; pointer-events:none; animation:spark .8s var(--ease) forwards}
+  @keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.2); opacity:0}}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation-duration:.001s!important; animation-iteration-count:1!important; transition-duration:.05s!important}
+    #ash{display:none}
+  }
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div id="ash" aria-hidden="true"></div>
+<div class="wrap">
+  <a class="home rise" href="../../../index.html" style="--d:.02s">← 回每日小專案</a>
+  <header class="top">
+    <div class="kick rise" style="--d:.08s">互動歷史 · 西元 79 年</div>
+    <h1 class="rise" style="--d:.14s">龐貝：最後一天</h1>
+    <p class="sub rise" style="--d:.22s">維蘇威山頂騰起一朵傘松狀的雲。接下來的一天，你的每個選擇，都對得上考古學家後來真的挖出來的結局。你，會走到哪一種？</p>
+  </header>
+
+  <section class="scene rise" id="scene" style="--d:.3s" aria-live="polite"></section>
+
+  <section class="wallwrap rise" style="--d:.4s" aria-label="結局收集牆">
+    <div class="wallhd">
+      <span class="t">結局收集牆</span>
+      <span class="c">已發現 <b id="fcount">0</b> / <span id="ftotal">6</span> 種命運</span>
+    </div>
+    <div class="wall" id="wall"></div>
+  </section>
+
+  <footer>史實取材自小普林尼的信與考古發現。資料來源：Pliny the Younger、Wikipedia</footer>
+</div>
+<p class="sr" id="live" aria-live="assertive"></p>
+
+<script>
+/* === POMPEII_DATA_START === 分支故事（唯一資料來源；tools 測試會抽這段驗證） ===
+ * nodes：每個節點有 text 與 choices（→ to）；結局節點 end:true，帶 title/note/survive。
+ * ENDINGS：收集牆顯示順序。
+ */
+const STORY = {
+  start: "start",
+  nodes: {
+    start: {
+      text: "<p>正午，龐貝的廣場。這幾天地一直在震，人們早就習慣了。</p><p>可是此刻——維蘇威山頂騰起一根巨大的雲柱，頂端張開像一棵<span class='lead'>傘松</span>，白裡透黑，越爬越高。細灰開始從天上飄下來，落在你肩上，還溫溫的。</p>",
+      choices: [
+        { t: "往港口去，看看還有沒有船", to: "port" },
+        { t: "先回家，家人還在", to: "home" },
+        { t: "留在廣場，看那朵雲會怎樣", to: "street" }
+      ]
+    },
+    port: {
+      text: "<p>碼頭亂成一團。浮石像下雹一樣砸在海面上。一名船長正急著解纜：<span class='lead'>「要走趁現在，海風還推得動船！」</span></p>",
+      choices: [
+        { t: "立刻上船，離開這裡", to: "e_sea" },
+        { t: "我得先回去帶家人再來", to: "homeLate" },
+        { t: "聽說艦隊要來救人，再等一下", to: "fleet" }
+      ]
+    },
+    home: {
+      text: "<p>家裡，浮石已經在中庭積起一層，屋頂咯吱作響。孩子拉著你的衣角。天色暗得不像白天。</p>",
+      choices: [
+        { t: "關緊門窗，躲在屋裡等它過去", to: "indoors" },
+        { t: "趁還走得動，帶全家往南邊逃（背對火山）", to: "south" },
+        { t: "往海邊碰運氣，也許還有船", to: "port" }
+      ]
+    },
+    street: {
+      text: "<p>你留在廣場。幾個小時過去，灰越積越厚，白晝變成深夜。</p><p>入夜後，山上滾下熾紅的光——一波波<span class='lead'>灼熱的氣浪</span>正貼著地面撲下山來。</p>",
+      choices: [
+        { t: "現在就往南邊拚命跑", to: "south" },
+        { t: "躲進石造的大會堂", to: "indoors" },
+        { t: "巷子裡有人在喊救命，折回去", to: "e_garden" }
+      ]
+    },
+    homeLate: {
+      text: "<p>你趕回家，浮石已堆到齊腰，門幾乎推不開。夜更深了，遠處傳來房屋崩塌的悶響。</p>",
+      choices: [
+        { t: "一家人躲進內室，等天亮", to: "indoors" },
+        { t: "摸黑往南邊逃", to: "south" },
+        { t: "往北邊的赫庫蘭尼姆去，那裡海邊或許有救援船", to: "e_herc" }
+      ]
+    },
+    fleet: {
+      text: "<p>有人說，米塞農的艦隊司令——那位什麼都要親眼看看的老先生——正率船渡海而來。你在岸邊，真的等到了他的船。</p>",
+      choices: [
+        { t: "跟著艦隊，往斯塔比伊", to: "e_fleet" },
+        { t: "不等了，自己往南逃", to: "south" }
+      ]
+    },
+    indoors: {
+      text: "<p>你們擠在內室。浮石壓垮了一部分屋頂，空氣越來越難吸。</p><p>門外，一種滾燙的、帶著硫磺味的風，正貼著地面湧過來。</p>",
+      choices: [
+        { t: "摀住口鼻，撐到天亮", to: "e_indoors" },
+        { t: "受不了了，衝出門往海邊跑", to: "e_herc" }
+      ]
+    },
+    south: {
+      text: "<p>你們背對著火山往南走。路上全是同樣逃命的人，牽著牲口、扛著孩子。灰在腳邊越積越深，但每一步，都離那座山更遠一點。</p>",
+      choices: [
+        { t: "咬牙一直走，別回頭", to: "e_south" },
+        { t: "身後有熟識的人跌倒了，折回去扶", to: "e_garden" }
+      ]
+    },
+
+    e_sea: { end: true, survive: true, title: "乘上最後的船", icon: "⛵",
+      text: "<p>船離了岸。你回頭，龐貝在灰幕之後只剩一團輪廓。海上顛簸得厲害，但風把你們一寸寸推向對岸的安全。</p>",
+      note: "<b>史實</b>：提早由海路或陸路離開的人，多半活了下來。龐貝原有上萬人口，真正罹難的，是那些留下來、想等風暴過去的人。" },
+    e_south: { end: true, survive: true, title: "走到看不見山的地方", icon: "🌤️",
+      text: "<p>天亮時，你們已經在很遠的南方。回望，維蘇威被自己吐出的黑雲整個蓋住。你們，活下來了。</p>",
+      note: "<b>史實</b>：往遠離火山的方向、在浮石階段就出發的人得以生還。逃過一劫的關鍵，是「早」，以及不回頭。" },
+    e_indoors: { end: true, survive: false, title: "等一個等不到的天亮", icon: "🕯️",
+      text: "<p>屋頂終於撐不住了。而門外那道灼熱的氣浪，比任何人以為的都快。一切，結束得很安靜。</p>",
+      note: "<b>史實</b>：許多人躲在屋內等待，卻在隔天清晨、將近 300°C 的火山碎屑流中瞬間喪命。1800 年代，Fiorelli 把石膏灌進灰燼裡的空腔，鑄出了他們最後的姿態。" },
+    e_herc: { end: true, survive: false, title: "海邊的船屋", icon: "🌊",
+      text: "<p>你奔向赫庫蘭尼姆的海邊，鑽進岸邊停放船隻的石棚，和幾百個同樣祈求救援的人擠在一起。凌晨，第一道氣浪從山上直直撲下。</p>",
+      note: "<b>史實</b>：赫庫蘭尼姆海邊的船屋裡，發現了 300 多具遺骸——那是凌晨第一波、近 300°C 的碎屑流，幾乎在一瞬間奪走了他們。" },
+    e_fleet: { end: true, survive: false, title: "跟著那位好奇的司令", icon: "📜",
+      text: "<p>艦隊靠上斯塔比伊。老司令異常鎮定，安撫眾人、甚至去洗了個澡、用了餐，說這樣大家才不會慌。但空氣裡的硫味，越來越濃……</p>",
+      note: "<b>史實</b>：艦隊司令老普林尼從米塞農渡海馳援，最後在斯塔比伊窒息而死。他 17 歲的外甥小普林尼在對岸目睹了一切，寫下這場災難唯一流傳後世的目擊紀錄。" },
+    e_garden: { end: true, survive: false, title: "沒有一個人獨自離開", icon: "🌿",
+      text: "<p>你折回去，扶起跌倒的人，又去拉另一個。你們一起躲進一座花園的牆角，彼此靠著。然後，山把最後一口氣，緩緩呼了出來。</p>",
+      note: "<b>史實</b>：龐貝的「逃亡者花園」裡，發現了一群一起罹難者的石膏鑄模——在最後的時刻，有人選擇了不獨自走。" }
+  }
+};
+const ENDINGS = ["e_sea","e_south","e_indoors","e_herc","e_fleet","e_garden"];
+/* === POMPEII_DATA_END === */
+
+(function(){
+  "use strict";
+  var LS="pompeii.found";
+  var RM=window.matchMedia("(prefers-reduced-motion: reduce)"); var reduce=RM.matches;
+  RM.addEventListener("change",function(e){ reduce=e.matches; });
+
+  var sceneEl=document.getElementById("scene");
+  var wallEl=document.getElementById("wall");
+  var fcount=document.getElementById("fcount");
+  var live=document.getElementById("live");
+  document.getElementById("ftotal").textContent=ENDINGS.length;
+
+  var found=load();
+  function load(){ var s=new Set(); try{ var r=JSON.parse(localStorage.getItem(LS)||"[]"); if(Array.isArray(r)) r.forEach(function(id){ if(STORY.nodes[id]) s.add(id); }); }catch(e){} return s; }
+  function save(){ try{ localStorage.setItem(LS, JSON.stringify(Array.from(found))); }catch(e){} }
+
+  function esc(){}
+  function render(id){
+    var node=STORY.nodes[id];
+    sceneEl.innerHTML="";
+    var box=document.createElement("div"); box.className="fadein";
+    if(node.end){
+      box.className="fadein ending "+(node.survive?"survive":"perish");
+      box.innerHTML=
+        '<span class="etag">'+(node.survive?"生還":"罹難")+'</span>'+
+        '<h2>'+node.icon+' '+node.title+'</h2>'+
+        '<div class="story">'+node.text+'</div>'+
+        '<div class="note">'+node.note+'</div>'+
+        '<div class="again"></div>';
+      sceneEl.appendChild(box);
+      var isNew=!found.has(id);
+      if(isNew){ found.add(id); save(); }
+      renderWall(isNew?id:null);
+      var again=box.querySelector(".again");
+      var b1=document.createElement("button"); b1.className="btn primary"; b1.textContent="↻ 再走一次";
+      b1.addEventListener("click",function(){ render("start"); sceneEl.scrollIntoView({block:"start",behavior:reduce?"auto":"smooth"}); });
+      again.appendChild(b1);
+      if(found.size>=ENDINGS.length){
+        var span=document.createElement("span"); span.className="btn"; span.style.cursor="default";
+        span.textContent="🏛️ 六種命運全收集了"; again.appendChild(span);
+        if(isNew) celebrate();
+      }
+      var msg=(node.survive?"生還結局：":"罹難結局：")+node.title+"。"+node.note.replace(/<[^>]+>/g,"");
+      announce(msg);
+      setTimeout(function(){ b1.focus(); },40);
+    } else {
+      box.innerHTML='<div class="story">'+node.text+'</div><div class="choices"></div>';
+      sceneEl.appendChild(box);
+      var wrap=box.querySelector(".choices");
+      node.choices.forEach(function(ch,i){
+        var b=document.createElement("button"); b.className="choice"; b.textContent=ch.t;
+        if(!reduce){ b.style.opacity=0; b.style.animation="fadein .5s var(--ease) "+(0.12+i*0.08)+"s forwards"; }
+        b.addEventListener("click",function(){ render(ch.to); });
+        wrap.appendChild(b);
+      });
+      announce(node.text.replace(/<[^>]+>/g," "));
+      setTimeout(function(){ var f=wrap.querySelector(".choice"); if(f) f.focus(); },60);
+    }
+  }
+
+  function renderWall(newId){
+    var html="";
+    ENDINGS.forEach(function(id){
+      var n=STORY.nodes[id]; var got=found.has(id);
+      var cls="slot "+(got?("got "+(n.survive?"survive":"perish")):"locked")+(id===newId?" new":"");
+      html+='<div class="'+cls+'">'+
+        '<span class="si">'+(got?n.icon:"❔")+'</span>'+
+        '<span class="st">'+(got?n.title:"？？？")+'</span></div>';
+    });
+    wallEl.innerHTML=html;
+    fcount.textContent=found.size;
+  }
+
+  function announce(t){ live.textContent=""; setTimeout(function(){ live.textContent=t; },30); }
+
+  function celebrate(){
+    if(reduce) return;
+    var r=sceneEl.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+60;
+    var cols=["#eb8a3c","#f4b064","#8fc79a","#caa06a"];
+    for(var k=0;k<20;k++) setTimeout(function(){
+      for(var i=0;i<8;i++){ var s=document.createElement("div"); s.className="spark";
+        var a=Math.random()*Math.PI*2, d=40+Math.random()*40; s.style.left=cx+"px"; s.style.top=cy+"px";
+        s.style.background=cols[i%cols.length]; s.style.setProperty("--dx",Math.cos(a)*d+"px"); s.style.setProperty("--dy",Math.sin(a)*d+"px");
+        document.body.appendChild(s); s.addEventListener("animationend",function(){ this.remove(); }); }
+    }, Math.random()*600);
+  }
+
+  // 落灰
+  (function(){
+    var host=document.getElementById("ash"), n=reduce?0:26, html="";
+    for(var i=0;i<n;i++){ html+='<i style="left:'+(Math.random()*100).toFixed(2)+'%;--t:'+(8+Math.random()*8).toFixed(1)+'s;--td:'+(Math.random()*8).toFixed(1)+'s;--dx:'+((Math.random()*60-10)|0)+'px;transform:scale('+(0.5+Math.random()).toFixed(2)+')"></i>'; }
+    host.innerHTML=html;
+  })();
+
+  renderWall(null);
+  render("start");
+})();
+</script>
+</body>
+</html>

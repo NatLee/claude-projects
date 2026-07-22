@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>疊塔 · 對齊、疊高、別手滑</title>
+<style>
+  :root{
+    --bg:#070a12; --ink:#eef2fb; --dim:#9fb0cc; --faint:#5f6f8c;
+    --c1:#5ad0ff; --c2:#8a7dff; --gold:#ffd36a; --good:#63e6a8; --bad:#ff6b81;
+    --brd:rgba(122,150,255,.18); --panel:rgba(16,22,38,.7);
+    --ease:cubic-bezier(.22,.61,.36,1); --pop:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1000px 620px at 50% -10%, #17203f 0%, transparent 58%),
+      radial-gradient(760px 520px at 90% 108%, #1a1533 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    line-height:1.6; min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  .wrap{max-width:620px; margin:0 auto; padding:24px 20px 60px}
+  .rise{opacity:0; transform:translateY(14px); animation:rise .7s var(--ease) forwards; animation-delay:var(--d,0s)}
+  @keyframes rise{to{opacity:1; transform:none}}
+
+  .home{display:inline-flex; align-items:center; gap:.4em; color:var(--faint); text-decoration:none;
+    font-size:.82rem; letter-spacing:.04em; transition:color .25s, transform .25s}
+  .home:hover,.home:focus-visible{color:var(--c1); transform:translateX(-3px)}
+  .home:focus-visible{outline:2px solid var(--c1); outline-offset:3px; border-radius:6px}
+  header.top{margin:18px 0 6px}
+  .kick{font-size:.72rem; letter-spacing:.4em; color:var(--c2); text-transform:uppercase; font-weight:700}
+  h1{margin:.1em 0; font-size:clamp(2.4rem,8vw,3.8rem); font-weight:800; letter-spacing:.02em; line-height:1;
+    background:linear-gradient(96deg,var(--c1),#cfe9ff 45%,var(--c2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{color:var(--dim); font-size:clamp(.98rem,2.2vw,1.1rem); max-width:42ch}
+
+  .hud{display:flex; align-items:center; gap:18px; margin:16px 0 10px}
+  .stat .k{font-size:.68rem; letter-spacing:.14em; color:var(--faint); text-transform:uppercase; font-weight:700}
+  .stat .v{font-size:1.7rem; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.1}
+  .stat.score .v{color:var(--gold)} .stat.best .v{color:var(--c1)}
+  .combo{margin-left:auto; font-weight:800; color:var(--good); opacity:0; transform:translateY(4px); transition:opacity .2s, transform .2s}
+  .combo.on{opacity:1; transform:none}
+
+  .stage{position:relative; width:100%; max-width:460px; margin:0 auto; height:clamp(400px,66vh,640px);
+    border-radius:18px; overflow:hidden; border:1px solid var(--brd);
+    box-shadow:0 30px 70px -34px rgba(0,0,0,.9), inset 0 0 0 1px rgba(122,150,255,.05); touch-action:manipulation}
+  #cv{display:block; width:100%; height:100%}
+  .overlay{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    text-align:center; padding:24px; background:radial-gradient(circle at 50% 42%, rgba(12,18,34,.72), rgba(6,9,17,.9)); backdrop-filter:blur(2px)}
+  .overlay.hide{display:none}
+  .overlay h2{font-size:1.7rem; margin:0}
+  .overlay .big{font-size:3rem; font-weight:800; color:var(--gold); line-height:1; font-variant-numeric:tabular-nums}
+  .overlay p{color:var(--dim); margin:0; font-size:.96rem}
+  .btn{appearance:none; font-family:inherit; font-size:1rem; font-weight:700; color:#04121c; cursor:pointer;
+    background:linear-gradient(160deg,var(--c1),#3aa9e0); border:0; border-radius:12px; padding:.7em 1.7em;
+    transition:transform .16s var(--pop), filter .2s}
+  .btn:hover{filter:brightness(1.08)} .btn:active{transform:translateY(1px) scale(.98)}
+  .btn:focus-visible{outline:2px solid #fff; outline-offset:2px}
+  .hint{color:var(--faint); font-size:.86rem; margin-top:2px}
+  .tag{display:inline-block; font-size:.72rem; font-weight:800; letter-spacing:.1em; color:var(--bad)}
+
+  footer{margin-top:26px; color:var(--faint); font-size:.82rem; text-align:center}
+  @media(prefers-reduced-motion:reduce){ .rise{animation-duration:.001s} }
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home rise" href="../../../index.html" style="--d:.02s">← 回每日小專案</a>
+  <header class="top">
+    <div class="kick rise" style="--d:.08s">街機 · 手感反應</div>
+    <h1 class="rise" style="--d:.14s">疊塔</h1>
+    <p class="sub rise" style="--d:.22s">方塊左右滑，抓準時機放下。對齊的部分留下、超出的被切掉——塔越疊越窄。完美對齊會亮起連擊，還能把塔加寬回來。你能疊多高？</p>
+  </header>
+
+  <div class="hud rise" style="--d:.3s">
+    <div class="stat score"><div class="k">高度</div><div class="v" id="score">0</div></div>
+    <div class="stat best"><div class="k">最佳</div><div class="v" id="best">0</div></div>
+    <div class="combo" id="combo">完美 ×2</div>
+  </div>
+
+  <div class="stage rise" style="--d:.36s">
+    <canvas id="cv" aria-label="疊塔遊戲畫面"></canvas>
+    <div class="overlay" id="ov">
+      <h2 id="ovTitle">疊塔</h2>
+      <p id="ovText">點畫面或按空白鍵，把滑動的方塊放到正下方那塊上。</p>
+      <button class="btn" id="ovBtn">開始</button>
+      <p class="hint">操作：點擊／輕觸／空白鍵＝放下</p>
+    </div>
+  </div>
+
+  <footer>純手感小遊戲，紀錄只留在這一頁。</footer>
+</div>
+<p class="sr" id="live" aria-live="polite"></p>
+
+<script>
+/* === STACKCORE_START === 疊放核心（唯一資料來源；tools 測試會抽這段） ===
+ * placeBlock：把 cur 疊到 prev 上，算出保留的重疊區與被切掉的部分。
+ * prev/cur 皆 {x,w}（同一水平座標系，x 為左緣）。eps 內視為「完美對齊」。
+ */
+function placeBlock(prev, cur, eps){
+  eps = eps || 0;
+  var nx = Math.max(prev.x, cur.x);
+  var nr = Math.min(prev.x + prev.w, cur.x + cur.w);
+  var nw = nr - nx;
+  if(nw <= 0) return { ok:false };
+  var perfect = Math.abs(cur.x - prev.x) <= eps;
+  if(perfect){ nx = prev.x; nw = prev.w; }
+  var cutL = (nx - cur.x) > 0.0001 ? { x:cur.x, w:nx - cur.x } : null;
+  var cutR = ((cur.x + cur.w) - (nx + nw)) > 0.0001 ? { x:nx + nw, w:(cur.x + cur.w) - (nx + nw) } : null;
+  return { ok:true, perfect:perfect, block:{ x:nx, w:nw }, cutL:cutL, cutR:cutR };
+}
+/* === STACKCORE_END === */
+
+(function(){
+  "use strict";
+  var LS="stack.best";
+  var RM=window.matchMedia("(prefers-reduced-motion: reduce)"); var reduce=RM.matches;
+  RM.addEventListener("change",function(e){ reduce=e.matches; });
+
+  var cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+  var stage=cv.parentElement;
+  var scoreEl=document.getElementById("score"), bestEl=document.getElementById("best");
+  var comboEl=document.getElementById("combo"), live=document.getElementById("live");
+  var ov=document.getElementById("ov"), ovTitle=document.getElementById("ovTitle"), ovText=document.getElementById("ovText"), ovBtn=document.getElementById("ovBtn");
+
+  var BH=26, EPS=5, GROUND=30;
+  var W=0, H=0, dpr=1;
+  var blocks=[], moving=null, debris=[], cam=0, score=0, combo=0;
+  var state="idle"; // idle | play | over
+  var best=0; try{ best=parseInt(localStorage.getItem(LS)||"0",10)||0; }catch(e){}
+  bestEl.textContent=best;
+
+  function fit(){
+    dpr=Math.min(window.devicePixelRatio||1, 2);
+    var oldW=W;
+    W=stage.clientWidth; H=stage.clientHeight;
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(oldW>0 && oldW!==W && blocks.length){ // 依比例重新縮放，避免跑版
+      var r=W/oldW;
+      blocks.forEach(function(b){ b.x*=r; b.w*=r; });
+      if(moving){ moving.x*=r; moving.w*=r; }
+    }
+    draw();
+  }
+
+  function hueFor(level){ return (200 + level*9) % 360; }
+  function reset(){
+    blocks=[]; debris=[]; cam=0; score=0; combo=0;
+    var w0=Math.min(200, W*0.52);
+    blocks.push({ x:(W-w0)/2, w:w0, level:0, hue:hueFor(0) });
+    spawnMoving();
+    scoreEl.textContent=0; comboEl.classList.remove("on");
+  }
+  function spawnMoving(){
+    var top=blocks[blocks.length-1];
+    var fromLeft=(blocks.length%2===1);
+    var speed=Math.min(150+blocks.length*9, 430); // px/s，隨高度加快
+    moving={ x:fromLeft?0:(W-top.w), w:top.w, dir:fromLeft?1:-1, speed:speed, hue:hueFor(blocks.length) };
+  }
+  function yFor(level){ return H - GROUND - (level+1)*BH + cam; }
+
+  function drop(){
+    if(state!=="play") return;
+    var prev=blocks[blocks.length-1];
+    var r=placeBlock(prev, {x:moving.x, w:moving.w}, EPS);
+    if(!r.ok){ gameOver(); return; }
+    var y=yFor(blocks.length);
+    if(!reduce){
+      if(r.cutL) debris.push(mkDebris(r.cutL.x, y, r.cutL.w, moving.hue, -1));
+      if(r.cutR) debris.push(mkDebris(r.cutR.x, y, r.cutR.w, moving.hue, 1));
+    }
+    blocks.push({ x:r.block.x, w:r.block.w, level:blocks.length, hue:moving.hue });
+    score++; scoreEl.textContent=score;
+    if(r.perfect){
+      combo++;
+      if(combo>=2){ comboEl.textContent="完美 ×"+combo; comboEl.classList.add("on"); }
+      // 連續完美，把塔稍微加寬回來（上限為初始寬）
+      var top=blocks[blocks.length-1];
+      var maxW=Math.min(200, W*0.52);
+      top.w=Math.min(maxW, top.w+8); if(top.x+top.w>W) top.x=W-top.w; if(top.x<0) top.x=0;
+      flash=1;
+    } else { combo=0; comboEl.classList.remove("on"); }
+    // 相機：塔高過半就往上帶
+    var target=Math.max(0, (blocks.length*BH) - H*0.55);
+    camTarget=target;
+    spawnMoving();
+    if(best<score){ best=score; bestEl.textContent=best; try{ localStorage.setItem(LS,String(best)); }catch(e){} }
+  }
+
+  function mkDebris(x,y,w,hue,dir){ return { x:x, y:y, w:w, h:BH, vx:dir*(40+Math.random()*60), vy:-40-Math.random()*40, rot:0, vr:dir*(Math.random()*4+1), life:1, hue:hue }; }
+
+  var camTarget=0, flash=0, last=0, raf=0, paused=false;
+  function loop(ts){
+    raf=requestAnimationFrame(loop);
+    if(paused) { last=ts; return; }
+    var dt=last?Math.min((ts-last)/1000, 0.05):0.016; last=ts;
+    update(dt); draw();
+  }
+  function update(dt){
+    cam += (camTarget-cam)*Math.min(1, dt*6);
+    if(flash>0) flash=Math.max(0, flash-dt*3);
+    if(state==="play" && moving){
+      moving.x += moving.dir*moving.speed*dt;
+      if(moving.x<=0){ moving.x=0; moving.dir=1; }
+      else if(moving.x+moving.w>=W){ moving.x=W-moving.w; moving.dir=-1; }
+    }
+    for(var i=debris.length-1;i>=0;i--){ var d=debris[i];
+      d.vy+=520*dt; d.x+=d.vx*dt; d.y+=d.vy*dt; d.rot+=d.vr*dt; d.life-=dt*0.7;
+      if(d.y>H+80||d.life<=0) debris.splice(i,1);
+    }
+  }
+  function rrect(x,y,w,h,r){
+    r=Math.min(r,h/2,w/2);
+    ctx.beginPath();
+    if(ctx.roundRect){ ctx.roundRect(x,y,w,h,r); }
+    else{ ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+  }
+  function blockFill(hue,y){
+    var g=ctx.createLinearGradient(0,y,0,y+BH);
+    g.addColorStop(0,"hsl("+hue+",72%,66%)"); g.addColorStop(1,"hsl("+hue+",64%,52%)");
+    return g;
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // 地平線微光
+    var gg=ctx.createLinearGradient(0,H-90,0,H); gg.addColorStop(0,"rgba(90,120,220,0)"); gg.addColorStop(1,"rgba(90,120,220,.10)");
+    ctx.fillStyle=gg; ctx.fillRect(0,H-90,W,90);
+    // 已疊方塊
+    for(var i=0;i<blocks.length;i++){ var b=blocks[i], y=yFor(b.level);
+      if(y>H+40||y<-40) continue;
+      ctx.fillStyle=blockFill(b.hue,y); rrect(b.x,y,b.w,BH,6); ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.16)"; rrect(b.x,y,b.w,4,3); ctx.fill();
+    }
+    // 滑動方塊
+    if(state==="play" && moving){ var my=yFor(blocks.length);
+      if(flash>0){ ctx.save(); ctx.shadowColor="rgba(255,211,106,.9)"; ctx.shadowBlur=24*flash; }
+      ctx.fillStyle=blockFill(moving.hue,my); rrect(moving.x,my,moving.w,BH,6); ctx.fill();
+      ctx.fillStyle="rgba(255,255,255,.16)"; rrect(moving.x,my,moving.w,4,3); ctx.fill();
+      if(flash>0) ctx.restore();
+    }
+    // 碎片
+    for(var k=0;k<debris.length;k++){ var d=debris[k];
+      ctx.save(); ctx.globalAlpha=Math.max(0,d.life); ctx.translate(d.x+d.w/2,d.y+d.h/2); ctx.rotate(d.rot);
+      ctx.fillStyle="hsl("+d.hue+",60%,58%)"; rrect(-d.w/2,-d.h/2,d.w,d.h,5); ctx.fill(); ctx.restore();
+    }
+  }
+
+  function start(){ state="play"; reset(); ov.classList.add("hide"); last=0; announce("開始！"); }
+  function gameOver(){
+    state="over"; comboEl.classList.remove("on");
+    ovTitle.innerHTML='<span class="tag">結束</span><br>疊到 '+score+' 層';
+    ovText.textContent = score>=best&&score>0 ? "新紀錄！再挑戰一次？" : "最佳 "+best+" 層。再來一次？";
+    ovBtn.textContent="再玩一次"; ov.classList.remove("hide");
+    announce("遊戲結束，疊到 "+score+" 層");
+    ovBtn.focus();
+  }
+  function announce(t){ live.textContent=""; setTimeout(function(){ live.textContent=t; },30); }
+
+  // 輸入
+  function input(e){ if(e){ e.preventDefault(); } if(state==="play") drop(); else if(state!=="play") start(); }
+  cv.addEventListener("pointerdown", input);
+  ovBtn.addEventListener("click", function(e){ e.stopPropagation(); start(); });
+  window.addEventListener("keydown", function(e){ if(e.code==="Space"||e.key===" "||e.code==="Enter"){ e.preventDefault(); input(); } });
+
+  // 生命週期
+  document.addEventListener("visibilitychange", function(){ paused=document.hidden; if(!paused) last=0; });
+  window.addEventListener("resize", fit);
+
+  fit();
+  raf=requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

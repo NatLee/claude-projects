@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>排除法 · 誰養了那條魚？</title>
+<style>
+  :root{
+    --bg:#0a0f14; --bg2:#0f1620; --ink:#eaf1f4; --dim:#9fb2bd; --faint:#647784;
+    --teal:#5cc9c1; --amber:#f4bd54; --indigo:#8ea2ff; --red:#e2685f; --green:#67d08a;
+    --line:#1e2a33; --panel:rgba(18,26,33,.66); --brd:rgba(92,201,193,.16);
+    --cell:rgba(9,14,19,.6);
+    --ease:cubic-bezier(.22,.61,.36,1); --pop:cubic-bezier(.34,1.56,.64,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:
+      radial-gradient(1100px 640px at 12% -8%, #12202a 0%, transparent 58%),
+      radial-gradient(900px 620px at 92% 4%, #191426 0%, transparent 54%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    line-height:1.6; min-height:100vh; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:24px 20px 72px}
+
+  .rise{opacity:0; transform:translateY(14px); animation:rise .7s var(--ease) forwards; animation-delay:var(--d,0s)}
+  @keyframes rise{to{opacity:1; transform:none}}
+
+  .home{display:inline-flex; align-items:center; gap:.4em; color:var(--faint); text-decoration:none;
+    font-size:.82rem; letter-spacing:.04em; transition:color .25s, transform .25s}
+  .home:hover,.home:focus-visible{color:var(--teal); transform:translateX(-3px)}
+  .home:focus-visible{outline:2px solid var(--teal); outline-offset:3px; border-radius:6px}
+  header.top{margin:18px 0 6px}
+  .kick{font-size:.72rem; letter-spacing:.4em; color:var(--indigo); text-transform:uppercase; font-weight:700}
+  h1{margin:.1em 0; font-size:clamp(2.6rem,9vw,4.4rem); font-weight:800; letter-spacing:-.01em; line-height:1;
+    background:linear-gradient(96deg,var(--teal),#bfeee9 45%,var(--amber)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .sub{color:var(--dim); font-size:clamp(1rem,2.3vw,1.12rem); max-width:46ch}
+  .sub b{color:var(--ink); font-weight:600}
+
+  .quest{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; margin:18px 0 6px;
+    padding:14px 16px; border-radius:14px; background:var(--panel); border:1px solid var(--brd)}
+  .quest .q{font-size:1.05rem; font-weight:700}
+  .quest .q .big{font-size:1.3rem}
+  .streak{margin-left:auto; color:var(--dim); font-size:.9rem}
+  .streak b{color:var(--amber); font-size:1.05rem; font-variant-numeric:tabular-nums}
+
+  .board{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:22px; align-items:start; margin-top:14px}
+  @media(max-width:860px){ .board{grid-template-columns:1fr} }
+  .panel{background:var(--panel); border:1px solid var(--brd); border-radius:16px; padding:16px; backdrop-filter:blur(8px)}
+
+  /* 推理格 */
+  .gridwrap{overflow-x:auto; padding-bottom:4px}
+  .puzzle{display:grid; gap:7px; min-width:max-content}
+  .hd{font-size:.78rem; color:var(--faint); text-align:center; font-weight:700; align-self:end; padding-bottom:3px}
+  .hd .hh{display:block; font-size:1.05rem; color:var(--dim)}
+  .rowlab{display:flex; flex-direction:column; justify-content:center; gap:1px; padding-right:6px; white-space:nowrap}
+  .rowlab .ce{font-size:1.15rem} .rowlab .cn{font-size:.72rem; color:var(--faint)}
+  .cell{background:var(--cell); border:1px solid var(--line); border-radius:10px; padding:5px;
+    display:grid; grid-template-columns:repeat(var(--nc,2), 1fr); gap:4px; min-width:calc(var(--nc,2)*34px + 14px);
+    transition:box-shadow .3s, border-color .25s}
+  .cell.solved{border-color:rgba(244,189,84,.55); box-shadow:0 0 0 1px rgba(244,189,84,.3), 0 10px 24px -14px rgba(244,189,84,.5)}
+  .chip{appearance:none; border:0; background:rgba(255,255,255,.045); border-radius:8px; cursor:pointer;
+    width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:1.15rem;
+    padding:0; color:inherit; position:relative; transition:transform .16s var(--pop), background .2s, opacity .2s}
+  .chip:hover{background:rgba(92,201,193,.16); transform:translateY(-1px)}
+  .chip:focus-visible{outline:2px solid var(--teal); outline-offset:1px}
+  .chip.x{opacity:.24; filter:grayscale(1)}
+  .chip.x::after{content:""; position:absolute; left:14%; right:14%; top:48%; height:2px; background:var(--red); transform:rotate(-16deg); border-radius:2px}
+  .cell.solved .chip:not(.x){background:linear-gradient(160deg,rgba(244,189,84,.28),rgba(244,189,84,.08)); transform:scale(1.06)}
+  .chip.ping{animation:ping .5s var(--ease)}
+  @keyframes ping{40%{transform:scale(1.22)}100%{transform:none}}
+
+  /* 線索 */
+  .side{position:sticky; top:14px; display:flex; flex-direction:column; gap:14px}
+  @media(max-width:860px){ .side{position:static} }
+  .lbl{font-size:.72rem; letter-spacing:.16em; color:var(--faint); text-transform:uppercase; font-weight:700; margin:0 0 10px}
+  ol.clues{list-style:none; margin:0; padding:0; counter-reset:c}
+  ol.clues li{counter-increment:c; position:relative; padding:9px 10px 9px 38px; border-radius:10px; cursor:pointer;
+    font-size:.94rem; color:var(--ink); transition:background .2s, opacity .2s; border:1px solid transparent}
+  ol.clues li::before{content:counter(c); position:absolute; left:8px; top:9px; width:22px; height:22px; border-radius:50%;
+    background:rgba(142,162,255,.16); color:var(--indigo); font-size:.76rem; font-weight:800; display:flex; align-items:center; justify-content:center}
+  ol.clues li:hover{background:rgba(255,255,255,.04)}
+  ol.clues li.done{opacity:.4; text-decoration:line-through; text-decoration-color:var(--faint)}
+
+  .ctrls{display:flex; flex-wrap:wrap; gap:8px}
+  .btn{flex:1 1 auto; min-width:64px; appearance:none; border:1px solid var(--brd); background:rgba(255,255,255,.05); color:var(--ink);
+    font-family:inherit; font-size:.9rem; font-weight:600; padding:.6em .7em; border-radius:11px; cursor:pointer;
+    transition:transform .16s var(--pop), background .2s, border-color .2s}
+  .btn:hover{background:rgba(92,201,193,.15); border-color:rgba(92,201,193,.4)}
+  .btn:active{transform:translateY(1px) scale(.98)}
+  .btn:focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+  .seg{display:inline-flex; background:rgba(255,255,255,.05); border:1px solid var(--brd); border-radius:11px; padding:3px}
+  .seg button{appearance:none; border:0; background:transparent; color:var(--dim); font-family:inherit; font-weight:700;
+    font-size:.86rem; padding:.4em .8em; border-radius:8px; cursor:pointer; transition:background .2s,color .2s}
+  .seg button[aria-pressed="true"]{background:linear-gradient(160deg,var(--teal),#3fa89f); color:#04110f}
+  .seg button:focus-visible{outline:2px solid var(--teal); outline-offset:2px}
+
+  .msg{min-height:1.4em; font-size:.9rem; color:var(--dim); margin-top:4px}
+  .msg.warn{color:var(--amber)} .msg.good{color:var(--green)}
+
+  footer{margin-top:32px; color:var(--faint); font-size:.82rem; text-align:center}
+
+  /* 慶祝 */
+  .win{position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center; padding:24px;
+    background:radial-gradient(circle at 50% 40%, rgba(16,28,30,.86), rgba(5,9,12,.95))}
+  .win.on{display:flex; animation:fade .5s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .win .box{max-width:420px; text-align:center; animation:rise .7s var(--pop)}
+  .win .we{font-size:4rem}
+  .win h2{font-size:1.9rem; margin:.15em 0 .3em; background:linear-gradient(96deg,var(--teal),var(--amber)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .win p{color:var(--dim); line-height:1.7}
+  .win .btn{display:inline-block; flex:0; margin-top:14px; padding:.7em 1.6em}
+  .spark{position:fixed; z-index:70; width:8px; height:8px; border-radius:50%; pointer-events:none; animation:spark .72s var(--ease) forwards}
+  @keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.2); opacity:0}}
+
+  @media(prefers-reduced-motion:reduce){
+    *{animation-duration:.001s!important; transition-duration:.05s!important}
+  }
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home rise" href="../../../index.html" style="--d:.02s">← 回每日小專案</a>
+  <header class="top">
+    <div class="kick rise" style="--d:.08s">邏輯推理 · 每日一題</div>
+    <h1 class="rise" style="--d:.14s">排除法</h1>
+    <p class="sub rise" style="--d:.2s">一排房子、幾位鄰居。線索不會直接告訴你答案，但把「不可能」一個個劃掉，剩下的就是真相。點格子裡的圖案＝<b>排除</b>它，每格只剩一個時就確定了。</p>
+  </header>
+
+  <div class="quest rise" style="--d:.28s">
+    <div class="q">🎯 目標：<span id="goal">誰養 🐟 ？</span></div>
+    <div class="streak">已破解 <b id="streak">0</b> 題</div>
+  </div>
+
+  <div class="board">
+    <section class="panel rise" style="--d:.34s" aria-label="推理格">
+      <div class="ctrls" style="margin-bottom:14px">
+        <span class="seg" role="group" aria-label="難度">
+          <button id="lvEasy" aria-pressed="true">輕鬆 4×4</button>
+          <button id="lvHard" aria-pressed="false">燒腦 5×5</button>
+        </span>
+        <button class="btn" id="hintBtn" style="flex:0 0 auto">💡 提示</button>
+        <button class="btn" id="checkBtn" style="flex:0 0 auto">✔ 檢查</button>
+        <button class="btn" id="clearBtn" style="flex:0 0 auto">↺ 清空</button>
+        <button class="btn" id="newBtn" style="flex:0 0 auto">🔀 換一題</button>
+      </div>
+      <div class="gridwrap"><div class="puzzle" id="puzzle"></div></div>
+      <p class="msg" id="msg" aria-live="polite"></p>
+    </section>
+
+    <aside class="side rise" style="--d:.42s">
+      <div class="panel">
+        <p class="lbl">線索（點一下可劃掉已用過的）</p>
+        <ol class="clues" id="clues"></ol>
+      </div>
+    </aside>
+  </div>
+
+  <footer>謎題由程式即時生成，保證唯一解、且純靠邏輯就能推出，不必猜。</footer>
+</div>
+
+<div class="win" id="win" role="dialog" aria-modal="true" aria-labelledby="winTitle">
+  <div class="box">
+    <div class="we">🎉</div>
+    <h2 id="winTitle">破解了！</h2>
+    <p id="winMsg"></p>
+    <button class="btn" id="winNext">再來一題 →</button>
+  </div>
+</div>
+<p class="sr" id="live" aria-live="polite"></p>
+
+<script>
+/* === ZEBRA_CORE_START === 邏輯謎題 solver + 生成器（唯一資料來源；tools 測試會抽這段） ===
+ * 純函式、無 DOM。位置以 0..N-1 表示；每個 (類別c, 值v) 指派一個位置。
+ * dom[c][v] = 可能位置的 bitmask。線索型別：
+ *   pos   (c,v) 在位置 p
+ *   same  (c1,v1) 與 (c2,v2) 同位置
+ *   nbr   (c1,v1) 與 (c2,v2) 相鄰（差 1）
+ *   left  (c1,v1) 緊鄰在 (c2,v2) 左邊（p1+1=p2）
+ *   dir   (c1,v1) 在 (c2,v2) 左邊某處（p1<p2）
+ */
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function popcount(m){ var c=0; while(m){ m&=m-1; c++; } return c; }
+function bits(m){ var r=[],p=0; while(m){ if(m&1) r.push(p); m>>>=1; p++; } return r; }
+function onlyBit(m){ return (m&(m-1))===0 && m!==0 ? Math.log2(m)|0 : -1; }
+function fullMask(N){ return (1<<N)-1; }
+function makeDom(N,M){ var d=[]; for(var c=0;c<M;c++){ d[c]=[]; for(var v=0;v<N;v++) d[c][v]=fullMask(N); } return d; }
+function cloneDom(d){ return d.map(function(r){ return r.slice(); }); }
+function shiftMask(m,N){ var left=(m<<1)&fullMask(N), right=(m>>>1); return (left|right)&fullMask(N); }
+function step(dom, clues, N, M){
+  var changed=false;
+  function set(c,v,nm){ if(nm!==dom[c][v]){ dom[c][v]=nm; changed=true; } }
+  for(var i=0;i<clues.length;i++){
+    var q=clues[i];
+    if(q.type==='pos'){ set(q.c,q.v, dom[q.c][q.v] & (1<<q.p)); }
+    else if(q.type==='same'){ var inter=dom[q.c1][q.v1]&dom[q.c2][q.v2]; set(q.c1,q.v1,inter); set(q.c2,q.v2,inter); }
+    else if(q.type==='nbr'){
+      set(q.c1,q.v1, dom[q.c1][q.v1] & shiftMask(dom[q.c2][q.v2],N));
+      set(q.c2,q.v2, dom[q.c2][q.v2] & shiftMask(dom[q.c1][q.v1],N));
+    }
+    else if(q.type==='left'){
+      set(q.c1,q.v1, dom[q.c1][q.v1] & (dom[q.c2][q.v2]>>>1));
+      set(q.c2,q.v2, dom[q.c2][q.v2] & ((dom[q.c1][q.v1]<<1)&fullMask(N)));
+    }
+    else if(q.type==='dir'){
+      var b2=bits(dom[q.c2][q.v2]); var max2=b2.length?b2[b2.length-1]:-1;
+      var b1=bits(dom[q.c1][q.v1]); var min1=b1.length?b1[0]:N;
+      var keep1=0; for(var p=0;p<N;p++) if(p<max2) keep1|=(1<<p);
+      set(q.c1,q.v1, dom[q.c1][q.v1]&keep1);
+      var keep2=0; for(var p2=0;p2<N;p2++) if(p2>min1) keep2|=(1<<p2);
+      set(q.c2,q.v2, dom[q.c2][q.v2]&keep2);
+    }
+  }
+  for(var c=0;c<M;c++){
+    for(var v=0;v<N;v++){ var b=onlyBit(dom[c][v]); if(b>=0){ for(var u=0;u<N;u++) if(u!==v) set(c,u, dom[c][u] & ~(1<<b)); } }
+    for(var p=0;p<N;p++){ var mask=1<<p, who=-1, cnt=0;
+      for(var vv=0;vv<N;vv++) if(dom[c][vv]&mask){ who=vv; cnt++; }
+      if(cnt===1) set(c,who, dom[c][who]&mask);
+    }
+  }
+  for(var cc=0;cc<M;cc++) for(var v2i=0;v2i<N;v2i++) if(dom[cc][v2i]===0) return {changed:changed, ok:false};
+  return {changed:changed, ok:true};
+}
+function propagate(dom, clues, N, M){
+  for(var guard=0; guard<10000; guard++){ var r=step(dom,clues,N,M); if(!r.ok) return false; if(!r.changed) return true; }
+  return true;
+}
+function isSolved(dom,N,M){ for(var c=0;c<M;c++) for(var v=0;v<N;v++) if(popcount(dom[c][v])!==1) return false; return true; }
+function countSolutions(clues,N,M,limit){
+  limit=limit||2; var found=0, sample=null;
+  function rec(dom){
+    if(found>=limit) return;
+    if(!propagate(dom,clues,N,M)) return;
+    var bc=-1,bv=-1,bs=99;
+    for(var c=0;c<M;c++) for(var v=0;v<N;v++){ var s=popcount(dom[c][v]); if(s>1&&s<bs){ bs=s; bc=c; bv=v; } }
+    if(bc===-1){ found++; if(!sample) sample=dom.map(function(r){ return r.map(function(m){ return onlyBit(m); }); }); return; }
+    var ps=bits(dom[bc][bv]);
+    for(var i=0;i<ps.length && found<limit;i++){ var nd=cloneDom(dom); nd[bc][bv]=1<<ps[i]; rec(nd); }
+  }
+  rec(makeDom(N,M));
+  return {count:found, sample:sample};
+}
+function solvableByPropagation(clues,N,M){
+  var dom=makeDom(N,M); if(!propagate(dom,clues,N,M)) return null;
+  return isSolved(dom,N,M) ? dom.map(function(r){ return r.map(function(m){ return onlyBit(m); }); }) : null;
+}
+function trueClues(sol,N,M){
+  var pos=sol; var out=[];
+  for(var c=0;c<M;c++) for(var v=0;v<N;v++) out.push({type:'pos',c:c,v:v,p:pos[c][v]});
+  var cells=[]; for(var c1=0;c1<M;c1++) for(var v1=0;v1<N;v1++) cells.push({c:c1,v:v1,p:pos[c1][v1]});
+  for(var i=0;i<cells.length;i++) for(var j=0;j<cells.length;j++){
+    if(i===j) continue; var A=cells[i], B=cells[j]; if(A.c===B.c) continue;
+    if(i<j){ if(A.p===B.p) out.push({type:'same',c1:A.c,v1:A.v,c2:B.c,v2:B.v});
+      if(Math.abs(A.p-B.p)===1) out.push({type:'nbr',c1:A.c,v1:A.v,c2:B.c,v2:B.v}); }
+    if(A.p+1===B.p) out.push({type:'left',c1:A.c,v1:A.v,c2:B.c,v2:B.v});
+    if(A.p<B.p) out.push({type:'dir',c1:A.c,v1:A.v,c2:B.c,v2:B.v});
+  }
+  return out;
+}
+function shuffle(arr,rnd){ for(var i=arr.length-1;i>0;i--){ var j=(rnd()*(i+1))|0; var t=arr[i]; arr[i]=arr[j]; arr[j]=t; } return arr; }
+function clueWeight(q){ return q.type==='dir'?0.35 : q.type==='pos'?0.8 : q.type==='same'?1 : q.type==='nbr'?0.9 : 0.9; }
+function generate(N,M,seed){
+  var rnd=mulberry32(seed>>>0);
+  for(var attempt=0; attempt<40; attempt++){
+    var sol=[];
+    for(var c=0;c<M;c++){ var perm=[]; for(var v=0;v<N;v++) perm.push(v); shuffle(perm,rnd); sol[c]=perm; }
+    var pool=trueClues(sol,N,M);
+    pool.sort(function(a,b){ return (clueWeight(b)+rnd()*0.6)-(clueWeight(a)+rnd()*0.6); });
+    var chosen=[], ok=false;
+    for(var i=0;i<pool.length;i++){ chosen.push(pool[i]); if(solvableByPropagation(chosen,N,M)){ ok=true; break; } }
+    if(!ok) continue;
+    for(var k=chosen.length-1;k>=0;k--){ var trial=chosen.slice(0,k).concat(chosen.slice(k+1)); if(solvableByPropagation(trial,N,M)) chosen=trial; }
+    var got=solvableByPropagation(chosen,N,M); var same=true;
+    for(var cc=0;cc<M&&same;cc++) for(var vv=0;vv<N;vv++) if(got[cc][vv]!==sol[cc][vv]){ same=false; break; }
+    if(!same) continue;
+    shuffle(chosen,rnd);
+    return {N:N,M:M,sol:sol,clues:chosen,seed:seed>>>0};
+  }
+  return null;
+}
+if(typeof module!=='undefined') module.exports={ generate, countSolutions, solvableByPropagation, trueClues, propagate, makeDom, isSolved, mulberry32 };
+/* === ZEBRA_CORE_END === */
+</script>
+
+<script>
+(function(){
+  "use strict";
+  var RM=window.matchMedia("(prefers-reduced-motion: reduce)"); var reduce=RM.matches;
+  RM.addEventListener("change",function(e){ reduce=e.matches; });
+
+  // 主題：5 類別 × 5 值（依難度切片）。cat 0=名字,1=顏色,2=寵物,3=飲料,4=嗜好
+  var CATS=[
+    {name:"鄰居", emoji:"🙂", vals:[{e:"🧒",l:"小明"},{e:"👧",l:"小美"},{e:"🧑",l:"阿豪"},{e:"👩",l:"婷婷"},{e:"👴",l:"老王"}]},
+    {name:"房子", emoji:"🏠", vals:[{e:"🟥",l:"紅色"},{e:"🟦",l:"藍色"},{e:"🟩",l:"綠色"},{e:"🟨",l:"黃色"},{e:"🟪",l:"紫色"}]},
+    {name:"寵物", emoji:"🐾", vals:[{e:"🐈",l:"貓"},{e:"🐕",l:"狗"},{e:"🐟",l:"魚"},{e:"🐦",l:"鳥"},{e:"🐰",l:"兔"}]},
+    {name:"飲料", emoji:"🥤", vals:[{e:"🍵",l:"茶"},{e:"☕",l:"咖啡"},{e:"🥛",l:"牛奶"},{e:"🧃",l:"果汁"},{e:"🥂",l:"汽水"}]},
+    {name:"嗜好", emoji:"✨", vals:[{e:"📖",l:"讀書"},{e:"🎵",l:"音樂"},{e:"⚽",l:"運動"},{e:"🎨",l:"畫畫"},{e:"🌷",l:"園藝"}]}
+  ];
+  var PET=2, FISH=2, NAME=0; // 目標：誰養魚
+
+  // desc(c,v) → 名詞片語
+  function desc(c,v){
+    var val=CATS[c].vals[v];
+    if(c===0) return val.e+val.l;
+    if(c===1) return val.e+val.l+"房子";
+    if(c===2) return "養"+val.e+"的人";
+    if(c===3) return "喝"+val.e+"的人";
+    return "愛"+val.e+"的人";
+  }
+  function clueText(q){
+    if(q.type==='pos') return desc(q.c,q.v)+"在第 "+(q.p+1)+" 間。";
+    if(q.type==='same') return desc(q.c1,q.v1)+" 和 "+desc(q.c2,q.v2)+" 住同一間。";
+    if(q.type==='nbr') return desc(q.c1,q.v1)+" 和 "+desc(q.c2,q.v2)+" 相鄰。";
+    if(q.type==='left') return desc(q.c1,q.v1)+" 就在 "+desc(q.c2,q.v2)+" 的左邊一間。";
+    if(q.type==='dir') return desc(q.c1,q.v1)+" 在 "+desc(q.c2,q.v2)+" 的左邊（不一定相鄰）。";
+    return "";
+  }
+
+  // ---------- 狀態 ----------
+  var P=null;          // 目前謎題
+  var elim=null;       // elim[c][v][h] = 是否已排除
+  var lvl="easy";
+  var won=false;
+  var chipEls, cellEls;
+  var LV={ easy:{N:4,M:4}, hard:{N:5,M:5} };
+
+  var msg=document.getElementById("msg");
+  var live=document.getElementById("live");
+  var puzzleEl=document.getElementById("puzzle");
+  var cluesEl=document.getElementById("clues");
+  var streakEl=document.getElementById("streak");
+  var goalEl=document.getElementById("goal");
+
+  function getStreak(){ try{ return parseInt(localStorage.getItem("zebra.streak")||"0",10)||0; }catch(e){ return 0; } }
+  function setStreak(n){ try{ localStorage.setItem("zebra.streak",String(n)); }catch(e){}; streakEl.textContent=n; }
+  function saveProgress(){
+    try{ localStorage.setItem("zebra.save", JSON.stringify({lvl:lvl, seed:P.seed, elim:elim})); }catch(e){}
+  }
+  function todaySeed(N){ var d=new Date(); return ((d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate())*31 + N)>>>0; }
+
+  function newElim(N,M){ var e=[]; for(var c=0;c<M;c++){ e[c]=[]; for(var v=0;v<N;v++){ e[c][v]=[]; for(var h=0;h<N;h++) e[c][v][h]=false; } } return e; }
+
+  function build(seed, restoreElim){
+    var cfg=LV[lvl]; var N=cfg.N, M=cfg.M;
+    var p=null, s=seed>>>0, guard=0;
+    while(!p && guard<50){ p=generate(N,M,s); if(!p){ s=(s+2654435761)>>>0; guard++; } }
+    if(!p){ msg.textContent="生成失敗，請再按一次換一題。"; return; }
+    P=p; won=false;
+    elim = restoreElim || newElim(N,M);
+    puzzleEl.style.setProperty("--nc", N<=4?2:3);
+    renderGrid(); renderClues(); updateView();
+    setMsg("把不可能的圖案劃掉，每格只剩一個就確定了。","");
+    saveProgress();
+  }
+
+  function renderGrid(){
+    var N=P.N, M=P.M;
+    puzzleEl.style.gridTemplateColumns="minmax(0,auto) repeat("+N+", minmax(0,1fr))";
+    var html='<div class="hd"></div>';
+    for(var h=0;h<N;h++) html+='<div class="hd"><span class="hh">🏠</span>第'+(h+1)+'間</div>';
+    for(var c=0;c<M;c++){
+      html+='<div class="rowlab"><span class="ce">'+CATS[c].emoji+'</span><span class="cn">'+CATS[c].name+'</span></div>';
+      for(var h2=0;h2<N;h2++){
+        html+='<div class="cell" data-c="'+c+'" data-h="'+h2+'">';
+        for(var v=0;v<N;v++){
+          var val=CATS[c].vals[v];
+          html+='<button class="chip" data-c="'+c+'" data-v="'+v+'" data-h="'+h2+'" aria-label="第'+(h2+1)+'間的'+CATS[c].name+' '+val.l+'，點擊排除或恢復" aria-pressed="false">'+val.e+'</button>';
+        }
+        html+='</div>';
+      }
+    }
+    puzzleEl.innerHTML=html;
+    chipEls={}; cellEls={};
+    var chips=puzzleEl.querySelectorAll(".chip");
+    chips.forEach(function(b){
+      var c=+b.dataset.c, v=+b.dataset.v, h=+b.dataset.h;
+      chipEls[c+"_"+v+"_"+h]=b;
+      b.addEventListener("click",function(){ toggle(c,v,h,b); });
+    });
+    puzzleEl.querySelectorAll(".cell").forEach(function(cell){ cellEls[cell.dataset.c+"_"+cell.dataset.h]=cell; });
+  }
+
+  function renderClues(){
+    var html="";
+    P.clues.forEach(function(q,i){ html+='<li tabindex="0" data-i="'+i+'">'+clueText(q)+'</li>'; });
+    cluesEl.innerHTML=html;
+    cluesEl.querySelectorAll("li").forEach(function(li){
+      function t(){ li.classList.toggle("done"); }
+      li.addEventListener("click",t);
+      li.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); t(); } });
+    });
+    goalEl.textContent="誰養 "+CATS[PET].vals[FISH].e+" ？";
+  }
+
+  // 玩家排除某 chip；然後做「同類唯一值」輔助傳播
+  function toggle(c,v,h,btn){
+    if(won) return;
+    elim[c][v][h]=!elim[c][v][h];
+    if(!reduce && btn){ btn.classList.remove("ping"); void btn.offsetWidth; btn.classList.add("ping"); }
+    assist();
+    updateView(); saveProgress();
+    checkWin();
+  }
+
+  // 輔助：某格只剩一個值 → 該值在同列其他房子排除（AllDifferent，純機械、可自行關閉概念上等同手動）
+  function assist(){
+    var N=P.N, M=P.M, changed=true, guard=0;
+    while(changed && guard++<200){
+      changed=false;
+      for(var c=0;c<M;c++) for(var h=0;h<N;h++){
+        var rem=-1,cnt=0;
+        for(var v=0;v<N;v++) if(!elim[c][v][h]){ rem=v; cnt++; }
+        if(cnt===1){ for(var h2=0;h2<N;h2++) if(h2!==h && !elim[c][rem][h2]){ elim[c][rem][h2]=true; changed=true; } }
+      }
+    }
+  }
+
+  function cellState(c,h){ var rem=-1,cnt=0; for(var v=0;v<P.N;v++) if(!elim[c][v][h]){ rem=v; cnt++; } return {rem:rem,cnt:cnt}; }
+
+  function updateView(){
+    var N=P.N, M=P.M;
+    for(var c=0;c<M;c++) for(var h=0;h<N;h++){
+      var st=cellState(c,h), cell=cellEls[c+"_"+h];
+      cell.classList.toggle("solved", st.cnt===1);
+      for(var v=0;v<N;v++){ var b=chipEls[c+"_"+v+"_"+h]; var x=elim[c][v][h];
+        b.classList.toggle("x", x); b.setAttribute("aria-pressed", x?"true":"false"); }
+    }
+  }
+
+  function setMsg(t,cls){ msg.className="msg"+(cls?" "+cls:""); msg.textContent=t; }
+  function announce(t){ live.textContent=""; setTimeout(function(){ live.textContent=t; },30); }
+
+  // 檢查：只點出硬矛盾，不洩漏正解；全對則獲勝
+  function checkBtn(){
+    var N=P.N, M=P.M;
+    for(var c=0;c<M;c++){
+      for(var h=0;h<N;h++){ var any=false; for(var v=0;v<N;v++) if(!elim[c][v][h]) any=true;
+        if(!any){ setMsg("第 "+(h+1)+" 間的「"+CATS[c].name+"」被你排到一個都不剩了，往回檢查看看。","warn"); return; } }
+      for(var v2=0;v2<N;v2++){ var anyh=false; for(var h2=0;h2<N;h2++) if(!elim[c][v2][h2]) anyh=true;
+        if(!anyh){ setMsg("「"+desc(c,v2)+"」在每一間都被排除了，某一步排錯囉。","warn"); return; } }
+    }
+    if(allSolved()){ if(correct()){ win(); } else { setMsg("每格都填滿了，但和線索兜不攏——有地方推錯了。","warn"); } }
+    else setMsg("目前沒有矛盾，繼續推！","good");
+  }
+  function allSolved(){ for(var c=0;c<P.M;c++) for(var h=0;h<P.N;h++) if(cellState(c,h).cnt!==1) return false; return true; }
+  function correct(){ for(var c=0;c<P.M;c++) for(var h=0;h<P.N;h++){ var st=cellState(c,h); if(st.cnt!==1) return false;
+    if(P.sol[c][st.rem]!==h) return false; } return true; }
+  function checkWin(){ if(!won && allSolved() && correct()) win(); }
+
+  function win(){
+    if(won) return; won=true;
+    var fishHouse=P.sol[PET][FISH]; var nameV=-1;
+    for(var v=0;v<P.N;v++) if(P.sol[NAME][v]===fishHouse) nameV=v;
+    var nm=CATS[NAME].vals[nameV];
+    document.getElementById("winMsg").innerHTML="養 "+CATS[PET].vals[FISH].e+" 的是 <b>"+nm.e+nm.l+"</b>（第 "+(fishHouse+1)+" 間）。";
+    setStreak(getStreak()+1);
+    setMsg("破解！","good"); announce("恭喜破解，養魚的是"+nm.l);
+    try{ localStorage.removeItem("zebra.save"); }catch(e){}
+    var w=document.getElementById("win"); w.classList.add("on");
+    if(!reduce){ var box=w.querySelector(".box"); for(var i=0;i<24;i++) setTimeout(function(){ burst(box); }, Math.random()*600); }
+    document.getElementById("winNext").focus();
+  }
+
+  function burst(anchor){
+    if(reduce||!anchor) return;
+    var r=anchor.getBoundingClientRect(), cx=r.left+r.width/2, cy=r.top+r.height/2;
+    var cols=["#5cc9c1","#f4bd54","#8ea2ff","#67d08a"];
+    for(var i=0;i<12;i++){ var s=document.createElement("div"); s.className="spark";
+      var a=Math.PI*2*i/12, d=36+Math.random()*30; s.style.left=cx+"px"; s.style.top=cy+"px";
+      s.style.background=cols[i%cols.length]; s.style.setProperty("--dx",Math.cos(a)*d+"px"); s.style.setProperty("--dy",Math.sin(a)*d+"px");
+      document.body.appendChild(s); s.addEventListener("animationend",function(){ this.remove(); }); }
+  }
+
+  // 提示：在某個未定格裡，排除一個「錯的」候選
+  function hint(){
+    if(won) return;
+    var cells=[];
+    for(var c=0;c<P.M;c++) for(var h=0;h<P.N;h++){ var st=cellState(c,h); if(st.cnt>1) cells.push({c:c,h:h}); }
+    if(!cells.length){ setMsg("每格都只剩一個了，按「檢查」看看對不對！",""); return; }
+    cells.sort(function(){ return Math.random()-0.5; });
+    for(var i=0;i<cells.length;i++){ var c=cells[i].c, h=cells[i].h;
+      for(var v=0;v<P.N;v++){ if(!elim[c][v][h] && P.sol[c][v]!==h){ // 這個候選是錯的 → 排除
+        elim[c][v][h]=true; assist(); updateView(); saveProgress();
+        var b=chipEls[c+"_"+v+"_"+h]; if(b && !reduce){ b.classList.add("ping"); }
+        setMsg("提示：第 "+(h+1)+" 間不是「"+CATS[c].vals[v].l+"」，幫你劃掉了一個。","");
+        checkWin(); return; } }
+    }
+    setMsg("看起來你已經推得差不多了，按「檢查」吧！","");
+  }
+
+  // ---------- 事件 ----------
+  document.getElementById("hintBtn").addEventListener("click",hint);
+  document.getElementById("checkBtn").addEventListener("click",checkBtn);
+  document.getElementById("clearBtn").addEventListener("click",function(){
+    if(won) return; elim=newElim(P.N,P.M); updateView(); saveProgress(); setMsg("已清空，重新推理。","");
+  });
+  document.getElementById("newBtn").addEventListener("click",function(){ build((Math.random()*4294967296)>>>0); });
+  document.getElementById("winNext").addEventListener("click",function(){ document.getElementById("win").classList.remove("on"); build((Math.random()*4294967296)>>>0); });
+  function pick(l){ if(lvl===l && P) return; lvl=l;
+    document.getElementById("lvEasy").setAttribute("aria-pressed", l==="easy"?"true":"false");
+    document.getElementById("lvHard").setAttribute("aria-pressed", l==="hard"?"true":"false");
+    build(todaySeed(LV[l].N)); }
+  document.getElementById("lvEasy").addEventListener("click",function(){ pick("easy"); });
+  document.getElementById("lvHard").addEventListener("click",function(){ pick("hard"); });
+
+  // ---------- 啟動：優先接續存檔，否則今日題 ----------
+  streakEl.textContent=getStreak();
+  (function start(){
+    var saved=null; try{ saved=JSON.parse(localStorage.getItem("zebra.save")||"null"); }catch(e){}
+    if(saved && (saved.lvl==="easy"||saved.lvl==="hard") && typeof saved.seed==="number"){
+      lvl=saved.lvl;
+      document.getElementById("lvEasy").setAttribute("aria-pressed", lvl==="easy"?"true":"false");
+      document.getElementById("lvHard").setAttribute("aria-pressed", lvl==="hard"?"true":"false");
+      var cfg=LV[lvl];
+      // 還原 elim 需維度相符
+      var ok=Array.isArray(saved.elim)&&saved.elim.length===cfg.M;
+      build(saved.seed, ok?saved.elim:null);
+    } else {
+      build(todaySeed(LV.easy.N));
+    }
+  })();
+})();
+</script>
+</body>
+</html>

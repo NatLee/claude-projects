@@ -3,162 +3,137 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>會自己摺起來的鏈 · AlphaFold 怎麼預測蛋白質形狀</title>
+<title>那條線，卡了五十年 · AlphaFold</title>
 <style>
 :root{
-  --bg:#0a0e17; --panel:#121826; --panel2:#0e1420; --ink:#eaf0fb; --muted:#9fb0c8; --faint:#5f708c;
-  --line:rgba(150,180,230,.12);
+  --bg:#05070d; --ink:#eef3fb; --muted:#9fb0cc; --faint:#5f708c;
   --hi:#4da3ff; --mid:#3fd6c8; --lo:#f2a44e; --gold:#ffcf70;
   --serif:"Iowan Old Style","Noto Serif TC",Georgia,serif;
   --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.75;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(820px 460px at 16% -6%,rgba(77,163,255,.10),transparent 70%),
-             radial-gradient(680px 420px at 92% 2%,rgba(63,214,200,.07),transparent 70%)}
-main,header,footer{position:relative;z-index:1}
-.home{position:absolute;top:24px;left:28px;z-index:5;font-size:.82rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 10px 6px 2px;border-radius:8px;transition:color .25s,transform .25s}
+html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+.home{position:fixed;top:20px;left:24px;z-index:40;font-size:.8rem;letter-spacing:.05em;color:var(--faint);text-decoration:none;padding:6px 12px;border-radius:999px;background:rgba(10,14,24,.5);backdrop-filter:blur(8px);transition:color .25s,transform .25s}
 .home:hover{color:var(--ink);transform:translateX(-3px)}
 .home:focus-visible{outline:2px solid var(--hi);outline-offset:3px;color:var(--ink)}
 
-.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms),transform .7s cubic-bezier(.22,.68,.3,1) var(--d,0ms)}
-.reveal.in{opacity:1;transform:none}
-body.still .reveal{opacity:1;transform:none;transition:none}
+/* 固定在背景的蛋白質舞台 */
+.viz{position:fixed;inset:0;z-index:0;pointer-events:none}
+#stage{width:100%;height:100%;display:block}
+.viz::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 33%,transparent 34%,rgba(5,7,13,.42) 100%);pointer-events:none}
 
-.hero{max-width:820px;margin:0 auto;padding:118px 28px 40px;text-align:center}
-.kick{font-size:.74rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
-h1{font-family:var(--serif);font-size:clamp(2.5rem,7vw,4rem);line-height:1.06;margin:0 0 20px;letter-spacing:.01em;
-  background:linear-gradient(180deg,#fbfdff 10%,#b9cdec 96%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{font-size:1.04rem;color:var(--muted);margin:0 auto;max-width:32em}
-.sub em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--hi)}
+/* 捲動章節：蛋白質在上半、文字落在下半，不互相遮擋 */
+.scroll{position:relative;z-index:1}
+.step{min-height:100vh;display:flex;align-items:flex-end;padding:8vh 24px 12vh}
+.step.right{justify-content:flex-end}
+.step.center{justify-content:center;text-align:center}
+@media (min-height:720px){.step{padding-bottom:15vh}}
+.card{max-width:30em;background:linear-gradient(180deg,rgba(9,13,24,.72),rgba(9,13,24,.5));border:1px solid rgba(150,180,230,.12);border-radius:18px;padding:26px 28px;backdrop-filter:blur(9px);
+  opacity:0;transform:translateY(26px);transition:opacity .8s cubic-bezier(.2,.7,.3,1),transform .8s cubic-bezier(.2,.7,.3,1)}
+.step.in .card{opacity:1;transform:none}
+.center .card{background:none;border:none;backdrop-filter:none;max-width:24em}
+.kick{font-size:.72rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);margin:0 0 14px}
+.big{font-family:var(--serif);font-size:clamp(2rem,5.4vw,3.4rem);line-height:1.12;margin:0 0 16px;letter-spacing:.01em}
+.big.glow{text-shadow:0 0 40px rgba(77,163,255,.45)}
+p.lead{font-size:1.12rem;color:var(--ink);margin:0}
+p.body{font-size:1rem;color:var(--muted);margin:12px 0 0}
+p.body em{color:var(--ink);font-style:normal;border-bottom:1px solid var(--hi)}
+.tiny{font-size:.82rem;color:var(--faint);margin-top:14px;letter-spacing:.02em}
+.count{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--gold);font-weight:700}
 
-.stage{max-width:1060px;margin:8px auto 0;padding:0 24px}
-.lab{display:grid;grid-template-columns:1.4fr .9fr;gap:18px;align-items:stretch}
-@media (max-width:820px){.lab{grid-template-columns:1fr}}
+/* 第一屏提示 */
+.hint{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;color:var(--faint);font-size:.76rem;letter-spacing:.16em;opacity:.8;transition:opacity .5s}
+.hint.gone{opacity:0}
+.hint span{display:block;width:1px;height:26px;margin:8px auto 0;background:linear-gradient(180deg,var(--faint),transparent);animation:drip 2.2s ease-in-out infinite}
+@keyframes drip{0%,100%{transform:scaleY(.4);opacity:.3}50%{transform:scaleY(1);opacity:.9}}
+@media (prefers-reduced-motion:reduce){.hint span{animation:none}}
 
-.viewer{position:relative;background:linear-gradient(160deg,#0d1420,#0a0e17);border:1px solid var(--line);border-radius:20px;overflow:hidden;min-height:0}
-.canvas-wrap{position:relative;width:100%;aspect-ratio:1/1;max-height:60vh}
-@media (max-width:820px){.canvas-wrap{aspect-ratio:4/3}}
-#stage{position:absolute;inset:0;width:100%;height:100%;display:block}
-.vtag{position:absolute;top:14px;left:16px;font-family:var(--mono);font-size:.72rem;color:var(--faint);letter-spacing:.04em;pointer-events:none}
-.vseq{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 14px;font-family:var(--mono);font-size:.74rem;letter-spacing:.14em;color:var(--muted);
-  background:linear-gradient(0deg,rgba(8,11,18,.92),transparent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vseq b{color:var(--hi);font-weight:700}
+/* 揭曉時的閃光 */
+#flash{position:fixed;inset:0;z-index:2;background:radial-gradient(circle at 50% 42%,rgba(120,200,255,.5),transparent 55%);opacity:0;pointer-events:none}
 
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:20px 20px 18px;display:flex;flex-direction:column;gap:16px}
-.p-h{font-size:.76rem;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
-.btn{font-family:inherit;font-size:.92rem;font-weight:700;color:#08111e;background:linear-gradient(135deg,#7ec2ff,var(--hi));border:none;border-radius:12px;padding:13px 16px;cursor:pointer;transition:transform .2s,box-shadow .2s,filter .2s;box-shadow:0 6px 20px rgba(77,163,255,.24)}
-.btn:hover{transform:translateY(-2px);filter:brightness(1.06);box-shadow:0 10px 28px rgba(77,163,255,.36)}
-.btn:active{transform:translateY(0) scale(.99)}
-.btn:focus-visible{outline:2px solid #fff;outline-offset:2px}
-.btn.sec{color:var(--ink);background:var(--panel2);border:1px solid var(--line);box-shadow:none;font-weight:600}
-.btn.sec:hover{border-color:color-mix(in srgb,var(--hi) 50%,transparent)}
-.row{display:flex;gap:9px;flex-wrap:wrap}
-.seg{display:flex;gap:5px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px}
-.seg button{flex:1;font:inherit;font-size:.82rem;color:var(--muted);background:none;border:none;padding:7px 8px;border-radius:999px;cursor:pointer;transition:color .2s,background .2s}
-.seg button[aria-pressed="true"]{color:#08111e;background:var(--hi);font-weight:700}
-.seg button:focus-visible{outline:2px solid var(--hi);outline-offset:2px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px;font-size:.82rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.legend i{width:22px;height:7px;border-radius:4px;display:inline-block}
 
-.legend{display:flex;flex-direction:column;gap:7px;font-size:.82rem;color:var(--muted)}
-.legend .lr{display:flex;align-items:center;gap:9px}
-.sw{width:26px;height:8px;border-radius:4px;flex:none}
-.metric{display:flex;align-items:baseline;gap:8px;margin-top:2px}
-.metric b{font-family:var(--mono);font-size:1.7rem;color:var(--ink);font-variant-numeric:tabular-nums}
-.metric span{font-size:.78rem;color:var(--faint)}
-
-.note{max-width:1060px;margin:36px auto 0;padding:0 24px}
-.note h2{font-family:var(--serif);font-size:clamp(1.5rem,4vw,2.1rem);margin:0 0 22px}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
-@media (max-width:820px){.cards{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px 20px;transition:transform .3s,border-color .3s}
-.card:hover{transform:translateY(-4px);border-color:rgba(150,180,230,.24)}
-.card .n{font-family:var(--mono);font-size:.72rem;color:var(--faint);letter-spacing:.1em;margin-bottom:11px}
-.card h3{font-size:1.04rem;margin:0 0 9px}
-.card p{margin:0;font-size:.9rem;color:var(--muted);line-height:1.8}
-.card em{font-style:normal;color:var(--ink)}
-.card.hl{border-color:color-mix(in srgb,var(--gold) 34%,transparent)}
-.card.hl .n{color:var(--gold)}
-.kl{margin:30px auto 0;max-width:44em;font-family:var(--serif);font-size:1.08rem;line-height:1.85;color:var(--muted);text-align:center;padding-top:24px;border-top:1px solid var(--line)}
-
-footer{max-width:1060px;margin:60px auto 0;padding:24px 24px 52px;text-align:center;color:var(--faint);font-size:.8rem}
+footer{position:relative;z-index:1;text-align:center;padding:30px 24px 60px;color:var(--faint);font-size:.8rem}
 footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
-<body class="still">
+<body>
 
 <a class="home" href="../../../index.html">← 回首頁</a>
 
-<header class="hero">
-  <div class="kick reveal" style="--d:0ms">2024 諾貝爾化學獎 · 蛋白質結構預測</div>
-  <h1 class="reveal" style="--d:80ms">會自己摺起來的鏈</h1>
-  <p class="sub reveal" style="--d:170ms">一條胺基酸串成的線，會摺成一個<em>唯一</em>的立體形狀——形狀決定了它的功能。<br>從序列猜出這個形狀，難倒生物學界五十年。按下摺疊，看 AI 幾秒內做到的事。</p>
-</header>
+<div class="viz" aria-hidden="true"><canvas id="stage"></canvas></div>
+<div id="flash" aria-hidden="true"></div>
+<div class="hint" id="hint">往下捲　<span></span></div>
 
-<main>
-<section class="stage reveal" style="--d:250ms">
-  <div class="lab">
-    <div class="viewer">
-      <div class="canvas-wrap">
-        <canvas id="stage" role="img" aria-label="蛋白質骨架的三維示意：一條胺基酸鏈從攤平的直線摺疊成緊緻的立體結構，依 AlphaFold 的信心度上色。"></canvas>
-        <div class="vtag" id="vtag">攤平 · 序列</div>
-      </div>
-      <div class="vseq" id="vseq" aria-hidden="true"></div>
+<main class="scroll">
+  <section class="step center" data-stage="0">
+    <div class="card">
+      <p class="kick">一條線的故事</p>
+      <h1 class="big">這條線，<br>決定了你會不會生病</h1>
+      <p class="lead">它是一條胺基酸串成的鏈。接下來它會摺成一個形狀——而那個形狀，決定它是解藥、還是毒藥。</p>
+      <p class="tiny">往下捲，看它試著找到自己的樣子。</p>
     </div>
+  </section>
 
-    <div class="panel">
-      <div>
-        <div class="p-h">範例蛋白</div>
-        <div class="seg" role="group" aria-label="切換範例蛋白" id="seg" style="margin-top:9px">
-          <button type="button" data-ex="0" aria-pressed="true">螺旋束</button>
-          <button type="button" data-ex="1" aria-pressed="false">β 摺板</button>
-          <button type="button" data-ex="2" aria-pressed="false">混合摺疊</button>
-        </div>
-      </div>
+  <section class="step" data-stage="1">
+    <div class="card">
+      <p class="body" style="margin-top:0">問題是：<em>沒有人算得出那個形狀。</em></p>
+      <h2 class="big" style="font-size:clamp(1.6rem,4.4vw,2.4rem)">它有多少種摺法？</h2>
+      <p class="body">一條鏈能擺出的立體構型，比可觀測宇宙裡的原子還多。若讓電腦逐一試，摺好<em>一個</em>蛋白，要比宇宙的年齡還久。</p>
+      <p class="tiny">（這就是 Levinthal 悖論——你正看著它亂試。）</p>
+    </div>
+  </section>
 
-      <div class="row">
-        <button type="button" class="btn" id="fold" style="flex:1">▶ 摺疊</button>
-        <button type="button" class="btn sec" id="spin" aria-pressed="true">⏸ 旋轉</button>
-      </div>
+  <section class="step right" data-stage="2">
+    <div class="card">
+      <h2 class="big" style="font-size:clamp(1.6rem,4.4vw,2.4rem)">可是它只花幾毫秒</h2>
+      <p class="body">真實的蛋白質，在你的細胞裡，<em>毫秒到幾秒</em>就摺好了，每次都摺成同一個樣子。序列裡顯然藏著形狀的規則。</p>
+      <p class="body">五十年，全世界最聰明的人卡在同一個問題：那規則，到底是什麼？</p>
+    </div>
+  </section>
 
-      <div>
-        <div class="p-h">信心度 pLDDT</div>
-        <div class="legend" style="margin-top:9px" aria-hidden="true">
-          <div class="lr"><span class="sw" style="background:linear-gradient(90deg,#2f6bd6,#4da3ff)"></span>很高（90+）· 骨架幾乎可信</div>
-          <div class="lr"><span class="sw" style="background:#3fd6c8"></span>中高（70–90）· 大致可信</div>
-          <div class="lr"><span class="sw" style="background:#f2a44e"></span>偏低（&lt;70）· 常是柔性/末端</div>
-        </div>
-        <div class="metric"><b id="plddt">—</b><span>平均 pLDDT（此範例）</span></div>
+  <section class="step center" data-stage="3">
+    <div class="card">
+      <p class="kick">2020 年秋天</p>
+      <h2 class="big glow">然後，它摺起來了</h2>
+      <p class="lead">一個叫 AlphaFold 的 AI，在結構預測競賽 CASP14 上，第一次把預測做到<em style="border-color:var(--mid)">接近實驗量測</em>的準確度。困了半世紀的門，就這樣開了。</p>
+    </div>
+  </section>
+
+  <section class="step" data-stage="4">
+    <div class="card">
+      <h2 class="big" style="font-size:clamp(1.7rem,4.6vw,2.6rem)">然後它摺完了<br><span class="count" id="bloomN">0</span> 個</h2>
+      <p class="body">團隊算出幾乎所有人類蛋白，接著預測了地球上<em>約 2 億個</em>已知蛋白的結構，免費開放給 190 國的研究者。過去要數月到數年、還不一定成功的事，現在<em>幾分鐘</em>。</p>
+    </div>
+  </section>
+
+  <section class="step right" data-stage="5">
+    <div class="card">
+      <p class="kick">但它不是真相，是預測</p>
+      <h2 class="big" style="font-size:clamp(1.6rem,4.4vw,2.4rem)">它會告訴你，哪裡它沒把握</h2>
+      <p class="body">AlphaFold 給每個位置一個信心分數（pLDDT），並照它上色。骨架核心通常很篤定，而那些<em>晃來晃去的末端與柔性區</em>，它會誠實地說「這裡我不太確定」。</p>
+      <div class="legend">
+        <span><i style="background:#4da3ff"></i>很高</span>
+        <span><i style="background:#3fd6c8"></i>中等</span>
+        <span><i style="background:#f2a44e"></i>偏低・常在末端</span>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<section class="note reveal" style="--d:0ms">
-  <h2>五十年的難題，幾分鐘的答案</h2>
-  <div class="cards">
-    <article class="card">
-      <div class="n">01 · 為什麼難</div>
-      <h3>Levinthal 悖論</h3>
-      <p>一條胺基酸鏈能擺出的構型多到天文數字——若逐一亂試，摺好一個蛋白要比宇宙年齡還久。可是真實的蛋白質<em>毫秒到幾秒</em>就摺好了。序列裡一定藏著形狀的規則。</p>
-    </article>
-    <article class="card hl">
-      <div class="n">02 · AlphaFold</div>
-      <h3>把難題變成幾分鐘</h3>
-      <p>DeepMind 的 AlphaFold2（2020）在結構預測競賽 CASP14 逼近實驗等級。團隊算出幾乎所有人類蛋白，並預測約 <em>2 億</em>個蛋白的結構、免費開放給 190 國的研究者。過去解一個結構要數月到數年，現在幾分鐘。</p>
-    </article>
-    <article class="card">
-      <div class="n">03 · 還在長大</div>
-      <h3>2024 諾貝爾獎與 AF3</h3>
-      <p>2024 年諾貝爾化學獎，一半給 David Baker 的「蛋白質設計」，一半由 Hassabis 與 Jumper 共享「結構預測」。同年的 AlphaFold3 更能預測蛋白質與 DNA、RNA、小分子、離子組成的複合體。</p>
-    </article>
-  </div>
-  <p class="kl">要提醒的是：AlphaFold 給的是「預測」而非實驗測定。它對每個殘基標了信心分數（pLDDT），柔性區、末端與會隨環境變形的部位，仍舊看得出它沒那麼確定。</p>
-</section>
+  <section class="step center" data-stage="6">
+    <div class="card">
+      <p class="kick">2024 · 諾貝爾化學獎</p>
+      <h2 class="big">那條線，<br>現在幾分鐘就讀得懂</h2>
+      <p class="lead">獎項一半頒給設計全新蛋白的 David Baker，一半由打造 AlphaFold 的 Demis Hassabis 與 John Jumper 共享。</p>
+      <p class="tiny">你剛剛捲過的，是生物學等了五十年的那一個下午。</p>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -170,8 +145,6 @@ footer .src{font-size:.74rem;opacity:.8;margin-top:4px}
 "use strict";
 /* ===== 核心幾何（純函式，供 node 斷言） ===== */
 var TAU = Math.PI * 2;
-
-/* α 螺旋：每殘基轉 100°（約 3.6 殘基/圈）、沿軸上升 1.5 */
 function helix(i, opt){
   opt = opt || {};
   var R = opt.R == null ? 2.3 : opt.R;
@@ -180,7 +153,6 @@ function helix(i, opt){
   var a = i * turn;
   return { x: R*Math.cos(a), y: i*rise, z: R*Math.sin(a) };
 }
-/* β 股：沿軸鋸齒（pleated sheet） */
 function strand(i, opt){
   opt = opt || {};
   var step = opt.step == null ? 3.3 : opt.step;
@@ -188,36 +160,31 @@ function strand(i, opt){
   return { x: (i%2? amp : -amp), y: i*step, z: 0 };
 }
 function add(p,d){ return { x:p.x+(d.x||0), y:p.y+(d.y||0), z:p.z+(d.z||0) }; }
-
-/* 三種範例的目標座標（回傳 [{x,y,z,ss,plddt}...]） */
 function buildTarget(ex, n){
-  var pts = [], i, p, ss, seg;
+  var pts = [], i, p, ss;
   for(i=0;i<n;i++){
-    var f = i/(n-1);
-    if(ex===0){                      /* 螺旋束：兩段反平行螺旋＋短 loop */
+    if(ex===0){
       if(i < n*0.45){ p = helix(i,{R:2.4}); ss='H'; }
       else if(i < n*0.55){ p = add(helix(Math.floor(n*0.45),{R:2.4}), {x:(i-n*0.45)*0.9, y:0.4*(i-n*0.45), z:1.2}); ss='L'; }
       else { var j=i-Math.floor(n*0.55); p = { x: 5.2 - 2.4*Math.cos(j*100*Math.PI/180), y: (n*0.55)*1.5 - j*1.5, z: -2.4*Math.sin(j*100*Math.PI/180) }; ss='H'; }
-    } else if(ex===1){               /* β 摺板：三股反平行 */
+    } else if(ex===1){
       var strandLen = Math.floor(n/3);
-      seg = Math.floor(i/strandLen); var k = i%strandLen;
+      var seg = Math.floor(i/strandLen); var k = i%strandLen;
       var dir = seg%2? -1:1;
       p = { x: seg*3.0, y: dir>0? k*3.2 : (strandLen-1-k)*3.2, z: (k%2?1:-1)*1.0 }; ss = (k===strandLen-1)?'L':'E';
-    } else {                          /* 混合：螺旋 + loop + 兩股摺板 */
+    } else {
       if(i < n*0.4){ p = helix(i,{R:2.3}); ss='H'; }
       else if(i < n*0.5){ var j2=i-n*0.4; p = add(helix(Math.floor(n*0.4),{R:2.3}), {x:j2*1.3, y:j2*0.8, z:j2*0.6}); ss='L'; }
       else { var m=i-Math.floor(n*0.5); var s2=Math.floor(m/((n*0.5)/2)); var kk=m%Math.max(1,Math.floor((n*0.5)/2));
              p = { x: 4 + s2*2.8, y: 8 + (s2%2? -kk*3:kk*3), z: (kk%2?1:-1)*0.9 }; ss='E'; }
     }
-    /* pLDDT：結構化區（H/E）高、loop/末端低 */
     var base = (ss==='H')?93 : (ss==='E')?86 : 62;
-    var endPenalty = Math.max(0, 1 - Math.min(i, n-1-i)/4) * 26;   /* 末端信心低 */
+    var endPenalty = Math.max(0, 1 - Math.min(i, n-1-i)/4) * 26;
     var pl = Math.max(35, Math.min(98, base - endPenalty + (Math.sin(i*1.7)*3)));
     pts.push({ x:p.x, y:p.y, z:p.z, ss:ss, plddt: Math.round(pl) });
   }
   return centre(pts);
 }
-/* 置中並置正（減去質心） */
 function centre(pts){
   var c={x:0,y:0,z:0}, i;
   for(i=0;i<pts.length;i++){ c.x+=pts[i].x; c.y+=pts[i].y; c.z+=pts[i].z; }
@@ -225,7 +192,6 @@ function centre(pts){
   for(i=0;i<pts.length;i++){ pts[i].x-=c.x; pts[i].y-=c.y; pts[i].z-=c.z; }
   return pts;
 }
-/* 攤平座標：沿 y 軸等距直線 */
 function extended(n, d){
   d = d||3.4; var pts=[], i, off=(n-1)*d/2;
   for(i=0;i<n;i++) pts.push({x:0,y:i*d-off,z:0});
@@ -242,129 +208,165 @@ function rotY(p, a){
   return { x: p.x*c + p.z*s, y: p.y, z: -p.x*s + p.z*c };
 }
 function meanPlddt(pts){ var s=0,i; for(i=0;i<pts.length;i++) s+=pts[i].plddt; return Math.round(s/pts.length); }
-/* pLDDT → 顏色 */
 function plddtColor(v){
   if(v>=90) return '#4da3ff';
   if(v>=70) return '#3fd6c8';
   return '#f2a44e';
 }
-
 if(typeof module==='object' && module.exports){
   module.exports={helix,strand,buildTarget,extended,foldAt,rotY,lerp,meanPlddt,plddtColor,centre};
 }
 
-/* ===== 瀏覽器端 ===== */
+/* ===== 捲動敘事 + 舞台 ===== */
 if(typeof document!=='undefined') (function(){
-  var LS='afold.';
   var cv=document.getElementById('stage'), ctx=cv.getContext('2d');
-  var vtag=document.getElementById('vtag'), vseq=document.getElementById('vseq'), plddtEl=document.getElementById('plddt');
-  var mR=window.matchMedia('(prefers-reduced-motion:reduce)');
-  var reduced=mR.matches;
+  var flash=document.getElementById('flash'), hint=document.getElementById('hint');
+  var mR=window.matchMedia('(prefers-reduced-motion:reduce)'); var reduced=mR.matches;
 
-  var AA='ACDEFGHIKLMNPQRSTVWY';
-  var N=46, ex=0;
-  var tgt=buildTarget(ex,N), ext=extended(N), t=0, spinning=true, ang=0, raf=0, folding=false, foldDir=1;
-  var seqStr='';
-  function makeSeq(n,seed){ var s='',i,x=seed||7; for(i=0;i<n;i++){ x=(x*1103515245+12345)&0x7fffffff; s+=AA[x%AA.length]; } return s; }
+  var N=46, tgt=buildTarget(0,N), ext=extended(N);
+  /* 舞台狀態（會朝 target 緩動） */
+  var st={ t:0, chaos:0, rot:0, bloom:0, conf:0, spin:0.006 };
+  var target={ t:0, chaos:0, bloom:0, conf:0, spin:0.006 };
+  var stage=0, flashed=false, raf=0;
 
-  var dpr=1, W=0, H=0;
+  /* 每個階段對應的舞台目標 */
+  var STAGES=[
+    { t:0.00, chaos:0.0, bloom:0, conf:0, spin:0.004 }, /* 0 攤平 */
+    { t:0.18, chaos:1.0, bloom:0, conf:0, spin:0.010 }, /* 1 亂試 */
+    { t:0.20, chaos:1.0, bloom:0, conf:0, spin:0.012 }, /* 2 卡住 */
+    { t:1.00, chaos:0.0, bloom:0, conf:0, spin:0.010 }, /* 3 摺！ */
+    { t:1.00, chaos:0.0, bloom:1, conf:0, spin:0.008 }, /* 4 兩億 */
+    { t:1.00, chaos:0.0, bloom:0, conf:1, spin:0.006 }, /* 5 信心 */
+    { t:1.00, chaos:0.0, bloom:0, conf:1, spin:0.005 }  /* 6 收尾 */
+  ];
+
+  function setStage(s){
+    if(s===stage) return; stage=s;
+    var g=STAGES[s]; target.t=g.t; target.chaos=g.chaos; target.bloom=g.bloom; target.conf=g.conf; target.spin=g.spin;
+    if(s===3 && !flashed){ flashed=true; doFlash(); }
+    if(reduced){ st.t=g.t; st.chaos=0; st.bloom=g.bloom; st.conf=g.conf; } /* 降級：直接到位、不亂試 */
+  }
+  function doFlash(){
+    if(reduced) return;
+    flash.style.transition='none'; flash.style.opacity='0.9';
+    flash.getBoundingClientRect();
+    flash.style.transition='opacity 1.1s ease-out'; flash.style.opacity='0';
+  }
+
+  /* 亂試用的漂移噪聲（每顆殘基一組相位） */
+  var ph=[]; for(var i=0;i<N;i++) ph.push({a:Math.random()*TAU,b:Math.random()*TAU,c:Math.random()*TAU});
+
+  var dpr=1,W=0,H=0;
   function size(){
-    var r=cv.getBoundingClientRect(); dpr=Math.min(2,window.devicePixelRatio||1);
-    var w=Math.max(1,Math.round(r.width*dpr)), h=Math.max(1,Math.round(r.height*dpr));
-    if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }  /* 只有變了才重設，避免每幀翻倍 */
+    var w=Math.max(1,Math.round(cv.clientWidth*(dpr=Math.min(2,window.devicePixelRatio||1))));
+    var h=Math.max(1,Math.round(cv.clientHeight*dpr));
+    if(cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; }
     W=cv.width; H=cv.height;
   }
-
-  function project(p){
-    var f=W*0.028, cam=46;                 /* 透視 */
-    var s=f*cam/(cam - p.z*0.9);
-    return { x:W/2 + p.x*s, y:H/2 - p.y*s, s:s };
+  function project(p, cx, cy, sc){
+    var f=sc, cam=46; var s=f*cam/(cam - p.z*0.9);
+    return { x:cx + p.x*s, y:cy - p.y*s, s:s };
   }
-  function draw(){
-    size();
-    ctx.clearRect(0,0,W,H);
-    var pts=foldAt(ext,tgt,t), i, rp=[];
-    for(i=0;i<pts.length;i++) rp.push(rotY(pts[i], ang));
-    /* 依 z 排序畫點在後、線在前的簡單深度：先畫線 */
+  function hexA(hex,a){ var n=parseInt(hex.slice(1),16); return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a.toFixed(3)+')'; }
+
+  function chainPoints(){
+    var base=foldAt(ext,tgt,st.t), out=[], i, tt=perfNow()/1000;
+    for(i=0;i<N;i++){
+      var p=base[i];
+      if(st.chaos>0.001){
+        var amp=st.chaos*7;
+        p={ x:p.x+Math.sin(tt*1.7+ph[i].a)*amp, y:p.y+Math.sin(tt*1.3+ph[i].b)*amp, z:p.z+Math.sin(tt*2.1+ph[i].c)*amp };
+      } else if(st.conf>0.5){
+        /* 低信心末端輕晃 */
+        var wob=(1-Math.min(1,tgt[i].plddt/78))*1.1*st.conf;
+        if(wob>0.01) p={ x:p.x+Math.sin(tt*2+ph[i].a)*wob, y:p.y, z:p.z+Math.cos(tt*2+ph[i].b)*wob };
+      }
+      out.push(p);
+    }
+    return out;
+  }
+  function drawChain(cx,cy,sc,alpha,colorConf){
+    var pts=chainPoints(), rp=[], i;
+    for(i=0;i<N;i++) rp.push(rotY(pts[i], st.rot));
     ctx.lineCap='round'; ctx.lineJoin='round';
-    for(i=0;i<rp.length-1;i++){
-      var a=project(rp[i]), b=project(rp[i+1]);
-      var depth=(rp[i].z+rp[i+1].z)/2;
-      var alpha=0.35 + 0.5*(depth+8)/16; alpha=Math.max(0.15,Math.min(0.95,alpha));
-      var col=plddtColor((tgt[i].plddt+tgt[i+1].plddt)/2);
-      ctx.strokeStyle=hexA(col,alpha*(0.55+0.45*t));
-      ctx.lineWidth=Math.max(1.4,(a.s+b.s)*0.5*0.16);
+    for(i=0;i<N-1;i++){
+      var a=project(rp[i],cx,cy,sc), b=project(rp[i+1],cx,cy,sc);
+      var depth=(rp[i].z+rp[i+1].z)/2, da=0.4+0.5*(depth+8)/16; da=Math.max(.12,Math.min(.95,da));
+      var col = colorConf? plddtColor((tgt[i].plddt+tgt[i+1].plddt)/2) : '#8fbaff';
+      ctx.strokeStyle=hexA(col, da*alpha);
+      ctx.lineWidth=Math.max(1.2,(a.s+b.s)*0.5*0.16);
       ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
     }
-    for(i=0;i<rp.length;i++){
-      var q=project(rp[i]);
-      ctx.fillStyle=plddtColor(tgt[i].plddt);
-      ctx.globalAlpha=0.5+0.5*(rp[i].z+8)/16;
-      ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(1.6,q.s*0.19),0,TAU); ctx.fill();
+    for(i=0;i<N;i++){
+      var q=project(rp[i],cx,cy,sc);
+      ctx.globalAlpha=(0.5+0.5*(rp[i].z+8)/16)*alpha;
+      ctx.fillStyle= colorConf? plddtColor(tgt[i].plddt) : '#bcd8ff';
+      ctx.beginPath(); ctx.arc(q.x,q.y,Math.max(1.4,q.s*0.18),0,TAU); ctx.fill();
     }
     ctx.globalAlpha=1;
   }
-  function hexA(hex,a){
-    var n=parseInt(hex.slice(1),16);
-    return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a.toFixed(3)+')';
-  }
 
-  function tick(){
-    raf=0;
-    if(spinning && !reduced) ang+=0.012;
-    if(folding){
-      t+=0.016*foldDir;
-      if(t>=1){ t=1; folding=false; vtag.textContent='已摺疊 · 立體結構'; }
-      if(t<=0){ t=0; folding=false; vtag.textContent='攤平 · 序列'; }
+  function draw(){
+    size(); ctx.clearRect(0,0,W,H);
+    var cx=W*0.5, cy=H*0.30, baseSc=Math.min(W,H)*0.0105;
+    /* 兩億齊放：背景灑一片小結構 */
+    if(st.bloom>0.01){
+      var cols=7, rows=5, k=0;
+      for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+        var gx=(c+0.5)/cols*W, gy=(r+0.5)/rows*H*0.92+H*0.04;
+        var d=Math.hypot(gx-cx,gy-cy)/Math.max(W,H);
+        var appear=Math.max(0,Math.min(1,(st.bloom-d*0.8)*1.6));
+        if(appear<=0.01) continue;
+        drawMini(gx,gy, baseSc*0.34, 0.5*appear, (k*37)%360); k++;
+      }
     }
-    draw();
-    if(spinning || folding) schedule();
+    /* 主角 */
+    var mainAlpha = st.bloom>0.5? (1-st.bloom*0.55) : 1;
+    var sc = baseSc * (st.bloom>0.01? (1-st.bloom*0.25):1);
+    drawChain(cx,cy,sc, mainAlpha, st.conf>0.5);
   }
-  function schedule(){ if(!raf) raf=requestAnimationFrame(tick); }
-
-  function setEx(k){
-    ex=k; tgt=buildTarget(ex,N); seqStr=makeSeq(N, 7+k*13);
-    document.querySelectorAll('#seg button').forEach(function(b){ var on=+b.dataset.ex===k; b.setAttribute('aria-pressed',on?'true':'false'); });
-    plddtEl.textContent=meanPlddt(tgt);
-    renderSeq();
-    draw();
-  }
-  function renderSeq(){
-    var html='', i;
-    for(i=0;i<seqStr.length;i++){ html += (tgt[i].ss==='H'||tgt[i].ss==='E') ? '<b>'+seqStr[i]+'</b>' : seqStr[i]; }
-    vseq.innerHTML=html;
+  var miniCache=null;
+  function drawMini(gx,gy,sc,alpha,seed){
+    var pts=foldAt(ext,tgt,1), i, rot=seed*Math.PI/180+st.rot*0.5;
+    ctx.strokeStyle=hexA('#6f9fe0',0.5*alpha); ctx.lineWidth=1.1;
+    ctx.beginPath();
+    for(i=0;i<N;i++){ var p=rotY(pts[i],rot); var q=project(p,gx,gy,sc); if(i===0)ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); }
+    ctx.stroke();
   }
 
-  document.getElementById('fold').addEventListener('click',function(){
-    foldDir = (t>=1? -1 : 1);
-    folding=true;
-    vtag.textContent = foldDir>0? '摺疊中…' : '攤平中…';
-    this.textContent = foldDir>0? '↺ 攤平' : '▶ 摺疊';
-    if(reduced){ t=foldDir>0?1:0; folding=false; vtag.textContent=foldDir>0?'已摺疊 · 立體結構':'攤平 · 序列'; draw(); return; }
+  var _t0=(typeof performance!=='undefined'&&performance.now)?performance.now():Date.now();
+  function perfNow(){ return ((typeof performance!=='undefined'&&performance.now)?performance.now():Date.now())-_t0; }
+
+  function frame(){
+    raf=0;
+    var k=reduced?1:0.08;
+    st.t += (target.t-st.t)*k;
+    st.chaos += (target.chaos-st.chaos)*k;
+    st.bloom += (target.bloom-st.bloom)*k;
+    st.conf += (target.conf-st.conf)*k;
+    st.spin += (target.spin-st.spin)*0.05;
+    if(!reduced) st.rot += st.spin;
+    draw();
     schedule();
-  });
-  var spinBtn=document.getElementById('spin');
-  spinBtn.addEventListener('click',function(){
-    spinning=!spinning; this.setAttribute('aria-pressed',spinning?'true':'false');
-    this.textContent=(spinning?'⏸':'▶')+' 旋轉';
-    if(spinning) schedule();
-  });
-  document.querySelectorAll('#seg button').forEach(function(b){ b.addEventListener('click',function(){ setEx(+b.dataset.ex); }); });
+  }
+  function schedule(){ if(!raf) raf=requestAnimationFrame(frame); }
 
-  document.addEventListener('visibilitychange',function(){ if(!document.hidden){ schedule(); } });
-  mR.addEventListener('change',function(e){ reduced=e.matches; if(reduced){ ang=0; } draw(); });
-  window.addEventListener('resize',function(){ draw(); });
+  /* 章節觀察：進入視窗中段就切階段 */
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); setStage(+e.target.dataset.stage); } });
+  },{ rootMargin:'-40% 0px -40% 0px' });
+  document.querySelectorAll('.step').forEach(function(s){ io.observe(s); });
 
-  /* 進場 */
-  requestAnimationFrame(function(){
-    document.body.classList.remove('still');
-    var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); },{rootMargin:'0px 0px -8% 0px'});
-    document.querySelectorAll('.reveal').forEach(function(n){ io.observe(n); });
-  });
+  /* 兩億數字滾動 */
+  var bloomN=document.getElementById('bloomN'), shownB=0;
+  setInterval(function(){ if(stage>=4 && shownB<200000000){ shownB=Math.min(200000000, shownB+7000000+Math.random()*9000000); bloomN.textContent=Math.round(shownB/1e6)+' 百萬'; } },40);
 
-  setEx(0);
-  draw();
-  if(!reduced) schedule();
+  window.addEventListener('scroll',function(){ if(window.scrollY>60){ hint.classList.add('gone'); } },{passive:true});
+  window.addEventListener('resize',draw);
+  mR.addEventListener('change',function(e){ reduced=e.matches; });
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) schedule(); else if(raf){cancelAnimationFrame(raf);raf=0;} });
+
+  draw(); schedule();
 })();
 </script>
 </body>

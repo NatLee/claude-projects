@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>宇宙里程表 · 你這輩子跑了多遠</title>
+<meta name="description" content="你以為你坐著沒動。給我你的生日，我算給你看——從出生到現在，地球載著你在宇宙裡跑了多遠。">
+<style>
+  :root{
+    --bg:#05060a; --ink:#eef1fb; --dim:#9aa3c4; --faint:#5b6488;
+    --accent:#7bb2ff; --accent2:#b79bff; --hot:#ffd27b;
+    --line:rgba(255,255,255,.09);
+    --maxw:760px;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Songti TC","Noto Serif TC",serif;
+    --num:"SFMono-Regular",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(120% 90% at 50% 8%, #0d1428 0%, #070a15 45%, var(--bg) 100%);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.65;
+    overflow-x:hidden;
+  }
+  #sky{position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block}
+  #vignette{position:fixed; inset:0; z-index:1; pointer-events:none;
+    background:radial-gradient(130% 100% at 50% 40%, transparent 55%, rgba(3,4,9,.7) 100%)}
+  .home{position:fixed; top:14px; left:16px; z-index:6; color:var(--faint);
+    text-decoration:none; font-size:13px; letter-spacing:.02em; padding:6px 4px;
+    transition:color .25s}
+  .home:hover,.home:focus-visible{color:var(--accent)}
+
+  .wrap{position:relative; z-index:3; min-height:100dvh; display:grid; place-items:center;
+    padding:clamp(22px,5vw,48px); text-align:center}
+  .act{max-width:var(--maxw); width:100%; display:none}
+  .act.on{display:block; animation:rise .9s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes rise{from{opacity:0; transform:translateY(18px)} to{opacity:1; transform:none}}
+
+  .kicker{font-size:12.5px; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--accent); font-weight:700; margin:0 0 22px}
+  .kicker .dot{display:inline-block; width:6px; height:6px; border-radius:50%;
+    background:var(--accent); margin:0 10px 2px; vertical-align:middle;
+    box-shadow:0 0 10px var(--accent)}
+
+  h1{font-family:var(--serif); font-weight:600; letter-spacing:.01em;
+    font-size:clamp(28px,6.4vw,50px); line-height:1.2; margin:0 0 .5em}
+  h1 .soft{color:var(--dim); font-style:italic}
+  .lead{font-size:clamp(16px,3.4vw,21px); color:var(--dim); margin:0 auto 30px; max-width:34em}
+  .lead b{color:var(--ink); font-weight:600}
+  .turn{font-family:var(--serif); font-size:clamp(20px,4.6vw,30px); color:var(--ink);
+    line-height:1.35; margin:0 auto .2em; max-width:22em}
+  .turn em{font-style:italic; color:var(--accent)}
+
+  /* 生日輸入 */
+  .ask{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:6px}
+  input[type=date]{
+    font:inherit; font-size:17px; color:var(--ink); background:rgba(255,255,255,.05);
+    border:1px solid var(--line); border-radius:12px; padding:13px 16px; min-width:190px;
+    color-scheme:dark; text-align:center;
+  }
+  input[type=date]:focus-visible{outline:2px solid var(--accent); outline-offset:2px; border-color:transparent}
+  .btn{font:inherit; font-weight:650; font-size:16px; cursor:pointer; color:#0a1022;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border:0; border-radius:12px; padding:13px 24px; letter-spacing:.02em;
+    box-shadow:0 8px 26px -10px var(--accent); transition:transform .16s, box-shadow .16s}
+  .btn:hover{transform:translateY(-2px); box-shadow:0 14px 32px -12px var(--accent)}
+  .btn:active{transform:translateY(0)}
+  .btn:focus-visible{outline:2px solid #fff; outline-offset:3px}
+  .btn.ghost{background:none; color:var(--accent); box-shadow:none;
+    border:1px solid var(--line)}
+  .btn.ghost:hover{background:rgba(255,255,255,.05); transform:translateY(-2px)}
+  .hint{font-size:13px; color:var(--faint); margin-top:20px}
+  .warn{color:var(--hot); font-size:14px; min-height:1.2em; margin-top:14px}
+
+  /* 里程表數字 */
+  .odo{font-family:var(--num); font-variant-numeric:tabular-nums; font-weight:600;
+    letter-spacing:-.01em; color:var(--ink)}
+  .lines{margin:8px auto 4px; max-width:30em}
+  .row{display:flex; align-items:baseline; justify-content:center; gap:.5ch;
+    padding:11px 0; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .row:last-child{border-bottom:0}
+  .row .lab{color:var(--dim); font-size:clamp(15px,3.4vw,18px)}
+  .row .big{font-family:var(--num); font-variant-numeric:tabular-nums;
+    font-size:clamp(20px,5.2vw,30px); font-weight:650; color:var(--ink)}
+  .row .unit{color:var(--faint); font-size:14px}
+
+  .hero-num{margin:10px auto 4px}
+  .hero-num .big{display:block; font-family:var(--num); font-variant-numeric:tabular-nums;
+    font-weight:700; letter-spacing:-.02em; line-height:1.02;
+    font-size:clamp(34px,10.5vw,76px);
+    background:linear-gradient(180deg,#fff, var(--accent) 130%);
+    -webkit-background-clip:text; background-clip:text; color:transparent}
+  .hero-num .u{color:var(--dim); font-size:clamp(15px,3.6vw,18px); letter-spacing:.02em}
+  .zh{color:var(--accent); font-weight:650}
+
+  .compare{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:24px auto 4px}
+  .chip{border:1px solid var(--line); border-radius:14px; padding:14px 18px; min-width:150px;
+    background:rgba(255,255,255,.03)}
+  .chip .n{font-family:var(--num); font-variant-numeric:tabular-nums; font-size:22px;
+    font-weight:650; color:var(--hot)}
+  .chip .t{font-size:13px; color:var(--dim); margin-top:3px}
+
+  .foot{margin-top:34px; color:var(--faint); font-size:12.5px; line-height:1.5}
+  .cta-row{margin-top:30px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap}
+
+  .progress{position:fixed; left:0; right:0; bottom:16px; z-index:5;
+    display:flex; gap:9px; justify-content:center}
+  .progress i{width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.18);
+    transition:background .3s, transform .3s}
+  .progress i.on{background:var(--accent); transform:scale(1.3);
+    box-shadow:0 0 10px var(--accent)}
+
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+
+  @media (prefers-reduced-motion: reduce){
+    .act.on{animation:none}
+    .btn,.btn.ghost{transition:none}
+  }
+  @media (max-width:560px){
+    .compare{gap:9px} .chip{min-width:calc(50% - 6px); padding:12px}
+    .home{top:10px}
+  }
+</style>
+</head>
+<body>
+<canvas id="sky" aria-hidden="true"></canvas>
+<div id="vignette" aria-hidden="true"></div>
+<a class="home" href="../../../index.html">← 回首頁</a>
+<div class="progress" id="prog" aria-hidden="true"></div>
+
+<main class="wrap">
+  <div aria-live="polite" class="sr" id="live"></div>
+
+  <!-- ACT 0：鉤子 -->
+  <section class="act on" id="a0" tabindex="-1" aria-label="開場">
+    <p class="kicker">冷知識<span class="dot"></span>你正在移動</p>
+    <h1>你以為你<span class="soft">坐著沒動</span>。<br>其實你一秒都沒停過。</h1>
+    <p class="lead">此刻你可能靠在椅背上、覺得自己完全靜止。<br>但從你出生到現在，有東西一直載著你狂奔——<br>而且<b>從沒停下來</b>。給我你的生日，我算給你看你跑了多遠。</p>
+    <div class="ask">
+      <label class="sr" for="bd">你的生日</label>
+      <input type="date" id="bd" min="1900-01-01">
+      <button class="btn" id="go">開始這趟旅程 →</button>
+    </div>
+    <p class="warn" id="warn" role="alert"></p>
+    <p class="hint">一段大約 40 秒、關於「你其實一直在飛」的小旅程。</p>
+  </section>
+
+  <!-- ACT 1：你活了多久 -->
+  <section class="act" id="a1" tabindex="-1" aria-label="你活了多久">
+    <p class="kicker">第一站<span class="dot"></span>你活了多久</p>
+    <h1>先算算，你來這裡多久了。</h1>
+    <div class="lines">
+      <div class="row"><span class="lab">你在地球上活了</span><span class="big odo" id="dDays">0</span><span class="unit">天</span></div>
+      <div class="row"><span class="lab">也就是</span><span class="big odo" id="dSecs">0</span><span class="unit">秒</span></div>
+      <div class="row"><span class="lab">這段時間，你的心臟跳了</span><span class="big odo" id="dHeart">0</span><span class="unit">下</span></div>
+      <div class="row"><span class="lab">你呼吸了</span><span class="big odo" id="dBreath">0</span><span class="unit">口氣</span></div>
+      <div class="row"><span class="lab">而你繞著太陽，已經跑完了</span><span class="big odo" id="dOrbits">0</span><span class="unit">圈</span></div>
+    </div>
+    <p class="lead" style="margin-top:24px">數字都還在動——因為你讀這句話的現在，它們一秒也沒停。</p>
+    <div class="cta-row"><button class="btn" id="go1">可是這還不是重點 →</button></div>
+  </section>
+
+  <!-- ACT 2：轉折 → 公轉里程 -->
+  <section class="act" id="a2" tabindex="-1" aria-label="你繞太陽跑了多遠">
+    <p class="turn">你不只是<em>活著</em>。<br>你坐著的每一秒，地球正用每秒 <b>29.78 公里</b> 載著你狂奔。</p>
+    <div class="hero-num">
+      <span class="big odo" id="dKmSun">0</span>
+      <span class="u">公里 —— 你繞著太陽跑過的總里程</span>
+    </div>
+    <p class="lead" style="margin-top:14px">大約是 <span class="zh" id="dKmSunZh">0</span> 公里。這條路，你走得比任何人以為的都遠。</p>
+    <div class="compare">
+      <div class="chip"><div class="n odo" id="dEarthLaps">0</div><div class="t">相當於繞地球這麼多圈</div></div>
+      <div class="chip"><div class="n odo" id="dMoonTrips">0</div><div class="t">相當於來回月球這麼多趟</div></div>
+    </div>
+    <div class="cta-row"><button class="btn" id="go2">還沒完，把鏡頭拉遠 →</button></div>
+  </section>
+
+  <!-- ACT 3：高潮 → 銀河里程 -->
+  <section class="act" id="a3" tabindex="-1" aria-label="連太陽都在飛">
+    <p class="turn">而太陽，也沒有停在原地。<br>它正帶著我們整個太陽系，繞著銀河系中心飛——<br>每秒 <em>230 公里</em>。</p>
+    <div class="hero-num">
+      <span class="big odo" id="dKmGal">0</span>
+      <span class="u">公里 —— 太陽又帶著你多飛的距離</span>
+    </div>
+    <p class="lead" style="margin-top:14px">加起來大約 <span class="zh" id="dKmGalZh">0</span> 公里。你從沒為這趟旅程買過票，卻一路坐到了現在。</p>
+    <div class="cta-row"><button class="btn" id="go3">那……現在呢？ →</button></div>
+  </section>
+
+  <!-- ACT 4：記憶點 -->
+  <section class="act" id="a4" tabindex="-1" aria-label="此刻">
+    <p class="kicker">此刻<span class="dot"></span>就是現在</p>
+    <h1>就從你打開這一頁算起——</h1>
+    <div class="hero-num">
+      <span class="big odo" id="dSince">0</span>
+      <span class="u">公里，你又飛了這麼遠</span>
+    </div>
+    <p class="lead" style="margin-top:16px">你讀這幾句話的工夫，地球又載著你跑了上千公里。<br><b>你從沒真正靜止過，一秒都沒有。</b></p>
+    <p class="turn" style="margin-top:8px">這趟旅程你退不了票，也停不下來。<br>唯一能決定的，是這一路上——你想看看什麼。<br><em>今天，也在飛。好好用它。</em></p>
+    <div class="cta-row">
+      <button class="btn ghost" id="again">換個生日再算一次</button>
+    </div>
+    <p class="foot">
+      速度為公開天文與生理常數，數字依你的生日即時計算；此處「里程」指相對太陽／銀河中心的路徑長，運動本是相對的。<br>
+      來源：NASA・Britannica・NRAO・Live Science。
+    </p>
+  </section>
+</main>
+
+<script>
+"use strict";
+(function(){
+  /* ---------- 常數（皆經查證） ---------- */
+  var V_ORBIT = 29.78;          // 地球公轉 km/s
+  var V_GALAXY = 230;           // 太陽繞銀河 km/s
+  var HEART = 70/60;            // 每秒心跳（70 bpm）
+  var BREATH = 15/60;          // 每秒呼吸（15 /min）
+  var SEC_YEAR = 31556952;      // 格里曆平均年秒數 365.2425*86400
+  var EARTH_CIRC = 40075;       // 地球赤道周長 km
+  var MOON_RT = 768800;         // 來回月球 km（384400*2）
+  var LS = "cosmo.birth";
+
+  /* ---------- 純函式：由「已活秒數」算出所有數字 ---------- */
+  function stats(sec){
+    return {
+      days:   sec/86400,
+      secs:   sec,
+      heart:  sec*HEART,
+      breath: sec*BREATH,
+      orbits: sec/SEC_YEAR,
+      kmSun:  sec*V_ORBIT,
+      kmGal:  sec*V_GALAXY,
+      laps:   sec*V_ORBIT/EARTH_CIRC,
+      moon:   sec*V_ORBIT/MOON_RT
+    };
+  }
+  // 每個 live 欄位：由當下真實秒數換算的「每秒速率」
+  var RATE = {
+    dDays:1/86400, dSecs:1, dHeart:HEART, dBreath:BREATH, dOrbits:1/SEC_YEAR,
+    dKmSun:V_ORBIT, dKmGal:V_GALAXY, dEarthLaps:V_ORBIT/EARTH_CIRC, dMoonTrips:V_ORBIT/MOON_RT
+  };
+  var DEC = { dOrbits:1, dMoonTrips:0, dEarthLaps:0 }; // 小數位，其餘為 0
+
+  /* ---------- 格式化 ---------- */
+  function fmt(n, dec){
+    dec = dec||0;
+    if(!isFinite(n)) n = 0;
+    var neg = n<0; n = Math.abs(n);
+    var s = dec>0 ? n.toFixed(dec) : String(Math.floor(n));
+    var parts = s.split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return (neg?"-":"") + parts.join(".");
+  }
+  function zhBig(n){                      // 億 / 萬 中文級距
+    n = Math.floor(n);
+    if(n>=1e12) return trim(n/1e12)+" 兆";
+    if(n>=1e8)  return (n>=1e9? Math.round(n/1e8) : trim(n/1e8))+" 億";
+    if(n>=1e4)  return Math.round(n/1e4)+" 萬";
+    return fmt(n);
+  }
+  function trim(x){ return String(Math.round(x*10)/10).replace(/\.0$/,""); }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)");
+
+  /* ---------- 星空 warp ---------- */
+  var cv = $("sky"), ctx = cv.getContext("2d");
+  var dpr = Math.min(window.devicePixelRatio||1, 2);
+  var W=0, H=0, stars=[], N=150, warp=0.11, boost=0, lastT=0, running=true;
+  function resize(){
+    var w = Math.max(1, Math.round(innerWidth*dpr));
+    var h = Math.max(1, Math.round(innerHeight*dpr));
+    if(cv.width!==w || cv.height!==h){ cv.width=w; cv.height=h; }   // 只在尺寸真的變才重設
+    cv.style.width = innerWidth+"px"; cv.style.height = innerHeight+"px";
+    W=cv.width; H=cv.height;
+  }
+  function seed(){
+    stars=[];
+    for(var i=0;i<N;i++) stars.push({ x:(Math.random()*2-1), y:(Math.random()*2-1),
+      z:Math.random()*0.9+0.1, px:0, py:0, seen:false });
+  }
+  function project(s){
+    var scale = Math.min(W,H)*0.5;
+    return [ W/2 + (s.x/s.z)*scale, H/2 + (s.y/s.z)*scale ];
+  }
+  function drawStatic(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<stars.length;i++){
+      var p=project(stars[i]); var a=(1-stars[i].z);
+      ctx.globalAlpha = 0.25+0.6*a; ctx.fillStyle="#cdd8ff";
+      var r=(a*1.7+0.4)*dpr;
+      ctx.beginPath(); ctx.arc(p[0],p[1],r,0,7); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  function frame(t){
+    if(!running){ return; }
+    if(!lastT) lastT=t;
+    var dt=Math.min((t-lastT)/1000, 0.05); lastT=t;
+    var v = warp + boost;
+    if(boost>0) boost=Math.max(0, boost-dt*0.55);
+    ctx.clearRect(0,0,W,H);
+    ctx.lineCap="round";
+    for(var i=0;i<stars.length;i++){
+      var s=stars[i];
+      s.z -= v*dt;
+      if(s.z<=0.05){ s.x=Math.random()*2-1; s.y=Math.random()*2-1; s.z=1; s.seen=false; }
+      var p=project(s); var a=(1-s.z);
+      var col="rgba("+ (200+Math.round(40*a)) +","+ (215+Math.round(30*a)) +",255,"+ (0.25+0.65*a) +")";
+      if(s.seen && (boost>0.02)){
+        ctx.strokeStyle=col; ctx.lineWidth=(a*1.6+0.3)*dpr;
+        ctx.beginPath(); ctx.moveTo(s.px,s.py); ctx.lineTo(p[0],p[1]); ctx.stroke();
+      } else {
+        ctx.globalAlpha=1; ctx.fillStyle=col;
+        ctx.beginPath(); ctx.arc(p[0],p[1],(a*1.7+0.4)*dpr,0,7); ctx.fill();
+      }
+      s.px=p[0]; s.py=p[1]; s.seen=true;
+    }
+    requestAnimationFrame(frame);
+  }
+  function startSky(){
+    resize(); seed();
+    if(reduce.matches){ drawStatic(); running=false; return; }
+    running=true; lastT=0; requestAnimationFrame(frame);
+  }
+  addEventListener("resize", function(){ resize(); if(reduce.matches) drawStatic(); });
+  document.addEventListener("visibilitychange", function(){
+    if(document.hidden){ running=false; }
+    else if(!reduce.matches){ running=true; lastT=0; requestAnimationFrame(frame); }
+  });
+  reduce.addEventListener && reduce.addEventListener("change", function(){
+    seed(); if(reduce.matches){ running=false; drawStatic(); }
+    else { running=true; lastT=0; requestAnimationFrame(frame); }
+  });
+
+  /* ---------- 里程表：roll-in + live ---------- */
+  var birthMs = null, openMs = Date.now();
+  var live = [];            // {el,id,rollStart,dur} 需要持續更新的欄位
+  var sinceField = null;
+  function ease(x){ return 1-Math.pow(1-x,3); }
+  function elapsedSec(){ return birthMs==null ? 0 : Math.max(0,(Date.now()-birthMs)/1000); }
+
+  function render(){
+    var sec = elapsedSec(), now=Date.now();
+    for(var i=0;i<live.length;i++){
+      var f=live[i], val=sec*RATE[f.id], dec=DEC[f.id]||0;
+      if(f.rollStart!=null){
+        var pr=Math.min(1,(now-f.rollStart)/f.dur);
+        val = ease(pr)*val;
+        if(pr>=1) f.rollStart=null;
+      }
+      f.el.textContent = fmt(val, dec);
+    }
+    if(sinceField){
+      sinceField.el.textContent = fmt(Math.max(0,(now-openMs)/1000)*V_ORBIT, 0);
+    }
+    // 中文級距標籤（更新頻率低，跟著一起算即可）
+    if(zhSun) zhSun.textContent = zhBig(sec*V_ORBIT);
+    if(zhGal) zhGal.textContent = zhBig(sec*V_GALAXY);
+  }
+  var zhSun=null, zhGal=null;
+
+  var numTimer=null;
+  function loopNumbers(){                 // 數字更新獨立於星空，節流 ~11Hz
+    render();
+    numTimer = setTimeout(loopNumbers, reduce.matches?500:90);
+  }
+  function addLive(ids, rolling){
+    for(var i=0;i<ids.length;i++){
+      var el=$(ids[i]); if(!el) continue;
+      live.push({ el:el, id:ids[i], rollStart:(rolling && !reduce.matches)?Date.now():null, dur:1500 });
+    }
+  }
+
+  /* ---------- 分幕控制 ---------- */
+  var ACTS=["a0","a1","a2","a3","a4"], cur=0;
+  var prog=$("prog");
+  for(var i=0;i<ACTS.length;i++){ var d=document.createElement("i"); if(i===0)d.className="on"; prog.appendChild(d); }
+  function setProg(k){ var ds=prog.children; for(var i=0;i<ds.length;i++) ds[i].className=(i===k?"on":""); }
+  function announce(txt){ $("live").textContent=txt; }
+
+  function show(k){
+    var from=$(ACTS[cur]), to=$(ACTS[k]);
+    from.classList.remove("on"); to.classList.add("on");
+    cur=k; setProg(k);
+    to.focus({preventScroll:true});
+    window.scrollTo(0,0);
+  }
+
+  function beginJourney(){
+    var st=stats(elapsedSec());
+    // ACT1 欄位
+    addLive(["dDays","dSecs","dHeart","dBreath","dOrbits"], true);
+    show(1);
+    announce("你已在地球上活了約 "+fmt(st.days)+" 天，繞太陽 "+trim(st.orbits)+" 圈。");
+  }
+
+  function toOrbit(){
+    zhSun=$("dKmSunZh");
+    addLive(["dKmSun","dEarthLaps","dMoonTrips"], true);
+    boost = reduce.matches?0:0.8;
+    show(2);
+    var st=stats(elapsedSec());
+    announce("你繞著太陽已跑過約 "+zhBig(st.kmSun)+" 公里，相當於繞地球 "+fmt(st.laps)+" 圈。");
+  }
+  function toGalaxy(){
+    zhGal=$("dKmGalZh");
+    addLive(["dKmGal"], true);
+    boost = reduce.matches?0:1.0;
+    show(3);
+    var st=stats(elapsedSec());
+    announce("加上太陽帶你繞銀河系，總里程約 "+zhBig(st.kmGal)+" 公里。");
+  }
+  function toNow(){
+    sinceField = { el:$("dSince") };
+    show(4);
+    announce("從你打開這一頁到現在，你又飛了超過一千公里，而且還在增加。");
+  }
+
+  /* ---------- 事件 ---------- */
+  function validateAndStart(){
+    var v=$("bd").value, warn=$("warn");
+    if(!v){ warn.textContent="先選一個生日吧 🙂"; $("bd").focus(); return; }
+    var b=new Date(v+"T00:00:00"), now=new Date();
+    if(isNaN(b.getTime())){ warn.textContent="這個日期看不懂，換一個？"; return; }
+    if(b.getTime()>now.getTime()){ warn.textContent="還沒出生喔？挑一個過去的日子。"; return; }
+    if(now.getFullYear()-b.getFullYear()>150){ warn.textContent="嗯……這歲數有點超乎科學了，換一個？"; return; }
+    warn.textContent="";
+    birthMs=b.getTime();
+    try{ localStorage.setItem(LS, v); }catch(e){}
+    beginJourney();
+  }
+
+  $("go").addEventListener("click", validateAndStart);
+  $("bd").addEventListener("keydown", function(e){ if(e.key==="Enter"){ e.preventDefault(); validateAndStart(); }});
+  $("go1").addEventListener("click", toOrbit);
+  $("go2").addEventListener("click", toGalaxy);
+  $("go3").addEventListener("click", toNow);
+  $("again").addEventListener("click", function(){
+    live=[]; sinceField=null; zhSun=null; zhGal=null;
+    ["dDays","dSecs","dHeart","dBreath","dOrbits","dKmSun","dEarthLaps","dMoonTrips","dKmGal","dSince"]
+      .forEach(function(id){ var e=$(id); if(e) e.textContent="0"; });
+    birthMs=null; openMs=Date.now(); show(0);
+    var pv=""; try{ pv=localStorage.getItem(LS)||""; }catch(e){} $("bd").value=pv; $("bd").focus();
+  });
+
+  /* ---------- 啟動 ---------- */
+  try{ var saved=localStorage.getItem(LS); if(saved) $("bd").value=saved; }catch(e){}
+  var todayISO=new Date().toISOString().slice(0,10);
+  $("bd").setAttribute("max", todayISO);
+  startSky();
+  loopNumbers();
+
+  /* ---------- 匯出供 node 測試（瀏覽器不受影響） ---------- */
+  if(typeof module!=="undefined" && module.exports){
+    module.exports={ stats:stats, fmt:fmt, zhBig:zhBig,
+      C:{ V_ORBIT:V_ORBIT, V_GALAXY:V_GALAXY, HEART:HEART, BREATH:BREATH, SEC_YEAR:SEC_YEAR, EARTH_CIRC:EARTH_CIRC, MOON_RT:MOON_RT } };
+  }
+})();
+</script>
+</body>
+</html>

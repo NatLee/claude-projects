@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>還剩幾次 · 你還能見爸媽幾次面</title>
+<meta name="description" content="憑直覺先猜一個數字：這輩子你還能見爸媽幾次？只用兩個數字，把它算給你看——然後把那條長長的尾巴，交回你手裡。">
+<style>
+  :root{
+    --bg:#16130f; --ink:#f4ede1; --dim:#b7ab98; --faint:#837868;
+    --accent:#ffb454;         /* 暖琥珀：剩下的、還亮著的 */
+    --accent2:#ff8f6b;        /* 落日橘 */
+    --spent:#40382e;          /* 已用掉的、暗下去的 */
+    --line:rgba(255,255,255,.09);
+    --card:rgba(255,255,255,.035);
+    --maxw:720px;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Songti TC","Noto Serif TC",serif;
+    --num:"SFMono-Regular",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; height:100%}
+  body{
+    background:
+      radial-gradient(125% 92% at 50% 6%, #241c14 0%, #1b1610 42%, var(--bg) 100%);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC",sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.66;
+    overflow-x:hidden;
+  }
+  #grain{position:fixed; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background:radial-gradient(140% 110% at 50% 30%, transparent 55%, rgba(0,0,0,.55) 100%)}
+
+  .home{position:fixed; top:14px; left:16px; z-index:20; color:var(--faint);
+    text-decoration:none; font-size:13px; letter-spacing:.02em; padding:6px 4px;
+    transition:color .25s}
+  .home:hover,.home:focus-visible{color:var(--accent); outline:none}
+
+  .wrap{position:relative; z-index:3; min-height:100dvh; display:grid; place-items:center;
+    padding:clamp(24px,5.5vw,52px)}
+  .screen{grid-area:1/1; max-width:var(--maxw); width:100%; display:none; text-align:center}
+  .screen.on{display:block; animation:rise .85s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes rise{from{opacity:0; transform:translateY(16px)} to{opacity:1; transform:none}}
+
+  .kicker{font-size:12px; letter-spacing:.4em; text-transform:uppercase;
+    color:var(--accent); font-weight:700; margin:0 0 26px}
+  .kicker .dot{display:inline-block; width:5px; height:5px; border-radius:50%;
+    background:var(--accent); margin:0 9px 2px; vertical-align:middle;
+    box-shadow:0 0 9px var(--accent)}
+  .eyebrow{color:var(--faint); font-style:italic; font-family:var(--serif);
+    font-size:clamp(15px,3.2vw,18px); margin:0 0 14px}
+
+  h1{font-family:var(--serif); font-weight:600; letter-spacing:.01em;
+    font-size:clamp(27px,6.2vw,46px); line-height:1.22; margin:0 0 .55em}
+  .turn{font-family:var(--serif); font-size:clamp(22px,5vw,34px); color:var(--ink);
+    line-height:1.32; margin:0 auto .55em; max-width:20em}
+  .turn em{font-style:italic; color:var(--accent)}
+  .lead{font-size:clamp(15.5px,3.3vw,20px); color:var(--dim); margin:0 auto 26px; max-width:32em}
+  .lead b{color:var(--ink); font-weight:600}
+  .note{font-size:13.5px; color:var(--faint); margin:14px auto 0; max-width:30em; line-height:1.55}
+  .src{font-size:12.5px; color:var(--faint); margin:18px auto 0}
+  .src a{color:var(--dim); text-decoration:none; border-bottom:1px solid var(--line)}
+  .src a:hover,.src a:focus-visible{color:var(--accent); outline:none}
+
+  /* 輸入 */
+  .field{display:flex; gap:10px; justify-content:center; align-items:baseline;
+    flex-wrap:wrap; margin:8px 0}
+  .field label{color:var(--dim); font-size:16px}
+  input[type=number]{
+    font:inherit; font-size:20px; color:var(--ink); background:rgba(255,255,255,.05);
+    border:1px solid var(--line); border-radius:12px; padding:11px 14px; width:120px;
+    text-align:center; -moz-appearance:textfield}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  input:focus-visible{outline:none; border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(255,180,84,.22)}
+  .unit{color:var(--faint); font-size:15px}
+
+  .toggle{display:inline-flex; border:1px solid var(--line); border-radius:999px;
+    padding:4px; gap:4px; margin:2px 0 8px}
+  .toggle button{font:inherit; font-size:15px; color:var(--dim); background:none;
+    border:0; border-radius:999px; padding:8px 20px; cursor:pointer; transition:.2s}
+  .toggle button[aria-pressed=true]{background:rgba(255,180,84,.16); color:var(--accent)}
+  .toggle button:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(255,180,84,.22)}
+
+  .adv{margin-top:20px; font-size:14px; color:var(--faint)}
+  .adv input{font-size:16px; width:82px; padding:8px 10px}
+
+  .btn{font:inherit; font-size:16.5px; font-weight:600; color:var(--bg);
+    background:linear-gradient(180deg,var(--accent),var(--accent2));
+    border:0; border-radius:14px; padding:14px 30px; cursor:pointer; margin-top:26px;
+    box-shadow:0 8px 26px rgba(255,143,107,.28); transition:transform .15s, box-shadow .15s}
+  .btn:hover{transform:translateY(-2px); box-shadow:0 12px 32px rgba(255,143,107,.36)}
+  .btn:active{transform:translateY(0)}
+  .btn:focus-visible{outline:none; box-shadow:0 0 0 3px rgba(255,180,84,.3), 0 8px 26px rgba(255,143,107,.28)}
+  .btn.ghost{background:none; color:var(--dim); box-shadow:none; border:1px solid var(--line);
+    font-weight:500; padding:12px 22px; font-size:15px}
+  .btn.ghost:hover{color:var(--accent); transform:translateY(-1px)}
+  .btnrow{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; align-items:center}
+
+  /* 大數字 */
+  .big{font-family:var(--num); font-weight:700; color:var(--accent);
+    font-size:clamp(64px,17vw,132px); line-height:.98; letter-spacing:-.02em;
+    text-shadow:0 0 40px rgba(255,180,84,.35); margin:.12em 0}
+  .cap{font-size:clamp(16px,3.4vw,21px); color:var(--ink); margin:0 auto; max-width:24em}
+  .cap b{color:var(--accent)}
+  .guessline{color:var(--dim); font-size:16px; margin:18px auto 0; max-width:26em}
+  .guessline b{color:var(--ink); font-weight:600}
+
+  /* 點陣英雄 */
+  .stage{margin:26px auto 4px; min-height:120px; display:flex; align-items:center; justify-content:center}
+  #dots{display:flex; flex-wrap:wrap; gap:7px; justify-content:center;
+    max-width:min(560px,88vw); margin:0 auto}
+  .dot{width:11px; height:11px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffd9a0, var(--accent) 62%, #d98a2f);
+    box-shadow:0 0 7px rgba(255,180,84,.55);
+    opacity:0; transform:scale(.2); transition:opacity .5s ease, transform .5s cubic-bezier(.2,.8,.2,1)}
+  .dot.in{opacity:1; transform:none}
+  .dot.leaving{opacity:0; transform:scale(.2)}
+
+  /* 長尾條 */
+  .barwrap{margin:22px auto 6px; max-width:min(600px,90vw)}
+  .bar{position:relative; height:44px; border-radius:10px; overflow:hidden;
+    background:var(--spent); border:1px solid var(--line)}
+  .bar .tip{position:absolute; top:0; right:0; height:100%;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    box-shadow:0 0 22px rgba(255,180,84,.7); width:0;
+    transition:width 1.2s cubic-bezier(.2,.7,.2,1)}
+  .barlabels{display:flex; justify-content:space-between; margin-top:10px;
+    font-size:13px; color:var(--faint)}
+  .barlabels .r{color:var(--accent)}
+  .tipmark{position:relative; margin-top:6px; height:16px}
+
+  /* 反轉滑桿 */
+  .lever{max-width:min(560px,90vw); margin:24px auto 0}
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:6px;
+    border-radius:999px; background:linear-gradient(90deg,var(--accent) 0%,var(--accent) var(--fill,30%),rgba(255,255,255,.12) var(--fill,30%));
+    outline:none; margin:16px 0 6px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none;
+    width:26px; height:26px; border-radius:50%; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%,#ffe6bf,var(--accent) 65%,#d98a2f);
+    box-shadow:0 3px 12px rgba(0,0,0,.5), 0 0 0 5px rgba(255,180,84,.18)}
+  input[type=range]::-moz-range-thumb{width:26px; height:26px; border:0; border-radius:50%; cursor:pointer;
+    background:radial-gradient(circle at 35% 30%,#ffe6bf,var(--accent) 65%,#d98a2f)}
+  input[type=range]:focus-visible{box-shadow:0 0 0 3px rgba(255,180,84,.3)}
+  .leverrow{display:flex; justify-content:space-between; font-size:14px; color:var(--faint)}
+  .delta{margin-top:16px; font-size:clamp(15px,3.4vw,19px); color:var(--ink)}
+  .delta b{color:var(--accent); font-family:var(--num)}
+
+  footer{position:relative; z-index:3; text-align:center; color:var(--faint);
+    font-size:12px; line-height:1.7; padding:22px 18px 30px}
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--accent)}
+
+  @media (max-width:560px){
+    .big{font-size:clamp(56px,22vw,90px)}
+    .dot{width:10px; height:10px; gap:6px}
+    input[type=number]{width:104px; font-size:18px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .screen.on{animation:none}
+    .dot{transition:none}
+    .bar .tip{transition:none}
+    .btn{transition:none}
+  }
+</style>
+</head>
+<body>
+<div id="grain" aria-hidden="true"></div>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<main class="wrap">
+
+  <!-- 0 · 鉤子 -->
+  <section class="screen on" id="s-hook" aria-label="開場">
+    <p class="kicker"><span class="dot"></span>還剩幾次<span class="dot"></span></p>
+    <p class="eyebrow">先別算。</p>
+    <h1>這輩子，你還能<br>再見到爸媽幾次？</h1>
+    <p class="lead">不用很準，憑直覺就好——先<b>猜一個數字</b>。等一下我們一起算，看你猜得準不準。</p>
+    <div class="field">
+      <label for="guess">我猜大約</label>
+      <input type="number" id="guess" min="0" max="99999" inputmode="numeric" placeholder="？" aria-label="你猜還能見面幾次">
+      <span class="unit">次</span>
+    </div>
+    <button class="btn" id="go1">記下，然後算給我看</button>
+  </section>
+
+  <!-- 1 · 只問兩件事 -->
+  <section class="screen" id="s-ask" aria-label="輸入">
+    <p class="turn">其實，只需要<em>兩個數字</em>。</p>
+    <p class="lead">先想其中一位就好，另一位待會再算一次。</p>
+    <div class="toggle" role="group" aria-label="先算哪一位">
+      <button id="pMom" aria-pressed="true">媽媽</button>
+      <button id="pDad" aria-pressed="false">爸爸</button>
+    </div>
+    <div class="field">
+      <label for="age">她現在</label>
+      <input type="number" id="age" min="1" max="120" value="60" inputmode="numeric" aria-label="這位家人現在幾歲">
+      <span class="unit">歲</span>
+    </div>
+    <div class="field">
+      <label for="visits">你一年大概見她</label>
+      <input type="number" id="visits" min="1" max="366" value="6" inputmode="numeric" aria-label="你一年見這位家人幾次">
+      <span class="unit">次</span>
+    </div>
+    <div class="adv field">
+      <label for="endage">想陪她到</label>
+      <input type="number" id="endage" min="1" max="120" value="84" inputmode="numeric" aria-label="想算到幾歲">
+      <span class="unit">歲</span>
+    </div>
+    <p class="note">預設用台灣平均壽命：女性約 84 歲、男性約 77 歲，你也可以改成自己心裡的數字。</p>
+    <button class="btn" id="go2">算給我看</button>
+  </section>
+
+  <!-- 2 · 揭曉 -->
+  <section class="screen" id="s-reveal" aria-label="結果">
+    <div class="big" id="bigNum" aria-live="polite">0</div>
+    <p class="cap" id="revealCap">次。</p>
+    <div class="stage"><div id="dots" aria-hidden="true"></div></div>
+    <p class="guessline" id="guessLine"></p>
+    <button class="btn" id="go3">但這還不是最扎心的</button>
+  </section>
+
+  <!-- 3 · 長尾 -->
+  <section class="screen" id="s-tail" aria-label="長尾">
+    <p class="turn">更殘忍的是——<br>大部分的相處，<em>你早就用完了</em>。</p>
+    <div class="barwrap">
+      <div class="bar"><div class="tip" id="barTip"></div></div>
+      <div class="barlabels"><span>← 你 0–18 歲，天天在一起（已經用掉）</span><span class="r">剩下的 →</span></div>
+    </div>
+    <p class="lead" id="tailText"></p>
+    <p class="src">這個「尾巴」的視角，來自 Tim Urban〈The Tail End〉。</p>
+    <button class="btn" id="go4">這條尾巴，還能加長嗎？</button>
+  </section>
+
+  <!-- 4 · 反轉滑桿 -->
+  <section class="screen" id="s-lever" aria-label="你能改變它">
+    <p class="turn">能。而且，<em>握在你手裡</em>。</p>
+    <p class="lead">試著把「一年見幾次」往上拉——看看剩下的相處，怎麼跟著長回來。</p>
+    <div class="lever">
+      <div class="leverrow"><span>少一點</span><span>一年見 <b id="leverVal" style="color:var(--accent)">6</b> 次</span><span>多一點</span></div>
+      <input type="range" id="lever" min="1" max="24" step="1" value="6" aria-label="每年見面次數">
+    </div>
+    <div class="big" id="leverNum" aria-live="polite" style="font-size:clamp(48px,12vw,90px); margin-top:18px">0</div>
+    <p class="cap">次相處，接下來還能有。</p>
+    <p class="delta" id="deltaLine"></p>
+    <button class="btn" id="go5">我知道了</button>
+  </section>
+
+  <!-- 5 · 記憶點 -->
+  <section class="screen" id="s-close" aria-label="結尾">
+    <p class="kicker"><span class="dot"></span>那，這個週末呢<span class="dot"></span></p>
+    <p class="turn" id="closeTop"></p>
+    <p class="lead">唯一的差別是——這個週末，你會不會真的<b>撥出那通電話</b>。</p>
+    <p class="eyebrow">（現在，也還算一次。）</p>
+    <div class="btnrow">
+      <button class="btn ghost" id="again">換一個人再算</button>
+      <button class="btn ghost" id="restart">從頭開始</button>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  靈感 Tim Urban《The Tail End》 · 平均壽命 內政部 113 年（2024）簡易生命表 · 一切在你的瀏覽器裡算完
+</footer>
+
+<script>
+'use strict';
+/* ==========================================================================
+ * 還剩幾次 — 純靜態、file:// 可開、無外連。localStorage 前綴 tailend.
+ * ========================================================================== */
+
+/* --- 核心計算：純函式，可被 node 抽出驗證 --- */
+/*__PURE_START__*/
+function remainingMeetings(age, visits, end){
+  var yrs = Math.max(0, end - age);
+  return Math.max(0, Math.round(yrs * visits));
+}
+function yearsLeft(age, end){ return Math.max(0, end - age); }
+// 長尾粗估：把「一起度過的日子」拆成童年同住（0–18 歲、每年約 330 天）
+// 與離家後的探望（每次約當 1 天）。回傳「已用掉的百分比」。
+function pctSpent(age, visits, end){
+  var YEARS_TOGETHER = 18, DAYS_PER_YEAR = 330, DAYS_PER_VISIT = 1;
+  var past = YEARS_TOGETHER * DAYS_PER_YEAR;
+  var future = remainingMeetings(age, visits, end) * DAYS_PER_VISIT;
+  if (past + future === 0) return 100;
+  return past / (past + future) * 100;
+}
+/*__PURE_END__*/
+
+/* --- 小工具 --- */
+var $ = function(id){ return document.getElementById(id); };
+var REDUCE = false;
+try {
+  var mq = matchMedia('(prefers-reduced-motion: reduce)');
+  REDUCE = mq.matches;
+  mq.addEventListener ? mq.addEventListener('change', function(e){ REDUCE = e.matches; })
+                      : mq.addListener(function(e){ REDUCE = e.matches; });
+} catch(e){}
+
+function clampNum(v, lo, hi, dflt){
+  v = parseInt(v, 10);
+  if (isNaN(v)) return dflt;
+  return Math.max(lo, Math.min(hi, v));
+}
+function LS(k){ return 'tailend.' + k; }
+function save(k, v){ try{ localStorage.setItem(LS(k), v); }catch(e){} }
+function load(k){ try{ return localStorage.getItem(LS(k)); }catch(e){ return null; } }
+
+/* --- 狀態 --- */
+var S = { person:'媽媽', pron:'她', age:60, visits:6, end:84, guess:null, base:6 };
+
+/* 讀回上次輸入 */
+(function(){
+  var p = load('person'); if (p === '爸爸' || p === '媽媽') S.person = p;
+  S.pron = (S.person === '爸爸') ? '他' : '她';
+  var a = load('age'); if (a) $('age').value = clampNum(a,1,120,60);
+  var v = load('visits'); if (v) $('visits').value = clampNum(v,1,366,6);
+})();
+
+/* --- 畫面切換 --- */
+var SCREENS = ['s-hook','s-ask','s-reveal','s-tail','s-lever','s-close'];
+function show(id){
+  SCREENS.forEach(function(s){ $(s).classList.toggle('on', s === id); });
+  window.scrollTo(0, 0);
+  var el = $(id);
+  var focusable = el.querySelector('input,button,[tabindex]');
+  if (focusable && id !== 's-hook') { try{ focusable.focus({preventScroll:true}); }catch(e){ focusable.focus(); } }
+}
+
+/* --- 數字滾動 --- */
+function countTo(el, to, dur){
+  if (REDUCE || dur === 0){ el.textContent = to.toLocaleString('en-US'); return; }
+  var from = 0, t0 = null;
+  function step(t){
+    if (t0 === null) t0 = t;
+    var k = Math.min(1, (t - t0) / dur);
+    var e = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-US');
+    if (k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* --- 點陣渲染 --- */
+var DOT_CAP = 420;
+function renderDots(n){
+  var box = $('dots');
+  box.textContent = '';
+  var show = Math.min(n, DOT_CAP);
+  var frag = document.createDocumentFragment();
+  for (var i = 0; i < show; i++){
+    var d = document.createElement('span');
+    d.className = 'dot';
+    if (!REDUCE) d.style.transitionDelay = Math.min(i * 5, 900) + 'ms';
+    frag.appendChild(d);
+  }
+  box.appendChild(frag);
+  // 觸發進場
+  if (REDUCE){
+    var all = box.children;
+    for (var j = 0; j < all.length; j++) all[j].classList.add('in');
+  } else {
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      var all = box.children;
+      for (var j = 0; j < all.length; j++) all[j].classList.add('in');
+    }); });
+  }
+}
+
+/* --- 人物切換 --- */
+function setPerson(p){
+  S.person = p; S.pron = (p === '爸爸') ? '他' : '她';
+  $('pMom').setAttribute('aria-pressed', String(p === '媽媽'));
+  $('pDad').setAttribute('aria-pressed', String(p === '爸爸'));
+  // 只在使用者尚未手動改動 endage 時，套用預設餘命
+  if (!$('endage').dataset.touched) $('endage').value = (p === '爸爸') ? 77 : 84;
+  $('age').previousElementSibling && ($('age').setAttribute('aria-label', '這位家人現在幾歲'));
+  // 更新問句代名詞
+  relabelAsk();
+  save('person', p);
+}
+function relabelAsk(){
+  // 動態把「她」換成正確代名詞
+  var lblAge = document.querySelector('label[for=age]');
+  var lblVis = document.querySelector('label[for=visits]');
+  var lblEnd = document.querySelector('label[for=endage]');
+  if (lblAge) lblAge.textContent = S.pron + '現在';
+  if (lblVis) lblVis.textContent = '你一年大概見' + S.pron;
+  if (lblEnd) lblEnd.textContent = '想陪' + S.pron + '到';
+}
+
+/* --- 事件 --- */
+$('pMom').addEventListener('click', function(){ setPerson('媽媽'); });
+$('pDad').addEventListener('click', function(){ setPerson('爸爸'); });
+$('endage').addEventListener('input', function(){ $('endage').dataset.touched = '1'; });
+
+$('go1').addEventListener('click', function(){
+  var g = $('guess').value;
+  S.guess = (g === '' || g === null) ? null : clampNum(g, 0, 99999, null);
+  show('s-ask');
+  relabelAsk();
+});
+
+$('go2').addEventListener('click', function(){
+  S.age = clampNum($('age').value, 1, 120, 60);
+  S.visits = clampNum($('visits').value, 1, 366, 6);
+  S.end = clampNum($('endage').value, 1, 120, (S.person === '爸爸') ? 77 : 84);
+  S.base = S.visits;
+  save('age', S.age); save('visits', S.visits);
+
+  var n = remainingMeetings(S.age, S.visits, S.end);
+  var yl = yearsLeft(S.age, S.end);
+
+  countTo($('bigNum'), n, 1500);
+  renderDots(n);
+
+  // 說明文案：處理超齡 / 一般情況
+  var cap = $('revealCap');
+  if (yl <= 0){
+    cap.innerHTML = '次。<br>——如果只看平均，時間已經到了。<b>但平均只是平均</b>，這正是別把它留到「以後」的理由。';
+  } else {
+    cap.innerHTML = '次。<br>這是你和' + S.person + '，往後大概還能見面的次數。';
+  }
+
+  // 猜測落差
+  var gl = $('guessLine');
+  if (S.guess === null){
+    gl.textContent = '';
+  } else if (S.guess > n){
+    gl.innerHTML = '你剛剛猜 <b>' + S.guess.toLocaleString('en-US') + '</b> 次。<br>那道差距，就是我們平常不敢細想的那件事。';
+  } else if (S.guess === n){
+    gl.innerHTML = '你剛剛猜 <b>' + S.guess.toLocaleString('en-US') + '</b> 次——分毫不差。你心裡其實一直有數。';
+  } else {
+    gl.innerHTML = '你剛剛猜 <b>' + S.guess.toLocaleString('en-US') + '</b> 次。<br>比實際還少——但就算多一點，也就這麼多了。';
+  }
+
+  show('s-reveal');
+});
+
+$('go3').addEventListener('click', function(){
+  var pct = pctSpent(S.age, S.visits, S.end);
+  var rem = Math.max(0.2, 100 - pct);   // 讓亮條至少看得見
+  requestAnimationFrame(function(){ $('barTip').style.width = rem.toFixed(2) + '%'; });
+  var shown = (pct >= 99.9) ? '99' : (Math.round(pct * 10) / 10);
+  $('tailText').innerHTML = '你和' + S.person + '相處的所有日子裡，約 <b style="color:var(--accent)">' +
+    shown + '%</b> 在你長大離家那年就用掉了。<br>你現在，站在這條長長尾巴的<b>末端</b>。';
+  show('s-tail');
+});
+
+$('go4').addEventListener('click', function(){
+  var lv = $('lever');
+  var start = clampNum(S.base, 1, 24, 6);
+  lv.min = 1; lv.max = 24; lv.value = start;
+  updateLever();
+  show('s-lever');
+});
+
+function updateLever(){
+  var lv = $('lever');
+  var cur = clampNum(lv.value, 1, 366, 6);
+  var n = remainingMeetings(S.age, cur, S.end);
+  var base = remainingMeetings(S.age, S.base, S.end);
+  $('leverVal').textContent = cur;
+  $('leverNum').textContent = n.toLocaleString('en-US');
+  lv.style.setProperty('--fill', ((cur - 1) / (24 - 1) * 100) + '%');
+  renderDots(n);
+  var d = n - base;
+  var dl = $('deltaLine');
+  if (d > 0){
+    dl.innerHTML = '從一年 ' + S.base + ' 次，加到 ' + cur + ' 次——多出 <b>' + d.toLocaleString('en-US') + '</b> 次相處。';
+  } else if (d === 0){
+    dl.innerHTML = '這是你現在的步調：一年 ' + S.base + ' 次。往右拉拉看。';
+  } else {
+    dl.innerHTML = '比現在少了 <b>' + Math.abs(d).toLocaleString('en-US') + '</b> 次——別往這個方向走。';
+  }
+}
+var leverRAF = 0;
+$('lever').addEventListener('input', function(){
+  if (leverRAF) return;
+  leverRAF = requestAnimationFrame(function(){ leverRAF = 0; updateLever(); });
+});
+
+$('go5').addEventListener('click', function(){
+  var lv = $('lever');
+  var cur = clampNum(lv.value, 1, 366, S.base);
+  var nowN = remainingMeetings(S.age, S.base, S.end);
+  var moreN = remainingMeetings(S.age, cur, S.end);
+  var top = $('closeTop');
+  if (moreN > nowN){
+    top.innerHTML = '<em>' + nowN.toLocaleString('en-US') + '</em> 次也好，<em>' +
+      moreN.toLocaleString('en-US') + '</em> 次也好——<br>都還在前面等著。';
+  } else {
+    top.innerHTML = '那 <em>' + nowN.toLocaleString('en-US') + '</em> 次，<br>都還在前面等著。';
+  }
+  show('s-close');
+});
+
+$('again').addEventListener('click', function(){
+  // 換人：切到另一位，回到輸入
+  setPerson(S.person === '爸爸' ? '媽媽' : '爸爸');
+  $('endage').removeAttribute('data-touched');
+  $('endage').value = (S.person === '爸爸') ? 77 : 84;
+  show('s-ask');
+});
+$('restart').addEventListener('click', function(){
+  $('guess').value = '';
+  show('s-hook');
+});
+
+/* Enter 快捷 */
+$('guess').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('go1').click(); });
+['age','visits','endage'].forEach(function(id){
+  $(id).addEventListener('keydown', function(e){ if (e.key === 'Enter') $('go2').click(); });
+});
+
+/* 初始 */
+relabelAsk();
+</script>
+</body>
+</html>

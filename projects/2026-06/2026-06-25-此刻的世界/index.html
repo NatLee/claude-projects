@@ -485,7 +485,18 @@ function startSky(){ if(!rafSky && motionOK && !pageHidden) rafSky = requestAnim
 function stopSky(){ if(rafSky){ cancelAnimationFrame(rafSky); rafSky = 0; } }
 
 resize();
-addEventListener("resize", resize);
+// 保養（2026-07-25）：手機網址列收放會連發 resize，導致星空每次都整組重生而閃動；
+// 依「先比較尺寸相等才重設」原則，用 rAF 節流並略過尺寸未變的 resize。
+let _lastW = innerWidth, _lastH = innerHeight, _rzPending = false;
+addEventListener("resize", function(){
+  if(_rzPending) return; _rzPending = true;
+  requestAnimationFrame(function(){
+    _rzPending = false;
+    if(innerWidth === _lastW && innerHeight === _lastH) return;
+    _lastW = innerWidth; _lastH = innerHeight;
+    resize();
+  });
+});
 
 // —— 生命週期：分頁可見度 —— //
 document.addEventListener("visibilitychange", ()=>{

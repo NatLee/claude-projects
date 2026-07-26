@@ -314,6 +314,7 @@ function fxCtx(){
   const h = Math.round(window.innerHeight * dpr);
   if (c.width !== w || c.height !== h){ c.width = w; c.height = h; }
   const ctx = c.getContext("2d");
+  if (!ctx) return null;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   return ctx;
 }

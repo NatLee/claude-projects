@@ -480,8 +480,12 @@ function initAmbient() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth;
     H = window.innerHeight;
-    canvas.width = Math.floor(W * dpr);
-    canvas.height = Math.floor(H * dpr);
+    const pw = Math.floor(W * dpr), ph = Math.floor(H * dpr);
+    // 尺寸沒有實際改變就不重設 backing store，避免無謂重繪、也避免微粒在
+    // 每次 resize（如行動裝置網址列開合觸發的 no-op resize）被重新洗牌。
+    if (canvas.width === pw && canvas.height === ph) return;
+    canvas.width = pw;
+    canvas.height = ph;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     seed();
   }

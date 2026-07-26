@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>爬不到頂的音階 · 一段永遠往上、卻永遠到不了頂的聲音</title>
+<style>
+  :root{
+    --bg:#0a0910; --bg2:#120f1c;
+    --ink:#f4efe6; --dim:#a49bb0; --faint:#6c6580;
+    --gold:#ffd08a; --gold2:#ff9d5c; --amber:#ffb765;
+    --line:rgba(255,255,255,.10);
+    --maxw:760px;
+    --serif:"Iowan Old Style","Palatino Linotype","Noto Serif TC",Georgia,"Songti TC",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+    min-height:100dvh; overflow-x:hidden;
+  }
+  #bg{position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block; pointer-events:none}
+
+  .home{
+    position:fixed; top:14px; left:16px; z-index:40;
+    color:var(--faint); text-decoration:none; font-size:13px; letter-spacing:.02em;
+    padding:6px 10px; border-radius:999px; transition:color .25s, background .25s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .home:hover,.home:focus-visible{color:var(--gold); background:rgba(255,255,255,.05); outline:none}
+
+  main{position:relative; z-index:10}
+  .act{
+    min-height:100dvh; display:none; align-items:center; justify-content:center;
+    padding:88px clamp(22px,6vw,40px) 96px;
+  }
+  .act.show{display:flex}
+  .wrap{width:100%; max-width:var(--maxw); margin:0 auto}
+
+  .eyebrow{
+    font-size:12px; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--amber); opacity:.85; margin:0 0 22px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:600; line-height:1.12;
+    font-size:clamp(2.3rem,7.4vw,4.1rem); margin:0 0 .35em; letter-spacing:.01em;
+  }
+  h1 .glow{color:var(--gold); text-shadow:0 0 34px rgba(255,190,110,.45)}
+  .lede{font-family:var(--serif); font-size:clamp(1.25rem,3.4vw,1.7rem); color:#efe7db; line-height:1.5; margin:.2em 0 1.1em}
+  p.body{font-size:clamp(1rem,2.5vw,1.14rem); line-height:1.75; color:var(--dim); margin:0 0 1.3em; max-width:60ch}
+  p.body b{color:#e9dcc6; font-weight:600}
+  .kick{color:var(--gold)}
+
+  /* buttons */
+  .btn{
+    -webkit-appearance:none; appearance:none; cursor:pointer;
+    font-family:var(--sans); font-size:1rem; font-weight:600; letter-spacing:.01em;
+    color:#1a1206; background:linear-gradient(180deg,var(--gold),var(--gold2));
+    border:none; border-radius:999px; padding:15px 26px;
+    box-shadow:0 10px 30px rgba(255,140,60,.28), inset 0 1px 0 rgba(255,255,255,.4);
+    transition:transform .16s cubic-bezier(.2,.7,.3,1.4), box-shadow .25s, filter .2s;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .btn:hover{transform:translateY(-2px); box-shadow:0 16px 40px rgba(255,140,60,.4)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn:focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+  .btn.ghost{
+    background:transparent; color:var(--gold); box-shadow:none;
+    border:1px solid rgba(255,190,110,.45);
+  }
+  .btn.ghost:hover{background:rgba(255,190,110,.08)}
+  .note{font-size:12.5px; color:var(--faint); margin-top:20px; letter-spacing:.02em}
+  .note svg{vertical-align:-2px; margin-right:5px}
+
+  /* climb pad */
+  .climbwrap{display:flex; flex-direction:column; align-items:center; gap:14px; margin:8px 0 4px}
+  .pad{
+    -webkit-appearance:none; appearance:none; cursor:pointer; position:relative;
+    width:min(64vw,230px); height:min(64vw,230px); border-radius:50%;
+    border:1px solid rgba(255,190,110,.35); background:radial-gradient(circle at 50% 38%, rgba(255,190,110,.16), rgba(255,190,110,.03) 60%, transparent 72%);
+    color:var(--gold); font-family:var(--sans); font-size:1.05rem; font-weight:600; letter-spacing:.06em;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:6px;
+    transition:transform .12s ease, box-shadow .25s, border-color .25s;
+    box-shadow:0 0 0 rgba(255,170,90,0); -webkit-user-select:none; user-select:none; touch-action:none;
+  }
+  .pad .arrow{font-size:1.9rem; line-height:1; transition:transform .2s}
+  .pad:focus-visible{outline:2px solid var(--gold); outline-offset:4px}
+  .pad.hold{transform:scale(.965); border-color:rgba(255,200,130,.8); box-shadow:0 0 60px rgba(255,160,80,.35)}
+  .pad.hold .arrow{transform:translateY(-4px)}
+  .ring{position:absolute; inset:-2px; border-radius:50%; pointer-events:none}
+
+  /* HUD: counter + dial */
+  .hud{display:flex; align-items:center; justify-content:center; gap:clamp(20px,6vw,54px); margin:22px 0 8px; flex-wrap:wrap}
+  .metric{display:flex; flex-direction:column; align-items:center; gap:6px; min-width:120px}
+  .metric .num{font-family:var(--serif); font-size:clamp(2.4rem,9vw,3.6rem); line-height:1; color:var(--ink); font-variant-numeric:tabular-nums}
+  .metric .lab{font-size:11.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--faint)}
+  .dialbox{display:flex; flex-direction:column; align-items:center; gap:8px}
+  .dial{width:96px; height:96px}
+  .dial .track{fill:none; stroke:rgba(255,255,255,.10); stroke-width:6}
+  .dial .tick{stroke:rgba(255,255,255,.16); stroke-width:2}
+  .needle{transform-origin:48px 48px; transition:none}
+  .narr{min-height:1.6em; color:var(--amber); font-size:1.02rem; letter-spacing:.02em; margin-top:8px; text-align:center}
+
+  /* reveal */
+  .huge{font-family:var(--serif); font-size:clamp(2.6rem,10vw,4.4rem); line-height:1.05; margin:.1em 0}
+  .beat{font-family:var(--serif); font-size:clamp(1.6rem,5vw,2.4rem); color:var(--gold); margin:.3em 0 .7em; text-shadow:0 0 30px rgba(255,190,110,.4)}
+
+  /* mechanism toggle */
+  .switch{display:inline-flex; align-items:center; gap:12px; cursor:pointer; margin:4px 0 2px; -webkit-user-select:none; user-select:none}
+  .switch input{position:absolute; opacity:0; width:0; height:0}
+  .track2{width:52px; height:30px; border-radius:999px; background:rgba(255,255,255,.12); position:relative; transition:background .25s; flex:none}
+  .knob{position:absolute; top:3px; left:3px; width:24px; height:24px; border-radius:50%; background:var(--ink); transition:transform .25s, background .25s}
+  .switch input:checked + .track2{background:linear-gradient(90deg,var(--gold2),var(--gold))}
+  .switch input:checked + .track2 .knob{transform:translateX(22px); background:#1a1206}
+  .switch input:focus-visible + .track2{outline:2px solid var(--gold); outline-offset:3px}
+  .switch .txt{font-size:.98rem; color:var(--ink); font-weight:600}
+
+  .stagey{position:relative; height:min(46vh,340px); margin:20px 0 6px; border-radius:16px; overflow:hidden;
+    border:1px solid var(--line); background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.18))}
+  .stagey canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+
+  /* finale list */
+  .refs{list-style:none; padding:0; margin:1.1em 0 1.4em; display:flex; flex-direction:column; gap:16px}
+  .refs li{padding-left:20px; border-left:2px solid rgba(255,190,110,.4); color:var(--dim); line-height:1.6}
+  .refs li b{color:#eaddc8; font-weight:600; font-family:var(--serif); font-size:1.06em}
+
+  footer{
+    position:relative; z-index:10; max-width:var(--maxw); margin:0 auto;
+    padding:14px clamp(22px,6vw,40px) 40px; display:flex; justify-content:space-between; gap:14px;
+    flex-wrap:wrap; color:var(--faint); font-size:12.5px; border-top:1px solid var(--line);
+  }
+  footer a{color:var(--faint); text-decoration:none}
+  footer a:hover,footer a:focus-visible{color:var(--gold); outline:none}
+
+  /* entrance */
+  .rise{opacity:0; transform:translateY(16px)}
+  .act.show .rise{animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards; animation-delay:var(--d,0s)}
+  @keyframes rise{to{opacity:1; transform:none}}
+  .fadein{opacity:0; animation:fadein .6s ease forwards; animation-delay:var(--d,0s)}
+  @keyframes fadein{to{opacity:1}}
+
+  @media (max-width:560px){
+    footer{flex-direction:column; gap:8px}
+    .hud{gap:22px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .rise,.fadein{animation:none !important; opacity:1 !important; transform:none !important}
+    .btn,.pad{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+<canvas id="bg" aria-hidden="true"></canvas>
+
+<main>
+  <!-- ACT 1 · 鉤子 -->
+  <section class="act show" id="a1" aria-label="開場">
+    <div class="wrap">
+      <p class="eyebrow rise" style="--d:.05s">創意・娛樂 · 聽覺的錯覺</p>
+      <h1 class="rise" style="--d:.15s">這段聲音，<br>能<span class="glow">永遠往上爬</span>。</h1>
+      <p class="lede rise" style="--d:.3s">永遠。<br>卻永遠到不了頂。</p>
+      <p class="body rise" style="--d:.45s">你其實聽過它——在某部電影快讓你喘不過氣的那一刻，在一座紅帽水管工爬不完的城堡樓梯上。你沒認出來，因為它從頭到尾，都在騙你的耳朵。</p>
+      <div class="rise" style="--d:.6s">
+        <button class="btn" id="start">▶ 戴上耳機，開始往上爬</button>
+        <p class="note"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9v6h4l5 4V5L7 9H3z"/><path d="M16 8a5 5 0 0 1 0 8"/></svg>接下來會有聲音。建議戴上耳機，把音量先轉小一點。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACT 2 · 攀爬 -->
+  <section class="act" id="a2" aria-label="往上爬">
+    <div class="wrap" style="text-align:center">
+      <p class="eyebrow fadein">按住不放，往上爬</p>
+      <div class="climbwrap">
+        <button class="pad" id="pad" aria-label="按住往上爬，放開就停" aria-describedby="padhint">
+          <span class="arrow" aria-hidden="true">↑</span>
+          <span>按住往上</span>
+        </button>
+        <p id="padhint" class="note" style="margin-top:4px">用滑鼠或手指按住／或按住空白鍵、方向鍵↑</p>
+      </div>
+      <div class="hud" aria-hidden="false">
+        <div class="metric">
+          <span class="num" id="steps" aria-live="off">0</span>
+          <span class="lab">你爬的階數</span>
+        </div>
+        <div class="dialbox">
+          <svg class="dial" viewBox="0 0 96 96" role="img" aria-label="你實際聽到的音高">
+            <circle class="track" cx="48" cy="48" r="40"/>
+            <g id="ticks"></g>
+            <g class="needle" id="needle">
+              <line x1="48" y1="48" x2="48" y2="14" stroke="var(--gold)" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="48" cy="48" r="4.5" fill="var(--gold)"/>
+            </g>
+          </svg>
+          <span class="lab" style="color:var(--faint);font-size:11px;letter-spacing:.18em">實際音高</span>
+        </div>
+      </div>
+      <p class="narr" id="narr2" aria-live="polite">往上爬爬看。</p>
+      <div style="margin-top:18px; min-height:52px">
+        <button class="btn ghost" id="toReveal" style="display:none">…等等，我到底爬了多高？→</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ACT 3 · 轉折揭曉 -->
+  <section class="act" id="a3" aria-label="真相">
+    <div class="wrap" style="text-align:center">
+      <p class="huge">你爬了 <span class="glow" id="revSteps">0</span> 階。</p>
+      <p class="beat">但你，一步都沒往上。</p>
+      <p class="body" style="margin-left:auto;margin-right:auto" id="revExplain">看那個轉盤——你聽到的音高，每 <b>12 階</b>就悄悄轉回原點。</p>
+      <div class="hud" style="margin-top:6px">
+        <div class="dialbox">
+          <svg class="dial" viewBox="0 0 96 96" role="img" aria-label="音高一圈又一圈地繞回原點">
+            <circle class="track" cx="48" cy="48" r="40"/>
+            <g class="needle" id="needle3">
+              <line x1="48" y1="48" x2="48" y2="14" stroke="var(--gold)" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="48" cy="48" r="4.5" fill="var(--gold)"/>
+            </g>
+          </svg>
+          <span class="lab" style="color:var(--faint);font-size:11px;letter-spacing:.18em">一圈…又一圈…</span>
+        </div>
+      </div>
+      <p class="body" style="margin-left:auto;margin-right:auto"><b>它是一座關起來的樓梯。</b>頂接著底，你走的每一步都被接回起點——像下面這座轉不停的階梯。</p>
+      <div class="stagey" style="max-width:520px;margin-left:auto;margin-right:auto"><canvas id="loopcv"></canvas></div>
+      <div style="margin-top:8px"><button class="btn" id="toMech">它到底怎麼騙到我的？→</button></div>
+    </div>
+  </section>
+
+  <!-- ACT 4 · 拆穿機關 -->
+  <section class="act" id="a4" aria-label="拆穿">
+    <div class="wrap">
+      <p class="eyebrow fadein">拆穿把戲</p>
+      <h1 class="fadein" style="font-size:clamp(1.9rem,6vw,3rem)">你以為的「一個音」，<br>其實是<span class="glow">一疊</span>。</h1>
+      <p class="body fadein" style="--d:.1s">同一時間，好幾個相隔<b>八度</b>的正弦波一起響。往上爬時，最高的那個悄悄淡出，最低的那個悄悄長出——中間永遠有音撐著，接縫你聽不到。你的耳朵一路追著中間那群，像追一根轉不完的理髮廳旋轉燈柱。</p>
+      <div class="stagey fadein" style="--d:.16s"><canvas id="spec"></canvas></div>
+      <label class="switch" style="margin-top:14px">
+        <input type="checkbox" id="bare" aria-label="拆穿把戲：只留兩個音、拿掉遮罩">
+        <span class="track2"><span class="knob"></span></span>
+        <span class="txt">拆穿把戲：只留兩個音、拿掉遮罩</span>
+      </label>
+      <p class="narr" id="narr4" aria-live="polite" style="text-align:left;min-height:1.4em">打開開關，親耳聽那一下「啪」的跳回去。</p>
+      <p class="body" style="--d:.2s;margin-top:18px">1964 年，認知科學家 <b>Roger Shepard</b> 想出這座階梯；後來 <b>Jean-Claude Risset</b> 把它磨成一條沒有接縫的滑音。八個八度、八個音，數學保證了一件事：不管你爬到哪，總響度<b>永遠一樣</b>——所以你永遠找不到頂，也找不到接縫。</p>
+      <div><button class="btn ghost" id="toEnd">所以，我在哪裡聽過它？→</button></div>
+    </div>
+  </section>
+
+  <!-- ACT 5 · 記憶點 -->
+  <section class="act" id="a5" aria-label="尾聲">
+    <div class="wrap">
+      <p class="eyebrow fadein">你早就聽過它</p>
+      <h1 class="fadein" style="--d:.05s;font-size:clamp(2rem,6.4vw,3.2rem)">只是<span class="glow">沒認出來</span>。</h1>
+      <ul class="refs fadein" style="--d:.15s">
+        <li><b>《敦克爾克》</b>：諾蘭讓整部電影像這段音一樣，滴答、滴答，張力永遠只增不減。</li>
+        <li><b>《黑暗騎士》蝙蝠機車</b>：那股永遠在加速、卻從不換檔的引擎轟鳴。</li>
+        <li><b>超級瑪利歐 64</b>：碧姬城堡裡那座你怎麼跑都到不了頂的無盡樓梯。</li>
+      </ul>
+      <p class="body fadein" style="--d:.24s">而你，今天在這裡爬了 <b class="kick" id="endToday">0</b> 階。連同你以前來的每一次，總共 <b class="kick" id="endTotal">0</b> 階。</p>
+      <p class="lede fadein" style="--d:.3s">你還站在<span class="glow">第一階</span>。</p>
+      <p class="body fadein" style="--d:.36s">閉上眼，再按一次。你已經知道它在騙你了——但你還是停不下來，對吧？</p>
+      <div class="climbwrap fadein" style="--d:.42s; align-items:flex-start">
+        <button class="pad" id="pad2" style="width:min(46vw,150px);height:min(46vw,150px)" aria-label="再爬一次">
+          <span class="arrow" aria-hidden="true">↑</span>
+          <span style="font-size:.9rem">再爬一次</span>
+        </button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>資料：Roger Shepard、Jean-Claude Risset、Wikipedia</span>
+  <a href="../../../index.html">← 回每日小專案</a>
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- reduced-motion ---------- */
+  var reduce = false;
+  try{
+    var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    reduce = mq.matches;
+    var onmq = function(e){ reduce = e.matches; };
+    mq.addEventListener ? mq.addEventListener('change', onmq) : (mq.addListener && mq.addListener(onmq));
+  }catch(e){}
+
+  /* ================= 純函式：謝帕德音階數學 =================
+     S 個八度、M 個等距分音；位置 pos∈[0,S)。
+     Hann 遮罩在 pos=0 與 pos=S 皆為 0 → 換手處靜音、接縫聽不見。
+     正常模式：M=8、間距 1 八度、Hann 包絡。
+     拆穿模式：M=2、間距 S/2 八度、平坦增益（沒有遮罩 → 換手時聽得到「跳」）。 */
+  var S = 8, FMIN = 27.5; // A0；中心 pos=4 → 440Hz；範圍 27.5Hz–7040Hz
+  function mod(x, m){ return ((x % m) + m) % m; }
+  function hann(pos, span){ return 0.5 * (1 - Math.cos(2 * Math.PI * pos / span)); }
+  function partialsFor(p, bare){
+    var M = bare ? 2 : 8, step = S / M, out = [];
+    for(var i = 0; i < M; i++){
+      var pos = mod(p + i * step, S);
+      out.push({ pos: pos, f: FMIN * Math.pow(2, pos), amp: bare ? 0.5 : hann(pos, S) });
+    }
+    return out;
+  }
+
+  var STEPS_PER_OCT = 12;        // 一個八度 = 12 階（半音）
+  var CLIMB_RATE = 0.34;         // 按住時每秒爬幾個八度
+  var AUTO_RATE = 0.12;          // 揭曉／拆穿頁自動緩升的速度
+  var REVEAL_AT = 20;            // 爬到幾階後，開放「我爬了多高」
+
+  /* ---------- 狀態 ---------- */
+  var p = 0;                     // 已爬的八度位置（只由使用者按住決定，計入階數）
+  var dispPhase = 0;             // 揭曉／拆穿頁的自動相位（純演示，不計入階數）
+  var holding = false;
+  var mode = 'idle';             // idle | climb | loop | spectrum
+  var bare = false;
+  function phase(){ return p + ((mode === 'loop' || mode === 'spectrum') ? dispPhase : 0); }
+  var started = false;
+  var lastT = 0;
+  var todaySteps = 0;            // 本次造訪爬的階數
+  var maxStepsSeen = 0;
+
+  /* ---------- 音訊引擎 ---------- */
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var ctx = null, master = null, lp = null, parts = [];
+  function buildAudio(){
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = 0;
+    lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 5200; lp.Q.value = 0.4;
+    master.connect(lp); lp.connect(ctx.destination);
+    parts = [];
+    for(var i = 0; i < 8; i++){
+      var osc = ctx.createOscillator(); osc.type = 'sine';
+      var g = ctx.createGain(); g.gain.value = 0;
+      osc.connect(g); g.connect(master);
+      try{ osc.start(); }catch(e){}
+      parts.push({ osc: osc, g: g });
+    }
+    // 淡入
+    master.gain.setTargetAtTime(0.9, ctx.currentTime, 0.5);
+  }
+  function applyAudio(){
+    if(!ctx) return;
+    var list = partialsFor(phase(), bare), t = ctx.currentTime, i;
+    for(i = 0; i < parts.length; i++){
+      if(i < list.length){
+        parts[i].osc.frequency.setTargetAtTime(list[i].f, t, 0.012);
+        parts[i].g.gain.setTargetAtTime(list[i].amp * 0.085, t, 0.012);
+      }else{
+        parts[i].g.gain.setTargetAtTime(0, t, 0.012);
+      }
+    }
+  }
+
+  /* ---------- 元素 ---------- */
+  var acts = { a1:el('a1'), a2:el('a2'), a3:el('a3'), a4:el('a4'), a5:el('a5') };
+  function el(id){ return document.getElementById(id); }
+  var stepsEl = el('steps'), needle = el('needle'), narr2 = el('narr2'), toReveal = el('toReveal');
+  var revSteps = el('revSteps'), needle3 = el('needle3'), revExplain = el('revExplain');
+  var narr4 = el('narr4');
+
+  // 刻度
+  (function(){
+    var g = el('ticks'), html = '';
+    for(var k = 0; k < 12; k++){
+      var a = k / 12 * Math.PI * 2, x1 = 48 + Math.sin(a) * 40, y1 = 48 - Math.cos(a) * 40;
+      var x2 = 48 + Math.sin(a) * 34, y2 = 48 - Math.cos(a) * 34;
+      html += '<line class="tick" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) + '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '"/>';
+    }
+    g.innerHTML = html;
+  })();
+
+  /* ---------- 導覽 ---------- */
+  function goto(id){
+    Object.keys(acts).forEach(function(k){ acts[k].classList.toggle('show', k === id); });
+    dispPhase = 0;
+    if(id === 'a1'){ mode = 'idle'; }
+    else if(id === 'a2'){ mode = 'climb'; setTimeout(function(){ el('pad').focus(); }, 60); }
+    else if(id === 'a3'){ mode = 'loop'; revSteps.textContent = Math.floor(p * STEPS_PER_OCT); paintRevExplain(); }
+    else if(id === 'a4'){ mode = 'spectrum'; }
+    else if(id === 'a5'){ mode = 'climb'; paintFinale(); }
+    window.scrollTo(0, 0);
+  }
+  function paintRevExplain(){
+    var st = Math.floor(p * STEPS_PER_OCT), laps = (st / STEPS_PER_OCT);
+    revExplain.innerHTML = '看那個轉盤——你聽到的音高，每 <b>12 階</b>就悄悄轉回原點。你剛才那 ' + st +
+      ' 階，繞了 <b>' + laps.toFixed(1) + ' 圈</b>，回到你出發的那一階。';
+  }
+
+  /* ---------- 開始 ---------- */
+  el('start').addEventListener('click', function(){
+    if(!started){ started = true; try{ buildAudio(); }catch(e){} }
+    if(ctx && ctx.state === 'suspended'){ ctx.resume(); }
+    applyAudio();
+    goto('a2');
+  });
+
+  /* ---------- 攀爬控制 ---------- */
+  function bindPad(pad){
+    var down = function(ev){ ev.preventDefault(); holding = true; pad.classList.add('hold');
+      if(ctx && ctx.state === 'suspended') ctx.resume(); };
+    var up = function(){ holding = false; pad.classList.remove('hold'); };
+    pad.addEventListener('pointerdown', down);
+    window.addEventListener('pointerup', up);
+    pad.addEventListener('pointercancel', up);
+    pad.addEventListener('lostpointercapture', up);
+    // 鍵盤：按住空白／Enter／↑
+    pad.addEventListener('keydown', function(ev){
+      if(ev.repeat) return;
+      if(ev.key === ' ' || ev.key === 'Enter' || ev.key === 'ArrowUp'){ ev.preventDefault(); holding = true; pad.classList.add('hold'); }
+    });
+    pad.addEventListener('keyup', function(ev){
+      if(ev.key === ' ' || ev.key === 'Enter' || ev.key === 'ArrowUp'){ holding = false; pad.classList.remove('hold'); }
+    });
+    pad.addEventListener('blur', up);
+  }
+  bindPad(el('pad')); bindPad(el('pad2'));
+
+  var narrShown = {};
+  function updateNarr(st){
+    var msg = null;
+    if(st >= 30 && !narrShown[30]){ msg = '手還沒痠吧？它可不會停。'; narrShown[30] = 1; }
+    else if(st >= 18 && !narrShown[18]){ msg = '再往上——好像沒有盡頭。'; narrShown[18] = 1; }
+    else if(st >= 6 && !narrShown[6]){ msg = '聽見了嗎？它一直在升。'; narrShown[6] = 1; }
+    if(msg) narr2.textContent = msg;
+  }
+
+  toReveal.addEventListener('click', function(){ goto('a3'); });
+  el('toMech').addEventListener('click', function(){ goto('a4'); });
+  el('toEnd').addEventListener('click', function(){ goto('a5'); });
+
+  /* ---------- 拆穿開關 ---------- */
+  el('bare').addEventListener('change', function(e){
+    bare = e.target.checked;
+    narr4.textContent = bare
+      ? '只剩兩個音、拿掉遮罩——聽見了嗎？換手那一下「啪」地跳回底部。騙局就靠那疊音，把這一跳藏起來。'
+      : '打開開關，親耳聽那一下「啪」的跳回去。';
+    applyAudio();
+  });
+
+  /* ---------- 尾聲數字 ---------- */
+  function paintFinale(){
+    var total = 0;
+    try{ total = parseInt(localStorage.getItem('stair.total') || '0', 10) || 0; }catch(e){}
+    rollTo(el('endToday'), todaySteps);
+    rollTo(el('endTotal'), total + todaySteps);
+  }
+  function rollTo(node, target){
+    if(reduce){ node.textContent = target; return; }
+    var from = 0, t0 = performance.now(), dur = 900;
+    (function tick(now){
+      var k = Math.min(1, (now - t0) / dur), v = Math.round(from + (target - from) * (1 - Math.pow(1 - k, 3)));
+      node.textContent = v;
+      if(k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  function persist(){
+    try{
+      var total = parseInt(localStorage.getItem('stair.total') || '0', 10) || 0;
+      localStorage.setItem('stair.total', String(total + todaySteps));
+      localStorage.setItem('stair.last', String(Date.now()));
+      todaySteps = 0; // 已入帳，避免重複累加
+    }catch(e){}
+  }
+  window.addEventListener('pagehide', persist);
+  document.addEventListener('visibilitychange', function(){
+    if(document.hidden){ if(ctx) ctx.suspend(); persist(); }
+    else{ if(ctx && started) ctx.resume(); }
+  });
+
+  /* ================= 背景畫布 ================= */
+  var cv = el('bg'), spec = el('spec'), loopcv = el('loopcv');
+  function fit(c){
+    var r = c.getBoundingClientRect();
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    var w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
+    if(c.width !== w || c.height !== h){ c.width = w; c.height = h; }
+    var g = c.getContext('2d'); if(!g) return null;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return { g: g, w: r.width, h: r.height };
+  }
+
+  function drawBG(){
+    var o = fit(cv); if(!o) return; var g = o.g, w = o.w, h = o.h;
+    g.clearRect(0, 0, w, h);
+    // 底色暈影
+    var grd = g.createLinearGradient(0, 0, 0, h);
+    grd.addColorStop(0, '#0c0a15'); grd.addColorStop(1, '#070610');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+
+    if(mode === 'idle'){ drawIdle(g, w, h); }
+    else if(mode === 'climb'){ drawStairs(g, w, h); g.fillStyle = 'rgba(8,7,17,0.26)'; g.fillRect(0, 0, w, h); }
+    // loop / spectrum：全螢幕維持沉靜漸層，內容畫在各自框內的畫布
+  }
+
+  function drawIdle(g, w, h){
+    var cx = w / 2, cy = h * 0.5, r = 3 + (reduce ? 0 : Math.sin(performance.now() / 900) * 1.2 + 1.2);
+    var gg = g.createRadialGradient(cx, cy, 0, cx, cy, 120);
+    gg.addColorStop(0, 'rgba(255,190,110,.16)'); gg.addColorStop(1, 'rgba(255,190,110,0)');
+    g.fillStyle = gg; g.fillRect(cx - 140, cy - 140, 280, 280);
+    g.fillStyle = 'rgba(255,208,138,.55)';
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+  }
+
+  // 正面透視樓梯：隨 p 往下捲動 → 看起來一直往上爬
+  function drawStairs(g, w, h){
+    var frac = mod(p, 1), K = 15, cx = w / 2;
+    var topY = h * 0.16, botY = h * 0.98;
+    for(var k = K; k >= 0; k--){
+      var t = (k - frac) / K;               // 0=底(近) 1=頂(遠)
+      if(t < 0 || t > 1) continue;
+      var ease = t * t;                      // 透視：越遠壓越扁
+      var y = botY + (topY - botY) * ease;
+      var halfW = (w * 0.46) * (1 - 0.82 * t) + 8;
+      var bright = hann(t * S, S);           // 中段最亮，呼應聲音
+      var depth = 1 - t * 0.55;
+      // 階面
+      g.strokeStyle = 'rgba(255,200,130,' + (0.10 + bright * 0.6 * depth).toFixed(3) + ')';
+      g.lineWidth = 1 + bright * 2.4;
+      g.beginPath(); g.moveTo(cx - halfW, y); g.lineTo(cx + halfW, y); g.stroke();
+      // 立板微光
+      var riser = (botY - topY) / K * (1 - t) * 0.5;
+      g.fillStyle = 'rgba(255,160,80,' + (0.03 + bright * 0.10 * depth).toFixed(3) + ')';
+      g.fillRect(cx - halfW, y, halfW * 2, Math.max(1, riser));
+    }
+    // 中央亮點：你「所在」的那一階
+    var gy = botY + (topY - botY) * 0.42;
+    var gg = g.createRadialGradient(cx, gy, 0, cx, gy, 90);
+    gg.addColorStop(0, 'rgba(255,210,140,.22)'); gg.addColorStop(1, 'rgba(255,210,140,0)');
+    g.fillStyle = gg; g.fillRect(cx - 100, gy - 80, 200, 160);
+  }
+
+  // 側視封閉環（框內畫布）：頂接底、轉不停 → 揭穿「你沒往上」
+  function drawLoopBounded(){
+    if(mode !== 'loop') return;
+    var o = fit(loopcv); if(!o) return; var g = o.g, w = o.w, h = o.h;
+    g.clearRect(0, 0, w, h);
+    var cx = w / 2, cy = h * 0.46, rx = Math.min(w * 0.34, 200), ry = Math.min(h * 0.30, 104);
+    g.strokeStyle = 'rgba(255,255,255,.08)'; g.lineWidth = 1;
+    g.beginPath(); g.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); g.stroke();
+    var K = 16, rot = phase(), order = [], k;
+    for(k = 0; k < K; k++){
+      var a = (k / K - rot) * Math.PI * 2;
+      order.push({ a: a, s: Math.sin(a) });
+    }
+    order.sort(function(A, B){ return A.s - B.s; }); // 由遠到近
+    for(var i = 0; i < order.length; i++){
+      var a2 = order[i].a, x = cx + Math.cos(a2) * rx, y = cy + Math.sin(a2) * ry;
+      var depth = (order[i].s + 1) / 2;
+      var len = 18 + depth * 38;
+      g.strokeStyle = 'rgba(255,200,130,' + (0.14 + depth * 0.7).toFixed(3) + ')';
+      g.lineWidth = 1.5 + depth * 3.5;
+      g.beginPath(); g.moveTo(x - len / 2, y); g.lineTo(x + len / 2, y); g.stroke();
+    }
+    g.fillStyle = 'rgba(255,190,110,.5)'; g.font = '13px sans-serif'; g.textAlign = 'center';
+    g.fillText('↑ 一直往上 … 卻繞回 ↓', cx, h - 14);
+  }
+
+  // 頻譜：分音沿對數頻率軸上升、換手時淡入淡出
+  function drawSpec(){
+    if(mode !== 'spectrum'){ return; }
+    var o = fit(spec); if(!o) return; var g = o.g, w = o.w, h = o.h;
+    g.clearRect(0, 0, w, h);
+    // 遮罩曲線（Hann）
+    if(!bare){
+      g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 1.5;
+      g.beginPath();
+      for(var yy = 0; yy <= h; yy += 4){
+        var pos = (1 - yy / h) * S, amp = hann(pos, S);
+        var xx = 40 + amp * (w - 90);
+        yy === 0 ? g.moveTo(xx, yy) : g.lineTo(xx, yy);
+      }
+      g.stroke();
+    }
+    var list = partialsFor(phase(), bare);
+    for(var i = 0; i < list.length; i++){
+      var pos = list[i].pos, amp = list[i].amp;
+      var y = h * (1 - pos / S);
+      var barW = 40 + amp * (w - 90);
+      g.strokeStyle = 'rgba(255,190,110,' + (0.25 + amp * 0.75).toFixed(3) + ')';
+      g.lineWidth = 2 + amp * 5;
+      g.beginPath(); g.moveTo(40, y); g.lineTo(barW, y); g.stroke();
+      g.fillStyle = 'rgba(255,210,140,' + (0.4 + amp * 0.6).toFixed(3) + ')';
+      g.beginPath(); g.arc(barW, y, 2.5 + amp * 3, 0, Math.PI * 2); g.fill();
+    }
+    // 軸標
+    g.fillStyle = 'rgba(255,255,255,.28)'; g.font = '11px sans-serif'; g.textAlign = 'left';
+    g.fillText('高', 8, 16); g.fillText('低', 8, h - 8);
+  }
+
+  /* ---------- 主迴圈 ---------- */
+  var raf = null;
+  function loop(now){
+    raf = null;
+    var dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 0;
+    lastT = now;
+
+    // 使用者親手攀爬（只在攀爬頁計入階數）
+    if(holding && mode === 'climb'){
+      p += CLIMB_RATE * dt;
+      var st = Math.floor(p * STEPS_PER_OCT);
+      if(st > maxStepsSeen){ todaySteps += (st - maxStepsSeen); maxStepsSeen = st; }
+    }
+    // 揭曉／拆穿頁：自動緩升做演示（不計入階數；reduced-motion 時凍結）
+    if((mode === 'loop' || mode === 'spectrum') && !reduce){ dispPhase += AUTO_RATE * dt; }
+
+    if(started) applyAudio();
+
+    // HUD
+    if(mode === 'climb'){
+      var s = Math.floor(p * STEPS_PER_OCT);
+      if(stepsEl) stepsEl.textContent = s;
+      if(needle) needle.setAttribute('transform', 'rotate(' + (mod(p, 1) * 360).toFixed(1) + ' 48 48)');
+      updateNarr(s);
+      if(s >= REVEAL_AT && toReveal.style.display === 'none'){ toReveal.style.display = ''; }
+    }
+    if(mode === 'loop' && needle3){
+      needle3.setAttribute('transform', 'rotate(' + (mod(phase(), 1) * 360).toFixed(1) + ' 48 48)');
+    }
+
+    drawBG();
+    drawLoopBounded();
+    drawSpec();
+
+    schedule();
+  }
+  function schedule(){
+    if(document.hidden){ return; }
+    // reduced-motion：仍需渲染（攀爬是使用者驅動的內容），但 idle 不做無意義動畫
+    raf = requestAnimationFrame(loop);
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden && raf === null){ lastT = 0; schedule(); }
+  });
+  window.addEventListener('resize', function(){ /* fit() 於每幀處理 */ });
+
+  // 啟動渲染
+  schedule();
+})();
+</script>
+</body>
+</html>

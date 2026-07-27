@@ -463,15 +463,20 @@
   });
 
   // ---------- sizing ----------
-  function resize(){
-    W=window.innerWidth; H=window.innerHeight;
-    dpr=Math.min(window.devicePixelRatio||1, 2);
+  function resize(force){
+    var w=window.innerWidth, h=window.innerHeight;
+    var d=Math.min(window.devicePixelRatio||1, 2);
+    // 尺寸沒變就不要動 canvas.width：手機網址列一收一放就送一次 resize，
+    // 每次重設都會把畫布清空、整片星空重畫一遍。
+    if(!force && w===W && h===H && d===dpr && grad) return false;
+    W=w; H=h; dpr=d;
     canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
     canvas.style.width=W+'px'; canvas.style.height=H+'px';
     ctx.setTransform(dpr,0,0,dpr,0,0);
     grad=ctx.createLinearGradient(0,0,0,H);
     grad.addColorStop(0,'#0b1230'); grad.addColorStop(0.45,'#080c20');
     grad.addColorStop(1,'#04050c');
+    return true;
   }
 
   // ---------- stars ----------
@@ -1185,11 +1190,12 @@
     }
   });
   window.addEventListener('resize',function(){
-    resize(); positionTabInd(); syncInert(); repaint();   // 跨越 720px 界線時要重算 inert
+    var changed=resize(); positionTabInd(); syncInert();  // 跨越 720px 界線時要重算 inert
+    if(changed) repaint();
   });
 
   // ---------- init ----------
-  resize(); genStars(); load(); loadUI();
+  resize(true); genStars(); load(); loadUI();
   renderGallery(); renderInspire(); updateStats(); updateCounter(); positionTabInd();
   // 側欄預設收合；只有使用者上一次自己把它留在展開狀態、且畫面夠寬時才自動展開
   if(ui.panelOpen && window.innerWidth>980) openPanel(true);

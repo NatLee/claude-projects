@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卷宗 Crim. 11176 — 數學上了法庭</title>
+<style>
+  :root{
+    --desk:#0e120f;
+    --desk2:#161c17;
+    --folder:#d8c7a2;
+    --folder2:#cbb88e;
+    --paper:#efe6d0;
+    --ink:#231f17;
+    --ink-soft:#57503e;
+    --ink-faint:#867c62;
+    --rule:#b9a87f;
+    --red:#a12a1c;
+    --red-soft:#c4503f;
+    --blue:#2f4f6e;
+    --gold:#c69a4d;
+    --serif:"Iowan Old Style","Palatino Linotype",P052,Palatino,Georgia,"Songti TC","Noto Serif CJK TC",serif;
+    --mono:"Courier New",Courier,"Nimbus Mono PS",monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:radial-gradient(130% 90% at 50% -8%, #232b23 0%, var(--desk2) 38%, var(--desk) 82%) fixed;
+    color:var(--ink);
+    font-family:var(--serif);
+    line-height:1.72;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ——— 回首頁 ——— */
+  .home{
+    position:fixed;left:14px;top:12px;z-index:60;
+    color:#b9b09a;text-decoration:none;font-size:13px;
+    padding:6px 11px;border-radius:999px;
+    background:rgba(12,16,12,.55);border:1px solid rgba(190,176,140,.25);
+    backdrop-filter:blur(3px);transition:color .2s,border-color .2s;
+  }
+  .home:hover{color:#f0e7cd;border-color:rgba(190,176,140,.6)}
+  .home:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  .wrap{width:min(720px,100%);margin:0 auto;padding:0 clamp(14px,4vw,26px)}
+
+  /* ——— 封面 ——— */
+  .cover{
+    min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;color:#e2d8bd;padding:60px 0 40px;
+  }
+  .filetab{
+    font-family:var(--mono);font-size:12px;letter-spacing:.24em;color:var(--gold);
+    border:1px solid rgba(198,154,77,.5);border-radius:2px;padding:6px 14px;margin-bottom:30px;
+    padding-left:calc(.24em + 14px);
+  }
+  .cover h1{
+    font-size:clamp(38px,10vw,74px);line-height:1.0;margin:0 0 6px;font-weight:800;color:#f4ead0;letter-spacing:.01em;
+  }
+  .cover .vs{font-family:var(--mono);font-size:13px;letter-spacing:.3em;color:#9d947c;margin:0 0 28px;padding-left:.3em}
+  .cover p{font-size:clamp(16px,3.1vw,20px);max-width:24ch;margin:0 auto;color:#cdc3a7}
+  .cover p b{color:#f2e6c4;font-weight:700}
+  .cover .kicker{margin-top:20px;max-width:26ch;color:#a89e84;font-size:clamp(14px,2.6vw,16px)}
+  .scrollhint{margin-top:44px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:#6f6853}
+  .scrollhint span{display:block;margin:8px auto 0;width:1px;height:34px;background:linear-gradient(#6f6853,transparent);animation:drop 2.4s ease-in-out infinite}
+  @keyframes drop{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+
+  /* ——— 紙頁 ——— */
+  .sheet{
+    background:
+      repeating-linear-gradient(0deg,rgba(120,100,60,.03) 0 2px,transparent 2px 4px),
+      radial-gradient(140% 120% at 12% 0%, #f6efdb 0%, var(--paper) 52%, #e4d9be 100%);
+    border:1px solid #c3b189;border-radius:2px;
+    box-shadow:0 26px 60px rgba(0,0,0,.55);
+    padding:clamp(24px,5vw,44px) clamp(20px,5vw,46px);
+    margin:0 0 34px;position:relative;
+  }
+  .sheet.dark{
+    background:radial-gradient(120% 100% at 50% 0%, #1d241e 0%, #131813 70%);
+    border-color:#2c3730;color:#ded4b9;box-shadow:0 26px 60px rgba(0,0,0,.7);
+  }
+  .exh{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--red);margin:0 0 4px;padding-left:.22em}
+  .sheet.dark .exh{color:var(--gold)}
+  h2{font-size:clamp(23px,5vw,32px);line-height:1.25;margin:0 0 18px;font-weight:800;letter-spacing:.01em}
+  .sheet p{margin:0 0 16px;font-size:clamp(15.5px,2.7vw,17px)}
+  .sheet.dark p{color:#cec4a8}
+  .lead{font-size:clamp(17px,3.2vw,20px)!important;line-height:1.6}
+  em.hl{font-style:normal;background:linear-gradient(transparent 62%, rgba(196,80,63,.28) 62%);padding:0 2px}
+  .sheet.dark em.hl{background:linear-gradient(transparent 62%, rgba(198,154,77,.32) 62%)}
+  .aside{font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--ink-soft);
+    border-left:2px solid var(--rule);padding:2px 0 2px 14px;margin:0 0 18px}
+  .sheet.dark .aside{color:#9a927a;border-color:#4a5548}
+  .beat{font-size:clamp(19px,4vw,26px);font-weight:700;line-height:1.4;margin:26px 0 20px}
+  hr.rule{border:0;border-top:1px solid var(--rule);opacity:.5;margin:26px 0}
+
+  /* ——— 特徵表 ——— */
+  table.fac{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:clamp(12.5px,2.6vw,14px);margin:6px 0 10px}
+  table.fac th{text-align:left;font-weight:400;color:var(--ink-faint);border-bottom:1px solid var(--rule);padding:6px 4px;letter-spacing:.04em}
+  table.fac th:last-child{text-align:right}
+  table.fac td{padding:9px 4px;border-bottom:1px dashed rgba(185,168,127,.6);vertical-align:top;transition:background .3s,color .3s,opacity .3s}
+  table.fac td:last-child{text-align:right;white-space:nowrap}
+  tr.fr.lit td{background:rgba(198,154,77,.24)}
+  tr.fr.struck td{color:var(--ink-faint);text-decoration:line-through;text-decoration-color:rgba(161,42,28,.75);text-decoration-thickness:1px}
+  tr.note td{border-bottom:1px dashed rgba(185,168,127,.6);padding:0}
+  .noteinner{max-height:0;overflow:hidden;transition:max-height .45s ease;font-family:var(--mono);font-size:12.5px;color:var(--red);line-height:1.7}
+  tr.note.open .noteinner{max-height:180px;padding:0 4px 11px}
+  button.rowbtn{
+    all:unset;display:block;width:100%;cursor:pointer;font:inherit;color:inherit;
+  }
+  button.rowbtn:focus-visible{outline:2px solid var(--red);outline-offset:2px;border-radius:2px}
+  .facwrap{position:relative}
+
+  /* ——— 乘法計數器 ——— */
+  .calc{text-align:center;margin:22px 0 4px}
+  .calc .lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;color:var(--ink-faint);padding-left:.2em}
+  .sheet.dark .calc .lbl{color:#8f876f}
+  .odds{font-family:var(--mono);font-weight:700;font-size:clamp(30px,8.5vw,54px);line-height:1.15;letter-spacing:-.01em;margin:6px 0 0}
+  .odds small{font-size:.42em;font-weight:400;letter-spacing:.06em;color:var(--ink-faint);display:block;margin-bottom:2px}
+
+  /* ——— 按鈕 ——— */
+  .btn{
+    font-family:var(--serif);cursor:pointer;font-size:16px;font-weight:700;
+    color:#1b1710;background:linear-gradient(#f0e5c6,#dcca9e);
+    border:1px solid #a8905a;border-radius:2px;padding:13px 24px;
+    box-shadow:0 5px 0 #7e693b,0 12px 22px rgba(0,0,0,.34);
+    transition:transform .12s,box-shadow .12s,filter .2s;
+  }
+  .btn:hover{filter:brightness(1.05)}
+  .btn:active{transform:translateY(4px);box-shadow:0 1px 0 #7e693b,0 6px 14px rgba(0,0,0,.34)}
+  .btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+  .btn[disabled]{opacity:.42;cursor:default;box-shadow:0 5px 0 #7e693b;filter:none;transform:none}
+  .btn.dark{background:linear-gradient(#2b3a2e,#1d2821);color:#efe3c2;border-color:#4c5c4d;box-shadow:0 5px 0 #141c16,0 12px 22px rgba(0,0,0,.5)}
+  .btn.dark:active{box-shadow:0 1px 0 #141c16}
+  .ctr{text-align:center;margin:24px 0 4px}
+
+  /* ——— 判決章 ——— */
+  .stampbox{height:104px;display:flex;align-items:center;justify-content:center;margin-top:6px}
+  .stamp{
+    font-family:var(--mono);font-weight:700;font-size:clamp(24px,6vw,34px);letter-spacing:.16em;
+    color:var(--red);border:4px double var(--red);border-radius:4px;padding:8px 20px;padding-left:calc(.16em + 20px);
+    opacity:0;transform:scale(2.5) rotate(-16deg);
+  }
+  .stamp.on{opacity:.88;transform:scale(1) rotate(-7deg);transition:opacity .3s ease,transform .42s cubic-bezier(.2,.9,.3,1.25)}
+  .stamp.rev{color:var(--blue);border-color:var(--blue)}
+  .subline{font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);text-align:center;margin:0;
+    opacity:0;transition:opacity .5s ease .35s}
+  .subline.on{opacity:1}
+
+  /* ——— 兩個問題 ——— */
+  .qs{display:grid;gap:14px;margin:20px 0 8px}
+  @media(min-width:600px){.qs{grid-template-columns:1fr 1fr}}
+  .q{border:1px solid #3c493d;border-radius:3px;padding:16px 16px 14px;background:rgba(255,255,255,.02)}
+  .q .who{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:#8f876f;margin-bottom:8px;padding-left:.18em}
+  .q .txt{font-size:15.5px;line-height:1.6;color:#ded4b9;margin:0 0 12px;min-height:3.2em}
+  .q .ans{font-family:var(--mono);font-weight:700;font-size:19px;color:#efe3c2}
+  .q.right{border-color:var(--gold);box-shadow:0 0 0 1px rgba(198,154,77,.25) inset}
+  .q.right .who{color:var(--gold)}
+
+  /* ——— 一百個洛杉磯 ——— */
+  .gridwrap{margin:18px 0 6px}
+  .cities{display:grid;grid-template-columns:repeat(10,1fr);gap:clamp(3px,1.1vw,6px)}
+  .city{
+    position:relative;aspect-ratio:1;border-radius:2px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(190,176,140,.16);
+    display:flex;align-items:center;justify-content:center;gap:14%;
+  }
+  .dot{width:22%;height:22%;border-radius:50%;background:#7f8a7c}
+  .dot2{background:var(--red-soft);opacity:0;transform:scale(.3);
+    transition:opacity .32s ease,transform .32s cubic-bezier(.2,.9,.3,1.4)}
+  .city.two{background:rgba(196,80,63,.16);border-color:rgba(196,80,63,.5)}
+  .city.two .dot2{opacity:1;transform:scale(1)}
+  .glabel{font-family:var(--mono);font-size:11.5px;color:#8f876f;text-align:center;margin:12px 0 0;line-height:1.7}
+  .big{font-family:var(--mono);font-weight:700;font-size:clamp(52px,15vw,104px);line-height:1;text-align:center;
+    color:#f0d99a;letter-spacing:-.02em;margin:14px 0 2px}
+  .big span{font-size:.4em;letter-spacing:0}
+  .bigcap{text-align:center;font-size:15px;color:#b8ae92;margin:0 0 4px}
+
+  /* ——— 滑桿 ——— */
+  .slide{margin:26px 0 0;padding-top:20px;border-top:1px solid #334035}
+  .slide label{display:block;font-family:var(--mono);font-size:12px;color:#8f876f;margin-bottom:10px;line-height:1.7}
+  .slide label b{color:#e0d5b6;font-size:14px}
+  input[type=range]{width:100%;accent-color:#c69a4d;height:26px}
+  input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:4px}
+
+  /* ——— 引句 ——— */
+  blockquote{
+    margin:22px 0;padding:0 0 0 18px;border-left:3px solid var(--red);
+    font-size:clamp(17px,3.4vw,21px);line-height:1.62;font-style:italic;color:var(--ink)
+  }
+  .sheet.dark blockquote{color:#e6dcc0;border-color:var(--gold)}
+  blockquote cite{display:block;font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-faint);margin-top:10px;letter-spacing:.04em}
+  .sheet.dark blockquote cite{color:#8f876f}
+  .orig{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--ink-faint);margin:-8px 0 18px;padding-left:19px}
+  .sheet.dark .orig{color:#7e775f}
+
+  /* ——— 尾聲 ——— */
+  .finale{min-height:82svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#ddd3b8;padding:50px 0 30px}
+  .finale .e{font-family:var(--mono);font-size:clamp(30px,8vw,52px);color:var(--gold);margin:0 0 6px;font-weight:700}
+  .finale .ecap{font-family:var(--mono);font-size:12.5px;color:#7e775f;margin:0 0 34px;letter-spacing:.06em}
+  .finale p{max-width:27ch;margin:0 auto 16px;font-size:clamp(16px,3.1vw,19px)}
+  .finale .last{font-size:clamp(19px,4.2vw,25px);color:#f2e7c8;max-width:22ch;margin-top:26px;line-height:1.5}
+
+  footer{text-align:center;color:#6f6853;font-family:var(--mono);font-size:11.5px;
+    padding:0 16px 46px;line-height:1.9}
+
+  /* ——— 捲動揭露 ——— */
+  .rv{opacity:0;transform:translateY(20px);transition:opacity .75s ease,transform .75s cubic-bezier(.2,.7,.3,1)}
+  .rv.in{opacity:1;transform:none}
+
+  .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+    clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    .rv{transition:none}
+    .scrollhint span{animation:none}
+    .stamp.on{transition:none}
+  }
+  @media (max-width:559px){
+    .sheet{padding-left:18px;padding-right:18px}
+    .cities{gap:3px}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" id="srStatus" role="status" aria-live="polite"></p>
+
+<!-- ══════════ 封面 ══════════ -->
+<header class="cover wrap">
+  <div class="filetab">加州最高法院 · 卷宗 CRIM. NO. 11176</div>
+  <h1>數學上了法庭</h1>
+  <p class="vs">THE PEOPLE v. MALCOLM RICARDO COLLINS</p>
+  <p>本案<b>沒有任何一個人</b>能明確指認被告。</p>
+  <p class="kicker">檢方還是贏了——靠一位從沒到過現場、也不認識被告的證人。</p>
+  <div class="scrollhint">往下翻閱<span></span></div>
+</header>
+
+<main class="wrap">
+
+  <!-- ══════════ 證物 A ══════════ -->
+  <section class="sheet rv">
+    <p class="exh">證物 A ／ 1964 年 6 月 18 日 上午十一時三十分</p>
+    <h2>巷子裡的四十秒</h2>
+    <p>洛杉磯聖佩德羅。胡安妮塔·布魯克斯太太買完菜，拄著拐杖，拖著一只藤編推籃走在巷子裡。皮包擱在雜貨上頭。</p>
+    <p>她彎腰去撿一個空紙箱，被人從背後推倒。她沒看見也沒聽見那個人靠近。</p>
+    <p>抬起頭時，只看見一名年輕女子跑走的背影，「穿著深色的什麼」，頭髮介於深金與淺金之間。皮包不見了，裡面有三十五到四十美元。</p>
+    <div class="aside">巷口的約翰·巴斯正在澆草皮，聽見尖叫。他看見一名女子從巷子裡跑出來、上了一輛停在對街的黃色汽車。車子擦身而過時距他不到兩公尺——駕駛是一名蓄鬍、留著八字鬍的黑人男子。</div>
+    <p class="beat">兩天後，警察在馬爾坎與珍娜·柯林斯夫婦家門口，看到一輛黃色林肯。</p>
+    <p>但審判進行到第七天，檢方遇上一個麻煩：<em class="hl">被害人認不出珍娜，也從沒見過馬爾坎</em>。唯一的目擊者巴斯，在案發後不久的警局列隊指認時說他不確定——因為那時被告臉上沒有鬍子。</p>
+  </section>
+
+  <!-- ══════════ 證物 B ══════════ -->
+  <section class="sheet rv">
+    <p class="exh">證物 B ／ 檢方最後一位證人</p>
+    <h2>他不在現場，他在黑板前</h2>
+    <p>檢察官傳喚的最後一位證人，沒去過那條巷子、沒見過被告、對案情一無所知。</p>
+    <p class="lead">他是一所州立學院的<em class="hl">數學講師</em>。</p>
+    <p>他在庭上講解了一條規則：若幾件事彼此獨立，它們同時發生的機率，等於各自機率相乘。丟一顆骰子出現 2 是六分之一；連續兩次出現 2，是三十六分之一。</p>
+    <p>然後檢察官把六項特徵寫上黑板，一項一項給了數字。</p>
+
+    <div class="facwrap">
+      <table class="fac" id="tblCalc">
+        <thead><tr><th>特徵</th><th>檢方認定的出現率</th></tr></thead>
+        <tbody>
+          <tr class="fr"><td>黑人男性、蓄鬍</td><td>1 / 10</td></tr>
+          <tr class="fr"><td>男性、留八字鬍</td><td>1 / 4</td></tr>
+          <tr class="fr"><td>白人女性、綁馬尾</td><td>1 / 10</td></tr>
+          <tr class="fr"><td>白人女性、金髮</td><td>1 / 3</td></tr>
+          <tr class="fr"><td>黃色汽車</td><td>1 / 10</td></tr>
+          <tr class="fr"><td>跨種族情侶同車</td><td>1 / 1000</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="calc">
+      <div class="lbl">隨機一對情侶，同時符合以上全部的機率</div>
+      <p class="odds" id="oddsOut">1 / <span id="oddsNum">—</span></p>
+    </div>
+
+    <div class="ctr">
+      <button class="btn" id="btnMul">跟著他，乘一次</button>
+    </div>
+
+    <div class="stampbox"><div class="stamp" id="stampGuilty">有 罪</div></div>
+    <p class="subline" id="guiltyCap">一九六四年十一月　二級搶劫罪成立</p>
+
+    <p style="margin-top:22px">檢察官還向陪審團補了一句：他認為自己給的數字已經很保守了，真要說起來，「當天在場的是另一對而不是這兩名被告的機會，大概是<em class="hl">十億分之一</em>。」</p>
+  </section>
+
+  <!-- ══════════ 破綻一 ══════════ -->
+  <section class="sheet rv">
+    <p class="exh">上訴 ／ 三年後，卷宗被重新打開</p>
+    <h2>那六個數字，是誰給的？</h2>
+    <p>一九六八年，這疊紙送到加州最高法院。七位大法官裡有六位，先看見了同一件很簡單的事。</p>
+    <p class="lead">整份審判紀錄裡，<em class="hl">找不到任何證據</em>支持那六個數字裡的任何一個。</p>
+    <p>沒有人統計過聖佩德羅有多少輛車是黃色的，也沒有人數過那裡有幾個男人留八字鬍。數字是檢察官自己想的——他甚至當庭邀請陪審員：如果你們覺得不對，可以換上自己的估計。</p>
+    <p style="margin-bottom:6px"><b>把每一列點開，看大法官在旁邊寫了什麼。</b></p>
+
+    <table class="fac" id="tblFlaw">
+      <tbody>
+        <tr class="fr"><td><button class="rowbtn" type="button" data-i="0">黑人男性、蓄鬍　<span style="color:#8a7f60">1/10</span></button></td></tr>
+        <tr class="note"><td><div class="noteinner">來源：無。並且——蓄鬍的男人，通常也留八字鬍。這兩列不是兩件獨立的事，是同一個圈套著另一個圈。</div></td></tr>
+        <tr class="fr"><td><button class="rowbtn" type="button" data-i="1">男性、留八字鬍　<span style="color:#8a7f60">1/4</span></button></td></tr>
+        <tr class="note"><td><div class="noteinner">來源：無。乘法規則只在事件彼此獨立時成立；一旦重疊還硬乘，結果只會被誇大到離譜。</div></td></tr>
+        <tr class="fr"><td><button class="rowbtn" type="button" data-i="2">白人女性、綁馬尾　<span style="color:#8a7f60">1/10</span></button></td></tr>
+        <tr class="note"><td><div class="noteinner">來源：無。而且證人說那個馬尾「和珍娜照片裡的一模一樣」——但被害人記得的髮色，比珍娜出庭時更淺。</div></td></tr>
+        <tr class="fr"><td><button class="rowbtn" type="button" data-i="3">白人女性、金髮　<span style="color:#8a7f60">1/3</span></button></td></tr>
+        <tr class="note"><td><div class="noteinner">來源：無。同一個女人的髮色和髮型，被拆成兩項相乘了一次。</div></td></tr>
+        <tr class="fr"><td><button class="rowbtn" type="button" data-i="4">黃色汽車　<span style="color:#8a7f60">1/10</span></button></td></tr>
+        <tr class="note"><td><div class="noteinner">來源：無。法院附註：恐怕永遠也編不出這種統計——沒有統計學家能事後判定，當時「可能」出現在那條巷子附近的是哪些車、哪些人。</div></td></tr>
+        <tr class="fr"><td><button class="rowbtn" type="button" data-i="5">跨種族情侶同車　<span style="color:#8a7f60">1/1000</span></button></td></tr>
+        <tr class="note"><td><div class="noteinner">來源：無。這一項本身就已經包含了「兩人同坐一輛車」——而上一列數的也是那輛車。</div></td></tr>
+      </tbody>
+    </table>
+
+    <p id="flawSum" style="opacity:0;transition:opacity .6s ease;margin-top:18px" class="lead">六項全部劃掉。可是大法官接著寫下的那段，比這更要命——<em class="hl">就算這六個數字全都是對的，這套算法照樣是錯的。</em></p>
+  </section>
+
+  <!-- ══════════ 破綻二 · 高潮 ══════════ -->
+  <section class="sheet dark rv" id="climax">
+    <p class="exh">破綻二 ／ 這才是致命的那一個</p>
+    <h2>那個數字很誠實。<br>只是沒有人該問那個問題。</h2>
+    <p>一千二百萬分之一，回答的是這件事：從人群裡隨手抓一對情侶，剛好長成證人描述的那樣，機率有多低。</p>
+    <p>可是陪審團要決定的，從來不是這件事。</p>
+
+    <div class="qs">
+      <div class="q">
+        <div class="who">檢方問的問題</div>
+        <p class="txt">隨手挑一對情侶，剛好符合這六項特徵的機率是多少？</p>
+        <div class="ans">1 / 12,000,000</div>
+      </div>
+      <div class="q right">
+        <div class="who">該問的問題</div>
+        <p class="txt">既然眼前確實有一對這樣的情侶——那麼在這片區域裡，<b>會不會還有第二對</b>？</p>
+        <div class="ans" id="qAns">？</div>
+      </div>
+    </div>
+
+    <div class="ctr">
+      <button class="btn dark" id="btnAsk">換一個問題，重算一次</button>
+    </div>
+
+    <div class="gridwrap" id="gridWrap" hidden>
+      <p class="big" id="bigPct">0<span>%</span></p>
+      <p class="bigcap">的「至少有一對」裡，其實不只一對</p>
+      <div class="cities" id="cities" role="img" aria-label="一百格方陣，每格代表一個至少存在一對符合特徵情侶的洛杉磯；亮起第二顆點的格子代表那裡不只一對"></div>
+      <p class="glabel">一格 ＝ 一個「至少有一對符合特徵的情侶」的洛杉磯<br>灰點＝證人看見的那一對　　紅點＝另外還有一對</p>
+
+      <div class="slide">
+        <label for="rngN">當時可能出現在那一帶的情侶總數 <b id="nOut">1,200 萬</b> 對<br>
+          法院自己也承認：這個數字，根本無法確定——而答案完全取決於它。</label>
+        <input type="range" id="rngN" min="0" max="1000" value="770" aria-label="可能在場的情侶總數"
+               aria-valuetext="一千二百萬對，還有第二對的機率 41.8%">
+      </div>
+    </div>
+
+    <hr class="rule" style="border-color:#334035">
+    <blockquote>這套算法最多只能告訴我們一件事：蓄鬍的黑人男子、開著黃色的車、身邊坐著綁馬尾的金髮女子，有多罕見。<br><br>它對真正該回答的問題，完全沉默——就算這樣的情侶真的很少，那到底是哪一對？還是根本沒有一對？</blockquote>
+  </section>
+
+  <!-- ══════════ 判決 ══════════ -->
+  <section class="sheet rv">
+    <p class="exh">判決 ／ 一九六八年三月十一日</p>
+    <h2>不可以對他下咒</h2>
+    <blockquote>數學是我們這個電腦時代裡不折不扣的術士。它可以協助審判者尋找真相，但絕不可以對他下咒。</blockquote>
+    <p class="orig">"Mathematics, a veritable sorcerer in our computerized society, while assisting the trier of fact in the search for truth, must not cast a spell over him."</p>
+    <p>法院說，那些機率把陪審團從自己該做的事上引開了：秤量證詞、掂量懷疑是否合理。取而代之的，是一場引人入勝、卻與案情無關的表演。</p>
+    <p>還有一句，讀起來像預言——法院擔心，如果檢方從此都帶著數學上庭，<em class="hl">辯護席上不會有足夠懂數學的人接得住。</em></p>
+
+    <div class="stampbox"><div class="stamp rev" id="stampRev">原判撤銷</div></div>
+    <p class="subline" id="revCap">馬爾坎·柯林斯上訴成功，發回重審。珍娜沒有上訴。</p>
+  </section>
+
+  <!-- ══════════ 尾聲 ══════════ -->
+  <section class="finale rv">
+    <p style="color:#8f876f;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em">附錄的最後一行，法官留下了一個東西</p>
+    <p class="e">(e − 2) ／ (e − 1)</p>
+    <p class="ecap">＝ 41.802…％</p>
+    <p>當人口大到極限，那個「還有第二對」的機率不會亂跑，它會收斂到一個常數——由那個你在高中數學課本裡見過的 e 寫成。</p>
+    <p>一樁三十五美元的搶案，最後留在判決書裡的，是一個常數。</p>
+    <hr class="rule" style="width:56px;border-color:#4a5548;margin:30px auto">
+    <p>三十五年後，倫敦。一位母親被控殺害自己的兩個嬰兒，關鍵證詞是一句「機率只有七千三百萬分之一」。她在一九九九年被定罪，二○○三年獲判撤銷。</p>
+    <p style="color:#a89e84">同一個問錯的問題，換了一間法庭，又問了一次。</p>
+    <p class="last">那個數字從來沒有說謊。<br>它只是很誠實地，回答了一個沒有人該問的問題。</p>
+  </section>
+
+</main>
+
+<footer>
+  來源：加州最高法院 People v. Collins（68 Cal. 2d 319，1968）判決書及其附錄
+</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ────────── 動效偏好 ────────── */
+  var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mqReduce.matches;
+  if (mqReduce.addEventListener) mqReduce.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mqReduce.addListener) mqReduce.addListener(function(e){ reduce = e.matches; });
+
+  /* ────────── 捲動揭露 ────────── */
+  var rvs = document.querySelectorAll('.rv');
+  if (!('IntersectionObserver' in window)) {
+    for (var i = 0; i < rvs.length; i++) rvs[i].classList.add('in');
+  } else {
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    for (var j = 0; j < rvs.length; j++) io.observe(rvs[j]);
+  }
+
+  /* ────────── 純函式：機率計算 ────────── */
+  // 檢方六項特徵的分母，依序相乘
+  var FACTORS = [10, 4, 10, 3, 10, 1000];
+  function productDen(list){
+    var d = 1;
+    for (var k = 0; k < list.length; k++) d *= list[k];
+    return d;
+  }
+  // 法院附錄：在「至少有一對」的前提下，還有第二對的機率
+  //   A = [1-(1-p)^N] - N·p·(1-p)^(N-1)
+  //   B = [1-(1-p)^N]
+  function pAnother(N, p){
+    if (N < 1 || p <= 0) return 0;
+    var lg = Math.log1p(-p);
+    var atLeastOne = -Math.expm1(N * lg);        // 1-(1-p)^N，小數值也穩定
+    if (atLeastOne <= 0) return 0;
+    var exactlyOne = N * p * Math.exp((N - 1) * lg);
+    var r = (atLeastOne - exactlyOne) / atLeastOne;
+    return r < 0 ? 0 : (r > 1 ? 1 : r);
+  }
+  function fmt(n){ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  function zhCount(n){
+    if (n >= 100000000) return (n / 100000000).toFixed(2).replace(/\.?0+$/, '') + ' 億';
+    if (n >= 10000) return fmt(Math.round(n / 10000)) + ' 萬';
+    return fmt(n);
+  }
+  // 供 node 測試取用
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { pAnother: pAnother, productDen: productDen, FACTORS: FACTORS };
+  }
+
+  var P = 1 / productDen(FACTORS);   // 1/12,000,000
+
+  // 只在「結果定案」時播報，避免逐幀更新洗版讀螢幕軟體
+  var srStatus = document.getElementById('srStatus');
+  function say(text){ if (srStatus) srStatus.textContent = text; }
+
+  /* ────────── 證物 B：跟著乘一次 ────────── */
+  var btnMul   = document.getElementById('btnMul');
+  var oddsNum  = document.getElementById('oddsNum');
+  var rowsCalc = document.querySelectorAll('#tblCalc tbody tr.fr');
+  var stampG   = document.getElementById('stampGuilty');
+  var capG     = document.getElementById('guiltyCap');
+  var mulDone  = false;
+
+  function rollTo(el, from, to, ms, done){
+    if (reduce || ms <= 0) { el.textContent = fmt(to); if (done) done(); return; }
+    var t0 = 0;
+    function step(ts){
+      if (!t0) t0 = ts;
+      var k = Math.min(1, (ts - t0) / ms);
+      var e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (k < 1) requestAnimationFrame(step); else if (done) done();
+    }
+    requestAnimationFrame(step);
+  }
+
+  function runMultiply(){
+    if (mulDone) return;
+    mulDone = true;
+    btnMul.disabled = true;
+    btnMul.textContent = '一千二百萬分之一';
+
+    var den = 1, idx = 0;
+    function next(){
+      if (idx >= FACTORS.length) {
+        setTimeout(function(){
+          stampG.classList.add('on');
+          capG.classList.add('on');
+          say('六項相乘後為一千二百萬分之一。一九六四年十一月，二級搶劫罪成立。');
+        }, reduce ? 0 : 320);
+        return;
+      }
+      var prev = den;
+      den *= FACTORS[idx];
+      var row = rowsCalc[idx];
+      row.classList.add('lit');
+      rollTo(oddsNum, prev, den, reduce ? 0 : 340, null);
+      idx++;
+      setTimeout(next, reduce ? 0 : 430);
+    }
+    oddsNum.textContent = '1';
+    next();
+  }
+  btnMul.addEventListener('click', runMultiply);
+
+  /* ────────── 破綻一：逐列劃掉 ────────── */
+  var flawBtns = document.querySelectorAll('#tblFlaw .rowbtn');
+  var flawSum  = document.getElementById('flawSum');
+  var opened   = 0;
+  for (var b = 0; b < flawBtns.length; b++) {
+    (function(btn){
+      btn.setAttribute('aria-expanded', 'false');
+      btn.addEventListener('click', function(){
+        var tr   = btn.closest('tr');
+        var note = tr.nextElementSibling;
+        var isOpen = note.classList.contains('open');
+        note.classList.toggle('open', !isOpen);
+        tr.classList.toggle('struck', !isOpen);
+        btn.setAttribute('aria-expanded', String(!isOpen));
+        if (!isOpen) {
+          opened++;
+          if (opened >= flawBtns.length) flawSum.style.opacity = '1';
+        }
+      });
+    })(flawBtns[b]);
+  }
+
+  /* ────────── 高潮：一百個洛杉磯 ────────── */
+  var citiesEl = document.getElementById('cities');
+  var cells = [];
+  for (var c = 0; c < 100; c++) {
+    var d = document.createElement('div');
+    d.className = 'city';
+    d.innerHTML = '<i class="dot"></i><i class="dot dot2"></i>';
+    citiesEl.appendChild(d);
+    cells.push(d);
+  }
+
+  var rngN    = document.getElementById('rngN');
+  var nOut    = document.getElementById('nOut');
+  var bigPct  = document.getElementById('bigPct');
+  var qAns    = document.getElementById('qAns');
+  var gridWrap= document.getElementById('gridWrap');
+  var btnAsk  = document.getElementById('btnAsk');
+  var revealed = false;
+
+  var N_MIN = 100000, N_MAX = 50000000;
+  function sliderToN(v){                       // 對數刻度
+    var t = v / 1000;
+    return Math.round(N_MIN * Math.pow(N_MAX / N_MIN, t));
+  }
+  function nToSlider(N){
+    return Math.round(1000 * Math.log(N / N_MIN) / Math.log(N_MAX / N_MIN));
+  }
+
+  function paint(count, stagger){
+    for (var i = 0; i < 100; i++) {
+      var on = i < count;
+      var cell = cells[i];
+      var dot2 = cell.lastElementChild;
+      dot2.style.transitionDelay = (stagger && !reduce) ? (i * 14) + 'ms' : '0ms';
+      cell.classList.toggle('two', on);
+    }
+  }
+
+  function update(N, opts){
+    var pr  = pAnother(N, P);
+    var pct = pr * 100;
+    nOut.textContent = zhCount(N);
+    qAns.textContent = pct.toFixed(1) + ' %';
+    paint(Math.round(pct), !!(opts && opts.stagger));
+    if (opts && opts.animate && !reduce) {
+      var t0 = 0, from = parseFloat(bigPct.firstChild.nodeValue) || 0;
+      function step(ts){
+        if (!t0) t0 = ts;
+        var k = Math.min(1, (ts - t0) / 1100);
+        var e = 1 - Math.pow(1 - k, 3);
+        bigPct.firstChild.nodeValue = (from + (pct - from) * e).toFixed(1);
+        if (k < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    } else {
+      bigPct.firstChild.nodeValue = pct.toFixed(1);
+    }
+  }
+
+  var LS_KEY = 'collins.N';
+  function savedN(){
+    try {
+      var v = parseInt(localStorage.getItem(LS_KEY), 10);
+      if (v && v >= N_MIN && v <= N_MAX) return v;
+    } catch (e) {}
+    return 12000000;
+  }
+
+  btnAsk.addEventListener('click', function(){
+    if (revealed) return;
+    revealed = true;
+    btnAsk.disabled = true;
+    btnAsk.textContent = '這，才是陪審團該聽見的數字';
+    gridWrap.hidden = false;
+    var N = savedN();
+    rngN.value = nToSlider(N);
+    // 讓 hidden 解除後先完成一次排版，動畫才會從 0 開始跑
+    gridWrap.getBoundingClientRect();
+    requestAnimationFrame(function(){
+      update(N, { animate: true, stagger: true });
+    });
+    setTimeout(function(){
+      say('在已知至少有一對符合特徵的情侶的前提下，還有第二對的機率是 '
+          + (pAnother(N, P) * 100).toFixed(1) + ' %。');
+    }, reduce ? 0 : 1200);
+  });
+
+  rngN.addEventListener('input', function(){
+    var N = sliderToN(parseInt(rngN.value, 10));
+    update(N, { animate: false, stagger: false });
+    rngN.setAttribute('aria-valuetext',
+      zhCount(N) + ' 對，還有第二對的機率 ' + (pAnother(N, P) * 100).toFixed(1) + ' %');
+    try { localStorage.setItem(LS_KEY, String(N)); } catch (e) {}
+  });
+
+  /* ────────── 判決章：捲到就落下 ────────── */
+  var stampRev = document.getElementById('stampRev');
+  var revCap   = document.getElementById('revCap');
+  if ('IntersectionObserver' in window) {
+    var io2 = new IntersectionObserver(function(en){
+      if (en[0].isIntersecting) {
+        stampRev.classList.add('on');
+        revCap.classList.add('on');
+        io2.disconnect();
+      }
+    }, { threshold: 0.6 });
+    io2.observe(stampRev.parentElement);
+  } else {
+    stampRev.classList.add('on');
+    revCap.classList.add('on');
+  }
+
+  /* 分頁隱藏時不做多餘的事：本頁動畫皆為一次性 transition，無需常駐 rAF */
+})();
+</script>
+</body>
+</html>

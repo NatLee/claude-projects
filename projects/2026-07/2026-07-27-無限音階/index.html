@@ -93,14 +93,14 @@
 
   /* HUD: counter + dial */
   .hud{display:flex; align-items:center; justify-content:center; gap:clamp(20px,6vw,54px); margin:22px 0 8px; flex-wrap:wrap}
-  .metric{display:flex; flex-direction:column; align-items:center; gap:6px; min-width:120px}
-  .metric .num{font-family:var(--serif); font-size:clamp(2.4rem,9vw,3.6rem); line-height:1; color:var(--ink); font-variant-numeric:tabular-nums}
+  .metric{display:flex; flex-direction:column; align-items:center; gap:6px; width:150px; flex:none}
+  .metric .num{font-family:var(--serif); font-size:clamp(2.4rem,9vw,3.6rem); line-height:1; color:var(--ink); font-variant-numeric:tabular-nums; width:100%; text-align:center}
   .metric .lab{font-size:11.5px; letter-spacing:.24em; text-transform:uppercase; color:var(--faint)}
   .dialbox{display:flex; flex-direction:column; align-items:center; gap:8px}
   .dial{width:96px; height:96px}
   .dial .track{fill:none; stroke:rgba(255,255,255,.10); stroke-width:6}
   .dial .tick{stroke:rgba(255,255,255,.16); stroke-width:2}
-  .needle{transform-origin:48px 48px; transition:none}
+  .needle{transition:none}
   .narr{min-height:1.6em; color:var(--amber); font-size:1.02rem; letter-spacing:.02em; margin-top:8px; text-align:center}
 
   /* reveal */
@@ -400,25 +400,32 @@
   });
 
   /* ---------- 攀爬控制 ---------- */
+  function activePad(){ return (acts.a5 && acts.a5.classList.contains('show')) ? el('pad2') : el('pad'); }
+  function setHold(f){
+    holding = f;
+    var pd = activePad(); if(pd) pd.classList.toggle('hold', f);
+    if(f && ctx && ctx.state === 'suspended') ctx.resume();
+  }
+  // 指標（滑鼠／觸控）：按住那顆鈕
   function bindPad(pad){
-    var down = function(ev){ ev.preventDefault(); holding = true; pad.classList.add('hold');
-      if(ctx && ctx.state === 'suspended') ctx.resume(); };
-    var up = function(){ holding = false; pad.classList.remove('hold'); };
-    pad.addEventListener('pointerdown', down);
-    window.addEventListener('pointerup', up);
-    pad.addEventListener('pointercancel', up);
-    pad.addEventListener('lostpointercapture', up);
-    // 鍵盤：按住空白／Enter／↑
-    pad.addEventListener('keydown', function(ev){
-      if(ev.repeat) return;
-      if(ev.key === ' ' || ev.key === 'Enter' || ev.key === 'ArrowUp'){ ev.preventDefault(); holding = true; pad.classList.add('hold'); }
-    });
-    pad.addEventListener('keyup', function(ev){
-      if(ev.key === ' ' || ev.key === 'Enter' || ev.key === 'ArrowUp'){ holding = false; pad.classList.remove('hold'); }
-    });
-    pad.addEventListener('blur', up);
+    pad.addEventListener('pointerdown', function(ev){ ev.preventDefault(); setHold(true); });
+    pad.addEventListener('pointercancel', function(){ setHold(false); });
   }
   bindPad(el('pad')); bindPad(el('pad2'));
+  window.addEventListener('pointerup', function(){ setHold(false); });
+
+  // 鍵盤：在攀爬幕，按住空白鍵／↑／W 都能爬（全域攔截，阻止頁面捲動）
+  function isClimbKey(k){ return k === ' ' || k === 'Spacebar' || k === 'ArrowUp' || k === 'w' || k === 'W'; }
+  window.addEventListener('keydown', function(ev){
+    if(mode !== 'climb' || !isClimbKey(ev.key)) return;
+    // 若焦點在「推進下一幕」的按鈕上，把空白鍵還給它（避免搶掉點擊）
+    var ae = document.activeElement;
+    if((ev.key === ' ' || ev.key === 'Spacebar') && ae && ae.tagName === 'BUTTON' && ae !== el('pad') && ae !== el('pad2')) return;
+    ev.preventDefault();
+    if(!holding) setHold(true);
+  });
+  window.addEventListener('keyup', function(ev){ if(isClimbKey(ev.key)) setHold(false); });
+  window.addEventListener('blur', function(){ setHold(false); });
 
   var narrShown = {};
   function updateNarr(st){

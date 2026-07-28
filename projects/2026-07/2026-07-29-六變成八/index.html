@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>六變成八 —— 那台影印機改了你的數字</title>
+<style>
+  :root{
+    --bg:#08090b;
+    --bg2:#0e1216;
+    --panel:#141a21;
+    --panel2:#1b232c;
+    --line:#28323d;
+    --line2:#3a4653;
+    --paper:#f1eee4;
+    --paper2:#e4e0d3;
+    --ink:#191c21;
+    --ink2:#5d6572;
+    --txt:#c6cfda;
+    --txt2:#7d8896;
+    --txt3:#57616e;
+    --beam:#6ff0d4;
+    --beam-dim:#2f8f7d;
+    --amber:#f2b23c;
+    --red:#ff6f5e;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--txt);
+    font-family:var(--sans);
+    line-height:1.85;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--beam);color:#06231d}
+
+  /* ——— 回首頁 ——— */
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:#7d8896;text-decoration:none;font-size:13px;
+    padding:6px 11px;border-radius:999px;
+    background:rgba(10,12,15,.72);border:1px solid var(--line);
+    backdrop-filter:blur(6px);
+    transition:color .22s,border-color .22s;
+  }
+  .home:hover,.home:focus-visible{color:var(--beam);border-color:var(--beam-dim)}
+
+  /* ——— 機器狀態列 ——— */
+  .status{
+    position:fixed;right:14px;top:12px;z-index:80;
+    font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+    color:var(--txt3);
+    padding:6px 11px;border-radius:999px;
+    background:rgba(10,12,15,.72);border:1px solid var(--line);
+    backdrop-filter:blur(6px);
+    display:flex;align-items:center;gap:8px;
+  }
+  .status .dot{
+    width:6px;height:6px;border-radius:50%;background:var(--beam-dim);
+    box-shadow:0 0 0 0 rgba(111,240,212,.5);
+  }
+  .status.live .dot{background:var(--beam);animation:pulse 1.6s ease-out infinite}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(111,240,212,.45)}
+    100%{box-shadow:0 0 0 9px rgba(111,240,212,0)}
+  }
+  .status b{color:var(--txt2);font-weight:500}
+  @media(max-width:560px){ .status span.lbl{display:none} }
+
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  /* ——— 通用字級 ——— */
+  h2{
+    font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 22px;
+    font-weight:700;letter-spacing:-.01em;color:#e7edf4;
+  }
+  p{margin:0 0 20px;font-size:clamp(15.5px,2.5vw,17px);color:var(--txt)}
+  p.quiet{color:var(--txt2)}
+  p.small{font-size:14px;color:var(--txt2);line-height:1.8}
+  strong{color:#eef3f8;font-weight:600}
+  em{font-style:normal;color:var(--beam)}
+  .amber{color:var(--amber)}
+
+  /* ——— 按鈕 ——— */
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;
+    color:#06231d;background:var(--beam);
+    border:0;border-radius:999px;padding:13px 26px;
+    cursor:pointer;letter-spacing:.01em;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+    box-shadow:0 0 0 0 rgba(111,240,212,.35);
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 26px -8px rgba(111,240,212,.5)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.ghost{
+    background:transparent;color:var(--txt);border:1px solid var(--line2);
+    box-shadow:none;font-weight:500;
+  }
+  .btn.ghost:hover{border-color:var(--beam-dim);color:var(--beam)}
+  .btn:focus-visible,.room:focus-visible,.tog:focus-visible,input:focus-visible{
+    outline:2px solid var(--beam);outline-offset:3px;
+  }
+  .linkish{
+    background:none;border:0;padding:0;color:var(--txt3);
+    font-family:inherit;font-size:14px;cursor:pointer;
+    text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--line2);
+  }
+  .linkish:hover{color:var(--txt)}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{
+    min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+    position:relative;overflow:hidden;
+    background:radial-gradient(120% 80% at 50% 42%, #131a20 0%, #0a0d10 55%, #060709 100%);
+  }
+  .glass{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(86vw,620px);height:min(52vh,340px);
+    border:1px solid rgba(111,240,212,.10);border-radius:3px;
+    background:linear-gradient(180deg,rgba(111,240,212,.035),rgba(111,240,212,0));
+    pointer-events:none;
+  }
+  .beam{
+    position:absolute;left:0;right:0;top:0;height:2px;
+    background:linear-gradient(90deg,transparent,var(--beam),transparent);
+    box-shadow:0 0 26px 6px rgba(111,240,212,.28);
+    opacity:0;pointer-events:none;
+  }
+  .beam.go{animation:sweep 4.6s cubic-bezier(.5,0,.5,1) .35s 1 forwards}
+  @keyframes sweep{
+    0%{opacity:0;transform:translateY(8vh)}
+    12%{opacity:.95}
+    88%{opacity:.95}
+    100%{opacity:0;transform:translateY(88vh)}
+  }
+  .hook .wrap{position:relative;z-index:2}
+  .stamp{
+    font-family:var(--mono);font-size:12px;letter-spacing:.22em;
+    color:var(--beam-dim);margin:0 0 26px;text-transform:uppercase;
+  }
+  .hook h1{
+    font-size:clamp(30px,7.4vw,58px);line-height:1.24;margin:0 0 34px;
+    font-weight:700;letter-spacing:-.02em;color:#f0f5fa;
+  }
+  .hook p{max-width:31em}
+  .hook .cta{margin-top:16px}
+
+  .fade{opacity:0;transform:translateY(14px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .9s ease,transform .9s cubic-bezier(.2,.8,.3,1)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{
+    padding:clamp(70px,13vh,130px) 0;
+    border-top:1px solid rgba(40,50,61,.55);
+    background:var(--bg);
+  }
+  .act[hidden]{display:none}
+  .act.tinted{background:linear-gradient(180deg,var(--bg) 0%, #0b1014 40%, var(--bg) 100%)}
+  .chap{
+    font-family:var(--mono);font-size:11px;letter-spacing:.24em;
+    color:var(--txt3);margin:0 0 16px;
+  }
+  .nextrow{margin-top:34px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+
+  /* ——— 平面圖 ——— */
+  .planwrap{
+    background:var(--paper);padding:16px;border-radius:2px;
+    box-shadow:0 24px 60px -30px rgba(0,0,0,.9);
+    position:relative;margin:8px 0 10px;
+  }
+  .planwrap::after{
+    content:"示意重建";position:absolute;right:14px;bottom:8px;
+    font-family:var(--mono);font-size:10px;color:#a9a396;letter-spacing:.14em;
+  }
+  .plan{
+    display:grid;
+    grid-template-columns:1fr 1.233fr;
+    grid-template-rows:1.033fr 1fr;
+    gap:5px;height:min(50vh,330px);
+  }
+  .room{
+    font-family:inherit;border:1.5px solid #3d4149;background:#fbfaf5;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+    cursor:pointer;padding:8px;position:relative;
+    transition:background .2s,border-color .2s,transform .18s;
+  }
+  .room:hover{background:#fff;border-color:#1d232c}
+  .room:active{transform:scale(.995)}
+  .room .rn{font-size:13px;color:#6b7280;letter-spacing:.1em}
+  .room .ra{
+    font-family:var(--mono);font-size:clamp(14px,2.6vw,19px);color:#14171c;
+    border:1.2px solid #6f7681;background:#fff;padding:3px 9px;
+    letter-spacing:.02em;white-space:nowrap;
+  }
+  .room .ra .u{font-size:.7em;color:#7c8490;margin-left:2px}
+  .room.living{grid-column:1/3}
+  .room.picked{background:#fff6e0;border-color:var(--amber)}
+  .room.picked .ra{border-color:#c98f18;box-shadow:0 0 0 3px rgba(242,178,60,.28)}
+  .room .flag{
+    position:absolute;top:6px;right:8px;font-family:var(--mono);
+    font-size:10px;color:#c0392b;opacity:0;letter-spacing:.1em;
+  }
+  .room.wrongnum .flag{opacity:1}
+  .room.wrongnum .ra{color:#b5341f;border-color:#b5341f}
+
+  .verdict{
+    min-height:2.6em;margin-top:18px;font-size:16px;color:var(--txt2);
+    border-left:2px solid var(--line2);padding-left:16px;
+    transition:border-color .3s,color .3s;
+  }
+  .verdict.hit{border-color:var(--beam);color:#dfe8f0}
+  .verdict.near{border-color:var(--amber);color:#dfe8f0}
+
+  /* ——— 並排比對 ——— */
+  .compare{
+    display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:26px 0 8px;
+  }
+  .cbox{
+    background:var(--paper);color:var(--ink);padding:16px 14px;border-radius:2px;
+    text-align:center;
+  }
+  .cbox .clab{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:#8b8578;
+    margin-bottom:12px;
+  }
+  .cbox .big{
+    font-family:var(--mono);font-size:clamp(30px,8.4vw,52px);letter-spacing:.02em;
+    line-height:1.1;color:#14171c;
+  }
+  .cbox.bad .big{color:#b5341f}
+  .cbox .sub{font-size:12.5px;color:#7d7768;margin-top:10px;line-height:1.6}
+  @media(max-width:560px){ .compare{grid-template-columns:1fr} }
+
+  .pullquote{
+    margin:34px 0;padding:22px 24px;
+    background:linear-gradient(180deg,rgba(111,240,212,.045),rgba(111,240,212,0));
+    border-left:2px solid var(--beam-dim);
+    font-size:clamp(17px,3.1vw,21px);line-height:1.7;color:#e9eff5;
+  }
+
+  /* ——— 機器面板 ——— */
+  .machine{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    overflow:hidden;margin:28px 0 6px;
+    box-shadow:0 30px 70px -40px #000;
+  }
+  .mhead{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:11px;letter-spacing:.13em;color:var(--txt2);
+  }
+  .mbody{display:grid;grid-template-columns:1.42fr 1fr;gap:0}
+  @media(max-width:700px){ .mbody{grid-template-columns:1fr} }
+
+  .sheet{
+    padding:16px 14px;background:var(--paper);color:var(--ink);
+    position:relative;overflow:hidden;
+  }
+  .sheet .srow{
+    display:flex;justify-content:space-between;gap:6px;
+    font-family:var(--mono);font-size:clamp(11px,2.3vw,14px);line-height:2.15;
+  }
+  .d{
+    display:inline-block;padding:0 .5px;border-radius:1px;
+    transition:color .3s ease,background-color .35s ease;
+  }
+  .d.cut{box-shadow:inset 0 0 0 1px rgba(60,110,150,.28)}
+  .d.flash{animation:flash 900ms ease-out 1}
+  @keyframes flash{
+    0%{background-color:rgba(242,178,60,.95)}
+    35%{background-color:rgba(242,178,60,.75)}
+    100%{background-color:rgba(242,178,60,0)}
+  }
+  .sheet.marked .d.swapped{color:#c0261a;background:rgba(192,38,26,.14);box-shadow:inset 0 0 0 1px rgba(192,38,26,.5)}
+  .scanline{
+    position:absolute;left:0;right:0;top:0;height:44px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(111,240,212,0),rgba(78,190,166,.22),rgba(111,240,212,0));
+    opacity:0;
+  }
+  .scanline.on{opacity:1}
+
+  .ctrl{padding:16px 16px 18px;border-left:1px solid var(--line)}
+  @media(max-width:700px){ .ctrl{border-left:0;border-top:1px solid var(--line)} }
+  .ctitle{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--txt3);
+    margin:0 0 10px;
+  }
+  .slabels{display:flex;justify-content:space-between;font-size:12px;color:var(--txt3);margin-top:2px}
+  input[type=range]{width:100%;accent-color:var(--beam);cursor:pointer;margin:4px 0 0}
+  .thval{font-family:var(--mono);font-size:13px;color:var(--beam)}
+
+  .dict{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px;min-height:76px;align-content:flex-start}
+  .sym{
+    font-family:var(--mono);font-size:15px;
+    width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--line2);border-radius:3px;color:var(--txt);
+    background:#101519;position:relative;
+    opacity:0;transform:scale(.82);
+    transition:opacity .3s,transform .3s cubic-bezier(.2,.9,.3,1.3),border-color .3s,color .3s;
+  }
+  .sym.show{opacity:1;transform:none}
+  .sym.gone{color:var(--red);border-color:rgba(255,111,94,.45);border-style:dashed}
+  .sym.gone::after{
+    content:"";position:absolute;left:5px;right:5px;top:50%;height:1px;
+    background:rgba(255,111,94,.75);
+  }
+  .sym.rep{border-color:var(--amber);color:var(--amber);box-shadow:0 0 0 1px rgba(242,178,60,.25)}
+  .merges{margin:8px 0 0;min-height:1.6em}
+  .mchip{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:12px;color:var(--amber);
+    border:1px solid rgba(242,178,60,.3);border-radius:999px;
+    padding:2px 10px;margin:0 6px 6px 0;background:rgba(242,178,60,.06);
+    opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s;
+  }
+  .mchip.show{opacity:1;transform:none}
+
+  .meter{margin-top:14px}
+  .mrow{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--txt2)}
+  .mval{font-family:var(--mono);font-size:22px;color:#e7edf4}
+  .bar{height:5px;background:#0d1216;border-radius:3px;overflow:hidden;margin-top:7px}
+  .bar i{
+    display:block;height:100%;width:100%;transform-origin:left center;
+    background:linear-gradient(90deg,var(--beam-dim),var(--beam));
+    transform:scaleX(1);
+  }
+  .swapcount{color:var(--red)}
+
+  .runrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+  .after{margin-top:26px}
+  .after[hidden]{display:none}
+  .tog{
+    font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;
+    background:transparent;color:var(--red);
+    border:1px solid rgba(255,111,94,.4);border-radius:999px;padding:10px 20px;
+    transition:background .2s,color .2s;
+  }
+  .tog[aria-pressed="true"]{background:rgba(255,111,94,.14);color:#ffb0a5}
+
+  /* ——— 時間軸 ——— */
+  .tl{list-style:none;margin:26px 0 0;padding:0;position:relative}
+  .tl::before{
+    content:"";position:absolute;left:7px;top:6px;bottom:6px;width:1px;background:var(--line);
+  }
+  .tl li{
+    position:relative;padding:0 0 22px 34px;
+    opacity:0;transform:translateY(10px);
+  }
+  .tl li.in{opacity:1;transform:none;transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.3,1)}
+  .tl li::before{
+    content:"";position:absolute;left:3px;top:11px;width:9px;height:9px;border-radius:50%;
+    background:var(--bg);border:1.5px solid var(--line2);
+  }
+  .tl li.key::before{background:var(--beam);border-color:var(--beam)}
+  .tl .td{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;color:var(--txt3);
+    display:block;margin-bottom:2px;
+  }
+  .tl li.key .td{color:var(--beam)}
+  .tl .tt{font-size:15.5px;color:var(--txt);line-height:1.75}
+
+  /* ——— 收尾 ——— */
+  .miniplan{
+    background:var(--paper);padding:12px;border-radius:2px;margin:22px 0 4px;
+    box-shadow:0 20px 50px -32px #000;
+  }
+  .miniplan .plan{height:min(30vh,190px)}
+  .miniplan .room{cursor:default;border-width:1.2px}
+  .miniplan .room:hover{background:#fbfaf5;border-color:#3d4149}
+  .miniplan .room.wrongnum{background:#fff3f0}
+  .miniplan .room .rn{font-size:11px}
+  .miniplan .room .ra{font-size:clamp(12px,2.2vw,15px)}
+  .runlog{
+    font-family:var(--mono);font-size:12.5px;color:var(--txt2);
+    min-height:3.2em;margin-top:12px;line-height:1.9;
+  }
+  .runlog .hi{color:var(--red)}
+
+  .kicker{
+    margin:52px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;
+    color:#f0f5fa;font-weight:600;letter-spacing:-.01em;
+  }
+  .kicker span{display:block;opacity:0;transform:translateY(12px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:14px}
+  .kicker .dim{color:var(--txt2);font-weight:400;font-size:.82em}
+
+  footer{
+    padding:44px 0 60px;border-top:1px solid rgba(40,50,61,.5);margin-top:70px;
+    font-size:12.5px;color:var(--txt3);line-height:1.9;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .beam.go{animation:none;opacity:.5;transform:translateY(46vh)}
+    .status.live .dot{animation:none}
+    .d.flash{animation:none}
+    .fade,.tl li,.kicker span{opacity:1;transform:none}
+    *{transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<div class="status" id="statusBar"><span class="dot"></span><span class="lbl">WORKCENTRE</span> <b id="statusTxt">待機</b></div>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="glass"></div>
+  <div class="beam" id="beam"></div>
+  <div class="wrap">
+    <p class="stamp fade" id="h0">2013 · 7 · 24　德國</p>
+    <h1 class="fade" id="h1">有人把一張平面圖<br>放上了影印機的玻璃。</h1>
+    <p class="fade" id="h2">印出來的那一張，和原稿看起來一模一樣。</p>
+    <p class="fade quiet" id="h3">他差一點就把它歸檔了。</p>
+    <div class="cta fade" id="h4">
+      <button class="btn" id="go1">把那張圖攤開</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：不對勁 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　紙上</p>
+    <h2 id="t1">花十秒鐘看這張圖。</h2>
+    <p>建築平面圖上，每個房間都框著自己的面積。這是那張圖的重建——三個房間，三個數字。</p>
+    <p><strong>有哪裡不對勁嗎？點下你覺得怪的那一間。</strong></p>
+
+    <div class="planwrap">
+      <div class="plan" id="plan1">
+        <button class="room living" data-key="living">
+          <span class="flag">?</span>
+          <span class="rn">客廳</span>
+          <span class="ra">14.13<span class="u">m²</span></span>
+        </button>
+        <button class="room" data-key="bed">
+          <span class="flag">?</span>
+          <span class="rn">臥室</span>
+          <span class="ra">14.13<span class="u">m²</span></span>
+        </button>
+        <button class="room" data-key="store">
+          <span class="flag">?</span>
+          <span class="rn">儲藏室</span>
+          <span class="ra">17.42<span class="u">m²</span></span>
+        </button>
+      </div>
+    </div>
+
+    <p class="verdict" id="v1">（這張圖是按數字等比例畫的。）</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go2" hidden>把原稿調出來</button>
+      <button class="linkish" id="giveup1">我看不出來，直接告訴我</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：那不是模糊 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　原稿</p>
+    <h2 id="t2">紙上寫的，是另一個數字。</h2>
+
+    <div class="compare">
+      <div class="cbox">
+        <div class="clab">原稿 · 客廳</div>
+        <div class="big">32.60</div>
+        <div class="sub">臥室的 2.3 倍<br>和圖上畫的大小吻合</div>
+      </div>
+      <div class="cbox bad">
+        <div class="clab">掃描件 · 客廳</div>
+        <div class="big">14.13</div>
+        <div class="sub">臥室的數字<br>被整塊搬了上來</div>
+      </div>
+    </div>
+
+    <p class="small" style="text-align:center;margin-top:14px">你剛剛看到的兩個 14.13，其實是同一個 14.13。</p>
+
+    <div class="pullquote">
+      錯的那個數字，沒有一點模糊。<br>
+      筆畫乾淨、字距均勻、和整張圖同一套字體——<br>
+      因為它本來就是這張圖上的字。
+    </div>
+
+    <p>這不是 OCR 認錯字。他們刻意把 OCR 關掉了，掃出來的是純圖片。</p>
+    <p>同一批掃描裡，一張成本表上的 <em>65 變成了 85</em>，右上角一個 <em>60 變成了 80</em>。而那些假的 8，左邊都帶著 8 才有、6 沒有的那道凹口——它們不是被畫歪，是被別的地方整塊蓋掉。</p>
+    <p class="quiet">所以問題不在眼睛，在那台機器把一頁紙存起來的方式。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go3">用機器的眼睛看一次</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：你來當那台機器 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　機器</p>
+    <h2 id="t3">現在，換你來壓縮這一頁。</h2>
+    <p>掃描器要把一整頁墨點塞進一個小檔案。它的辦法其實很聰明：一頁上重複的字太多了，只要把<strong>長得一樣</strong>的存一次，其他地方全部指過去就好。</p>
+    <p>問題只有四個字：長得一樣，要多像才算一樣？</p>
+    <p><strong>這條線，由你來畫。</strong></p>
+
+    <div class="machine">
+      <div class="mhead">
+        <span>SCAN · 200 DPI · 無 OCR</span>
+        <span id="mstate">就緒</span>
+      </div>
+      <div class="mbody">
+        <div class="sheet" id="sheet" aria-label="掃描頁面上的數字">
+          <div class="scanline" id="scanline"></div>
+          <div id="sheetRows"></div>
+        </div>
+        <div class="ctrl">
+          <p class="ctitle">比對寬鬆度</p>
+          <input type="range" id="thresh" min="0" max="100" value="30" step="1"
+                 aria-label="比對寬鬆度，數值越大越容易把不同的字判成同一個">
+          <div class="slabels"><span>嚴格</span><span class="thval" id="threshVal">30</span><span>寬鬆</span></div>
+
+          <p class="ctitle" style="margin-top:18px">符號字典</p>
+          <div class="dict" id="dict"></div>
+          <div class="merges" id="merges"></div>
+
+          <div class="meter">
+            <div class="mrow"><span>壓縮後大小</span><span class="mval" id="sizeVal">100%</span></div>
+            <div class="bar"><i id="sizeBar"></i></div>
+            <div class="mrow" style="margin-top:10px">
+              <span>被代表蓋掉的數字</span><span class="mval swapcount" id="swapVal">0</span>
+            </div>
+          </div>
+
+          <div class="runrow">
+            <button class="btn" id="runBtn">執行壓縮</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="after" id="after" hidden>
+      <p id="afterLine1"></p>
+      <p class="quiet" id="afterLine2">你找得到它們嗎？</p>
+      <div class="nextrow">
+        <button class="tog" id="markBtn" aria-pressed="false">把被換掉的地方標出來</button>
+      </div>
+      <p class="small" id="afterLine3" style="margin-top:20px"></p>
+      <div class="nextrow">
+        <button class="btn ghost" id="go4">然後呢？</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四：二十九天 ══════════ -->
+<section class="act tinted" id="act4" hidden aria-labelledby="t4">
+  <div class="wrap">
+    <p class="chap">四　二十九天</p>
+    <h2 id="t4">發現它的人叫 David Kriesel。</h2>
+    <p>他是德國的資訊科學研究者，那天只是要掃幾張建築平面圖。接下來三個星期是這樣過的。</p>
+
+    <ol class="tl" id="timeline">
+      <li class="key"><span class="td">7 月 24 日</span><span class="tt">他發現有房間的坪數不對。同一張圖再掃一次，錯的地方換了位置。</span></li>
+      <li><span class="td">7 月 25 日</span><span class="tt">他通知 Xerox。客服每一層都沒聽過這種事，有人跑去自己的機器上試——試出來了，非常驚訝。</span></li>
+      <li><span class="td">8 月 1 日</span><span class="tt">一個星期過去，沒有任何解法。他開始害怕：如果被改的是橋樑的施工圖、是藥物劑量呢？</span></li>
+      <li class="key"><span class="td">8 月 2 日</span><span class="tt">他把整件事寫成一篇部落格文章。當天傳遍全世界，各國讀者陸續回報：我這台也重現得出來。</span></li>
+      <li><span class="td">8 月 6 日　上午</span><span class="tt">一位讀者發現，機器管理面板深處藏著一行小字，提到「字元替換」。也就是說——他們知道。</span></li>
+      <li><span class="td">8 月 6 日　下午</span><span class="tt">與 Xerox 副總裁的電話會議：是的，會發生；是的，我們知道；而且這是「刻意的」。三百頁的說明書裡，寫了兩行。</span></li>
+      <li><span class="td">8 月 7 日</span><span class="tt">Xerox 發出聲明：使用出廠預設值就不會看到字元替換問題。</span></li>
+      <li><span class="td">8 月 9 日</span><span class="tt">他照官方建議的設定、還調高解析度，又重現了一次。</span></li>
+      <li class="key"><span class="td">8 月 12 日</span><span class="tt">Xerox 全面承認：這是他們八年前寫下的一個軟體 bug，三種壓縮模式全部中招。數十萬台機器要修。</span></li>
+      <li><span class="td">8 月 22 日</span><span class="tt">第一批修補程式分批釋出。因為機型太多，只能一波一波來。</span></li>
+      <li><span class="td">2015 年 3 月</span><span class="tt">德國聯邦資訊安全辦公室禁止 JBIG2 用於檔案存檔。</span></li>
+    </ol>
+
+    <p style="margin-top:34px">那個叫「normal（一般）」的預設值，就是你剛剛親手拉開的那條線。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go5">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 五：拉遠 ══════════ -->
+<section class="act" id="act5" hidden aria-labelledby="t5">
+  <div class="wrap">
+    <p class="chap">五　鏡頭拉遠</p>
+    <h2 id="t5">Xerox 是分散銷售的，沒有一份中央客戶名單。</h2>
+    <p>所以沒有人知道，全世界還有多少台沒被修好。</p>
+    <p>而這八年裡，這些機器掃過的東西是：發票、合約、病歷、藥物劑量、橋樑的施工圖。</p>
+
+    <p class="quiet" style="margin-top:36px">最後，把那張平面圖再放上去一次。</p>
+
+    <div class="miniplan">
+      <div class="plan" id="plan2">
+        <div class="room living" data-key="living"><span class="rn">客廳</span><span class="ra">32.60<span class="u">m²</span></span></div>
+        <div class="room" data-key="bed"><span class="rn">臥室</span><span class="ra">14.13<span class="u">m²</span></span></div>
+        <div class="room" data-key="store"><span class="rn">儲藏室</span><span class="ra">17.42<span class="u">m²</span></span></div>
+      </div>
+    </div>
+    <div class="nextrow" style="margin-top:16px">
+      <button class="btn ghost" id="rescan">再掃一次</button>
+    </div>
+    <p class="runlog" id="runlog">目前是原稿。三個數字都是對的。</p>
+
+    <div class="kicker" id="kicker">
+      <span>壞掉的東西，通常看起來就是壞的。</span>
+      <span>這一台不是。</span>
+      <span class="dim">它換掉你的數字，然後排版得整整齊齊、對齊得完美無瑕，遞回你手上。</span>
+      <span class="dim">而你那天，差一點就把它歸檔了。</span>
+    </div>
+
+    <footer>
+      來源：D. Kriesel 的公開紀錄與 Xerox 官方聲明。完整出處與模擬方法寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ——— 減少動態 ——— */
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  var srLive = $('srLive');
+  function say(msg){ srLive.textContent = msg; }
+
+  var statusBar = $('statusBar'), statusTxt = $('statusTxt');
+  function setStatus(txt, live){
+    statusTxt.textContent = txt;
+    statusBar.classList.toggle('live', !!live);
+  }
+
+  function scrollTo(el){
+    try { el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); }
+    catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id, focusEl){
+    var sec = $(id);
+    if (!sec.hidden) { scrollTo(sec); return; }
+    sec.hidden = false;
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){ scrollTo(sec); });
+    });
+    if (focusEl) setTimeout(function(){ try{ focusEl.focus({preventScroll:true}); }catch(e){} }, reduce ? 0 : 700);
+  }
+
+  /* ══════════ 第一屏進場 ══════════ */
+  var beam = $('beam');
+  var hookSeq = ['h0','h1','h2','h3','h4'];
+  if (reduce){
+    hookSeq.forEach(function(id){ $(id).classList.add('in'); });
+    beam.classList.add('go');
+  } else {
+    beam.classList.add('go');
+    hookSeq.forEach(function(id, i){
+      setTimeout(function(){ $(id).classList.add('in'); }, 420 + i * 620);
+    });
+  }
+  setStatus('待機');
+
+  /* ══════════ 一：平面圖 ══════════ */
+  var v1 = $('v1'), go2 = $('go2'), solved1 = false;
+  var misses = 0;
+
+  function solve1(){
+    if (solved1) return;
+    solved1 = true;
+    var living = document.querySelector('#plan1 .room.living');
+    living.classList.add('picked','wrongnum');
+    living.querySelector('.flag').textContent = '?';
+    v1.className = 'verdict hit';
+    v1.textContent = '對。這一間是隔壁臥室的兩倍多大，數字卻一模一樣——一張平面圖上，不會有兩個房間剛好都是 14.13。';
+    go2.hidden = false;
+    $('giveup1').hidden = true;
+    setStatus('偵測到異常', true);
+    say('找到了：客廳的面積數字和它的大小對不上。');
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('#plan1 .room'), function(btn){
+    btn.addEventListener('click', function(){
+      if (solved1) return;
+      var k = btn.getAttribute('data-key');
+      Array.prototype.forEach.call(document.querySelectorAll('#plan1 .room'), function(b){
+        if (b !== btn) b.classList.remove('picked');
+      });
+      if (k === 'living'){ btn.classList.add('picked'); solve1(); return; }
+      btn.classList.add('picked');
+      misses++;
+      if (k === 'bed'){
+        v1.className = 'verdict near';
+        v1.textContent = '很接近了——你注意到同一個數字出現了兩次。但這一間的大小和 14.13 是相符的。再看看哪一間對不上。';
+      } else {
+        v1.className = 'verdict';
+        v1.textContent = '這一間沒問題：它比臥室大一點點，數字也大一點點。' + (misses >= 2 ? '　提示：看最大的那一間。' : '');
+      }
+      say(v1.textContent);
+    });
+  });
+  $('giveup1').addEventListener('click', solve1);
+  $('go1').addEventListener('click', function(){ reveal('act1'); setStatus('掃描完成'); });
+  go2.addEventListener('click', function(){ reveal('act2'); });
+  $('go3').addEventListener('click', function(){ reveal('act3'); initMachine(); });
+
+  /* ══════════ 三：機器 ══════════ */
+  var ROWS = 9, COLS = 5, PAGE_SEED = 20130724;
+  var sheetRows = $('sheetRows'), dictEl = $('dict'), mergesEl = $('merges');
+  var threshEl = $('thresh'), threshVal = $('threshVal');
+  var sizeVal = $('sizeVal'), sizeBar = $('sizeBar'), swapVal = $('swapVal');
+  var runBtn = $('runBtn'), mstate = $('mstate'), scanline = $('scanline');
+  var sheet = $('sheet'), afterBox = $('after'), markBtn = $('markBtn');
+  var digitEls = [], baseDigits = [], machineReady = false, running = false, runSeed = 4242;
+
+  function initMachine(){
+    if (machineReady) return;
+    machineReady = true;
+    var page = makePage(PAGE_SEED, ROWS, COLS);
+    var frag = document.createDocumentFragment();
+    page.forEach(function(row){
+      var r = document.createElement('div');
+      r.className = 'srow';
+      row.forEach(function(num){
+        var span = document.createElement('span');
+        span.className = 'num';
+        for (var k = 0; k < num.length; k++){
+          if (k === 2){ span.appendChild(document.createTextNode('.')); }
+          var d = document.createElement('span');
+          d.className = 'd';
+          d.textContent = num[k];
+          span.appendChild(d);
+          digitEls.push(d);
+          baseDigits.push(num[k]);
+        }
+        r.appendChild(span);
+      });
+      frag.appendChild(r);
+    });
+    sheetRows.appendChild(frag);
+    buildDict(Number(threshEl.value), false);
+  }
+
+  /* 符號字典 */
+  function buildDict(t, animate){
+    var map = symbolMap(t);
+    dictEl.innerHTML = '';
+    var reps = {};
+    Object.keys(map).forEach(function(k){ reps[map[k]] = true; });
+    for (var i = 0; i < 10; i++){
+      var g = String(i);
+      var el = document.createElement('div');
+      el.className = 'sym' + (map[g] ? ' gone' : (reps[g] ? ' rep' : ''));
+      el.textContent = g;
+      el.setAttribute('aria-label', map[g] ? (g + ' 會被 ' + map[g] + ' 取代') : g);
+      dictEl.appendChild(el);
+    }
+    var syms = dictEl.children;
+    if (animate && !reduce){
+      for (var j = 0; j < syms.length; j++){
+        (function(el, j){ setTimeout(function(){ el.classList.add('show'); }, j * 45); })(syms[j], j);
+      }
+    } else {
+      for (var m = 0; m < syms.length; m++) syms[m].classList.add('show');
+    }
+
+    mergesEl.innerHTML = '';
+    var steps = mergesAt(t);
+    steps.forEach(function(s, i){
+      var chip = document.createElement('span');
+      chip.className = 'mchip';
+      chip.textContent = s.member + ' → ' + s.rep + '　' + s.why;
+      mergesEl.appendChild(chip);
+      if (animate && !reduce) setTimeout(function(){ chip.classList.add('show'); }, 480 + i * 130);
+      else chip.classList.add('show');
+    });
+    if (!steps.length){
+      var none = document.createElement('span');
+      none.className = 'mchip show';
+      none.style.color = 'var(--txt3)';
+      none.style.borderColor = 'var(--line)';
+      none.style.background = 'transparent';
+      none.textContent = '十個符號都算不同 · 沒有東西被合併';
+      mergesEl.appendChild(none);
+    }
+    return map;
+  }
+
+  threshEl.addEventListener('input', function(){
+    threshVal.textContent = threshEl.value;
+    if (running) return;
+    buildDict(Number(threshEl.value), false);
+    resetSheet();
+  });
+
+  function resetSheet(){
+    sheet.classList.remove('marked');
+    digitEls.forEach(function(el, i){
+      el.classList.remove('cut','flash','swapped');
+      el.textContent = baseDigits[i];
+    });
+    sizeVal.textContent = '100%';
+    sizeBar.style.transform = 'scaleX(1)';
+    swapVal.textContent = '0';
+    afterBox.hidden = true;
+    markBtn.setAttribute('aria-pressed','false');
+    markBtn.textContent = '把被換掉的地方標出來';
+    mstate.textContent = '就緒';
+    scanline.classList.remove('on');
+  }
+
+  /* ——— 壓縮動畫（單一 rAF、分頁隱藏時暫停） ——— */
+  var CUT_PER = 5, CUT_END, DICT_AT, SWAP_START, SWAP_END, TOTAL;
+
+  runBtn.addEventListener('click', function(){
+    if (running) return;
+    resetSheet();
+    var t = Number(threshEl.value);
+    var map = buildDict(t, true);
+    runSeed = (runSeed * 31 + 7) >>> 0;
+    var res = substitute(baseDigits, map, makeRng(runSeed), 0.34);
+    var targetSize = sizeAt(t);
+
+    CUT_END = digitEls.length * CUT_PER;      /* 約 900ms */
+    DICT_AT = CUT_END + 120;
+    SWAP_START = DICT_AT + 620;
+    SWAP_END = SWAP_START + Math.max(900, res.swaps.length * 105);
+    TOTAL = SWAP_END + 350;
+
+    running = true;
+    runBtn.disabled = true;
+    threshEl.disabled = true;
+    mstate.textContent = '壓縮中…';
+    setStatus('壓縮中', true);
+    say('開始壓縮這一頁。');
+
+    if (reduce){ finishRun(res, targetSize, true); return; }
+
+    scanline.classList.add('on');
+    var cutDone = 0, swapDone = 0, last = null, elapsed = 0;
+    var travel = Math.max(0, sheet.offsetHeight - 44);   /* 只量一次，避免每幀強制重排 */
+
+    function frame(ts){
+      if (last === null) last = ts;
+      var dt = ts - last; last = ts;
+      if (document.hidden) dt = 0;
+      if (dt > 100) dt = 100;
+      elapsed += dt;
+
+      /* 1. 切成一塊一塊 */
+      var wantCut = Math.min(digitEls.length, Math.floor(elapsed / CUT_PER));
+      while (cutDone < wantCut){ digitEls[cutDone].classList.add('cut'); cutDone++; }
+      if (cutDone < digitEls.length){
+        var frac = cutDone / digitEls.length;
+        scanline.style.transform = 'translateY(' + (frac * travel).toFixed(1) + 'px)';
+      } else if (scanline.classList.contains('on')){
+        scanline.classList.remove('on');
+      }
+
+      /* 2. 用代表蓋掉，同時把檔案縮小 */
+      if (elapsed > SWAP_START){
+        var p = Math.min(1, (elapsed - SWAP_START) / (SWAP_END - SWAP_START));
+        var wantSwap = Math.floor(p * res.swaps.length);
+        while (swapDone < wantSwap){
+          applySwap(res.swaps[swapDone]);
+          swapDone++;
+          swapVal.textContent = String(swapDone);
+        }
+        var s = 100 + (targetSize - 100) * p;
+        sizeVal.textContent = Math.round(s) + '%';
+        sizeBar.style.transform = 'scaleX(' + (s / 100).toFixed(3) + ')';
+      }
+
+      if (elapsed < TOTAL) requestAnimationFrame(frame);
+      else finishRun(res, targetSize, false);
+    }
+    requestAnimationFrame(frame);
+  });
+
+  function applySwap(sw){
+    var el = digitEls[sw.i];
+    el.textContent = sw.to;
+    el.classList.add('swapped','flash');
+    setTimeout(function(){ el.classList.remove('flash'); }, 950);
+  }
+
+  function finishRun(res, targetSize, instant){
+    if (instant){
+      digitEls.forEach(function(el){ el.classList.add('cut'); });
+      res.swaps.forEach(function(sw){
+        var el = digitEls[sw.i];
+        el.textContent = sw.to;
+        el.classList.add('swapped');
+      });
+      swapVal.textContent = String(res.swaps.length);
+    }
+    sizeVal.textContent = targetSize + '%';
+    sizeBar.style.transform = 'scaleX(' + (targetSize / 100).toFixed(3) + ')';
+    swapVal.textContent = String(res.swaps.length);
+    scanline.classList.remove('on');
+    running = false;
+    runBtn.disabled = false;
+    threshEl.disabled = false;
+    runBtn.textContent = '換條線，再壓一次';
+    mstate.textContent = '完成';
+    setStatus('完成');
+
+    var n = res.swaps.length;
+    afterBox.hidden = false;
+    $('afterLine1').innerHTML = n
+      ? ('這一頁現在只剩原來的 <strong>' + targetSize + '%</strong>。上面有 <strong class="amber">' + n + '</strong> 個數字，不是紙上寫的那一個。')
+      : ('這一頁只剩原來的 <strong>' + targetSize + '%</strong>，而且每一個數字都還是紙上寫的那一個。把線畫得夠嚴，它就不會亂動。');
+    $('afterLine2').textContent = n ? '你找得到它們嗎？' : '把線往右拉一點，再壓一次看看。';
+    markBtn.hidden = !n;
+    $('afterLine3').textContent = '';
+    say(n ? ('壓縮完成，有 ' + n + ' 個數字被換掉了。') : '壓縮完成，沒有數字被換掉。');
+  }
+
+  markBtn.addEventListener('click', function(){
+    var on = markBtn.getAttribute('aria-pressed') === 'true';
+    markBtn.setAttribute('aria-pressed', on ? 'false' : 'true');
+    sheet.classList.toggle('marked', !on);
+    markBtn.textContent = on ? '把被換掉的地方標出來' : '把標記收起來';
+    $('afterLine3').textContent = on
+      ? ''
+      : '它們沒有一個是模糊的、歪的、或缺一角的。每一個都印得漂漂亮亮，站在該站的位置上。你不比對原稿，就永遠不會知道。';
+    say(on ? '標記已收起。' : '被換掉的數字已用紅色標出。');
+  });
+
+  $('go4').addEventListener('click', function(){ reveal('act4'); startTimeline(); });
+  $('go5').addEventListener('click', function(){ reveal('act5'); startKicker(); });
+
+  /* ══════════ 四：時間軸 ══════════ */
+  var tlStarted = false;
+  function startTimeline(){
+    if (tlStarted) return;
+    tlStarted = true;
+    var items = document.querySelectorAll('#timeline li');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(items, function(li){ li.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (!en.isIntersecting) return;
+        var li = en.target;
+        var idx = Number(li.getAttribute('data-i')) || 0;
+        setTimeout(function(){ li.classList.add('in'); }, (idx % 4) * 90);
+        io.unobserve(li);
+      });
+    }, { threshold: 0.25, rootMargin: '0px 0px -8% 0px' });
+    Array.prototype.forEach.call(items, function(li, i){
+      li.setAttribute('data-i', String(i));
+      io.observe(li);
+    });
+  }
+
+  /* ══════════ 五：再掃一次 ══════════ */
+  var plan2 = $('plan2'), runlog = $('runlog'), rescanBtn = $('rescan');
+  var rescanCount = 0, rescanSeed = 20130725;
+
+  function paintPlan(rows){
+    rows.forEach(function(r){
+      var el = plan2.querySelector('[data-key="' + r.key + '"]');
+      if (!el) return;
+      el.classList.toggle('wrongnum', !!r.bad);
+      var ra = el.querySelector('.ra');
+      ra.innerHTML = r.area + '<span class="u">m²</span>';
+    });
+  }
+
+  rescanBtn.addEventListener('click', function(){
+    rescanCount++;
+    rescanSeed = (rescanSeed * 1103515245 + 12345) >>> 0;
+    var rows = manglePlan(makeRng(rescanSeed));
+    paintPlan(rows);
+    var bad = rows.filter(function(r){ return r.bad; });
+    var desc = bad.map(function(r){ return r.name + ' 拿到了' + r.from + '的數字'; }).join('、');
+    var line = '第 ' + rescanCount + ' 次掃描：<span class="hi">' + desc + '</span>。';
+    if (rescanCount === 1) line += '<br>紙沒有換，機器沒有換，設定沒有換。';
+    else if (rescanCount === 2) line += '<br>錯的地方，跟上一次不一樣。';
+    else if (rescanCount >= 3) line += '<br>每一次都不一樣。所以你也永遠沒辦法「掃兩次比對一下」。';
+    runlog.innerHTML = line;
+    say('第 ' + rescanCount + ' 次掃描：' + desc);
+    rescanBtn.textContent = '再掃一次';
+  });
+
+  /* 收尾文字 */
+  var kickStarted = false;
+  function startKicker(){
+    if (kickStarted) return;
+    kickStarted = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      if (!entries[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){
+        setTimeout(function(){ s.classList.add('in'); }, i * 900);
+      });
+    }, { threshold: 0.35 });
+    io.observe($('kicker'));
+  }
+
+  /* 分頁切回來時不要讓動畫一次補完 */
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) setStatus(running ? '壓縮中' : statusTxt.textContent, running);
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>時間的價錢｜每日小專案</title>
+<meta name="description" content="這張收據上的數字不是錢。給它一個匯率，看你昨天賣掉了幾個小時。">
+<style>
+:root{
+  --bg:#100e0c;
+  --bg2:#17140f;
+  --paper:#f4efe2;
+  --paper-2:#e9e2d1;
+  --ink:#2a2520;
+  --ink-soft:#8d8272;
+  --led:#7cf0a4;
+  --led-dim:#2f6b45;
+  --amber:#f0b64a;
+  --red:#e2604a;
+  --txt:#e8e2d6;
+  --txt-soft:#9a9083;
+  --line:rgba(232,226,214,.14);
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New","Noto Sans Mono CJK TC",monospace;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+  line-height:1.85;letter-spacing:.02em;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(120% 70% at 50% -10%, #221d16 0%, var(--bg) 60%);
+  background-attachment:fixed;
+}
+body.paused *{animation-play-state:paused !important}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:4px}
+
+/* ---------- 回首頁 ---------- */
+.home{
+  position:fixed;top:14px;left:16px;z-index:60;font-size:.8rem;letter-spacing:.08em;
+  color:var(--txt-soft);text-decoration:none;padding:6px 12px;border-radius:999px;
+  background:rgba(16,14,12,.66);border:1px solid var(--line);backdrop-filter:blur(6px);
+  transition:color .25s, border-color .25s, transform .25s;
+}
+.home:hover{color:var(--txt);border-color:rgba(240,182,74,.5);transform:translateX(-2px)}
+
+/* ---------- 通用 ---------- */
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+h1,h2{font-weight:800;letter-spacing:-.01em;line-height:1.28;margin:0}
+p{margin:0 0 1.05em}
+.lede{font-size:1.06rem;color:var(--txt-soft)}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.22,.7,.3,1),transform .7s cubic-bezier(.22,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* ---------- 第一屏 ---------- */
+.hero{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 22px 40px;position:relative}
+.till{
+  font-family:var(--mono);font-size:clamp(1.5rem,6vw,2.4rem);letter-spacing:.14em;
+  color:var(--led);background:#0a1a10;border:1px solid #1f4630;border-radius:10px;
+  padding:.42em 1em;box-shadow:0 0 0 1px rgba(0,0,0,.6) inset, 0 0 34px rgba(124,240,164,.14);
+  position:relative;overflow:hidden;
+}
+.till::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);pointer-events:none}
+.hero h1{font-size:clamp(2.6rem,10vw,5.2rem);margin:.44em 0 .1em}
+.hero .sub{font-size:clamp(1.05rem,3.4vw,1.4rem);color:var(--txt-soft);max-width:22em}
+.scrollcue{margin-top:min(9vh,72px);font-size:.78rem;letter-spacing:.34em;color:var(--txt-soft)}
+.scrollcue span{display:block;font-size:1.3rem;letter-spacing:0;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(7px);opacity:1}}
+
+/* ---------- 舞台：敘事 + 黏著收據 ---------- */
+.stage{display:grid;gap:56px;max-width:1080px;margin:0 auto;padding:0 22px 40px}
+.narrative{min-width:0}
+@media (min-width:920px){
+  .stage{grid-template-columns:minmax(0,1fr) 344px}
+  .narrative{grid-column:1;grid-row:1}
+  .receipt-col{grid-column:2;grid-row:1;position:sticky;top:58px;align-self:start;height:min-content}
+}
+@media (max-width:919px){
+  .receipt-col{position:sticky;top:0;z-index:20;padding:10px 0 14px;
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 72%,rgba(16,14,12,0) 100%)}
+  .receipt-col .paper{max-height:42vh;max-height:42svh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .narrative{margin-top:8px}
+}
+
+/* ---------- 收據 ---------- */
+.paper{
+  background:var(--paper);color:var(--ink);font-family:var(--mono);
+  font-size:.83rem;line-height:1.62;position:relative;
+  box-shadow:0 26px 60px rgba(0,0,0,.6), 0 2px 0 rgba(255,255,255,.05);
+  transform-origin:top center;
+}
+.paper.feeding{animation:feed .58s cubic-bezier(.3,.85,.35,1)}
+@keyframes feed{0%{transform:translateY(-14px)}55%{transform:translateY(5px)}100%{transform:translateY(0)}}
+.zig{height:9px;background:var(--paper)}
+.zig.top{-webkit-mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 50%/13px 100%;
+         mask:conic-gradient(from 135deg at top,#0000,#000 1deg 89deg,#0000 90deg) 50%/13px 100%}
+.zig.bottom{-webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/13px 100%;
+            mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50%/13px 100%}
+.paper-body{padding:14px 16px 16px}
+.r-head{text-align:center}
+.r-store{letter-spacing:.4em;font-weight:700;font-size:.95rem;padding-left:.4em}
+.r-sub{color:var(--ink-soft);font-size:.74rem;letter-spacing:.1em}
+.r-rule{border-top:1px dashed rgba(42,37,32,.38);margin:10px 0}
+.r-cols{display:grid;grid-template-columns:15px 1fr 62px 78px 16px;gap:4px;color:var(--ink-soft);font-size:.68rem;letter-spacing:.1em}
+.r-cols .a{text-align:right}
+.r-cols .t{text-align:right;opacity:0;transition:opacity .4s}
+.paper.timed .r-cols .t{opacity:1}
+.r-items{list-style:none;margin:0;padding:0}
+.r-row{display:grid;grid-template-columns:15px 1fr 62px 78px 16px;gap:4px;align-items:center;padding:2px 0;position:relative}
+.r-row + .r-row{border-top:1px dotted rgba(42,37,32,.14)}
+.r-name{font:inherit;color:inherit;background:transparent;border:0;padding:2px 0;width:100%;min-width:0}
+.r-name:hover{background:rgba(42,37,32,.05)}
+.r-price{display:flex;align-items:baseline;justify-content:flex-end;gap:1px;color:var(--ink)}
+.r-price .sym{color:var(--ink-soft);font-size:.7rem}
+.r-price input{font:inherit;color:inherit;background:transparent;border:0;border-bottom:1px dotted rgba(42,37,32,.3);
+  width:46px;text-align:right;padding:1px 0;-moz-appearance:textfield}
+.r-price input::-webkit-outer-spin-button,.r-price input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.r-time{text-align:right;font-weight:700;white-space:nowrap;font-size:.78rem;
+  opacity:0;transform:rotateX(-88deg);transform-origin:center bottom;transition:opacity .38s,transform .38s}
+.paper.timed .r-time{opacity:1;transform:none}
+.r-del,.r-worth{background:transparent;border:0;cursor:pointer;font:inherit;padding:0;line-height:1;color:var(--ink-soft)}
+.r-del{opacity:.28;font-size:1rem;transition:opacity .2s,color .2s}
+.r-del:hover{opacity:1;color:var(--red)}
+.r-worth{opacity:0;pointer-events:none;font-size:.9rem;transition:opacity .3s;justify-self:start}
+.paper.marking .r-worth{opacity:.4;pointer-events:auto}
+.paper.marking .r-worth:hover{opacity:1}
+.r-row.cut .r-name,.r-row.cut .r-price,.r-row.cut .r-time{opacity:.44;text-decoration:line-through}
+.r-row.cut .r-worth{opacity:1;color:var(--red)}
+.r-row.cut .r-time{color:var(--red)}
+.r-add{width:100%;margin-top:8px;background:transparent;border:1px dashed rgba(42,37,32,.3);color:var(--ink-soft);
+  font:inherit;font-size:.74rem;padding:5px;cursor:pointer;transition:border-color .2s,color .2s}
+.r-add:hover{border-color:var(--ink);color:var(--ink)}
+.r-total{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:baseline;font-weight:700}
+.r-total .lbl{letter-spacing:.24em}
+.r-total .money{font-size:1rem}
+.r-total-time{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:baseline;
+  margin-top:4px;padding-top:6px;border-top:1px solid rgba(42,37,32,.25);
+  opacity:0;max-height:0;overflow:hidden;transition:opacity .5s,max-height .5s}
+.paper.timed .r-total-time{opacity:1;max-height:80px}
+.r-total-time .big{font-size:1.05rem;font-weight:800}
+.r-foot{text-align:center;color:var(--ink-soft);font-size:.68rem;letter-spacing:.18em;margin-top:12px}
+.r-barcode{height:26px;margin:10px 0 2px;background:repeating-linear-gradient(90deg,var(--ink) 0 2px,transparent 2px 4px,var(--ink) 4px 5px,transparent 5px 9px,var(--ink) 9px 12px,transparent 12px 14px);opacity:.72}
+
+/* ---------- 章節 ---------- */
+.act{padding:min(16vh,120px) 0 min(10vh,80px);max-width:34em}
+.act h2{font-size:clamp(1.6rem,5vw,2.35rem);margin-bottom:.6em}
+.act h2 em{font-style:normal;color:var(--amber)}
+.kicker{font-size:.72rem;letter-spacing:.42em;color:var(--txt-soft);margin-bottom:1.2em}
+.big-say{font-size:clamp(1.35rem,4.4vw,1.9rem);line-height:1.6;font-weight:700;color:#fff}
+.after{opacity:0;max-height:0;overflow:hidden;transition:opacity .6s .1s,max-height .6s}
+.after.shown{opacity:1;max-height:1200px}
+
+/* ---------- 控制面板 ---------- */
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px;margin:1.4em 0}
+.field{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;margin-bottom:12px}
+.field label{font-size:.86rem;color:var(--txt-soft)}
+.field .val{font-family:var(--mono);font-size:.92rem;color:var(--amber);text-align:right;white-space:nowrap}
+.field input[type=number]{grid-column:2;font-family:var(--mono);font-size:.95rem;width:7.4em;text-align:right;
+  background:rgba(0,0,0,.32);border:1px solid var(--line);border-radius:7px;color:var(--txt);padding:6px 9px}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--amber);height:22px}
+.led-row{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px}
+.led{flex:1 1 130px;background:#0a1a10;border:1px solid #1f4630;border-radius:10px;padding:9px 12px;position:relative;overflow:hidden}
+.led.warn{background:#1e0f0c;border-color:#5a2419}
+.led .cap{font-size:.66rem;letter-spacing:.2em;color:var(--led-dim)}
+.led.warn .cap{color:#8a4436}
+.led .num{font-family:var(--mono);font-size:1.28rem;font-weight:700;color:var(--led);text-shadow:0 0 14px rgba(124,240,164,.35)}
+.led.warn .num{color:var(--red);text-shadow:0 0 14px rgba(226,96,74,.3)}
+.led::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.2) 0 1px,transparent 1px 3px);pointer-events:none}
+.gap-note{font-family:var(--mono);font-size:.86rem;color:var(--red);letter-spacing:.04em}
+
+.btn{display:inline-flex;align-items:center;gap:9px;font:inherit;font-weight:700;font-size:.95rem;
+  background:var(--amber);color:#20180a;border:0;border-radius:999px;padding:12px 24px;cursor:pointer;
+  transition:transform .18s cubic-bezier(.3,1.5,.5,1),box-shadow .25s,filter .2s;
+  box-shadow:0 8px 26px rgba(240,182,74,.22)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(240,182,74,.3)}
+.btn:active{transform:translateY(1px) scale(.98)}
+.btn[disabled]{filter:grayscale(.7);opacity:.5;cursor:default;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--amber);border:1px solid rgba(240,182,74,.45);box-shadow:none}
+.btn.ghost:hover{background:rgba(240,182,74,.1)}
+
+/* ---------- 結尾 ---------- */
+.finale{padding:min(18vh,140px) 22px min(12vh,90px);max-width:38em;margin:0 auto}
+.verdict{font-family:var(--mono);font-size:clamp(2rem,8vw,3.6rem);font-weight:800;color:#fff;line-height:1.2;margin:.2em 0 .3em}
+.verdict small{display:block;font-size:.3em;letter-spacing:.3em;color:var(--txt-soft);font-weight:600;margin-bottom:.6em}
+.calc{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:rgba(0,0,0,.3);border:1px solid var(--line);
+  border-radius:14px;padding:16px 18px;margin:1.4em 0}
+.calc label{font-size:.86rem;color:var(--txt-soft)}
+.calc input{font-family:var(--mono);font-size:1.1rem;width:6.6em;background:transparent;border:0;
+  border-bottom:1px solid var(--line);color:var(--amber);padding:4px 2px}
+.calc .out{font-family:var(--mono);font-size:1.15rem;font-weight:700;color:var(--led);flex:1 1 100%}
+.quote{border-left:2px solid var(--amber);padding:.2em 0 .2em 1.1em;margin:2.2em 0;color:var(--txt);font-size:1.05rem}
+.quote cite{display:block;font-style:normal;font-size:.8rem;color:var(--txt-soft);margin-top:.7em;letter-spacing:.06em}
+.punch{font-size:clamp(1.25rem,4.4vw,1.7rem);font-weight:800;line-height:1.55;color:#fff;margin:1.6em 0 0}
+footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;text-align:center;
+  color:var(--txt-soft);font-size:.74rem;line-height:1.9}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ================= 第一屏 ================= -->
+<header class="hero">
+  <div class="till" id="tillLed" aria-hidden="true">$ 0.00</div>
+  <h1>你不是<br>在花錢</h1>
+  <p class="sub">你是在賣時間。<br>而收據，從來沒有把價錢寫給你看。</p>
+  <div class="scrollcue" aria-hidden="true">往下<span>↓</span></div>
+</header>
+
+<!-- ================= 舞台 ================= -->
+<div class="stage">
+
+  <!-- 收據（黏著） -->
+  <div class="receipt-col">
+    <div class="paper" id="paper">
+      <div class="zig top" aria-hidden="true"></div>
+      <div class="paper-body">
+        <div class="r-head">
+          <div class="r-store">日常超商</div>
+          <div class="r-sub">昨天 · 很普通的一天</div>
+        </div>
+        <div class="r-rule"></div>
+        <div class="r-cols" aria-hidden="true">
+          <span></span><span>品項</span><span class="a">金額</span><span class="t">時間</span><span></span>
+        </div>
+        <ul class="r-items" id="items"></ul>
+        <button class="r-add" id="addBtn" type="button">＋ 加一筆</button>
+        <div class="r-rule"></div>
+        <div class="r-total">
+          <span class="lbl">合計</span>
+          <span class="money" id="totalMoney">$0</span>
+        </div>
+        <div class="r-total-time">
+          <span class="lbl">你的人生</span>
+          <span class="big" id="totalTime">—</span>
+        </div>
+        <div class="r-barcode" aria-hidden="true"></div>
+        <div class="r-foot">感謝惠顧　恕不退換</div>
+      </div>
+      <div class="zig bottom" aria-hidden="true"></div>
+    </div>
+  </div>
+
+  <!-- 敘事 -->
+  <div class="narrative">
+
+    <section class="act reveal">
+      <div class="kicker">第一章 · 昨天</div>
+      <h2>這是你昨天。</h2>
+      <p class="lede">沒有大手筆，沒有後悔，也沒什麼好檢討的。就是一張很普通的收據——普通到你回家路上就把它揉進口袋，再也沒看第二眼。</p>
+      <p class="lede">上面每一個數字你都看得懂。</p>
+      <p class="big-say">只是這張收據，是用外幣印的。</p>
+    </section>
+
+    <section class="act reveal">
+      <div class="kicker">第二章 · 匯率</div>
+      <h2>換算，需要一個<em>匯率</em>。</h2>
+      <p class="lede">而你的匯率只有一個數字：你的一小時，賣多少錢。左邊兩格，填你自己的。</p>
+
+      <div class="panel">
+        <div class="field">
+          <label for="salary">月薪（實際入帳）</label>
+          <input type="number" id="salary" min="0" step="1000" value="45000">
+        </div>
+        <div class="field">
+          <label for="weekly">每週上班時數（打卡的那些）</label>
+          <input type="number" id="weekly" min="1" max="120" step="1" value="40">
+        </div>
+        <div class="led-row">
+          <div class="led"><div class="cap">帳面時薪</div><div class="num" id="ledNominal">$0</div></div>
+        </div>
+      </div>
+
+      <button class="btn" id="convertBtn" type="button">把整張收據換成時間 →</button>
+
+      <div class="after" id="after2">
+        <p class="lede" style="margin-top:1.4em" id="after2Text"></p>
+        <p class="big-say">同一張紙。你只是換了一種單位讀它。</p>
+      </div>
+    </section>
+
+    <section class="act reveal" id="act3">
+      <div class="kicker">第三章 · 轉折</div>
+      <h2>但這個匯率<em>是假的</em>。</h2>
+      <p class="lede">你賣掉的，不只是打卡到下班的那幾個小時。</p>
+      <p class="lede">早上出門前梳洗換裝的那段時間是它的。塞在路上的來回也是它的。回到家癱在沙發上、什麼都不想做的那半小時，那不是休息——那是修理，修理它弄壞的部分，所以那也是它的。</p>
+      <p class="lede">還有那些「因為這份工作才存在的花費」：通勤費、只有上班才穿的衣服、沒空煮飯的外食，以及每次撐完爛的一週後，你買來犒賞自己的東西。</p>
+
+      <div class="panel">
+        <div class="field">
+          <label for="commute">每天通勤（來回）</label><span class="val" id="vCommute">60 分</span>
+          <input type="range" id="commute" min="0" max="180" step="5" value="60" aria-describedby="vCommute">
+        </div>
+        <div class="field">
+          <label for="overtime">每週加班</label><span class="val" id="vOvertime">5 小時</span>
+          <input type="range" id="overtime" min="0" max="30" step="1" value="5" aria-describedby="vOvertime">
+        </div>
+        <div class="field">
+          <label for="unwind">每天下班「回魂」</label><span class="val" id="vUnwind">30 分</span>
+          <input type="range" id="unwind" min="0" max="180" step="5" value="30" aria-describedby="vUnwind">
+        </div>
+        <div class="field">
+          <label for="jobcost">每月因工作才有的支出</label><span class="val" id="vJobcost">$6,000</span>
+          <input type="range" id="jobcost" min="0" max="30000" step="500" value="6000" aria-describedby="vJobcost">
+        </div>
+        <div class="led-row">
+          <div class="led"><div class="cap">帳面時薪</div><div class="num" id="ledNominal2">$0</div></div>
+          <div class="led warn"><div class="cap">真實時薪</div><div class="num" id="ledReal">$0</div></div>
+        </div>
+        <p class="gap-note" id="gapNote" aria-live="polite"></p>
+      </div>
+
+      <button class="btn" id="recheckBtn" type="button">用真實時薪，重新結帳 →</button>
+
+      <div class="after" id="after3">
+        <p class="lede" style="margin-top:1.4em">同一張收據。同一天。<b>價錢一塊錢都沒有變。</b></p>
+        <p class="big-say" id="after3Text"></p>
+      </div>
+    </section>
+
+    <section class="act reveal" id="act4">
+      <div class="kicker">第四章 · 對帳</div>
+      <h2>這不是在說你不該花。</h2>
+      <p class="lede">有些東西真的值。那頓兩個人的晚餐，可能是你那一週唯一好好講話的一小時——它收你五個小時，還是划算。</p>
+      <p class="lede">問題從來不是花了多少，是哪幾筆你根本不記得了。</p>
+      <p class="lede"><b>在收據上點掉那些不值的。</b>（每一列左邊多了一個框）</p>
+      <button class="btn ghost" id="markBtn" type="button">開始劃掉</button>
+      <div class="after" id="after4">
+        <p class="big-say" id="after4Text" aria-live="polite" style="margin-top:1.4em">還沒劃掉任何一筆。</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ================= 結尾 ================= -->
+<section class="finale reveal">
+  <div class="kicker">最後 · 匯率留給你</div>
+  <div class="verdict"><small>你昨天賣掉了</small><span id="verdictTime">—</span></div>
+  <p class="lede" id="verdictSub"></p>
+
+  <div class="calc">
+    <label for="anyPrice">下次站在櫃檯前，先換算一下：NT$</label>
+    <input type="number" id="anyPrice" min="0" step="10" value="1200" aria-describedby="anyOut">
+    <div class="out" id="anyOut" aria-live="polite">—</div>
+  </div>
+  <p class="lede">你的真實時薪存在這台瀏覽器裡，下次回來還在。</p>
+
+  <blockquote class="quote">
+    一件東西的代價，是你為它交換掉的、我稱之為「生命」的那個量——不是當下，就是長遠來看。
+    <cite>亨利・梭羅《湖濱散記》，1854</cite>
+  </blockquote>
+
+  <p class="punch">所以下次你不會看到價錢。<br>你會看到一個禮拜三的下午。</p>
+</section>
+
+<footer>
+  概念出自《跟錢好好相處》（Your Money or Your Life, 1992）與梭羅《湖濱散記》。
+</footer>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var LS = 'lifeprice_v1_state';
+  var mqReduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduce = !!(mqReduce && mqReduce.matches);
+  if (mqReduce && mqReduce.addEventListener) {
+    mqReduce.addEventListener('change', function (e) { reduce = e.matches; });
+  }
+
+  var DEFAULT_ITEMS = [
+    { name: '早餐 蛋餅＋豆漿', price: 65 },
+    { name: '手搖飲 大杯少冰', price: 70 },
+    { name: '午餐 便當', price: 110 },
+    { name: '超商 咖啡＋零食', price: 95 },
+    { name: '手機殼（看到就買）', price: 390 },
+    { name: '晚餐 兩個人小酌', price: 880 },
+    { name: '計程車 回家', price: 230 }
+  ];
+
+  var state = {
+    items: DEFAULT_ITEMS.map(function (i) { return { name: i.name, price: i.price, cut: false }; }),
+    salary: 45000, weekly: 40,
+    commute: 60, overtime: 5, unwind: 30, jobcost: 6000,
+    mode: 'money'   // money → nominal → real
+  };
+
+  /* ---------- 讀取上次設定（只吃薪資參數，收據每次重來） ---------- */
+  try {
+    var saved = JSON.parse(localStorage.getItem(LS) || 'null');
+    if (saved && typeof saved === 'object') {
+      ['salary', 'weekly', 'commute', 'overtime', 'unwind', 'jobcost'].forEach(function (k) {
+        if (typeof saved[k] === 'number' && isFinite(saved[k]) && saved[k] >= 0) state[k] = saved[k];
+      });
+    }
+  } catch (e) { /* 忽略毀損的紀錄 */ }
+
+  function save() {
+    try {
+      localStorage.setItem(LS, JSON.stringify({
+        salary: state.salary, weekly: state.weekly, commute: state.commute,
+        overtime: state.overtime, unwind: state.unwind, jobcost: state.jobcost
+      }));
+    } catch (e) { /* 無痕模式等等，靜靜跳過 */ }
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var paper = $('paper'), itemsEl = $('items');
+  var nt = function (n) { return '$' + Math.round(n).toLocaleString('en-US'); };
+
+  /* ---------- 目前使用的時薪 ---------- */
+  function nominal() { return nominalHourlyWage(state.salary, state.weekly); }
+  function real() {
+    return realHourlyWage({
+      monthlySalary: state.salary, weeklyHours: state.weekly,
+      overtimeHrsPerWeek: state.overtime, commuteMinPerDay: state.commute,
+      unwindMinPerDay: state.unwind, jobCostPerMonth: state.jobcost
+    });
+  }
+  function activeWage() { return state.mode === 'real' ? real() : nominal(); }
+
+  /* ---------- 建列 ---------- */
+  function buildRows() {
+    itemsEl.textContent = '';
+    state.items.forEach(function (it, idx) {
+      var li = document.createElement('li');
+      li.className = 'r-row';
+
+      var worth = document.createElement('button');
+      worth.type = 'button'; worth.className = 'r-worth'; worth.textContent = '☐';
+      worth.setAttribute('aria-pressed', 'false');
+      worth.setAttribute('aria-label', '把「' + it.name + '」標記為不值');
+      worth.addEventListener('click', function () {
+        it.cut = !it.cut;
+        li.classList.toggle('cut', it.cut);
+        worth.textContent = it.cut ? '☒' : '☐';
+        worth.setAttribute('aria-pressed', it.cut ? 'true' : 'false');
+        renderCut();
+      });
+
+      var name = document.createElement('input');
+      name.type = 'text'; name.className = 'r-name'; name.value = it.name;
+      name.setAttribute('aria-label', '品項名稱');
+      name.addEventListener('input', function () {
+        it.name = name.value;
+        worth.setAttribute('aria-label', '把「' + it.name + '」標記為不值');
+      });
+
+      var priceBox = document.createElement('span');
+      priceBox.className = 'r-price';
+      var sym = document.createElement('span'); sym.className = 'sym'; sym.textContent = '$';
+      var price = document.createElement('input');
+      price.type = 'number'; price.min = '0'; price.step = '10'; price.value = it.price;
+      price.inputMode = 'numeric';
+      price.setAttribute('aria-label', it.name + ' 的金額');
+      price.addEventListener('input', function () {
+        var v = parseFloat(price.value);
+        it.price = isFinite(v) && v >= 0 ? v : 0;
+        renderTotals(); renderTimes(false);
+      });
+      priceBox.appendChild(sym); priceBox.appendChild(price);
+
+      var time = document.createElement('span');
+      time.className = 'r-time'; time.textContent = '—';
+
+      var del = document.createElement('button');
+      del.type = 'button'; del.className = 'r-del'; del.textContent = '×';
+      del.setAttribute('aria-label', '刪掉「' + it.name + '」這一筆');
+      del.addEventListener('click', function () {
+        state.items.splice(state.items.indexOf(it), 1);
+        buildRows(); renderTotals(); renderTimes(false); renderCut();
+      });
+
+      li.appendChild(worth); li.appendChild(name); li.appendChild(priceBox);
+      li.appendChild(time); li.appendChild(del);
+      li._time = time;
+      li.classList.toggle('cut', !!it.cut);
+      itemsEl.appendChild(li);
+      it._li = li;
+      void idx;
+    });
+  }
+
+  /* ---------- 數字滾動 ---------- */
+  function roll(el, from, to, fmt, dur) {
+    if (reduce || document.hidden || !isFinite(from)) { el.textContent = fmt(to); return; }
+    var t0 = 0;
+    function step(ts) {
+      if (!t0) t0 = ts;
+      var k = Math.min(1, (ts - t0) / (dur || 620));
+      var e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (k < 1 && !document.hidden) requestAnimationFrame(step);
+      else el.textContent = fmt(to);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- 渲染 ---------- */
+  function renderTotals() {
+    $('totalMoney').textContent = nt(sumPrices(state.items));
+  }
+
+  function renderTimes(animate) {
+    var w = activeWage();
+    var showTime = state.mode !== 'money';
+    paper.classList.toggle('timed', showTime);
+    state.items.forEach(function (it, i) {
+      if (!it._li) return;
+      var el = it._li._time;
+      if (!showTime) { el.textContent = '—'; return; }
+      var mins = priceToMinutes(it.price, w);
+      if (animate && !reduce && !document.hidden) {
+        el.style.transition = 'none';
+        el.style.opacity = '0';
+        el.style.transform = 'rotateX(-88deg)';
+        el.getBoundingClientRect();                       // 強制 reflow，確保重播
+        var delay = Math.min(i * 70, 640);
+        window.setTimeout(function () {
+          el.textContent = formatDuration(mins);
+          el.style.transition = 'opacity .38s, transform .38s';
+          el.style.opacity = '1';
+          el.style.transform = 'none';
+        }, delay);
+      } else {
+        el.style.transition = '';
+        el.style.opacity = ''; el.style.transform = '';
+        el.textContent = formatDuration(mins);
+      }
+    });
+    var totalMins = priceToMinutes(sumPrices(state.items), w);
+    var tEl = $('totalTime');
+    if (!showTime) { tEl.textContent = '—'; }
+    else if (animate) { roll(tEl, 0, totalMins, formatDuration, 900); }
+    else { tEl.textContent = formatDuration(totalMins); }
+    renderFinale(totalMins);
+  }
+
+  function renderFinale(totalMins) {
+    if (state.mode === 'money') {
+      $('verdictTime').textContent = '—';
+      $('verdictSub').textContent = '（先回到上面把匯率填好，這裡才會有數字。）';
+      return;
+    }
+    $('verdictTime').textContent = formatDuration(totalMins);
+    var dailyHours = state.weekly > 0 ? state.weekly / 5 : 8;
+    var days = toWorkdays(totalMins, dailyHours);
+    $('verdictSub').textContent = '換算成上班日，是 ' + days.toFixed(1) + ' 天——' +
+      (days >= 1
+        ? '一個沒做什麼的普通日子，收走的比你上一整天班賺回來的還多。'
+        : '一個沒做什麼的普通日子，就這樣從你的存量裡刮掉一塊。');
+  }
+
+  function renderCut() {
+    var w = activeWage();
+    var cutItems = state.items.filter(function (i) { return i.cut; });
+    var el = $('after4Text');
+    if (!cutItems.length) { el.textContent = '還沒劃掉任何一筆。'; return; }
+    var mins = priceToMinutes(sumPrices(cutItems), w);
+    var tail = mins >= 240 ? '——差不多是一個下午。'
+             : mins >= 90 ? '——差不多是一場電影。'
+             : '——不多，但它是從同一個地方扣的。';
+    el.textContent = '你劃掉了 ' + cutItems.length + ' 筆。它們花掉你 ' + formatDuration(mins) + tail;
+  }
+
+  function renderWages() {
+    var n = nominal(), r = real();
+    $('ledNominal').textContent = nt(n);
+    $('ledNominal2').textContent = nt(n);
+    $('ledReal').textContent = nt(r);
+    var gap = wageGapPercent(n, r);
+    $('gapNote').textContent = n > 0
+      ? '你真正的一小時，比你以為的少了 ' + gap.toFixed(0) + '%。'
+      : '先在上面填一個月薪。';
+    $('tillLed').textContent = nt(sumPrices(state.items)) + '.00';
+    renderAnyPrice();
+  }
+
+  function renderAnyPrice() {
+    var v = parseFloat($('anyPrice').value);
+    var w = real();   // 留給你的那個匯率，永遠是真實時薪
+    if (!isFinite(v) || v < 0 || !(w > 0)) { $('anyOut').textContent = '—'; return; }
+    $('anyOut').textContent = nt(v) + '　＝　你的 ' + formatDuration(priceToMinutes(v, w));
+  }
+
+  /* ---------- 綁定輸入 ---------- */
+  function bindNumber(id, key) {
+    var el = $(id);
+    el.value = state[key];
+    el.addEventListener('input', function () {
+      var v = parseFloat(el.value);
+      state[key] = isFinite(v) && v >= 0 ? v : 0;
+      renderWages(); if (state.mode !== 'money') renderTimes(false); renderCut(); save();
+    });
+  }
+  bindNumber('salary', 'salary');
+  bindNumber('weekly', 'weekly');
+
+  function bindRange(id, key, labelId, fmt) {
+    var el = $(id);
+    el.value = state[key];
+    var show = function () { $(labelId).textContent = fmt(state[key]); };
+    el.addEventListener('input', function () {
+      state[key] = parseFloat(el.value) || 0;
+      show(); renderWages(); if (state.mode === 'real') renderTimes(false); renderCut(); save();
+    });
+    show();
+  }
+  bindRange('commute', 'commute', 'vCommute', function (v) { return v + ' 分'; });
+  bindRange('overtime', 'overtime', 'vOvertime', function (v) { return v + ' 小時'; });
+  bindRange('unwind', 'unwind', 'vUnwind', function (v) { return v + ' 分'; });
+  bindRange('jobcost', 'jobcost', 'vJobcost', function (v) { return nt(v); });
+
+  $('anyPrice').addEventListener('input', renderAnyPrice);
+
+  $('addBtn').addEventListener('click', function () {
+    state.items.push({ name: '又一筆', price: 100, cut: false });
+    buildRows(); renderTotals(); renderTimes(false); renderCut(); renderWages();
+    var last = itemsEl.lastElementChild;
+    if (last) last.querySelector('.r-name').focus();
+  });
+
+  /* ---------- 三個關鍵按鈕 ---------- */
+  $('convertBtn').addEventListener('click', function () {
+    state.mode = 'nominal';
+    feed();
+    renderTimes(true);
+    $('after2').classList.add('shown');
+    var prices = state.items.map(function (i) { return Number(i.price) || 0; });
+    var w = nominal();
+    if (prices.length && w > 0) {
+      var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
+      $('after2Text').textContent = '最便宜的那一筆，' + formatDuration(priceToMinutes(lo, w)) +
+        '。最貴的那一筆，' + formatDuration(priceToMinutes(hi, w)) + '。';
+    }
+    this.disabled = true;
+    this.textContent = '已換算 ✓';
+  });
+
+  $('recheckBtn').addEventListener('click', function () {
+    var before = priceToMinutes(sumPrices(state.items), nominal());
+    if (state.mode === 'money') { $('convertBtn').disabled = true; $('convertBtn').textContent = '已換算 ✓'; $('after2').classList.add('shown'); }
+    state.mode = 'real';
+    feed();
+    renderTimes(true);
+    renderCut();
+    var after = priceToMinutes(sumPrices(state.items), real());
+    $('after3').classList.add('shown');
+    $('after3Text').textContent = '只有你的時間變貴了：' + formatDuration(before) +
+      '　→　' + formatDuration(after) + '。';
+    this.disabled = true;
+    this.textContent = '已重新結帳 ✓';
+  });
+
+  $('markBtn').addEventListener('click', function () {
+    paper.classList.add('marking');
+    $('after4').classList.add('shown');
+    this.disabled = true;
+    this.textContent = '收據上請點 ☐';
+    var first = itemsEl.querySelector('.r-worth');
+    if (first) first.focus();
+  });
+
+  function feed() {
+    if (reduce) return;
+    paper.classList.remove('feeding');
+    paper.getBoundingClientRect();
+    paper.classList.add('feeding');
+  }
+
+  /* ---------- 進場 ---------- */
+  var reveals = document.querySelectorAll('.reveal');
+  if (typeof IntersectionObserver === 'function') {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { threshold: 0.16, rootMargin: '0px 0px -8% 0px' });
+    Array.prototype.forEach.call(reveals, function (el) { io.observe(el); });
+  } else {
+    Array.prototype.forEach.call(reveals, function (el) { el.classList.add('in'); });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    document.body.classList.toggle('paused', document.hidden);
+  });
+
+  /* ---------- 開場 ---------- */
+  buildRows();
+  renderTotals();
+  renderTimes(false);
+  renderWages();
+  renderCut();
+})();
+</script>
+</body>
+</html>

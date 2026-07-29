@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>臉的座標 —— 這張臉不存在，但它有地址</title>
+<style>
+  :root{
+    --bg:#f7f3ec;
+    --bg2:#efe9dd;
+    --card:#fffdf8;
+    --line:#ddd3c2;
+    --line2:#c5b8a2;
+    --ink:#26221c;
+    --ink2:#6b6355;
+    --ink3:#98917f;
+    --teal:#0f766e;
+    --teal2:#14b8a6;
+    --coral:#e0552e;
+    --plum:#7c3aed;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:#bff3ec}
+
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:var(--ink2);text-decoration:none;font-size:13px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(255,253,248,.88);border:1px solid var(--line2);
+    backdrop-filter:blur(6px);transition:color .2s,border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--teal);border-color:var(--teal)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{max-width:800px;margin:0 auto;padding:0 22px}
+
+  h2{font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 20px;font-weight:700;letter-spacing:-.01em}
+  p{margin:0 0 18px;font-size:clamp(15.5px,2.5vw,17px)}
+  p.quiet{color:var(--ink2)}
+  p.small{font-size:13.5px;color:var(--ink2);line-height:1.8}
+  strong{font-weight:700}
+  em{font-style:normal;color:var(--teal);font-weight:600}
+  .chap{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--ink3);margin:0 0 14px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;color:#fff;background:var(--teal);
+    border:0;border-radius:999px;padding:13px 26px;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 10px 26px -10px rgba(15,118,110,.5)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line2);font-weight:500}
+  .btn.ghost:hover{border-color:var(--teal);color:var(--teal);box-shadow:none}
+  .btn.sm{padding:10px 20px;font-size:14px}
+  .btn:focus-visible,input:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+  .nextrow{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{min-height:100svh;display:flex;align-items:center;padding:92px 0 70px}
+  .hookgrid{display:flex;gap:clamp(26px,5vw,56px);align-items:center;flex-wrap:wrap}
+  .idcard{
+    background:var(--card);border:1px solid var(--line2);border-radius:10px;
+    padding:18px 18px 14px;box-shadow:0 24px 50px -32px rgba(60,50,30,.55);
+    flex:0 0 auto;text-align:center;position:relative;
+  }
+  .idcard .tag{
+    position:absolute;top:-9px;left:16px;background:var(--card);
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink3);padding:0 6px;
+  }
+  .idcard svg{display:block;width:min(220px,56vw);height:auto}
+  .idcard .coord{
+    font-family:var(--mono);font-size:10.5px;color:var(--ink3);margin-top:10px;
+    word-break:break-all;line-height:1.6;max-width:min(220px,56vw);
+  }
+  .hooktxt{flex:1 1 300px;min-width:280px}
+  .hook h1{font-size:clamp(28px,6vw,50px);line-height:1.24;margin:0 0 24px;font-weight:700;letter-spacing:-.02em}
+  .fade{opacity:0;transform:translateY(12px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{padding:clamp(64px,11vh,110px) 0;border-top:1px solid var(--line2)}
+  .act.tinted{background:var(--bg2)}
+
+  .pull{
+    margin:32px 0;padding:20px 24px;background:var(--card);
+    border:1px solid var(--line2);border-left:3px solid var(--teal);border-radius:6px;
+    font-size:clamp(16px,3vw,20px);line-height:1.7;
+  }
+
+  /* ——— 工作室 ——— */
+  .studio{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;margin:26px 0 0;
+  }
+  @media(max-width:720px){ .studio{grid-template-columns:1fr} }
+  .panel{
+    background:var(--card);border:1px solid var(--line2);border-radius:8px;
+    box-shadow:0 18px 40px -32px rgba(60,50,30,.6);overflow:hidden;
+  }
+  .phead{
+    padding:10px 14px;border-bottom:1px solid var(--line);background:var(--bg2);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:var(--ink2);
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .pbody{padding:14px}
+  .facebox{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .facebox svg{display:block;width:min(250px,64vw);height:auto}
+  .coordline{
+    font-family:var(--mono);font-size:10.5px;color:var(--ink3);word-break:break-all;
+    text-align:center;line-height:1.6;min-height:2.6em;max-width:280px;
+  }
+
+  .sliders{display:flex;flex-direction:column;gap:2px}
+  .srow{display:grid;grid-template-columns:3.6em 3em 1fr 3em;gap:8px;align-items:center;padding:5px 0}
+  .srow .lab{font-size:13.5px;font-weight:600}
+  .srow .end{font-size:10.5px;color:var(--ink3);text-align:center}
+  .srow input[type=range]{width:100%;accent-color:var(--teal);cursor:pointer;min-width:0}
+
+  /* ——— 內插台 ——— */
+  .morph{
+    background:var(--card);border:1px solid var(--line2);border-radius:8px;
+    box-shadow:0 18px 40px -32px rgba(60,50,30,.6);overflow:hidden;margin:26px 0 0;
+  }
+  .mfaces{display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:8px;padding:16px;align-items:center}
+  @media(max-width:620px){
+    .mfaces{grid-template-columns:1fr 1fr}
+    .mfaces .mid{grid-column:1/3;grid-row:2;justify-self:center}
+  }
+  .mface{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .mface svg{display:block;width:100%;max-width:150px;height:auto;opacity:.75}
+  .mface.mid svg{max-width:230px;opacity:1}
+  .mface .ml{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink3)}
+  .mface.mid .ml{color:var(--teal);font-weight:600;font-size:11.5px}
+  .mrail{padding:0 18px 16px}
+  .mrail input[type=range]{width:100%;accent-color:var(--coral);cursor:pointer}
+  .mends{display:flex;justify-content:space-between;font-size:12px;color:var(--ink3);margin-top:2px}
+  .mnote{
+    padding:0 18px 18px;font-size:14.5px;color:var(--ink2);line-height:1.75;min-height:3em;
+    transition:color .3s;
+  }
+  .mnote.hot{color:var(--ink)}
+  .mnote b{color:var(--coral)}
+  .mtools{display:flex;flex-wrap:wrap;gap:10px;padding:0 18px 18px}
+
+  .kicker{margin:48px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;font-weight:700;letter-spacing:-.01em}
+  .kicker span{display:block;opacity:0;transform:translateY(10px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:13px}
+  .kicker .dim{color:var(--ink2);font-weight:400;font-size:.82em}
+
+  footer{padding:38px 0 56px;border-top:1px solid var(--line2);margin-top:60px;
+         font-size:12.5px;color:var(--ink3);line-height:1.9}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade,.kicker span{opacity:1;transform:none}
+    *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="wrap">
+    <div class="hookgrid">
+      <div class="idcard fade" id="h0">
+        <span class="tag">住民證</span>
+        <svg id="heroFace" viewBox="-110 -130 220 260" role="img" aria-label="一張程式生成的卡通臉"></svg>
+        <div class="coord" id="heroCoord"></div>
+      </div>
+      <div class="hooktxt">
+        <h1 class="fade" id="h1">這張臉不存在。<br>但它有地址。</h1>
+        <p class="fade" id="h2">它不是畫出來的，也不是存在硬碟裡的。它是<strong>八個數字</strong>——上面那一串就是。</p>
+        <p class="fade quiet" id="h3">改掉其中一個數字，就是另一張臉。八個都改，還是一張臉。這個空間裡住著無限多張臉，每一張都有自己的一串數字。</p>
+        <div class="nextrow fade" id="h4">
+          <button class="btn" id="go1">讓我捏捏看</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：工作室 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　捏臉</p>
+    <h2 id="t1">八個滑桿，就是八個座標軸。</h2>
+    <p>每拉一下滑桿，你就是在這個空間裡<strong>往某個方向走一步</strong>。注意下面那串數字跟著變——臉就是數字，數字就是臉。</p>
+
+    <div class="studio">
+      <div class="panel">
+        <div class="phead"><span>你的臉</span><button class="btn ghost sm" id="randBtn" style="padding:4px 12px;font-size:12px">骰一張臉</button></div>
+        <div class="pbody facebox">
+          <svg id="mainFace" viewBox="-110 -130 220 260" role="img" aria-label="你正在調整的臉"></svg>
+          <div class="coordline" id="mainCoord"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="phead"><span>座標軸</span></div>
+        <div class="pbody sliders" id="sliders"></div>
+      </div>
+    </div>
+
+    <p class="quiet" style="margin-top:22px">有沒有發現：<strong>不管怎麼亂拉，它都還是一張臉。</strong>這個空間裡沒有「壞掉」的點。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go2">那，兩張臉「之間」是什麼？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：之間 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　之間</p>
+    <h2 id="t2">兩張臉之間，還有無限多張臉。</h2>
+    <p>左右是隨機骰出來的兩位居民。中間那位——<strong>是他們在空間裡連成直線後，線上的某一點</strong>。</p>
+    <p>拖動下面的橫桿，沿著那條線走一趟。</p>
+
+    <div class="morph">
+      <div class="mfaces">
+        <div class="mface"><svg id="faceA" viewBox="-110 -130 220 260" role="img" aria-label="居民 A"></svg><span class="ml">居民 A</span></div>
+        <div class="mface mid"><svg id="faceMid" viewBox="-110 -130 220 260" role="img" aria-label="兩位居民之間的內插臉"></svg><span class="ml" id="midLab">A 與 B 的中點</span></div>
+        <div class="mface"><svg id="faceB" viewBox="-110 -130 220 260" role="img" aria-label="居民 B"></svg><span class="ml">居民 B</span></div>
+      </div>
+      <div class="mrail">
+        <input type="range" id="morphRange" min="0" max="100" value="50" aria-label="在居民 A 與 B 之間移動">
+        <div class="mends"><span>← 走向 A</span><span>走向 B →</span></div>
+      </div>
+      <p class="mnote" id="mnote">中間這位不是把兩張圖疊在一起——是把兩串數字各取一半，再讓那串新數字自己長成一張臉。</p>
+      <div class="mtools">
+        <button class="btn ghost sm" id="reroll">換兩位居民</button>
+        <button class="btn ghost sm" id="avgBtn">看看全體居民的平均臉</button>
+      </div>
+    </div>
+
+    <div class="nextrow">
+      <button class="btn" id="go3">這跟 AI 生圖有什麼關係？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：拉遠 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　鏡頭拉遠</p>
+    <h2 id="t3">把 8 換成 512，就是真的了。</h2>
+    <p>你剛剛玩的空間有 8 個軸，是我設計的：臉型、眼睛、嘴角……每個軸的意義都寫在滑桿旁邊。</p>
+    <p>真的生成模型做一樣的事，只是——它的空間有<strong>幾百個軸，而且沒有人設計過任何一個</strong>。模型看了幾千萬張真人照片之後，自己長出了那個座標系。那些軸上同樣住著「微笑的方向」「年齡的方向」「光線的方向」，只是沒有人替它們貼標籤。</p>
+    <p>2018 年爆紅的網站 <em>This Person Does Not Exist</em>，每次重新整理就骰一個 512 維的座標，丟給 StyleGAN，長出一張你這輩子沒見過、也不屬於任何人的臉。研究者還找到了空間裡的方向：沿著某條線走，照片裡的人就慢慢變老；沿另一條走，就慢慢轉頭。</p>
+
+    <div class="pull">
+      模型沒有存任何一張臉。<br>
+      它存的是一個空間——臉住在裡面，包括所有還沒被骰出來的。
+    </div>
+
+    <p class="small">這也解釋了 AI 生圖偶爾的詭異之處：手指糊掉、耳環不對稱——那是你走到了空間裡照片很少路過的角落，座標系在那裡本來就畫得歪歪的。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go4">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四：收尾 ══════════ -->
+<section class="act tinted" id="act4" hidden aria-labelledby="t4">
+  <div class="wrap">
+    <p class="chap">四　收尾</p>
+    <h2 id="t4">回到你捏的那張臉。</h2>
+    <p>它現在還在上面，座標一個字都沒變。你關掉這一頁，那串數字就沒了——但只要有人再輸入同一串，<strong>同一張臉就會回來</strong>。</p>
+
+    <div class="kicker" id="kicker">
+      <span>圖不是被存起來的。</span>
+      <span>圖是被「找到」的——在一個大到裝得下所有可能的空間裡。</span>
+      <span class="dim">生成模型只做一件事：把那個空間畫出來，然後遞給你一顆骰子。</span>
+    </div>
+
+    <footer>
+      來源：Goodfellow 等人 GAN（2014）、Karras 等人 StyleGAN（2019）、This Person Does Not Exist（2019）。
+      本頁的 8 維臉空間為教學示意，與真實模型的差異寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  function say(m){ $('srLive').textContent = m; }
+  function scrollTo(el){
+    try{ el.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); }catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id){
+    var s = $(id);
+    if (s.hidden){ s.hidden = false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ scrollTo(s); }); }); }
+    else scrollTo(s);
+  }
+
+  /* ══════════ SVG 臉渲染 ══════════ */
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs){
+    var e = document.createElementNS(SVGNS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+  function hsl(h, s, l){ return 'hsl(' + h + ',' + s + '%,' + l + '%)'; }
+
+  function renderFace(svg, vec){
+    var p = faceParams(vec);
+    svg.innerHTML = '';
+    var skin = hsl(p.skinH, p.skinS, p.skinL);
+    var skinDark = hsl(p.skinH, p.skinS, Math.max(20, p.skinL - 24));
+    var hair = hsl(p.hairH, p.hairS, p.hairL);
+
+    /* 頭髮（後層）：一圈蓬起的圓 */
+    var g = el('g', {});
+    for (var i = 0; i < 7; i++){
+      var ang = Math.PI * (0.15 + 0.7 * i / 6) + Math.PI;   /* 上半圈 */
+      var hx = Math.cos(ang) * (p.faceRx * 0.9);
+      var hy = Math.sin(ang) * (p.faceRy * 0.9) - 8;
+      g.appendChild(el('circle', { cx: hx, cy: hy, r: 22 + p.hairPuff, fill: hair }));
+    }
+    svg.appendChild(g);
+    /* 臉 */
+    svg.appendChild(el('ellipse', { cx: 0, cy: 0, rx: p.faceRx, ry: p.faceRy, fill: skin, stroke: skinDark, 'stroke-width': 2.5 }));
+    /* 瀏海 */
+    svg.appendChild(el('path', {
+      d: 'M ' + (-p.faceRx * 0.94) + ' ' + (-p.faceRy * 0.32) +
+         ' Q 0 ' + (-p.faceRy - p.hairPuff * 0.5) + ' ' + (p.faceRx * 0.94) + ' ' + (-p.faceRy * 0.32) +
+         ' Q ' + (p.faceRx * 0.5) + ' ' + (-p.faceRy * 0.62) + ' 0 ' + (-p.faceRy * 0.58) +
+         ' Q ' + (-p.faceRx * 0.5) + ' ' + (-p.faceRy * 0.62) + ' ' + (-p.faceRx * 0.94) + ' ' + (-p.faceRy * 0.32) + ' Z',
+      fill: hair
+    }));
+    /* 眼睛 */
+    [-1, 1].forEach(function(s){
+      svg.appendChild(el('circle', { cx: s * p.eyeDx, cy: p.eyeY, r: p.eyeR, fill: '#241f1a' }));
+      svg.appendChild(el('circle', { cx: s * p.eyeDx + p.eyeR * 0.3, cy: p.eyeY - p.eyeR * 0.3, r: Math.max(1.1, p.eyeR * 0.26), fill: '#fff' }));
+      /* 眉毛 */
+      var bx = s * p.eyeDx, by = p.browY;
+      var tilt = s * p.browTilt;
+      svg.appendChild(el('line', {
+        x1: bx - 13, y1: by + tilt * 0.5, x2: bx + 13, y2: by - tilt * 0.5,
+        stroke: hair, 'stroke-width': 4.6, 'stroke-linecap': 'round'
+      }));
+    });
+    /* 鼻子 */
+    svg.appendChild(el('path', {
+      d: 'M 0 2 q 4 ' + p.noseLen * 0.6 + ' 0 ' + p.noseLen,
+      stroke: skinDark, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round'
+    }));
+    /* 嘴 */
+    svg.appendChild(el('path', {
+      d: 'M ' + (-p.mouthW / 2) + ' ' + p.mouthY + ' Q 0 ' + (p.mouthY + p.mouthCurve) + ' ' + (p.mouthW / 2) + ' ' + p.mouthY,
+      stroke: '#a3402a', 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round'
+    }));
+    /* 腮紅 */
+    [-1, 1].forEach(function(s){
+      svg.appendChild(el('ellipse', {
+        cx: s * (p.eyeDx + 12), cy: 16, rx: 9, ry: 5.5,
+        fill: hsl(8, 70, 78), opacity: .5
+      }));
+    });
+  }
+
+  /* ══════════ 第一屏 ══════════ */
+  var heroVec = randomVec(20260729);
+  renderFace($('heroFace'), heroVec);
+  $('heroCoord').textContent = coordLabel(heroVec);
+
+  var seq = ['h0','h1','h2','h3','h4'];
+  if (reduce) seq.forEach(function(id){ $(id).classList.add('in'); });
+  else seq.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add('in'); }, 250 + i*480); });
+
+  /* ══════════ 一：捏臉 ══════════ */
+  var cur = heroVec.slice();
+  var rangeEls = [];
+
+  function paintMain(){
+    renderFace($('mainFace'), cur);
+    $('mainCoord').textContent = coordLabel(cur);
+  }
+
+  DIMS.forEach(function(d, i){
+    var row = document.createElement('div');
+    row.className = 'srow';
+    var lab = document.createElement('span'); lab.className = 'lab'; lab.textContent = d.label;
+    var lo = document.createElement('span'); lo.className = 'end'; lo.textContent = d.lo;
+    var hi = document.createElement('span'); hi.className = 'end'; hi.textContent = d.hi;
+    var r = document.createElement('input');
+    r.type = 'range'; r.min = '0'; r.max = '100'; r.value = String(Math.round(cur[i] * 100));
+    r.setAttribute('aria-label', d.label + '：' + d.lo + ' 到 ' + d.hi);
+    r.addEventListener('input', function(){
+      cur[i] = Number(r.value) / 100;
+      paintMain();
+    });
+    row.appendChild(lab); row.appendChild(lo); row.appendChild(r); row.appendChild(hi);
+    $('sliders').appendChild(row);
+    rangeEls.push(r);
+  });
+
+  function syncSliders(){
+    rangeEls.forEach(function(r, i){ r.value = String(Math.round(cur[i] * 100)); });
+  }
+
+  $('randBtn').addEventListener('click', function(){
+    cur = randomVec(1 + Math.floor(Math.random() * 1e9));
+    syncSliders();
+    paintMain();
+    say('骰出一張新臉，座標 ' + coordLabel(cur));
+  });
+
+  $('go1').addEventListener('click', function(){ reveal('act1'); paintMain(); });
+
+  /* ══════════ 二：內插 ══════════ */
+  var vecA = null, vecB = null, morphMoved = false, extremeSeen = false;
+
+  function rollPair(){
+    vecA = randomVec(1 + Math.floor(Math.random() * 1e9));
+    vecB = randomVec(1 + Math.floor(Math.random() * 1e9));
+    renderFace($('faceA'), vecA);
+    renderFace($('faceB'), vecB);
+    $('morphRange').value = '50';
+    updateMorph();
+  }
+
+  function updateMorph(){
+    var t = Number($('morphRange').value) / 100;
+    var v = lerpVec(vecA, vecB, t);
+    renderFace($('faceMid'), v);
+    var pct = Math.round(t * 100);
+    $('midLab').textContent = t === 0 ? '就是 A' : t === 1 ? '就是 B'
+      : (100 - pct) + '% A ＋ ' + pct + '% B';
+    if (morphMoved && (t <= 0.02 || t >= 0.98) && !extremeSeen){
+      extremeSeen = true;
+      var note = $('mnote');
+      note.className = 'mnote hot';
+      note.innerHTML = '你走到底了——中間那位<b>變成了 A（或 B）本人</b>。因為「本人」也只是線上的一個端點。從頭到尾，這條線上的每一格都是一張說得過去的臉：<b>這個空間裡沒有怪物。</b>';
+    }
+  }
+
+  $('morphRange').addEventListener('input', function(){ morphMoved = true; updateMorph(); });
+  $('reroll').addEventListener('click', function(){
+    rollPair();
+    say('換了兩位新居民。');
+  });
+  $('avgBtn').addEventListener('click', function(){
+    /* 骰一群居民取平均：平均臉會出奇地「普通」 */
+    var crowd = [];
+    for (var i = 0; i < 60; i++) crowd.push(randomVec(1 + Math.floor(Math.random() * 1e9)));
+    var m = meanVec(crowd);
+    vecA = crowd[0]; vecB = crowd[1];
+    renderFace($('faceA'), vecA);
+    renderFace($('faceB'), vecB);
+    renderFace($('faceMid'), m);
+    $('midLab').textContent = '60 位居民的平均';
+    var note = $('mnote');
+    note.className = 'mnote hot';
+    note.innerHTML = '這是隨機 60 位居民的平均臉——所有座標都掉回 0.5 附近，<b>五官普通到不可思議</b>。心理學研究發現人類把「平均臉」評為好看，因為它離每個人都不遠。生成模型的空間中心也是這樣一張「最普通的臉」。';
+    say('顯示 60 位居民的平均臉。');
+  });
+
+  $('go2').addEventListener('click', function(){
+    reveal('act2');
+    if (!vecA) rollPair();
+  });
+  $('go3').addEventListener('click', function(){ reveal('act3'); });
+  $('go4').addEventListener('click', function(){ reveal('act4'); startKicker(); });
+
+  var kickDone = false;
+  function startKicker(){
+    if (kickDone) return; kickDone = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      if (!en[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){ setTimeout(function(){ s.classList.add('in'); }, i * 900); });
+    }, { threshold: .35 });
+    io.observe($('kicker'));
+  }
+})();
+</script>
+</body>
+</html>

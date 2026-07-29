@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>憑空消失術 —— 你點誰，誰就從來沒存在過</title>
+<style>
+  :root{
+    --bg:#0e0c14;
+    --bg2:#151221;
+    --panel:#1a1628;
+    --panel2:#231d38;
+    --line:#332b4e;
+    --line2:#4c4173;
+    --txt:#d5d0e4;
+    --txt2:#968fae;
+    --txt3:#6a6382;
+    --cyan:#67e8f9;
+    --cyan2:#a5f3fc;
+    --pink:#f0abfc;
+    --warn:#fca5a5;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+    line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--cyan);color:#082f36}
+
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:var(--txt2);text-decoration:none;font-size:13px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(14,12,20,.8);border:1px solid var(--line);
+    backdrop-filter:blur(6px);transition:color .2s,border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--cyan);border-color:var(--cyan)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{max-width:780px;margin:0 auto;padding:0 22px}
+
+  h2{font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 20px;font-weight:700;
+     letter-spacing:-.01em;color:#efedf8}
+  p{margin:0 0 18px;font-size:clamp(15.5px,2.5vw,17px)}
+  p.quiet{color:var(--txt2)}
+  p.small{font-size:13.5px;color:var(--txt2);line-height:1.8}
+  strong{color:#f3f1fb;font-weight:600}
+  em{font-style:normal;color:var(--cyan2);font-weight:600}
+  .chap{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--txt3);margin:0 0 14px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;color:#082f36;background:var(--cyan);
+    border:0;border-radius:999px;padding:13px 26px;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 26px -8px rgba(103,232,249,.5)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2);font-weight:500}
+  .btn.ghost:hover{border-color:var(--cyan);color:var(--cyan2);box-shadow:none}
+  .btn.sm{padding:10px 20px;font-size:14px}
+  .btn:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
+  .nextrow{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{min-height:100svh;display:flex;align-items:center;padding:92px 0 70px;
+        background:radial-gradient(115% 80% at 50% 42%,#1c1830 0%,#120f1e 55%,#0a0912 100%)}
+  .hook h1{font-size:clamp(28px,6.4vw,52px);line-height:1.26;margin:0 0 26px;
+           font-weight:700;letter-spacing:-.02em;color:#f3f1fb}
+  .hook p{max-width:31em}
+  .fade{opacity:0;transform:translateY(12px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{padding:clamp(66px,12vh,116px) 0;border-top:1px solid var(--line)}
+  .act.tinted{background:linear-gradient(180deg,var(--bg) 0%,#131022 45%,var(--bg) 100%)}
+
+  .pull{
+    margin:32px 0;padding:22px 24px;border-left:2px solid var(--cyan);
+    background:linear-gradient(180deg,rgba(103,232,249,.06),rgba(103,232,249,0));
+    font-size:clamp(17px,3.1vw,21px);line-height:1.7;color:#efedf8;
+  }
+
+  /* ——— 相片台 ——— */
+  .lab{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    overflow:hidden;margin:26px 0 0;box-shadow:0 30px 70px -42px #000;
+  }
+  .lhead{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--txt2);
+  }
+  .photo-wrap{padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .photo{
+    position:relative;width:100%;max-width:560px;border-radius:4px;overflow:hidden;
+    box-shadow:0 18px 46px -26px #000;
+  }
+  .photo canvas{display:block;width:100%;height:auto;aspect-ratio:340/210;cursor:crosshair}
+  .photo.busy canvas{cursor:progress}
+  .caption{
+    font-size:14.5px;color:var(--txt2);min-height:1.8em;text-align:center;max-width:34em;
+    transition:color .3s;
+  }
+  .caption.hot{color:#efedf8}
+  .lfoot{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    padding:13px 15px;border-top:1px solid var(--line);background:var(--panel2);
+  }
+  .count{font-family:var(--mono);font-size:12px;color:var(--txt3);letter-spacing:.08em}
+  .count b{color:var(--pink);font-size:15px}
+
+  .tl{list-style:none;margin:24px 0 0;padding:0}
+  .tl li{display:flex;gap:14px;padding:10px 0;border-bottom:1px dashed var(--line);
+    opacity:0;transform:translateY(8px)}
+  .tl li.in{opacity:1;transform:none;transition:opacity .55s ease,transform .55s cubic-bezier(.2,.8,.3,1)}
+  .tl .yr{font-family:var(--mono);font-size:12.5px;color:var(--cyan);flex:0 0 4.2em;padding-top:3px}
+  .tl .tx{font-size:15px;line-height:1.7}
+
+  .kicker{margin:50px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;font-weight:600;
+          letter-spacing:-.01em;color:#f3f1fb}
+  .kicker span{display:block;opacity:0;transform:translateY(10px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:14px}
+  .kicker .dim{color:var(--txt2);font-weight:400;font-size:.82em}
+
+  footer{padding:40px 0 58px;border-top:1px solid var(--line);margin-top:66px;
+         font-size:12.5px;color:var(--txt3);line-height:1.9}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade,.tl li,.kicker span{opacity:1;transform:none}
+    *{transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="wrap">
+    <p class="chap fade" id="h0">一張再普通不過的照片</p>
+    <h1 class="fade" id="h1">你點誰，<br>誰就從來沒存在過。</h1>
+    <p class="fade" id="h2">郊外、電線、三隻鳥、一位擋到風景的遊客、一塊告示牌。</p>
+    <p class="fade quiet" id="h3">下一頁，這張照片會給你一種超能力。用完之後我們再來談代價。</p>
+    <div class="nextrow fade" id="h4">
+      <button class="btn" id="go1">把照片給我</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：相片台 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　超能力</p>
+    <h2 id="t1">點掉你不想要的東西。</h2>
+    <p class="quiet">遊客、告示牌、三隻鳥——都可以點。看背景怎麼把洞補起來。</p>
+
+    <div class="lab">
+      <div class="lhead"><span>MAGIC ERASER</span><span id="lstate">就緒</span></div>
+      <div class="photo-wrap">
+        <div class="photo" id="photoBox">
+          <canvas id="cv" width="340" height="210"
+            aria-label="一張郊外照片：電線上有鳥、草地上有遊客與告示牌，點擊物件可以移除"></canvas>
+        </div>
+        <p class="caption" id="caption">點照片裡的任何一個東西。</p>
+      </div>
+      <div class="lfoot">
+        <span class="count">已抹掉 <b id="countLab">0</b> / 5 樣東西</span>
+        <button class="btn ghost sm" id="resetBtn">還原整張照片</button>
+      </div>
+    </div>
+
+    <div class="nextrow" id="row1" hidden>
+      <button class="btn" id="go2">這招是哪裡來的？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：2010 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　那段影片</p>
+    <h2 id="t2">2010 年 3 月，一段五分鐘的影片讓全網倒抽一口氣。</h2>
+    <p>Adobe 放出 Photoshop CS5 的搶先看：產品經理圈選了一棵擋在沙漠公路照片中間的樹，按下一個叫 <strong>Content-Aware Fill（內容感知填補）</strong>的按鈕。</p>
+    <p>樹消失了。路面、地平線、天空的紋理自己長了回來，接縫找不到。留言區的反應分成兩種：「這是魔術」和「這是假影片」。</p>
+    <p>它不是魔術也不是假的。背後是前一年 SIGGRAPH 上發表的 <em>PatchMatch</em> 演算法：把洞口周圍切成小補丁，飛快地在整張照片裡找「長得最像的另一塊」，一塊一塊貼回洞裡，再把接縫融掉。三位作者裡有兩位後來進了 Adobe。</p>
+
+    <div class="pull">
+      在那之前，把一個人從照片裡修掉，是修圖師收費的手藝。<br>
+      在那之後，它是一顆按鈕。
+    </div>
+
+    <ol class="tl" id="timeline">
+      <li><span class="yr">2009</span><span class="tx">PatchMatch 發表於 SIGGRAPH（Barnes 等人）——快到能即時互動的補丁搜尋。</span></li>
+      <li><span class="yr">2010</span><span class="tx">Photoshop CS5 內建 Content-Aware Fill，搶先看影片瘋傳。</span></li>
+      <li><span class="yr">2021</span><span class="tx">Google Pixel 6 把「魔術橡皮擦」做進手機相簿——長按、圈選、消失。</span></li>
+      <li><span class="yr">現在</span><span class="tx">擴散模型接手：補進來的不再只是「附近的紋理」，而是模型想像中「那裡本來應該有什麼」。可以憑空補出整面牆、半張臉。</span></li>
+    </ol>
+
+    <div class="nextrow">
+      <button class="btn" id="go3">所以，代價是什麼？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：代價 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　代價</p>
+    <h2 id="t3">一百八十年來，照片有一種特權。</h2>
+    <p>它是「在場的證明」。相簿裡的合照證明那個人來過；新聞照片證明那件事發生過；證物照片可以送上法庭。我們對照片的信任，深到連語言都這麼說——<strong>「有圖有真相」</strong>。</p>
+    <p>你剛剛用十秒鐘抹掉了一位遊客。同一根手指，也可以抹掉合照裡的前任、示威人群裡的某個人、案發現場的某樣東西。</p>
+    <p class="quiet">修掉路人和改寫歷史之間，隔的從來不是技術——只是你點的那個東西是誰。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go4">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四：收尾 ══════════ -->
+<section class="act tinted" id="act4" hidden aria-labelledby="t4">
+  <div class="wrap">
+    <p class="chap">四　收尾</p>
+    <h2 id="t4">回去看你那張照片。</h2>
+    <p>乾乾淨淨，對吧。天空連著天空，草地連著草地，電線上一隻鳥都沒有。</p>
+    <p class="quiet">如果這是你今天才第一次看到的照片，你完全不會起疑。這正是重點。</p>
+
+    <div class="kicker" id="kicker">
+      <span>照片曾經是「曾經在場」的證明。</span>
+      <span class="dim">現在它只證明一件事：有人希望你看到這個樣子。</span>
+      <span>從此看照片要像讀文章——先問一句：這是誰寫的？</span>
+    </div>
+
+    <footer>
+      來源：Barnes 等人 PatchMatch（SIGGRAPH 2009）、Adobe Photoshop CS5（2010）。
+      照片為程式繪製、填補為示意重建，與真實演算法的差異寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  function say(m){ $('srLive').textContent = m; }
+  function scrollTo(el){
+    try{ el.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); }catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id){
+    var s = $(id);
+    if (s.hidden){ s.hidden = false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ scrollTo(s); }); }); }
+    else scrollTo(s);
+  }
+
+  var seq = ['h0','h1','h2','h3','h4'];
+  if (reduce) seq.forEach(function(id){ $(id).classList.add('in'); });
+  else seq.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add('in'); }, 250 + i*540); });
+
+  /* ══════════ 場景繪製 ══════════ */
+  var SEED = 20260729;
+  var spec = sceneSpec(SEED);
+  var OBJS = objectsOf(spec);
+  var removed = [];
+  var cv = $('cv'), ctx = cv.getContext ? cv.getContext('2d') : null;
+
+  function drawCloud(c, x, y, s){
+    c.fillStyle = 'rgba(255,255,255,.88)';
+    c.beginPath();
+    c.ellipse(x, y, 22*s, 9*s, 0, 0, Math.PI*2);
+    c.ellipse(x-14*s, y+3*s, 13*s, 7*s, 0, 0, Math.PI*2);
+    c.ellipse(x+15*s, y+3*s, 14*s, 7.5*s, 0, 0, Math.PI*2);
+    c.fill();
+  }
+
+  function drawBird(c, x, wireY){
+    /* 身體 */
+    c.fillStyle = '#2d2a33';
+    c.beginPath();
+    c.ellipse(x, wireY - 7, 7.5, 5.4, -0.15, 0, Math.PI*2);
+    c.fill();
+    /* 頭 */
+    c.beginPath();
+    c.arc(x + 6, wireY - 11, 3.6, 0, Math.PI*2);
+    c.fill();
+    /* 喙 */
+    c.fillStyle = '#e9a23b';
+    c.beginPath();
+    c.moveTo(x + 9.2, wireY - 11.4);
+    c.lineTo(x + 12.6, wireY - 10.4);
+    c.lineTo(x + 9.2, wireY - 9.4);
+    c.closePath();
+    c.fill();
+    /* 尾 */
+    c.fillStyle = '#2d2a33';
+    c.beginPath();
+    c.moveTo(x - 6.5, wireY - 8);
+    c.lineTo(x - 12.5, wireY - 11.5);
+    c.lineTo(x - 6.5, wireY - 5.5);
+    c.closePath();
+    c.fill();
+    /* 腳 */
+    c.strokeStyle = '#e9a23b';
+    c.lineWidth = 1.1;
+    c.beginPath();
+    c.moveTo(x - 1.5, wireY - 2.4); c.lineTo(x - 1.5, wireY);
+    c.moveTo(x + 1.5, wireY - 2.4); c.lineTo(x + 1.5, wireY);
+    c.stroke();
+  }
+
+  function drawPerson(c, x, groundY){
+    var topY = groundY - 46;
+    /* 身體 */
+    c.fillStyle = '#c0563e';
+    c.beginPath();
+    c.moveTo(x - 8, groundY - 14);
+    c.quadraticCurveTo(x - 9, topY + 18, x, topY + 16);
+    c.quadraticCurveTo(x + 9, topY + 18, x + 8, groundY - 14);
+    c.closePath();
+    c.fill();
+    /* 腿 */
+    c.strokeStyle = '#33415c';
+    c.lineWidth = 4;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(x - 3.5, groundY - 14); c.lineTo(x - 4, groundY - 1);
+    c.moveTo(x + 3.5, groundY - 14); c.lineTo(x + 4, groundY - 1);
+    c.stroke();
+    /* 頭 */
+    c.fillStyle = '#e8b58e';
+    c.beginPath();
+    c.arc(x, topY + 7, 6.5, 0, Math.PI*2);
+    c.fill();
+    /* 帽子 */
+    c.fillStyle = '#f2d16b';
+    c.beginPath();
+    c.ellipse(x, topY + 2.5, 10.5, 2.6, 0, 0, Math.PI*2);
+    c.fill();
+    c.beginPath();
+    c.arc(x, topY + 2, 6, Math.PI, 0);
+    c.fill();
+    /* 相機背帶感：一條斜線 */
+    c.strokeStyle = '#7a3527';
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.moveTo(x - 6, topY + 20); c.lineTo(x + 7, topY + 30);
+    c.stroke();
+  }
+
+  function drawSign(c, x, groundY){
+    var top = groundY - 38;
+    c.fillStyle = '#8a6a44';
+    c.fillRect(x - 2.5, top + 16, 5, 22);
+    c.fillStyle = '#e7dcc3';
+    c.strokeStyle = '#8a6a44';
+    c.lineWidth = 2;
+    c.beginPath();
+    c.roundRect ? c.roundRect(x - 20, top, 40, 20, 3) : c.rect(x - 20, top, 40, 20);
+    c.fill(); c.stroke();
+    c.strokeStyle = '#9b917c';
+    c.lineWidth = 1.4;
+    c.beginPath();
+    c.moveTo(x - 13, top + 7); c.lineTo(x + 13, top + 7);
+    c.moveTo(x - 13, top + 13); c.lineTo(x + 5, top + 13);
+    c.stroke();
+  }
+
+  /* skipSet：這些 id 不畫（已移除或正在被抹掉） */
+  function paintScene(c, skipSet){
+    /* 天空 */
+    var sky = c.createLinearGradient(0, 0, 0, spec.grassY);
+    sky.addColorStop(0, '#8ec9e8');
+    sky.addColorStop(1, '#d8ecf4');
+    c.fillStyle = sky;
+    c.fillRect(0, 0, W, spec.grassY);
+    /* 太陽 */
+    c.fillStyle = '#fbe9a6';
+    c.beginPath(); c.arc(spec.sunX, spec.sunY, 13, 0, Math.PI*2); c.fill();
+    c.fillStyle = 'rgba(251,233,166,.35)';
+    c.beginPath(); c.arc(spec.sunX, spec.sunY, 20, 0, Math.PI*2); c.fill();
+    /* 雲 */
+    spec.clouds.forEach(function(cl){ drawCloud(c, cl.x, cl.y, cl.s); });
+    /* 遠山 */
+    c.fillStyle = '#a6c4a0';
+    c.beginPath();
+    c.moveTo(0, spec.grassY);
+    c.quadraticCurveTo(W*0.22, spec.grassY - spec.hillH, W*0.46, spec.grassY);
+    c.quadraticCurveTo(W*0.70, spec.grassY - spec.hillH*0.8, W, spec.grassY);
+    c.closePath(); c.fill();
+    /* 草地 */
+    var gr = c.createLinearGradient(0, spec.grassY, 0, H);
+    gr.addColorStop(0, '#7fb069');
+    gr.addColorStop(1, '#5c8a4a');
+    c.fillStyle = gr;
+    c.fillRect(0, spec.grassY, W, H - spec.grassY);
+    /* 草地紋理：短斜線（確定性） */
+    var rng = makeRng(SEED ^ 0x9e37);
+    c.strokeStyle = 'rgba(46,80,36,.35)';
+    c.lineWidth = 1;
+    for (var i = 0; i < 90; i++){
+      var gx = rng() * W, gy = spec.grassY + 6 + rng() * (H - spec.grassY - 10);
+      c.beginPath(); c.moveTo(gx, gy); c.lineTo(gx + 2.4, gy - 4.2); c.stroke();
+    }
+    /* 電線桿與電線 */
+    c.fillStyle = '#6b5a44';
+    c.fillRect(16, spec.wireY - 34, 5, spec.grassY - spec.wireY + 40);
+    c.fillRect(W - 22, spec.wireY - 36, 5, spec.grassY - spec.wireY + 42);
+    c.fillRect(8, spec.wireY - 30, 21, 3.4);
+    c.fillRect(W - 30, spec.wireY - 32, 21, 3.4);
+    c.strokeStyle = '#3f3a33';
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.moveTo(18, spec.wireY - 27);
+    c.quadraticCurveTo(W/2, spec.wireY + 6, W - 19, spec.wireY - 29);
+    c.stroke();
+    /* 鳥站的那條線（近似弧線的中段當 wireY） */
+    c.beginPath();
+    c.moveTo(18, spec.wireY - 14);
+    c.quadraticCurveTo(W/2, spec.wireY + 14, W - 19, spec.wireY - 16);
+    c.stroke();
+    /* 物件層（鳥的高度用 logic.js 的 wireAt，與外框計算同一條式子） */
+    spec.birds.forEach(function(b, i){
+      if (skipSet.indexOf('bird' + i) < 0) drawBird(c, b.x, wireAt(spec, b.x));
+    });
+    if (skipSet.indexOf('sign') < 0) drawSign(c, spec.signX, spec.grassY + 34);
+    if (skipSet.indexOf('person') < 0) drawPerson(c, spec.personX, spec.grassY + 40);
+  }
+
+  function repaint(){
+    if (!ctx) return;
+    paintScene(ctx, removed);
+  }
+
+  /* ══════════ 點擊移除 ══════════ */
+  var busy = false;
+  var off = document.createElement('canvas');
+  off.width = W; off.height = H;
+  var offCtx = off.getContext ? off.getContext('2d') : null;
+
+  cv.addEventListener('click', function(ev){
+    if (busy || !ctx) return;
+    var r = cv.getBoundingClientRect();
+    var x = (ev.clientX - r.left) / r.width * W;
+    var y = (ev.clientY - r.top) / r.height * H;
+    var hit = hitObject(OBJS, removed, x, y);
+    if (!hit){
+      var cap = $('caption');
+      cap.textContent = '那裡沒有可以抹掉的東西。試試遊客、告示牌、或電線上的鳥。';
+      cap.className = 'caption';
+      return;
+    }
+    erase(hit);
+  });
+
+  function erase(obj){
+    busy = true;
+    $('photoBox').classList.add('busy');
+    $('lstate').textContent = '分析周圍…';
+    say('正在抹掉' + obj.label);
+    var mask = padMask(obj.box, 5);
+    var newRemoved = removed.concat([obj.id]);
+    /* 目標畫面（沒有這個物件）畫到離屏 */
+    if (offCtx) paintScene(offCtx, newRemoved);
+
+    function done(){
+      removed = newRemoved;
+      repaint();
+      busy = false;
+      $('photoBox').classList.remove('busy');
+      $('lstate').textContent = '就緒';
+      var cap = $('caption');
+      cap.textContent = captionFor(removed.length, OBJS.length, obj.id);
+      cap.className = 'caption hot';
+      $('countLab').textContent = removed.length;
+      say(obj.label + '不見了。' + captionFor(removed.length, OBJS.length, obj.id));
+      if (removed.length >= 2) $('row1').hidden = false;
+      if (removed.length >= OBJS.length) $('lstate').textContent = '一片乾淨';
+    }
+
+    if (reduce || !offCtx){ done(); return; }
+
+    /* 動畫：掃描光帶掠過 → 由左往右把「沒有它的世界」貼回來 */
+    var t0 = null, PHASE1 = 420, PHASE2 = 620;
+    function frame(ts){
+      if (t0 === null) t0 = ts;
+      var el = ts - t0;
+      if (document.hidden){ requestAnimationFrame(frame); return; }
+      repaint();
+      if (el < PHASE1){
+        /* 分析中：物件上罩一層閃爍框 */
+        var a = 0.25 + 0.2 * Math.sin(el / 60);
+        ctx.strokeStyle = 'rgba(103,232,249,.9)';
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash([5, 4]);
+        ctx.strokeRect(mask.x, mask.y, mask.w, mask.h);
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(103,232,249,' + a.toFixed(3) + ')';
+        ctx.fillRect(mask.x, mask.y, mask.w, mask.h);
+        requestAnimationFrame(frame);
+      } else if (el < PHASE1 + PHASE2){
+        var t = (el - PHASE1) / PHASE2;
+        var wv = wipeWidth(mask, t);
+        if (wv > 0){
+          ctx.drawImage(off, mask.x, mask.y, wv, mask.h, mask.x, mask.y, wv, mask.h);
+        }
+        /* 填補前緣的光 */
+        ctx.fillStyle = 'rgba(165,243,252,.6)';
+        ctx.fillRect(mask.x + wv - 1.5, mask.y, 3, mask.h);
+        requestAnimationFrame(frame);
+      } else {
+        done();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  $('resetBtn').addEventListener('click', function(){
+    if (busy) return;
+    removed = [];
+    repaint();
+    $('caption').textContent = '整張照片回來了。點照片裡的任何一個東西。';
+    $('caption').className = 'caption';
+    $('countLab').textContent = '0';
+    $('lstate').textContent = '就緒';
+    say('照片已還原。');
+  });
+
+  $('go1').addEventListener('click', function(){ reveal('act1'); repaint(); });
+  $('go2').addEventListener('click', function(){ reveal('act2'); startTL(); });
+  $('go3').addEventListener('click', function(){ reveal('act3'); });
+  $('go4').addEventListener('click', function(){ reveal('act4'); startKicker(); });
+
+  var tlDone = false;
+  function startTL(){
+    if (tlDone) return; tlDone = true;
+    var items = document.querySelectorAll('#timeline li');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(items, function(li){ li.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      en.forEach(function(e){
+        if (!e.isIntersecting) return;
+        var i = Number(e.target.getAttribute('data-i')) || 0;
+        setTimeout(function(){ e.target.classList.add('in'); }, (i % 4) * 90);
+        io.unobserve(e.target);
+      });
+    }, { threshold: .2 });
+    Array.prototype.forEach.call(items, function(li, i){
+      li.setAttribute('data-i', String(i)); io.observe(li);
+    });
+  }
+
+  var kickDone = false;
+  function startKicker(){
+    if (kickDone) return; kickDone = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      if (!en[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){ setTimeout(function(){ s.classList.add('in'); }, i * 900); });
+    }, { threshold: .35 });
+    io.observe($('kicker'));
+  }
+
+  /* 首次載入先畫好（若使用者直接捲下來） */
+  repaint();
+})();
+</script>
+</body>
+</html>

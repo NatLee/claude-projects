@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>偽鈔警察 —— 一場你注定會輸的鑑識</title>
+<style>
+  :root{
+    --bg:#101408;
+    --bg2:#161c0d;
+    --panel:#1b2212;
+    --panel2:#232c18;
+    --line:#33401f;
+    --line2:#4c5e2e;
+    --txt:#d6ddc4;
+    --txt2:#99a382;
+    --txt3:#6b7457;
+    --money:#3f7d4e;
+    --money2:#7fb98a;
+    --gold:#d9b23c;
+    --red:#e06a4a;
+    --paper:#e9e4c8;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+    line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:#241c04}
+
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:var(--txt2);text-decoration:none;font-size:13px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(16,20,8,.8);border:1px solid var(--line);
+    backdrop-filter:blur(6px);transition:color .2s,border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--gold);border-color:var(--gold)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{max-width:820px;margin:0 auto;padding:0 22px}
+
+  h2{font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 20px;font-weight:700;
+     letter-spacing:-.01em;color:#eef2e2}
+  p{margin:0 0 18px;font-size:clamp(15.5px,2.5vw,17px)}
+  p.quiet{color:var(--txt2)}
+  p.small{font-size:13.5px;color:var(--txt2);line-height:1.8}
+  strong{color:#f2f5e8;font-weight:600}
+  em{font-style:normal;color:var(--money2);font-weight:600}
+  .chap{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--txt3);margin:0 0 14px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;color:#14200e;background:var(--money2);
+    border:0;border-radius:999px;padding:13px 26px;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 26px -8px rgba(127,185,138,.5)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2);font-weight:500}
+  .btn.ghost:hover{border-color:var(--money2);color:var(--money2);box-shadow:none}
+  .btn.sm{padding:10px 20px;font-size:14px}
+  .btn:focus-visible,.note-btn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .nextrow{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{min-height:100svh;display:flex;align-items:center;padding:92px 0 70px;
+        background:radial-gradient(115% 80% at 50% 42%,#1c2410 0%,#12170a 55%,#0b0e05 100%)}
+  .hook h1{font-size:clamp(28px,6.4vw,52px);line-height:1.26;margin:0 0 26px;
+           font-weight:700;letter-spacing:-.02em;color:#f2f5e8}
+  .hook p{max-width:31em}
+  .fade{opacity:0;transform:translateY(12px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{padding:clamp(66px,12vh,116px) 0;border-top:1px solid var(--line)}
+  .act.tinted{background:linear-gradient(180deg,var(--bg) 0%,#131a0b 45%,var(--bg) 100%)}
+
+  .pull{
+    margin:32px 0;padding:22px 24px;border-left:2px solid var(--gold);
+    background:linear-gradient(180deg,rgba(217,178,60,.06),rgba(217,178,60,0));
+    font-size:clamp(17px,3.1vw,21px);line-height:1.7;color:#eef2e2;
+  }
+
+  /* ——— 鑑識桌 ——— */
+  .desk{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    overflow:hidden;margin:26px 0 0;box-shadow:0 30px 70px -42px #000;
+  }
+  .dhead{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--txt2);
+  }
+  .dhead .round{color:var(--gold)}
+  .dbody{padding:18px}
+  .brief{font-size:15px;color:var(--txt2);margin:0 0 14px;min-height:1.8em}
+  .brief b{color:#eef2e2;font-weight:600}
+
+  .notes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){ .notes{grid-template-columns:1fr} }
+  .note-btn{
+    display:block;width:100%;padding:0;border:0;background:none;cursor:pointer;
+    border-radius:6px;transition:transform .18s cubic-bezier(.2,.9,.3,1.2);
+    position:relative;
+  }
+  .note-btn:hover{transform:translateY(-3px)}
+  .note-btn:disabled{cursor:default;transform:none}
+  .note-btn svg{display:block;width:100%;height:auto;border-radius:6px;
+    box-shadow:0 14px 30px -18px #000}
+  .note-btn .tagline{
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--txt3);
+    margin-top:8px;display:block;text-align:center;
+  }
+  .note-btn.reveal-real::after,.note-btn.reveal-fake::after{
+    position:absolute;top:8px;left:8px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;font-weight:700;
+    padding:4px 10px;border-radius:3px;transform:rotate(-6deg);
+  }
+  .note-btn.reveal-real::after{content:"真鈔";background:rgba(127,185,138,.92);color:#14200e}
+  .note-btn.reveal-fake::after{content:"偽鈔";background:rgba(224,106,74,.92);color:#fff}
+
+  .verdict{
+    margin-top:16px;min-height:3em;font-size:15px;line-height:1.75;color:var(--txt2);
+    border-left:2px solid var(--line2);padding-left:14px;transition:border-color .3s,color .3s;
+  }
+  .verdict.good{border-color:var(--money2);color:#e4ecd6}
+  .verdict.bad{border-color:var(--red);color:#f0ded6}
+
+  .scoreline{
+    display:flex;gap:18px;flex-wrap:wrap;align-items:center;margin-top:14px;
+    font-size:13px;color:var(--txt2);
+  }
+  .scoreline b{font-family:var(--mono);font-size:17px;color:#eef2e2}
+  .rounddots{display:flex;gap:5px}
+  .rounddots span{width:9px;height:9px;border-radius:50%;background:var(--line2);transition:background .3s}
+  .rounddots span.ok{background:var(--money2)}
+  .rounddots span.no{background:var(--red)}
+  .rounddots span.now{outline:2px solid var(--gold);outline-offset:1px}
+
+  /* ——— 學習曲線 ——— */
+  .curve{display:flex;gap:6px;align-items:flex-end;height:90px;margin:20px 0 6px}
+  .curve .cbar{
+    flex:1;background:linear-gradient(180deg,var(--red),#8a3d28);border-radius:3px 3px 0 0;
+    transform-origin:bottom center;transform:scaleY(0);transition:transform .6s cubic-bezier(.2,.8,.3,1);
+    min-height:3px;
+  }
+  .curve .cbar.in{transform:scaleY(1)}
+  .curvelab{display:flex;justify-content:space-between;font-size:11.5px;color:var(--txt3);
+    font-family:var(--mono);letter-spacing:.08em}
+
+  .kicker{margin:50px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;font-weight:600;
+          letter-spacing:-.01em;color:#f2f5e8}
+  .kicker span{display:block;opacity:0;transform:translateY(10px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:14px}
+  .kicker .dim{color:var(--txt2);font-weight:400;font-size:.82em}
+
+  footer{padding:40px 0 58px;border-top:1px solid var(--line);margin-top:66px;
+         font-size:12.5px;color:var(--txt3);line-height:1.9}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade,.kicker span{opacity:1;transform:none}
+    .curve .cbar{transition:none;transform:scaleY(1)}
+    *{transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="wrap">
+    <p class="chap fade" id="h0">中央銀行 · 鑑識科 · 早上八點</p>
+    <h1 class="fade" id="h1">城裡出了一個印偽鈔的。</h1>
+    <p class="fade" id="h2">你是鑑識科最好的眼睛。他印的每一張假鈔，最後都會落到你桌上——你退回一張，他就知道自己哪裡印壞了。</p>
+    <p class="fade quiet" id="h3">上頭說這案子很簡單。上頭永遠這麼說。</p>
+    <div class="nextrow fade" id="h4">
+      <button class="btn" id="go1">上工</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：鑑識桌 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　鑑識桌</p>
+    <h2 id="t1">兩張鈔票，一真一假。點出假的那張。</h2>
+    <p class="quiet">左邊那張標準版真鈔的樣子，你早就背下來了——紙色、底紋、墨色、印章的位置、字體、邊框。仔細看，然後下判斷。</p>
+
+    <div class="desk">
+      <div class="dhead">
+        <span>EVIDENCE DESK</span>
+        <span class="round" id="roundLab">第 1 / 7 天</span>
+      </div>
+      <div class="dbody">
+        <p class="brief" id="brief">第一天。他的第一批貨。</p>
+        <div class="notes" id="notes"></div>
+        <p class="verdict" id="verdict">兩張都可以放大看。憑你的直覺——哪張是假的？</p>
+        <div class="scoreline">
+          <span>戰績 <b id="scoreLab">0 / 0</b></span>
+          <div class="rounddots" id="dots"></div>
+          <button class="btn sm" id="nextBtn" hidden>下一天</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="nextrow" id="row1" hidden>
+      <button class="btn" id="go2">結案報告</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：結案 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　結案報告</p>
+    <h2 id="t2">你沒有輸給他。你輸給了一個迴圈。</h2>
+    <p id="sumLine"></p>
+    <p>每張假鈔與真鈔的差距，七天下來長這樣：</p>
+
+    <div class="curve" id="curve" aria-label="假鈔與真鈔差距逐日下降的長條圖"></div>
+    <div class="curvelab"><span>第 1 天</span><span>第 7 天</span></div>
+
+    <p style="margin-top:26px">注意最可怕的一件事：<strong>他從來沒看過真鈔。</strong>他看過的只有一樣東西——你的退件。你每退一張，就等於告訴他「這裡不像」；你每收一張，就等於告訴他「這樣就對了」。</p>
+    <p><em>你的每一次判斷，都是他的教材。</em>你越厲害，他進步得越快。</p>
+
+    <div class="pull">
+      這場對局有個正式的名字：生成對抗網路，GAN。<br>
+      印刷工叫「生成器」，你叫「鑑別器」。<br>
+      訓練結束的定義就是你剛剛經歷的那件事——鑑別器只剩擲硬幣。
+    </div>
+
+    <p class="small">2014 年，Ian Goodfellow 在一場酒吧的爭論後熬夜寫出了第一個 GAN。之後八年，從模糊的 32×32 人臉到 This Person Does Not Exist 的高清臉孔，AI 生圖的第一波革命就是這場「警察與印刷工」的軍備競賽。後來擴散模型接棒成為主流，但對抗的思路留了下來——今天用來偵測 deepfake 的模型，訓練方式就是再開一局：讓偵測器與偽造器互相追逐。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go3">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：收尾 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　下班</p>
+    <h2 id="t3">走出鑑識科之前，回頭看一眼。</h2>
+    <p>桌上那第七天的兩張鈔票還擺在那裡。你已經知道哪張是假的了——因為剛剛翻過答案。</p>
+    <p class="quiet">但你心裡明白：如果再來一張，你就只是在擲硬幣。而他明天還會繼續印。</p>
+
+    <div class="kicker" id="kicker">
+      <span>沒有人教過印刷工怎麼印鈔票。</span>
+      <span class="dim">教他的人是你——用每一次退件，一筆一筆教的。</span>
+      <span>世界上最好的老師，是一個拚命不想被你騙的人。</span>
+    </div>
+
+    <footer>
+      來源：Goodfellow 等人〈Generative Adversarial Networks〉（NeurIPS 2014）。
+      鈔票為程式化圖樣，偽鈔的學習過程為模擬，細節寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  function say(m){ $('srLive').textContent = m; }
+  function scrollTo(el){
+    try{ el.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); }catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id){
+    var s = $(id);
+    if (s.hidden){ s.hidden = false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ scrollTo(s); }); }); }
+    else scrollTo(s);
+  }
+
+  var seq = ['h0','h1','h2','h3','h4'];
+  if (reduce) seq.forEach(function(id){ $(id).classList.add('in'); });
+  else seq.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add('in'); }, 250 + i*540); });
+
+  /* ══════════ 鈔票 SVG ══════════ */
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs){
+    var e = document.createElementNS(SVGNS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  /* 依風格向量畫一張 300×140 的鈔票 */
+  function drawNote(svg, s, idSuffix){
+    svg.setAttribute('viewBox','0 0 300 140');
+    svg.innerHTML = '';
+    var hue = 58 + s.hue * 140;                      /* 紙色調 58(土黃)~198(藍綠)，前期差異一眼可見 */
+    var paper = 'hsl(' + hue + ',32%,84%)';
+    var ink = 'hsl(' + (hue + 10) + ',38%,' + (44 - s.ink * 18) + '%)';
+    var inkSoft = 'hsl(' + (hue + 10) + ',30%,' + (58 - s.ink * 14) + '%)';
+    /* 紙 */
+    svg.appendChild(el('rect',{x:0,y:0,width:300,height:140,rx:7,fill:paper}));
+    /* 邊框：border 參數決定單線→雙線花框 */
+    svg.appendChild(el('rect',{x:6,y:6,width:288,height:128,rx:5,fill:'none',
+      stroke:ink,'stroke-width':1.6}));
+    if (s.border > 0.35){
+      svg.appendChild(el('rect',{x:11,y:11,width:278,height:118,rx:4,fill:'none',
+        stroke:inkSoft,'stroke-width':1,'stroke-dasharray': s.border > 0.7 ? 'none' : '4 3'}));
+    }
+    /* 底紋：waves 條正弦波 */
+    var nWaves = 3 + Math.round(s.waves * 9);
+    for (var w = 0; w < nWaves; w++){
+      var yy = 22 + (96 / Math.max(1, nWaves - 1)) * w;
+      var d = 'M 14 ' + yy.toFixed(1);
+      for (var xx = 14; xx <= 286; xx += 17){
+        var amp = 4.5;
+        d += ' q 8.5 ' + ((w % 2 ? amp : -amp)).toFixed(1) + ' 17 0';
+      }
+      svg.appendChild(el('path',{d:d,stroke:inkSoft,'stroke-width':0.9,fill:'none',opacity:0.75}));
+    }
+    /* 中央面額 */
+    var serifFont = s.serif > 0.5 ? 'Georgia,"Times New Roman",serif' : 'Arial,Helvetica,sans-serif';
+    var t100 = el('text',{x:150,y:88,'text-anchor':'middle','font-family':serifFont,
+      'font-size':52,'font-weight':'bold',fill:ink,opacity:0.92});
+    t100.textContent = '100';
+    svg.appendChild(t100);
+    /* 印章：seal 決定 x 位置 */
+    var sealX = 40 + s.seal * 220;
+    svg.appendChild(el('circle',{cx:sealX,cy:38,r:15,fill:'none',stroke:'#b23c2a','stroke-width':2.4,opacity:.85}));
+    var st = el('text',{x:sealX,y:44,'text-anchor':'middle','font-family':serifFont,
+      'font-size':15,'font-weight':'bold',fill:'#b23c2a',opacity:.85});
+    st.textContent = '央';
+    svg.appendChild(st);
+    /* 序號 */
+    var sn = el('text',{x:24,y:126,'font-family':'monospace','font-size':11,fill:ink,opacity:.8,
+      'letter-spacing':'.14em'});
+    sn.textContent = 'AA ' + idSuffix + ' 7291';
+    svg.appendChild(sn);
+    /* 角落面額 */
+    [[20,30],[280,30],[20,118],[280,118]].forEach(function(pos,i){
+      var c = el('text',{x:pos[0],y:pos[1],'text-anchor':i%2? 'end':'start','font-family':serifFont,
+        'font-size':13,'font-weight':'bold',fill:inkSoft});
+      c.textContent = '100';
+      svg.appendChild(c);
+    });
+  }
+
+  /* ══════════ 遊戲 ══════════ */
+  var SEED = 20260729;
+  var round = 0, records = [], locked = false, dists = [];
+
+  var dotsEl = $('dots');
+  for (var i = 0; i < ROUNDS; i++){
+    var sp = document.createElement('span');
+    dotsEl.appendChild(sp);
+  }
+
+  var BRIEFS = [
+    '第一天。他的第一批貨。',
+    '第二天。昨天被你退的那批，他重印了。',
+    '第三天。聽說他添購了新的印刷機。',
+    '第四天。同事開始拿不定主意了。',
+    '第五天。科裡已經有人被騙過一次。',
+    '第六天。你多看了很久，對吧。',
+    '第七天。上頭問你還行不行。'
+  ];
+
+  function paintRound(){
+    var fake = fakeStyle(round, SEED);
+    dists.push(styleDist(fake));
+    var left = fakeOnLeft(round, SEED);
+    var notes = $('notes');
+    notes.innerHTML = '';
+    $('roundLab').textContent = '第 ' + (round + 1) + ' / ' + ROUNDS + ' 天';
+    $('brief').textContent = BRIEFS[round] || '';
+    var v = $('verdict');
+    v.className = 'verdict';
+    v.textContent = round === 0 ? '兩張都仔細看。憑你的眼睛——哪張是假的？' : '哪張是假的？';
+    Array.prototype.forEach.call(dotsEl.children, function(d, i){
+      d.classList.toggle('now', i === round);
+    });
+
+    [0, 1].forEach(function(side){
+      var isFake = (side === 0) === left;
+      var b = document.createElement('button');
+      b.className = 'note-btn';
+      b.setAttribute('aria-label', (side === 0 ? '左邊' : '右邊') + '這張鈔票');
+      var svg = document.createElementNS(SVGNS, 'svg');
+      drawNote(svg, isFake ? fake : REAL, isFake ? '19' + (40 + round) : '1907');
+      b.appendChild(svg);
+      var tag = document.createElement('span');
+      tag.className = 'tagline';
+      tag.textContent = side === 0 ? '證物 A' : '證物 B';
+      b.appendChild(tag);
+      b.addEventListener('click', function(){ judge(b, isFake, fake); });
+      notes.appendChild(b);
+    });
+  }
+
+  function judge(btn, pickedFake, fake){
+    if (locked) return;
+    locked = true;
+    var correct = pickedFake;
+    records.push(correct);
+    /* 揭曉兩張 */
+    Array.prototype.forEach.call($('notes').children, function(nb, i){
+      nb.disabled = true;
+      var isFakeNote = nb === btn ? pickedFake : !pickedFake;
+      nb.classList.add(isFakeNote ? 'reveal-fake' : 'reveal-real');
+    });
+    var v = $('verdict');
+    v.className = 'verdict ' + (correct ? 'good' : 'bad');
+    var wf = worstFeature(fake);
+    var hint = (styleDist(fake) > 0.04)
+      ? '（這批差最多的地方：' + wf.label + '。）'
+      : '（這批和真鈔的差距已經小於你眼睛的解析度了。）';
+    v.textContent = verdictText(correct, round) + ' ' + hint;
+    Array.prototype.forEach.call(dotsEl.children, function(d, i){
+      if (i === round) d.classList.add(correct ? 'ok' : 'no');
+    });
+    var s = summarize(records);
+    $('scoreLab').textContent = s.right + ' / ' + s.total;
+    say((correct ? '答對。' : '答錯。') + ' 戰績 ' + s.right + ' / ' + s.total);
+
+    if (round < ROUNDS - 1){
+      $('nextBtn').hidden = false;
+      $('nextBtn').focus({ preventScroll: true });
+    } else {
+      $('row1').hidden = false;
+    }
+  }
+
+  $('nextBtn').addEventListener('click', function(){
+    $('nextBtn').hidden = true;
+    locked = false;
+    round++;
+    paintRound();
+  });
+
+  $('go1').addEventListener('click', function(){
+    reveal('act1');
+    if (!$('notes').children.length) paintRound();
+  });
+
+  $('go2').addEventListener('click', function(){
+    reveal('act2');
+    buildReport();
+  });
+
+  var reportDone = false;
+  function buildReport(){
+    if (reportDone) return;
+    reportDone = true;
+    var s = summarize(records);
+    var pct = Math.round(s.acc * 100), late = Math.round(s.lateAcc * 100);
+    $('sumLine').innerHTML = '七天下來你的答對率是 <strong>' + pct + '%</strong>。'
+      + '但把前三天丟掉、只看後半場——<strong>' + late + '%</strong>。'
+      + (late <= 60 ? '跟擲硬幣已經沒有統計上的差別。' : '再給他幾天，你就會掉到 50%。');
+    var curve = $('curve');
+    var maxD = Math.max.apply(null, dists.concat([0.001]));
+    dists.forEach(function(d, i){
+      var bar = document.createElement('div');
+      bar.className = 'cbar';
+      bar.style.height = Math.max(4, (d / maxD) * 90) + 'px';
+      bar.title = '第 ' + (i + 1) + ' 天，差距 ' + d.toFixed(3);
+      curve.appendChild(bar);
+      if (reduce) bar.classList.add('in');
+      else setTimeout(function(){ bar.classList.add('in'); }, 150 + i * 130);
+    });
+  }
+
+  $('go3').addEventListener('click', function(){ reveal('act3'); startKicker(); });
+
+  var kickDone = false;
+  function startKicker(){
+    if (kickDone) return; kickDone = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      if (!en[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){ setTimeout(function(){ s.classList.add('in'); }, i * 900); });
+    }, { threshold: .35 });
+    io.observe($('kicker'));
+  }
+})();
+</script>
+</body>
+</html>

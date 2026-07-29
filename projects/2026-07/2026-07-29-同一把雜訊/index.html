@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>同一把雜訊 —— AI 生圖的第一個祕密</title>
+<style>
+  :root{
+    --bg:#0c0a12;
+    --bg2:#131020;
+    --panel:#181428;
+    --panel2:#201a35;
+    --line:#2e2749;
+    --line2:#453a6b;
+    --txt:#d4cfe6;
+    --txt2:#948dae;
+    --txt3:#665f80;
+    --violet:#a78bfa;
+    --violet2:#c4b0ff;
+    --pink:#f472b6;
+    --gold:#fbbf24;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+    line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--violet);color:#160f2b}
+
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:var(--txt2);text-decoration:none;font-size:13px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(12,10,18,.78);border:1px solid var(--line);
+    backdrop-filter:blur(6px);transition:color .2s,border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--violet2);border-color:var(--violet)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{max-width:780px;margin:0 auto;padding:0 22px}
+
+  h2{font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 20px;font-weight:700;
+     letter-spacing:-.01em;color:#efeaff}
+  p{margin:0 0 18px;font-size:clamp(15.5px,2.5vw,17px)}
+  p.quiet{color:var(--txt2)}
+  p.small{font-size:13.5px;color:var(--txt2);line-height:1.8}
+  strong{color:#f3efff;font-weight:600}
+  em{font-style:normal;color:var(--violet2);font-weight:600}
+  .chap{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--txt3);margin:0 0 14px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;color:#160f2b;background:var(--violet);
+    border:0;border-radius:999px;padding:13px 26px;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 28px -8px rgba(167,139,250,.55)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2);font-weight:500}
+  .btn.ghost:hover{border-color:var(--violet);color:var(--violet2);box-shadow:none}
+  .btn.sm{padding:10px 20px;font-size:14px}
+  .btn:focus-visible,.pbtn:focus-visible{outline:2px solid var(--violet);outline-offset:3px}
+  .nextrow{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{min-height:100svh;display:flex;align-items:center;padding:92px 0 70px;
+        background:radial-gradient(115% 80% at 50% 42%,#1b1533 0%,#100d1e 55%,#090711 100%)}
+  .hook h1{font-size:clamp(28px,6.4vw,52px);line-height:1.26;margin:0 0 26px;
+           font-weight:700;letter-spacing:-.02em;color:#f3efff}
+  .hook p{max-width:31em}
+  .fade{opacity:0;transform:translateY(12px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{padding:clamp(66px,12vh,116px) 0;border-top:1px solid var(--line)}
+  .act.tinted{background:linear-gradient(180deg,var(--bg) 0%,#110d20 45%,var(--bg) 100%)}
+
+  .pull{
+    margin:32px 0;padding:22px 24px;border-left:2px solid var(--violet);
+    background:linear-gradient(180deg,rgba(167,139,250,.07),rgba(167,139,250,0));
+    font-size:clamp(17px,3.1vw,21px);line-height:1.7;color:#efeaff;
+  }
+
+  /* ——— 暗房 ——— */
+  .studio{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    overflow:hidden;margin:26px 0 0;box-shadow:0 30px 70px -42px #000;
+  }
+  .shead{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--txt2);
+  }
+  .sbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+  @media(max-width:680px){ .sbody{grid-template-columns:1fr} }
+
+  .cvside{padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .frame{
+    position:relative;width:100%;max-width:340px;
+    border:1px solid var(--line2);border-radius:4px;overflow:hidden;
+    background:#000;
+  }
+  .frame canvas{
+    display:block;width:100%;height:auto;aspect-ratio:1;
+    image-rendering:pixelated;
+  }
+  .seedtag{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--txt3);
+  }
+  .seedtag b{color:var(--gold);font-weight:500}
+
+  .ctrl{padding:18px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+  @media(max-width:680px){ .ctrl{border-left:0;border-top:1px solid var(--line)} }
+  .ctitle{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;color:var(--txt3);margin:0}
+  .prompts{display:flex;flex-direction:column;gap:8px}
+  .pbtn{
+    font-family:inherit;font-size:15px;text-align:left;cursor:pointer;
+    padding:12px 16px;border-radius:6px;
+    border:1px solid var(--line2);background:#141024;color:var(--txt);
+    transition:border-color .2s,background .2s,color .2s,transform .15s;
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+  }
+  .pbtn:hover{border-color:var(--violet);transform:translateX(2px)}
+  .pbtn[aria-pressed="true"]{border-color:var(--violet);background:rgba(167,139,250,.12);color:#f3efff}
+  .pbtn .used{font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:.08em}
+  .pbtn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .steps{
+    font-family:var(--mono);font-size:12px;color:var(--txt2);min-height:1.6em;letter-spacing:.05em;
+  }
+  .steps b{color:var(--violet2);font-weight:500}
+  .bar{height:4px;background:#0e0b1a;border-radius:2px;overflow:hidden}
+  .bar i{display:block;height:100%;width:100%;transform-origin:left center;transform:scaleX(0);
+         background:linear-gradient(90deg,var(--violet),var(--pink))}
+  .note{min-height:3em;font-size:14px;color:var(--txt2);line-height:1.75;
+        border-left:2px solid var(--line2);padding-left:12px;transition:border-color .3s,color .3s}
+  .note.hot{border-color:var(--pink);color:#efeaff}
+
+  /* ——— 對照畫廊 ——— */
+  .gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:24px 0 0}
+  .gcell{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px;
+         display:flex;flex-direction:column;gap:8px;opacity:0;transform:translateY(10px)}
+  .gcell.in{opacity:1;transform:none;transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.3,1)}
+  .gcell canvas{display:block;width:100%;height:auto;aspect-ratio:1;image-rendering:pixelated;border-radius:3px}
+  .gcell .gl{font-size:12px;color:var(--txt2);text-align:center;line-height:1.5}
+  .gcell .gl b{color:#efeaff;font-weight:600}
+
+  .kicker{margin:50px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;font-weight:600;
+          letter-spacing:-.01em;color:#f3efff}
+  .kicker span{display:block;opacity:0;transform:translateY(10px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:14px}
+  .kicker .dim{color:var(--txt2);font-weight:400;font-size:.82em}
+
+  footer{padding:40px 0 58px;border-top:1px solid var(--line);margin-top:66px;
+         font-size:12.5px;color:var(--txt3);line-height:1.9}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade,.gcell,.kicker span{opacity:1;transform:none}
+    *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="wrap">
+    <p class="chap fade" id="h0">AI 生圖的第一個祕密</p>
+    <h1 class="fade" id="h1">每一張 AI 畫的圖，<br>都是從一片雜訊開始的。</h1>
+    <p class="fade" id="h2">不是從一張空白的紙。是從一片<strong>什麼都不是</strong>的彩色電視雪花。</p>
+    <p class="fade quiet" id="h3">機器盯著那片雪花，一步一步，把一張圖從裡面「修」出來——像雕刻家說的：把不是大象的部分去掉。</p>
+    <div class="nextrow fade" id="h4">
+      <button class="btn" id="go1">給我一片雪花</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：暗房 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　暗房</p>
+    <h2 id="t1">這是你的雜訊。挑一句話，看它變成什麼。</h2>
+    <p>下面這片雪花是隨機的，但它有一個編號——<strong>同一個編號，永遠長出同一片雪花</strong>。記住這件事，等一下有用。</p>
+
+    <div class="studio">
+      <div class="shead"><span>DENOISER</span><span id="sstate">待機</span></div>
+      <div class="sbody">
+        <div class="cvside">
+          <div class="frame"><canvas id="cv" width="84" height="84" aria-label="生成畫布：目前顯示雜訊或生成中的圖"></canvas></div>
+          <span class="seedtag">雜訊編號 <b id="seedLab">#0042</b></span>
+        </div>
+        <div class="ctrl">
+          <p class="ctitle">提示詞（挑一句）</p>
+          <div class="prompts" id="prompts"></div>
+          <div>
+            <p class="steps" id="stepLab">還沒開始。</p>
+            <div class="bar"><i id="barFill"></i></div>
+          </div>
+          <p class="note" id="note">先挑一句話。機器沒有方向的話，只會把雜訊修成一片灰。</p>
+          <div class="nextrow" style="margin-top:2px">
+            <button class="btn ghost sm" id="newSeed">換一把雜訊</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nextrow" id="row1" hidden>
+      <button class="btn" id="go2">等等——同一片雪花，換一句話呢？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：同一把雜訊 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　回到同一片雪花</p>
+    <h2 id="t2">回去。用同一片雪花，唸不同的咒語。</h2>
+    <p>上面那台機器已經幫你把雜訊<strong>倒回去了</strong>——編號沒變，還是同一片雪花。這次挑一句<strong>不一樣</strong>的話。</p>
+    <p class="quiet">三句都試過之後，下面會攤開給你看。</p>
+
+    <div class="gallery" id="gallery"></div>
+
+    <div id="allDone" hidden>
+      <div class="pull">
+        同一片雜訊。三句話。三張完全不同的圖。<br>
+        雜訊裡從來沒有藏著山、城市或貓——<br>
+        是那句話，決定機器往哪個方向修。
+      </div>
+      <p>這就是為什麼生圖工具會給你一個「種子（seed）」欄位：<em>雜訊編號＋提示詞，就是一張圖的完整地址</em>。同一組數字，明天生一次、在別人的電腦上生一次，都是同一張圖。</p>
+      <p class="quiet">而你按「換一把雜訊」時看到的：同一句話、不同雪花，構圖就整個換了——太陽換了位置、大樓換了高度、貓換了毛色。這也是真的生圖工具抽卡的原理。</p>
+    </div>
+
+    <div class="nextrow" id="row2" hidden>
+      <button class="btn" id="go3">它到底是怎麼學會的？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：它怎麼學的 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　倒著學</p>
+    <h2 id="t3">訓練的方法，聽起來像個笑話。</h2>
+    <p>研究者拿幾十億張真的照片，<strong>故意把它們弄髒</strong>——加一點雜訊、再加一點、再加一點，直到整張圖爛成雪花。</p>
+    <p>然後叫模型做一件事：<em>把剛剛加上去的雜訊猜出來。</em></p>
+    <p>就這樣。猜了幾十億次之後，它變得非常、非常會「去掉雜訊」。這時把一片純雪花丟給它、告訴它「這底下是一隻貓」，它就會一步一步把「不是貓的部分」去掉——即使那片雪花底下，其實什麼都沒有。</p>
+
+    <div class="pull">
+      它從來沒有學過「畫圖」。<br>
+      它學的是「收拾殘局」——收拾到後來，能從一片虛無裡收拾出一張圖。
+    </div>
+
+    <p class="small">2015 年 Sohl-Dickstein 等人提出這個想法，2020 年 Ho 等人的 DDPM 讓它真的能生出好圖，2022 年 Stable Diffusion、Midjourney、DALL·E 2 把它帶進所有人的瀏覽器。你剛剛玩的是它的視覺化模擬——真的模型用的是幾十億參數的神經網路，但「雜訊當起點、提示詞當方向、一步一步修」的骨架一模一樣。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go4">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四：收尾 ══════════ -->
+<section class="act tinted" id="act4" hidden aria-labelledby="t4">
+  <div class="wrap">
+    <p class="chap">四　收尾</p>
+    <h2 id="t4">下次看到 AI 生的圖，你會知道兩件事。</h2>
+    <p>一，它出生的地方是一片雪花，跟電視壞掉時的那種一模一樣。</p>
+    <p>二，如果有人給你那張圖的雜訊編號和那句話，你可以讓同一張圖<strong>再出生一次</strong>。</p>
+
+    <div class="kicker" id="kicker">
+      <span>雜訊裡什麼都沒有。</span>
+      <span class="dim">但只要有一句話指路，什麼都可以從裡面走出來。</span>
+    </div>
+
+    <footer>
+      來源：Sohl-Dickstein 等人（ICML 2015）、Ho 等人 DDPM（NeurIPS 2020）。
+      本頁為視覺化模擬，模擬方式與真實模型的差異寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  function say(m){ $('srLive').textContent = m; }
+  function scrollTo(el){
+    try{ el.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); }catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id){
+    var s = $(id);
+    if (s.hidden){ s.hidden = false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ scrollTo(s); }); }); }
+    else scrollTo(s);
+  }
+
+  var seq = ['h0','h1','h2','h3','h4'];
+  if (reduce) seq.forEach(function(id){ $(id).classList.add('in'); });
+  else seq.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add('in'); }, 250 + i*540); });
+
+  /* ══════════ 畫布 ══════════ */
+  var cv = $('cv'), ctx2d = cv.getContext ? cv.getContext('2d') : null;
+  var imgData = ctx2d ? ctx2d.createImageData(N, N) : null;
+
+  function paint(rgb){
+    if (!ctx2d) return;
+    var d = imgData.data;
+    for (var i = 0, j = 0; i < rgb.length; i += 3, j += 4){
+      d[j] = rgb[i]; d[j+1] = rgb[i+1]; d[j+2] = rgb[i+2]; d[j+3] = 255;
+    }
+    ctx2d.putImageData(imgData, 0, 0);
+  }
+  function paintTo(canvas, rgb){
+    var c = canvas.getContext ? canvas.getContext('2d') : null;
+    if (!c) return;
+    var im = c.createImageData(N, N), d = im.data;
+    for (var i = 0, j = 0; i < rgb.length; i += 3, j += 4){
+      d[j] = rgb[i]; d[j+1] = rgb[i+1]; d[j+2] = rgb[i+2]; d[j+3] = 255;
+    }
+    c.putImageData(im, 0, 0);
+  }
+
+  /* ══════════ 狀態 ══════════ */
+  var seed = 42, noise = noiseField(seed);
+  var running = false, raf = 0;
+  var results = {};                 /* key -> 成品 rgb（本把雜訊） */
+  var usedKeys = [];
+  var TOTAL_STEPS = 34;
+
+  function seedLabel(){ return '#' + String(seed).padStart(4, '0'); }
+
+  function resetToNoise(msg){
+    paint(noise);
+    $('seedLab').textContent = seedLabel();
+    $('stepLab').textContent = msg || '還沒開始。';
+    $('barFill').style.transform = 'scaleX(0)';
+    $('sstate').textContent = '待機';
+  }
+
+  /* 提示詞按鈕 */
+  var pbtns = {};
+  PROMPTS.forEach(function(p){
+    var b = document.createElement('button');
+    b.className = 'pbtn';
+    b.setAttribute('aria-pressed','false');
+    b.innerHTML = '「' + p.label + '」<span class="used" hidden>已生成 ✓</span>';
+    b.addEventListener('click', function(){ generate(p.key); });
+    $('prompts').appendChild(b);
+    pbtns[p.key] = b;
+  });
+
+  function setPressed(key){
+    PROMPTS.forEach(function(p){
+      pbtns[p.key].setAttribute('aria-pressed', p.key === key ? 'true' : 'false');
+    });
+  }
+
+  function generate(key){
+    if (running) return;
+    running = true;
+    setPressed(key);
+    var target = sceneFor(key, seed);
+    var label = '';
+    PROMPTS.forEach(function(p){ if (p.key === key) label = p.label; });
+    $('sstate').textContent = '去噪中';
+    say('開始生成：' + label);
+
+    function done(){
+      running = false;
+      paint(target);
+      results[key] = target;
+      if (usedKeys.indexOf(key) < 0) usedKeys.push(key);
+      pbtns[key].querySelector('.used').hidden = false;
+      $('stepLab').innerHTML = '第 <b>' + TOTAL_STEPS + '</b> / ' + TOTAL_STEPS + ' 步 —— 完成。';
+      $('barFill').style.transform = 'scaleX(1)';
+      $('sstate').textContent = '完成';
+      say('生成完成：' + label);
+      afterGenerate(key, label);
+    }
+
+    if (reduce || !ctx2d){ done(); return; }
+
+    var step = 0, last = null;
+    function frame(ts){
+      if (document.hidden){ raf = requestAnimationFrame(frame); return; }
+      if (last === null) last = ts;
+      if (ts - last >= 52){
+        last = ts;
+        step++;
+        var t = step / TOTAL_STEPS;
+        paint(mixFrame(noise, target, t, seed * 131 + step));
+        $('stepLab').innerHTML = '第 <b>' + step + '</b> / ' + TOTAL_STEPS + ' 步';
+        $('barFill').style.transform = 'scaleX(' + t.toFixed(3) + ')';
+      }
+      if (step < TOTAL_STEPS) raf = requestAnimationFrame(frame);
+      else done();
+    }
+    raf = requestAnimationFrame(frame);
+  }
+
+  var NOTES = {
+    1: '看到了嗎？圖不是「畫」上去的——是從雪花裡一步一步修出來的。',
+    2: '同一片雪花。完全不同的一張圖。雜訊沒變，變的只有那句話。',
+    3: '三句話都試過了。往下看。'
+  };
+
+  function afterGenerate(key, label){
+    var n = usedKeys.length;
+    var note = $('note');
+    note.textContent = NOTES[Math.min(n,3)] || '';
+    note.className = 'note' + (n >= 2 ? ' hot' : '');
+    if (n === 1){ $('row1').hidden = false; }
+    if (n >= 2){ addGalleryCell(key, label); }
+    if (n === 2 && usedKeys.length === 2){
+      /* 把第一張也補進畫廊 */
+      var first = usedKeys[0];
+      PROMPTS.forEach(function(p){ if (p.key === first) addGalleryCell(first, p.label); });
+    }
+    if (n >= 3){
+      $('allDone').hidden = false;
+      $('row2').hidden = false;
+    }
+  }
+
+  var galleryKeys = [];
+  function addGalleryCell(key, label){
+    if (galleryKeys.indexOf(key) >= 0 || !results[key]) return;
+    galleryKeys.push(key);
+    var cell = document.createElement('div');
+    cell.className = 'gcell';
+    var c = document.createElement('canvas');
+    c.width = N; c.height = N;
+    c.setAttribute('aria-label', '成品：' + label);
+    cell.appendChild(c);
+    var l = document.createElement('div');
+    l.className = 'gl';
+    l.innerHTML = '雜訊 ' + seedLabel() + '<br><b>「' + label + '」</b>';
+    cell.appendChild(l);
+    $('gallery').appendChild(cell);
+    paintTo(c, results[key]);
+    if (reduce) cell.classList.add('in');
+    else setTimeout(function(){ cell.classList.add('in'); }, 120);
+  }
+
+  $('newSeed').addEventListener('click', function(){
+    if (running) return;
+    seed = 1 + Math.floor(Math.random() * 9999);
+    noise = noiseField(seed);
+    results = {}; usedKeys = [];
+    PROMPTS.forEach(function(p){ pbtns[p.key].querySelector('.used').hidden = true; });
+    setPressed(null);
+    resetToNoise('新的一把雜訊。同一句話會生出「同題材、不同的一張」。');
+    say('換了一把新雜訊，編號 ' + seedLabel());
+  });
+
+  $('go1').addEventListener('click', function(){
+    reveal('act1');
+    if (!$('sstate').init){ $('sstate').init = true; resetToNoise(); }
+  });
+  $('go2').addEventListener('click', function(){
+    reveal('act1');
+    if (!running){
+      resetToNoise('倒回去了——同一片雪花（' + seedLabel() + '）。挑一句沒試過的。');
+      setPressed(null);
+      $('note').textContent = '編號沒變。現在挑第二句話。';
+      $('note').className = 'note hot';
+    }
+    $('act2').hidden = false;
+  });
+  $('go3').addEventListener('click', function(){ reveal('act3'); });
+  $('go4').addEventListener('click', function(){ reveal('act4'); startKicker(); });
+
+  var kickDone = false;
+  function startKicker(){
+    if (kickDone) return; kickDone = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      if (!en[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){ setTimeout(function(){ s.classList.add('in'); }, i * 950); });
+    }, { threshold: .35 });
+    io.observe($('kicker'));
+  }
+
+  /* 初始畫面就先鋪上雜訊（若使用者直接捲下來） */
+  resetToNoise();
+})();
+</script>
+</body>
+</html>

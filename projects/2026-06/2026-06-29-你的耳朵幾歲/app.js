@@ -534,12 +534,18 @@
   var canvas = $("wave"), cctx = canvas.getContext("2d"), cw = 720, ch = 220, dpr = 1;
 
   function setupCanvas() {
-    dpr = window.devicePixelRatio || 1;
     var rect = canvas.getBoundingClientRect();
-    cw = Math.max(320, rect.width || 720);
-    ch = 220;
-    canvas.width = cw * dpr;
-    canvas.height = ch * dpr;
+    if (!rect.width && canvas.width) return;      // 藏起來時不要把畫布歸零
+    var nextDpr = window.devicePixelRatio || 1;
+    var nextCw = Math.max(320, rect.width || 720);
+    var nextCh = 220;
+    var wantW = Math.round(nextCw * nextDpr);
+    var wantH = Math.round(nextCh * nextDpr);
+    // 尺寸沒變就別動 width/height，重設會清空畫布（也避免任何回饋迴圈把圖弄消失）
+    if (canvas.width === wantW && canvas.height === wantH) return;
+    dpr = nextDpr; cw = nextCw; ch = nextCh;
+    canvas.width = wantW;
+    canvas.height = wantH;
     cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>你不是在證明你是人 —— 那十秒鐘，你在替一百年前的報紙打字</title>
+<style>
+  :root{
+    --bg:#0d0f1a;
+    --bg2:#141728;
+    --panel:#1b1f33;
+    --line:#2d3350;
+    --line2:#414a70;
+    --txt:#cdd3e6;
+    --txt2:#8b93b3;
+    --txt3:#626a8c;
+    --amber:#f0b95c;
+    --amber2:#ffd68e;
+    --green:#5fd6a4;
+    --red:#ff7a68;
+    --news:#ded2b4;
+    --news2:#cbbd99;
+    --newsink:#241f18;
+    --widget:#f4f5f8;
+    --widgetline:#c8cbd6;
+    --widgetink:#1e2130;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --serif:Georgia,"Times New Roman","Songti TC","Noto Serif CJK TC",serif;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+    line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--amber);color:#241a08}
+
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:var(--txt2);text-decoration:none;font-size:13px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(13,15,26,.75);border:1px solid var(--line);
+    backdrop-filter:blur(6px);transition:color .2s,border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--amber);border-color:var(--amber)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  h2{font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 20px;font-weight:700;
+     letter-spacing:-.01em;color:#eef1fa}
+  p{margin:0 0 18px;font-size:clamp(15.5px,2.5vw,17px)}
+  p.quiet{color:var(--txt2)}
+  p.small{font-size:13.5px;color:var(--txt2);line-height:1.8}
+  strong{color:#f2f5ff;font-weight:600}
+  em{font-style:normal;color:var(--amber);font-weight:600}
+  .chap{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--txt3);margin:0 0 14px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;color:#241a08;background:var(--amber);
+    border:0;border-radius:999px;padding:13px 26px;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 26px -8px rgba(240,185,92,.5)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2);font-weight:500}
+  .btn.ghost:hover{border-color:var(--amber);color:var(--amber);box-shadow:none}
+  .btn.sm{padding:10px 20px;font-size:14px}
+  .btn:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+  .nextrow{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{min-height:100svh;display:flex;align-items:center;padding:92px 0 70px;
+        background:radial-gradient(110% 80% at 50% 40%,#1a1f38 0%,#0f1220 55%,#0a0c15 100%)}
+  .hook h1{font-size:clamp(28px,6.4vw,52px);line-height:1.26;margin:0 0 26px;
+           font-weight:700;letter-spacing:-.02em;color:#f2f5ff}
+  .hook p{max-width:32em}
+  .fade{opacity:0;transform:translateY(12px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+
+  /* ——— 驗證碼小工具 ——— */
+  .widget{
+    background:var(--widget);color:var(--widgetink);border:1px solid var(--widgetline);
+    border-radius:6px;padding:16px;max-width:430px;
+    box-shadow:0 26px 60px -34px rgba(0,0,0,.85);
+  }
+  .widget .wtop{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:#7b8098;margin-bottom:12px;
+  }
+  .words{
+    display:flex;gap:10px;align-items:stretch;background:#fff;
+    border:1px solid var(--widgetline);border-radius:4px;padding:8px;
+  }
+  .word{
+    flex:1;position:relative;display:flex;align-items:center;justify-content:center;
+    min-height:64px;overflow:hidden;border-radius:3px;
+  }
+  .word svg{width:100%;height:64px;display:block}
+  .word.unknown{background:linear-gradient(178deg,var(--news) 0%,var(--news2) 100%)}
+  .word.unknown::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(91deg,rgba(80,66,40,.10) 0 1px,transparent 1px 3px),
+               radial-gradient(60% 90% at 20% 30%,rgba(90,72,40,.16),transparent 60%);
+    mix-blend-mode:multiply;
+  }
+  .word .glow{
+    position:absolute;inset:0;border:2px solid transparent;border-radius:3px;
+    transition:border-color .4s;pointer-events:none;
+  }
+  .word.lit .glow{border-color:var(--amber)}
+  .wtag{
+    position:absolute;left:6px;top:4px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.1em;color:#8a8570;opacity:0;transition:opacity .4s;
+  }
+  .word.lit .wtag{opacity:1}
+
+  .inrow{display:flex;gap:8px;margin-top:12px}
+  .inrow input{
+    flex:1;min-width:0;font-family:var(--mono);font-size:16px;padding:10px 12px;
+    border:1px solid var(--widgetline);border-radius:4px;background:#fff;color:var(--widgetink);
+  }
+  .inrow input.ok{border-color:#3aa06e;background:#f0fbf5}
+  .inrow input.bad{border-color:#d0402c;background:#fdf1ef}
+  .wsub{font-size:12px;color:#7b8098;margin-top:9px;min-height:1.5em}
+  .wsub.ok{color:#1d7a4c}
+  .wsub.bad{color:#c2301c}
+  .wbtn{
+    width:100%;margin-top:12px;font-family:inherit;font-size:15px;font-weight:600;
+    background:var(--widgetink);color:#fff;border:0;border-radius:4px;padding:11px;cursor:pointer;
+    transition:opacity .2s,background .2s;
+  }
+  .wbtn:hover{background:#333a52}
+  .wbtn:disabled{opacity:.35;cursor:not-allowed}
+  .dots{display:flex;gap:6px;justify-content:center;margin-top:14px}
+  .dots span{width:7px;height:7px;border-radius:50%;background:var(--widgetline);transition:background .3s}
+  .dots span.done{background:#3aa06e}
+  .dots span.now{background:var(--widgetink)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{padding:clamp(66px,12vh,116px) 0;border-top:1px solid var(--line)}
+  .act[hidden]{display:none}
+  .act.tinted{background:linear-gradient(180deg,var(--bg) 0%,#111426 45%,var(--bg) 100%)}
+
+  .pull{
+    margin:32px 0;padding:22px 24px;border-left:2px solid var(--amber);
+    background:linear-gradient(180deg,rgba(240,185,92,.06),rgba(240,185,92,0));
+    font-size:clamp(17px,3.1vw,21px);line-height:1.7;color:#eef1fa;
+  }
+
+  /* ——— 剪報 ——— */
+  .clips{display:flex;flex-direction:column;gap:14px;margin:26px 0 0}
+  .clip{
+    display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(178deg,var(--news),var(--news2));
+    color:var(--newsink);border-radius:3px;padding:12px 14px;
+    box-shadow:0 18px 40px -30px #000;
+    opacity:0;transform:translateY(10px);
+  }
+  .clip.in{opacity:1;transform:none;transition:opacity .6s ease,transform .6s cubic-bezier(.2,.8,.3,1)}
+  .clip .cimg{flex:0 0 auto;width:170px;max-width:46vw}
+  .clip .cimg svg{width:100%;height:56px;display:block}
+  .clip .cmeta{flex:1 1 200px;min-width:0}
+  .clip .csrc{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:#6a6249}
+  .clip .cyou{font-family:var(--mono);font-size:16px;margin-top:3px;word-break:break-all}
+  .clip .cnote{font-size:12.5px;color:#5d5641;margin-top:2px}
+  .clip.junk .cyou{color:#a3301c;text-decoration:line-through}
+
+  /* ——— 票箱 ——— */
+  .ballot{
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:16px;margin:24px 0 0;
+  }
+  .votes{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+  .vote{
+    font-family:var(--mono);font-size:12.5px;padding:5px 11px;border-radius:4px;
+    border:1px solid var(--line2);color:var(--txt2);background:#151930;
+    opacity:0;transform:scale(.9);
+    transition:opacity .3s,transform .3s cubic-bezier(.2,.9,.3,1.3),border-color .35s,color .35s,background .35s;
+  }
+  .vote.show{opacity:1;transform:none}
+  .vote.mine{border-color:var(--amber);color:var(--amber2)}
+  .vote.win{background:rgba(95,214,164,.12);border-color:rgba(95,214,164,.5);color:var(--green)}
+  .vote.lose{opacity:.4;text-decoration:line-through}
+  .tallyline{font-size:14px;color:var(--txt2);min-height:2.6em}
+  .tallyline b{font-family:var(--mono);color:var(--green);font-size:16px}
+
+  /* ——— 數字 ——— */
+  .figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:26px 0 0}
+  .fig{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px 14px}
+  .fig .n{font-family:var(--mono);font-size:clamp(24px,5vw,32px);color:var(--amber);line-height:1.15}
+  .fig .l{font-size:13px;color:var(--txt2);margin-top:6px;line-height:1.6}
+
+  .kicker{margin:50px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;font-weight:600;
+          letter-spacing:-.01em;color:#f2f5ff}
+  .kicker span{display:block;opacity:0;transform:translateY(10px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:14px}
+  .kicker .dim{color:var(--txt2);font-weight:400;font-size:.82em}
+
+  footer{padding:40px 0 58px;border-top:1px solid var(--line);margin-top:66px;
+         font-size:12.5px;color:var(--txt3);line-height:1.9}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade,.clip,.vote,.kicker span{opacity:1;transform:none}
+    *{transition-duration:.01ms !important;animation-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- 扭曲濾鏡：只放定義，不顯示 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="warpA" x="-20%" y="-40%" width="140%" height="180%" filterUnits="objectBoundingBox">
+      <feTurbulence type="fractalNoise" baseFrequency="0.022 0.055" numOctaves="2" seed="11" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="7" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="warpB" x="-20%" y="-40%" width="140%" height="180%" filterUnits="objectBoundingBox">
+      <feTurbulence type="fractalNoise" baseFrequency="0.03 0.07" numOctaves="3" seed="29" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="10" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="wrap">
+    <p class="chap fade" id="h0">你做過這件事幾千次了</p>
+    <h1 class="fade" id="h1">請輸入下面<br>看到的兩個字。</h1>
+    <p class="fade" id="h2">每次註冊、每次留言、每次搶票。歪歪扭扭的兩個字，十秒鐘，你都不會多想。</p>
+    <p class="fade quiet" id="h3">這一頁，只是想請你再做三次。然後告訴你，那十秒鐘你其實在做什麼。</p>
+    <div class="nextrow fade" id="h4">
+      <button class="btn" id="go1">好，來吧</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：三題 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　驗證</p>
+    <h2 id="t1">三題。跟你平常做的一模一樣。</h2>
+    <p id="taskLine">兩個字都要填。填錯就過不了。</p>
+
+    <div class="widget" id="widget">
+      <div class="wtop"><span>安全驗證</span><span id="wcount">第 1 / 3 題</span></div>
+      <div class="words">
+        <div class="word" id="wordA"><span class="wtag">控制字</span><span class="glow"></span></div>
+        <div class="word unknown" id="wordB"><span class="wtag">未知字</span><span class="glow"></span></div>
+      </div>
+      <div class="inrow">
+        <input id="inA" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+               aria-label="左邊那個字" placeholder="左邊那個字">
+        <input id="inB" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+               aria-label="右邊那個字" placeholder="右邊那個字">
+      </div>
+      <p class="wsub" id="wsub">兩個都填，然後按下面。</p>
+      <button class="wbtn" id="submitBtn">送出</button>
+      <div class="dots" id="dots"><span class="now"></span><span></span><span></span></div>
+    </div>
+
+    <p class="quiet" id="afterQuiz" hidden style="margin-top:26px">三題都過了。你花了不到一分鐘。</p>
+    <div class="nextrow" id="row1" hidden>
+      <button class="btn" id="go2">那，剛剛發生了什麼事？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：只有一個字被檢查 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　真相</p>
+    <h2 id="t2">你打了六個字。只有三個被檢查。</h2>
+    <p>每一題的兩個字，來歷完全不同：</p>
+    <p><strong>左邊那個</strong>，是系統早就知道答案的字。它唯一的任務是確認你是人。</p>
+    <p><strong>右邊那個</strong>，是從一份老報紙掃描下來、<em>OCR 讀不出來</em>的字。系統不知道它是什麼——所以你打什麼，它都讓你過。</p>
+
+    <div class="pull">
+      你以為那十秒鐘在證明自己是人。<br>
+      有一半的時間，你在替一份一百年前的報紙打字。
+    </div>
+
+    <p>不信的話，你剛剛第三題的右邊，我請你<strong>故意亂打</strong>。你還是過了。</p>
+    <p class="quiet">下面是你剛剛交出去的三個未知字，還有它們的出處。</p>
+
+    <div class="clips" id="clips"></div>
+
+    <div class="nextrow">
+      <button class="btn" id="go3">那亂打的人怎麼辦？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：票箱 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　開票</p>
+    <h2 id="t3">同一個字，會發給很多人。</h2>
+    <p>一個未知字不會只問你一個人。它會被發出去很多次，收回來一堆答案，然後<strong>看誰的票多</strong>。</p>
+    <p>這是你第三題那個字的票箱——九個陌生人，加上你。</p>
+
+    <div class="ballot">
+      <div class="votes" id="votes"></div>
+      <p class="tallyline" id="tally">按下開票，看看誰說了算。</p>
+    </div>
+    <div class="nextrow">
+      <button class="btn" id="countBtn">開票</button>
+    </div>
+
+    <p style="margin-top:34px" id="ballotAfter" hidden>
+      你那一票被丟掉了，而且沒有人需要知道是你丟的。一個人亂打不會怎樣；一個人認真打，就替所有人省下一秒。
+      這套機制還會偷偷把「已經有共識的字」當成控制字再發一次，用來抓那些每次都亂打的機器人。
+    </p>
+    <div class="nextrow" id="row3" hidden>
+      <button class="btn" id="go4">那總共讀了多少？</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四：規模 ══════════ -->
+<section class="act tinted" id="act4" hidden aria-labelledby="t4">
+  <div class="wrap">
+    <p class="chap">四　規模</p>
+    <h2 id="t4">全世界的十秒鐘加起來，是這個數字。</h2>
+    <p>這套做法叫 reCAPTCHA，2007 年由卡內基美隆大學的 Luis von Ahn 團隊做出來，2008 年發表在《Science》上。</p>
+
+    <div class="figs">
+      <div class="fig"><div class="n">40,000+</div><div class="l">當年裝了它的網站數</div></div>
+      <div class="fig"><div class="n">4.4 億</div><div class="l">被人類讀出來的字</div></div>
+      <div class="fig"><div class="n">1,300 萬</div><div class="l">《紐約時報》1851 年以來的文章篇數</div></div>
+      <div class="fig"><div class="n">＜ 12 個月</div><div class="l">整套檔案被讀完花的時間</div></div>
+    </div>
+
+    <p style="margin-top:30px">機器讀不出來的那些字——墨水暈開的、紙張泛黃的、鉛字缺角的——最後是被幾億個「只是想登入一下」的人，一個字一個字補完的。</p>
+    <p class="quiet">2009 年，Google 把 reCAPTCHA 買了下來，接著拿它去讀 Google Books 的舊書與街景照片裡的門牌號碼。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="go5">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 五：現在 ══════════ -->
+<section class="act" id="act5" hidden aria-labelledby="t5">
+  <div class="wrap">
+    <p class="chap">五　現在</p>
+    <h2 id="t5">現在你已經很久沒打過那兩個字了。</h2>
+    <p>取而代之的是一個方框：<strong>「我不是機器人」</strong>。你打勾，它就過了。</p>
+    <p>它不再看你打了什麼字。它看的是你的滑鼠怎麼移過來、你在哪一格停了多久、你這個瀏覽器過去幾天去過哪裡。</p>
+    <p class="quiet">再後來，連方框都不見了。它在背景默默看著你，你什麼都不用做。</p>
+
+    <div class="kicker" id="kicker">
+      <span>它從來沒有停止跟你要東西。</span>
+      <span class="dim">以前跟你要的，是你眼睛認得出、機器認不出的那個字。</span>
+      <span class="dim">現在跟你要的，是你怎麼動、怎麼停、怎麼猶豫。</span>
+      <span>那十秒鐘從來不是浪費——只是你一直不知道自己付了什麼。</span>
+    </div>
+
+    <footer>
+      來源：von Ahn 等人〈reCAPTCHA: Human-Based Character Recognition via Web Security Measures〉（Science, 2008）。
+      題目中的報紙日期與字詞為示意重建，完整出處與方法論寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  function say(m){ $('srLive').textContent = m; }
+  function scrollTo(el){
+    try{ el.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); }catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id){
+    var s = $(id);
+    if (s.hidden){ s.hidden = false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ scrollTo(s); }); }); }
+    else scrollTo(s);
+  }
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  /* 把一個字畫成扭曲、歪斜、粗細不勻的樣子 */
+  function wordSvg(text, opts){
+    var svg = document.createElementNS(SVGNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 220 64');
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', opts.alt || ('一個被扭曲的字：' + text));
+    var g = document.createElementNS(SVGNS, 'g');
+    g.setAttribute('filter', 'url(#' + opts.filter + ')');
+    var n = text.length;
+    var step = 200 / Math.max(n, 1);
+    var x = 10 + step * 0.5;
+    for (var i = 0; i < n; i++){
+      var t = document.createElementNS(SVGNS, 'text');
+      var rot = (opts.rot[i % opts.rot.length]);
+      var dy = (opts.dy[i % opts.dy.length]);
+      var sz = opts.size + (opts.sz[i % opts.sz.length]);
+      t.setAttribute('x', '0');
+      t.setAttribute('y', '0');
+      t.setAttribute('font-family', 'Georgia, "Times New Roman", serif');
+      t.setAttribute('font-size', String(sz));
+      t.setAttribute('fill', opts.ink);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('transform', 'translate(' + x.toFixed(1) + ',' + (40 + dy).toFixed(1) + ') rotate(' + rot + ')');
+      t.textContent = text[i];
+      g.appendChild(t);
+      x += step;
+    }
+    svg.appendChild(g);
+    return svg;
+  }
+
+  var STYLE_A = { filter:'warpA', size:30, ink:'#20232e',
+                  rot:[-7,4,-3,8,-5,2,6,-4], dy:[2,-3,4,-1,3,-4,1,0], sz:[0,2,-2,1,3,-1,0,2] };
+  var STYLE_B = { filter:'warpB', size:29, ink:'#35301f',
+                  rot:[5,-8,3,-2,7,-5,2,-6,4], dy:[-3,4,-1,3,-4,2,0,3,-2], sz:[1,-2,3,0,-1,2,-3,1,0] };
+
+  /* ——— 第一屏進場 ——— */
+  var seq = ['h0','h1','h2','h3','h4'];
+  if (reduce) seq.forEach(function(id){ $(id).classList.add('in'); });
+  else seq.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add('in'); }, 250 + i*520); });
+
+  /* ══════════ 一：三題 ══════════ */
+  var qi = 0, answers = [], sawJunkPrompt = false;
+  var wordA = $('wordA'), wordB = $('wordB'), inA = $('inA'), inB = $('inB');
+  var wsub = $('wsub'), submitBtn = $('submitBtn');
+
+  function paintQuestion(){
+    var p = PUZZLES[qi];
+    wordA.querySelectorAll('svg').forEach(function(s){ s.remove(); });
+    wordB.querySelectorAll('svg').forEach(function(s){ s.remove(); });
+    wordA.insertBefore(wordSvg(p.control, STYLE_A), wordA.firstChild);
+    wordB.insertBefore(wordSvg(p.unknown, STYLE_B), wordB.firstChild);
+    inA.value = ''; inB.value = '';
+    inA.className = ''; inB.className = '';
+    $('wcount').textContent = '第 ' + (qi + 1) + ' / 3 題';
+    Array.prototype.forEach.call($('dots').children, function(d, i){
+      d.className = i < qi ? 'done' : (i === qi ? 'now' : '');
+    });
+    if (qi === 2){
+      sawJunkPrompt = true;
+      wsub.className = 'wsub';
+      wsub.innerHTML = '最後一題。左邊照實填，<strong>右邊請你故意亂打</strong>——隨便敲幾個字母就好。';
+      $('taskLine').textContent = '最後一題有個小實驗，看下面的說明。';
+    } else {
+      wsub.className = 'wsub';
+      wsub.textContent = '兩個都填，然後按下面。';
+    }
+    submitBtn.disabled = false;
+    inA.focus({ preventScroll: true });
+  }
+
+  submitBtn.addEventListener('click', function(){
+    var p = PUZZLES[qi];
+    var a = inA.value, b = inB.value;
+    if (!normalize(a) || !normalize(b)){
+      wsub.className = 'wsub bad';
+      wsub.textContent = '兩格都要填喔。';
+      say('兩格都要填。');
+      return;
+    }
+    if (!checkControl(a, p.control)){
+      inA.className = 'bad';
+      wsub.className = 'wsub bad';
+      wsub.textContent = '左邊那個字不對。再看一次——它是「' + p.control + '」。';
+      say('左邊那個字不對。');
+      return;
+    }
+    inA.className = 'ok';
+    inB.className = 'ok';                     /* 不管打什麼都「通過」 */
+    answers.push({ control: a, unknown: b, puzzle: p });
+    wsub.className = 'wsub ok';
+    wsub.textContent = '通過。';
+    say('第 ' + (qi + 1) + ' 題通過。');
+    submitBtn.disabled = true;
+    var delay = reduce ? 0 : 620;
+    setTimeout(function(){
+      qi++;
+      if (qi < PUZZLES.length){ paintQuestion(); return; }
+      Array.prototype.forEach.call($('dots').children, function(d){ d.className = 'done'; });
+      $('wcount').textContent = '全部通過';
+      wsub.className = 'wsub ok';
+      wsub.textContent = '三題全過。';
+      $('afterQuiz').hidden = false;
+      $('row1').hidden = false;
+      say('三題全部通過。');
+    }, delay);
+  });
+
+  [inA, inB].forEach(function(el){
+    el.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' && !submitBtn.disabled){ e.preventDefault(); submitBtn.click(); }
+    });
+  });
+
+  $('go1').addEventListener('click', function(){ reveal('act1'); if (!answers.length && qi === 0) paintQuestion(); });
+  $('go2').addEventListener('click', function(){ reveal('act2'); buildClips(); });
+
+  /* ══════════ 二：剪報 ══════════ */
+  var clipsDone = false;
+  function buildClips(){
+    if (clipsDone) return;
+    clipsDone = true;
+    var box = $('clips');
+    answers.forEach(function(ans, i){
+      var d = document.createElement('div');
+      var junk = normalize(ans.unknown) !== normalize(ans.puzzle.unknown);
+      d.className = 'clip' + (junk ? ' junk' : '');
+      var img = document.createElement('div');
+      img.className = 'cimg';
+      img.appendChild(wordSvg(ans.puzzle.unknown, STYLE_B));
+      d.appendChild(img);
+      var meta = document.createElement('div');
+      meta.className = 'cmeta';
+      var src = document.createElement('div');
+      src.className = 'csrc';
+      src.textContent = ans.puzzle.source;
+      meta.appendChild(src);
+      var you = document.createElement('div');
+      you.className = 'cyou';
+      you.textContent = '你交出去的：' + ans.unknown;
+      meta.appendChild(you);
+      var note = document.createElement('div');
+      note.className = 'cnote';
+      note.textContent = junk
+        ? '沒有被檢查，照樣讓你過關。'
+        : '沒有被檢查——系統本來就不知道答案。';
+      meta.appendChild(note);
+      d.appendChild(meta);
+      box.appendChild(d);
+      if (reduce) d.classList.add('in');
+      else setTimeout(function(){ d.classList.add('in'); }, 200 + i * 260);
+    });
+  }
+
+  $('go3').addEventListener('click', function(){ reveal('act3'); buildVotes(); });
+
+  /* ══════════ 三：票箱 ══════════ */
+  var voteEls = [], myAnswer = '', crowdList = [], counted = false, votesBuilt = false;
+  function buildVotes(){
+    if (votesBuilt) return;
+    votesBuilt = true;
+    var last = answers[answers.length - 1];
+    myAnswer = last ? last.unknown : 'xxxx';
+    crowdList = last.puzzle.crowd.slice();
+    var box = $('votes');
+    var all = crowdList.concat([myAnswer]);
+    all.forEach(function(v, i){
+      var s = document.createElement('span');
+      s.className = 'vote' + (i === all.length - 1 ? ' mine' : '');
+      s.textContent = (i === all.length - 1 ? '你：' : '') + v;
+      box.appendChild(s);
+      voteEls.push(s);
+      if (reduce) s.classList.add('show');
+      else setTimeout(function(){ s.classList.add('show'); }, 120 + i * 70);
+    });
+  }
+
+  $('countBtn').addEventListener('click', function(){
+    if (counted) return;
+    counted = true;
+    var all = crowdList.concat([myAnswer]);
+    var res = consensus(all);
+    voteEls.forEach(function(el, i){
+      var ok = accepted(all[i], res);
+      var apply = function(){ el.classList.add(ok ? 'win' : 'lose'); };
+      if (reduce) apply(); else setTimeout(apply, 120 + i * 80);
+    });
+    var mineOk = accepted(myAnswer, res);
+    var done = function(){
+      $('tally').innerHTML = '十票裡有 <b>' + res.votes + '</b> 票說它是 <b>' + res.word + '</b>。'
+        + '這個字就這樣被讀出來了'
+        + (mineOk ? '，而且你也投中了。' : '——你那一票，被丟掉了。');
+      $('ballotAfter').hidden = false;
+      $('row3').hidden = false;
+      $('countBtn').disabled = true;
+      say('開票結果：' + res.word + '，' + res.votes + ' 票。');
+    };
+    if (reduce) done(); else setTimeout(done, 120 + all.length * 80 + 300);
+  });
+
+  $('go4').addEventListener('click', function(){ reveal('act4'); });
+  $('go5').addEventListener('click', function(){ reveal('act5'); startKicker(); });
+
+  var kickDone = false;
+  function startKicker(){
+    if (kickDone) return; kickDone = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      if (!en[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){ setTimeout(function(){ s.classList.add('in'); }, i * 900); });
+    }, { threshold: .3 });
+    io.observe($('kicker'));
+  }
+})();
+</script>
+</body>
+</html>

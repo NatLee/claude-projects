@@ -325,55 +325,114 @@
     var p = faceParams(vec);
     svg.innerHTML = '';
     var skin = hsl(p.skinH, p.skinS, p.skinL);
-    var skinDark = hsl(p.skinH, p.skinS, Math.max(20, p.skinL - 24));
+    var skinLine = hsl(p.skinH, p.skinS + 4, Math.max(24, p.skinL - 22));
+    var skinShade = hsl(p.skinH, p.skinS, Math.max(30, p.skinL - 10));
     var hair = hsl(p.hairH, p.hairS, p.hairL);
+    var hairDark = hsl(p.hairH, p.hairS + 6, Math.max(8, p.hairL - 14));
+    var shirt = hsl((p.hairH + 168) % 360, 34, 62);
+    var rx = p.faceRx, ry = p.faceRy, puff = p.hairPuff;
 
-    /* 頭髮（後層）：一圈蓬起的圓 */
-    var g = el('g', {});
-    for (var i = 0; i < 7; i++){
-      var ang = Math.PI * (0.15 + 0.7 * i / 6) + Math.PI;   /* 上半圈 */
-      var hx = Math.cos(ang) * (p.faceRx * 0.9);
-      var hy = Math.sin(ang) * (p.faceRy * 0.9) - 8;
-      g.appendChild(el('circle', { cx: hx, cy: hy, r: 22 + p.hairPuff, fill: hair }));
-    }
-    svg.appendChild(g);
-    /* 臉 */
-    svg.appendChild(el('ellipse', { cx: 0, cy: 0, rx: p.faceRx, ry: p.faceRy, fill: skin, stroke: skinDark, 'stroke-width': 2.5 }));
-    /* 瀏海 */
-    svg.appendChild(el('path', {
-      d: 'M ' + (-p.faceRx * 0.94) + ' ' + (-p.faceRy * 0.32) +
-         ' Q 0 ' + (-p.faceRy - p.hairPuff * 0.5) + ' ' + (p.faceRx * 0.94) + ' ' + (-p.faceRy * 0.32) +
-         ' Q ' + (p.faceRx * 0.5) + ' ' + (-p.faceRy * 0.62) + ' 0 ' + (-p.faceRy * 0.58) +
-         ' Q ' + (-p.faceRx * 0.5) + ' ' + (-p.faceRy * 0.62) + ' ' + (-p.faceRx * 0.94) + ' ' + (-p.faceRy * 0.32) + ' Z',
-      fill: hair
+    /* 後層頭髮：最底層，一整片圓潤的髮量，蓬度撐大它 */
+    svg.appendChild(el('ellipse', {
+      cx: 0, cy: -6, rx: rx + 12 + puff * 0.75, ry: ry + 10 + puff * 0.6, fill: hair
     }));
-    /* 眼睛 */
+
+    /* 肩膀與脖子（疊在後髮上面，脖子才看得見）；
+       下巴最低到 y=88，肩線壓到 y=103 才不會把脖子吃掉 */
+    svg.appendChild(el('path', {
+      d: 'M -82 130 Q -78 106 -38 103 L 38 103 Q 78 106 82 130 Z',
+      fill: shirt
+    }));
+    svg.appendChild(el('rect', { x: -16, y: 60, width: 32, height: 48, rx: 13, fill: skinShade }));
+    /* 兩側垂下的髮絡：貼著臉頰外側，別垂到脖子上 */
     [-1, 1].forEach(function(s){
-      svg.appendChild(el('circle', { cx: s * p.eyeDx, cy: p.eyeY, r: p.eyeR, fill: '#241f1a' }));
-      svg.appendChild(el('circle', { cx: s * p.eyeDx + p.eyeR * 0.3, cy: p.eyeY - p.eyeR * 0.3, r: Math.max(1.1, p.eyeR * 0.26), fill: '#fff' }));
-      /* 眉毛 */
-      var bx = s * p.eyeDx, by = p.browY;
-      var tilt = s * p.browTilt;
-      svg.appendChild(el('line', {
-        x1: bx - 13, y1: by + tilt * 0.5, x2: bx + 13, y2: by - tilt * 0.5,
-        stroke: hair, 'stroke-width': 4.6, 'stroke-linecap': 'round'
+      svg.appendChild(el('path', {
+        d: 'M ' + (s * (rx + 6 + puff * 0.5)) + ' -20' +
+           ' Q ' + (s * (rx + 13 + puff * 0.65)) + ' 26 ' + (s * (rx + 1 + puff * 0.25)) + ' ' + (50 + puff * 0.35) +
+           ' Q ' + (s * (rx - 13)) + ' 36 ' + (s * (rx - 11)) + ' 4 Z',
+        fill: hair
       }));
     });
-    /* 鼻子 */
+
+    /* 耳朵 */
+    [-1, 1].forEach(function(s){
+      svg.appendChild(el('ellipse', {
+        cx: s * (rx - 1), cy: 6, rx: 9, ry: 13, fill: skin, stroke: skinLine, 'stroke-width': 2
+      }));
+    });
+
+    /* 臉 */
+    svg.appendChild(el('ellipse', { cx: 0, cy: 0, rx: rx, ry: ry, fill: skin, stroke: skinLine, 'stroke-width': 2.2 }));
+
+    /* 瀏海：外緣圓弧＋三片柔和的內緣弧 */
+    var hb = -ry * 0.30;                        /* 瀏海下緣基準 */
+    /* 想要的外緣最高點；三次貝茲的頂點只到控制點的 3/4 高，所以控制點要再拉高 */
+    var apex = -(ry + 8 + puff * 0.55);
+    var top = hb + (apex - hb) * (4 / 3);
     svg.appendChild(el('path', {
-      d: 'M 0 2 q 4 ' + p.noseLen * 0.6 + ' 0 ' + p.noseLen,
-      stroke: skinDark, 'stroke-width': 2.6, fill: 'none', 'stroke-linecap': 'round'
+      d: 'M ' + (-rx * 0.99) + ' ' + hb +
+         ' C ' + (-rx * 1.04) + ' ' + top + ' ' + (rx * 1.04) + ' ' + top + ' ' + (rx * 0.99) + ' ' + hb +
+         ' Q ' + (rx * 0.72) + ' ' + (hb - ry * 0.16) + ' ' + (rx * 0.44) + ' ' + (hb - ry * 0.04) +
+         ' Q ' + (rx * 0.20) + ' ' + (hb - ry * 0.30) + ' ' + (-rx * 0.10) + ' ' + (hb - ry * 0.10) +
+         ' Q ' + (-rx * 0.44) + ' ' + (hb - ry * 0.32) + ' ' + (-rx * 0.70) + ' ' + (hb - ry * 0.05) +
+         ' Q ' + (-rx * 0.88) + ' ' + (hb - ry * 0.14) + ' ' + (-rx * 0.99) + ' ' + hb + ' Z',
+      fill: hair
     }));
-    /* 嘴 */
+
+    /* 眼睛：眼白 → 虹膜 → 瞳孔 → 高光，上眼線收個尾 */
+    var irisCol = hsl((p.hairH + 6) % 360, 42, Math.max(22, p.hairL - 6));
+    [-1, 1].forEach(function(s){
+      var exx = s * p.eyeDx, eyy = p.eyeY;
+      svg.appendChild(el('ellipse', { cx: exx, cy: eyy, rx: p.eyeR * 1.32, ry: p.eyeR * 1.08, fill: '#fff' }));
+      svg.appendChild(el('circle', { cx: exx, cy: eyy, r: p.eyeR * 0.78, fill: irisCol }));
+      svg.appendChild(el('circle', { cx: exx, cy: eyy, r: p.eyeR * 0.38, fill: '#20191a' }));
+      svg.appendChild(el('circle', { cx: exx + p.eyeR * 0.32, cy: eyy - p.eyeR * 0.34, r: Math.max(1.2, p.eyeR * 0.2), fill: '#fff', opacity: .95 }));
+      /* 上眼線 */
+      svg.appendChild(el('path', {
+        d: 'M ' + (exx - p.eyeR * 1.32) + ' ' + eyy +
+           ' Q ' + exx + ' ' + (eyy - p.eyeR * 1.5) + ' ' + (exx + p.eyeR * 1.32) + ' ' + eyy,
+        stroke: '#2b2320', 'stroke-width': 1.8, fill: 'none', 'stroke-linecap': 'round', opacity: .75
+      }));
+      /* 眉毛：柔和的弧線，粗細適中 */
+      var bx = exx, by = p.browY - 2;
+      var tilt = s * p.browTilt;
+      svg.appendChild(el('path', {
+        d: 'M ' + (bx - 13) + ' ' + (by + tilt * 0.55) +
+           ' Q ' + bx + ' ' + (by - 5 - Math.abs(p.browTilt) * 0.2) + ' ' + (bx + 13) + ' ' + (by - tilt * 0.55),
+        stroke: hairDark, 'stroke-width': 3.4, fill: 'none', 'stroke-linecap': 'round'
+      }));
+    });
+
+    /* 鼻子：一小段柔和的弧 */
     svg.appendChild(el('path', {
-      d: 'M ' + (-p.mouthW / 2) + ' ' + p.mouthY + ' Q 0 ' + (p.mouthY + p.mouthCurve) + ' ' + (p.mouthW / 2) + ' ' + p.mouthY,
-      stroke: '#a3402a', 'stroke-width': 4, fill: 'none', 'stroke-linecap': 'round'
+      d: 'M 1.5 ' + (p.noseLen * 0.1) + ' q 3.5 ' + (p.noseLen * 0.55) + ' -1.5 ' + p.noseLen,
+      stroke: skinLine, 'stroke-width': 2.2, fill: 'none', 'stroke-linecap': 'round', opacity: .85
     }));
+
+    /* 嘴：微笑時帶一點開口的下唇 */
+    var mw = p.mouthW / 2, my = p.mouthY, mc = p.mouthCurve;
+    if (mc > 5){
+      svg.appendChild(el('path', {
+        d: 'M ' + (-mw) + ' ' + my + ' Q 0 ' + (my + mc * 1.15) + ' ' + mw + ' ' + my +
+           ' Q 0 ' + (my + mc * 0.5) + ' ' + (-mw) + ' ' + my + ' Z',
+        fill: '#c25a44'
+      }));
+      svg.appendChild(el('path', {
+        d: 'M ' + (-mw * 0.55) + ' ' + (my + mc * 0.62) + ' Q 0 ' + (my + mc * 0.95) + ' ' + (mw * 0.55) + ' ' + (my + mc * 0.62),
+        fill: '#e8907c', opacity: .8
+      }));
+    } else {
+      svg.appendChild(el('path', {
+        d: 'M ' + (-mw) + ' ' + my + ' Q 0 ' + (my + mc) + ' ' + mw + ' ' + my,
+        stroke: '#b0503a', 'stroke-width': 3.4, fill: 'none', 'stroke-linecap': 'round'
+      }));
+    }
+
     /* 腮紅 */
     [-1, 1].forEach(function(s){
       svg.appendChild(el('ellipse', {
-        cx: s * (p.eyeDx + 12), cy: 16, rx: 9, ry: 5.5,
-        fill: hsl(8, 70, 78), opacity: .5
+        cx: s * (p.eyeDx + 13), cy: 17, rx: 9.5, ry: 5.5,
+        fill: hsl(8, 72, 76), opacity: .42
       }));
     });
   }

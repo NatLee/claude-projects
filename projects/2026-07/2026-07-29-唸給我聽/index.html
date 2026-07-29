@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>唸給我聽 —— 1976 年，一台機器第一次讀出一頁書</title>
+<style>
+  :root{
+    --bg:#0b0907;
+    --bg2:#141010;
+    --panel:#191412;
+    --panel2:#221a17;
+    --line:#332823;
+    --line2:#4b3a32;
+    --txt:#ddd2c6;
+    --txt2:#9a8c80;
+    --txt3:#6d6259;
+    --amber:#f2a83c;
+    --amber2:#ffc978;
+    --amber-dim:#8a5f21;
+    --paper:#efe6d2;
+    --paper2:#e2d7bd;
+    --ink:#241d15;
+    --mono:ui-monospace,"SFMono-Regular","JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC","Courier New",monospace;
+    --serif:Georgia,"Times New Roman",serif;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+    line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--amber);color:#1c1206}
+
+  .home{
+    position:fixed;left:14px;top:12px;z-index:80;
+    color:var(--txt2);text-decoration:none;font-size:13px;
+    padding:6px 12px;border-radius:999px;
+    background:rgba(11,9,7,.78);border:1px solid var(--line);
+    backdrop-filter:blur(6px);transition:color .2s,border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--amber);border-color:var(--amber-dim)}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .wrap{max-width:760px;margin:0 auto;padding:0 22px}
+
+  h2{font-size:clamp(23px,4.4vw,34px);line-height:1.35;margin:0 0 20px;font-weight:700;
+     letter-spacing:-.01em;color:#f3ece1}
+  p{margin:0 0 18px;font-size:clamp(15.5px,2.5vw,17px)}
+  p.quiet{color:var(--txt2)}
+  p.small{font-size:13.5px;color:var(--txt2);line-height:1.8}
+  strong{color:#f6efe4;font-weight:600}
+  em{font-style:normal;color:var(--amber2);font-weight:600}
+  .chap{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--txt3);margin:0 0 14px}
+
+  .btn{
+    font-family:inherit;font-size:15px;font-weight:600;color:#1c1206;background:var(--amber);
+    border:0;border-radius:6px;padding:13px 26px;cursor:pointer;
+    transition:transform .18s cubic-bezier(.2,.9,.3,1.2),box-shadow .22s,opacity .2s;
+  }
+  .btn:hover{transform:translateY(-2px);box-shadow:0 8px 26px -8px rgba(242,168,60,.55)}
+  .btn:active{transform:translateY(0) scale(.98)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line2);font-weight:500}
+  .btn.ghost:hover{border-color:var(--amber-dim);color:var(--amber);box-shadow:none}
+  .btn.sm{padding:10px 20px;font-size:14px}
+  .btn:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+  .btn .hint{font-weight:400;opacity:.72;font-size:.86em;margin-left:6px}
+  .nextrow{margin-top:30px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{min-height:100svh;display:flex;align-items:center;padding:92px 0 70px;
+        background:radial-gradient(105% 75% at 50% 46%,#1a1310 0%,#0e0b09 55%,#070505 100%)}
+  .hook h1{font-size:clamp(30px,7vw,56px);line-height:1.26;margin:0 0 28px;
+           font-weight:700;letter-spacing:-.02em;color:#f6efe4}
+  .hook p{max-width:30em}
+  .fade{opacity:0;transform:translateY(12px)}
+  .fade.in{opacity:1;transform:none;transition:opacity .9s ease,transform .9s cubic-bezier(.2,.8,.3,1)}
+
+  /* ══════════ 章節 ══════════ */
+  .act{padding:clamp(66px,12vh,116px) 0;border-top:1px solid var(--line)}
+  .act.tinted{background:linear-gradient(180deg,var(--bg) 0%,#120e0c 45%,var(--bg) 100%)}
+
+  .pull{
+    margin:32px 0;padding:22px 24px;border-left:2px solid var(--amber-dim);
+    background:linear-gradient(180deg,rgba(242,168,60,.06),rgba(242,168,60,0));
+    font-size:clamp(17px,3.1vw,21px);line-height:1.7;color:#f3ece1;
+  }
+
+  /* ——— 閱讀機 ——— */
+  .machine{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    overflow:hidden;margin:26px 0 0;box-shadow:0 30px 70px -42px #000;
+  }
+  .mhead{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--txt2);
+  }
+  .lamp{display:inline-block;width:7px;height:7px;border-radius:50%;
+        background:var(--line2);margin-right:8px;vertical-align:middle;transition:background .3s,box-shadow .3s}
+  .lamp.on{background:var(--amber);box-shadow:0 0 10px 1px rgba(242,168,60,.6)}
+
+  /* 書頁 */
+  .page{
+    position:relative;background:linear-gradient(178deg,var(--paper),var(--paper2));
+    color:var(--ink);padding:30px 20px;overflow:hidden;
+  }
+  .page .line{
+    font-family:var(--serif);font-size:clamp(15px,3.3vw,23px);line-height:1.6;
+    letter-spacing:.01em;white-space:pre-wrap;word-break:break-word;margin:0;
+  }
+  .page .line span{transition:color .25s,background-color .25s}
+  .page .line span.done{color:#7d6b4e}
+  .page .line span.now{background:rgba(242,168,60,.55);color:#1c1206;border-radius:2px}
+  .page .cap{
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:#8d7f63;
+    margin:14px 0 0;
+  }
+  .scanbar{
+    position:absolute;top:0;bottom:0;width:3px;left:0;
+    background:linear-gradient(180deg,rgba(242,168,60,0),rgba(242,168,60,.95),rgba(242,168,60,0));
+    box-shadow:0 0 22px 5px rgba(242,168,60,.35);
+    opacity:0;transform:translateX(0);
+  }
+  .scanbar.on{opacity:1}
+
+  /* 下半：放大鏡 ＋ 輸出 */
+  .mbody{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0;border-top:1px solid var(--line)}
+  @media(max-width:620px){ .mbody{grid-template-columns:1fr} }
+  .lens{
+    padding:14px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;
+    border-right:1px solid var(--line);justify-content:center;
+  }
+  @media(max-width:620px){ .lens{border-right:0;border-bottom:1px solid var(--line)} }
+  .lens .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--txt3)}
+  .dot{
+    display:grid;gap:1px;width:min(116px,34vw);aspect-ratio:12 / 16;
+    background:#0d0a09;padding:5px;border-radius:3px;border:1px solid var(--line);
+  }
+  .dot i{display:block;min-width:0;aspect-ratio:1;background:#1c1614;border-radius:1px;
+         transition:background-color .12s linear}
+  .dot i.on{background:var(--amber2)}
+  .lens .glyph{
+    font-family:var(--mono);font-size:26px;color:var(--amber);min-height:1.2em;line-height:1.2;
+  }
+
+  .out{padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .out .cap{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--txt3)}
+  .tape{
+    font-family:var(--mono);font-size:clamp(13px,2.6vw,16px);line-height:1.9;
+    background:#0d0a09;border:1px solid var(--line);border-radius:4px;
+    padding:12px;min-height:5.4em;color:var(--amber2);word-break:break-word;
+    white-space:pre-wrap;
+  }
+  .tape .caret{
+    display:inline-block;width:.55em;height:1em;background:var(--amber);
+    vertical-align:-.14em;animation:blink 1.05s steps(1) infinite;
+  }
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+  .speaking{
+    display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt2);min-height:1.8em;
+  }
+  .bars{display:flex;align-items:flex-end;gap:3px;height:16px}
+  .bars i{display:block;width:3px;height:4px;background:var(--amber-dim);border-radius:1px;
+          transform-origin:bottom center}
+  .bars.on i{animation:vu .7s ease-in-out infinite}
+  .bars.on i:nth-child(2){animation-delay:.11s}
+  .bars.on i:nth-child(3){animation-delay:.22s}
+  .bars.on i:nth-child(4){animation-delay:.06s}
+  .bars.on i:nth-child(5){animation-delay:.17s}
+  @keyframes vu{0%,100%{transform:scaleY(1)}50%{transform:scaleY(3.4)}}
+
+  .mfoot{
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    padding:13px 15px;border-top:1px solid var(--line);background:var(--panel2);
+  }
+
+  /* ——— 事實卡 ——— */
+  .facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:13px;margin:24px 0 0}
+  .fact{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:15px 14px}
+  .fact .n{font-family:var(--mono);font-size:clamp(21px,4.4vw,27px);color:var(--amber);line-height:1.2}
+  .fact .l{font-size:12.5px;color:var(--txt2);margin-top:6px;line-height:1.6}
+
+  .kicker{margin:48px 0 0;font-size:clamp(19px,3.6vw,26px);line-height:1.6;font-weight:600;
+          letter-spacing:-.01em;color:#f6efe4}
+  .kicker span{display:block;opacity:0;transform:translateY(10px)}
+  .kicker span.in{opacity:1;transform:none;transition:opacity .8s ease,transform .8s cubic-bezier(.2,.8,.3,1)}
+  .kicker span+span{margin-top:14px}
+  .kicker .dim{color:var(--txt2);font-weight:400;font-size:.82em}
+
+  footer{padding:40px 0 58px;border-top:1px solid var(--line);margin-top:66px;
+         font-size:12.5px;color:var(--txt3);line-height:1.9}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade,.kicker span{opacity:1;transform:none}
+    .tape .caret{animation:none}
+    .bars.on i{animation:none;height:9px}
+    *{transition-duration:.01ms !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<p class="sr" role="status" aria-live="polite" id="srLive"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hook">
+  <div class="wrap">
+    <h1 class="fade" id="h1">假設你看不見。</h1>
+    <p class="fade" id="h2">有人遞給你一本書。你能拿到的，只有它的重量。</p>
+    <p class="fade" id="h3">在那個年代，要知道裡面寫什麼，只有一個辦法：找一個看得見的人，坐下來，唸給你聽。</p>
+    <p class="fade quiet" id="h4">1976 年 1 月 13 日，這件事變了。</p>
+    <div class="nextrow fade" id="h5">
+      <button class="btn" id="go1">看看那天發生了什麼</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ 一：機器 ══════════ -->
+<section class="act" id="act1" hidden aria-labelledby="t1">
+  <div class="wrap">
+    <p class="chap">一　那台機器</p>
+    <h2 id="t1">一個洗衣機大小的東西，五萬美元。</h2>
+    <p>它裡面有三樣在那之前從沒被接在一起的東西：一台平台掃描器、一套<strong>不挑字體</strong>的文字辨識、一台語音合成器。</p>
+    <p>不挑字體這件事是關鍵。在那之前的機器只認得專門為它設計的字型；這台認得書店裡買得到的任何一本書。</p>
+    <p><strong>把書放上去，按下掃描。</strong></p>
+
+    <div class="machine">
+      <div class="mhead">
+        <span><span class="lamp" id="lamp"></span>KURZWEIL READING MACHINE</span>
+        <span id="mstate">待機</span>
+      </div>
+
+      <div class="page">
+        <div class="scanbar" id="scanbar"></div>
+        <p class="line" id="pageLine"></p>
+        <p class="cap" id="pageCap"></p>
+      </div>
+
+      <div class="mbody">
+        <div class="lens">
+          <span class="cap">辨識中</span>
+          <div class="dot" id="dot" aria-hidden="true"></div>
+          <span class="glyph" id="glyph">·</span>
+        </div>
+        <div class="out">
+          <span class="cap">輸出</span>
+          <div class="tape" id="tape" aria-live="off"><span class="caret"></span></div>
+          <div class="speaking">
+            <span class="bars" id="bars"><i></i><i></i><i></i><i></i><i></i></span>
+            <span id="spkMsg">尚未出聲</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mfoot">
+        <button class="btn" id="scanBtn">掃描這一行<span class="hint">會出聲</span></button>
+        <button class="btn ghost sm" id="againBtn" hidden>再唸一次</button>
+      </div>
+    </div>
+
+    <p class="small" id="ttsNote" style="margin-top:14px"></p>
+
+    <div class="nextrow" id="row1" hidden>
+      <button class="btn" id="go2">那天，它唸的是別的東西</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 二：那一晚 ══════════ -->
+<section class="act tinted" id="act2" hidden aria-labelledby="t2">
+  <div class="wrap">
+    <p class="chap">二　那一晚</p>
+    <h2 id="t2">1976 年 1 月 13 日，CBS 晚間新聞。</h2>
+    <p>那天三家全國電視網的晚間新聞都報了這台機器。而在 CBS，主播 Walter Cronkite 做了一件他從來沒做過的事。</p>
+    <p>他每晚結束新聞的那句話——<strong>「And that's the way it is」</strong>——是他的招牌。二十年來，他從沒讓任何人、任何東西替他說過。</p>
+    <p class="quiet">那一晚，他讓那台機器替他說了。</p>
+
+    <div class="nextrow">
+      <button class="btn" id="cronkiteBtn">把那一句放上掃描台<span class="hint">會出聲</span></button>
+    </div>
+
+    <div class="pull" id="cronkitePull" hidden>
+      那是他二十年裡，唯一一次讓別的聲音說出那句話。<br>
+      而那個聲音，來自一台當時連「機器會說話」都還讓人覺得詭異的東西。
+    </div>
+
+    <div class="nextrow" id="row2" hidden>
+      <button class="btn" id="go3">那天晚上還有一個人在看</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三：第一個顧客 ══════════ -->
+<section class="act" id="act3" hidden aria-labelledby="t3">
+  <div class="wrap">
+    <p class="chap">三　第一個顧客</p>
+    <h2 id="t3">那天晚上，Stevie Wonder 也在看電視。</h2>
+    <p>他從小失明。他聽到新聞裡說，有一台機器可以把任何一本印刷書唸出來。</p>
+    <p>他沒有等。他找到了那家公司，走進去，<em>當場買了一台</em>。</p>
+    <p class="quiet">他是 Kurzweil 閱讀機的第一個顧客。</p>
+
+    <div class="facts">
+      <div class="fact"><div class="n">1976 / 1 / 13</div><div class="l">發表日</div></div>
+      <div class="fact"><div class="n">5 萬美元</div><div class="l">當年的售價</div></div>
+      <div class="fact"><div class="n">洗衣機大小</div><div class="l">機身尺寸</div></div>
+      <div class="fact"><div class="n">第 1 位</div><div class="l">Stevie Wonder 是第一個顧客</div></div>
+    </div>
+
+    <p style="margin-top:30px">故事本來可以在這裡結束。但它拐了一個彎。</p>
+    <p>Stevie Wonder 和 Ray Kurzweil 成了三十年的朋友。有一天，Wonder 跟他抱怨了一件跟讀書完全無關的事：電子合成器很好用，但聲音永遠不像真的樂器；而真的樂器又沒辦法用電腦控制。</p>
+    <p>於是 Kurzweil 又做了一台機器。1984 年的 <strong>Kurzweil K250</strong>——第一台真正騙得過耳朵的取樣合成器。從那之後，鍵盤手可以彈出一架平台鋼琴的聲音。</p>
+
+    <div class="pull">
+      一台為了讓看不見的人讀書而做的機器，<br>
+      最後也改變了大家聽到的聲音。
+    </div>
+
+    <div class="nextrow">
+      <button class="btn" id="go4">最後一件事</button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 四：現在 ══════════ -->
+<section class="act tinted" id="act4" hidden aria-labelledby="t4">
+  <div class="wrap">
+    <p class="chap">四　現在</p>
+    <h2 id="t4">今天這台機器在你口袋裡。</h2>
+    <p>你把手機對著一張菜單、一張藥袋、一封信，字就被唸出來了。免費、即時、不用五萬美元，也不佔洗衣機的位置。</p>
+    <p class="quiet">中間隔了將近五十年的演算法：從規則、到統計、到神經網路。但要解決的問題，從頭到尾只有那一句話。</p>
+
+    <div class="kicker" id="kicker">
+      <span>有人遞給你一本書。</span>
+      <span>你想知道裡面寫什麼。</span>
+      <span class="dim">1976 年 1 月 13 日之後，這件事不再需要別人坐下來陪你。</span>
+    </div>
+
+    <footer>
+      來源：美國盲人基金會（AFB）AccessWorld 之 Ray Kurzweil 口述歷史與 Kurzweil–NFB Reader 專文、CNBC 報導。
+      互動為示意重建，完整出處與方法論寫在 說明.md。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduce = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function(e){ reduce = e.matches; });
+  else if (mq.addListener) mq.addListener(function(e){ reduce = e.matches; });
+
+  var $ = function(id){ return document.getElementById(id); };
+  function say(m){ $('srLive').textContent = m; }
+  function scrollTo(el){
+    try{ el.scrollIntoView({behavior: reduce?'auto':'smooth', block:'start'}); }catch(e){ el.scrollIntoView(); }
+  }
+  function reveal(id){
+    var s = $(id);
+    if (s.hidden){ s.hidden = false; requestAnimationFrame(function(){ requestAnimationFrame(function(){ scrollTo(s); }); }); }
+    else scrollTo(s);
+  }
+
+  var seq = ['h1','h2','h3','h4','h5'];
+  if (reduce) seq.forEach(function(id){ $(id).classList.add('in'); });
+  else seq.forEach(function(id,i){ setTimeout(function(){ $(id).classList.add('in'); }, 300 + i*680); });
+
+  /* ══════════ 字元點陣：離螢幕 canvas 取樣，不顯示所以沒有 CSS 尺寸問題 ══════════ */
+  var DW = 12, DH = 16;
+  var off = null, offCtx = null, canRaster = false;
+  try{
+    off = document.createElement('canvas');
+    off.width = 40; off.height = 44;
+    offCtx = off.getContext && off.getContext('2d');
+    canRaster = !!offCtx;
+  }catch(e){ canRaster = false; }
+
+  var glyphCache = Object.create(null);
+  function glyphGrid(ch){
+    if (glyphCache[ch]) return glyphCache[ch];
+    var blank = [];
+    for (var i = 0; i < DH; i++) blank.push(new Array(DW).fill(0));
+    if (!canRaster || /\s/.test(ch)){ glyphCache[ch] = blank; return blank; }
+    offCtx.clearRect(0, 0, off.width, off.height);
+    offCtx.fillStyle = '#000';
+    offCtx.textBaseline = 'alphabetic';
+    offCtx.textAlign = 'center';
+    offCtx.font = '600 30px Georgia, "Times New Roman", serif';
+    offCtx.fillText(ch, off.width / 2, 34);
+    var img;
+    try{ img = offCtx.getImageData(0, 0, off.width, off.height); }
+    catch(e){ glyphCache[ch] = blank; return blank; }
+    var g = thresholdGrid(img.data, off.width, off.height, 110);
+    var t = trimGrid(g);
+    var out = fitGrid(t, DW, DH);
+    glyphCache[ch] = out;
+    return out;
+  }
+
+  var dotEls = [];
+  (function buildDot(){
+    var el = $('dot');
+    el.style.gridTemplateColumns = 'repeat(' + DW + ', 1fr)';
+    var frag = document.createDocumentFragment();
+    for (var i = 0; i < DW * DH; i++){
+      var c = document.createElement('i');
+      frag.appendChild(c);
+      dotEls.push(c);
+    }
+    el.appendChild(frag);
+  })();
+
+  function paintDot(grid){
+    for (var y = 0; y < DH; y++){
+      for (var x = 0; x < DW; x++){
+        dotEls[y * DW + x].className = grid[y][x] ? 'on' : '';
+      }
+    }
+  }
+  function clearDot(){
+    for (var i = 0; i < dotEls.length; i++) dotEls[i].className = '';
+  }
+
+  /* ══════════ 語音 ══════════ */
+  var synth = window.speechSynthesis || null;
+  var ttsOK = !!(synth && window.SpeechSynthesisUtterance);
+  $('ttsNote').textContent = ttsOK
+    ? '（機器的聲音由你的瀏覽器合成，所以聽起來會是你系統裡的英文語音，不是 1976 年那台的音色。）'
+    : '（你的瀏覽器沒有語音合成，所以下面只會看到字被讀出來、聽不到聲音。）';
+
+  function speak(text, onEnd){
+    if (!ttsOK){ if (onEnd) onEnd(); return; }
+    try{
+      synth.cancel();
+      var u = new SpeechSynthesisUtterance(speakable(text));
+      u.lang = 'en-US';
+      u.rate = 0.86;
+      u.pitch = 0.9;
+      u.onend = function(){ if (onEnd) onEnd(); };
+      u.onerror = function(){ if (onEnd) onEnd(); };
+      synth.speak(u);
+    }catch(e){ if (onEnd) onEnd(); }
+  }
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden && synth){ try{ synth.cancel(); }catch(e){} setBars(false); }
+  });
+  window.addEventListener('pagehide', function(){ if (synth){ try{ synth.cancel(); }catch(e){} } });
+
+  function setBars(on){
+    $('bars').className = 'bars' + (on ? ' on' : '');
+  }
+
+  /* ══════════ 掃描流程 ══════════ */
+  var lineIdx = 0, running = false, timer = null, charEls = [], toks = [];
+  var pageLine = $('pageLine'), tape = $('tape'), scanbar = $('scanbar');
+
+  function loadLine(idx){
+    lineIdx = idx;
+    var L = LINES[idx];
+    toks = tokenize(L.text);
+    pageLine.innerHTML = '';
+    charEls = [];
+    toks.forEach(function(t){
+      var s = document.createElement('span');
+      s.textContent = t.ch;
+      pageLine.appendChild(s);
+      charEls.push(s);
+    });
+    $('pageCap').textContent = L.label + '　·　' + L.note;
+    tape.innerHTML = '<span class="caret"></span>';
+    clearDot();
+    $('glyph').textContent = '·';
+    $('mstate').textContent = '待機';
+    $('lamp').className = 'lamp';
+    $('spkMsg').textContent = '尚未出聲';
+    setBars(false);
+    scanbar.classList.remove('on');
+    scanbar.style.transform = 'translateX(0)';
+  }
+
+  function finishScan(){
+    running = false;
+    $('scanBtn').disabled = false;
+    $('mstate').textContent = '朗讀中';
+    scanbar.classList.remove('on');
+    charEls.forEach(function(s){ s.className = 'done'; });
+    clearDot();
+    $('glyph').textContent = '·';
+    var text = LINES[lineIdx].text;
+    tape.textContent = text;
+    setBars(true);
+    $('spkMsg').textContent = ttsOK ? '正在唸出來…' : '（沒有語音，但它讀出來了）';
+    say('機器讀出：' + text);
+
+    /* 有些瀏覽器沒裝英文語音時 speak() 會靜靜地什麼都不做、onend 也不觸發，
+       所以另外掛一個保險，時間到就照樣把後面的內容放出來。 */
+    var settled = false;
+    function afterRead(){
+      if (settled) return;
+      settled = true;
+      setBars(false);
+      $('mstate').textContent = '完成';
+      $('spkMsg').textContent = ttsOK ? '唸完了。' : '（讀完了，只是沒有聲音）';
+      $('againBtn').hidden = false;
+      if (lineIdx === 0) $('row1').hidden = false;
+      else { $('cronkitePull').hidden = false; $('row2').hidden = false; }
+    }
+    speak(text, afterRead);
+    setTimeout(afterRead, ttsOK ? Math.max(3500, text.length * 95) : (reduce ? 0 : 1200));
+  }
+
+  function startScan(){
+    if (running) return;
+    running = true;
+    $('scanBtn').disabled = true;
+    $('againBtn').hidden = true;
+    $('mstate').textContent = '掃描中';
+    $('lamp').className = 'lamp on';
+    tape.innerHTML = '<span class="caret"></span>';
+    charEls.forEach(function(s){ s.className = ''; });
+    scanbar.classList.add('on');
+    say('開始掃描。');
+
+    if (reduce){
+      toks.forEach(function(t, i){ charEls[i].className = 'done'; });
+      finishScan();
+      return;
+    }
+
+    var step = 0, out = '';
+    var pageEl = pageLine.parentNode;
+    var travel = Math.max(0, pageEl.offsetWidth - 3);
+
+    timer = setInterval(function(){
+      if (document.hidden) return;              /* 分頁不在前景就暫停 */
+      if (step >= toks.length){
+        clearInterval(timer); timer = null;
+        finishScan();
+        return;
+      }
+      var t = toks[step];
+      if (step > 0) charEls[step - 1].className = 'done';
+      charEls[step].className = 'now';
+      scanbar.style.transform = 'translateX(' + (progress(step, toks.length) * travel).toFixed(1) + 'px)';
+      if (t.space){
+        $('glyph').textContent = '␣';
+        clearDot();
+      } else {
+        paintDot(glyphGrid(t.ch));
+        $('glyph').textContent = t.ch;
+      }
+      out += t.ch;
+      tape.innerHTML = '';
+      tape.appendChild(document.createTextNode(out));
+      var car = document.createElement('span');
+      car.className = 'caret';
+      tape.appendChild(car);
+      step++;
+    }, 62);
+  }
+
+  $('scanBtn').addEventListener('click', startScan);
+  $('againBtn').addEventListener('click', function(){
+    setBars(true);
+    $('spkMsg').textContent = ttsOK ? '正在唸出來…' : '（沒有語音）';
+    speak(LINES[lineIdx].text, function(){ setBars(false); $('spkMsg').textContent = '唸完了。'; });
+  });
+
+  $('go1').addEventListener('click', function(){ reveal('act1'); if (!charEls.length) loadLine(0); });
+  $('go2').addEventListener('click', function(){ reveal('act2'); });
+  $('cronkiteBtn').addEventListener('click', function(){
+    loadLine(1);
+    $('againBtn').hidden = true;
+    reveal('act1');
+    setTimeout(function(){ startScan(); }, reduce ? 0 : 700);
+    $('cronkiteBtn').disabled = true;
+    $('cronkiteBtn').textContent = '已經放上去了';
+  });
+  $('go3').addEventListener('click', function(){ reveal('act3'); });
+  $('go4').addEventListener('click', function(){ reveal('act4'); startKicker(); });
+
+  var kickDone = false;
+  function startKicker(){
+    if (kickDone) return; kickDone = true;
+    var lines = document.querySelectorAll('#kicker span');
+    if (reduce || !('IntersectionObserver' in window)){
+      Array.prototype.forEach.call(lines, function(s){ s.classList.add('in'); });
+      return;
+    }
+    var io = new IntersectionObserver(function(en){
+      if (!en[0].isIntersecting) return;
+      io.disconnect();
+      Array.prototype.forEach.call(lines, function(s, i){ setTimeout(function(){ s.classList.add('in'); }, i * 950); });
+    }, { threshold: .35 });
+    io.observe($('kicker'));
+  }
+})();
+</script>
+</body>
+</html>

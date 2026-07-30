@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>掉下去的那三秒｜每日小專案</title>
+<meta name="description" content="出車禍的人常說「那一瞬間，時間慢下來了」。2007 年有一組人把受試者從 31 公尺高的塔上放下來，只為了確認這句話是不是真的。往下捲，你自己跳一次。">
+<style>
+:root{
+  --bg:#05080d;
+  --panel:#0b131b;
+  --panel2:#0f1c28;
+  --ink:#e8f1f7;
+  --soft:#94abbc;
+  --dim:#5d7385;
+  --faint:#3d4f5e;
+  --line:rgba(150,200,230,.14);
+  --line2:rgba(150,200,230,.28);
+  --ice:#8fd8f2;
+  --ice-deep:#1d5570;
+  --warm:#f0b46a;
+  --alert:#e5715e;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Roboto Mono","Noto Sans Mono CJK TC",monospace;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  line-height:1.95;letter-spacing:.015em;-webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(130% 60% at 50% -10%, #14283a 0%, rgba(5,8,13,0) 60%),
+    radial-gradient(90% 40% at 50% 108%, #0d1a15 0%, rgba(5,8,13,0) 62%),
+    linear-gradient(180deg,#05080d 0%,#070b11 55%,#04070a 100%);
+  background-attachment:fixed;
+  overflow-x:hidden;
+}
+body.falling{overflow:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--ice);outline-offset:3px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---------- 回首頁 ---------- */
+.home{
+  position:fixed;top:14px;left:16px;z-index:90;font-size:.76rem;letter-spacing:.11em;
+  color:var(--dim);text-decoration:none;padding:6px 13px;border-radius:999px;
+  background:rgba(5,8,13,.7);border:1px solid var(--line);backdrop-filter:blur(6px);
+  transition:color .25s,border-color .25s,transform .25s;
+}
+.home:hover{color:var(--ink);border-color:rgba(143,216,242,.5);transform:translateX(-2px)}
+
+/* ---------- 左側高度軌 ---------- */
+.rail{
+  position:fixed;left:26px;top:50%;transform:translateY(-50%);z-index:70;
+  display:none;padding:0;margin:0;list-style:none;
+}
+.rail li{display:flex;align-items:center;gap:11px;height:38px;position:relative}
+.rail li::before{
+  content:"";position:absolute;left:3px;top:50%;width:1px;height:38px;
+  background:linear-gradient(180deg,rgba(150,200,230,.22),rgba(150,200,230,.05));
+}
+.rail li:last-child::before{display:none}
+.rail a{
+  display:flex;align-items:center;gap:11px;text-decoration:none;
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.2em;color:var(--faint);
+  transition:color .3s;
+}
+.rail .dot{
+  width:7px;height:7px;border-radius:50%;background:transparent;
+  border:1px solid rgba(150,200,230,.35);transition:background-color .3s,border-color .3s,transform .3s;
+  flex:0 0 auto;
+}
+.rail a:hover{color:var(--soft)}
+.rail li.on a{color:var(--ice)}
+.rail li.on .dot{background:var(--ice);border-color:var(--ice);transform:scale(1.25)}
+@media (min-width:1120px){.rail{display:block}}
+
+/* ---------- 版面骨架 ---------- */
+.wrap{max-width:900px;margin:0 auto;padding:0 24px}
+main{display:block;position:relative;z-index:2}
+h1,h2,h3{font-weight:800;letter-spacing:-.02em;line-height:1.28;margin:0}
+h1{font-size:clamp(2.3rem,9vw,4.6rem)}
+h2{font-size:clamp(1.6rem,5.4vw,2.7rem)}
+h3{font-size:clamp(1rem,3vw,1.2rem);font-weight:700;letter-spacing:0}
+p{margin:0 0 1.15em}
+.step{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.36em;color:var(--ice);
+  margin:0 0 1.1em;display:flex;align-items:center;gap:12px;
+}
+.step::before{content:"";width:28px;height:1px;background:var(--ice-deep)}
+.say{font-size:clamp(1rem,2.8vw,1.14rem);color:var(--soft);max-width:33em}
+.say strong{color:var(--ink);font-weight:600}
+.big{font-size:clamp(1.15rem,3.6vw,1.55rem);color:var(--ink);line-height:1.7;max-width:22em;font-weight:600;letter-spacing:-.01em}
+.quiet{font-size:.85rem;color:var(--dim);line-height:1.8}
+.reveal{opacity:0;transform:translateY(22px);transition:opacity .8s cubic-bezier(.22,.7,.3,1),transform .8s cubic-bezier(.22,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* 章節：越往下，留白越大 —— 捲動本身就是下墜 */
+.ch{padding:11vh 0}
+.ch + .ch{border-top:1px solid rgba(150,200,230,.06)}
+#c1{padding:12vh 0 13vh}
+#c2{padding:16vh 0 18vh}
+#c3{padding:21vh 0 22vh}
+#c4{padding:25vh 0 24vh}
+#c5{padding:30vh 0 20vh}
+
+/* ---------- 第一屏 ---------- */
+.hero{
+  min-height:100vh;min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  max-width:900px;margin:0 auto;padding:110px 24px 76px;position:relative;
+}
+.tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.4em;color:var(--dim);margin:0 0 2.4em}
+.quote{
+  font-size:clamp(1.35rem,5.4vw,2.5rem);font-weight:700;line-height:1.5;letter-spacing:-.02em;
+  color:var(--ink);margin:0 0 .7em;max-width:15em;text-wrap:balance;
+}
+.quote em{font-style:normal;color:var(--ice)}
+.attrib{font-size:.95rem;color:var(--dim);margin:0 0 2.6em;max-width:26em;line-height:1.9}
+.hero h1{
+  margin:0 0 .5em;font-size:clamp(1.05rem,3vw,1.25rem);font-weight:700;letter-spacing:.28em;
+  color:var(--faint);text-transform:none;
+}
+.punch{font-size:clamp(1.1rem,3.4vw,1.4rem);color:var(--ink);font-weight:600;margin:0 0 2.2em;max-width:20em}
+.cue{
+  display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);
+  font-size:.68rem;letter-spacing:.28em;color:var(--dim);text-decoration:none;
+}
+.cue .arw{display:block;width:1px;height:26px;background:linear-gradient(180deg,var(--ice),transparent);animation:cue 2.4s ease-in-out infinite}
+@keyframes cue{0%,100%{opacity:.35;transform:translateY(0)}50%{opacity:1;transform:translateY(5px)}}
+
+/* 背景風線 */
+.wind{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.5}
+.wind i{
+  position:absolute;top:-25%;width:1px;height:22vh;
+  background:linear-gradient(180deg,transparent,rgba(143,216,242,.3),transparent);
+  animation:windfall 11s linear infinite;
+}
+@keyframes windfall{from{transform:translateY(-30vh)}to{transform:translateY(130vh)}}
+
+/* ---------- 元件 ---------- */
+.btn{
+  font:inherit;font-weight:600;cursor:pointer;border-radius:999px;padding:.72em 1.65em;
+  background:transparent;color:var(--ink);border:1px solid rgba(143,216,242,.4);
+  transition:background-color .22s,border-color .22s,transform .22s,color .22s,opacity .22s;
+}
+.btn:hover:not(:disabled){background:rgba(143,216,242,.12);border-color:var(--ice);transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:translateY(0)}
+.btn:disabled{opacity:.34;cursor:not-allowed}
+.btn-lg{font-size:1.05rem;padding:.9em 2.3em}
+.btn-ghost{border-color:var(--line);color:var(--soft);font-weight:500;font-size:.86rem;padding:.55em 1.2em}
+.btn-ghost:hover:not(:disabled){color:var(--ink);border-color:var(--line2);background:rgba(150,200,230,.06)}
+.btn-jump{
+  font-size:1.25rem;padding:1.05em 3.2em;letter-spacing:.3em;font-weight:800;
+  border-color:rgba(143,216,242,.55);
+  box-shadow:0 0 0 0 rgba(143,216,242,.32);
+}
+.btn-jump:hover:not(:disabled){box-shadow:0 0 44px -6px rgba(143,216,242,.4)}
+
+.rig{
+  margin:34px 0 0;background:linear-gradient(180deg,var(--panel2) 0%,#08111a 100%);
+  border:1px solid var(--line);border-radius:18px;padding:22px;
+  box-shadow:0 34px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(190,225,245,.06);
+}
+.rig-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.22em;color:var(--dim);
+  margin:0 0 18px;padding-bottom:12px;border-bottom:1px solid rgba(150,200,230,.09);
+}
+.notice{
+  border-left:2px solid var(--ice-deep);padding:3px 0 3px 15px;margin:0 0 1.6em;
+  font-size:.92rem;color:var(--soft);max-width:33em;line-height:1.85;
+}
+.notice b{color:var(--ink);font-weight:600}
+
+/* 知覺計時器顯示框 —— 小面積、低對比、速度由使用者控制 */
+.chrono-stage{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin:0 0 20px}
+.chrono{
+  width:124px;height:82px;border-radius:10px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  background:#111d28;border:1px solid rgba(150,200,230,.18);
+  font-family:var(--mono);font-size:2.35rem;font-weight:700;letter-spacing:.06em;
+  color:rgba(206,228,242,.62);
+  transition:none;
+}
+.chrono.neg{background:rgba(206,228,242,.40);color:rgba(17,29,40,.85)}
+.chrono.idle{color:var(--faint);font-size:1.4rem;letter-spacing:.3em}
+.chrono-side{flex:1 1 200px;min-width:190px}
+.hzread{font-family:var(--mono);font-size:1.5rem;color:var(--ink);letter-spacing:.02em;margin:0 0 2px}
+.hzread small{font-size:.72rem;color:var(--dim);letter-spacing:.16em;margin-left:8px}
+.hzsub{font-family:var(--mono);font-size:.72rem;color:var(--dim);letter-spacing:.1em}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;background:transparent;margin:14px 0 6px;height:26px;
+}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(150,200,230,.25);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:rgba(150,200,230,.25);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:19px;height:19px;border-radius:50%;
+  background:var(--ice);margin-top:-8.5px;border:none;cursor:pointer;
+  box-shadow:0 0 0 5px rgba(143,216,242,.14);transition:box-shadow .2s;
+}
+input[type=range]::-moz-range-thumb{
+  width:19px;height:19px;border-radius:50%;background:var(--ice);border:none;cursor:pointer;
+  box-shadow:0 0 0 5px rgba(143,216,242,.14);
+}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 8px rgba(143,216,242,.2)}
+.scale{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.64rem;color:var(--faint);letter-spacing:.1em}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 0}
+.opts{display:flex;gap:9px;flex-wrap:wrap;margin:16px 0 0}
+.opt{
+  font-family:var(--mono);font-size:1.15rem;font-weight:700;cursor:pointer;
+  min-width:74px;padding:.55em .2em;border-radius:10px;letter-spacing:.04em;
+  background:rgba(150,200,230,.05);color:var(--ink);border:1px solid var(--line);
+  transition:background-color .2s,border-color .2s,transform .2s;
+}
+.opt:hover:not(:disabled){background:rgba(143,216,242,.14);border-color:var(--ice);transform:translateY(-2px)}
+.opt:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.opt.picked{border-color:var(--warm);background:rgba(240,180,106,.14)}
+
+.msg{font-size:.95rem;color:var(--soft);margin:16px 0 0;min-height:1.9em;line-height:1.8}
+.msg b{color:var(--ink)}
+.msg .ok{color:var(--ice)}
+.msg .no{color:var(--warm)}
+
+.check{display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:.9rem;color:var(--soft);line-height:1.7;max-width:30em}
+.check input{width:17px;height:17px;margin:5px 0 0;accent-color:var(--ice);cursor:pointer;flex:0 0 auto}
+
+/* ---------- 墜落畫面 ---------- */
+.fall{
+  position:fixed;inset:0;z-index:200;background:
+    radial-gradient(120% 70% at 50% 110%, #0c1f1a 0%, rgba(5,8,13,0) 55%),
+    linear-gradient(180deg,#060b12 0%,#0a1520 50%,#04080c 100%);
+  overflow:hidden;opacity:0;transition:opacity .35s ease;
+}
+.fall.on{opacity:1}
+.fall .world{
+  position:absolute;left:0;right:0;top:0;height:1px;will-change:transform;
+}
+.fall .rung{
+  position:absolute;left:0;right:0;height:1px;background:rgba(143,216,242,.14);
+}
+.fall .rung.major{background:rgba(143,216,242,.34)}
+.fall .rung span{
+  position:absolute;right:5%;top:-1.35em;font-family:var(--mono);font-size:.66rem;
+  letter-spacing:.18em;color:rgba(143,216,242,.5);
+}
+.fall .streaks{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.fall .streaks i{
+  position:absolute;width:1px;height:34vh;top:-40vh;
+  background:linear-gradient(180deg,transparent,rgba(190,230,248,.5),transparent);
+  animation:rush .62s linear infinite;
+}
+@keyframes rush{from{transform:translateY(0)}to{transform:translateY(150vh)}}
+.hud{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;text-align:center;padding:24px;
+}
+.hud .alt{font-family:var(--mono);font-size:clamp(3.4rem,15vw,7rem);font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--ink)}
+.hud .alt sub{font-size:.24em;letter-spacing:.3em;color:var(--dim);vertical-align:baseline;margin-left:.5em;font-weight:600}
+.hud .spd{font-family:var(--mono);font-size:.82rem;letter-spacing:.26em;color:var(--soft);margin-top:10px}
+.hud .clk{font-family:var(--mono);font-size:.74rem;letter-spacing:.3em;color:var(--faint);margin-top:4px}
+.hud .land{font-size:clamp(1.3rem,5vw,2rem);font-weight:800;letter-spacing:-.01em}
+.fall .chrono{position:absolute;left:50%;bottom:clamp(58px,14vh,120px);transform:translateX(-50%);margin:0}
+.fall .cap{
+  position:absolute;left:0;right:0;bottom:clamp(24px,7vh,66px);text-align:center;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.26em;color:var(--dim);
+}
+.escape{
+  position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;
+}
+
+/* ---------- 揭曉 ---------- */
+.ledger{
+  margin:26px 0 0;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(15,28,40,.9),rgba(8,17,26,.9));
+}
+.ledger .lr{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:baseline;
+  padding:15px 20px;border-bottom:1px solid rgba(150,200,230,.08);
+}
+.ledger .lr:last-child{border-bottom:none}
+.ledger .lk{font-size:.88rem;color:var(--soft)}
+.ledger .lv{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--ink);white-space:nowrap}
+.ledger .lr.hit .lv{color:var(--ice)}
+.ledger .lr.miss .lv{color:var(--warm)}
+.ledger .lr.total{background:rgba(143,216,242,.05)}
+.verdict{
+  margin:30px 0 0;padding:24px;border-radius:16px;border:1px solid rgba(143,216,242,.24);
+  background:linear-gradient(160deg,rgba(29,85,112,.24),rgba(8,17,26,.5));
+}
+.verdict p{margin:0 0 .8em}
+.verdict p:last-child{margin:0}
+.verdict .head{font-size:clamp(1.1rem,3.6vw,1.4rem);font-weight:800;color:var(--ink);line-height:1.55;letter-spacing:-.01em}
+
+.paper{
+  margin:30px 0 0;padding:26px 26px 22px;border-radius:4px;
+  border:1px solid var(--line);border-left:2px solid var(--ice-deep);
+  background:linear-gradient(180deg,rgba(15,28,40,.72),rgba(8,14,20,.72));
+}
+.paper .ptitle{font-size:1.02rem;font-weight:700;color:var(--ink);line-height:1.6;margin:0 0 .3em}
+.paper .pmeta{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;color:var(--dim);margin:0 0 1.3em}
+.facts{list-style:none;margin:0;padding:0}
+.facts li{
+  position:relative;padding:0 0 0 26px;margin:0 0 1em;font-size:.97rem;color:var(--soft);line-height:1.9;
+}
+.facts li::before{
+  content:"";position:absolute;left:6px;top:.85em;width:7px;height:1px;background:var(--ice-deep);
+}
+.facts li b{color:var(--ink);font-weight:600}
+.facts li:last-child{margin:0}
+
+.finale .big{max-width:19em}
+.kicker{
+  font-size:clamp(1.35rem,5vw,2.15rem);font-weight:800;line-height:1.5;letter-spacing:-.02em;
+  color:var(--ink);max-width:15em;margin:0 0 .9em;text-wrap:balance;
+}
+.kicker em{font-style:normal;color:var(--ice)}
+
+footer{
+  border-top:1px solid rgba(150,200,230,.08);margin-top:6vh;padding:34px 24px 46px;
+  text-align:center;font-size:.76rem;color:var(--faint);letter-spacing:.06em;line-height:2;
+}
+
+@media (max-width:560px){
+  body{line-height:1.85}
+  .ch{padding:9vh 0}
+  #c1{padding:9vh 0 10vh}#c2{padding:12vh 0 13vh}#c3{padding:14vh 0 15vh}
+  #c4{padding:16vh 0 16vh}#c5{padding:20vh 0 14vh}
+  .rig{padding:17px;border-radius:14px}
+  .chrono-stage{gap:14px}
+  .chrono{width:106px;height:72px;font-size:2rem}
+  .btn-jump{font-size:1.05rem;padding:.95em 2.2em;letter-spacing:.22em}
+  .ledger .lr{grid-template-columns:1fr;gap:2px;padding:13px 16px}
+  .paper{padding:20px 18px}
+  .opt{min-width:64px;font-size:1.05rem}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  .wind,.fall .streaks{display:none}
+  .cue .arw{animation:none}
+  .fall{transition:none}
+}
+body.rm .wind,body.rm .fall .streaks{display:none}
+body.rm .reveal{opacity:1;transform:none;transition:none}
+body.rm .cue .arw{animation:none}
+body.rm .fall .world{display:none}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<div class="wind" aria-hidden="true" id="wind"></div>
+
+<ul class="rail" id="rail" aria-label="章節導覽">
+  <li><a href="#top"><span class="dot"></span>開場</a></li>
+  <li><a href="#c1"><span class="dot"></span>你的極限</a></li>
+  <li><a href="#c2"><span class="dot"></span>跳</a></li>
+  <li><a href="#c3"><span class="dot"></span>兩個問題</a></li>
+  <li><a href="#c4"><span class="dot"></span>2007</a></li>
+  <li><a href="#c5"><span class="dot"></span>收尾</a></li>
+</ul>
+
+<main>
+
+<!-- ══════════ 開場 ══════════ -->
+<section class="hero" id="top">
+  <p class="tag reveal">網路趣聞・冷知識　／　31 公尺　／　沒有繩子</p>
+  <p class="quote reveal">「那一瞬間，<em>時間慢下來了</em>。<br>我什麼都看得清清楚楚。」</p>
+  <p class="attrib reveal">從車禍裡爬出來的人這樣講。從梯子上摔下來的人這樣講。差點被車撞到的人也這樣講。</p>
+  <h1 class="reveal">掉下去的那三秒</h1>
+  <p class="punch reveal">你大概點頭了。你可能自己也講過。<br>那我們來測測看。</p>
+  <a class="cue reveal" href="#c1"><span class="arw"></span>往下</a>
+</section>
+
+<!-- ══════════ 第一章 ══════════ -->
+<section class="ch" id="c1">
+  <div class="wrap">
+    <p class="step reveal">01　先量你的極限</p>
+    <h2 class="reveal">你的眼睛，一秒能吃下幾格？</h2>
+    <p class="say reveal" style="margin-top:1.1em">
+      2007 年那組研究者做了一個小裝置，綁在受試者的手腕上，叫做<strong>知覺計時器</strong>。
+      上面有一組發光的數字，和它的<strong>負片影像</strong>——黑白顛倒的同一組數字——高速交替。
+    </p>
+    <p class="say reveal">
+      交替得夠慢，你讀得出那個數字。交替得夠快，兩張圖在你眼裡疊在一起，只剩一團模糊。
+      中間那條界線，就是你的<strong>知覺速度上限</strong>。
+    </p>
+    <p class="say reveal">先量出你的那條線。等一下有用。</p>
+
+    <div class="notice reveal">
+      <b>這一段畫面會小面積快速交替。</b>速度完全由你控制，隨時可以停；
+      不想看的話，右下角有一顆按鈕可以整段跳過，直接拿到一個門檻繼續讀故事。
+    </div>
+
+    <div class="rig reveal">
+      <div class="rig-head"><span>知覺計時器　CHRONOMETER</span><span id="hzTag">待機</span></div>
+
+      <div class="chrono-stage">
+        <div class="chrono idle" id="chrono" aria-hidden="true"><span id="chronoNum">···</span></div>
+        <div class="chrono-side">
+          <p class="hzread" id="hzRead">8.0 <small>HZ</small></p>
+          <p class="hzsub" id="hzSub">每格 125 毫秒</p>
+        </div>
+      </div>
+
+      <label class="sr" for="hzRange">交替速度，每秒幾格</label>
+      <input type="range" id="hzRange" min="2" max="20" step="1" value="8"
+             aria-describedby="hzSub" aria-label="交替速度，每秒幾格">
+      <div class="scale"><span>2 Hz　慢</span><span>20 Hz　快</span></div>
+
+      <div class="row">
+        <button class="btn" id="flashBtn" type="button">閃一次給我看</button>
+        <button class="btn btn-ghost" id="stopBtn" type="button" disabled>停</button>
+      </div>
+
+      <div class="opts" id="optRow" hidden role="group" aria-label="你剛剛看到的數字是"></div>
+
+      <p class="msg" id="ch1Msg" role="status" aria-live="polite">把速度調到你還讀得出來的最快位置。答錯不扣分，答錯就是你的界線。</p>
+
+      <div class="row" style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(150,200,230,.09)">
+        <button class="btn" id="lockBtn" type="button" disabled>把 8 Hz 訂為我的門檻</button>
+        <button class="btn btn-ghost" id="skipCalib" type="button">跳過這段，直接給我一個門檻</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 第二章 ══════════ -->
+<section class="ch" id="c2">
+  <div class="wrap">
+    <p class="step reveal">02　跳下去</p>
+    <h2 class="reveal">31 公尺。沒有繩子。<br>下面是一張網。</h2>
+    <p class="say reveal" style="margin-top:1.2em">
+      那座塔叫 SCAD。你被吊到頂端，背朝下，然後被放開。中間什麼都沒有連著你，
+      直到你落進底下那張網子裡。
+    </p>
+    <p class="say reveal">
+      你的手腕上綁著剛剛那個裝置。墜落到一半，它會閃出一組數字——
+      用的是<strong>比你剛才那條線更快</strong>的速度。
+    </p>
+    <p class="say reveal">如果恐懼真的讓你的知覺變快，你就讀得出來。</p>
+
+    <p class="quiet reveal" id="thrLine" style="margin:1.8em 0 1.4em">你還沒量出自己的門檻。回上面那一段，或直接按「跳過」拿一個。</p>
+
+    <label class="check reveal" for="skipFlash" style="margin-bottom:1.6em">
+      <input type="checkbox" id="skipFlash">
+      <span>墜落中不要閃示——我直接看結果就好。（勾選後，半空中那一題會自動判定為「沒讀到」，故事照走。）</span>
+    </label>
+
+    <div class="reveal" style="margin:2.4em 0 0">
+      <button class="btn btn-jump" id="jumpBtn" type="button" disabled aria-describedby="thrLine">跳</button>
+      <p class="quiet" style="margin:1.4em 0 0" id="fallStatus" role="status" aria-live="polite">按下去就會開始掉。墜落中隨時按 Esc 可以中止。</p>
+    </div>
+
+    <div id="landBox" hidden>
+      <div class="rig" style="margin-top:34px">
+        <div class="rig-head"><span>落地　IMPACT / NET</span><span id="landTag">—</span></div>
+        <h3 id="landHead" tabindex="-1">你落到網子上了。</h3>
+        <p class="say" id="landSay" style="margin:.9em 0 0">半空中那組數字，你讀到了嗎？先選一個，別回頭看。</p>
+        <div class="opts" id="readRow" role="group" aria-label="半空中那組數字是"></div>
+        <p class="msg" id="readMsg" role="status" aria-live="polite"></p>
+        <div class="row" style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(150,200,230,.09)">
+          <a class="btn btn-ghost" href="#c3" id="toC3" hidden>往下，兩個問題</a>
+          <button class="btn btn-ghost" id="reJump" type="button">重跳一次</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 第三章 ══════════ -->
+<section class="ch" id="c3">
+  <div class="wrap">
+    <p class="step reveal">03　兩個問題</p>
+    <h2 class="reveal">先問你一個很簡單的。</h2>
+
+    <div id="askBox" hidden>
+      <p class="big" style="margin:1.4em 0 .4em">你剛剛掉了幾秒？</p>
+      <p class="say">不要算，不要回想畫面上的碼錶。憑感覺。你身體覺得那有多長？</p>
+
+      <div class="rig" style="max-width:560px">
+        <p class="hzread" id="guessOut">4.0 <small>秒</small></p>
+        <label class="sr" for="guess">你覺得墜落了幾秒</label>
+        <input type="range" id="guess" min="0.5" max="8" step="0.1" value="4" aria-label="你覺得墜落了幾秒">
+        <div class="scale"><span>0.5 秒</span><span>8 秒</span></div>
+        <div class="row"><button class="btn" id="guessBtn" type="button">這是我的答案</button></div>
+      </div>
+    </div>
+
+    <p class="say" id="askLock" style="margin-top:1.4em">你還沒跳。<a href="#c2">回上面那座塔</a>，跳完再回來。</p>
+
+    <div id="revealBox" hidden aria-live="polite">
+      <div class="ledger" id="ledger"></div>
+
+      <p class="say" style="margin-top:2.4em" id="overLine"></p>
+      <p class="say" id="cohortLine">多數人在這裡會把數字往上加。掉下去的那一下感覺很長，長到不像兩秒半——這正是每個從車禍裡爬出來的人想告訴你的事。</p>
+
+      <p class="big" style="margin-top:2.2em">那再回頭看半空中那一題。</p>
+      <p class="say" id="readBack"></p>
+
+      <div class="verdict">
+        <p class="head">你覺得時間變慢了，所以你把那段時間估長了。<br>但你的眼睛並沒有真的變快。</p>
+        <p class="say" style="margin-top:1em;color:var(--soft)">兩件事擺在一起，就是全篇的結論：慢下來的不是世界，是你事後對那段時間的說法。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 第四章 ══════════ -->
+<section class="ch" id="c4">
+  <div class="wrap">
+    <p class="step reveal">04　他們真的把人丟下去了</p>
+    <h2 class="reveal">這不是想像實驗。</h2>
+
+    <div class="paper reveal">
+      <p class="ptitle">Does Time Really Slow Down during a Frightening Event?</p>
+      <p class="pmeta">Stetson, Fiesta &amp; Eagleman　／　PLoS ONE　／　2007 年 12 月 12 日</p>
+      <ul class="facts">
+        <li>受試者從 <b>SCAD（Suspended Catch Air Device）高塔</b>自由落下 <b>31 公尺</b>，落在下方的安全網上。沒有繩子，就是掉下去。</li>
+        <li>他們的手腕上戴著研究者自製的<b>知覺計時器</b>：發光的數字與它的負片影像高速交替。慢的時候看得見數字，快的時候只看得到一團模糊。</li>
+        <li>設計的邏輯很乾脆：如果墜落時知覺真的變快，受試者就應該能讀出<b>比平時更快</b>的閃示。</li>
+        <li>結果——<b>受試者在墜落中讀取知覺計時器的表現，並沒有比平常好。</b></li>
+        <li>但同一批人<b>事後回想時，會把自己墜落的時間估得比實際更長</b>。</li>
+      </ul>
+    </div>
+
+    <p class="say reveal" style="margin-top:2.4em">
+      研究者的結論是：主觀時間不是單一的一件事，而是由<strong>可以分開的成分</strong>組成的。
+      「時間變慢」是<strong>回想</strong>造成的——事件在當下被編碼得更豐富，事後回頭看，就顯得比較長。
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ 收尾 ══════════ -->
+<section class="ch finale" id="c5">
+  <div class="wrap">
+    <p class="kicker">時間沒有變慢。<br>是你的記憶在那幾秒裡，<em>寫得特別密</em>。</p>
+    <p class="say">
+      平常的每一秒，記憶只記幾筆。危險來的時候，它整個開起來，同一秒鐘塞進十倍的東西：
+      車頭的角度、擋風玻璃上的一道刮痕、副駕駛座上那個人的表情、自己手指的位置。
+    </p>
+    <p class="say">
+      事後你回頭讀那一段，密密麻麻。而你判斷一段時間有多長的方式，
+      就是看它在你腦子裡留下多少字。這麼多字，一定花了很久吧？
+    </p>
+    <p class="big" style="margin:2.4em 0 1.2em">
+      所以難忘的日子總是顯得漫長，<br>而平淡的一年，一眨眼就沒了。
+    </p>
+    <p class="say">
+      這也是為什麼，第一次去的城市走三天像走了一週，而通勤路線走了三年像沒發生過。
+      你的時間感從來不是碼錶，是頁數。
+    </p>
+    <p class="say" style="margin-top:2em;color:var(--dim)">
+      下次有人跟你說「那一瞬間時間慢下來了」，你可以點頭。他沒有說謊。
+      只是那一刻慢下來的，不是時間——是他，在寫字。
+    </p>
+  </div>
+</section>
+
+</main>
+
+<!-- ══════════ 墜落畫面 ══════════ -->
+<div class="fall" id="fallOverlay" hidden aria-hidden="true">
+  <div class="world" id="world"></div>
+  <div class="streaks" id="streaks"></div>
+  <div class="hud">
+    <p class="alt" id="altOut">31<sub>M</sub></p>
+    <p class="spd" id="spdOut">0 KM/H</p>
+    <p class="clk" id="clkOut">T + 0.00 S</p>
+  </div>
+  <div class="chrono" id="fallChrono" hidden><span id="fallNum">--</span></div>
+  <p class="cap" id="fallCap"></p>
+  <p class="escape quiet">ESC 中止</p>
+</div>
+
+<footer>
+  資料來源：Stetson, Fiesta &amp; Eagleman (2007), PLoS ONE
+</footer>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var E = window.FallSlow;
+  var $ = function (id) { return document.getElementById(id); };
+  var LS = 'fallslow_';
+
+  /* ---------- 環境防呆 ---------- */
+  var nowMs = (typeof performance !== 'undefined' && performance && typeof performance.now === 'function')
+    ? function () { return performance.now(); }
+    : function () { return Date.now(); };
+
+  var hasRaf = (typeof window.requestAnimationFrame === 'function');
+  var raf = hasRaf
+    ? function (fn) { return window.requestAnimationFrame(fn); }
+    : function (fn) { return setTimeout(fn, 16); };
+  var caf = hasRaf && typeof window.cancelAnimationFrame === 'function'
+    ? function (h) { window.cancelAnimationFrame(h); }
+    : function (h) { clearTimeout(h); };
+
+  var mq = null;
+  var reduced = false;
+  if (typeof window.matchMedia === 'function') {
+    try {
+      mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      reduced = !!mq.matches;
+    } catch (e) { mq = null; reduced = false; }
+  }
+  function applyReduced() {
+    document.body.classList.toggle('rm', reduced);
+  }
+  applyReduced();
+  if (mq) {
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', function (ev) { reduced = !!ev.matches; applyReduced(); syncSkipDefault(); });
+    } else if (typeof mq.addListener === 'function') {
+      mq.addListener(function (ev) { reduced = !!ev.matches; applyReduced(); syncSkipDefault(); });
+    }
+  }
+
+  function store(k, v) {
+    try { window.localStorage.setItem(LS + k, String(v)); } catch (e) {}
+  }
+  function load(k) {
+    try { return window.localStorage.getItem(LS + k); } catch (e) { return null; }
+  }
+
+  /* ---------- 狀態 ---------- */
+  var S = {
+    threshold: null,      // 使用者的知覺門檻（Hz）
+    lastGood: null,       // 最後一次答對的速度
+    calibrated: false,
+    skippedCalib: false,
+    challenge: null,      // 墜落中使用的速度
+    target: null,         // 半空中那組數字
+    picked: null,         // 使用者選的數字
+    skippedFlash: false,
+    measured: null,       // 實際墜落秒數（performance.now 量的）
+    guess: null,
+    falling: false,
+    landed: false
+  };
+
+  var TOTAL = E.fallTime(E.TOWER_M);          // 理論墜落時間，實際算出來
+  var THEORY = E.formatSec(TOTAL, 2);
+
+  /* ---------- 裝飾：風線 ---------- */
+  (function windLines() {
+    var w = $('wind');
+    if (!w) return;
+    var html = '';
+    for (var i = 0; i < 14; i++) {
+      var left = (i * 7.3 + (i % 3) * 2.6) % 100;
+      html += '<i style="left:' + left.toFixed(1) + '%;animation-delay:' + (-(i * 0.83)).toFixed(2) +
+              's;animation-duration:' + (8 + (i % 5) * 1.6).toFixed(1) + 's;opacity:' + (0.25 + (i % 4) * 0.16).toFixed(2) + '"></i>';
+    }
+    w.innerHTML = html;
+  })();
+
+  /* ---------- 捲動進場 ---------- */
+  var revealables = document.querySelectorAll('.reveal');
+  function showAll() {
+    for (var i = 0; i < revealables.length; i++) revealables[i].classList.add('in');
+  }
+  if (typeof window.IntersectionObserver === 'function' && !reduced) {
+    var io = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) {
+          var el = entries[i].target;
+          var d = el.getAttribute('data-d') || 0;
+          setTimeout(function (n) { return function () { n.classList.add('in'); }; }(el), Number(d));
+          io.unobserve(el);
+        }
+      }
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    for (var r = 0; r < revealables.length; r++) {
+      var el = revealables[r];
+      if (el.closest && el.closest('.hero')) el.setAttribute('data-d', String(Math.min(r * 110, 900)));
+      io.observe(el);
+    }
+  } else {
+    showAll();
+  }
+
+  /* 章節軌 */
+  (function rail() {
+    var rail = $('rail');
+    if (!rail || typeof window.IntersectionObserver !== 'function') return;
+    var items = rail.querySelectorAll('li');
+    var ids = ['top', 'c1', 'c2', 'c3', 'c4', 'c5'];
+    var obs = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (!entries[i].isIntersecting) continue;
+        var idx = ids.indexOf(entries[i].target.id);
+        if (idx < 0) continue;
+        for (var j = 0; j < items.length; j++) items[j].classList.toggle('on', j === idx);
+      }
+    }, { rootMargin: '-40% 0px -50% 0px' });
+    for (var k = 0; k < ids.length; k++) {
+      var sec = $(ids[k]);
+      if (sec) obs.observe(sec);
+    }
+  })();
+
+  /* ==========================================================
+     第一章：校準知覺門檻
+     ========================================================== */
+  var hzRange = $('hzRange'), hzRead = $('hzRead'), hzSub = $('hzSub'), hzTag = $('hzTag');
+  var chrono = $('chrono'), chronoNum = $('chronoNum');
+  var flashBtn = $('flashBtn'), stopBtn = $('stopBtn'), optRow = $('optRow');
+  var ch1Msg = $('ch1Msg'), lockBtn = $('lockBtn'), skipCalib = $('skipCalib');
+
+  var flash = { on: false, handle: null, num: null };
+
+  function currentHz() {
+    var v = Number(hzRange.value);
+    return E.isNum(v) && v > 0 ? v : E.DEFAULT_HZ;
+  }
+
+  function paintHz() {
+    var hz = currentHz();
+    var ms = E.hzToFrameMs(hz);
+    hzRead.innerHTML = hz.toFixed(1) + ' <small>HZ</small>';
+    hzSub.textContent = '每格 ' + (ms === null ? '—' : Math.round(ms)) + ' 毫秒　·　' + (E.speedLabel(hz) || '');
+    if (!S.calibrated) lockBtn.textContent = '把 ' + hz + ' Hz 訂為我的門檻';
+  }
+
+  function twoDigit() { return 10 + Math.floor(Math.random() * 90); }
+
+  function makeOptions(n) {
+    var seen = {}, out = [n];
+    seen[n] = 1;
+    var t = Math.floor(n / 10), o = n % 10;
+    var cand = [o * 10 + t, n + 1, n - 1, n + 10, n - 10, t * 10 + ((o + 5) % 10), (((t + 3) % 9) + 1) * 10 + o];
+    for (var i = 0; i < cand.length && out.length < 4; i++) {
+      var c = cand[i];
+      if (c >= 10 && c <= 99 && !seen[c]) { seen[c] = 1; out.push(c); }
+    }
+    var guard = 0;
+    while (out.length < 4 && guard++ < 200) {
+      var r = twoDigit();
+      if (!seen[r]) { seen[r] = 1; out.push(r); }
+    }
+    for (var j = out.length - 1; j > 0; j--) {
+      var k = Math.floor(Math.random() * (j + 1)), tmp = out[j];
+      out[j] = out[k]; out[k] = tmp;
+    }
+    return out;
+  }
+
+  function renderOpts(container, list, onPick) {
+    container.innerHTML = '';
+    for (var i = 0; i < list.length; i++) {
+      (function (val) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'opt';
+        b.textContent = String(val);
+        b.setAttribute('aria-label', '選 ' + val);
+        b.addEventListener('click', function () { onPick(val, b, container); });
+        container.appendChild(b);
+      })(list[i]);
+    }
+    container.hidden = false;
+  }
+
+  function lockOpts(container, picked, correct) {
+    var bs = container.querySelectorAll('.opt');
+    for (var i = 0; i < bs.length; i++) {
+      bs[i].disabled = true;
+      var v = Number(bs[i].textContent);
+      if (v === picked) bs[i].classList.add('picked');
+      if (correct !== null && v === correct) bs[i].setAttribute('aria-label', String(v) + '（正確答案）');
+    }
+  }
+
+  function stopFlash(msg) {
+    if (flash.handle !== null) { caf(flash.handle); flash.handle = null; }
+    flash.on = false;
+    chrono.classList.remove('neg');
+    chrono.classList.add('idle');
+    chronoNum.textContent = '···';
+    stopBtn.disabled = true;
+    flashBtn.disabled = false;
+    hzRange.disabled = false;
+    hzTag.textContent = '待機';
+    if (msg) ch1Msg.textContent = msg;
+  }
+
+  function startFlash() {
+    if (flash.on) return;
+    if (document.hidden) {
+      ch1Msg.textContent = '這個分頁不在前景，看不到就不算數。回來再按一次。';
+      return;
+    }
+    var hz = currentHz();
+    var frameMs = E.hzToFrameMs(hz);
+    if (frameMs === null) return;
+
+    optRow.hidden = true;
+    optRow.innerHTML = '';
+    flash.num = twoDigit();
+    flash.on = true;
+    flashBtn.disabled = true;
+    stopBtn.disabled = false;
+    hzRange.disabled = true;
+    hzTag.textContent = '交替中　' + hz + ' Hz';
+    ch1Msg.textContent = '看好了。';
+    chrono.classList.remove('idle');
+    chronoNum.textContent = String(flash.num);
+
+    var t0 = nowMs();
+    var DUR = 1500;
+
+    function tick() {
+      if (!flash.on) return;
+      if (document.hidden) {
+        stopFlash('你切走了，這一次不算。回來再按一次。');
+        return;
+      }
+      var el = nowMs() - t0;
+      if (el >= DUR) {
+        flash.on = false;
+        chrono.classList.remove('neg');
+        chrono.classList.add('idle');
+        chronoNum.textContent = '···';
+        stopBtn.disabled = true;
+        hzRange.disabled = false;
+        hzTag.textContent = '請作答';
+        ch1Msg.textContent = '剛剛那組數字是？';
+        renderOpts(optRow, makeOptions(flash.num), judgeCalib);
+        var first = optRow.querySelector('.opt');
+        if (first && first.focus) first.focus();
+        return;
+      }
+      var phase = Math.floor(el / frameMs) % 2;
+      chrono.classList.toggle('neg', phase === 1);
+      flash.handle = raf(tick);
+    }
+    flash.handle = raf(tick);
+  }
+
+  function judgeCalib(val, btn, container) {
+    var hz = currentHz();
+    var right = (val === flash.num);
+    lockOpts(container, val, flash.num);
+    flashBtn.disabled = false;
+    hzTag.textContent = '待機';
+
+    if (right) {
+      S.lastGood = (S.lastGood === null) ? hz : Math.max(S.lastGood, hz);
+      ch1Msg.innerHTML = '<span class="ok">讀到了。</span> ' + hz + ' Hz 對你來說還在範圍內——' +
+        '往上加一格再試試，看你能推到哪。';
+      lockBtn.disabled = false;
+      lockBtn.textContent = '把 ' + S.lastGood + ' Hz 訂為我的門檻';
+    } else {
+      ch1Msg.innerHTML = '<span class="no">沒讀到。</span>正確答案是 <b>' + flash.num + '</b>。' +
+        (S.lastGood === null
+          ? ' ' + hz + ' Hz 對你已經是一團模糊了，往下調慢一點再試。'
+          : ' 那你的界線就在這附近——你在 ' + S.lastGood + ' Hz 讀得出來，' + hz + ' Hz 讀不出來。');
+      if (S.lastGood !== null) {
+        lockBtn.disabled = false;
+        lockBtn.textContent = '把 ' + S.lastGood + ' Hz 訂為我的門檻';
+      }
+    }
+  }
+
+  function setThreshold(hz, viaSkip) {
+    S.threshold = E.clamp(Math.round(hz), E.HZ_MIN, E.HZ_MAX);
+    S.calibrated = true;
+    S.skippedCalib = !!viaSkip;
+    store('threshold', S.threshold);
+    store('skipped', viaSkip ? '1' : '0');
+
+    lockBtn.disabled = true;
+    lockBtn.textContent = '門檻已訂在 ' + S.threshold + ' Hz';
+    S.challenge = E.challengeHz(S.threshold);
+
+    ch1Msg.innerHTML = viaSkip
+      ? '好，那就給你一個一般人的數字：<b>' + S.threshold + ' Hz</b>。往下，那座塔在等你。'
+      : '記下了：<b>' + S.threshold + ' Hz</b>。這是你的線。往下，我們要越過它一次。';
+
+    $('thrLine').innerHTML = '你的門檻：<b style="color:var(--ink)">' + S.threshold + ' Hz</b>（每格 ' +
+      Math.round(E.hzToFrameMs(S.threshold)) + ' 毫秒）。' +
+      '墜落中會用 <b style="color:var(--ice)">' + S.challenge + ' Hz</b> 閃給你看——快了 ' +
+      Math.round((S.challenge / S.threshold - 1) * 100) + '%。';
+    $('jumpBtn').disabled = false;
+  }
+
+  hzRange.addEventListener('input', function () {
+    paintHz();
+    if (flash.on) stopFlash();
+  });
+  flashBtn.addEventListener('click', startFlash);
+  stopBtn.addEventListener('click', function () { stopFlash('停了。要繼續的話再按一次。'); });
+  lockBtn.addEventListener('click', function () {
+    setThreshold(S.lastGood === null ? currentHz() : S.lastGood, false);
+  });
+  skipCalib.addEventListener('click', function () {
+    if (flash.on) stopFlash();
+    optRow.hidden = true;
+    setThreshold(E.DEFAULT_HZ, true);
+  });
+  paintHz();
+
+  /* 上次來過 */
+  (function recall() {
+    var prev = Number(load('threshold'));
+    if (E.isNum(prev) && prev >= E.HZ_MIN && prev <= E.HZ_MAX) {
+      ch1Msg.innerHTML = '你上次量出來的門檻是 <b>' + prev + ' Hz</b>。要沿用就直接按下面那顆，' +
+        '想重測就先閃一次給自己看。';
+      S.lastGood = prev;
+      lockBtn.disabled = false;
+      lockBtn.textContent = '沿用 ' + prev + ' Hz';
+    }
+  })();
+
+  /* ==========================================================
+     第二章：墜落
+     ========================================================== */
+  var jumpBtn = $('jumpBtn'), skipFlashBox = $('skipFlash'), fallStatus = $('fallStatus');
+  var overlay = $('fallOverlay'), world = $('world'), streaks = $('streaks');
+  var altOut = $('altOut'), spdOut = $('spdOut'), clkOut = $('clkOut');
+  var fallChrono = $('fallChrono'), fallNum = $('fallNum'), fallCap = $('fallCap');
+  var landBox = $('landBox'), landHead = $('landHead'), landSay = $('landSay'), landTag = $('landTag');
+  var readRow = $('readRow'), readMsg = $('readMsg'), reJump = $('reJump'), toC3 = $('toC3');
+
+  function syncSkipDefault() {
+    if (reduced && !skipFlashBox.dataset.touched) skipFlashBox.checked = true;
+  }
+  skipFlashBox.addEventListener('change', function () { skipFlashBox.dataset.touched = '1'; });
+  syncSkipDefault();
+
+  var PX_PER_M = 96;
+
+  (function buildWorld() {
+    var html = '';
+    for (var m = 0; m <= E.TOWER_M; m++) {
+      var y = (E.TOWER_M - m) * PX_PER_M;
+      var major = (m % 5 === 0);
+      html += '<div class="rung' + (major ? ' major' : '') + '" style="top:' + y + 'px">' +
+              (major ? '<span>' + m + ' M</span>' : '') + '</div>';
+    }
+    world.innerHTML = html;
+    var s = '';
+    for (var i = 0; i < 16; i++) {
+      s += '<i style="left:' + ((i * 6.7 + (i % 4) * 3.1) % 100).toFixed(1) + '%;animation-delay:' +
+           (-(i * 0.041)).toFixed(3) + 's;opacity:' + (0.2 + (i % 5) * 0.13).toFixed(2) + '"></i>';
+    }
+    streaks.innerHTML = s;
+  })();
+
+  var fall = { handle: null, t0: 0, abort: false, chronoOn: false, frameMs: null, winA: 0, winB: 0 };
+
+  function closeOverlay() {
+    overlay.classList.remove('on');
+    setTimeout(function () {
+      overlay.hidden = true;
+      document.body.classList.remove('falling');
+    }, reduced ? 0 : 340);
+  }
+
+  function abortFall(why) {
+    if (!S.falling) return;
+    fall.abort = true;
+    S.falling = false;
+    if (fall.handle !== null) { caf(fall.handle); fall.handle = null; }
+    fallChrono.hidden = true;
+    closeOverlay();
+    jumpBtn.disabled = false;
+    fallStatus.textContent = why || '中止了。要跳再按一次。';
+  }
+
+  function paintFall(el) {
+    var alt = E.altitudeAt(el, E.TOWER_M);
+    var v = E.toKmh(E.fallSpeed(el));
+    if (alt === null) alt = 0;
+    altOut.innerHTML = (alt < 10 ? alt.toFixed(1) : Math.round(alt)) + '<sub>M</sub>';
+    spdOut.textContent = (v === null ? '—' : Math.round(v)) + ' KM/H';
+    clkOut.textContent = 'T + ' + E.formatSec(el, 2) + ' S';
+    if (!reduced) {
+      var offset = (window.innerHeight || 700) * 0.5 - (E.TOWER_M - alt) * PX_PER_M;
+      world.style.transform = 'translateY(' + offset.toFixed(1) + 'px)';
+    }
+  }
+
+  function startFall() {
+    if (S.falling || !S.calibrated) return;
+    if (document.hidden) {
+      fallStatus.textContent = '分頁不在前景，這一跳不算。回到這一頁再按。';
+      return;
+    }
+
+    S.falling = true;
+    S.landed = false;
+    S.picked = null;
+    S.measured = null;
+    S.guess = null;
+    S.skippedFlash = !!skipFlashBox.checked;
+    S.challenge = E.challengeHz(S.threshold);
+    S.target = twoDigit();
+
+    fall.abort = false;
+    fall.chronoOn = false;
+    fall.frameMs = E.hzToFrameMs(S.challenge);
+    fall.winA = TOTAL * 0.32;
+    fall.winB = fall.winA + Math.min(0.95, TOTAL * 0.38);
+
+    landBox.hidden = true;
+    readRow.innerHTML = '';
+    readMsg.textContent = '';
+    toC3.hidden = true;
+    $('revealBox').hidden = true;
+    $('askBox').hidden = true;
+    $('askLock').hidden = false;
+    $('askLock').innerHTML = '你還沒跳。<a href="#c2">回上面那座塔</a>，跳完再回來。';
+
+    jumpBtn.disabled = true;
+    fallStatus.textContent = '墜落中……';
+    fallNum.textContent = String(S.target);
+    fallChrono.hidden = true;
+    fallChrono.classList.remove('neg');
+    fallCap.textContent = S.skippedFlash ? '（你選擇跳過閃示）' : '';
+
+    document.body.classList.add('falling');
+    overlay.hidden = false;
+    paintFall(0);
+    raf(function () { overlay.classList.add('on'); });
+
+    fall.t0 = nowMs();
+
+    function step() {
+      if (fall.abort) return;
+      if (document.hidden) { abortFall('你切走了，這一跳不算。回來再按一次。'); return; }
+      var el = (nowMs() - fall.t0) / 1000;
+
+      if (el >= TOTAL) { paintFall(TOTAL); land((nowMs() - fall.t0) / 1000); return; }
+      paintFall(el);
+
+      if (!S.skippedFlash) {
+        if (el >= fall.winA && el < fall.winB) {
+          if (!fall.chronoOn) { fall.chronoOn = true; fallChrono.hidden = false; fallCap.textContent = '讀它'; }
+          var phase = Math.floor((el - fall.winA) * 1000 / fall.frameMs) % 2;
+          fallChrono.classList.toggle('neg', phase === 1);
+        } else if (fall.chronoOn && el >= fall.winB) {
+          fall.chronoOn = false;
+          fallChrono.hidden = true;
+          fallChrono.classList.remove('neg');
+          fallCap.textContent = '';
+        }
+      }
+      fall.handle = raf(step);
+    }
+    fall.handle = raf(step);
+  }
+
+  function land(elapsed) {
+    S.falling = false;
+    S.landed = true;
+    S.measured = elapsed;
+    if (fall.handle !== null) { caf(fall.handle); fall.handle = null; }
+    fallChrono.hidden = true;
+    fallChrono.classList.remove('neg');
+
+    altOut.innerHTML = '0<sub>M</sub>';
+    fallCap.textContent = '網子接住你了';
+
+    setTimeout(closeOverlay, reduced ? 0 : 620);
+
+    jumpBtn.disabled = false;
+    fallStatus.textContent = '落地。';
+    landTag.textContent = S.skippedFlash ? '閃示已跳過' : S.challenge + ' Hz 閃示';
+    landBox.hidden = false;
+
+    if (S.skippedFlash) {
+      landSay.textContent = '你選擇不看那組數字，所以這一題直接記成「沒讀到」。故事照走——往下，兩個問題。';
+      readRow.hidden = true;
+      readMsg.innerHTML = '半空中那組數字其實是 <b>' + S.target + '</b>，用 ' + S.challenge + ' Hz 閃的。';
+      toC3.hidden = false;
+      openAsk();
+    } else {
+      landSay.textContent = '半空中那組數字，你讀到了嗎？先選一個，別回頭看。';
+      readRow.hidden = false;
+      renderOpts(readRow, makeOptions(S.target), judgeRead);
+    }
+
+    if (landHead && landHead.focus) { try { landHead.focus(); } catch (e) {} }
+  }
+
+  function judgeRead(val, btn, container) {
+    S.picked = val;
+    lockOpts(container, val, S.target);
+    // 這裡刻意不揭曉對錯：答案要跟「你估了幾秒」擺在一起才有力道
+    readMsg.innerHTML = '記下了。<span class="ok">先不告訴你對不對。</span>往下，還有兩個問題。';
+    toC3.hidden = false;
+    openAsk();
+  }
+
+  function openAsk() {
+    $('askLock').hidden = true;
+    $('askBox').hidden = false;
+  }
+
+  jumpBtn.addEventListener('click', startFall);
+  reJump.addEventListener('click', function () {
+    if (S.falling) return;
+    startFall();
+  });
+
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape' && S.falling) abortFall('你中止了。要跳再按一次。');
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) return;
+    if (S.falling) abortFall('你切走了，這一跳不算。回來再按一次。');
+    if (flash.on) stopFlash('你切走了，這一次不算。回來再按一次。');
+  });
+
+  /* ==========================================================
+     第三章：兩個問題
+     ========================================================== */
+  var guess = $('guess'), guessOut = $('guessOut'), guessBtn = $('guessBtn');
+
+  function paintGuess() {
+    var v = Number(guess.value);
+    guessOut.innerHTML = (E.isNum(v) ? v.toFixed(1) : '—') + ' <small>秒</small>';
+  }
+  guess.addEventListener('input', paintGuess);
+  paintGuess();
+
+  guessBtn.addEventListener('click', function () {
+    if (!S.landed || !E.isNum(S.measured)) return;
+    S.guess = Number(guess.value);
+    store('lastGuess', S.guess);
+    revealAll();
+  });
+
+  function row(k, v, cls) {
+    return '<div class="lr' + (cls ? ' ' + cls : '') + '"><span class="lk">' + k + '</span><span class="lv">' + v + '</span></div>';
+  }
+
+  function revealAll() {
+    var actual = S.measured;
+    var pct = E.overestimatePercent(actual, S.guess);
+    var ratio = E.estimateRatio(actual, S.guess);
+    var desc = E.describeEstimate(pct);
+
+    var cls = (pct === null) ? '' : (pct > 12 ? 'miss' : (pct >= -12 ? 'hit' : ''));
+
+    $('ledger').innerHTML =
+      row('你憑感覺說的', E.formatSec(S.guess, 1) + ' 秒') +
+      row('碼錶量到的', E.formatSec(actual, 2) + ' 秒') +
+      row('31 公尺自由落體的理論值', THEORY + ' 秒') +
+      row('你的估計 ÷ 實際', (ratio === null ? '—' : ratio.toFixed(2) + ' 倍'), 'total') +
+      row('高估幅度', (pct === null ? '—' : E.formatPercent(pct)), cls);
+
+    var over = '';
+    if (pct === null) {
+      over = '這一跳沒量到有效時間，重跳一次吧。';
+    } else if (pct > 12) {
+      over = '<strong>' + (desc ? desc.text : '') + '</strong>實際只有 ' + E.formatSec(actual, 2) +
+             ' 秒，你說 ' + E.formatSec(S.guess, 1) + ' 秒——多算了 ' + Math.round(pct) + '%。';
+    } else if (pct >= -12) {
+      over = '<strong>' + (desc ? desc.text : '') + '</strong>你是少數。多數人會把這兩秒半說成四秒、五秒。';
+    } else {
+      over = '<strong>' + (desc ? desc.text : '') + '</strong>你把它壓縮了。這也是一種偏誤——不過在真的危險裡，人幾乎都往長的那邊偏。';
+    }
+    $('overLine').innerHTML = over;
+
+    var back;
+    if (S.skippedFlash) {
+      back = '你跳過了那一段，所以那組數字算你沒讀到——<b>' + S.target + '</b>，用 ' + S.challenge +
+             ' Hz 閃的，比你自己量出來的 ' + S.threshold + ' Hz 門檻快了 ' +
+             Math.round((S.challenge / S.threshold - 1) * 100) + '%。' +
+             '2007 年那些真的從塔上掉下來的人，也沒讀出來。恐懼並沒有把他們的眼睛調快。';
+    } else if (S.picked === S.target) {
+      back = '你答對了——<b>' + S.target + '</b>。恭喜，不過你可能是猜中的：四選一，本來就有四分之一機會。' +
+             '重點是，' + S.challenge + ' Hz 已經越過你自己量出來的 ' + S.threshold +
+             ' Hz。原始實驗裡，受試者在墜落中的讀取表現，並沒有比平常好。';
+    } else if (S.picked === null) {
+      back = '你沒有作答。那組數字是 <b>' + S.target + '</b>，用 ' + S.challenge + ' Hz 閃的。';
+    } else {
+      back = '你選了 ' + S.picked + '，正確答案是 <b>' + S.target + '</b>。' +
+             '那個速度是 ' + S.challenge + ' Hz，越過了你自己量出來的 ' + S.threshold + ' Hz 門檻。' +
+             '掉下去並沒有幫你把它讀出來——恐懼沒有把你的眼睛調快。';
+    }
+    $('readBack').innerHTML = back;
+
+    $('revealBox').hidden = false;
+    store('done', '1');
+  }
+
+})();
+</script>
+</body>
+</html>

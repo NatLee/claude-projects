@@ -170,8 +170,55 @@ p{margin:0 0 1.1em}
 .hold[disabled]{background:linear-gradient(180deg,#26404f,#1b303c);color:var(--dim);cursor:default;box-shadow:none}
 .hint{font-size:.86rem;color:var(--soft);margin:12px 2px 0;min-height:1.9em;line-height:1.75}
 .hint.warn{color:var(--amber)}
-.tapmode{display:flex;align-items:flex-start;gap:9px;margin:14px 2px 0;font-size:.8rem;color:var(--dim);cursor:pointer;line-height:1.6}
-.tapmode input{margin:5px 0 0;accent-color:var(--cyan);width:16px;height:16px;cursor:pointer}
+/* ---------- 進度：走到實驗的哪一步 ---------- */
+.steps{
+  position:sticky;top:0;z-index:30;margin:0;
+  /* 靠右排並在左邊留出「← 回首頁」那顆藥丸的位置，兩者永遠不會疊到 */
+  padding:11px 18px 12px 104px;
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 4px;
+  background:rgba(8,14,20,.88);border-bottom:1px solid rgba(150,195,225,.12);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+}
+.steps li{list-style:none;display:flex;align-items:center;gap:4px;color:rgba(143,166,184,.5);transition:color .35s}
+.steps li::after{content:"›";margin-left:4px;color:rgba(143,166,184,.28)}
+.steps li:last-child::after{content:""}
+.steps li .dot{
+  width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.45;
+  transition:transform .35s cubic-bezier(.3,1.5,.5,1),opacity .35s;
+}
+.steps li.done{color:rgba(94,200,229,.72)}
+.steps li.done .dot{opacity:.85}
+.steps li.now{color:var(--amber)}
+.steps li.now .dot{opacity:1;transform:scale(1.9)}
+@media (max-width:430px){.steps{font-size:.62rem;letter-spacing:.06em;padding:9px 12px 10px 96px}}
+
+/* ---------- 「改成點一下」的切換 ---------- */
+.vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+.tapmode{
+  display:flex;align-items:center;gap:13px;margin:16px 0 0;padding:11px 14px 12px;
+  border:1px solid rgba(150,195,225,.16);border-radius:13px;
+  background:rgba(94,200,229,.045);
+  font-size:.8rem;color:var(--dim);line-height:1.55;cursor:pointer;
+  transition:border-color .2s,background-color .2s;
+}
+.tapmode:hover{border-color:rgba(94,200,229,.4);background:rgba(94,200,229,.085)}
+.tapmode .sw{
+  flex:none;width:42px;height:24px;border-radius:99px;position:relative;
+  background:rgba(150,195,225,.16);border:1px solid rgba(150,195,225,.24);
+  transition:background-color .24s,border-color .24s;
+}
+.tapmode .sw::after{
+  content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+  background:#c3dced;box-shadow:0 2px 6px rgba(0,0,0,.45);
+  transition:transform .24s cubic-bezier(.3,1.5,.5,1),background-color .24s;
+}
+.tapmode input:checked ~ .sw{background:var(--cyan-deep);border-color:var(--cyan)}
+.tapmode input:checked ~ .sw::after{transform:translateX(18px);background:#eaf8fe}
+.tapmode input:focus-visible ~ .sw{outline:2px solid var(--amber);outline-offset:3px}
+.tapmode .lb b{display:block;color:var(--ink);font-weight:600;font-size:.87rem;margin-top:2px}
+.tapmode:has(input:disabled){opacity:.42;cursor:default;border-color:rgba(150,195,225,.1);background:none}
 
 /* ---------- 提問 ---------- */
 .ask{margin:30px 0 0;border-top:1px dashed rgba(150,195,225,.2);padding-top:26px}
@@ -196,8 +243,14 @@ p{margin:0 0 1.1em}
 }
 .choice:hover{transform:translateY(-3px);border-color:rgba(94,200,229,.6);box-shadow:0 18px 40px rgba(0,0,0,.45)}
 .choice b{display:block;font-size:1.16rem;margin-bottom:5px}
-.choice span{display:block;font-size:.86rem;color:var(--soft);line-height:1.7}
 .choice em{display:block;font-style:normal;font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;color:var(--dim);margin-bottom:9px}
+/* 卡片上直接攤出那一段的實際數字——選擇要有得比較，後面的揭曉才有力道 */
+.choice .recap{display:block;margin-top:14px;padding-top:12px;border-top:1px dashed rgba(150,195,225,.18)}
+.choice .rc{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 0}
+.choice .rc .k{font-size:.78rem;color:var(--dim)}
+.choice .rc .v{font-family:var(--mono);font-size:.9rem;color:var(--soft);font-variant-numeric:tabular-nums;white-space:nowrap}
+.choice#pick-b .rc .v{color:var(--amber)}
+.choice#pick-a .rc .v{color:var(--cyan)}
 
 .verdict-head{font-family:var(--mono);font-size:.76rem;letter-spacing:.26em;color:var(--amber);margin:0 0 1em}
 .punch{
@@ -298,6 +351,13 @@ body.rm .basin::after{animation:none}
   </defs>
 </svg>
 
+<ol class="steps" id="steps" hidden aria-label="實驗進度">
+  <li data-step="ch-a"><i class="dot" aria-hidden="true"></i>第一次</li>
+  <li data-step="ch-b"><i class="dot" aria-hidden="true"></i>第二次</li>
+  <li data-step="ch-choice"><i class="dot" aria-hidden="true"></i>選一段</li>
+  <li data-step="ch-reveal"><i class="dot" aria-hidden="true"></i>攤牌</li>
+</ol>
+
 <main>
 
 <!-- ══════════ 第一屏 ══════════ -->
@@ -344,7 +404,11 @@ body.rm .basin::after{animation:none}
       <div class="bar" aria-hidden="true"><i id="a-bar"></i></div>
       <button class="hold" id="a-hold" type="button" aria-describedby="a-hint">按住＝把手放進水裡</button>
       <p class="hint" id="a-hint">按住不放。放開就等於把手拿出來，計時會停。</p>
-      <label class="tapmode"><input type="checkbox" id="a-tap"><span>不方便一直按住？改成「點一下開始、再點一下結束」</span></label>
+      <label class="tapmode">
+        <input class="vh" type="checkbox" id="a-tap">
+        <span class="sw" aria-hidden="true"></span>
+        <span class="lb">不方便一直按住？<b>改成點一下開始、再點一下結束</b></span>
+      </label>
 
       <div class="ask" id="a-ask" hidden>
         <p class="say" style="color:var(--ink)">時間到。把手拿出來，擦一擦。</p>
@@ -393,7 +457,11 @@ body.rm .basin::after{animation:none}
       <div class="bar" aria-hidden="true"><i id="b-bar"></i></div>
       <button class="hold" id="b-hold" type="button" aria-describedby="b-hint">按住＝把手放進水裡</button>
       <p class="hint" id="b-hint">按住不放。放開就等於把手拿出來，計時會停。</p>
-      <label class="tapmode"><input type="checkbox" id="b-tap"><span>不方便一直按住？改成「點一下開始、再點一下結束」</span></label>
+      <label class="tapmode">
+        <input class="vh" type="checkbox" id="b-tap">
+        <span class="sw" aria-hidden="true"></span>
+        <span class="lb">不方便一直按住？<b>改成點一下開始、再點一下結束</b></span>
+      </label>
 
       <div class="ask" id="b-ask" hidden>
         <p class="say" style="color:var(--ink)">時間到。拿出來吧。</p>
@@ -419,10 +487,20 @@ body.rm .basin::after{animation:none}
 
     <div class="choices" id="choice-box">
       <button class="choice" id="pick-a" type="button">
-        <em>選項一</em><b>再做一次第一次那段</b><span>就是你剛剛做的第一段。</span>
+        <em>第一次</em><b>那一段，再來一遍</b>
+        <span class="recap">
+          <span class="rc"><span class="k">泡了</span><span class="v">14.0 秒</span></span>
+          <span class="rc"><span class="k">拿出來前那一刻</span><span class="v" id="rc-end-a">—</span></span>
+          <span class="rc"><span class="k">你給的分數</span><span class="v" id="rc-rate-a">—</span></span>
+        </span>
       </button>
       <button class="choice" id="pick-b" type="button">
-        <em>選項二</em><b>再做一次第二次那段</b><span>就是你剛剛做的第二段。</span>
+        <em>第二次</em><b>那一段，再來一遍</b>
+        <span class="recap">
+          <span class="rc"><span class="k">泡了</span><span class="v">21.0 秒</span></span>
+          <span class="rc"><span class="k">拿出來前那一刻</span><span class="v" id="rc-end-b">—</span></span>
+          <span class="rc"><span class="k">你給的分數</span><span class="v" id="rc-rate-b">—</span></span>
+        </span>
       </button>
     </div>
 
@@ -921,10 +999,27 @@ body.rm .basin::after{animation:none}
   var trialA = null, trialB = null;
   var ratingA = null, ratingB = null, chosen = null;
 
+  /* 進度列：走到哪一步就標到哪一步（第一屏還沒開始，先不顯示） */
+  var STEP_ORDER = ['ch-a', 'ch-b', 'ch-choice', 'ch-reveal'];
+  function markStep(id) {
+    var bar = $('steps');
+    if (!bar) return;
+    var at = STEP_ORDER.indexOf(id);
+    if (at < 0) return;
+    bar.hidden = false;
+    var items = bar.getElementsByTagName('li');
+    for (var i = 0; i < items.length; i++) {
+      items[i].className = i < at ? 'done' : (i === at ? 'now' : '');
+      if (i === at) items[i].setAttribute('aria-current', 'step');
+      else items[i].removeAttribute('aria-current');
+    }
+  }
+
   function show(id) {
     var s = $(id);
     if (!s) return null;
     s.hidden = false;
+    markStep(id);
     watchReveals(s);
     return s;
   }
@@ -966,6 +1061,12 @@ body.rm .basin::after{animation:none}
   }
 
   function openChoice() {
+    // 把兩段的實際數字填進卡片，讓這個選擇是「看著資料做的」，不是憑空猜
+    var put1 = function (id, txt) { var n = $(id); if (n) n.textContent = txt; };
+    put1('rc-end-a', f1(E.endOf(A)) + ' / 10');
+    put1('rc-end-b', f1(E.endOf(B)) + ' / 10');
+    put1('rc-rate-a', ratingA === null ? '—' : ratingA + ' 分');
+    put1('rc-rate-b', ratingB === null ? '—' : ratingB + ' 分');
     goTo(show('ch-choice'));
   }
 

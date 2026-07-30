@@ -170,30 +170,52 @@ em.hi{font-style:normal;color:var(--warm2);font-weight:600}
 .tick i.on{background:var(--warm);transform:scale(1.18)}
 
 /* 房間場景姿勢 */
-.scene #head,.scene #arms,.scene #kid,.scene #tongue,.scene #lids,.scene #coverhands,
+.scene #head,.scene #arms,.scene #upper,.scene #kid,.scene #tongue,.scene #lids,.scene #coverhands,
 .scene #mallow,.scene #mallow2,.scene #dim,.scene #beam,.scene #door{
   transition:transform .95s cubic-bezier(.3,.85,.3,1),opacity .6s ease;
 }
+/* #upper 從腰部（桌沿附近）轉，#head 只做剩下的小幅度動作；
+   兩層疊起來才會像「整個人往前湊」，而不是「頭自己飛出去」。 */
+.scene #upper{transform-box:view-box;transform-origin:330px 430px}
 .scene #head{transform-box:view-box;transform-origin:330px 254px}
 .scene #arms{transform-box:view-box;transform-origin:330px 300px}
 .scene #kid{transform-box:view-box;transform-origin:330px 400px}
 .scene #mallow{transform-box:view-box;transform-origin:500px 400px}
 .scene #door{transform-box:view-box;transform-origin:598px 60px}
 .scene #tongue,.scene #lids,.scene #mallow2,.scene #coverhands{opacity:0}
-.scene[data-pose="lean"]  #head{transform:translate(34px,22px) rotate(4deg)}
-.scene[data-pose="sniff"] #head{transform:translate(104px,86px) rotate(11deg)}
-.scene[data-pose="lick"]  #head{transform:translate(114px,98px) rotate(14deg)}
+
+.scene[data-pose="lean"]  #upper{transform:rotate(7deg)}
+.scene[data-pose="lean"]  #head {transform:translate(6px,18px)}
+.scene[data-pose="lean"]  #arms {transform:translate(10px,6px) rotate(-3deg)}
+
+.scene[data-pose="sniff"] #upper{transform:translate(26px,2px) rotate(17deg)}
+.scene[data-pose="sniff"] #head {transform:translate(24px,66px) rotate(-3deg)}
+.scene[data-pose="sniff"] #arms {transform:translate(6px,16px) rotate(-8deg)}
+
+.scene[data-pose="lick"]  #upper{transform:translate(44px,4px) rotate(20deg)}
+.scene[data-pose="lick"]  #head {transform:translate(16px,74px) rotate(-4deg)}
+.scene[data-pose="lick"]  #arms {transform:translate(4px,20px) rotate(-10deg)}
 .scene[data-pose="lick"]  #tongue{opacity:1}
-.scene[data-pose="away"]  #head{transform:translate(-30px,-2px) rotate(-22deg)}
-.scene[data-pose="sit"]   #arms{transform:translate(0,54px)}
-.scene[data-pose="sit"]   #head{transform:translate(0,8px)}
+
+.scene[data-pose="away"]  #upper{transform:translate(-8px,0) rotate(-9deg)}
+.scene[data-pose="away"]  #head {transform:translate(6px,0) rotate(-13deg)}
+.scene[data-pose="away"]  #arms {transform:translate(-6px,2px) rotate(4deg)}
+
+.scene[data-pose="sit"]   #upper{transform:translate(0,6px) rotate(-2deg)}
+.scene[data-pose="sit"]   #arms {transform:translate(0,54px)}
+.scene[data-pose="sit"]   #head {transform:translate(0,6px)}
+
+.scene[data-pose="cover"] #upper{transform:translate(0,4px) rotate(3deg)}
 .scene[data-pose="cover"] #arms{opacity:0}
 .scene[data-pose="cover"] #coverhands{opacity:1}
 .scene[data-pose="cover"] #lids{opacity:1}
+
+.scene[data-pose="sing"]  #upper{animation:swayu 3.4s ease-in-out infinite}
 .scene[data-pose="sing"]  #head{animation:wiggle 2.6s ease-in-out infinite}
 .scene[data-pose="sway"]  #kid{animation:swayk 3.2s ease-in-out infinite}
 .scene[data-pose="done"]  #mallow{opacity:0;transform:translate(0,12px) scale(.6)}
-.scene[data-pose="done"]  #head{transform:translate(0,-6px)}
+.scene[data-pose="done"]  #upper{transform:rotate(-3deg)}
+.scene[data-pose="done"]  #head{transform:translate(0,-4px) rotate(2deg)}
 .scene[data-win="1"] #mallow2{opacity:1}
 .scene[data-door="open"] #beam{opacity:1}
 .scene[data-door="open"] #dim{opacity:0}
@@ -202,6 +224,8 @@ em.hi{font-style:normal;color:var(--warm2);font-weight:600}
 .scene[data-door="closed"] #dim{opacity:.4}
 @keyframes wiggle{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
 @keyframes swayk{0%,100%{transform:translate(-6px,0)}50%{transform:translate(6px,0)}}
+/* 唱歌時軀幹輕輕反向擺，跟頭的 wiggle 錯開，看起來才像同一個人 */
+@keyframes swayu{0%,100%{transform:rotate(2.2deg)}50%{transform:rotate(-2.2deg)}}
 .reduce .scene *{transition:none !important;animation:none !important}
 
 /* ---------- 第三章：疊上來的標語 ---------- */
@@ -444,6 +468,8 @@ footer{
           <svg class="scene" id="scene" viewBox="0 0 760 480" data-pose="idle" data-door="open" data-win="0"
                role="img" aria-label="示意插畫：一個孩子坐在桌前，桌上有一盤棉花糖，右邊有一扇門。">
             <defs>
+              <!-- 身體往前傾的時候，下襬會從桌子底下露出來，用桌面高度切掉 -->
+              <clipPath id="kidClip"><rect x="0" y="0" width="760" height="438"/></clipPath>
               <linearGradient id="w2" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="330">
                 <stop offset="0" stop-color="#241d16"/><stop offset="1" stop-color="#332920"/>
               </linearGradient>
@@ -477,7 +503,10 @@ footer{
             </g>
 
             <!-- 孩子 -->
+            <g clip-path="url(#kidClip)">
             <g id="kid">
+             <!-- 上半身：頭一動，軀幹與手臂要跟著一起傾，不然頭會像被拔起來 -->
+             <g id="upper">
               <!-- 身體 -->
               <path d="M228 480q4-232 102-232t102 232z" fill="#5b7f86"/>
               <path d="M284 288q22 16 46 16t46-16" stroke="#4a6a70" stroke-width="4" fill="none" stroke-linecap="round"/>
@@ -521,6 +550,8 @@ footer{
                 <rect x="330" y="172" width="58" height="60" rx="23" fill="#e8b795" stroke="#c08a63" stroke-width="2.5"/>
                 <path d="M286 190h30M286 204h30M346 190h30M346 204h30" stroke="#cf9d79" stroke-width="2" stroke-linecap="round" fill="none"/>
               </g>
+             </g>
+            </g>
             </g>
 
             <!-- 桌 -->

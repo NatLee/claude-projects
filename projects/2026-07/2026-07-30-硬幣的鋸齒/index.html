@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>硬幣的鋸齒｜每日小專案</title>
+<meta name="description" content="你口袋裡那枚硬幣，邊緣為什麼是鋸齒的？因為三百年前有人在偷你的錢——用剪刀。1690 年代倫敦鑄幣廠的檢驗桌，你親手剪一刀。">
+<style>
+:root{
+  --bg:#0a0b0c;
+  --bg2:#101315;
+  --bench:#15201d;
+  --bench2:#1b2a26;
+  --silver:#e4ebf1;
+  --silver-2:#b9c6d1;
+  --silver-dim:#8794a0;
+  --brass:#d9a94e;
+  --brass-2:#f0cd85;
+  --brass-dim:#8a6a2c;
+  --red:#e2543f;
+  --green:#5fbf8a;
+  --txt:#dfe4e8;
+  --txt-soft:#8f9aa3;
+  --line:rgba(223,228,232,.13);
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif TC","Songti TC","MingLiU",serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+  line-height:1.88;letter-spacing:.015em;-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(130% 60% at 50% 0%, #16191b 0%, var(--bg) 62%);
+  background-attachment:fixed;overflow-x:hidden;
+}
+body.paused *{animation-play-state:paused !important}
+a{color:inherit}
+p{margin:0 0 1.15em}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:5px}
+
+/* ---------- 回首頁 ---------- */
+.home{
+  position:fixed;top:14px;left:14px;z-index:80;font-size:.78rem;letter-spacing:.1em;
+  color:var(--txt-soft);text-decoration:none;padding:6px 13px;border-radius:999px;
+  background:rgba(10,11,12,.7);border:1px solid var(--line);backdrop-filter:blur(7px);
+  transition:color .25s,border-color .25s,transform .25s;
+}
+.home:hover{color:var(--silver);border-color:rgba(217,169,78,.55);transform:translateX(-2px)}
+
+/* ---------- 通用 ---------- */
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+h1,h2{font-family:var(--serif);font-weight:700;letter-spacing:.005em;line-height:1.3;margin:0}
+.chapter{margin:0 0 min(14vh,100px)}
+.chapter:last-child{margin-bottom:0}
+.label{
+  display:inline-flex;align-items:center;gap:.6em;font-family:var(--mono);
+  font-size:.68rem;letter-spacing:.28em;color:var(--brass);text-transform:uppercase;
+  margin:0 0 .8em;
+}
+.label::before{content:"";width:26px;height:1px;background:var(--brass-dim)}
+h2{font-size:clamp(1.55rem,4.6vw,2.25rem);margin:0 0 .7em}
+.lede{font-size:1.05rem;color:var(--silver-2)}
+.small{font-size:.86rem;color:var(--txt-soft);line-height:1.8}
+em.hi{font-style:normal;color:var(--brass-2);font-weight:600}
+em.lat{font-style:normal;font-family:var(--serif);letter-spacing:.16em;color:var(--brass-2)}
+.beat{font-family:var(--serif);font-size:clamp(1.15rem,3.4vw,1.5rem);color:var(--silver);line-height:1.6;margin:1.4em 0}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .8s cubic-bezier(.2,.7,.3,1),transform .8s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.reduce .reveal{opacity:1;transform:none;transition:none}
+
+/* ---------- 首屏 ---------- */
+.hero{
+  min-height:100vh;min-height:100svh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:76px 20px 34px;
+  position:relative;background:#050505;overflow:hidden;
+}
+.hero::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:22vh;
+  background:linear-gradient(180deg,rgba(5,5,5,0),var(--bg));pointer-events:none;
+}
+.edgeshot{
+  position:relative;width:100vw;margin:min(5vh,36px) 0 min(6vh,44px) 50%;transform:translateX(-50%);
+  pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,#000 62%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0,#000 62%,transparent 100%);
+}
+.edgeshot::before{
+  content:"";position:absolute;left:50%;top:-14%;transform:translateX(-50%);
+  width:min(760px,88vw);height:130%;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(150,175,200,.16),transparent 72%);
+}
+.edgeshot svg{display:block;position:relative;width:100%;height:auto}
+.glint{animation:glint 7.5s cubic-bezier(.5,0,.5,1) infinite}
+@keyframes glint{0%{transform:translateX(-620px)}55%,100%{transform:translateX(1320px)}}
+.hero-inner{position:relative;z-index:2;width:100%;max-width:860px}
+.kicker{font-family:var(--mono);font-size:.74rem;letter-spacing:.34em;color:var(--silver-dim);margin:0}
+.hero h1{font-size:clamp(2.3rem,9vw,4.6rem);color:#fff;margin:0 0 .5em;text-shadow:0 2px 40px rgba(0,0,0,.9)}
+.hero .blow{font-size:clamp(1.05rem,3.6vw,1.42rem);color:var(--silver-2);margin:0 0 .25em;font-family:var(--serif)}
+.hero .blow b{color:#fff;font-weight:600}
+.hero .blow2{font-family:var(--serif);font-size:clamp(1.5rem,6vw,2.4rem);color:var(--brass-2);margin:.2em 0 0;letter-spacing:.05em}
+.scrollcue{position:relative;z-index:2;margin-top:min(9vh,70px);font-family:var(--mono);font-size:.7rem;letter-spacing:.32em;color:var(--silver-dim)}
+.scrollcue span{display:block;font-size:1.2rem;letter-spacing:0;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(8px);opacity:1}}
+
+/* ---------- 舞台：敘事 + 黏著檢驗桌 ---------- */
+.stage{display:grid;gap:44px;max-width:1120px;margin:0 auto;padding:min(12vh,92px) 22px 0}
+.narrative{min-width:0}
+@media (min-width:940px){
+  .stage{grid-template-columns:minmax(0,1fr) 348px;gap:60px}
+  .narrative{grid-column:1;grid-row:1}
+  .bench-col{grid-column:2;grid-row:1;position:sticky;top:26px;align-self:start;height:min-content}
+}
+@media (max-width:939px){
+  .stage{padding-top:min(8vh,54px)}
+  .bench-col{position:sticky;top:0;z-index:30;padding:8px 0 12px;margin-bottom:6px;
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 74%,rgba(10,11,12,0) 100%)}
+  .narrative{margin-top:4px}
+  /* 手機：檢驗桌壓成一列，硬幣在左、讀數在右，展開圖橫跨底部 */
+  .bench{display:grid;grid-template-columns:minmax(0,138px) minmax(0,1fr)}
+  .bench-top{grid-column:1/-1}
+  .coin-wrap{grid-column:1;grid-row:2;padding:10px 4px 8px 10px;align-self:center}
+  .readout{grid-column:2;grid-row:2;padding:10px 13px 8px 8px;align-self:center}
+  .edge-wrap{grid-column:1/-1;grid-row:3;padding-top:0}
+  .verdict{min-height:0}
+  .stamp{font-size:.66rem;letter-spacing:.14em;white-space:nowrap;padding:.24em .5em}
+}
+
+/* ---------- 檢驗桌 ---------- */
+.bench{
+  background:linear-gradient(168deg,var(--bench2),var(--bench));
+  border:1px solid rgba(217,169,78,.2);border-radius:14px;overflow:hidden;
+  box-shadow:0 26px 60px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.05);
+}
+.bench-top{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 13px;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(217,169,78,.18);
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.2em;color:var(--brass);
+}
+.bench-year{color:var(--silver);letter-spacing:.14em;transition:color .4s}
+.bench.milled .bench-year{color:var(--brass-2)}
+.coin-wrap{position:relative;padding:14px 14px 4px}
+.coin-wrap svg{display:block;width:100%;max-width:300px;height:auto;margin:0 auto}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.coinG{filter:drop-shadow(0 10px 18px rgba(0,0,0,.55))}
+.coin-swap{animation:swapIn .62s cubic-bezier(.22,.9,.3,1)}
+@keyframes swapIn{0%{transform:translateY(-26px) scale(.9);opacity:0}60%{transform:translateY(4px) scale(1.02);opacity:1}100%{transform:none;opacity:1}}
+.snip{animation:snip .34s ease-out}
+@keyframes snip{0%{transform:none}30%{transform:translate(3px,-3px) rotate(-1.4deg)}100%{transform:none}}
+.reduce .coin-swap,.reduce .snip{animation:none}
+
+.stamp{
+  position:absolute;left:50%;top:56%;transform:translate(-50%,-50%) rotate(-13deg) scale(1.35);
+  font-family:var(--mono);font-weight:700;font-size:clamp(.9rem,3.4vw,1.15rem);letter-spacing:.2em;
+  color:var(--red);border:2.5px solid var(--red);border-radius:6px;padding:.28em .7em;
+  background:rgba(20,6,4,.5);opacity:0;pointer-events:none;text-align:center;line-height:1.25;
+  transition:opacity .35s ease,transform .35s cubic-bezier(.2,1.5,.4,1);
+}
+.stamp small{display:block;font-family:var(--sans);font-size:.62em;letter-spacing:.14em;opacity:.85}
+.bench.tampered .stamp{opacity:1;transform:translate(-50%,-50%) rotate(-13deg) scale(1)}
+.reduce .stamp{transition:none}
+
+.edge-wrap{padding:2px 14px 10px}
+.edge-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.16em;color:var(--silver-dim);margin-bottom:3px}
+#edgeNote{color:var(--brass);letter-spacing:.1em}
+.edge-wrap svg{display:block;width:100%;height:auto;background:rgba(0,0,0,.24);border-radius:6px}
+
+.readout{padding:2px 14px 15px;font-family:var(--mono);font-size:.74rem}
+.rrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px;letter-spacing:.1em;color:var(--silver-dim)}
+.rrow b{font-size:1.02rem;color:var(--silver);letter-spacing:.04em;font-weight:600;font-variant-numeric:tabular-nums}
+.bar{position:relative;height:7px;border-radius:99px;background:rgba(0,0,0,.42);margin:6px 0 11px;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;width:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--silver-dim),var(--silver));transform-origin:left center;
+  transition:transform .55s cubic-bezier(.2,.8,.3,1),background .4s}
+.bar.low i{background:linear-gradient(90deg,#8a5a2c,var(--brass))}
+.bar u{position:absolute;top:-3px;bottom:-3px;left:50%;width:1px;background:rgba(226,84,63,.65);text-decoration:none}
+.reduce .bar i{transition:none}
+.verdict{margin-top:2px;padding-top:9px;border-top:1px dashed rgba(223,228,232,.15);
+  line-height:1.7;color:var(--silver-2);letter-spacing:.04em;min-height:3.4em;font-size:.73rem}
+.verdict .pass{color:var(--green)}
+.verdict .fail{color:var(--red);font-weight:700;letter-spacing:.1em}
+
+/* ---------- 按鈕 ---------- */
+.acts{display:flex;flex-wrap:wrap;gap:11px;margin:1.6em 0 1.2em}
+button{font-family:inherit}
+.btn{
+  position:relative;display:inline-flex;align-items:center;gap:.55em;
+  font-family:var(--sans);font-size:.92rem;font-weight:600;letter-spacing:.05em;
+  color:#1a1408;background:linear-gradient(180deg,var(--brass-2),var(--brass));
+  border:1px solid rgba(255,255,255,.22);border-radius:9px;padding:.7em 1.25em;cursor:pointer;
+  box-shadow:0 6px 18px rgba(217,169,78,.16),inset 0 1px 0 rgba(255,255,255,.4);
+  transition:transform .16s cubic-bezier(.2,.9,.3,1),box-shadow .22s,filter .22s,opacity .22s;
+}
+.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 26px rgba(217,169,78,.26),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn:active:not(:disabled){transform:translateY(1px) scale(.985);box-shadow:0 3px 10px rgba(217,169,78,.2)}
+.btn:disabled{opacity:.36;cursor:not-allowed;filter:grayscale(.5)}
+.btn.ghost{
+  color:var(--silver-2);background:transparent;border:1px solid var(--line);
+  box-shadow:none;font-weight:500;
+}
+.btn.ghost:hover:not(:disabled){color:var(--silver);border-color:rgba(217,169,78,.5);background:rgba(217,169,78,.06)}
+.btn.danger{color:#fff;background:linear-gradient(180deg,#e2604a,#b93826);border-color:rgba(255,255,255,.2);box-shadow:0 6px 18px rgba(226,84,63,.2),inset 0 1px 0 rgba(255,255,255,.28)}
+.btn.danger:hover:not(:disabled){box-shadow:0 12px 26px rgba(226,84,63,.32),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn .ico{width:17px;height:17px;flex:none}
+.reduce .btn{transition:none}
+.hint{font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;color:var(--silver-dim);margin:-.3em 0 0}
+
+/* ---------- 第三章：重量條 ---------- */
+.gauge{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:1.6em 0;background:rgba(255,255,255,.018)}
+.grow{display:grid;grid-template-columns:6.5em 1fr 4.2em;gap:10px;align-items:center;margin:9px 0;
+  font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:var(--silver-dim)}
+.grow b{text-align:right;color:var(--silver);font-size:.86rem;font-variant-numeric:tabular-nums}
+.gbar{height:11px;border-radius:99px;background:rgba(0,0,0,.42);overflow:hidden}
+.gbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#6d7a85,var(--silver));
+  transform:scaleX(0);transform-origin:left;transition:transform 1.1s cubic-bezier(.2,.85,.3,1)}
+.gbar.bad i{background:linear-gradient(90deg,#8a3a2a,var(--red))}
+.in .gbar i{transform:scaleX(var(--v,1))}
+.reduce .gbar i{transition:none;transform:scaleX(var(--v,1))}
+
+/* ---------- 第五章：檔案 ---------- */
+.newton{padding:min(15vh,110px) 0 0}
+.dossier{
+  display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;margin:1.8em 0;
+}
+@media(min-width:700px){.dossier{grid-template-columns:repeat(3,1fr)}}
+.dcell{background:#0e1113;padding:17px 18px;transition:background .3s}
+.dcell:hover{background:#141819}
+.dnum{font-family:var(--mono);font-size:1.5rem;color:var(--brass-2);letter-spacing:.02em;line-height:1.2;font-variant-numeric:tabular-nums}
+.dcap{font-size:.82rem;color:var(--txt-soft);line-height:1.72;margin-top:.35em}
+.treason{
+  display:inline-block;font-family:var(--mono);font-size:.72rem;letter-spacing:.2em;color:var(--red);
+  border:1px solid rgba(226,84,63,.42);border-radius:5px;padding:.3em .8em;background:rgba(226,84,63,.07);
+}
+.rope{
+  border-left:2px solid var(--brass-dim);padding:2px 0 2px 18px;margin:1.7em 0;color:var(--silver-2);
+}
+.rope .d{font-family:var(--mono);font-size:.7rem;letter-spacing:.16em;color:var(--brass);display:block;margin-bottom:.2em}
+
+/* ---------- 結尾 ---------- */
+.finale{padding:min(15vh,110px) 0 0}
+.picker{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin:1.6em 0 1.1em}
+.chip{
+  font-family:var(--mono);font-size:.76rem;letter-spacing:.12em;color:var(--silver-2);cursor:pointer;
+  background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:99px;padding:.55em 1.1em;
+  transition:color .22s,border-color .22s,background .22s,transform .16s;
+}
+.chip:hover{color:var(--silver);border-color:rgba(217,169,78,.45);transform:translateY(-2px)}
+.chip[aria-pressed="true"]{color:#1a1408;background:linear-gradient(180deg,var(--brass-2),var(--brass));border-color:transparent;font-weight:700}
+.reduce .chip{transition:none}
+.usbox{display:flex;flex-direction:column;align-items:center;gap:6px;margin:0 auto;max-width:340px}
+.usbox svg{display:block;width:min(220px,58vw);height:auto}
+.usout{font-family:var(--mono);font-size:.78rem;letter-spacing:.12em;color:var(--brass-2);text-align:center;min-height:1.6em}
+.closing{max-width:34em;margin:min(12vh,86px) auto 0;text-align:center}
+.closing .q{font-family:var(--serif);font-size:clamp(1.15rem,3.6vw,1.5rem);color:var(--silver-2);margin:0 0 1.1em}
+.closing .a{font-family:var(--serif);font-size:clamp(1.35rem,4.6vw,2rem);color:#fff;line-height:1.55;margin:0 0 .5em}
+.closing .a span{color:var(--brass-2)}
+.closing .z{font-family:var(--mono);font-size:.74rem;letter-spacing:.3em;color:var(--silver-dim);margin-top:1.8em}
+
+footer{
+  border-top:1px solid var(--line);margin-top:min(14vh,100px);padding:26px 22px 30px;text-align:center;
+  font-size:.72rem;letter-spacing:.06em;color:var(--txt-soft);line-height:2;
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+  .reveal{opacity:1;transform:none}
+}
+@media (max-width:560px){
+  body{line-height:1.8}
+  .hero{padding-top:64px}
+  .acts{gap:9px}
+  .btn{font-size:.86rem;padding:.65em 1.05em}
+  .grow{grid-template-columns:5.2em 1fr 3.6em;font-size:.66rem}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="kicker">你口袋裡那枚硬幣</p>
+    <div class="edgeshot" aria-hidden="true">
+      <svg viewBox="0 0 1200 200">
+        <defs>
+          <linearGradient id="metalG" gradientUnits="userSpaceOnUse" x1="0" y1="34" x2="0" y2="200">
+            <stop offset="0" stop-color="#dde6ee"/>
+            <stop offset=".18" stop-color="#9aa7b2"/>
+            <stop offset=".5" stop-color="#4d565d"/>
+            <stop offset="1" stop-color="#14181a"/>
+          </linearGradient>
+          <linearGradient id="metalBack" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="200">
+            <stop offset="0" stop-color="#606a72"/>
+            <stop offset="1" stop-color="#0c0e10"/>
+          </linearGradient>
+          <linearGradient id="glintG" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="380" y2="0">
+            <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+            <stop offset=".5" stop-color="#fff" stop-opacity=".45"/>
+            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+          </linearGradient>
+          <clipPath id="edgeClip"><path id="heroClipPath" d=""/></clipPath>
+        </defs>
+        <path id="heroBack" d="" fill="url(#metalBack)" opacity=".6" transform="translate(0,20)"/>
+        <path id="heroFront" d="" fill="url(#metalG)"/>
+        <g clip-path="url(#edgeClip)">
+          <rect class="glint" x="-380" y="0" width="380" height="200" fill="url(#glintG)"/>
+        </g>
+      </svg>
+    </div>
+    <h1>邊緣為什麼是鋸齒的？</h1>
+    <p class="blow">因為三百年前，<b>有人正在偷你的錢</b>。</p>
+    <p class="blow2">用剪刀。</p>
+  </div>
+  <div class="scrollcue" aria-hidden="true">往下<span>↓</span></div>
+</header>
+
+<main>
+<section class="stage">
+  <div class="narrative">
+
+    <article class="chapter" id="ch1">
+      <p class="label reveal">第一章 · 1662 年以前</p>
+      <h2 class="reveal">沒有兩枚硬幣是一樣的</h2>
+      <p class="lede reveal">英國那時候的銀幣是這樣做的：把一片銀放上模具，工匠掄起鎚子，敲。</p>
+      <p class="reveal">敲得正不正、圓不圓、厚不厚，全看那一下。所以每一枚<em class="hi">錘打幣</em>都長得不太一樣——邊緣歪歪扭扭，本來就不規則。這不是瑕疵，這就是當時硬幣的樣子。</p>
+      <p class="reveal">檢驗桌上這一枚就是。重量 100%，法定的。</p>
+      <p class="beat reveal">旁邊，有一把剪刀。</p>
+    </article>
+
+    <article class="chapter" id="ch2">
+      <p class="label reveal">第二章 · 你來動手</p>
+      <h2 class="reveal">剪一小圈，沒有人看得出來</h2>
+      <p class="lede reveal">銀是貴金屬。這枚硬幣的價值，就是它含的那些銀。</p>
+      <p class="reveal">所以只要沿著邊緣剪掉一小圈，它還是這枚硬幣——只是輕了一點。而剪下來的碎銀，熔掉就是錢。</p>
+      <div class="acts reveal">
+        <button type="button" class="btn" id="clipBtn" aria-label="用剪刀在硬幣邊緣剪一刀">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+            <circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><path d="M8.3 7.6 20 19"/><path d="M8.3 16.4 20 5"/>
+          </svg>
+          <span id="clipBtnTxt">剪一刀</span>
+        </button>
+        <button type="button" class="btn ghost" id="freshBtn" aria-label="把剪下的碎銀熔掉，再拿一枚新的舊幣">熔掉，再拿一枚</button>
+      </div>
+      <p class="hint reveal" id="clipHint">剩 5 刀</p>
+      <div id="ch2After" hidden>
+        <p class="reveal">店家收下了。他當然收——他手上那些硬幣也全都歪七扭八，沒有人知道一枚「正常的」先令<em>應該</em>長什麼樣子。</p>
+        <p class="reveal">你剪得越多，碎銀堆得越高，而檢驗桌上那一行始終是綠色的「通過」。</p>
+        <p class="beat reveal">沒有基準，就沒有證據。</p>
+      </div>
+    </article>
+
+    <article class="chapter" id="ch3">
+      <p class="label reveal">第三章 · 1690 年代</p>
+      <h2 class="reveal">問題是，全國都在剪</h2>
+      <p class="lede reveal">你不是唯一一個想到這招的人。</p>
+      <div class="gauge reveal">
+        <div class="grow"><span>法定重量</span><span class="gbar" aria-hidden="true"><i style="--v:1"></i></span><b>100%</b></div>
+        <div class="grow"><span>實際流通</span><span class="gbar bad" aria-hidden="true"><i style="--v:.5"></i></span><b>約 50%</b></div>
+        <p class="small" style="margin:.7em 0 0">到 1690 年代中，流通的舊銀幣普遍被削到只剩法定重量的<em class="hi">一半上下</em>。</p>
+      </div>
+      <p class="reveal">一枚先令還叫先令，但它裡面的銀只剩一半。於是物價亂掉、貿易停擺——沒有人願意收一袋不知道到底有多重的錢。</p>
+      <p class="reveal">1696 年，政府下了重手：全國舊幣回收，全部重鑄。史稱<em class="hi">大改鑄</em>（Great Recoinage of 1696），整件事花了大約三年。</p>
+    </article>
+
+    <article class="chapter" id="ch4">
+      <p class="label reveal">第四章 · 1696 年，新幣上桌</p>
+      <h2 class="reveal">整齊的東西缺一角，是會叫的</h2>
+      <p class="lede reveal">重鑄不只是把銀熔掉再敲一次。這次用機器。</p>
+      <p class="reveal">法國人 <em class="hi">Pierre Blondeau</em> 引進的螺旋壓印機，一壓下去就是正圓、一致，而且——關鍵在這裡——可以在硬幣的<em class="hi">邊緣</em>加上滾花，或者直接刻字。</p>
+      <p class="reveal">1662 年查理二世的機製克朗幣，邊緣就刻了一行拉丁文：<em class="lat">DECUS ET TUTAMEN</em>，裝飾與保障。</p>
+      <div class="acts reveal">
+        <button type="button" class="btn" id="newCoinBtn" aria-label="把 1696 年的機製新幣放上檢驗桌">換上 1696 年的新幣</button>
+      </div>
+      <div id="ch4Part2" hidden>
+        <p class="beat reveal">好。現在，拿起你剛才那把剪刀。</p>
+        <div class="acts reveal">
+          <button type="button" class="btn danger" id="clipNewBtn" aria-label="用同一把剪刀剪機製新幣">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true">
+              <circle cx="6" cy="6" r="2.6"/><circle cx="6" cy="18" r="2.6"/><path d="M8.3 7.6 20 19"/><path d="M8.3 16.4 20 5"/>
+            </svg>
+            還是剪下去
+          </button>
+        </div>
+      </div>
+      <div id="ch4After" hidden>
+        <p class="reveal">重量只掉了 <em class="hi" id="milledLoss">2.0%</em>。你剛才在錘打幣上隨便一刀，都削掉這個的 <em class="hi" id="lossRatio">2.5 倍</em>。</p>
+        <p class="beat reveal">但這一次，你一眼就看得到。</p>
+        <p class="reveal">鋸齒被剪斷了 <em class="hi" id="brokenOut">18</em> 道，邊緣展開圖上開了一個洞，連刻字都少了 <em class="hi" id="lostLetters">3</em> 個字母。鋸齒本身擋不住剪刀——它擋住的是「沒有人看得出來」。</p>
+        <p class="reveal">它提供的是一個<em class="hi">基準</em>：一個所有人都認得、一眼就能對照的樣子。硬幣從此不必被秤，只要被看。</p>
+        <p class="small reveal"><em class="lat">DECUS ET TUTAMEN</em> 這句話後來還印在 1983 年起發行的圓形一英鎊硬幣邊緣上。裝飾與保障，三百年沒改。</p>
+      </div>
+    </article>
+
+  </div>
+
+  <aside class="bench-col">
+    <div class="bench" id="bench">
+      <div class="bench-top">
+        <span>皇家鑄幣廠 · 檢驗桌</span>
+        <span class="bench-year" id="benchYear">1662</span>
+      </div>
+      <div class="coin-wrap">
+        <svg viewBox="0 0 420 420" aria-hidden="true" id="coinSvg">
+          <defs>
+            <linearGradient id="faceG" gradientUnits="userSpaceOnUse" x1="90" y1="70" x2="340" y2="360">
+              <stop offset="0" stop-color="#eef3f7"/>
+              <stop offset=".34" stop-color="#b6c2cc"/>
+              <stop offset=".62" stop-color="#7e8b95"/>
+              <stop offset="1" stop-color="#525c64"/>
+            </linearGradient>
+            <radialGradient id="sheenG" gradientUnits="userSpaceOnUse" cx="150" cy="128" r="270">
+              <stop offset="0" stop-color="#ffffff" stop-opacity=".5"/>
+              <stop offset=".45" stop-color="#ffffff" stop-opacity=".06"/>
+              <stop offset="1" stop-color="#000000" stop-opacity=".28"/>
+            </radialGradient>
+          </defs>
+          <g class="coinG" id="coinG">
+            <path id="coinShadow" d="" fill="#000" opacity=".42" transform="translate(5,9)"/>
+            <path id="coinBody" d="" fill="url(#faceG)" stroke="#eaf1f6" stroke-width="1.1" stroke-linejoin="round"/>
+            <path id="coinSheen" d="" fill="url(#sheenG)"/>
+            <g id="faceHammered" opacity=".55">
+              <circle cx="203" cy="214" r="112" fill="none" stroke="#3f4950" stroke-width="2" stroke-dasharray="3 7" opacity=".8"/>
+              <path d="M168 176 L246 254 M246 176 L168 254" fill="none" stroke="#3f4950" stroke-width="9" stroke-linecap="round" opacity=".7"/>
+              <circle cx="207" cy="215" r="15" fill="none" stroke="#3f4950" stroke-width="7"/>
+            </g>
+            <g id="faceMilled" opacity=".62" style="display:none">
+              <circle cx="210" cy="210" r="122" fill="none" stroke="#454f57" stroke-width="1.6"/>
+              <circle cx="210" cy="210" r="116" fill="none" stroke="#454f57" stroke-width="4" stroke-dasharray="2 5"/>
+              <path d="M178 186 L210 158 L242 186 L232 238 L188 238 Z" fill="none" stroke="#454f57" stroke-width="5" stroke-linejoin="round"/>
+              <text x="210" y="284" text-anchor="middle" font-family="Georgia,serif" font-size="27" letter-spacing="3" fill="#454f57">1696</text>
+            </g>
+            <path id="cutMark" d="" fill="none" stroke="#e2543f" stroke-width="3.4" stroke-linecap="round" opacity="0"/>
+          </g>
+        </svg>
+        <div class="stamp" id="stamp" aria-hidden="true">TAMPERED<small>已遭剪損</small></div>
+      </div>
+      <div class="edge-wrap">
+        <div class="edge-head"><span>邊緣展開圖</span><span id="edgeNote">無滾花 · 無刻字</span></div>
+        <svg viewBox="0 0 560 128" aria-hidden="true">
+          <path id="edgePath" d="" fill="#9aa7b1"/>
+          <g id="edgeText" font-family="Georgia,serif" font-size="15" letter-spacing="1" text-anchor="middle" fill="#d9a94e"></g>
+        </svg>
+      </div>
+      <div class="readout" id="readout" aria-live="polite">
+        <div class="rrow" aria-hidden="true"><span>重量</span><b id="wOut">100.0%</b></div>
+        <div class="bar" id="wBarBox" aria-hidden="true"><i id="wBar"></i><u></u></div>
+        <div class="rrow" aria-hidden="true"><span>碎銀堆</span><b id="silverOut">0.00 枚份</b></div>
+        <p class="sr-only" id="srSummary">重量 100.0%，碎銀堆 0.00 枚份。</p>
+        <p class="verdict" id="verdict"><span class="pass">檢驗結果：通過。</span><br>一枚 1660 年代的錘打先令。歪的，但歪得很正常。</p>
+      </div>
+    </div>
+  </aside>
+</section>
+
+<section class="newton wrap">
+  <p class="label reveal">第五章 · 誰在抓你</p>
+  <h2 class="reveal">而負責抓你的人，是艾薩克・牛頓</h2>
+  <p class="beat reveal">就是那個牛頓。</p>
+  <p class="reveal">1696 年春天，經財政大臣 <em class="hi">Charles Montague</em> 推薦，牛頓出任皇家鑄幣廠的 <em class="hi">Warden</em>（監理）。這本來是個閒差：薪水照領，事情不多，讓一位名滿天下的學者體面地養老。</p>
+  <p class="reveal">他把它做成了警察工作。</p>
+  <div class="dossier reveal">
+    <div class="dcell"><div class="dnum">酒館</div><div class="dcap">他喬裝出入倫敦的酒館蒐證，親自佈線。</div></div>
+    <div class="dcell"><div class="dnum">100+</div><div class="dcap">1698 年 6 月到 1699 年底，親自訊問了一百多人（有史料說兩百人）。</div></div>
+    <div class="dcell"><div class="dnum">28</div><div class="dcap">送出 28 個定罪。多數上了絞刑台。</div></div>
+  </div>
+  <p class="reveal">為什麼是絞刑？因為當時破壞王室貨幣不算竊盜。</p>
+  <p class="reveal"><span class="treason">HIGH TREASON · 叛國罪</span></p>
+  <p class="reveal">最有名的對手是偽幣大師 <em class="hi">William Chaloner</em>。1697 年他還向國會遞狀子、印小冊子，公開指控牛頓管理無能，甚至可能舞弊。他想的大概是：一個算行星的人能拿他怎麼樣。</p>
+  <div class="rope reveal">
+    <span class="d">1699 年 3 月 3 日</span>Chaloner 以叛國罪定罪。
+  </div>
+  <div class="rope reveal">
+    <span class="d">1699 年 3 月 22 日</span>在 Tyburn 絞死。
+  </div>
+  <p class="beat reveal">你剛才在檢驗桌上剪的那一刀，就是他的罪名。</p>
+</section>
+
+<section class="finale wrap">
+  <p class="label reveal">結尾 · 今天</p>
+  <h2 class="reveal">那它為什麼還在？</h2>
+  <p class="lede reveal">鏡頭拉遠三百年。</p>
+  <p class="reveal">你手上那枚硬幣裡早就沒有貴金屬了。剪掉一圈也熔不出錢來，鋸齒防的那個賊，已經沒有作案動機。它完全失去了原本的意義。</p>
+  <p class="beat reveal">但它還在。而且數目精確得離譜。</p>
+  <div class="reveal">
+    <div class="picker" role="group" aria-label="選一枚現代美國硬幣，看它的鋸齒道數">
+      <button type="button" class="chip" data-teeth="118" data-name="一角 dime" aria-pressed="true">一角 · 118 道</button>
+      <button type="button" class="chip" data-teeth="119" data-name="二十五分 quarter" aria-pressed="false">二十五分 · 119 道</button>
+      <button type="button" class="chip" data-teeth="150" data-name="半元 half dollar" aria-pressed="false">半元 · 150 道</button>
+    </div>
+    <div class="usbox">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <linearGradient id="usG" gradientUnits="userSpaceOnUse" x1="40" y1="30" x2="165" y2="175">
+            <stop offset="0" stop-color="#eef3f7"/><stop offset=".45" stop-color="#aab6c0"/><stop offset="1" stop-color="#5b656d"/>
+          </linearGradient>
+        </defs>
+        <g class="coinG">
+          <path id="usCoin" d="" fill="url(#usG)" stroke="#eaf1f6" stroke-width=".7"/>
+          <circle cx="100" cy="100" r="56" fill="none" stroke="#5b656d" stroke-width="1.2" opacity=".7"/>
+        </g>
+      </svg>
+      <p class="usout" id="usOut" aria-live="polite">一角 dime — 邊緣 118 道鋸齒</p>
+    </div>
+  </div>
+  <p class="reveal" style="margin-top:1.6em">一分和五分沒有鋸齒。理由很老實：它們從來就沒有含大量白銀，沒什麼好剪的。</p>
+  <p class="reveal">所以現在鋸齒留著，不是為了防賊。</p>
+  <p class="reveal">是為了讓<em class="hi">看不見的人</em>，也能用摸的知道手上是多少錢。順便讓自動販賣機和點鈔機認得出面額。</p>
+
+  <div class="closing reveal">
+    <p class="q">你口袋裡那枚硬幣，邊緣為什麼是鋸齒的？</p>
+    <p class="a">答案有兩個，中間隔了三百年。<br>一個是<span>防你伸手</span>，一個是<span>讓你摸得到</span>。</p>
+    <p class="a">同一圈鋸齒。</p>
+    <p class="z">DECUS ET TUTAMEN</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  資料來源：Royal Mint Museum、Great Recoinage of 1696、Isaac Newton at the Royal Mint、美國造幣局（U.S. Mint）<br>
+  每日小專案 · 2026-07-30 · 奇聞軼事
+</footer>
+
+<script src="geometry.js"></script>
+<script>
+(function () {
+  'use strict';
+  var G = (typeof CoinGeo !== 'undefined') ? CoinGeo : null;
+  if (!G) return;
+
+  var $ = function (id) { return document.getElementById(id); };
+  var body = document.body;
+
+  /* ---------- prefers-reduced-motion（防呆：沒有 matchMedia 也要能跑） ---------- */
+  var mq = (typeof window.matchMedia === 'function') ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduce = mq ? !!mq.matches : false;
+  function applyReduce() { body.classList.toggle('reduce', reduce); }
+  if (mq) {
+    var onMQ = function (e) { reduce = !!e.matches; applyReduce(); };
+    if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onMQ);
+    else if (typeof mq.addListener === 'function') mq.addListener(onMQ);
+  }
+  applyReduce();
+
+  /* ---------- 分頁隱藏時停動畫 ---------- */
+  function onVis() { body.classList.toggle('paused', !!document.hidden); }
+  if (typeof document.addEventListener === 'function') document.addEventListener('visibilitychange', onVis);
+
+  var rAF = (typeof window.requestAnimationFrame === 'function')
+    ? window.requestAnimationFrame.bind(window)
+    : function (fn) { return setTimeout(function () { fn(Date.now()); }, 16); };
+
+  /* ---------- 數字滾動（節流到每一幀，隱藏或降級時直接跳終值） ---------- */
+  function tween(el, from, to, fmt, dur) {
+    if (!el) return;
+    if (reduce || document.hidden) { el.textContent = fmt(to); return; }
+    var t0 = 0;
+    rAF(function step(ts) {
+      if (!t0) t0 = ts;
+      var k = Math.min(1, (ts - t0) / (dur || 520));
+      var e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(from + (to - from) * e);
+      if (k < 1 && !document.hidden) rAF(step); else el.textContent = fmt(to);
+    });
+  }
+
+  /* ---------- 捲動進場（防呆：沒有 IntersectionObserver 就全部顯示） ---------- */
+  function setupReveal() {
+    var els = [].slice.call(document.querySelectorAll('.reveal'));
+    if (typeof IntersectionObserver !== 'function') {
+      for (var i = 0; i < els.length; i++) els[i].classList.add('in');
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) { entries[i].target.classList.add('in'); io.unobserve(entries[i].target); }
+      }
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.06 });
+    for (var j = 0; j < els.length; j++) {
+      var prev = els[j].previousElementSibling;
+      els[j].style.transitionDelay = (prev && prev.classList.contains('reveal')) ? '.07s' : '0s';
+      io.observe(els[j]);
+    }
+  }
+
+  /* ---------- 首屏：邊緣特寫 ---------- */
+  (function heroEdge() {
+    var front = $('heroFront'), back = $('heroBack'), clip = $('heroClipPath');
+    if (!front) return;
+    var d = G.reedStripPath({ width: 1200, height: 200, top: 34, amp: 54, period: 46, samples: 840 });
+    front.setAttribute('d', d);
+    if (clip) clip.setAttribute('d', d);
+    if (back) back.setAttribute('d', G.reedStripPath({ width: 1200, height: 200, top: 16, amp: 34, period: 46, samples: 620, phase: 23 }));
+  })();
+
+  /* ---------- 檢驗桌 ---------- */
+  var CX = 210, CY = 210, R = 150;
+  var EDGE_W = 560, EDGE_H = 92, EDGE_BASE = 62;
+  var LEGEND = '· DECUS ET TUTAMEN ·';
+  var CLIP_ANGLES = [-70, 67.5, 205, 342.5, 120];
+  var CLIP_MAX = CLIP_ANGLES.length;
+  var MILLED_CUT = -58;
+
+  var st = { phase: 'hammered', clips: 0, banked: 0, seed: 7, coin: null, lastW: 1 };
+
+  function newHammered() {
+    return G.makeHammered({ radius: R, samples: 720, seed: st.seed });
+  }
+  function newMilled() {
+    return G.makeMilled({ radius: R, samples: 1080, teeth: 120, toothDepth: 0.036 });
+  }
+  st.coin = newHammered();
+
+  var coinBody = $('coinBody'), coinSheen = $('coinSheen'), coinShadow = $('coinShadow');
+  var edgePathEl = $('edgePath'), edgeTextG = $('edgeText'), cutMark = $('cutMark');
+  var bench = $('bench'), coinG = $('coinG');
+
+  function pol(deg, r) {
+    var a = deg * Math.PI / 180;
+    return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+  }
+  function arcPath(deg0, deg1, r) {
+    var s = '', n = 40;
+    for (var i = 0; i <= n; i++) {
+      var p = pol(deg0 + (deg1 - deg0) * i / n, r);
+      s += (i ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ' ';
+    }
+    return s;
+  }
+
+  function buildLegend() {
+    if (!edgeTextG) return;
+    while (edgeTextG.firstChild) edgeTextG.removeChild(edgeTextG.firstChild);
+    for (var i = 0; i < LEGEND.length; i++) {
+      var ch = LEGEND.charAt(i);
+      if (ch === ' ') continue;
+      var t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', (EDGE_W * (i + 0.5) / LEGEND.length).toFixed(1));
+      t.setAttribute('y', '116');
+      t.setAttribute('data-deg', (360 * (i + 0.5) / LEGEND.length).toFixed(2));
+      t.textContent = ch;
+      edgeTextG.appendChild(t);
+    }
+  }
+
+  function renderLegend() {
+    if (!edgeTextG) return;
+    var show = (st.phase !== 'hammered');
+    edgeTextG.style.display = show ? '' : 'none';
+    if (!show) return;
+    var nodes = edgeTextG.childNodes;
+    for (var i = 0; i < nodes.length; i++) {
+      var deg = parseFloat(nodes[i].getAttribute('data-deg'));
+      var gone = G.isCutAt(st.coin, deg);
+      nodes[i].setAttribute('fill', gone ? '#4a3a20' : '#d9a94e');
+      nodes[i].setAttribute('opacity', gone ? '.45' : '1');
+    }
+  }
+
+  function renderCoin() {
+    var d = G.coinPath(st.coin, CX, CY);
+    coinBody.setAttribute('d', d);
+    coinSheen.setAttribute('d', d);
+    coinShadow.setAttribute('d', d);
+    edgePathEl.setAttribute('d', G.edgeProfilePath(st.coin, {
+      width: EDGE_W, height: EDGE_H, samples: 560, exaggerate: 7, exaggerateDown: 2.4, baseY: EDGE_BASE
+    }));
+    edgePathEl.setAttribute('fill', st.phase === 'hammered' ? '#8b98a2' : '#b8c5cf');
+    renderLegend();
+
+    if (st.phase === 'milled-cut') {
+      var c = st.coin.cuts[st.coin.cuts.length - 1];
+      cutMark.setAttribute('d', arcPath(c.center - c.half * 0.72, c.center + c.half * 0.72, R + 21));
+      cutMark.setAttribute('opacity', '1');
+    } else {
+      cutMark.setAttribute('opacity', '0');
+    }
+  }
+
+  var HAM_LINES = [
+    '一刀。天平動了。店家看一眼，收下。',
+    '兩刀。還是收。',
+    '三刀。照收——沒有人拿尺量硬幣。',
+    '四刀。你開始覺得這太容易了。',
+    '五刀。全國都這麼覺得。'
+  ];
+
+  function pct(v) { return (v * 100).toFixed(1) + '%'; }
+  function coins(v) { return v.toFixed(2) + ' 枚份'; }
+
+  function updateReadout() {
+    var w = G.weightRatio(st.coin);
+    tween($('wOut'), st.lastW, w, pct, 480);
+    st.lastW = w;
+    var bar = $('wBar'), box = $('wBarBox');
+    if (bar) bar.style.transform = 'scaleX(' + w.toFixed(4) + ')';
+    if (box) box.classList.toggle('low', w < 0.9);
+
+    var silver = st.banked + (st.phase === 'hammered' ? (1 - w) : 0);
+    $('silverOut').textContent = coins(silver);
+    // 數字滾動期間不要一幀唸一次：給螢幕閱讀器一份到位的摘要
+    $('srSummary').textContent = '重量 ' + pct(w) + '，碎銀堆 ' + coins(silver) + '。';
+
+    var v = $('verdict');
+    if (st.phase === 'hammered') {
+      if (st.clips === 0) {
+        v.innerHTML = '<span class="pass">檢驗結果：通過。</span><br>一枚 1660 年代的錘打先令。歪的，但歪得很正常。';
+      } else {
+        var extra = silver >= 1
+          ? '<br>碎銀湊滿一枚份了——你憑空多出一枚硬幣。'
+          : (silver >= 0.5
+            ? '<br>碎銀堆到半枚份。熔一熔就是錢。'
+            : '<br>邊緣本來就不規則，看不出剪過。');
+        v.innerHTML = '<span class="pass">檢驗結果：通過。</span><br>' + HAM_LINES[Math.min(st.clips, CLIP_MAX) - 1] + extra;
+      }
+    } else if (st.phase === 'milled') {
+      v.innerHTML = '<span class="pass">檢驗結果：通過。</span><br>1696 年機製幣。正圓，邊緣 120 道滾花與刻字，完整。';
+    } else {
+      v.innerHTML = '<span class="fail">檢驗結果：TAMPERED／已遭剪損。</span><br>鋸齒斷了 ' + G.brokenTeeth(st.coin) + ' 道，刻字缺了一段。重量只少 ' + pct(1 - w) + '，但邊緣自己招了。';
+    }
+  }
+
+  function bump() {
+    if (reduce || !coinG) return;
+    coinG.classList.remove('snip');
+    void coinG.getBoundingClientRect();
+    coinG.classList.add('snip');
+  }
+  function swapIn() {
+    if (reduce || !coinG) return;
+    coinG.classList.remove('coin-swap');
+    void coinG.getBoundingClientRect();
+    coinG.classList.add('coin-swap');
+  }
+
+  function syncCh2Buttons() {
+    var b = $('clipBtn'), f = $('freshBtn'), h = $('clipHint'), t = $('clipBtnTxt');
+    var locked = (st.phase !== 'hammered');
+    b.disabled = locked || st.clips >= CLIP_MAX;
+    f.disabled = locked || st.clips === 0;
+    if (t) t.textContent = st.clips === 0 ? '剪一刀' : '再剪一刀';
+    if (h) {
+      h.textContent = locked
+        ? '這枚已經回收重鑄了。'
+        : (st.clips >= CLIP_MAX ? '這枚剪不動了。熔掉，換一枚。'
+          : '剩 ' + (CLIP_MAX - st.clips) + ' 刀' + (st.clips ? ' · 剪完可以熔掉再拿一枚' : ''));
+    }
+  }
+
+  /* 內容區塊揭露：交給 IntersectionObserver 淡入，並留一道保險 */
+  function unhide(id) {
+    var box = $(id);
+    if (!box || !box.hidden) return;
+    box.hidden = false;
+    var els = box.querySelectorAll('.reveal');
+    if (typeof IntersectionObserver !== 'function') {
+      for (var i = 0; i < els.length; i++) els[i].classList.add('in');
+      return;
+    }
+    setTimeout(function () {
+      for (var j = 0; j < els.length; j++) els[j].classList.add('in');
+    }, 500);
+  }
+
+  $('clipBtn').addEventListener('click', function () {
+    if (st.phase !== 'hammered' || st.clips >= CLIP_MAX) return;
+    G.addCut(st.coin, CLIP_ANGLES[st.clips], 55, 10);
+    st.clips++;
+    bump(); renderCoin(); updateReadout(); syncCh2Buttons();
+    unhide('ch2After');
+  });
+
+  $('freshBtn').addEventListener('click', function () {
+    if (st.phase !== 'hammered' || st.clips === 0) return;
+    st.banked += 1 - G.weightRatio(st.coin);
+    st.seed += 3.7;
+    st.clips = 0;
+    st.coin = newHammered();
+    st.lastW = 1;
+    swapIn(); renderCoin(); updateReadout(); syncCh2Buttons();
+  });
+
+  $('newCoinBtn').addEventListener('click', function () {
+    if (st.phase !== 'hammered') return;
+    st.banked += 1 - G.weightRatio(st.coin);
+    st.phase = 'milled';
+    st.clips = 0;
+    st.coin = newMilled();
+    st.lastW = 1;
+    $('benchYear').textContent = '1696';
+    bench.classList.add('milled');
+    $('edgeNote').textContent = '120 道滾花 · 刻字';
+    $('faceHammered').style.display = 'none';
+    $('faceMilled').style.display = '';
+    $('newCoinBtn').disabled = true;
+    unhide('ch4Part2');
+    swapIn(); renderCoin(); updateReadout(); syncCh2Buttons();
+  });
+
+  $('clipNewBtn').addEventListener('click', function () {
+    if (st.phase !== 'milled') return;
+    G.addCut(st.coin, MILLED_CUT, 30, 8);
+    st.phase = 'milled-cut';
+    bench.classList.add('tampered');
+    $('edgeNote').textContent = '滾花斷裂 · 刻字缺損';
+    $('clipNewBtn').disabled = true;
+    bump(); renderCoin(); updateReadout();
+
+    var w = G.weightRatio(st.coin);
+    var loss = 1 - w;
+    $('milledLoss').textContent = pct(loss);
+    $('brokenOut').textContent = String(G.brokenTeeth(st.coin));
+    var gone = 0, nodes = $('edgeText').childNodes;
+    for (var n = 0; n < nodes.length; n++) if (nodes[n].getAttribute('opacity') !== '1') gone++;
+    $('lostLetters').textContent = String(gone);
+    var hamCut = newHammered();
+    G.addCut(hamCut, CLIP_ANGLES[0], 55, 10);
+    var hamLoss = 1 - G.weightRatio(hamCut);
+    $('lossRatio').textContent = (hamLoss / loss).toFixed(1) + ' 倍';
+    unhide('ch4After');
+  });
+
+  /* ---------- 結尾：現代硬幣 ---------- */
+  var usPathEl = $('usCoin'), usOut = $('usOut');
+  function renderUS(teeth, name) {
+    var c = G.makeMilled({ radius: 78, samples: 1440, teeth: teeth, toothDepth: 0.052 });
+    usPathEl.setAttribute('d', G.coinPath(c, 100, 100));
+    usOut.textContent = name + ' — 邊緣 ' + teeth + ' 道鋸齒';
+  }
+  var chips = document.querySelectorAll('.chip');
+  for (var i = 0; i < chips.length; i++) {
+    chips[i].addEventListener('click', function () {
+      for (var k = 0; k < chips.length; k++) chips[k].setAttribute('aria-pressed', 'false');
+      this.setAttribute('aria-pressed', 'true');
+      renderUS(parseInt(this.getAttribute('data-teeth'), 10), this.getAttribute('data-name'));
+    });
+  }
+
+  /* ---------- 啟動 ---------- */
+  buildLegend();
+  renderCoin();
+  updateReadout();
+  syncCh2Buttons();
+  renderUS(118, '一角 dime');
+  setupReveal();
+  onVis();
+})();
+</script>
+</body>
+</html>

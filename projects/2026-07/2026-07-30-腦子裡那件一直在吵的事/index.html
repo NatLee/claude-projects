@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>腦子裡那件一直在吵的事｜每日小專案</title>
+<meta name="description" content="你正在做別的事，腦子裡卻有一件沒做完的事每隔幾分鐘來敲一次門。1927 年有人拿這件事做了實驗，近年的統合分析又把它推翻了一半。而讓它閉嘴的方法，不是把它做完。">
+<style>
+:root{
+  --bg:#0b0e12;
+  --bg2:#0f1319;
+  --panel:#131920;
+  --panel2:#19212a;
+  --line:rgba(206,222,238,.12);
+  --line2:rgba(206,222,238,.22);
+  --txt:#dde5ee;
+  --txt2:#9dabba;
+  --dim:#6b7885;
+
+  --nag:#e8a33d;
+  --nag2:#f7d49a;
+  --nag-soft:rgba(232,163,61,.14);
+  --calm:#69b8a4;
+  --calm2:#a9ded2;
+  --calm-soft:rgba(105,184,164,.13);
+  --violet:#9a8bd0;
+  --paper:#efe7d7;
+  --paper2:#e2d8c3;
+  --paper-ink:#312b22;
+  --paper-dim:#7c7364;
+
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif TC","Songti TC","MingLiU",serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+  line-height:1.92;letter-spacing:.015em;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+p{margin:0 0 1.15em}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--nag);outline-offset:3px;border-radius:5px}
+body.paused *,body.paused *::before,body.paused *::after{animation-play-state:paused !important}
+
+/* ---------- 回首頁 ---------- */
+.home{
+  position:fixed;top:14px;left:14px;z-index:120;font-size:.75rem;letter-spacing:.1em;
+  color:var(--dim);text-decoration:none;padding:6px 13px;border-radius:999px;
+  background:rgba(11,14,18,.78);border:1px solid var(--line);backdrop-filter:blur(8px);
+  transition:color .25s,border-color .25s,transform .25s;
+}
+.home:hover{color:var(--txt);border-color:var(--line2);transform:translateX(-2px)}
+
+/* ---------- 版面 ---------- */
+.wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+.narrow{max-width:690px;margin-left:auto;margin-right:auto}
+h1,h2,h3{font-family:var(--serif);font-weight:700;line-height:1.3;margin:0}
+h2{font-size:clamp(1.5rem,4.8vw,2.25rem);margin:0 0 .72em}
+h3{font-size:1.02rem;margin:0 0 .55em}
+.kicker{font-family:var(--mono);font-size:.68rem;letter-spacing:.3em;color:var(--dim);margin:0 0 1.5em}
+.chap{padding:min(13vh,104px) 0}
+.mark{
+  display:inline-flex;align-items:center;gap:.65em;font-family:var(--mono);
+  font-size:.67rem;letter-spacing:.24em;color:var(--nag);margin:0 0 1.1em;
+}
+.mark::before{content:"";width:26px;height:1px;background:rgba(232,163,61,.55)}
+.mark.v{color:var(--violet)}
+.mark.v::before{background:rgba(154,139,208,.55)}
+.mark.c{color:var(--calm)}
+.mark.c::before{background:rgba(105,184,164,.55)}
+.lede{font-size:1.04rem;color:var(--txt)}
+.small{font-size:.83rem;line-height:1.85;color:var(--txt2)}
+.tiny{font-size:.75rem;line-height:1.8;color:var(--dim)}
+.beat{
+  font-family:var(--serif);font-size:clamp(1.14rem,3.7vw,1.56rem);line-height:1.62;
+  margin:1.6em 0;color:#f2f6fa;
+}
+em.hi{font-style:normal;color:var(--nag2);font-weight:600}
+em.hc{font-style:normal;color:var(--calm2);font-weight:600}
+.rule{height:1px;background:linear-gradient(90deg,transparent,var(--line2),transparent);margin:0}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .8s cubic-bezier(.2,.7,.3,1),transform .8s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.reduce .reveal{opacity:1;transform:none;transition:none}
+
+/* ---------- 第一屏 ---------- */
+.hero{
+  position:relative;min-height:100vh;min-height:100svh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:92px 20px 64px;overflow:hidden;
+  background:
+    radial-gradient(90% 60% at 50% 18%,rgba(154,139,208,.10),transparent 68%),
+    radial-gradient(70% 50% at 50% 96%,rgba(232,163,61,.09),transparent 70%),
+    linear-gradient(180deg,#080a0d,#0b0e12 62%,#0b0e12);
+}
+.hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(206,222,238,.028) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(206,222,238,.028) 1px,transparent 1px);
+  background-size:52px 52px;
+  -webkit-mask-image:radial-gradient(80% 60% at 50% 45%,#000 10%,transparent 78%);
+  mask-image:radial-gradient(80% 60% at 50% 45%,#000 10%,transparent 78%);
+}
+.hero-inner{position:relative;z-index:3;width:100%;max-width:660px}
+.hero h1{font-size:clamp(2.1rem,8.4vw,3.85rem);color:#fff;margin:0 0 .7em;letter-spacing:.01em}
+.hero .line{font-size:clamp(.98rem,3.4vw,1.15rem);color:#c4cfda;margin:0 0 .28em;font-family:var(--serif)}
+.hero .line.q{color:var(--dim)}
+.hero-after{
+  position:relative;z-index:3;max-width:520px;margin:2.3em auto 0;font-size:.93rem;color:#a9b6c3;
+  opacity:0;transform:translateY(10px);transition:opacity .9s ease,transform .9s ease;
+}
+.hero-after.on{opacity:1;transform:none}
+.reduce .hero-after{transition:none}
+.nagslot{position:relative;z-index:3;width:100%;max-width:340px;min-height:132px;margin:2.1em auto 0}
+.scrollcue{
+  position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:4;
+  font-size:.66rem;letter-spacing:.26em;color:#5d6875;font-family:var(--mono);
+}
+.scrollcue i{display:block;font-style:normal;margin-top:5px;animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+.reduce .scrollcue i{animation:none}
+
+/* 那張浮出來的紙條 */
+.nagnote{
+  position:relative;text-align:left;padding:16px 18px 15px;border-radius:11px;
+  background:linear-gradient(150deg,rgba(232,163,61,.13),rgba(232,163,61,.05));
+  border:1px dashed rgba(232,163,61,.5);
+  box-shadow:0 18px 44px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(26px) scale(.97);
+  transition:opacity .7s cubic-bezier(.2,.8,.3,1),transform .7s cubic-bezier(.2,.8,.3,1);
+}
+.nagnote.up{opacity:1;transform:none}
+.nagnote.up.sway{animation:sway 5.6s ease-in-out .8s infinite}
+.reduce .nagnote{transition:none}
+.reduce .nagnote.up.sway{animation:none}
+.nagnote .tag{
+  display:inline-block;font-family:var(--mono);font-size:.6rem;letter-spacing:.22em;
+  color:var(--nag);margin:0 0 .55em;
+}
+.nagnote .txt{font-size:1.02rem;color:#f4e6cf;line-height:1.6;margin:0}
+.nagnote .sub{margin:.6em 0 0;font-size:.76rem;color:#a08d6d;font-family:var(--mono);letter-spacing:.06em}
+.knock{
+  position:absolute;left:-9px;top:18px;width:8px;height:8px;border-radius:50%;
+  background:var(--nag);opacity:.9;
+}
+.knock::after{
+  content:"";position:absolute;inset:-6px;border-radius:50%;border:1px solid rgba(232,163,61,.6);
+  animation:knock 2.8s ease-out infinite;
+}
+@keyframes knock{0%{transform:scale(.5);opacity:.85}70%{transform:scale(2.1);opacity:0}100%{transform:scale(2.1);opacity:0}}
+.reduce .knock::after{animation:none;opacity:.35}
+@keyframes sway{
+  0%,100%{transform:rotate(-.34deg) translateY(0)}
+  50%{transform:rotate(.34deg) translateY(-2px)}
+}
+
+/* ---------- 第一章：餐廳 ---------- */
+.ch1{background:linear-gradient(180deg,var(--bg),#0d1116 40%,var(--bg))}
+.slips{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(212px,1fr));gap:16px;
+  margin:2.2em 0 1.4em;
+}
+.slip{
+  position:relative;background:linear-gradient(168deg,var(--paper),var(--paper2));
+  color:var(--paper-ink);border-radius:3px;padding:20px 17px 16px;
+  font-family:var(--mono);font-size:.78rem;line-height:1.95;
+  box-shadow:0 14px 34px rgba(0,0,0,.42);
+  transition:opacity .55s ease,transform .55s ease;
+}
+.slip::after{
+  content:"";position:absolute;left:0;right:0;bottom:-6px;height:7px;
+  background:radial-gradient(circle at 5px 0,transparent 5px,var(--paper2) 5.4px);
+  background-size:10px 10px;
+}
+.slip .table{font-size:.66rem;letter-spacing:.2em;color:var(--paper-dim);margin:0 0 .5em}
+.slip ul{list-style:none;margin:0 0 .9em;padding:0}
+.slip li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dotted rgba(49,43,34,.24)}
+.slip .amt{color:var(--paper-dim)}
+.slip .forgot{display:none;color:var(--paper-dim);font-style:italic;margin:.2em 0 .9em}
+.slip button{
+  width:100%;font-family:var(--mono);font-size:.72rem;letter-spacing:.18em;cursor:pointer;
+  background:rgba(49,43,34,.09);color:var(--paper-ink);border:1px solid rgba(49,43,34,.3);
+  border-radius:4px;padding:8px 10px;transition:background .22s,border-color .22s;
+}
+.slip button:hover:not(:disabled){background:rgba(49,43,34,.17)}
+.slip button:disabled{cursor:default;opacity:.5}
+.slip.paid{opacity:.42;transform:scale(.985)}
+.slip.paid ul{display:none}
+.slip.paid .forgot{display:block}
+.slip .stamp{
+  position:absolute;right:12px;top:14px;font-size:.6rem;letter-spacing:.2em;
+  color:#a2402f;border:1px solid rgba(162,64,47,.55);border-radius:3px;padding:2px 7px;
+  transform:rotate(-7deg);opacity:0;transition:opacity .45s ease;
+}
+.slip.paid .stamp{opacity:1}
+.reduce .slip,.reduce .slip .stamp{transition:none}
+.ch1-quiz{
+  margin:1.1em 0 0;padding:15px 18px;border-left:2px solid rgba(232,163,61,.45);
+  background:var(--nag-soft);border-radius:0 8px 8px 0;font-size:.92rem;color:var(--nag2);
+}
+
+/* ---------- 第二章：實驗台 ---------- */
+.ch2{background:linear-gradient(180deg,var(--bg),#0a0d11)}
+.lab{
+  margin:2.2em 0 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:clamp(18px,4vw,30px);box-shadow:0 24px 60px rgba(0,0,0,.4);
+}
+.lab-head{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;color:var(--dim);
+  border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20px;
+}
+.qdots{display:flex;gap:5px}
+.qdots span{width:7px;height:7px;border-radius:50%;background:rgba(206,222,238,.16);transition:background .3s,transform .3s}
+.qdots span.done{background:rgba(206,222,238,.42)}
+.qdots span.now{background:var(--nag);transform:scale(1.35)}
+.reduce .qdots span{transition:none}
+
+.stage{position:relative;min-height:300px;display:flex;flex-direction:column;justify-content:center}
+.qcard{position:relative}
+.qprompt{font-family:var(--serif);font-size:clamp(1.1rem,3.6vw,1.4rem);color:#f0f5fa;margin:0 0 1.1em;text-align:center}
+.qbody{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;min-height:120px}
+.qfeed{
+  text-align:center;font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;
+  min-height:1.6em;margin:1.1em 0 0;color:var(--dim);
+}
+.qfeed.ok{color:var(--calm2)}
+.qfeed.no{color:var(--txt2)}
+
+.opt{
+  font-family:var(--sans);font-size:1.02rem;color:var(--txt);cursor:pointer;
+  background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+  padding:13px 22px;min-width:74px;transition:border-color .2s,background .2s,transform .2s,opacity .2s;
+}
+.opt:hover:not(:disabled){border-color:var(--line2);background:#202a35}
+.opt:disabled{cursor:default;opacity:.5}
+.opt.glyph{font-size:1.5rem;padding:12px 18px;min-width:60px;line-height:1.1}
+.opt.char{font-size:1.5rem;font-family:var(--serif);padding:12px 20px;min-width:64px}
+.opt.picked{opacity:.28}
+.reduce .opt{transition:none}
+.slots{display:flex;gap:10px;justify-content:center;width:100%;margin:0 0 4px}
+.slot{
+  width:56px;height:56px;border-radius:10px;border:1px dashed var(--line2);
+  display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:1.5rem;color:var(--nag2);
+}
+.slot.full{border-style:solid;border-color:rgba(232,163,61,.45);background:var(--nag-soft)}
+.dots-svg{display:block;width:100%;max-width:340px;height:auto;margin:0 auto 4px}
+.qhint{width:100%;text-align:center;font-size:.76rem;color:var(--dim);margin:6px 0 0}
+
+.cut{
+  position:absolute;inset:-8px;border-radius:12px;background:rgba(11,14,18,.9);
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;
+  opacity:0;transition:opacity .3s ease;pointer-events:none;
+}
+.cut.on{opacity:1}
+.cut .big{font-family:var(--serif);font-size:1.16rem;color:var(--nag2)}
+.cut .sm{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--dim)}
+.reduce .cut{transition:none}
+
+.btn{
+  font-family:var(--mono);font-size:.76rem;letter-spacing:.18em;cursor:pointer;
+  background:var(--nag);color:#141008;border:1px solid var(--nag);border-radius:999px;
+  padding:12px 30px;transition:transform .2s,filter .2s,opacity .2s;
+}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--txt2);border-color:var(--line2)}
+.btn.ghost:hover{color:var(--txt);border-color:var(--txt2)}
+.btn.calm{background:var(--calm);border-color:var(--calm);color:#08130f}
+.reduce .btn{transition:none}
+.center{text-align:center}
+
+.recall-list{list-style:none;margin:1.4em 0;padding:0;display:grid;gap:9px}
+.recall-list li{margin:0}
+.chk{
+  display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:10px;
+  background:var(--panel2);border:1px solid var(--line);cursor:pointer;
+  transition:border-color .2s,background .2s;font-size:.94rem;
+}
+.chk:hover{border-color:var(--line2)}
+.chk input{width:18px;height:18px;accent-color:var(--nag);flex:0 0 auto;cursor:pointer}
+.chk input:checked+span{color:#fff}
+.chk span{color:var(--txt2)}
+.reduce .chk{transition:none}
+
+.result-rows{display:grid;gap:14px;margin:1.6em 0}
+.rrow{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.rrow .top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px}
+.rrow .name{font-size:.92rem;color:var(--txt)}
+.rrow .num{font-family:var(--mono);font-size:1.05rem;color:var(--txt)}
+.rrow .num b{font-size:1.6rem;font-weight:700}
+.bar{height:8px;border-radius:99px;background:rgba(206,222,238,.1);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;transform:scaleX(0);transform-origin:left;transition:transform 1s cubic-bezier(.2,.7,.3,1)}
+.rrow.cutrow .bar i{background:linear-gradient(90deg,var(--nag),var(--nag2))}
+.rrow.donerow .bar i{background:linear-gradient(90deg,#5d6b79,#93a3b1)}
+.reduce .bar i{transition:none}
+.honest{
+  margin:1.5em 0 0;padding:16px 18px;border-radius:10px;
+  background:rgba(154,139,208,.09);border:1px solid rgba(154,139,208,.24);
+  font-size:.87rem;line-height:1.85;color:#c4bce0;
+}
+.honest b{color:#e2dcf5}
+
+/* ---------- 第三章：翻案 ---------- */
+.ch3{background:linear-gradient(180deg,#0a0d11,#0d1116 50%,var(--bg))}
+.verdicts{display:grid;gap:16px;margin:2.2em 0 0}
+@media(min-width:720px){.verdicts{grid-template-columns:1fr 1fr}}
+.vd{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px 20px 20px}
+.vd .claim{font-family:var(--serif);font-size:1.14rem;line-height:1.55;color:#eef3f8;margin:0 0 .9em}
+.vd.no .claim{color:#7b8794;text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:rgba(226,96,79,.7)}
+.vd .verdict{
+  display:inline-flex;align-items:center;gap:.5em;font-family:var(--mono);font-size:.65rem;
+  letter-spacing:.2em;padding:5px 11px;border-radius:5px;margin:0 0 .9em;
+}
+.vd.no .verdict{color:#e0806f;border:1px solid rgba(224,128,111,.4);background:rgba(224,128,111,.08)}
+.vd.yes .verdict{color:var(--calm2);border:1px solid rgba(105,184,164,.4);background:var(--calm-soft)}
+.vd .why{font-size:.85rem;color:var(--txt2);margin:0}
+.vd.yes{border-color:rgba(105,184,164,.28)}
+
+/* ---------- 第四章：工具 ---------- */
+.ch4{background:linear-gradient(180deg,var(--bg),#0d1218 30%,#0d1218)}
+.tool{
+  margin:2.2em 0 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  overflow:hidden;box-shadow:0 26px 64px rgba(0,0,0,.45);
+}
+.tool-add{padding:clamp(18px,4vw,26px);border-bottom:1px solid var(--line);background:var(--panel2)}
+.tool-add label{display:block;font-size:.85rem;color:var(--txt2);margin:0 0 .6em}
+.addrow{display:flex;gap:10px;flex-wrap:wrap}
+.addrow input{flex:1 1 220px;min-width:0}
+input[type="text"]{
+  font-family:var(--sans);font-size:.98rem;color:var(--txt);background:#0d1218;
+  border:1px solid var(--line2);border-radius:10px;padding:13px 15px;width:100%;
+  transition:border-color .2s;
+}
+input[type="text"]::placeholder{color:#59646f}
+input[type="text"]:focus{border-color:var(--nag);outline:none;box-shadow:0 0 0 3px rgba(232,163,61,.16)}
+.reduce input[type="text"]{transition:none}
+
+.cols{display:grid;gap:0}
+@media(min-width:760px){.cols{grid-template-columns:1fr 1fr}}
+.col{padding:clamp(16px,3.4vw,24px);min-height:190px}
+.col+.col{border-top:1px solid var(--line)}
+@media(min-width:760px){.col+.col{border-top:0;border-left:1px solid var(--line)}}
+.col-noisy{
+  background:
+    repeating-linear-gradient(135deg,rgba(232,163,61,.035) 0 2px,transparent 2px 9px),
+    linear-gradient(180deg,rgba(232,163,61,.05),transparent 55%);
+}
+.col-quiet{background:linear-gradient(180deg,rgba(105,184,164,.045),transparent 55%)}
+.colhead{
+  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.2em;margin:0 0 4px;
+}
+.col-noisy .colhead{color:var(--nag)}
+.col-quiet .colhead{color:var(--calm)}
+.colsub{font-size:.75rem;color:var(--dim);margin:0 0 16px;font-family:var(--sans);letter-spacing:0}
+.cardlist{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+.empty{font-size:.82rem;color:#57626d;padding:14px 0;font-style:italic}
+
+.card{
+  position:relative;border-radius:12px;padding:15px 16px 14px;
+  background:var(--panel2);border:1px solid var(--line);
+  transition:opacity .4s ease,transform .4s ease,border-color .4s ease,background .4s ease;
+}
+.card.nag{
+  border-style:dashed;border-color:rgba(232,163,61,.42);
+  background:linear-gradient(150deg,rgba(232,163,61,.09),rgba(232,163,61,.03));
+  animation:sway 5.8s ease-in-out infinite;
+}
+.card.nag:nth-child(2n){animation-duration:6.9s;animation-delay:-1.7s}
+.card.nag:nth-child(3n){animation-duration:6.2s;animation-delay:-3.1s}
+.card.nag:focus-within{animation-play-state:paused}
+.reduce .card{transition:none}
+.reduce .card.nag{animation:none}
+.card.quiet{border-color:rgba(105,184,164,.26);background:linear-gradient(150deg,rgba(105,184,164,.075),rgba(105,184,164,.02))}
+.card.done{opacity:.55;border-color:var(--line);background:var(--panel2)}
+.card.done .what{text-decoration:line-through;color:var(--txt2)}
+.card.settling{animation:settle .62s cubic-bezier(.3,.8,.35,1) forwards}
+@keyframes settle{
+  0%{transform:rotate(.3deg) scale(1);opacity:1}
+  32%{transform:rotate(0deg) scale(1.028);opacity:1}
+  100%{transform:rotate(0deg) scale(.93);opacity:0}
+}
+.reduce .card.settling{animation:none;opacity:0}
+.card.arriving{animation:arrive .55s cubic-bezier(.2,.8,.3,1) both}
+@keyframes arrive{from{opacity:0;transform:translateY(-8px) scale(.97)}to{opacity:1;transform:none}}
+.reduce .card.arriving{animation:none}
+
+.cardtop{display:flex;align-items:flex-start;gap:10px;margin:0 0 10px}
+.nagdot{flex:0 0 auto;color:var(--nag);font-size:.9rem;line-height:1.6;margin-top:1px}
+.what{flex:1 1 auto;font-size:.98rem;line-height:1.6;color:#eef3f8;word-break:break-word;overflow-wrap:anywhere}
+.tag{
+  flex:0 0 auto;font-family:var(--mono);font-size:.58rem;letter-spacing:.16em;
+  padding:3px 8px;border-radius:5px;white-space:nowrap;margin-top:3px;
+}
+.tag-nag{color:var(--nag);border:1px solid rgba(232,163,61,.42);background:rgba(232,163,61,.09)}
+.tag-quiet{color:var(--calm2);border:1px solid rgba(105,184,164,.42);background:rgba(105,184,164,.1)}
+.tag-done{color:var(--txt2);border:1px solid var(--line2);background:rgba(206,222,238,.05)}
+.planline{
+  font-size:.8rem;color:var(--calm2);margin:0 0 11px;line-height:1.75;
+  padding-left:12px;border-left:2px solid rgba(105,184,164,.35);word-break:break-word;overflow-wrap:anywhere;
+}
+.card.done .planline{color:var(--txt2);border-left-color:var(--line2)}
+.acts{display:flex;flex-wrap:wrap;gap:7px}
+.mini{
+  font-family:var(--mono);font-size:.65rem;letter-spacing:.12em;cursor:pointer;
+  background:transparent;color:var(--txt2);border:1px solid var(--line2);border-radius:7px;
+  padding:6px 11px;transition:color .2s,border-color .2s,background .2s;
+}
+.mini:hover{color:var(--txt);border-color:var(--txt2)}
+.mini.key{color:#141008;background:var(--nag);border-color:var(--nag)}
+.mini.key:hover{color:#141008;filter:brightness(1.08)}
+.mini.danger:hover{color:#e0806f;border-color:rgba(224,128,111,.55)}
+.reduce .mini{transition:none}
+
+.planform{margin:12px 0 0;padding:14px 0 0;border-top:1px dashed var(--line2);display:grid;gap:10px}
+.field label{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.16em;color:var(--dim);margin:0 0 5px}
+.field input{padding:10px 12px;font-size:.9rem}
+.planhint{font-size:.74rem;color:var(--nag2);min-height:1.4em;margin:0}
+.planactions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.tool-foot{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+  padding:14px clamp(16px,3.4vw,24px);border-top:1px solid var(--line);background:rgba(11,14,18,.4);
+}
+.toolstat{font-family:var(--mono);font-size:.66rem;letter-spacing:.14em;color:var(--dim)}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---------- 收尾 ---------- */
+.ch5{background:linear-gradient(180deg,#0d1218,var(--bg))}
+.closing{
+  background:radial-gradient(80% 60% at 50% 30%,rgba(232,163,61,.07),transparent 70%),linear-gradient(180deg,var(--bg),#080a0d);
+  padding:min(16vh,120px) 0 min(12vh,90px);text-align:center;
+}
+.closing .beat{margin:.5em auto 1.1em;max-width:640px}
+.closing .plan-echo{
+  display:inline-block;text-align:left;margin:1.4em auto 0;padding:14px 20px;border-radius:11px;
+  background:var(--calm-soft);border:1px solid rgba(105,184,164,.3);
+  font-family:var(--mono);font-size:.82rem;letter-spacing:.04em;color:var(--calm2);line-height:2;
+}
+footer{
+  border-top:1px solid var(--line);padding:26px 22px 42px;text-align:center;
+  font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;color:#5b6671;line-height:2.1;
+}
+
+@media(max-width:560px){
+  body{line-height:1.86}
+  .chap{padding:min(10vh,72px) 0}
+  .slots .slot{width:50px;height:50px}
+  .opt{padding:12px 18px;font-size:.96rem}
+  .btn{padding:12px 22px}
+  .tool-foot{flex-direction:column;align-items:stretch;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hero">
+  <div class="hero-inner">
+    <p class="kicker">生活痛點小工具 · 2026-07-30</p>
+    <h1>腦子裡那件<br>一直在吵的事</h1>
+    <p class="line">你正在做別的事。</p>
+    <p class="line">手上這件其實很順，你甚至有點進入狀況了。</p>
+    <p class="line q" id="heroBeat">然後——</p>
+  </div>
+
+  <div class="nagslot">
+    <div class="nagnote" id="nagNote">
+      <span class="knock" aria-hidden="true"></span>
+      <span class="tag">又浮上來了</span>
+      <p class="txt">那封信，你還沒回。</p>
+      <p class="sub">第 14 次 · 今天</p>
+    </div>
+  </div>
+
+  <p class="hero-after" id="heroAfter">
+    它沒有變大聲，也沒有多說什麼。<br>
+    它只是又敲了一次門，然後退回去，等下一次。
+  </p>
+
+  <div class="scrollcue" aria-hidden="true">往下<i>↓</i></div>
+</header>
+
+<!-- ══════════ 第一章 ══════════ -->
+<section class="chap ch1" id="ch1">
+  <div class="wrap narrow">
+    <p class="mark reveal">第一章 · 1927 年那頓飯</p>
+    <h2 class="reveal">服務生記得住還沒結帳的那幾桌</h2>
+    <p class="lede reveal">
+      故事通常是這樣開頭的：一位心理學家坐在維也納的餐廳裡，注意到服務生的一件怪事。
+      沒結帳的桌子，他點了什麼、加了什麼、少放什麼，一字不差；
+      帳一收，那桌就從他腦子裡整個消失。
+    </p>
+    <p class="reveal">
+      那位老師是 <em class="hi">Kurt Lewin</em>。這段餐廳的觀察，是這個研究著名的起源軼事——
+      是它被反覆傳誦的開場白，不是實驗數據。真正動手的是他的學生。
+    </p>
+
+    <div class="slips reveal" id="slips">
+      <div class="slip" data-slip="1">
+        <span class="stamp">已結帳</span>
+        <p class="table">桌 4</p>
+        <ul>
+          <li><span>冰美式 ×2</span><span class="amt">160</span></li>
+          <li><span>可頌 ×1</span><span class="amt">75</span></li>
+        </ul>
+        <p class="forgot">……剛剛點了什麼來著？</p>
+        <button type="button" class="paybtn" data-slip="1">結帳</button>
+      </div>
+      <div class="slip" data-slip="2">
+        <span class="stamp">已結帳</span>
+        <p class="table">桌 7</p>
+        <ul>
+          <li><span>白醬麵</span><span class="amt">280</span></li>
+          <li><span>氣泡水</span><span class="amt">90</span></li>
+          <li><span>蒜香麵包</span><span class="amt">60</span></li>
+        </ul>
+        <p class="forgot">……剛剛點了什麼來著？</p>
+        <button type="button" class="paybtn" data-slip="2">結帳</button>
+      </div>
+      <div class="slip" data-slip="3">
+        <span class="stamp">已結帳</span>
+        <p class="table">桌 11</p>
+        <ul>
+          <li><span>今日濃湯</span><span class="amt">120</span></li>
+          <li><span>烤雞腿排</span><span class="amt">320</span></li>
+          <li><span>熱紅茶</span><span class="amt">80</span></li>
+        </ul>
+        <p class="forgot">……剛剛點了什麼來著？</p>
+        <button type="button" class="paybtn" data-slip="3">結帳</button>
+      </div>
+    </div>
+    <p class="ch1-quiz" id="ch1Quiz" role="status" aria-live="polite" hidden></p>
+
+    <p class="beat reveal">
+      她把這件事帶回了實驗室。
+    </p>
+    <p class="reveal">
+      <em class="hi">Bluma Zeigarnik</em>，1927 年。她給受試者一連串短時間的小活動，
+      並且<em class="hi">在其中一些完成之前把它們打斷</em>。
+      事後她問這些人：剛剛做了哪些事？
+    </p>
+    <p class="reveal">
+      受試者回憶起來的，<em class="hi">被打斷的任務多於已完成的任務</em>。
+      這就是後來被叫做「蔡加尼克效應」的東西。
+    </p>
+    <p class="small reveal">
+      這一段，是九十幾年來被引用最多的版本。它還有下半場，但先別急——先讓你自己跑一遍。
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ 第二章 ══════════ -->
+<section class="chap ch2" id="ch2">
+  <div class="wrap narrow">
+    <p class="mark reveal">第二章 · 換你</p>
+    <h2 class="reveal">八題小事，其中幾題不會讓你做完</h2>
+    <p class="lede reveal">
+      都是很短的東西：把三個字排成一個詞、數幾個圓點、兩個數字相加。
+      沒有計時器、沒有分數、答錯也不會怎樣——這不是考試。
+    </p>
+    <p class="reveal">
+      唯一的規則是：<em class="hi">有幾題，你做到一半它就會自己跳走</em>。
+      不用管它，跟著往下走就好。跑完之後我會問你一個問題。
+    </p>
+
+    <div class="lab" id="lab">
+      <div class="lab-head">
+        <span id="labPhase">實驗台 · 待機</span>
+        <div class="qdots" id="qdots" aria-hidden="true"></div>
+      </div>
+      <div class="stage" id="stage"></div>
+      <p class="sr" id="labStatus" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 第三章 ══════════ -->
+<section class="chap ch3" id="ch3">
+  <div class="wrap narrow">
+    <p class="mark v reveal">第三章 · 那個轉折</p>
+    <h2 class="reveal">這個效應，其實比傳說中弱得多</h2>
+    <p class="lede reveal">
+      前面那個 1927 年的結論，在坊間被講成一條定律：沒做完的事，你會記得比較牢。
+      聽起來很順、很好用、很像真的。
+    </p>
+    <p class="reveal">
+      近年有人把蔡加尼克效應與 Ovsiankina 效應的研究整批收攏起來做統合分析。
+      結果是兩件事——一件被拿掉，一件留了下來。
+    </p>
+
+    <div class="verdicts">
+      <div class="vd no reveal">
+        <span class="verdict">✕ 沒有找到</span>
+        <p class="claim">被打斷的事，你會記得比較牢。</p>
+        <p class="why">統合分析並沒有找到被打斷任務的記憶優勢。原始效應比流傳的版本弱得多，也更看情境。</p>
+      </div>
+      <div class="vd yes reveal">
+        <span class="verdict">✓ 有找到，而且普遍</span>
+        <p class="claim">被打斷的事，你會想回去把它做完。</p>
+        <p class="why">一個普遍的「回頭把它做完」的傾向，也就是 Ovsiankina 效應。這一半站得住。</p>
+      </div>
+    </div>
+
+    <p class="beat reveal">
+      所以真正在吵你的，可能不是「你記得它」。<br>
+      是<em class="hi">它還開著</em>。
+    </p>
+    <p class="reveal">
+      這個差別很重要。如果吵你的是記憶，那你只能等它淡掉。
+      但如果吵你的是一件事還開著沒收——那就有別的辦法了。
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ 第四章 ══════════ -->
+<section class="chap ch4" id="ch4">
+  <div class="wrap">
+    <div class="narrow">
+      <p class="mark c reveal">第四章 · 讓它閉嘴</p>
+      <h2 class="reveal">不需要做完。只需要一個具體的計畫</h2>
+      <p class="lede reveal">
+        2011 年，<em class="hc">Masicampo 與 Baumeister</em> 做了一組實驗，論文名字取得很直白：
+        〈Consider it done! Plan making can eliminate the cognitive effects of unfulfilled goals〉。
+      </p>
+      <p class="reveal">
+        他們發現：帶著一個未完成目標的人，在一份完全無關的閱讀作業裡，
+        會冒出<em class="hc">更多和那個目標有關的念頭</em>；
+        和目標有關的字詞在他們腦中<em class="hc">更容易被提取</em>；
+        有時候，他們在另一項字謎作業上<em class="hc">表現還更差</em>。
+        那件沒做完的事，正在偷偷佔用你的頻寬。
+      </p>
+      <p class="beat reveal">
+        然後是那個關鍵：<br>
+        <em class="hc">替那個未完成的目標訂出一個具體的計畫</em>，<br>
+        就能顯著減少這些侵入性的念頭。
+      </p>
+      <p class="reveal">
+        注意，不是把事情做完，是<em class="hc">訂出計畫</em>。
+        下面這台工具就照這個規格做：你把腦子裡正在吵的事丟進來，它只逼你填三格——
+        下一步是什麼、什麼時候、在哪裡。三格都填了，那一則就會安靜下來。
+      </p>
+    </div>
+
+    <div class="tool">
+      <form class="tool-add" id="addForm" autocomplete="off">
+        <label for="addWhat">現在腦子裡在吵的，是哪一件？</label>
+        <div class="addrow">
+          <input type="text" id="addWhat" name="addWhat" maxlength="120"
+                 placeholder="例如：回老闆那封信 / 預約牙醫 / 報稅" aria-describedby="addNote">
+          <button type="submit" class="btn" id="addBtn">丟進來</button>
+        </div>
+        <p class="tiny" id="addNote" style="margin:.8em 0 0">一次一件。想到什麼寫什麼，不用寫得漂亮。</p>
+      </form>
+
+      <div class="cols">
+        <section class="col col-noisy" aria-labelledby="hNoisy">
+          <p class="colhead" id="hNoisy"><span>吵鬧區</span><span id="cNoisy">0</span></p>
+          <p class="colsub">還開著。它會一直回來敲門。</p>
+          <ul class="cardlist" id="noisyList"></ul>
+          <p class="empty" id="noisyEmpty">目前沒有東西在吵。上面那格空著也沒關係。</p>
+        </section>
+        <section class="col col-quiet" aria-labelledby="hQuiet">
+          <p class="colhead" id="hQuiet"><span>已排定</span><span id="cQuiet">0</span></p>
+          <p class="colsub">有時間、有地點、有下一步。它可以先閉嘴了。</p>
+          <ul class="cardlist" id="quietList"></ul>
+          <p class="empty" id="quietEmpty">還沒有。替左邊任何一則填完三格，它就會搬過來。</p>
+        </section>
+      </div>
+
+      <div class="tool-foot">
+        <span class="toolstat" id="toolStat">吵鬧 0 · 已排定 0 · 已完成 0</span>
+        <span id="clearZone">
+          <button type="button" class="mini danger" id="clearBtn">清空整份清單</button>
+        </span>
+      </div>
+    </div>
+    <p class="sr" id="toolStatus" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<!-- ══════════ 第五章 ══════════ -->
+<section class="chap ch5" id="ch5">
+  <div class="wrap narrow">
+    <p class="mark c reveal">第五章 · 留給你的</p>
+    <h2 class="reveal">它會在這裡等你，但不會唸你</h2>
+    <p class="lede reveal">
+      這份清單留在你這台裝置上。關掉分頁、明天再開，它還在原地：
+      吵的還在吵，排定的還安靜著。隨時可以改計畫、標記完成、刪掉，或整份清空。
+    </p>
+    <p class="reveal">
+      有一些東西是刻意不做的。這裡沒有連續達成天數，沒有紅色的逾期警告，
+      也不會告訴你「這件事你已經放了幾天」。
+      那些東西只會多生出一件讓你煩的事——而你來這裡是為了少一件。
+    </p>
+    <p class="small reveal">
+      順帶一提：這一頁談的是待辦事項與工作記憶，不是任何一種症狀。
+      如果腦子裡重複的念頭已經讓你睡不好、過不好日子，那不是一張清單能處理的事，值得找專業的人聊聊。
+    </p>
+  </div>
+</section>
+
+<!-- ══════════ 收尾 ══════════ -->
+<section class="closing">
+  <div class="wrap narrow">
+    <p class="mark reveal">回到第一屏</p>
+    <p class="beat reveal">
+      那個一直來敲門的念頭，你以為它在催你動手。
+    </p>
+    <p class="reveal">
+      它不是。它沒有要你現在就去做——它知道你現在在忙。<br>
+      它從頭到尾只問同一句話：
+    </p>
+    <p class="beat reveal">
+      「<em class="hi">你確定你不會忘記我嗎？</em>」
+    </p>
+    <p class="reveal">
+      所以你不必回答「我馬上做」。你只要回答得夠具體：
+    </p>
+    <p class="reveal">
+      <span class="plan-echo">
+        下一步 · 寫開頭那一句<br>
+        什麼時候 · 星期四早上，倒完咖啡之後<br>
+        在哪裡 · 廚房那張桌子
+      </span>
+    </p>
+    <p class="beat reveal">
+      然後它就會走開。<br>
+      它要的從來就只是一個確認。
+    </p>
+  </div>
+</section>
+
+<footer>
+  資料來源：Zeigarnik (1927)；Masicampo &amp; Baumeister (2011)〈Consider it done!〉；蔡加尼克／Ovsiankina 效應統合分析<br>
+  每日小專案 · 2026-07-30 · 生活痛點小工具
+</footer>
+
+<script src="engine.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var Z = (typeof window !== 'undefined' && window.Zeigarnik) ? window.Zeigarnik : null;
+  if (!Z) return;
+
+  var doc = document;
+  var body = doc.body;
+
+  /* ---------- 防呆小工具 ---------- */
+
+  function $(id) { return doc.getElementById(id); }
+  function esc(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  var nowMs = (typeof performance !== 'undefined' && performance && typeof performance.now === 'function')
+    ? function () { return performance.now(); }
+    : function () { return Date.now(); };
+
+  var rafFn = (typeof window.requestAnimationFrame === 'function')
+    ? function (cb) { return window.requestAnimationFrame(cb); }
+    : function (cb) { return setTimeout(cb, 16); };
+
+  /* rAF 節流：同一幀內重複要求只跑一次 */
+  var frameQueue = [], framePending = false;
+  function onFrame(fn) {
+    frameQueue.push(fn);
+    if (framePending) return;
+    framePending = true;
+    rafFn(function () {
+      framePending = false;
+      var q = frameQueue; frameQueue = [];
+      for (var i = 0; i < q.length; i++) { try { q[i](); } catch (e) {} }
+    });
+  }
+
+  /* ---------- prefers-reduced-motion ---------- */
+
+  var reduceMQ = null;
+  try {
+    if (typeof window.matchMedia === 'function') reduceMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+  } catch (e) { reduceMQ = null; }
+
+  function reduced() { return !!(reduceMQ && reduceMQ.matches); }
+  function applyReduce() {
+    if (reduced()) body.classList.add('reduce');
+    else body.classList.remove('reduce');
+  }
+  if (reduceMQ) {
+    if (typeof reduceMQ.addEventListener === 'function') reduceMQ.addEventListener('change', applyReduce);
+    else if (typeof reduceMQ.addListener === 'function') reduceMQ.addListener(applyReduce);
+  }
+  applyReduce();
+
+  /* ---------- document.hidden 時暫停動畫 ---------- */
+
+  function syncPaused() {
+    if (doc.hidden) body.classList.add('paused');
+    else body.classList.remove('paused');
+  }
+  if (typeof doc.addEventListener === 'function') {
+    doc.addEventListener('visibilitychange', function () { syncPaused(); pumpCutTimer(); });
+  }
+  syncPaused();
+
+  /* ---------- 捲動進場 ---------- */
+
+  (function () {
+    var els = [].slice.call(doc.querySelectorAll('.reveal'));
+    if (typeof window.IntersectionObserver !== 'function') {
+      els.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new window.IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, { rootMargin: '0px 0px -10% 0px', threshold: 0.06 });
+    els.forEach(function (el) { io.observe(el); });
+  })();
+
+  /* ---------- localStorage（全包 try/catch） ---------- */
+
+  var KEY_TODOS = 'zeigarnik_todos_v1';
+  var KEY_SEED = 'zeigarnik_seed_v1';
+
+  function lsGet(k) {
+    try {
+      if (typeof window.localStorage === 'undefined' || !window.localStorage) return null;
+      return window.localStorage.getItem(k);
+    } catch (e) { return null; }
+  }
+  function lsSet(k, v) {
+    try {
+      if (typeof window.localStorage === 'undefined' || !window.localStorage) return false;
+      window.localStorage.setItem(k, v);
+      return true;
+    } catch (e) { return false; }
+  }
+  function lsDel(k) {
+    try {
+      if (typeof window.localStorage === 'undefined' || !window.localStorage) return false;
+      window.localStorage.removeItem(k);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* ══════════════════════════════════════════
+   *  第一屏：那件事真的浮出來一次
+   * ══════════════════════════════════════════ */
+
+  (function () {
+    var note = $('nagNote'), after = $('heroAfter'), beat = $('heroBeat');
+    if (!note) return;
+    if (reduced()) {
+      note.classList.add('up');
+      if (after) after.classList.add('on');
+      if (beat) beat.textContent = '然後——它又浮上來了：';
+      return;
+    }
+    setTimeout(function () {
+      onFrame(function () { note.classList.add('up'); });
+    }, 1500);
+    setTimeout(function () { note.classList.add('sway'); }, 2400);
+    setTimeout(function () { if (after) after.classList.add('on'); }, 3100);
+  })();
+
+  /* ══════════════════════════════════════════
+   *  第一章：結帳就忘光
+   * ══════════════════════════════════════════ */
+
+  (function () {
+    var box = $('slips'), quiz = $('ch1Quiz');
+    if (!box) return;
+    var paid = 0;
+    var btns = [].slice.call(box.querySelectorAll('.paybtn'));
+    btns.forEach(function (b) {
+      b.addEventListener('click', function () {
+        var slip = b.parentNode;
+        if (!slip || slip.classList.contains('paid')) return;
+        slip.classList.add('paid');
+        b.disabled = true;
+        b.textContent = '已收';
+        paid++;
+        if (paid >= btns.length && quiz) {
+          quiz.hidden = false;
+          quiz.textContent = '三桌都結了。現在不要往上看——桌 7 剛剛點了什麼？';
+        }
+      });
+    });
+  })();
+
+  /* ══════════════════════════════════════════
+   *  第二章：換你跑一遍
+   * ══════════════════════════════════════════ */
+
+  var stage = $('stage'), qdots = $('qdots'), labPhase = $('labPhase'), labStatus = $('labStatus');
+
+  var lab = {
+    phase: 'idle',
+    seed: 0,
+    run: null,
+    idx: 0,
+    checked: {},
+    shownAt: 0,
+    cutTimer: null,
+    cutLeft: 0,
+    cutRunning: false,
+    locked: false
+  };
+
+  function say(msg) { if (labStatus) labStatus.textContent = msg; }
+
+  function loadSeed() {
+    var raw = lsGet(KEY_SEED);
+    var n = Number(raw);
+    if (typeof n === 'number' && isFinite(n) && n > 0) return Math.floor(n);
+    return newSeed();
+  }
+  function newSeed() {
+    var n = (Date.now() % 2000000000) + Math.floor(Math.random() * 100000) + 1;
+    lsSet(KEY_SEED, String(n));
+    return n;
+  }
+
+  lab.seed = loadSeed();
+
+  function drawDots() {
+    if (!qdots) return;
+    var n = lab.run ? lab.run.count : 8;
+    var html = '';
+    for (var i = 0; i < n; i++) {
+      var cls = (lab.phase === 'run' && i === lab.idx) ? 'now' : (i < lab.idx ? 'done' : '');
+      html += '<span class="' + cls + '"></span>';
+    }
+    qdots.innerHTML = html;
+  }
+
+  function clearCutTimer() {
+    if (lab.cutTimer !== null) { clearTimeout(lab.cutTimer); lab.cutTimer = null; }
+  }
+
+  /* 用 performance.now() 記帳；分頁被切走時暫停倒數 */
+  function pumpCutTimer() {
+    if (!lab.cutRunning) return;
+    clearCutTimer();
+    if (doc.hidden) {
+      var used = nowMs() - lab.shownAt;
+      lab.cutLeft = Math.max(0, lab.cutLeft - used);
+      return;
+    }
+    lab.shownAt = nowMs();
+    lab.cutTimer = setTimeout(doCut, Math.max(0, lab.cutLeft));
+  }
+
+  function startCutTimer(ms) {
+    lab.cutRunning = true;
+    lab.cutLeft = ms;
+    lab.shownAt = nowMs();
+    clearCutTimer();
+    if (!doc.hidden) lab.cutTimer = setTimeout(doCut, ms);
+  }
+
+  function stopCutTimer() {
+    lab.cutRunning = false;
+    lab.cutLeft = 0;
+    clearCutTimer();
+  }
+
+  function renderIdle() {
+    lab.phase = 'idle';
+    if (labPhase) labPhase.textContent = '實驗台 · 待機';
+    drawDots();
+    stage.innerHTML =
+      '<div class="center">' +
+      '<p class="lede" style="margin-bottom:1.6em">準備好了就開始。大概一分鐘，中途不用做任何決定。</p>' +
+      '<button type="button" class="btn" id="labStart">開始這八題</button>' +
+      '</div>';
+    var b = $('labStart');
+    if (b) b.addEventListener('click', startRun);
+  }
+
+  function startRun() {
+    lab.run = Z.buildRun(lab.seed, { count: 8, interruptCount: 4 });
+    lab.idx = 0;
+    lab.checked = {};
+    lab.phase = 'run';
+    say('開始了，共八題。');
+    renderTask();
+  }
+
+  function taskBody(t) {
+    var d = t.data || {};
+    var h = '';
+    if (t.kind === 'anagram') {
+      h += '<div class="slots" id="slots">';
+      for (var i = 0; i < 3; i++) h += '<div class="slot" data-slot="' + i + '"></div>';
+      h += '</div>';
+      h += '<div style="display:flex;gap:10px;justify-content:center;width:100%">';
+      (d.chars || []).forEach(function (c, i) {
+        h += '<button type="button" class="opt char" data-char="' + esc(c) + '" data-ci="' + i + '">' + esc(c) + '</button>';
+      });
+      h += '</div>';
+      h += '<p class="qhint">照順序點三個字。</p>';
+    } else if (t.kind === 'add') {
+      (d.options || []).forEach(function (o) {
+        h += '<button type="button" class="opt" data-val="' + esc(o) + '">' + esc(o) + '</button>';
+      });
+    } else if (t.kind === 'count') {
+      var pts = d.points || [];
+      h += '<svg class="dots-svg" viewBox="0 0 100 62" role="img" aria-label="畫面上有一些' + esc(d.colorName) + '圓點">';
+      for (var k = 0; k < pts.length; k++) {
+        h += '<circle cx="' + pts[k].x + '" cy="' + pts[k].y + '" r="4" fill="' + esc(d.hex) + '"></circle>';
+      }
+      h += '</svg>';
+      h += '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;width:100%">';
+      (d.options || []).forEach(function (o) {
+        h += '<button type="button" class="opt" data-val="' + esc(o) + '">' + esc(o) + '</button>';
+      });
+      h += '</div>';
+    } else {
+      (d.cells || []).forEach(function (g, i) {
+        h += '<button type="button" class="opt glyph" data-i="' + i + '" aria-label="第 ' + (i + 1) + ' 個，' +
+          (g === d.diff ? esc(d.hint) : ('一般的' + esc(d.name))) + '">' + esc(g) + '</button>';
+      });
+    }
+    return h;
+  }
+
+  function renderTask() {
+    var t = lab.run.tasks[lab.idx];
+    if (!t) { renderRecall(); return; }
+    lab.locked = false;
+    if (labPhase) labPhase.textContent = '實驗台 · 進行中';
+    drawDots();
+
+    stage.innerHTML =
+      '<div class="qcard">' +
+      '<p class="qprompt">' + esc(t.prompt) + '</p>' +
+      '<div class="qbody" id="qbody">' + taskBody(t) + '</div>' +
+      '<p class="qfeed" id="qfeed">第 ' + (lab.idx + 1) + ' 題 / 共 ' + lab.run.count + ' 題</p>' +
+      '<div class="cut" id="cut"><span class="big">先跳過，換下一題</span><span class="sm">不用回頭，繼續就好</span></div>' +
+      '</div>';
+
+    bindTask(t);
+    if (t.interrupted) startCutTimer(Z.INTERRUPT_MS);
+    else stopCutTimer();
+  }
+
+  function bindTask(t) {
+    var d = t.data || {};
+    var qbody = $('qbody');
+    if (!qbody) return;
+
+    if (t.kind === 'anagram') {
+      var picked = [];
+      var slots = [].slice.call(qbody.querySelectorAll('.slot'));
+      [].slice.call(qbody.querySelectorAll('.opt.char')).forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (lab.locked || b.disabled || picked.length >= 3) return;
+          b.disabled = true;
+          b.classList.add('picked');
+          var s = slots[picked.length];
+          if (s) { s.textContent = b.getAttribute('data-char') || ''; s.classList.add('full'); }
+          picked.push(b.getAttribute('data-char') || '');
+          if (picked.length === 3) {
+            var got = picked.join('');
+            finishTask(got === d.word, got === d.word ? '✓ 對了' : ('答案是「' + d.word + '」，沒關係'));
+          }
+        });
+      });
+      return;
+    }
+
+    if (t.kind === 'add' || t.kind === 'count') {
+      var right = (t.kind === 'add') ? d.answer : d.total;
+      [].slice.call(qbody.querySelectorAll('.opt')).forEach(function (b) {
+        b.addEventListener('click', function () {
+          if (lab.locked) return;
+          var v = Number(b.getAttribute('data-val'));
+          finishTask(v === right, v === right ? '✓ 對了' : ('答案是 ' + right + '，沒關係'));
+        });
+      });
+      return;
+    }
+
+    [].slice.call(qbody.querySelectorAll('.opt.glyph')).forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (lab.locked) return;
+        var i = Number(b.getAttribute('data-i'));
+        finishTask(i === d.answerIndex, i === d.answerIndex ? '✓ 對了' : '就是那個空心／倒過來的，沒關係');
+      });
+    });
+  }
+
+  function finishTask(ok, msg) {
+    if (lab.locked) return;
+    lab.locked = true;
+    stopCutTimer();
+    var f = $('qfeed');
+    if (f) { f.textContent = msg; f.className = 'qfeed ' + (ok ? 'ok' : 'no'); }
+    [].slice.call(stage.querySelectorAll('.opt')).forEach(function (b) { b.disabled = true; });
+    setTimeout(nextTask, 520);
+  }
+
+  function doCut() {
+    if (lab.locked) return;
+    lab.locked = true;
+    stopCutTimer();
+    var c = $('cut');
+    if (c) c.classList.add('on');
+    [].slice.call(stage.querySelectorAll('.opt')).forEach(function (b) { b.disabled = true; });
+    say('這一題被跳過了。');
+    setTimeout(nextTask, 760);
+  }
+
+  function nextTask() {
+    lab.idx++;
+    if (lab.idx >= lab.run.count) renderRecall();
+    else renderTask();
+  }
+
+  function renderRecall() {
+    lab.phase = 'recall';
+    stopCutTimer();
+    if (labPhase) labPhase.textContent = '實驗台 · 回想';
+    lab.idx = lab.run.count;
+    drawDots();
+
+    var byId = {};
+    lab.run.tasks.forEach(function (t) { byId[t.id] = t; });
+
+    var h = '<div>';
+    h += '<p class="qprompt" style="text-align:left">剛剛那些題目，你記得哪幾題？</p>';
+    h += '<p class="small">憑印象勾就好，不確定的就不要勾。下面的順序跟剛剛不一樣。</p>';
+    h += '<ul class="recall-list">';
+    lab.run.recallOrder.forEach(function (id) {
+      var t = byId[id];
+      if (!t) return;
+      h += '<li><label class="chk" for="rc_' + esc(id) + '">' +
+        '<input type="checkbox" id="rc_' + esc(id) + '" value="' + esc(id) + '">' +
+        '<span>' + esc(t.label) + '</span></label></li>';
+    });
+    h += '</ul>';
+    h += '<div class="center"><button type="button" class="btn" id="revealBtn">揭曉</button></div>';
+    h += '</div>';
+    stage.innerHTML = h;
+
+    [].slice.call(stage.querySelectorAll('.recall-list input')).forEach(function (i) {
+      i.addEventListener('change', function () { lab.checked[i.value] = !!i.checked; });
+    });
+    var rb = $('revealBtn');
+    if (rb) rb.addEventListener('click', renderResult);
+    say('八題跑完了。請勾出你記得的題目。');
+  }
+
+  function verdictText(s) {
+    if (s.interruptedTotal === 0) {
+      return '這一輪剛好沒有任何一題被打斷，所以沒得比。想比的話，重跑一次就好。';
+    }
+    if (s.completedTotal === 0) {
+      return '這一輪剛好每題都被打斷了，所以沒得比。想比的話，重跑一次就好。';
+    }
+    if (s.checkedTotal === 0) {
+      return '你一題都沒勾。這也是個結果——八題小事，本來就沒什麼理由留在腦子裡。';
+    }
+    if (s.direction === 'interrupted') {
+      return '你這一輪，<b>被打斷的那幾題記得比較多</b>。方向跟 1927 年那批受試者一樣。';
+    }
+    if (s.direction === 'completed') {
+      return '你這一輪，<b>做完的那幾題反而記得比較多</b>。方向跟 1927 年相反。';
+    }
+    return '你這一輪，<b>兩邊一樣多</b>。';
+  }
+
+  function renderResult() {
+    lab.phase = 'result';
+    if (labPhase) labPhase.textContent = '實驗台 · 結果';
+
+    var ids = [];
+    for (var k in lab.checked) { if (lab.checked[k]) ids.push(k); }
+    var s = Z.recallStats(lab.run.tasks, ids);
+
+    var h = '<div>';
+    h += '<p class="qprompt" style="text-align:left">你勾了 ' + s.checkedTotal + ' 題。攤開來看：</p>';
+    h += '<div class="result-rows">';
+    h += '<div class="rrow cutrow"><div class="top"><span class="name">被打斷的題目</span>' +
+      '<span class="num"><b>' + s.interruptedRecalled + '</b> / ' + s.interruptedTotal + '　' + s.interruptedPct + '%</span></div>' +
+      '<div class="bar"><i data-w="' + s.interruptedPct + '"></i></div></div>';
+    h += '<div class="rrow donerow"><div class="top"><span class="name">你做完的題目</span>' +
+      '<span class="num"><b>' + s.completedRecalled + '</b> / ' + s.completedTotal + '　' + s.completedPct + '%</span></div>' +
+      '<div class="bar"><i data-w="' + s.completedPct + '"></i></div></div>';
+    h += '</div>';
+
+    h += '<p style="margin:0 0 1em">' + verdictText(s) + '</p>';
+    h += '<div class="honest">' +
+      '<b>先講清楚：這是 n=1 的示範，不是證據。</b><br>' +
+      '一個人、八題、跑一次——不管跑出哪個方向，都可能只是今天你比較分心，或那幾題剛好比較好記。' +
+      '真正的研究要幾十上百人、要對照組、要重複驗證。這裡只是讓你親身感覺一下那個實驗長什麼樣子。<br>' +
+      '還有一件更該講的：<b>近年的統合分析並沒有找到「被打斷的事記得比較牢」這個記憶優勢。</b>' +
+      '往下捲一章，我會把它講完——那一章才是這一頁真正的轉折。' +
+      '</div>';
+
+    h += '<div class="center" style="margin-top:1.6em">' +
+      '<button type="button" class="btn ghost" id="againBtn">換一組題目再跑一次</button></div>';
+    h += '</div>';
+    stage.innerHTML = h;
+
+    onFrame(function () {
+      onFrame(function () {
+        [].slice.call(stage.querySelectorAll('.bar i')).forEach(function (el) {
+          var w = Number(el.getAttribute('data-w'));
+          if (!isFinite(w) || w < 0) w = 0;
+          if (w > 100) w = 100;
+          el.style.transform = 'scaleX(' + (w / 100) + ')';
+        });
+      });
+    });
+
+    var ab = $('againBtn');
+    if (ab) ab.addEventListener('click', function () { lab.seed = newSeed(); renderIdle(); });
+
+    say('結果出來了：被打斷的記得 ' + s.interruptedRecalled + ' 題，做完的記得 ' + s.completedRecalled + ' 題。');
+  }
+
+  if (stage) renderIdle();
+
+  /* ══════════════════════════════════════════
+   *  第四章：清單工具
+   * ══════════════════════════════════════════ */
+
+  var tool = {
+    todos: [],
+    openId: null,
+    drafts: {},
+    settling: null,
+    arriving: null,
+    confirming: false
+  };
+
+  var noisyList = $('noisyList'), quietList = $('quietList');
+  var noisyEmpty = $('noisyEmpty'), quietEmpty = $('quietEmpty');
+  var cNoisy = $('cNoisy'), cQuiet = $('cQuiet'), toolStat = $('toolStat'), toolStatus = $('toolStatus');
+  var addForm = $('addForm'), addWhat = $('addWhat');
+
+  function tell(msg) { if (toolStatus) toolStatus.textContent = msg; }
+
+  function saveTodos() { lsSet(KEY_TODOS, JSON.stringify(tool.todos)); }
+
+  function loadTodos() { tool.todos = Z.parseStore(lsGet(KEY_TODOS)); }
+
+  var idSeq = 0;
+  function nextId() {
+    idSeq++;
+    return 'z' + Date.now().toString(36) + idSeq.toString(36);
+  }
+
+  function findTodo(id) {
+    for (var i = 0; i < tool.todos.length; i++) if (tool.todos[i].id === id) return tool.todos[i];
+    return null;
+  }
+
+  function draftOf(t) {
+    if (!tool.drafts[t.id]) {
+      tool.drafts[t.id] = { step: t.step || '', when: t.when || '', where: t.where || '' };
+    }
+    return tool.drafts[t.id];
+  }
+
+  function fieldHtml(t, key, label, ph) {
+    var d = draftOf(t);
+    var fid = 'f_' + key + '_' + t.id;
+    return '<div class="field">' +
+      '<label for="' + esc(fid) + '">' + esc(label) + '</label>' +
+      '<input type="text" id="' + esc(fid) + '" data-field="' + key + '" data-id="' + esc(t.id) + '" ' +
+      'maxlength="80" placeholder="' + esc(ph) + '" value="' + esc(d[key]) + '">' +
+      '</div>';
+  }
+
+  function cardHtml(t) {
+    var sched = Z.isScheduled(t);
+    var open = tool.openId === t.id;
+    var cls = 'card ' + (t.done ? 'done' : (sched ? 'quiet' : 'nag'));
+    if (tool.settling === t.id) cls += ' settling';
+    if (tool.arriving === t.id) cls += ' arriving';
+
+    var tag = t.done
+      ? '<span class="tag tag-done">✓ 已完成</span>'
+      : (sched ? '<span class="tag tag-quiet">✓ 已排定</span>' : '<span class="tag tag-nag">還在吵</span>');
+
+    var h = '<li class="' + cls + '" data-card="' + esc(t.id) + '">';
+    h += '<div class="cardtop">';
+    if (!sched && !t.done) h += '<span class="nagdot" aria-hidden="true">⟡</span>';
+    h += '<span class="what">' + esc(t.what) + '</span>' + tag + '</div>';
+
+    if (sched) h += '<p class="planline">' + esc(Z.planLine(t)) + '</p>';
+
+    h += '<div class="acts">';
+    if (t.done) {
+      h += '<button type="button" class="mini" data-act="undone" data-id="' + esc(t.id) + '">還原</button>';
+    } else if (sched) {
+      h += '<button type="button" class="mini" data-act="open" data-id="' + esc(t.id) + '">' + (open ? '收起' : '改計畫') + '</button>';
+      h += '<button type="button" class="mini" data-act="done" data-id="' + esc(t.id) + '">標記完成</button>';
+    } else {
+      h += '<button type="button" class="mini key" data-act="open" data-id="' + esc(t.id) + '">' + (open ? '收起' : '訂個計畫') + '</button>';
+    }
+    h += '<button type="button" class="mini danger" data-act="del" data-id="' + esc(t.id) + '">刪除</button>';
+    h += '</div>';
+
+    if (open && !t.done) {
+      h += '<div class="planform">';
+      h += fieldHtml(t, 'step', '下一步是什麼', '只寫第一個動作');
+      h += fieldHtml(t, 'when', '什麼時候', '例如：星期四早上');
+      h += fieldHtml(t, 'where', '在哪裡', '例如：廚房那張桌子');
+      h += '<p class="planhint" id="hint_' + esc(t.id) + '"></p>';
+      h += '<div class="planactions">' +
+        '<button type="button" class="mini key" data-act="schedule" data-id="' + esc(t.id) + '">' +
+        (sched ? '存起來' : '排定，讓它安靜') + '</button>' +
+        '<button type="button" class="mini" data-act="close" data-id="' + esc(t.id) + '">取消</button>' +
+        '</div>';
+      h += '</div>';
+    }
+    h += '</li>';
+    return h;
+  }
+
+  function render() {
+    if (!noisyList || !quietList) return;
+    var noisy = [], quiet = [];
+    tool.todos.forEach(function (t) {
+      if (!t.done && !Z.isScheduled(t)) noisy.push(t);
+      else quiet.push(t);
+    });
+
+    /* 正在「安靜下來」的那一則，先留在原欄位跑完動畫 */
+    if (tool.settling) {
+      var moving = findTodo(tool.settling);
+      if (moving) {
+        quiet = quiet.filter(function (t) { return t.id !== moving.id; });
+        if (noisy.indexOf(moving) < 0) noisy.push(moving);
+      }
+    }
+
+    noisyList.innerHTML = noisy.map(cardHtml).join('');
+    quietList.innerHTML = quiet.map(cardHtml).join('');
+    if (noisyEmpty) noisyEmpty.hidden = noisy.length > 0;
+    if (quietEmpty) quietEmpty.hidden = quiet.length > 0;
+
+    var s = Z.summarize(tool.todos);
+    if (cNoisy) cNoisy.textContent = String(s.noisy);
+    if (cQuiet) cQuiet.textContent = String(s.scheduled + s.done);
+    if (toolStat) toolStat.textContent = '吵鬧 ' + s.noisy + ' · 已排定 ' + s.scheduled + ' · 已完成 ' + s.done;
+
+    if (tool.arriving) {
+      var aid = tool.arriving;
+      tool.arriving = null;
+      setTimeout(function () {
+        var el = doc.querySelector('[data-card="' + aid + '"]');
+        if (el) el.classList.remove('arriving');
+      }, 600);
+    }
+    updateHint(tool.openId);
+  }
+
+  function updateHint(id) {
+    if (!id) return;
+    var t = findTodo(id);
+    if (!t) return;
+    var d = draftOf(t);
+    var probe = { step: d.step, when: d.when, where: d.where };
+    var hint = doc.getElementById('hint_' + id);
+    if (!hint) return;
+    if (Z.isScheduled(probe)) hint.textContent = '三格都有了。按下去，它就安靜了。';
+    else hint.textContent = '還缺：' + Z.missingLabel(probe) + '。三格都填了才算數。';
+  }
+
+  function addTodo(text) {
+    var what = Z.cleanText(text, Z.LIMIT.title);
+    if (!what) {
+      tell('要先寫點東西才丟得進來。');
+      if (addWhat) addWhat.focus();
+      return;
+    }
+    if (tool.todos.length >= Z.LIMIT.list) {
+      tell('清單滿了，先處理或刪掉幾則吧。');
+      return;
+    }
+    var t = Z.makeTodo({ what: what }, nextId());
+    tool.todos.unshift(t);
+    tool.openId = t.id;
+    tool.arriving = t.id;
+    saveTodos();
+    render();
+    tell('「' + what + '」丟進吵鬧區了。替它填三格，它就會安靜。');
+    var first = doc.getElementById('f_step_' + t.id);
+    if (first && typeof first.focus === 'function') first.focus();
+  }
+
+  function scheduleTodo(id) {
+    var t = findTodo(id);
+    if (!t) return;
+    var d = draftOf(t);
+    var probe = { step: d.step, when: d.when, where: d.where };
+    if (!Z.isScheduled(probe)) {
+      updateHint(id);
+      var miss = Z.missingFields(probe);
+      tell('還缺 ' + Z.missingLabel(probe) + '，三格都填了才算已排定。');
+      if (miss.length) {
+        var el = doc.getElementById('f_' + miss[0] + '_' + id);
+        if (el && typeof el.focus === 'function') el.focus();
+      }
+      return;
+    }
+
+    var wasScheduled = Z.isScheduled(t);
+    t.step = Z.cleanText(d.step, Z.LIMIT.field);
+    t.when = Z.cleanText(d.when, Z.LIMIT.field);
+    t.where = Z.cleanText(d.where, Z.LIMIT.field);
+    tool.openId = null;
+    saveTodos();
+
+    if (wasScheduled || reduced()) {
+      tool.arriving = t.id;
+      render();
+      tell('「' + t.what + '」已排定：' + Z.planLine(t) + '。它安靜了。');
+      return;
+    }
+
+    /* 高潮：讓「安靜下來」看得見 */
+    tool.settling = t.id;
+    render();
+    setTimeout(function () {
+      tool.settling = null;
+      tool.arriving = t.id;
+      render();
+      tell('「' + t.what + '」已排定：' + Z.planLine(t) + '。它安靜了。');
+    }, Z.SETTLE_MS);
+  }
+
+  function onToolClick(e) {
+    var el = e.target;
+    while (el && el !== doc.body && !(el.getAttribute && el.getAttribute('data-act'))) el = el.parentNode;
+    if (!el || !el.getAttribute) return;
+    var act = el.getAttribute('data-act');
+    var id = el.getAttribute('data-id');
+    if (!act || !id) return;
+    var t = findTodo(id);
+    if (!t) return;
+
+    if (act === 'open') {
+      tool.openId = (tool.openId === id) ? null : id;
+      if (tool.openId) tool.drafts[id] = { step: t.step || '', when: t.when || '', where: t.where || '' };
+      render();
+      if (tool.openId) {
+        var f = doc.getElementById('f_step_' + id);
+        if (f && typeof f.focus === 'function') f.focus();
+      }
+      return;
+    }
+    if (act === 'close') { tool.openId = null; render(); return; }
+    if (act === 'schedule') { scheduleTodo(id); return; }
+    if (act === 'done') {
+      t.done = true; tool.openId = null; saveTodos(); tool.arriving = id; render();
+      tell('「' + t.what + '」標記完成了。');
+      return;
+    }
+    if (act === 'undone') {
+      t.done = false; saveTodos(); tool.arriving = id; render();
+      tell('「' + t.what + '」還原了。');
+      return;
+    }
+    if (act === 'del') {
+      tool.todos = tool.todos.filter(function (x) { return x.id !== id; });
+      if (tool.openId === id) tool.openId = null;
+      delete tool.drafts[id];
+      saveTodos(); render();
+      tell('「' + t.what + '」刪掉了。');
+      return;
+    }
+  }
+
+  function onToolInput(e) {
+    var el = e.target;
+    if (!el || !el.getAttribute) return;
+    var key = el.getAttribute('data-field');
+    var id = el.getAttribute('data-id');
+    if (!key || !id) return;
+    var t = findTodo(id);
+    if (!t) return;
+    var d = draftOf(t);
+    d[key] = el.value;
+    updateHint(id);
+  }
+
+  if (noisyList && quietList) {
+    loadTodos();
+    render();
+
+    [noisyList, quietList].forEach(function (n) {
+      n.addEventListener('click', onToolClick);
+      n.addEventListener('input', onToolInput);
+      n.addEventListener('keydown', function (e) {
+        if (e && e.key === 'Enter' && e.target && e.target.getAttribute && e.target.getAttribute('data-field')) {
+          e.preventDefault();
+          var id = e.target.getAttribute('data-id');
+          if (id) scheduleTodo(id);
+        }
+      });
+    });
+
+    if (addForm) {
+      addForm.addEventListener('submit', function (e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        addTodo(addWhat ? addWhat.value : '');
+        if (addWhat) addWhat.value = '';
+      });
+    }
+
+    var clearBtn = $('clearBtn'), clearZone = $('clearZone');
+    if (clearBtn && clearZone) {
+      clearZone.addEventListener('click', function (e) {
+        var el = e.target;
+        if (!el || !el.getAttribute) return;
+        var role = el.getAttribute('data-clear') || (el.id === 'clearBtn' ? 'ask' : '');
+        if (role === 'ask') {
+          clearZone.innerHTML =
+            '<span class="toolstat" style="margin-right:8px">整份清空？</span>' +
+            '<button type="button" class="mini danger" data-clear="yes">確定清空</button> ' +
+            '<button type="button" class="mini" data-clear="no">算了</button>';
+          tell('確認一次：整份清單都要清掉嗎？');
+        } else if (role === 'yes') {
+          tool.todos = []; tool.openId = null; tool.drafts = {};
+          lsDel(KEY_TODOS);
+          render();
+          resetClearZone();
+          tell('清單清空了。');
+        } else if (role === 'no') {
+          resetClearZone();
+          tell('沒有清空，都還在。');
+        }
+      });
+    }
+    function resetClearZone() {
+      var zone = $('clearZone');
+      if (zone) zone.innerHTML = '<button type="button" class="mini danger" id="clearBtn">清空整份清單</button>';
+    }
+  }
+
+})();
+</script>
+</body>
+</html>

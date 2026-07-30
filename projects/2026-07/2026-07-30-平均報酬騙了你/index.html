@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>平均報酬騙了你｜每日小專案</title>
+<meta name="description" content="一張宣傳單寫著「四年平均年報酬 +25%」。它沒有說謊。但四年後，你的一百萬還是一百萬。">
+<style>
+:root{
+  /* 假宣傳單（before）：俗氣的金 */
+  --paper:#f6efdd;
+  --paper-2:#efe4c9;
+  --gold:#b8912f;
+  --gold-lt:#e7c765;
+  --gold-dk:#7a5c14;
+  --ad-ink:#2b2313;
+  --ad-mut:#7a6b4c;
+  --ad-red:#b8332a;
+
+  /* 揭穿之後（after）：冷靜的資料感 */
+  --ink:#0b0e13;
+  --ink-2:#111721;
+  --panel:#151c27;
+  --panel-2:#1b2431;
+  --txt:#e7edf6;
+  --mut:#8b99ad;
+  --line:rgba(231,237,246,.12);
+  --line-2:rgba(231,237,246,.06);
+  --acc:#63dcc2;
+  --acc-dk:#2c6d61;
+  --dn:#e37a68;
+  --amber:#e6b45c;
+
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU","Georgia",serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--ink);color:var(--txt);
+  font-family:var(--sans);line-height:1.85;letter-spacing:.015em;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{margin:0;font-weight:800;line-height:1.3;letter-spacing:-.01em}
+p{margin:0 0 1.05em}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:5px}
+.wrap{max-width:900px;margin:0 auto;padding:0 22px}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ── 回首頁 ───────────────────────────────── */
+.home{
+  position:fixed;top:14px;left:16px;z-index:80;font-size:.78rem;letter-spacing:.09em;
+  color:var(--ad-mut);text-decoration:none;padding:5px 12px;border-radius:999px;
+  background:rgba(246,239,221,.72);border:1px solid rgba(122,92,20,.28);
+  backdrop-filter:blur(6px);transition:transform .25s,color .25s,background .35s,border-color .35s;
+}
+.home:hover{color:var(--ad-ink);transform:translateX(-2px)}
+body.past-ad .home{background:rgba(11,14,19,.7);border-color:var(--line);color:var(--mut)}
+body.past-ad .home:hover{color:var(--txt)}
+
+/* ══════════════════════════════════════════
+   第一屏：假宣傳單
+   ══════════════════════════════════════════ */
+.adstage{
+  min-height:100vh;min-height:100svh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:26px;padding:74px 20px 44px;
+  background:
+    radial-gradient(120% 80% at 50% -10%, #fffaf0 0%, var(--paper) 46%, var(--paper-2) 100%);
+  border-bottom:3px solid var(--gold);
+  position:relative;overflow:hidden;
+}
+.adstage::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:repeating-linear-gradient(135deg,rgba(184,145,47,.045) 0 2px,transparent 2px 7px);
+}
+
+.flyer{
+  position:relative;width:min(560px,100%);background:#fffdf6;
+  border:1px solid rgba(122,92,20,.3);border-radius:6px;padding:34px 30px 24px;
+  text-align:center;color:var(--ad-ink);font-family:var(--serif);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 18px 40px -18px rgba(84,62,10,.45), 0 3px 10px rgba(84,62,10,.12);
+  animation:flyIn .9s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes flyIn{from{opacity:0;transform:translateY(18px) rotate(-.6deg)}to{opacity:1;transform:none}}
+.flyer::before{
+  content:"";position:absolute;left:14px;right:14px;top:10px;height:4px;border-radius:2px;
+  background:linear-gradient(90deg,var(--gold-dk),var(--gold-lt),var(--gold-dk));
+}
+.brand{
+  margin-top:8px;font-size:.76rem;letter-spacing:.42em;text-indent:.42em;
+  color:var(--gold-dk);font-family:var(--sans);font-weight:700;
+}
+.kicker{font-size:.95rem;color:var(--ad-mut);margin:.9em 0 .2em}
+.bigclaim{font-size:clamp(1.02rem,3.4vw,1.24rem);font-weight:700;margin:0 0 .1em;letter-spacing:.04em}
+.pct{
+  display:block;font-size:clamp(3.4rem,15vw,5.6rem);font-weight:900;line-height:1;margin:.06em 0 .1em;
+  background:linear-gradient(178deg,#f2d888 4%,var(--gold) 42%,var(--gold-dk) 78%,#e3c874 100%);
+  -webkit-background-clip:text;background-clip:text;color:var(--gold-dk);
+  -webkit-text-fill-color:transparent;
+  /* 用 filter 做浮雕，不用 text-shadow：background-clip:text 之下 text-shadow
+     會蓋在漸層上面糊成一片，filter 是對算完的結果加陰影，乾淨得多 */
+  filter:drop-shadow(0 1px 0 rgba(255,255,255,.85)) drop-shadow(0 3px 7px rgba(122,92,20,.26));
+  font-family:var(--sans);letter-spacing:-.04em;
+}
+@supports not ((-webkit-background-clip:text) or (background-clip:text)){
+  .pct{-webkit-text-fill-color:currentColor;color:var(--gold-dk)}
+}
+.pct sup{font-size:.3em;vertical-align:super;-webkit-text-fill-color:var(--ad-red);color:var(--ad-red)}
+.bang{font-size:1.05rem;color:var(--ad-red);font-weight:700;letter-spacing:.06em;margin:.2em 0 1em}
+.ticks{list-style:none;margin:0 0 18px;padding:0;font-size:.9rem;color:var(--ad-ink);font-family:var(--sans)}
+.ticks li{padding:5px 0;border-bottom:1px dotted rgba(122,92,20,.26)}
+.ticks li:last-child{border-bottom:0}
+.ticks b{color:var(--gold-dk)}
+.smallprint{
+  font-size:.63rem;line-height:1.75;color:var(--ad-mut);font-family:var(--sans);
+  text-align:left;margin:0;letter-spacing:0;
+}
+.starburst{
+  position:absolute;right:-14px;top:-16px;width:96px;height:96px;display:grid;place-items:center;
+  color:#fff;font-family:var(--sans);font-weight:900;font-size:.74rem;line-height:1.25;text-align:center;
+  background:radial-gradient(circle at 40% 34%,#d9483c,#9c2018);
+  clip-path:polygon(50% 0%,61% 18%,80% 12%,80% 32%,98% 42%,85% 56%,95% 74%,74% 76%,68% 96%,50% 85%,32% 96%,26% 76%,5% 74%,15% 56%,2% 42%,20% 32%,20% 12%,39% 18%);
+  transform:rotate(9deg);
+}
+.narration{
+  font-family:var(--sans);font-size:clamp(1.15rem,4.4vw,1.5rem);font-weight:700;
+  color:var(--ad-ink);margin:0;text-align:center;letter-spacing:.02em;
+  animation:flyIn 1s .55s cubic-bezier(.2,.8,.3,1) both;
+}
+.cue{
+  font-family:var(--sans);font-size:.72rem;letter-spacing:.4em;text-indent:.4em;color:var(--ad-mut);
+  text-align:center;animation:flyIn 1s .9s cubic-bezier(.2,.8,.3,1) both;
+}
+.cue span{display:block;font-size:1.2rem;letter-spacing:0;animation:bob 2.3s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.55}50%{transform:translateY(7px);opacity:1}}
+
+/* ══════════════════════════════════════════
+   揭穿之後：冷靜的資料感
+   ══════════════════════════════════════════ */
+.ch{padding:clamp(64px,11vw,120px) 0;border-bottom:1px solid var(--line-2)}
+.ch:nth-of-type(even){background:linear-gradient(180deg,rgba(255,255,255,.014),transparent)}
+.chno{
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.34em;color:var(--acc-dk);
+  text-transform:uppercase;margin:0 0 .8em;display:flex;align-items:center;gap:12px;
+}
+.chno::after{content:"";flex:1;height:1px;background:var(--line)}
+.ch h2{font-size:clamp(1.55rem,5.2vw,2.3rem);margin:0 0 .5em}
+.lede{font-size:1.04rem;color:var(--mut);max-width:40em}
+.tight{max-width:36em}
+em.hl{font-style:normal;color:var(--acc);font-weight:700}
+em.hl2{font-style:normal;color:var(--amber);font-weight:700}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,.7,.3,1),transform .7s cubic-bezier(.22,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* 按鈕 */
+.btn{
+  font:inherit;font-weight:700;font-size:.95rem;letter-spacing:.03em;cursor:pointer;
+  color:var(--ink);background:var(--acc);border:1px solid var(--acc);
+  padding:12px 24px;border-radius:999px;
+  transition:transform .18s cubic-bezier(.2,.8,.3,1),box-shadow .25s,background .25s,opacity .25s;
+  box-shadow:0 8px 26px -12px rgba(99,220,194,.8);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 32px -12px rgba(99,220,194,.85)}
+.btn:active{transform:translateY(0)}
+.btn:disabled{opacity:.45;cursor:default;transform:none;box-shadow:none}
+.btn.ghost{background:transparent;color:var(--txt);border-color:var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:var(--acc);color:var(--acc)}
+.btn.sm{padding:7px 15px;font-size:.82rem}
+
+/* 第一章：四年卡片 */
+.years{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:26px 0 0}
+.ycard{
+  background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 10px;text-align:center;
+  opacity:0;transform:translateY(14px) scale(.96);
+  transition:opacity .5s cubic-bezier(.2,.8,.3,1),transform .5s cubic-bezier(.2,.8,.3,1),border-color .5s;
+}
+.ycard.on{opacity:1;transform:none}
+.ycard .yr{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;color:var(--mut)}
+.ycard .rv{font-size:clamp(1.2rem,4.6vw,1.7rem);font-weight:900;letter-spacing:-.02em;margin-top:4px;font-family:var(--sans)}
+.ycard .ar{font-size:.8rem;letter-spacing:.1em}
+.ycard.up{border-color:rgba(99,220,194,.4)}
+.ycard.up .rv,.ycard.up .ar{color:var(--acc)}
+.ycard.dn{border-color:rgba(227,122,104,.4)}
+.ycard.dn .rv,.ycard.dn .ar{color:var(--dn)}
+
+.sumline{
+  margin-top:22px;padding:18px 20px;border:1px dashed var(--line);border-radius:12px;
+  font-family:var(--mono);font-size:clamp(.82rem,2.9vw,1rem);color:var(--txt);
+  background:rgba(255,255,255,.02);overflow-x:auto;white-space:nowrap;
+  opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s;
+}
+.sumline.on{opacity:1;transform:none}
+.sumline b{color:var(--amber)}
+.verdict1{margin-top:18px;opacity:0;transform:translateY(10px);transition:opacity .6s .15s,transform .6s .15s}
+.verdict1.on{opacity:1;transform:none}
+.stamp{
+  display:inline-block;font-family:var(--sans);font-weight:900;letter-spacing:.12em;font-size:.9rem;
+  color:var(--dn);border:2px solid var(--dn);border-radius:6px;padding:5px 14px;
+  transform:rotate(-4deg) scale(1.4);opacity:0;transition:transform .5s cubic-bezier(.2,1.5,.4,1),opacity .4s;
+}
+.stamp.on{transform:rotate(-4deg) scale(1);opacity:.92}
+
+/* 圖表通用 */
+.chartbox{margin:26px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 14px 12px}
+.chartbox svg{display:block;width:100%;height:auto;max-width:100%}
+.axis-t{font-family:var(--mono);font-size:12px;fill:var(--mut)}
+.axis-v{font-family:var(--mono);font-size:13px;font-weight:700}
+.grid{stroke:rgba(231,237,246,.09);stroke-width:1}
+.grid.base{stroke:rgba(230,180,92,.55);stroke-width:1.5;stroke-dasharray:5 5}
+.seg{fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.seg.up{stroke:var(--acc)}
+.seg.dn{stroke:var(--dn)}
+#c2-lines{filter:drop-shadow(0 0 9px rgba(99,220,194,.22))}
+.dot{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(.2);transition:opacity .3s,transform .35s cubic-bezier(.2,1.6,.4,1)}
+.dot.on{opacity:1;transform:scale(1)}
+.dlab{opacity:0;transition:opacity .35s}
+.dlab.on{opacity:1}
+.capt{margin:10px 4px 0;font-size:.78rem;color:var(--mut);line-height:1.7}
+
+/* 第二章：計數器 */
+.c2head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 22px;margin-top:26px}
+.money{font-family:var(--mono);font-size:clamp(2rem,8.5vw,3.4rem);font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.money .u{font-size:.4em;font-weight:600;color:var(--mut);margin-left:.28em;letter-spacing:.06em}
+.ylabel{font-family:var(--mono);font-size:.8rem;letter-spacing:.24em;color:var(--mut)}
+.punch{
+  margin-top:24px;padding:22px 24px;border-radius:16px;border:1px solid rgba(230,180,92,.32);
+  background:linear-gradient(180deg,rgba(230,180,92,.09),rgba(230,180,92,.02));
+  opacity:0;transform:translateY(14px);transition:opacity .7s,transform .7s;
+}
+.punch.on{opacity:1;transform:none}
+.punch h3{font-size:clamp(1.2rem,4.6vw,1.7rem);margin:0 0 .4em}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.vs div{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.vs .k{font-size:.74rem;letter-spacing:.14em;color:var(--mut);font-family:var(--mono)}
+.vs .v{font-size:clamp(1.3rem,5.4vw,1.9rem);font-weight:900;font-family:var(--mono);letter-spacing:-.02em}
+.vs .a .v{color:var(--amber)}
+.vs .b .v{color:var(--acc)}
+
+/* 第三章：滑桿 */
+.sliderrow{margin-top:26px;display:flex;flex-direction:column;gap:8px}
+.sliderrow label{font-size:.85rem;color:var(--mut);letter-spacing:.05em}
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:32px;background:transparent;cursor:pointer;margin:0;
+}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--acc-dk),var(--dn))}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:linear-gradient(90deg,var(--acc-dk),var(--dn))}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;
+  background:var(--txt);border:4px solid var(--ink-2);margin-top:-9px;
+  box-shadow:0 3px 12px rgba(0,0,0,.6);transition:transform .16s;
+}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
+input[type=range]::-moz-range-thumb{
+  width:24px;height:24px;border-radius:50%;background:var(--txt);border:4px solid var(--ink-2);
+  box-shadow:0 3px 12px rgba(0,0,0,.6);
+}
+.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+.ro{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.ro .k{font-size:.72rem;letter-spacing:.13em;color:var(--mut);font-family:var(--mono)}
+.ro .v{font-size:1.32rem;font-weight:900;font-family:var(--mono);letter-spacing:-.02em;margin-top:2px}
+.ro.fix .v{color:var(--amber)}
+.ro.real .v{color:var(--acc)}
+.ro.est .v{color:var(--txt);opacity:.8}
+.ro.fin .v{color:var(--txt)}
+.aside{
+  margin-top:26px;padding:16px 18px;border-left:3px solid var(--acc-dk);
+  background:rgba(255,255,255,.025);border-radius:0 12px 12px 0;font-size:.92rem;color:var(--mut);
+}
+.aside b{color:var(--txt)}
+.formula{
+  display:inline-block;font-family:var(--mono);background:rgba(99,220,194,.1);
+  border:1px solid rgba(99,220,194,.24);border-radius:8px;padding:3px 10px;color:var(--acc);
+  font-size:.95em;letter-spacing:.02em;
+}
+
+/* 第四章：工具 */
+.tool{margin-top:26px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px 18px}
+.presets{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:18px}
+.chip{
+  font:inherit;font-size:.8rem;cursor:pointer;color:var(--mut);background:transparent;
+  border:1px solid var(--line);border-radius:999px;padding:6px 14px;transition:.2s;
+}
+.chip:hover{color:var(--acc);border-color:var(--acc)}
+.chip[aria-pressed="true"]{background:rgba(99,220,194,.14);color:var(--acc);border-color:rgba(99,220,194,.5)}
+.principal{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;font-size:.9rem;color:var(--mut)}
+.rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.row{display:flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:7px 8px 7px 11px}
+.row .yn{font-family:var(--mono);font-size:.7rem;color:var(--mut);white-space:nowrap}
+input[type=number]{
+  font:inherit;font-family:var(--mono);font-size:.95rem;font-weight:700;width:100%;min-width:0;
+  background:transparent;border:0;border-bottom:1px solid var(--line);color:var(--txt);
+  padding:2px 2px;text-align:right;-moz-appearance:textfield;
+}
+input[type=number]:focus{border-bottom-color:var(--acc);outline:none}
+input[type=number].bad{border-bottom-color:var(--dn);color:var(--dn)}
+.pctmark{font-size:.8rem;color:var(--mut)}
+.xbtn{
+  font:inherit;line-height:1;cursor:pointer;background:transparent;border:0;color:var(--mut);
+  font-size:1.05rem;padding:2px 4px;border-radius:6px;transition:.2s;
+}
+.xbtn:hover{color:var(--dn)}
+.xbtn:disabled{opacity:.25;cursor:default}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.err{color:var(--dn);font-size:.85rem;margin:12px 0 0;min-height:1.2em}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:18px}
+.res{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:12px;padding:13px 15px}
+.res .k{font-size:.71rem;letter-spacing:.12em;color:var(--mut);font-family:var(--mono)}
+.res .v{font-size:1.3rem;font-weight:900;font-family:var(--mono);letter-spacing:-.02em;margin-top:2px}
+.res.am .v{color:var(--amber)}
+.res.gm .v{color:var(--acc)}
+.res.gap .v{color:var(--dn)}
+
+/* 結尾：回本表 */
+.bet{width:100%;border-collapse:collapse;margin-top:22px;font-size:.94rem}
+.bet caption{text-align:left;color:var(--mut);font-size:.84rem;padding-bottom:10px}
+.bet th,.bet td{padding:11px 10px;border-bottom:1px solid var(--line-2);text-align:left}
+.bet th{font-size:.74rem;letter-spacing:.12em;color:var(--mut);font-weight:700;font-family:var(--mono);border-bottom-color:var(--line)}
+.bet td.n{font-family:var(--mono);font-weight:800;white-space:nowrap}
+.bet td.loss{color:var(--dn)}
+.bet td.need{color:var(--amber)}
+.bar{display:block;height:7px;border-radius:4px;background:linear-gradient(90deg,var(--amber),var(--dn));min-width:5px}
+.bet tr:last-child td{border-bottom:0}
+.bet tr:last-child td.need{font-size:1.05em}
+
+.kicker-end{
+  margin-top:44px;font-size:clamp(1.25rem,5vw,1.9rem);font-weight:800;line-height:1.6;
+  max-width:22em;letter-spacing:-.005em;
+}
+.kicker-end span{color:var(--acc)}
+.neutral{margin-top:26px;font-size:.82rem;color:var(--mut);letter-spacing:.04em}
+
+footer{padding:40px 0 56px;text-align:center;color:var(--mut);font-size:.76rem;letter-spacing:.05em}
+footer p{margin:.3em 0}
+
+/* ── 手機 ─────────────────────────────────── */
+@media (max-width:560px){
+  .years{grid-template-columns:repeat(2,1fr)}
+  .vs{grid-template-columns:1fr}
+  .flyer{padding:28px 18px 20px}
+  .starburst{width:78px;height:78px;font-size:.63rem;right:-8px;top:-12px}
+  .chartbox{padding:12px 6px 8px}
+  .rows{grid-template-columns:repeat(auto-fill,minmax(132px,1fr))}
+  .bet th:nth-child(3),.bet td:nth-child(3){display:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ══════ 第一屏：那張宣傳單 ══════ -->
+<section class="adstage" id="ad">
+  <article class="flyer">
+    <div class="starburst">限額<br>開放中</div>
+    <div class="brand">星光旗艦成長組合</div>
+    <p class="kicker">四年實績揭曉</p>
+    <p class="bigclaim">四年平均年報酬
+      <strong class="pct">+25%<sup>*</sup></strong>
+    </p>
+    <p class="bang">是的，你沒看錯。</p>
+    <ul class="ticks">
+      <li>四年之中，<b>兩年翻倍</b></li>
+      <li>經理人團隊<b>全程在線</b></li>
+      <li>單一年度最高報酬 <b>+100%</b></li>
+    </ul>
+    <p class="smallprint">
+      ＊本數據為 2022–2025 四個年度報酬之算術平均。過往績效不代表未來績效，投資一定有風險，申購前應詳閱公開說明書。本傳單為說明數學概念而虛構，不對應任何真實商品。
+    </p>
+  </article>
+
+  <p class="narration">這句話沒有說謊。</p>
+
+  <div class="cue">往下<span aria-hidden="true">↓</span></div>
+</section>
+
+<!-- ══════ 第一章 ══════ -->
+<section class="ch" id="ch1">
+  <div class="wrap">
+    <p class="chno reveal">第一章 · 攤開那四年</p>
+    <h2 class="reveal">星號後面那行字，寫的是「算術平均」。</h2>
+    <p class="lede reveal">四個年度。四個數字。你按一下，它們就攤在桌上。</p>
+
+    <p class="reveal" style="margin-top:22px">
+      <button class="btn" id="b1" type="button">把那四年翻出來</button>
+    </p>
+
+    <div class="years" id="ycards" role="list">
+      <div class="ycard" role="listitem"><div class="yr">2022</div><div class="rv">+100%</div><div class="ar" aria-hidden="true">▲ 翻倍</div></div>
+      <div class="ycard" role="listitem"><div class="yr">2023</div><div class="rv">−50%</div><div class="ar" aria-hidden="true">▼ 腰斬</div></div>
+      <div class="ycard" role="listitem"><div class="yr">2024</div><div class="rv">+100%</div><div class="ar" aria-hidden="true">▲ 翻倍</div></div>
+      <div class="ycard" role="listitem"><div class="yr">2025</div><div class="rv">−50%</div><div class="ar" aria-hidden="true">▼ 腰斬</div></div>
+    </div>
+
+    <div class="sumline" id="sum1">( +100 − 50 + 100 − 50 ) ÷ 4 = <b>+25</b></div>
+
+    <div class="verdict1" id="v1">
+      <p class="lede tight" style="margin-top:20px">
+        算得一點問題也沒有。廣告一個字都沒騙你——它只是<em class="hl2">選了一種平均</em>。
+      </p>
+      <span class="stamp" id="stamp1">算術平均</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 第二章 ══════ -->
+<section class="ch" id="ch2">
+  <div class="wrap">
+    <p class="chno reveal">第二章 · 那我的錢呢</p>
+    <h2 class="reveal">平均是他們的事。你關心的是帳戶餘額。</h2>
+    <p class="lede reveal">2022 年 1 月 1 日，你放進去一百萬。然後什麼都沒做。</p>
+
+    <p class="reveal" style="margin-top:22px">
+      <button class="btn" id="b2" type="button">那我的 100 萬呢？</button>
+    </p>
+
+    <div class="c2head">
+      <div class="money" id="c2money">100<span class="u">萬</span></div>
+      <div class="ylabel" id="c2year">起點</div>
+    </div>
+    <!-- 數字每一幀都在跳，逐幀播報會吵死讀螢幕的人：只在跑完之後播報一次結論 -->
+    <p class="sr" id="c2sr" aria-live="polite" aria-atomic="true"></p>
+
+    <div class="chartbox">
+      <svg id="c2svg" viewBox="0 0 720 380" role="img"
+           aria-label="資產曲線：起點 100 萬，第一年 200 萬，第二年 100 萬，第三年 200 萬，第四年 100 萬。">
+      </svg>
+      <p class="capt">虛線是你的本金 100 萬。曲線走完四年，剛好停在虛線上。</p>
+    </div>
+
+    <div class="punch" id="punch">
+      <h3>四年後，你回到原點。</h3>
+      <p class="tight" style="margin-bottom:0;color:var(--mut)">
+        2 × 0.5 × 2 × 0.5 = 1。乘起來是 1，就是原本那筆錢。
+        不是接近，是<em class="hl">剛好</em>一模一樣。
+      </p>
+      <div class="vs">
+        <div class="a"><div class="k">廣告寫的（算術平均）</div><div class="v">+25.0%</div></div>
+        <div class="b"><div class="k">你拿到的（年化報酬）</div><div class="v">0.0%</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 第三章 ══════ -->
+<section class="ch" id="ch3">
+  <div class="wrap">
+    <p class="chno reveal">第三章 · 這不是特例，是規則</p>
+    <h2 class="reveal">只要報酬不是每年都一樣，幾何平均就一定比算術平均小。</h2>
+    <p class="lede reveal">
+      這是數學上的定理，叫做算術—幾何平均不等式。沒有例外，也沒有「操作得好就不會」。
+      唯一等號成立的情況，是每一年都漲一模一樣的幅度。
+    </p>
+    <p class="lede reveal tight">
+      而且差距不是固定的。<em class="hl">波動越大，差得越多。</em>
+      下面這支滑桿只做一件事：把算術平均<strong>釘死在 +8%</strong>，只調整每年上下起伏的幅度。
+    </p>
+
+    <div class="sliderrow reveal">
+      <label for="vol">每年上下起伏幅度（波動度 σ）</label>
+      <input type="range" id="vol" min="0" max="60" step="1" value="0"
+             aria-label="波動度，百分比，0 到 60">
+    </div>
+
+    <div class="readouts" id="ro" aria-live="polite" aria-atomic="true">
+      <div class="ro fix"><div class="k">算術平均（釘死）</div><div class="v">+8.0%</div></div>
+      <div class="ro real"><div class="k">實際年化（幾何）</div><div class="v" id="ro-gm">+8.0%</div></div>
+      <div class="ro est"><div class="k">近似式 8% − σ²∕2</div><div class="v" id="ro-est">+8.0%</div></div>
+      <div class="ro fin"><div class="k">20 年後的 100 萬</div><div class="v" id="ro-fv">466 萬</div></div>
+    </div>
+
+    <div class="chartbox">
+      <svg id="c3svg" viewBox="0 0 720 240" role="img" aria-label="二十年資產曲線，隨波動度變化"></svg>
+      <p class="capt" id="c3cap">σ = 0%：每年都穩穩地 +8%，二十年後 466 萬。</p>
+    </div>
+
+    <div class="aside reveal">
+      <p style="margin:0 0 .6em">
+        那條好用的近似式是：<span class="formula">幾何平均 ≈ 算術平均 − σ² ∕ 2</span>
+      </p>
+      <p style="margin:0">
+        <b>它是近似，不是等式。</b>把滑桿拉到底你就會看到，波動一大，近似值就會跟真值分家——
+        近似式來自對數的二階展開，只在起伏不大的時候貼得緊。要精確答案，還是得老老實實把每一年乘一遍。
+      </p>
+    </div>
+
+    <div class="aside reveal">
+      <p style="margin:0">
+        同一件事在<b>每日重設槓桿</b>的商品上會被放到最大。美國證券交易委員會的投資人公告指出，
+        槓桿型與反向 ETF 多半以「單日」報酬為設計目標，持有超過一天，長期結果可能明顯偏離
+        「指數報酬 × 倍數」。公告舉的實例是：某指數四個月上漲 2%，追蹤它兩倍日報酬的 ETF 反而<b>跌了 6%</b>。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ 第四章 ══════ -->
+<section class="ch" id="ch4">
+  <div class="wrap">
+    <p class="chno reveal">第四章 · 換你自己的數字</p>
+    <h2 class="reveal">拿一組報酬進來，看看它偷走了多少。</h2>
+    <p class="lede reveal">任何一串年度報酬都可以。改數字、加減年份，右邊的四個數字會立刻跟著跑。</p>
+
+    <div class="tool reveal">
+      <div class="presets" id="presets" role="group" aria-label="一鍵套用預設情境"></div>
+
+      <div class="principal">
+        <label for="pri">本金</label>
+        <input type="number" id="pri" value="100" min="0" step="10" style="width:88px;text-align:right"
+               aria-label="本金，單位萬元">
+        <span class="pctmark">萬元</span>
+      </div>
+
+      <div class="rows" id="rows"></div>
+
+      <div class="toolbar">
+        <button class="btn sm ghost" id="addy" type="button">＋ 加一年</button>
+        <button class="btn sm ghost" id="rst" type="button">重設</button>
+      </div>
+
+      <p class="err" id="err" role="status" aria-live="assertive"></p>
+
+      <div class="results" id="results" aria-live="polite" aria-atomic="true">
+        <div class="res am"><div class="k">算術平均</div><div class="v" id="r-am">—</div></div>
+        <div class="res gm"><div class="k">年化報酬 CAGR</div><div class="v" id="r-gm">—</div></div>
+        <div class="res"><div class="k">終值</div><div class="v" id="r-fv">—</div></div>
+        <div class="res gap"><div class="k">被吃掉的落差</div><div class="v" id="r-gap">—</div></div>
+      </div>
+
+      <div class="chartbox" style="background:transparent;border:0;padding:14px 0 0">
+        <svg id="c4svg" viewBox="0 0 720 260" role="img" aria-label="自訂報酬序列的資產曲線"></svg>
+        <p class="capt" id="c4cap">—</p>
+      </div>
+    </div>
+
+    <p class="neutral reveal">這是數學，不是投資建議。</p>
+  </div>
+</section>
+
+<!-- ══════ 結尾 ══════ -->
+<section class="ch" id="end" style="border-bottom:0">
+  <div class="wrap">
+    <p class="chno reveal">最後 · 回馬槍</p>
+    <h2 class="reveal">還有一件事，是同一個數學的另一張臉。</h2>
+    <p class="lede reveal tight">
+      跌掉的百分比和漲回來的百分比，從來就不對等。跌 50% 之後，要漲 100% 才回到原點——
+      這不是心理錯覺，是 <span class="formula">L ∕ (1 − L)</span> 這條算式。
+    </p>
+
+    <table class="bet" id="bet">
+      <caption>賠掉多少，就要賺回多少才回本</caption>
+      <thead>
+        <tr><th scope="col">賠掉</th><th scope="col">要賺回</th><th scope="col">相對幅度</th></tr>
+      </thead>
+      <tbody id="betbody"></tbody>
+    </table>
+
+    <p class="kicker-end reveal">
+      下次看到「平均報酬」四個字，先問一句：<br>
+      <span>平均的，是哪一種平均？</span>
+    </p>
+  </div>
+</section>
+
+<footer>
+  <p>資料來源：美國證券交易委員會（SEC）投資人公告、算術—幾何平均不等式</p>
+</footer>
+
+<script src="math.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var M = window.VolDragMath;
+  if (!M) { return; } // math.js 沒載到就安靜退場，頁面內容仍可閱讀
+
+  /* ── 環境防呆 ───────────────────────────── */
+  var raf = (typeof window.requestAnimationFrame === 'function')
+    ? function(fn){ return window.requestAnimationFrame(fn); }
+    : function(fn){ return setTimeout(function(){ fn(Date.now()); }, 16); };
+
+  var reduced = false;
+  if (typeof window.matchMedia === 'function') {
+    try {
+      var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      reduced = !!mq.matches;
+      if (typeof mq.addEventListener === 'function') {
+        mq.addEventListener('change', function(e){ reduced = !!e.matches; });
+      } else if (typeof mq.addListener === 'function') {
+        mq.addListener(function(e){ reduced = !!e.matches; });
+      }
+    } catch (e) { reduced = false; }
+  }
+  function still(){ return reduced || document.hidden; }
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs){
+    var n = document.createElementNS(SVGNS, name);
+    if (attrs) for (var k in attrs) if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+  function $(id){ return document.getElementById(id); }
+  function clear(node){ while (node && node.firstChild) node.removeChild(node.firstChild); }
+
+  /* ── 格式化 ─────────────────────────────── */
+  function pct(x, d){
+    if (x === null || x === undefined || !isFinite(x)) return '—';
+    var v = x * 100;
+    if (Math.abs(v) < 0.05) v = 0;
+    var s = v.toFixed(d === undefined ? 1 : d);
+    if (parseFloat(s) === 0) return s.replace('-', '') + '%'; // 正好是零就不掛正負號
+    if (s.charAt(0) !== '-') s = '+' + s;
+    return s.replace('-', '−') + '%';
+  }
+  function num(x, d){
+    var f = (d === undefined ? 1 : d);
+    var v = Math.round(x * Math.pow(10, f)) / Math.pow(10, f);
+    if (Math.abs(v) < Math.pow(10, -f) / 2) v = 0;
+    return v.toFixed(f).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+  }
+
+  /* ── 捲動進場 ───────────────────────────── */
+  var revealEls = [].slice.call(document.querySelectorAll('.reveal'));
+  if (typeof window.IntersectionObserver === 'function') {
+    var io = new IntersectionObserver(function(entries){
+      for (var i = 0; i < entries.length; i++) {
+        if (entries[i].isIntersecting) {
+          var t = entries[i].target;
+          var d = t.getAttribute('data-d') || 0;
+          setTimeout((function(node){ return function(){ node.classList.add('in'); }; })(t), d);
+          io.unobserve(t);
+        }
+      }
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    revealEls.forEach(function(node, i){
+      node.setAttribute('data-d', String((i % 4) * 70));
+      io.observe(node);
+    });
+  } else {
+    revealEls.forEach(function(node){ node.classList.add('in'); });
+  }
+
+  /* 廣告→資料 的背景／回首頁配色切換 */
+  var adStage = $('ad');
+  if (adStage && typeof window.IntersectionObserver === 'function') {
+    var io2 = new IntersectionObserver(function(entries){
+      for (var i = 0; i < entries.length; i++) {
+        document.body.classList.toggle('past-ad', !entries[i].isIntersecting);
+      }
+    }, { threshold: 0.08 });
+    io2.observe(adStage);
+  }
+
+  /* ── 補間 ───────────────────────────────── */
+  function ease(p){ return 1 - Math.pow(1 - p, 3); }
+  function tween(dur, step, done){
+    if (still()) { step(1); if (done) done(); return; }
+    var t0 = null;
+    function frame(ts){
+      if (typeof ts !== 'number') ts = Date.now();
+      if (t0 === null) t0 = ts;
+      var p = (ts - t0) / dur;
+      if (p >= 1 || document.hidden) { step(1); if (done) done(); return; }
+      step(ease(p));
+      raf(frame);
+    }
+    raf(frame);
+  }
+
+  /* ══════════════════════════════════════════
+     第一章
+     ══════════════════════════════════════════ */
+  var ch1Cards = [].slice.call(document.querySelectorAll('#ycards .ycard'));
+  var ch1Tone = ['up','dn','up','dn'];
+  var ch1Timers = [];
+  var b1 = $('b1');
+
+  function ch1Reset(){
+    ch1Timers.forEach(clearTimeout); ch1Timers = [];
+    ch1Cards.forEach(function(c){ c.className = 'ycard'; });
+    $('sum1').classList.remove('on');
+    $('v1').classList.remove('on');
+    $('stamp1').classList.remove('on');
+  }
+  function ch1Show(i){
+    ch1Cards[i].className = 'ycard ' + ch1Tone[i] + ' on';
+  }
+  function ch1Finish(){
+    ch1Timers.forEach(clearTimeout); ch1Timers = [];
+    for (var i = 0; i < ch1Cards.length; i++) ch1Show(i);
+    $('sum1').classList.add('on');
+    $('v1').classList.add('on');
+    $('stamp1').classList.add('on');
+  }
+  if (b1) b1.addEventListener('click', function(){
+    ch1Reset();
+    b1.textContent = '再翻一次';
+    if (still()) { ch1Finish(); return; }
+    for (var i = 0; i < 4; i++) {
+      ch1Timers.push(setTimeout((function(k){ return function(){ ch1Show(k); }; })(i), 130 + i * 320));
+    }
+    ch1Timers.push(setTimeout(function(){ $('sum1').classList.add('on'); }, 130 + 4 * 320));
+    ch1Timers.push(setTimeout(function(){
+      $('v1').classList.add('on'); $('stamp1').classList.add('on');
+    }, 130 + 4 * 320 + 520));
+  });
+
+  /* ══════════════════════════════════════════
+     第二章：資產曲線 + 滾動數字
+     ══════════════════════════════════════════ */
+  var C2 = {
+    vals: [100, 200, 100, 200, 100],   // 單位：萬
+    W: 720, H: 380, pl: 76, pr: 28, pt: 34, pb: 54, yMax: 240,
+    segs: [], dots: [], labs: [], lens: [], timers: [], built: false
+  };
+  function c2x(i){ return C2.pl + i * (C2.W - C2.pl - C2.pr) / (C2.vals.length - 1); }
+  function c2y(v){ return C2.pt + (1 - v / C2.yMax) * (C2.H - C2.pt - C2.pb); }
+
+  function buildC2(){
+    var svg = $('c2svg');
+    if (!svg) return;
+    clear(svg);
+    var i, g;
+
+    // 橫向格線（純色描邊，不掛漸層／濾鏡，避免零面積路徑消失）
+    var gGrid = el('g');
+    for (i = 0; i <= 4; i++) {
+      var gv = i * 60;
+      var yy = c2y(gv);
+      gGrid.appendChild(el('line', { x1: C2.pl, y1: yy, x2: C2.W - C2.pr, y2: yy, 'class': 'grid' }));
+      var tx = el('text', { x: C2.pl - 12, y: yy + 4, 'text-anchor': 'end', 'class': 'axis-t' });
+      tx.textContent = gv;
+      gGrid.appendChild(tx);
+    }
+    var uni = el('text', { x: C2.pl - 12, y: C2.pt - 14, 'text-anchor': 'end', 'class': 'axis-t' });
+    uni.textContent = '萬元';
+    gGrid.appendChild(uni);
+    svg.appendChild(gGrid);
+
+    // 本金基準線
+    svg.appendChild(el('line', {
+      x1: C2.pl, y1: c2y(100), x2: C2.W - C2.pr, y2: c2y(100), 'class': 'grid base'
+    }));
+    var bl = el('text', { x: C2.W - C2.pr, y: c2y(100) - 10, 'text-anchor': 'end', 'class': 'axis-t' });
+    bl.setAttribute('fill', '#e6b45c');
+    bl.textContent = '本金 100 萬';
+    svg.appendChild(bl);
+
+    // 年份標籤
+    var gX = el('g');
+    var names = ['起點', '第1年', '第2年', '第3年', '第4年'];
+    for (i = 0; i < C2.vals.length; i++) {
+      var t2 = el('text', { x: c2x(i), y: C2.H - 18, 'text-anchor': 'middle', 'class': 'axis-t' });
+      t2.textContent = names[i];
+      gX.appendChild(t2);
+    }
+    svg.appendChild(gX);
+
+    // 四段折線（各自一段，方便一段一段長出來）
+    C2.segs = []; C2.lens = [];
+    g = el('g', { id: 'c2-lines' });
+    for (i = 0; i < C2.vals.length - 1; i++) {
+      var x1 = c2x(i), y1 = c2y(C2.vals[i]), x2 = c2x(i + 1), y2 = c2y(C2.vals[i + 1]);
+      var up = C2.vals[i + 1] >= C2.vals[i];
+      var p = el('path', {
+        d: 'M' + x1 + ' ' + y1 + ' L' + x2 + ' ' + y2,
+        'class': 'seg ' + (up ? 'up' : 'dn')
+      });
+      // 直線長度自己算，不依賴 getTotalLength（有些環境沒實作）
+      C2.lens.push(Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)));
+      C2.segs.push(p);
+      g.appendChild(p);
+    }
+    svg.appendChild(g);
+
+    // 端點與數值
+    C2.dots = []; C2.labs = [];
+    var gD = el('g');
+    for (i = 0; i < C2.vals.length; i++) {
+      var c = el('circle', {
+        cx: c2x(i), cy: c2y(C2.vals[i]), r: 6.5, 'class': 'dot',
+        fill: '#0b0e13', stroke: (i > 0 && C2.vals[i] < C2.vals[i - 1]) ? '#e37a68' : '#63dcc2',
+        'stroke-width': 3
+      });
+      var lb = el('text', {
+        x: c2x(i), y: c2y(C2.vals[i]) - 18, 'text-anchor': 'middle', 'class': 'axis-v dlab',
+        fill: (i > 0 && C2.vals[i] < C2.vals[i - 1]) ? '#e37a68' : '#63dcc2'
+      });
+      lb.textContent = C2.vals[i] + '萬';
+      C2.dots.push(c); C2.labs.push(lb);
+      gD.appendChild(c); gD.appendChild(lb);
+    }
+    svg.appendChild(gD);
+    C2.built = true;
+  }
+
+  function segHide(p, len){
+    p.style.transition = 'none';
+    p.style.strokeDasharray = len + ' ' + len;
+    p.style.strokeDashoffset = String(len);
+  }
+  function segDraw(p, dur){
+    // 先強制 reflow，dasharray 動畫才保證重播
+    p.getBoundingClientRect();
+    raf(function(){
+      p.style.transition = 'stroke-dashoffset ' + dur + 'ms cubic-bezier(.35,.1,.35,1)';
+      p.style.strokeDashoffset = '0';
+    });
+  }
+  function segShowNow(p){
+    p.style.transition = 'none';
+    p.style.strokeDasharray = 'none';
+    p.style.strokeDashoffset = '0';
+  }
+
+  var c2money = $('c2money'), c2year = $('c2year'), punch = $('punch'), b2 = $('b2');
+  function setMoney(v){
+    if (!c2money) return;
+    c2money.innerHTML = '';
+    c2money.appendChild(document.createTextNode(num(v, 0)));
+    var u = document.createElement('span');
+    u.className = 'u'; u.textContent = '萬';
+    c2money.appendChild(u);
+  }
+  function c2Reset(){
+    if (!C2.built) buildC2();
+    C2.timers.forEach(clearTimeout); C2.timers = [];
+    for (var i = 0; i < C2.segs.length; i++) segHide(C2.segs[i], C2.lens[i]);
+    for (i = 0; i < C2.dots.length; i++) { C2.dots[i].classList.remove('on'); C2.labs[i].classList.remove('on'); }
+    C2.dots[0].classList.add('on'); C2.labs[0].classList.add('on');
+    setMoney(100);
+    if (c2year) c2year.textContent = '起點';
+    if (punch) punch.classList.remove('on');
+    if ($('c2sr')) $('c2sr').textContent = '';
+  }
+  var C2_SR = '走完四年：100 萬 → 200 萬 → 100 萬 → 200 萬 → 100 萬。' +
+              '算術平均 +25%，實際年化 0%，本金原封不動回到起點。';
+  function c2Finish(){
+    C2.timers.forEach(clearTimeout); C2.timers = [];
+    for (var i = 0; i < C2.segs.length; i++) segShowNow(C2.segs[i]);
+    for (i = 0; i < C2.dots.length; i++) { C2.dots[i].classList.add('on'); C2.labs[i].classList.add('on'); }
+    setMoney(100);
+    if (c2year) c2year.textContent = '第 4 年';
+    if (punch) punch.classList.add('on');
+    if ($('c2sr')) $('c2sr').textContent = C2_SR;
+  }
+  var c2Running = false;
+  function c2Play(){
+    c2Reset();
+    if (still()) { c2Finish(); return; }
+    c2Running = true;
+    var D = 780, GAP = 300;
+    for (var i = 0; i < C2.segs.length; i++) {
+      (function(k){
+        C2.timers.push(setTimeout(function(){
+          segDraw(C2.segs[k], D);
+          if (c2year) c2year.textContent = '第 ' + (k + 1) + ' 年';
+          var from = C2.vals[k], to = C2.vals[k + 1];
+          tween(D, function(p){ setMoney(from + (to - from) * p); });
+          C2.timers.push(setTimeout(function(){
+            C2.dots[k + 1].classList.add('on');
+            C2.labs[k + 1].classList.add('on');
+          }, D - 60));
+        }, k * (D + GAP)));
+      })(i);
+    }
+    C2.timers.push(setTimeout(function(){
+      c2Running = false;
+      if (punch) punch.classList.add('on');
+      if ($('c2sr')) $('c2sr').textContent = C2_SR;
+    }, C2.segs.length * (D + GAP) + 220));
+  }
+  buildC2();
+  c2Reset();
+  if (b2) b2.addEventListener('click', function(){
+    b2.textContent = '再看一次';
+    c2Play();
+  });
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden && c2Running) { c2Running = false; c2Finish(); }
+  });
+
+  /* ══════════════════════════════════════════
+     第三章：固定算術平均，只調波動
+     ══════════════════════════════════════════ */
+  var C3 = { W: 720, H: 240, pl: 64, pr: 24, pt: 20, pb: 36, yMax: 500, years: 20, mean: 0.08 };
+  var c3svg = $('c3svg'), c3path = null, c3base = null;
+
+  function c3x(i){ return C3.pl + i * (C3.W - C3.pl - C3.pr) / C3.years; }
+  function c3y(v){
+    var t = Math.max(0, Math.min(1, v / C3.yMax));
+    return C3.pt + (1 - t) * (C3.H - C3.pt - C3.pb);
+  }
+  function buildC3(){
+    if (!c3svg) return;
+    clear(c3svg);
+    var i;
+    var gGrid = el('g');
+    for (i = 0; i <= 5; i++) {
+      var gv = i * 100, yy = c3y(gv);
+      gGrid.appendChild(el('line', { x1: C3.pl, y1: yy, x2: C3.W - C3.pr, y2: yy, 'class': 'grid' }));
+      var tx = el('text', { x: C3.pl - 10, y: yy + 4, 'text-anchor': 'end', 'class': 'axis-t' });
+      tx.textContent = gv;
+      gGrid.appendChild(tx);
+    }
+    c3svg.appendChild(gGrid);
+
+    c3base = el('line', { x1: C3.pl, y1: c3y(100), x2: C3.W - C3.pr, y2: c3y(100), 'class': 'grid base' });
+    c3svg.appendChild(c3base);
+
+    var gx = el('g');
+    [0, 5, 10, 15, 20].forEach(function(yr){
+      var t = el('text', { x: c3x(yr), y: C3.H - 12, 'text-anchor': 'middle', 'class': 'axis-t' });
+      t.textContent = yr === 0 ? '起' : (yr + '年');
+      gx.appendChild(t);
+    });
+    c3svg.appendChild(gx);
+
+    c3path = el('path', { d: '', 'class': 'seg up' });
+    c3svg.appendChild(c3path);
+  }
+
+  var c3req = null, c3pending = 0;
+  function c3Render(sigmaPct){
+    var sigma = sigmaPct / 100;
+    var series = M.makeVolSeries(C3.mean, sigma, C3.years);
+    var vals = M.cumulativeValues(100, series);
+    var d = '', i;
+    for (i = 0; i < vals.length; i++) {
+      d += (i === 0 ? 'M' : ' L') + c3x(i).toFixed(1) + ' ' + c3y(vals[i]).toFixed(1);
+    }
+    if (c3path) {
+      c3path.setAttribute('d', d);
+      c3path.setAttribute('class', 'seg ' + (vals[vals.length - 1] >= 100 ? 'up' : 'dn'));
+    }
+    var gm = M.geometricMean(series);
+    var est = M.approxGeometric(C3.mean, sigma);
+    var fv = vals[vals.length - 1];
+
+    $('ro-gm').textContent = pct(gm);
+    $('ro-est').textContent = pct(est);
+    $('ro-fv').textContent = num(fv, fv < 10 ? 1 : 0) + ' 萬';
+
+    var up = C3.mean + sigma, dn = C3.mean - sigma;
+    var cap = 'σ = ' + sigmaPct + '%：' +
+      (sigmaPct === 0
+        ? '每年都穩穩地 +8%'
+        : '每年輪流 ' + pct(up) + ' 與 ' + pct(dn)) +
+      '，二十年後 ' + num(fv, fv < 10 ? 1 : 0) + ' 萬。';
+    $('c3cap').textContent = cap;
+    if (c3svg) {
+      c3svg.setAttribute('aria-label',
+        '二十年資產曲線：波動度 ' + sigmaPct + '%，算術平均固定 8%，實際年化 ' + pct(gm) +
+        '，100 萬變成 ' + num(fv, 0) + ' 萬。');
+    }
+  }
+  function c3Schedule(v){
+    c3pending = v;
+    if (c3req !== null) return;
+    c3req = raf(function(){ c3req = null; c3Render(c3pending); });
+  }
+  buildC3();
+  var volInput = $('vol');
+  if (volInput) {
+    c3Render(parseFloat(volInput.value) || 0);
+    volInput.addEventListener('input', function(){ c3Schedule(parseFloat(volInput.value) || 0); });
+    volInput.addEventListener('change', function(){ c3Schedule(parseFloat(volInput.value) || 0); });
+  }
+
+  /* ══════════════════════════════════════════
+     第四章：自己的報酬序列
+     ══════════════════════════════════════════ */
+  var LS_SEQ = 'voldrag_seq', LS_PRI = 'voldrag_principal';
+  var PRESETS = [
+    { name: '四年雲霄飛車', seq: [100, -50, 100, -50] },
+    { name: '平穩 +7%',    seq: [7, 7, 7, 7, 7, 7, 7, 7, 7, 7] },
+    { name: '大跌後大漲',   seq: [-40, -20, 30, 50, 25] },
+    { name: '中間一次腰斬', seq: [12, 12, 12, -50, 12, 12, 12] }
+  ];
+  var seq = PRESETS[0].seq.slice();   // 單位：百分比（UI 層）
+  var principal = 100;                // 單位：萬
+
+  function lsGet(k){ try { return window.localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v){ try { window.localStorage.setItem(k, v); } catch (e) { /* 無痕模式等情況：略過 */ } }
+
+  (function loadSaved(){
+    var raw = lsGet(LS_SEQ);
+    if (raw) {
+      try {
+        var arr = JSON.parse(raw);
+        if (Array.isArray(arr) && arr.length > 0 && arr.length <= 40) {
+          var ok = arr.every(function(x){ return typeof x === 'number' && isFinite(x); });
+          if (ok) seq = arr.slice();
+        }
+      } catch (e) { /* 壞掉的資料就當作沒有 */ }
+    }
+    var p = parseFloat(lsGet(LS_PRI));
+    if (isFinite(p) && p >= 0) principal = p;
+  })();
+
+  function save(){
+    lsSet(LS_SEQ, JSON.stringify(seq));
+    lsSet(LS_PRI, String(principal));
+  }
+
+  var rowsBox = $('rows'), errBox = $('err');
+
+  function renderRows(){
+    if (!rowsBox) return;
+    clear(rowsBox);
+    seq.forEach(function(v, i){
+      var row = document.createElement('div');
+      row.className = 'row';
+
+      var yn = document.createElement('span');
+      yn.className = 'yn';
+      yn.textContent = '第' + (i + 1) + '年';
+      row.appendChild(yn);
+
+      var inp = document.createElement('input');
+      inp.type = 'number';
+      inp.step = '1';
+      inp.value = String(v);
+      inp.setAttribute('aria-label', '第 ' + (i + 1) + ' 年報酬率，百分比');
+      inp.addEventListener('input', function(){
+        var n = parseFloat(inp.value);
+        seq[i] = isFinite(n) ? n : NaN;
+        compute();
+      });
+      row.appendChild(inp);
+
+      var pm = document.createElement('span');
+      pm.className = 'pctmark';
+      pm.textContent = '%';
+      row.appendChild(pm);
+
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'xbtn';
+      x.textContent = '×';
+      x.setAttribute('aria-label', '刪除第 ' + (i + 1) + ' 年');
+      x.disabled = seq.length <= 1;
+      x.addEventListener('click', function(){
+        if (seq.length <= 1) return;
+        seq.splice(i, 1);
+        clearPresetState();
+        renderRows();
+        compute();
+      });
+      row.appendChild(x);
+
+      rowsBox.appendChild(row);
+    });
+  }
+
+  var presetBtns = [];
+  function clearPresetState(){
+    presetBtns.forEach(function(b){ b.setAttribute('aria-pressed', 'false'); });
+  }
+  (function buildPresets(){
+    var box = $('presets');
+    if (!box) return;
+    PRESETS.forEach(function(p){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.textContent = p.name;
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', function(){
+        seq = p.seq.slice();
+        clearPresetState();
+        b.setAttribute('aria-pressed', 'true');
+        renderRows();
+        compute();
+      });
+      presetBtns.push(b);
+      box.appendChild(b);
+    });
+  })();
+
+  /* 第四章圖表 */
+  var C4 = { W: 720, H: 260, pl: 70, pr: 24, pt: 22, pb: 40 };
+  var c4svg = $('c4svg');
+
+  function drawC4(vals){
+    if (!c4svg) return;
+    clear(c4svg);
+    var n = vals.length;
+    var maxV = 0, i;
+    for (i = 0; i < n; i++) maxV = Math.max(maxV, vals[i]);
+    maxV = Math.max(maxV, principal || 1, 1) * 1.12;
+
+    function X(i2){ return n <= 1 ? C4.pl : C4.pl + i2 * (C4.W - C4.pl - C4.pr) / (n - 1); }
+    function Y(v){ return C4.pt + (1 - Math.max(0, Math.min(1, v / maxV))) * (C4.H - C4.pt - C4.pb); }
+
+    var gGrid = el('g');
+    for (i = 0; i <= 4; i++) {
+      var gv = maxV * i / 4, yy = Y(gv);
+      gGrid.appendChild(el('line', { x1: C4.pl, y1: yy, x2: C4.W - C4.pr, y2: yy, 'class': 'grid' }));
+      var tx = el('text', { x: C4.pl - 10, y: yy + 4, 'text-anchor': 'end', 'class': 'axis-t' });
+      tx.textContent = num(gv, gv < 10 ? 1 : 0);
+      gGrid.appendChild(tx);
+    }
+    c4svg.appendChild(gGrid);
+
+    c4svg.appendChild(el('line', {
+      x1: C4.pl, y1: Y(principal), x2: C4.W - C4.pr, y2: Y(principal), 'class': 'grid base'
+    }));
+    var bt = el('text', { x: C4.W - C4.pr, y: Y(principal) - 8, 'text-anchor': 'end', 'class': 'axis-t' });
+    bt.setAttribute('fill', '#e6b45c');
+    bt.textContent = '本金';
+    c4svg.appendChild(bt);
+
+    var d = '';
+    for (i = 0; i < n; i++) d += (i === 0 ? 'M' : ' L') + X(i).toFixed(1) + ' ' + Y(vals[i]).toFixed(1);
+    var last = vals[n - 1];
+    c4svg.appendChild(el('path', { d: d, 'class': 'seg ' + (last >= principal ? 'up' : 'dn') }));
+
+    var gD = el('g');
+    for (i = 0; i < n; i++) {
+      gD.appendChild(el('circle', {
+        cx: X(i), cy: Y(vals[i]), r: 3.6, fill: last >= principal ? '#63dcc2' : '#e37a68'
+      }));
+    }
+    c4svg.appendChild(gD);
+
+    var xt = el('text', { x: C4.pl, y: C4.H - 14, 'text-anchor': 'start', 'class': 'axis-t' });
+    xt.textContent = '起點';
+    c4svg.appendChild(xt);
+    var xt2 = el('text', { x: C4.W - C4.pr, y: C4.H - 14, 'text-anchor': 'end', 'class': 'axis-t' });
+    xt2.textContent = '第 ' + (n - 1) + ' 年';
+    c4svg.appendChild(xt2);
+  }
+
+  function compute(){
+    var bad = -1, i;
+    var inputs = rowsBox ? [].slice.call(rowsBox.querySelectorAll('input[type=number]')) : [];
+    inputs.forEach(function(el2){ el2.classList.remove('bad'); });
+
+    for (i = 0; i < seq.length; i++) {
+      if (!isFinite(seq[i]) || seq[i] < -100) { bad = i; break; }
+    }
+    if (bad >= 0) {
+      if (inputs[bad]) inputs[bad].classList.add('bad');
+      if (errBox) errBox.textContent = '第 ' + (bad + 1) + ' 年不是合法的報酬率：不可能賠掉超過 100%（也別留空）。';
+      $('r-am').textContent = '—'; $('r-gm').textContent = '—';
+      $('r-fv').textContent = '—'; $('r-gap').textContent = '—';
+      return;
+    }
+    if (errBox) errBox.textContent = '';
+
+    var dec = seq.map(function(v){ return v / 100; });
+    var am = M.arithmeticMean(dec);
+    var gm = M.cagr(dec);
+    var fv = M.finalValue(principal, dec);
+    var vals = M.cumulativeValues(principal, dec);
+
+    $('r-am').textContent = pct(am);
+    $('r-gm').textContent = pct(gm);
+    $('r-fv').textContent = num(fv, fv < 10 ? 2 : 1) + ' 萬';
+    var gap = (am - gm) * 100;
+    if (Math.abs(gap) < 0.005) gap = 0;
+    $('r-gap').textContent = gap.toFixed(2) + ' 個百分點';
+
+    drawC4(vals);
+    var summary = '起點 ' + num(principal, 0) + ' 萬，經過 ' + seq.length + ' 年，終值 ' +
+      num(fv, fv < 10 ? 2 : 1) + ' 萬。廣告會說平均 ' + pct(am) + '；你實際年化 ' + pct(gm) + '。';
+    $('c4cap').textContent = summary;
+    if (c4svg) c4svg.setAttribute('aria-label', summary);
+    save();
+  }
+
+  var addy = $('addy');
+  if (addy) addy.addEventListener('click', function(){
+    if (seq.length >= 40) return;
+    seq.push(0);
+    clearPresetState();
+    renderRows();
+    compute();
+    var last = rowsBox.querySelector('.row:last-child input');
+    if (last && typeof last.focus === 'function') last.focus();
+  });
+  var rst = $('rst');
+  if (rst) rst.addEventListener('click', function(){
+    seq = PRESETS[0].seq.slice();
+    principal = 100;
+    var pi = $('pri'); if (pi) pi.value = '100';
+    clearPresetState();
+    presetBtns[0].setAttribute('aria-pressed', 'true');
+    renderRows();
+    compute();
+  });
+  var priInput = $('pri');
+  if (priInput) {
+    priInput.value = String(principal);
+    priInput.addEventListener('input', function(){
+      var n = parseFloat(priInput.value);
+      principal = (isFinite(n) && n >= 0) ? n : 0;
+      compute();
+    });
+  }
+  renderRows();
+  compute();
+
+  /* ══════════════════════════════════════════
+     結尾：回本表
+     ══════════════════════════════════════════ */
+  (function buildBet(){
+    var body = $('betbody');
+    if (!body) return;
+    var losses = [0.1, 0.2, 0.3, 0.5, 0.9];
+    var gains = losses.map(function(l){ return M.breakevenGain(l); });
+    var maxG = Math.max.apply(null, gains);
+    losses.forEach(function(l, i){
+      var tr = document.createElement('tr');
+
+      var td1 = document.createElement('td');
+      td1.className = 'n loss';
+      td1.textContent = '−' + (l * 100).toFixed(0) + '%';
+      tr.appendChild(td1);
+
+      var td2 = document.createElement('td');
+      td2.className = 'n need';
+      var g = gains[i] * 100;
+      td2.textContent = '+' + (Math.abs(g - Math.round(g)) < 0.05 ? g.toFixed(0) : g.toFixed(1)) + '%';
+      tr.appendChild(td2);
+
+      var td3 = document.createElement('td');
+      var bar = document.createElement('span');
+      bar.className = 'bar';
+      bar.style.width = Math.max(4, (gains[i] / maxG) * 100) + '%';
+      td3.appendChild(bar);
+      tr.appendChild(td3);
+
+      body.appendChild(tr);
+    });
+  })();
+
+})();
+</script>
+</body>
+</html>

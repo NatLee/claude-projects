@@ -118,14 +118,31 @@ p{margin:0 0 1.05em}
 .r-time{text-align:right;font-weight:700;white-space:nowrap;font-size:.78rem;
   opacity:0;transform:rotateX(-88deg);transform-origin:center bottom;transition:opacity .38s,transform .38s}
 .paper.timed .r-time{opacity:1;transform:none}
-.r-del,.r-worth{background:transparent;border:0;cursor:pointer;font:inherit;padding:0;line-height:1;color:var(--ink-soft)}
-.r-del{opacity:.28;font-size:1rem;transition:opacity .2s,color .2s}
+.r-del{background:transparent;border:0;cursor:pointer;font:inherit;padding:0;line-height:1;color:var(--ink-soft);
+  opacity:.28;font-size:1rem;transition:opacity .2s,color .2s}
 .r-del:hover{opacity:1;color:var(--red)}
-.r-worth{opacity:0;pointer-events:none;font-size:.9rem;transition:opacity .3s;justify-self:start}
-.paper.marking .r-worth{opacity:.4;pointer-events:auto}
-.paper.marking .r-worth:hover{opacity:1}
+
+/* ---- 劃記模式：整列都是點擊區 ---- */
+.r-hint{display:none;align-items:center;justify-content:space-between;gap:8px;
+  font-size:.7rem;letter-spacing:.04em;color:var(--ink-soft);
+  border:1px dashed rgba(42,37,32,.4);border-radius:6px;padding:5px 8px;margin:8px 0 4px}
+.paper.marking .r-hint{display:flex}
+.r-hint .undo{font:inherit;font-size:.7rem;background:transparent;border:0;color:var(--ink);
+  text-decoration:underline;cursor:pointer;padding:2px 3px;white-space:nowrap;border-radius:4px}
+.r-hint .undo:hover{color:var(--red)}
+.r-box{display:none;width:13px;height:13px;border:1.5px solid rgba(42,37,32,.5);border-radius:3px;position:relative}
+.paper.marking .r-box{display:block}
+.r-hit{display:none;position:absolute;inset:-1px -8px;padding:0;margin:0;border:0;
+  background:transparent;border-radius:5px;cursor:pointer;transition:background-color .18s}
+.paper.marking .r-hit{display:block}
+.paper.marking .r-hit:hover{background:rgba(42,37,32,.09)}
+.paper.marking .r-hit:focus-visible{outline:2px solid var(--red);outline-offset:0}
+.paper.marking .r-name,.paper.marking .r-price input{pointer-events:none}
+.paper.marking .r-del,.paper.marking .r-add{opacity:0;pointer-events:none}
 .r-row.cut .r-name,.r-row.cut .r-price,.r-row.cut .r-time{opacity:.44;text-decoration:line-through}
-.r-row.cut .r-worth{opacity:1;color:var(--red)}
+.r-row.cut .r-box{background:var(--red);border-color:var(--red)}
+.r-row.cut .r-box::after{content:"";position:absolute;left:3.5px;top:0;width:4px;height:8px;
+  border:solid var(--paper);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .r-row.cut .r-time{color:var(--red)}
 .r-add{width:100%;margin-top:8px;background:transparent;border:1px dashed rgba(42,37,32,.3);color:var(--ink-soft);
   font:inherit;font-size:.74rem;padding:5px;cursor:pointer;transition:border-color .2s,color .2s}
@@ -229,6 +246,10 @@ footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;t
         <div class="r-cols" aria-hidden="true">
           <span></span><span>品項</span><span class="a">金額</span><span class="t">時間</span><span></span>
         </div>
+        <div class="r-hint">
+          <span>👆 點任何一列，把不值的劃掉</span>
+          <button class="undo" id="undoBtn" type="button">全部復原</button>
+        </div>
         <ul class="r-items" id="items"></ul>
         <button class="r-add" id="addBtn" type="button">＋ 加一筆</button>
         <div class="r-rule"></div>
@@ -329,8 +350,8 @@ footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;t
       <h2>這不是在說你不該花。</h2>
       <p class="lede">有些東西真的值。那頓兩個人的晚餐，可能是你那一週唯一好好講話的一小時——它收你五個小時，還是划算。</p>
       <p class="lede">問題從來不是花了多少，是哪幾筆你根本不記得了。</p>
-      <p class="lede"><b>在收據上點掉那些不值的。</b>（每一列左邊多了一個框）</p>
-      <button class="btn ghost" id="markBtn" type="button">開始劃掉</button>
+      <p class="lede"><b>在收據上點掉那些不值的。</b>按下去之後，收據上每一列都可以直接點，點錯了再點一次就取消。</p>
+      <button class="btn ghost" id="markBtn" type="button">開始劃掉不值的</button>
       <div class="after" id="after4">
         <p class="big-say" id="after4Text" aria-live="polite" style="margin-top:1.4em">還沒劃掉任何一筆。</p>
       </div>
@@ -434,24 +455,34 @@ footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;t
       var li = document.createElement('li');
       li.className = 'r-row';
 
-      var worth = document.createElement('button');
-      worth.type = 'button'; worth.className = 'r-worth'; worth.textContent = '☐';
-      worth.setAttribute('aria-pressed', 'false');
-      worth.setAttribute('aria-label', '把「' + it.name + '」標記為不值');
-      worth.addEventListener('click', function () {
+      // 左側的視覺方框（純裝飾），真正的點擊區是覆蓋整列的 .r-hit
+      var box = document.createElement('span');
+      box.className = 'r-box';
+      box.setAttribute('aria-hidden', 'true');
+
+      var hit = document.createElement('button');
+      hit.type = 'button'; hit.className = 'r-hit';
+      hit.setAttribute('aria-pressed', 'false');
+      function syncHit() {
+        hit.setAttribute('aria-pressed', it.cut ? 'true' : 'false');
+        hit.setAttribute('aria-label',
+          (it.cut ? '取消劃掉「' : '劃掉「') + it.name + '」，$' + (Number(it.price) || 0));
+      }
+      syncHit();
+      hit.addEventListener('click', function () {
         it.cut = !it.cut;
         li.classList.toggle('cut', it.cut);
-        worth.textContent = it.cut ? '☒' : '☐';
-        worth.setAttribute('aria-pressed', it.cut ? 'true' : 'false');
+        syncHit();
         renderCut();
       });
+      it._syncHit = syncHit;
 
       var name = document.createElement('input');
       name.type = 'text'; name.className = 'r-name'; name.value = it.name;
       name.setAttribute('aria-label', '品項名稱');
       name.addEventListener('input', function () {
         it.name = name.value;
-        worth.setAttribute('aria-label', '把「' + it.name + '」標記為不值');
+        syncHit();
       });
 
       var priceBox = document.createElement('span');
@@ -464,7 +495,8 @@ footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;t
       price.addEventListener('input', function () {
         var v = parseFloat(price.value);
         it.price = isFinite(v) && v >= 0 ? v : 0;
-        renderTotals(); renderTimes(false);
+        syncHit();
+        renderTotals(); renderTimes(false); renderCut();
       });
       priceBox.appendChild(sym); priceBox.appendChild(price);
 
@@ -479,8 +511,8 @@ footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;t
         buildRows(); renderTotals(); renderTimes(false); renderCut();
       });
 
-      li.appendChild(worth); li.appendChild(name); li.appendChild(priceBox);
-      li.appendChild(time); li.appendChild(del);
+      li.appendChild(box); li.appendChild(name); li.appendChild(priceBox);
+      li.appendChild(time); li.appendChild(del); li.appendChild(hit);
       li._time = time;
       li.classList.toggle('cut', !!it.cut);
       itemsEl.appendChild(li);
@@ -664,8 +696,26 @@ footer{border-top:1px solid var(--line);margin-top:min(12vh,90px);padding:22px;t
     paper.classList.add('marking');
     $('after4').classList.add('shown');
     this.disabled = true;
-    this.textContent = '收據上請點 ☐';
-    var first = itemsEl.querySelector('.r-worth');
+    this.textContent = '收據上，點任何一列 →';
+    feed();
+    // 手機上收據黏在最上面，捲過去讓人看見它變了
+    if (window.matchMedia && window.matchMedia('(max-width: 919px)').matches) {
+      try {
+        paper.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+      } catch (e) { /* 舊瀏覽器不支援選項物件 */ }
+    }
+    var first = itemsEl.querySelector('.r-hit');
+    if (first) first.focus();
+  });
+
+  $('undoBtn').addEventListener('click', function () {
+    state.items.forEach(function (it) {
+      it.cut = false;
+      if (it._li) it._li.classList.remove('cut');
+      if (it._syncHit) it._syncHit();
+    });
+    renderCut();
+    var first = itemsEl.querySelector('.r-hit');
     if (first) first.focus();
   });
 

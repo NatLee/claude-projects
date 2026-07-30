@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你說三天｜每日小專案</title>
+<meta name="description" content="先填一張估時單，再讓 1994 年那 37 位大四生、和一棟晚了十年的歌劇院，一層一層拆穿它。最後用你自己的歷史，算出你的個人膨脹係數。">
+<style>
+:root{
+  /* 紙的世界 */
+  --paper:#ece4d2;
+  --paper2:#faf6ed;
+  --paper3:#f3ecdc;
+  --ink:#241f18;
+  --ink2:#5d5343;
+  --ink3:#8b8070;
+  --rule:#c8bb9f;
+  --rule2:#ddd2b8;
+  --formink:#3b5170;
+  --stamp:#b6362a;
+
+  /* 資料的世界 */
+  --bg:#0a0d11;
+  --bg2:#0e1319;
+  --panel:#111820;
+  --panel2:#16202a;
+  --line:rgba(216,230,244,.11);
+  --line2:rgba(216,230,244,.2);
+  --txt:#dbe3ec;
+  --txt2:#a3b0bd;
+  --dim:#78848f;
+  --ice:#79cfdd;
+  --ice2:#b6ecf5;
+  --amber:#e6ae4c;
+  --red:#e2604f;
+  --green:#5fc194;
+
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Noto Serif TC","Songti TC","MingLiU",serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--txt);font-family:var(--sans);
+  line-height:1.88;letter-spacing:.015em;-webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body.paused *{animation-play-state:paused !important}
+p{margin:0 0 1.15em}
+button{font:inherit;color:inherit}
+input,select{font:inherit}
+:focus-visible{outline:2px solid var(--ice);outline-offset:3px;border-radius:4px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---------- 回首頁 ---------- */
+.home{
+  position:fixed;top:14px;left:14px;z-index:90;font-size:.76rem;letter-spacing:.1em;
+  color:var(--ink2);text-decoration:none;padding:6px 13px;border-radius:999px;
+  background:rgba(250,246,237,.78);border:1px solid var(--rule);backdrop-filter:blur(7px);
+  transition:color .25s,border-color .25s,transform .25s,background .3s;
+}
+.home:hover{color:var(--ink);border-color:var(--ink3);transform:translateX(-2px)}
+body.dark .home{color:var(--dim);background:rgba(10,13,17,.72);border-color:var(--line)}
+body.dark .home:hover{color:var(--ice);border-color:rgba(121,207,221,.5)}
+
+/* =======================================================
+   第一屏：紙
+   ======================================================= */
+.paperstage{
+  min-height:100vh;min-height:100svh;background:var(--paper);
+  background-image:
+    repeating-linear-gradient(0deg,rgba(0,0,0,.021) 0 1px,transparent 1px 4px),
+    radial-gradient(120% 80% at 50% -10%,#f6f1e5 0%,var(--paper) 62%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:78px 18px 26px;position:relative;color:var(--ink);
+}
+.kicker{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.34em;color:var(--ink3);
+  text-transform:uppercase;margin:0 0 16px;text-align:center;
+}
+.sheet{
+  width:100%;max-width:620px;background:var(--paper2);color:var(--ink);
+  border:1px solid var(--ink);position:relative;
+  box-shadow:0 1px 0 var(--paper2),0 0 0 4px rgba(255,255,255,.5),
+             0 26px 60px rgba(70,54,30,.22),0 4px 12px rgba(70,54,30,.1);
+  background-image:linear-gradient(90deg,rgba(160,140,100,.05) 0 1px,transparent 1px);
+  background-size:100% 100%;
+}
+.sheet::after{
+  content:"";position:absolute;inset:5px;border:1px solid var(--rule2);pointer-events:none;
+}
+.sheet-mast{
+  margin:0;padding:15px 18px 12px;border-bottom:2px solid var(--ink);
+  display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  font-family:var(--serif);font-size:1.3rem;font-weight:700;letter-spacing:.14em;line-height:1.4;
+}
+.mast-sub{
+  font-family:var(--mono);font-size:.63rem;letter-spacing:.2em;color:var(--ink3);
+  font-weight:400;
+}
+.sheet-note{
+  margin:0;padding:8px 18px;border-bottom:1px dashed var(--rule);
+  font-size:.72rem;line-height:1.7;color:var(--ink2);font-family:var(--mono);letter-spacing:.02em;
+}
+.field{
+  padding:16px 18px 14px;border-bottom:1px dashed var(--rule);position:relative;
+}
+.fno{
+  position:absolute;left:0;top:16px;width:30px;text-align:center;
+  font-family:var(--mono);font-size:.62rem;letter-spacing:.06em;color:var(--ink3);
+}
+.field{padding-left:52px}
+.field > label,.field .flabel{
+  display:block;font-size:.85rem;color:var(--ink2);letter-spacing:.05em;margin:0 0 8px;line-height:1.7;
+}
+.field .q{display:block;font-family:var(--serif);font-size:1.06rem;color:var(--ink);letter-spacing:.03em;margin-bottom:2px}
+.field small{color:var(--ink3);font-size:.76rem}
+.write{
+  width:100%;background:transparent;border:0;border-bottom:1.5px solid var(--rule);
+  padding:5px 2px;color:var(--formink);font-family:var(--serif);font-size:1.06rem;
+  letter-spacing:.04em;transition:border-color .25s;
+}
+.write::placeholder{color:#b9ad95;font-family:var(--sans);font-size:.9rem;letter-spacing:.03em}
+.write:focus{border-bottom-color:var(--formink);outline:none;box-shadow:0 1px 0 var(--formink)}
+.field:focus-within .fno{color:var(--formink)}
+.numrow{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.numrow .write{width:118px;text-align:right;font-family:var(--mono);font-size:1.5rem;padding-bottom:3px}
+.sel{
+  background:transparent;border:0;border-bottom:1.5px solid var(--rule);padding:8px 2px;
+  color:var(--formink);font-family:var(--sans);font-size:.95rem;letter-spacing:.06em;
+  transition:border-color .25s;
+}
+.sel:focus{border-bottom-color:var(--formink);outline:none}
+.numrow .unitwrap{display:flex;align-items:baseline;gap:6px;color:var(--ink3);font-size:.85rem}
+.err{
+  margin:8px 0 0;font-size:.78rem;color:var(--stamp);font-family:var(--mono);letter-spacing:.04em;min-height:1.2em;
+}
+.stampzone{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:16px 18px 18px;
+}
+.stampbox{
+  position:relative;width:96px;height:96px;flex:0 0 auto;
+  border:1px dashed var(--rule);display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.3em;color:#bcb09a;
+}
+.stamp{
+  position:absolute;inset:-14px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:2px;
+  border:3px double var(--stamp);border-radius:50%;color:var(--stamp);
+  transform:rotate(-13deg) scale(2.5);opacity:0;pointer-events:none;
+  font-family:var(--serif);letter-spacing:.12em;
+  transition:transform .42s cubic-bezier(.2,1.5,.4,1),opacity .2s ease-out;
+}
+.stamp b{font-size:1.15rem;line-height:1.1;font-weight:700}
+.stamp span{font-family:var(--mono);font-size:.52rem;letter-spacing:.12em}
+.sheet.stamped .stamp{transform:rotate(-13deg) scale(1);opacity:.92}
+.sheet.stamped .stampbox{border-color:transparent}
+.btn{
+  border:1px solid var(--ink);background:var(--ink);color:var(--paper2);
+  padding:11px 24px;letter-spacing:.16em;font-size:.85rem;cursor:pointer;
+  transition:transform .2s,box-shadow .2s,background .2s,color .2s;
+  box-shadow:3px 3px 0 rgba(36,31,24,.24);
+}
+.btn:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 rgba(36,31,24,.24)}
+.btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 rgba(36,31,24,.24)}
+.perf{
+  width:100%;max-width:620px;margin:26px auto 0;text-align:center;position:relative;
+  color:var(--ink3);font-family:var(--mono);font-size:.66rem;letter-spacing:.28em;
+}
+.perf::before{
+  content:"";position:absolute;left:0;right:0;top:50%;
+  border-top:1px dashed var(--rule);
+}
+.perf span{position:relative;background:var(--paper);padding:0 14px}
+.perf b{display:block;margin-top:12px;font-weight:400;font-size:.9rem;letter-spacing:0;font-family:var(--sans)}
+.perf .arrow{display:inline-block;animation:bob 2.3s ease-in-out infinite;font-size:1.1rem}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(7px);opacity:1}}
+
+/* =======================================================
+   資料的世界
+   ======================================================= */
+.dark-wrap{
+  background:var(--bg);
+  background-image:
+    linear-gradient(180deg,#070a0d 0,var(--bg) 30vh),
+    radial-gradient(120% 50% at 50% 0%,rgba(121,207,221,.055),transparent 60%);
+}
+.wrap{max-width:960px;margin:0 auto;padding:0 22px}
+.chapter{padding:min(15vh,110px) 0 0}
+.chapter:last-of-type{padding-bottom:min(12vh,90px)}
+.label{
+  display:inline-flex;align-items:center;gap:.65em;font-family:var(--mono);
+  font-size:.66rem;letter-spacing:.3em;color:var(--ice);text-transform:uppercase;margin:0 0 1em;
+}
+.label::before{content:"";width:26px;height:1px;background:rgba(121,207,221,.55)}
+h2{
+  font-family:var(--serif);font-weight:700;line-height:1.32;margin:0 0 .7em;
+  font-size:clamp(1.5rem,4.6vw,2.2rem);letter-spacing:.01em;color:#eef4fa;
+}
+.lede{font-size:1.04rem;color:var(--txt2);max-width:64ch}
+.small{font-size:.84rem;color:var(--dim);line-height:1.8}
+.beat{
+  font-family:var(--serif);font-size:clamp(1.2rem,3.6vw,1.62rem);line-height:1.62;
+  color:#eef4fa;margin:1.5em 0;max-width:26ch;
+}
+em.hi{font-style:normal;color:var(--ice2);font-weight:600}
+em.warn{font-style:normal;color:var(--amber);font-weight:600}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .85s cubic-bezier(.2,.7,.3,1),transform .85s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.1s}.d2{transition-delay:.2s}.d3{transition-delay:.3s}.d4{transition-delay:.4s}
+
+.panel{
+  background:linear-gradient(168deg,var(--panel2),var(--panel));
+  border:1px solid var(--line);padding:22px;margin:26px 0;
+  box-shadow:0 22px 50px rgba(0,0,0,.45);
+}
+.panel-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:.64rem;letter-spacing:.22em;color:var(--dim);
+  border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:16px;
+}
+.figcap{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;color:var(--dim);margin:10px 0 0;line-height:1.75}
+
+/* ---------- 第一章：37 個點 ---------- */
+.dots{width:100%;max-width:340px;height:auto;display:block;margin:0 auto}
+.dots .late{fill:none;stroke:var(--dim);stroke-width:1.4}
+.dots .ontime{fill:var(--ice);stroke:none}
+.legend{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:14px;font-size:.78rem;color:var(--txt2)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.legend .a i{background:var(--ice)}
+.legend .b i{border:1.4px solid var(--dim)}
+
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);margin:24px 0}
+.stat{background:var(--panel);padding:16px 18px}
+.stat dt{font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;color:var(--dim);margin:0 0 6px}
+.stat dd{margin:0;font-family:var(--mono);font-size:1.6rem;color:#eef4fa;line-height:1.2}
+.stat dd small{font-size:.72rem;color:var(--txt2);letter-spacing:.06em;margin-left:3px}
+.stat.accent dd{color:var(--amber)}
+
+.echo{
+  border:1px solid rgba(230,174,76,.35);background:rgba(230,174,76,.05);
+  padding:18px 20px;margin:26px 0;
+}
+.echo .eh{font-family:var(--mono);font-size:.64rem;letter-spacing:.2em;color:var(--amber);margin:0 0 12px}
+.echo-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:1rem}
+.echo-line .from{color:var(--txt2)}
+.echo-line .op{color:var(--dim);font-size:.82rem;letter-spacing:.06em}
+.echo-line .to{color:var(--amber);font-size:1.35rem}
+.echo p{margin:12px 0 0;font-size:.85rem;color:var(--dim);line-height:1.8}
+
+/* ---------- 第二章：軸 ---------- */
+.axisbox{margin:30px 0 0}
+.axis{width:100%;height:auto;display:block}
+.axis .rule{stroke:var(--line2);stroke-width:1}
+.axis .band{fill:rgba(121,207,221,.09)}
+.axis .tick{stroke-width:1.6}
+.axis .t-pred{stroke:var(--ice)}
+.axis .t-worst{stroke:var(--ice)}
+.axis .t-real{stroke:var(--amber)}
+.axis text{font-family:var(--mono);font-size:11px;fill:var(--txt2)}
+.axis .big{font-size:15px;fill:#eef4fa}
+.axis .big.warnfill{fill:var(--amber)}
+.axis .mk{opacity:0;transform:translateY(12px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1)}
+.axisbox.in .mk{opacity:1;transform:none}
+.axisbox.in .mk.m2{transition-delay:.45s}
+.axisbox.in .mk.m3{transition-delay:1s}
+.punch{
+  font-family:var(--serif);font-size:clamp(1.45rem,5.4vw,2.5rem);line-height:1.48;
+  color:#fff;margin:min(9vh,72px) 0 min(7vh,56px);max-width:20ch;
+}
+.punch em{font-style:normal;color:var(--amber)}
+
+/* ---------- 第三章：歌劇院 ---------- */
+.barset{margin:22px 0 0}
+.bargroup + .bargroup{margin-top:26px}
+.bargroup h3{margin:0 0 12px;font-family:var(--mono);font-size:.66rem;letter-spacing:.22em;color:var(--dim);font-weight:400}
+.barline{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center;margin-bottom:9px}
+.barline .who{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;color:var(--txt2);text-align:right}
+.bartrack{position:relative;height:26px;background:rgba(255,255,255,.035);border-left:1px solid var(--line2)}
+.barfill{
+  position:absolute;left:0;top:0;bottom:0;width:100%;
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform 1.15s cubic-bezier(.22,.75,.24,1);
+}
+.barset.in .barfill{transform:scaleX(var(--s))}
+.barset.in .plan .barfill{transition-delay:.1s}
+.barset.in .real .barfill{transition-delay:.55s}
+.plan .barfill{background:linear-gradient(90deg,rgba(121,207,221,.55),rgba(121,207,221,.28))}
+.real .barfill{background:linear-gradient(90deg,var(--amber),rgba(230,174,76,.45))}
+.barval{
+  position:absolute;top:50%;transform:translateY(-50%);left:10px;
+  font-family:var(--mono);font-size:.76rem;letter-spacing:.06em;color:#0a0d11;white-space:nowrap;
+  font-weight:600;
+}
+.plan .barval{color:var(--ice2);font-weight:400}
+.barnote{font-family:var(--mono);font-size:.7rem;color:var(--dim);letter-spacing:.05em;margin-top:6px;padding-left:76px}
+
+/* ---------- 第四章：解藥 ---------- */
+.recs{margin:6px 0 0}
+.rechead{
+  display:grid;grid-template-columns:minmax(0,1.35fr) 84px 84px 78px 34px;gap:8px;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:var(--dim);
+  padding:0 0 8px;border-bottom:1px solid var(--line);
+}
+.rec{
+  display:grid;grid-template-columns:minmax(0,1.35fr) 84px 84px 78px 34px;gap:8px;
+  align-items:center;padding:9px 0;border-bottom:1px solid rgba(216,230,244,.06);
+}
+.rec input,.rec select{
+  width:100%;min-width:0;background:rgba(255,255,255,.04);border:1px solid var(--line);
+  color:var(--txt);padding:8px 9px;font-size:.9rem;border-radius:2px;
+  transition:border-color .2s,background .2s;
+}
+.rec input[type=number]{font-family:var(--mono);text-align:right}
+.rec input::placeholder{color:#5c6874}
+.rec input:focus,.rec select:focus{border-color:var(--ice);background:rgba(121,207,221,.07);outline:none}
+.rec input.bad{border-color:var(--red);background:rgba(226,96,79,.08)}
+.rec select{padding:8px 4px}
+.del{
+  width:30px;height:30px;border:1px solid var(--line);background:transparent;color:var(--dim);
+  cursor:pointer;border-radius:2px;line-height:1;font-size:1rem;
+  transition:color .2s,border-color .2s,background .2s;
+}
+.del:hover{color:var(--red);border-color:rgba(226,96,79,.5);background:rgba(226,96,79,.08)}
+.recfoot{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center}
+.ghost{
+  border:1px solid var(--line2);background:transparent;color:var(--txt2);
+  padding:9px 16px;font-size:.8rem;letter-spacing:.1em;cursor:pointer;border-radius:2px;
+  transition:color .2s,border-color .2s,background .2s,transform .15s;
+}
+.ghost:hover{color:var(--ice);border-color:rgba(121,207,221,.55);background:rgba(121,207,221,.07)}
+.ghost:active{transform:translateY(1px)}
+.cta{
+  border:1px solid var(--ice);background:rgba(121,207,221,.12);color:var(--ice2);
+  padding:14px 26px;font-size:.94rem;letter-spacing:.13em;cursor:pointer;border-radius:2px;
+  transition:background .25s,box-shadow .25s,transform .15s,color .25s;
+}
+.cta:hover{background:rgba(121,207,221,.22);box-shadow:0 0 30px rgba(121,207,221,.22);color:#fff}
+.cta:active{transform:translateY(1px)}
+.ctarow{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:26px 0 0}
+.hint{font-size:.78rem;color:var(--dim);margin:10px 0 0;line-height:1.8}
+
+.reveal-box{
+  border:1px solid rgba(121,207,221,.35);background:
+    radial-gradient(120% 130% at 50% 0%,rgba(121,207,221,.12),transparent 62%),var(--panel);
+  padding:28px 22px;margin:26px 0 0;text-align:center;
+}
+.factor-lab{font-family:var(--mono);font-size:.66rem;letter-spacing:.26em;color:var(--ice);margin:0 0 6px}
+.factor-big{
+  font-family:var(--mono);font-size:clamp(3rem,13vw,5.2rem);line-height:1;color:#fff;
+  letter-spacing:-.02em;margin:0;text-shadow:0 0 44px rgba(121,207,221,.35);
+}
+.factor-sub{font-size:.85rem;color:var(--txt2);margin:12px 0 0;line-height:1.8}
+.fixline{
+  margin-top:24px;padding-top:22px;border-top:1px dashed var(--line2);
+  display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;
+  font-family:var(--mono);
+}
+.fixline .was{color:var(--dim);font-size:1rem;text-decoration:line-through;text-decoration-color:rgba(226,96,79,.6)}
+.fixline .arr{color:var(--dim)}
+.fixline .now{color:var(--amber);font-size:clamp(1.5rem,6vw,2.1rem)}
+.fixnote{font-size:.82rem;color:var(--dim);margin:14px 0 0}
+
+/* ---------- 第五章：工具 ---------- */
+.cmp{margin:6px 0 0}
+.cmprow{display:grid;grid-template-columns:132px minmax(0,1fr) 60px;gap:12px;align-items:center;margin-bottom:11px}
+.cmprow .nm{font-size:.8rem;color:var(--txt2);letter-spacing:.03em}
+.cmprow .nm b{display:block;font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;color:var(--dim);font-weight:400}
+.cmptrack{height:20px;background:rgba(255,255,255,.035);position:relative;border-left:1px solid var(--line2)}
+.cmpfill{position:absolute;left:0;top:0;bottom:0;width:100%;transform:scaleX(0);transform-origin:left center;transition:transform .8s cubic-bezier(.22,.75,.24,1)}
+.cmprow.you .cmpfill{background:linear-gradient(90deg,var(--amber),rgba(230,174,76,.4))}
+.cmprow.them .cmpfill{background:linear-gradient(90deg,rgba(121,207,221,.5),rgba(121,207,221,.22))}
+.cmprow .vv{font-family:var(--mono);font-size:.9rem;color:var(--txt);text-align:right}
+.cmprow.you .vv{color:var(--amber)}
+
+.conv{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:6px}
+.conv .fld{display:flex;flex-direction:column;gap:6px}
+.conv label{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;color:var(--dim)}
+.conv input,.conv select{
+  background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--txt);
+  padding:11px 12px;font-size:1rem;border-radius:2px;
+}
+.conv input{width:130px;font-family:var(--mono);text-align:right}
+.conv input:focus,.conv select:focus{border-color:var(--ice);outline:none;background:rgba(121,207,221,.07)}
+.convout{
+  margin-top:18px;padding:16px 18px;border:1px solid var(--line);background:rgba(255,255,255,.025);
+  display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;font-family:var(--mono);
+}
+.convout .k{font-size:.64rem;letter-spacing:.2em;color:var(--dim)}
+.convout .v{font-size:clamp(1.3rem,5vw,1.8rem);color:var(--amber)}
+.convout .m{font-size:.78rem;color:var(--dim);letter-spacing:.04em}
+
+/* ---------- 結尾 ---------- */
+.outro{
+  padding:min(18vh,130px) 0 min(12vh,90px);
+  background:linear-gradient(180deg,transparent,rgba(121,207,221,.05) 60%,transparent);
+}
+.outro p{font-family:var(--serif);font-size:clamp(1.12rem,3.7vw,1.5rem);line-height:1.78;color:#e8eff6;max-width:30ch;margin:0 0 1.1em}
+.outro p.last{color:#fff}
+.outro .sig{font-family:var(--mono);font-size:.68rem;letter-spacing:.3em;color:var(--dim);margin-top:38px}
+
+footer{
+  border-top:1px solid var(--line);padding:26px 22px 40px;text-align:center;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:#5f6b76;line-height:2;
+}
+
+/* ---------- reduced motion ---------- */
+.reduce .reveal{opacity:1;transform:none;transition:none}
+.reduce .mk{opacity:1;transform:none;transition:none}
+.reduce .barfill,.reduce .cmpfill{transition:none}
+.reduce .stamp{transition:none}
+.reduce .perf .arrow{animation:none}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+
+/* ---------- 手機 ---------- */
+@media (max-width:640px){
+  .wrap{padding:0 17px}
+  .field{padding-left:44px;padding-right:14px}
+  .fno{width:26px}
+  .sheet-mast{padding:13px 14px 11px;font-size:1.12rem}
+  .sheet-note{padding:8px 14px}
+  .stampzone{padding:14px;flex-direction:column;align-items:stretch;gap:20px}
+  .stampbox{align-self:center}
+  .btn{width:100%}
+  .numrow .write{width:96px;font-size:1.32rem}
+  .rechead{display:none}
+  .rec{
+    grid-template-columns:minmax(0,1fr) 34px;
+    grid-template-areas:"name del" "nums nums";
+    row-gap:8px;padding:14px 0;
+  }
+  .rec .rec-name{grid-area:name}
+  .rec .del{grid-area:del}
+  .rec .nums{grid-area:nums;display:grid;grid-template-columns:1fr 1fr 84px;gap:8px}
+  .rec .nums .mini{font-family:var(--mono);font-size:.56rem;letter-spacing:.12em;color:var(--dim);display:block;margin-bottom:4px}
+  .rec input,.rec select{padding:11px 10px;font-size:1rem}
+  .cmprow{grid-template-columns:104px minmax(0,1fr) 54px;gap:9px}
+  .conv input{width:100%}
+  .conv .fld{flex:1 1 120px}
+  .barline{grid-template-columns:52px minmax(0,1fr);gap:9px}
+  .barnote{padding-left:61px}
+}
+@media (min-width:641px){
+  .rec .nums{display:contents}
+  .rec .nums .mini{display:none}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ===================== 第一屏：估時單 ===================== -->
+<section class="paperstage" id="paperstage">
+  <p class="kicker">請於下方欄位據實填寫</p>
+
+  <form class="sheet" id="sheet" novalidate>
+    <h1 class="sheet-mast">
+      工期自估單
+      <span class="mast-sub">你說三天 · 表 PF-01</span>
+    </h1>
+
+    <p class="sheet-note">※ 本表由填表人自行估計。請憑直覺填，不要開行事曆、不要問別人。</p>
+
+    <div class="field">
+      <span class="fno">01</span>
+      <label for="taskName">
+        <span class="q">挑一件你最近拖著、還沒做完的事。</span>
+        <small>只寫給自己看，不填也可以。</small>
+      </label>
+      <input class="write" id="taskName" type="text" maxlength="24" autocomplete="off"
+             placeholder="例如：報稅、那份簡報、換冷氣濾網">
+    </div>
+
+    <div class="field">
+      <span class="fno">02</span>
+      <label class="flabel" for="estValue">
+        <span class="q">你覺得它<strong>還要多久</strong>？</span>
+        <small>一個數字就好。</small>
+      </label>
+      <div class="numrow">
+        <input class="write" id="estValue" type="number" inputmode="decimal" min="0" step="any"
+               placeholder="3" autocomplete="off">
+        <span class="unitwrap">
+          <label class="sr-only" for="estUnit">時間單位</label>
+          <select class="sel" id="estUnit">
+            <option value="hour">小時</option>
+            <option value="day" selected>天</option>
+            <option value="week">週</option>
+          </select>
+        </span>
+      </div>
+      <p class="err" id="estErr" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="stampzone">
+      <div class="stampbox">
+        核章
+        <span class="stamp" id="stamp" aria-hidden="true">
+          <b>已受理</b>
+          <span>PF-01</span>
+        </span>
+      </div>
+      <button class="btn" id="submitBtn" type="submit">送出這張估時單</button>
+    </div>
+  </form>
+
+  <p class="perf" id="perf" hidden>
+    <span>沿虛線撕開</span>
+    <b>接下來這幾頁，不是你填的。<br><span class="arrow" aria-hidden="true">↓</span></b>
+  </p>
+</section>
+
+<!-- ===================== 揭穿 ===================== -->
+<div class="dark-wrap" id="rest" hidden>
+
+<!-- 第一章 -->
+<section class="chapter wrap" id="ch1">
+  <p class="label reveal">第一章 · 你不是第一個</p>
+  <h2 class="reveal d1">1994 年，有人拿同一個問題去問 37 個大四生。</h2>
+  <p class="lede reveal d2">
+    問的不是隨便一件事，是他們的<em class="hi">畢業論文</em>——
+    這輩子他們最清楚、最在意、資料最齊全的一件事。
+    每個人寫下一個日期：我會在這天以前交出來。
+  </p>
+
+  <div class="panel reveal d2">
+    <div class="panel-head"><span>圖 1 · 37 位受訪學生</span><span id="dotsCap">準時 11 人 / 逾期 26 人</span></div>
+    <svg class="dots" id="dots" viewBox="0 0 300 128" role="img"
+         aria-label="37 個圓點代表 37 位學生，其中約 11 個實心圓點代表在自己預測的日期前完成的人，其餘 26 個空心圓點代表沒有。"></svg>
+    <div class="legend">
+      <span class="a"><i></i>在自己說的日期前交出來（約三成）</span>
+      <span class="b"><i></i>沒有</span>
+    </div>
+    <p class="figcap">實心與空心的差別，不只是顏色：實心＝準時，空心＝逾期。</p>
+  </div>
+
+  <dl class="statrow reveal">
+    <div class="stat"><dt>平均預估</dt><dd>33.9<small>天</small></dd></div>
+    <div class="stat accent"><dt>實際平均</dt><dd>55.5<small>天</small></dd></div>
+    <div class="stat"><dt>在自己說的日期前完成</dt><dd>約 30<small>%</small></dd></div>
+  </dl>
+
+  <p class="lede reveal">
+    他們不是懶。他們只是在回答一個人類回答不好的問題。
+    這個低估有個名字，叫<em class="hi">規劃謬誤</em>——Kahneman 與 Tversky 在 1979 年給的。
+    最古怪的地方是：它只針對<em class="hi">自己的</em>任務。
+    同一個人去估別人的進度時，準得多，甚至會往高估的方向偏。
+  </p>
+
+  <div class="echo reveal" id="echo">
+    <p class="eh">回到你那張表 · 欄位 02</p>
+    <div class="echo-line" aria-live="polite">
+      <span class="from" id="echoFrom">—</span>
+      <span class="op">×&nbsp;55.5&nbsp;÷&nbsp;33.9</span>
+      <span class="op">→</span>
+      <span class="to" id="echoTo">—</span>
+    </div>
+    <p>如果你跟那 37 個人是同一種生物，這才是你會交件的時候。<br>
+       先別急著反駁。下一頁還有更難反駁的。</p>
+  </div>
+</section>
+
+<!-- 第二章 -->
+<section class="chapter wrap" id="ch2">
+  <p class="label reveal">第二章 · 連悲觀都不夠悲觀</p>
+  <h2 class="reveal d1">研究者多問了一句：<br>「假如什麼都不順利呢？」</h2>
+  <p class="lede reveal d2">
+    同一批學生，同一份論文。這次要他們想像最糟的版本——
+    資料跑掉、指導教授出國、電腦壞掉、家裡有事。
+    他們認真想了，然後寫下一個數字：<em class="hi">48.6 天</em>。
+    那是他們心裡「不可能再糟了」的那條線。
+  </p>
+
+  <div class="panel axisbox reveal d2" id="axisbox">
+    <div class="panel-head"><span>圖 2 · 三個數字，同一條軸</span><span>單位：天</span></div>
+    <svg class="axis" viewBox="0 0 700 170" role="img"
+         aria-label="一條 0 到 60 天的軸。學生的平均預估落在 33.9 天，最壞情況估計落在 48.6 天，兩者之間是他們想像中的範圍；實際的平均完成時間 55.5 天落在最壞情況的右邊、範圍之外。">
+      <!-- 想像的範圍 -->
+      <rect class="band mk m2" x="399" y="86" width="147" height="22"></rect>
+      <!-- 軸 -->
+      <line class="rule" x1="60" y1="97" x2="670" y2="97"></line>
+      <line class="rule" x1="60" y1="92" x2="60" y2="102"></line>
+      <text x="60" y="122" text-anchor="middle">0</text>
+      <line class="rule" x1="660" y1="92" x2="660" y2="102"></line>
+      <text x="660" y="122" text-anchor="middle">60</text>
+
+      <!-- 33.9 -->
+      <g class="mk m1">
+        <line class="tick t-pred" x1="399" y1="72" x2="399" y2="97"></line>
+        <text class="big" x="399" y="60" text-anchor="middle">33.9</text>
+        <text x="399" y="140" text-anchor="middle">他們的預估</text>
+      </g>
+      <!-- 48.6 -->
+      <g class="mk m2">
+        <line class="tick t-worst" x1="546" y1="72" x2="546" y2="97"></line>
+        <text class="big" x="546" y="60" text-anchor="middle">48.6</text>
+        <text x="546" y="140" text-anchor="middle">最壞的情況</text>
+      </g>
+      <!-- 55.5 -->
+      <g class="mk m3">
+        <line class="tick t-real" x1="615" y1="72" x2="615" y2="97"></line>
+        <text class="big warnfill" x="615" y="42" text-anchor="middle">55.5</text>
+        <text x="615" y="158" text-anchor="middle">實際</text>
+      </g>
+    </svg>
+    <p class="figcap">
+      文字版：預估 33.9 天 → 最壞情況 48.6 天 → 實際 55.5 天。實際值在最壞情況的右邊。
+    </p>
+  </div>
+
+  <p class="punch reveal">
+    實際花的 55.5 天，<br>
+    比他們想像中<em>最糟的版本</em><br>
+    還要久。
+  </p>
+
+  <p class="lede reveal">
+    這句話值得再讀一次。他們不是「有點樂觀」。
+    他們連悲觀的時候都太樂觀。
+    而且——這是最沒得救的部分——
+    研究一再發現，<em class="hi">知道有規劃謬誤這回事，並不會讓你的估計變準</em>。
+    你現在正在讀這一頁，等一下還是會低估。我也是。
+  </p>
+</section>
+
+<!-- 第三章 -->
+<section class="chapter wrap" id="ch3">
+  <p class="label reveal">第三章 · 不是只有你，是所有人</p>
+  <h2 class="reveal d1">1957 年，雪梨也填了一張表。</h2>
+  <p class="lede reveal d2">
+    填表的不是一個熬夜的大四生，是一整個州政府、一支世界級的工程團隊、
+    一份會被全世界盯著看的合約。他們寫下的數字是：
+    <em class="hi">700 萬澳幣</em>、<em class="hi">1963 年 1 月</em>完工。
+  </p>
+
+  <div class="panel barset reveal d2" id="barset">
+    <div class="panel-head"><span>圖 3 · 雪梨歌劇院：計畫 vs 實際</span><span>1957 → 1973</span></div>
+
+    <div class="bargroup">
+      <h3>工期</h3>
+      <div class="barline plan">
+        <span class="who">計畫</span>
+        <div class="bartrack"><div class="barfill" style="--s:.375"></div><span class="barval" style="left:calc(37.5% + 10px)">1963 年 1 月</span></div>
+      </div>
+      <div class="barline real">
+        <span class="who">實際</span>
+        <div class="bartrack"><div class="barfill" style="--s:1"></div><span class="barval">1973 年</span></div>
+      </div>
+      <p class="barnote">晚了十年。</p>
+    </div>
+
+    <div class="bargroup">
+      <h3>造價</h3>
+      <div class="barline plan">
+        <span class="who">計畫</span>
+        <div class="bartrack"><div class="barfill" style="--s:.0686"></div><span class="barval" style="left:calc(6.86% + 10px)">700 萬</span></div>
+      </div>
+      <div class="barline real">
+        <span class="who">實際</span>
+        <div class="bartrack"><div class="barfill" style="--s:1"></div><span class="barval">1 億 200 萬</span></div>
+      </div>
+      <p class="barnote">單位：澳幣。</p>
+    </div>
+
+    <p class="figcap">
+      文字版：工期計畫 1957 至 1963 年 1 月，實際做到 1973 年；造價計畫 700 萬澳幣，實際 1 億 200 萬澳幣。
+    </p>
+  </div>
+
+  <p class="lede reveal">
+    所以問題不在你的意志力，也不在你的行事曆軟體。
+    問題在那個問法本身：<em class="warn">「這次要多久？」</em>
+    只要你去想「這次」，你就會開始想像一條沒有意外的路——
+    因為意外照定義就是想像不到的東西。
+  </p>
+</section>
+
+<!-- 第四章 -->
+<section class="chapter wrap" id="ch4">
+  <p class="label reveal">第四章 · 唯一有效的解藥</p>
+  <h2 class="reveal d1">別問「這次要多久」。<br>問「上次花了多久」。</h2>
+  <p class="lede reveal d2">
+    Kahneman 與 Tversky 把這個動作叫做採取<em class="hi">外部觀點</em>：
+    不要盯著這件事的細節，把它丟回「同一類事情實際花了多久」的那堆數字裡看。
+    這叫<em class="hi">參考類別預測</em>。
+    而你手上剛好有一份別人沒有的參考類別——<strong>你自己的過去</strong>。
+  </p>
+  <p class="lede reveal">
+    回想兩三件已經做完的事。當時你說要多久？實際花了多久？
+    填下去就好，不用精確，記得多少填多少。
+  </p>
+
+  <div class="panel reveal" id="recPanel">
+    <div class="panel-head"><span>表 PF-02 · 你的歷史紀錄</span><span id="recCount">有效紀錄 0 筆</span></div>
+    <div class="recs">
+      <div class="rechead" aria-hidden="true">
+        <span>那件事</span><span>你說要</span><span>實際花了</span><span>單位</span><span></span>
+      </div>
+      <div id="recRows"></div>
+    </div>
+    <div class="recfoot">
+      <button class="ghost" type="button" id="addRow">＋ 再加一筆</button>
+      <span class="small" id="recMsg" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <div class="ctarow reveal">
+    <button class="cta" type="button" id="calcBtn">算出我的膨脹係數</button>
+    <button class="ghost" type="button" id="fallbackBtn">我想不起來，先用研究平均 ×1.6</button>
+  </div>
+  <p class="hint reveal">兩筆就算得出來，三筆比較穩。單位不必一致，因為算的是倍數。</p>
+
+  <div class="reveal-box" id="antidote" hidden>
+    <p class="factor-lab" id="factorLab">你的個人膨脹係數</p>
+    <p class="factor-big" id="factorBig" aria-live="polite">×1.00</p>
+    <p class="factor-sub" id="factorSub"></p>
+    <div class="fixline">
+      <span class="was" id="fixWas">—</span>
+      <span class="arr" aria-hidden="true">→</span>
+      <span class="now" id="fixNow" aria-live="polite">—</span>
+    </div>
+    <p class="fixnote" id="fixNote">這個數字不是我隨便乘的。是你自己的紀錄算出來的。</p>
+  </div>
+</section>
+
+<!-- 第五章 -->
+<section class="chapter wrap" id="ch5">
+  <p class="label reveal">第五章 · 帶著走</p>
+  <h2 class="reveal d1">一台只對你有效的估時器。</h2>
+  <p class="lede reveal d2">
+    係數會留在這台裝置上。以後任何一個「大概三天吧」，
+    丟進來按一下，就會變成一個比較誠實的數字。
+  </p>
+
+  <div class="panel reveal d2">
+    <div class="panel-head"><span>你的係數 vs 那 37 位學生</span><span id="cmpNote">尚未計算</span></div>
+    <div class="cmp" id="cmp">
+      <div class="cmprow you">
+        <span class="nm">你<b>PERSONAL</b></span>
+        <div class="cmptrack"><div class="cmpfill" id="cmpYou"></div></div>
+        <span class="vv" id="cmpYouVal">—</span>
+      </div>
+      <div class="cmprow them">
+        <span class="nm">1994 年那批學生<b>BUEHLER 1994</b></span>
+        <div class="cmptrack"><div class="cmpfill" id="cmpThem"></div></div>
+        <span class="vv">×1.64</span>
+      </div>
+    </div>
+    <p class="figcap">長條長度代表係數大小；數值同時以文字標在右側。係數 ×1.00 代表你說多久就多久。</p>
+  </div>
+
+  <div class="panel reveal">
+    <div class="panel-head"><span>換算任何一個新估計</span><span>PF-03</span></div>
+    <div class="conv">
+      <div class="fld">
+        <label for="convValue">你脫口而出的數字</label>
+        <input id="convValue" type="number" inputmode="decimal" min="0" step="any" placeholder="3" autocomplete="off">
+      </div>
+      <div class="fld">
+        <label for="convUnit">單位</label>
+        <select id="convUnit">
+          <option value="hour">小時</option>
+          <option value="day" selected>天</option>
+          <option value="week">週</option>
+        </select>
+      </div>
+      <div class="fld">
+        <button class="cta" type="button" id="convBtn">換算</button>
+      </div>
+    </div>
+    <div class="convout">
+      <span class="k">誠實版</span>
+      <span class="v" id="convOut" aria-live="polite">—</span>
+      <span class="m" id="convMeta"></span>
+    </div>
+    <div class="recfoot">
+      <button class="ghost" type="button" id="resetBtn">清空我的紀錄與係數</button>
+      <span class="small" id="resetMsg" aria-live="polite"></span>
+    </div>
+  </div>
+</section>
+
+<!-- 結尾 -->
+<section class="outro wrap">
+  <p class="reveal">別誤會，你沒有變準。</p>
+  <p class="reveal d1">下次有人問你，你還是會脫口而出「大概三天吧」——<br>那句話是從嘴巴出來的，不是從腦袋。</p>
+  <p class="reveal d2">差別只在於，這回它出口之後，<br>你心裡會慢半拍地浮出另一個數字。<br>比較醜，比較不討喜，而且是你自己的紀錄算出來的。</p>
+  <p class="reveal d3 last">你可以繼續說三天。<br>但你已經知道要在行事曆上圈哪一天了。</p>
+  <p class="sig reveal d4">— 表 PF-01 · 存查</p>
+</section>
+
+<footer>
+  資料來源：Buehler, Griffin &amp; Ross (1994), Journal of Personality and Social Psychology、Sydney Opera House<br>
+  每日小專案 · 2026-07-30 · 生活痛點小工具
+</footer>
+
+</div><!-- /rest -->
+
+<script src="estimate.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var P = (typeof PlanFall !== 'undefined') ? PlanFall : null;
+  if (!P) return;
+
+  var R = P.RESEARCH;
+  var STUDENT = R.STUDENT_FACTOR;               // ≈ 1.637
+  var KEY = 'planfall_state';
+
+  function $(id) { return document.getElementById(id); }
+  function on(el, ev, fn) { if (el && el.addEventListener) el.addEventListener(ev, fn); }
+
+  /* ---------------- 環境防呆 ---------------- */
+  var hasRAF = (typeof window.requestAnimationFrame === 'function');
+  var raf = hasRAF ? window.requestAnimationFrame.bind(window)
+                   : function (fn) { return setTimeout(fn, 16); };
+  var hasIO = (typeof window.IntersectionObserver === 'function');
+  var hasMM = (typeof window.matchMedia === 'function');
+
+  var reduced = false;
+  var mq = null;
+  if (hasMM) {
+    try { mq = window.matchMedia('(prefers-reduced-motion: reduce)'); } catch (e) { mq = null; }
+  }
+  function applyReduced(v) {
+    reduced = !!v;
+    document.body.classList.toggle('reduce', reduced);
+  }
+  if (mq) {
+    applyReduced(mq.matches);
+    if (typeof mq.addEventListener === 'function') {
+      mq.addEventListener('change', function (e) { applyReduced(e.matches); });
+    } else if (typeof mq.addListener === 'function') {
+      mq.addListener(function (e) { applyReduced(e.matches); });
+    }
+  }
+
+  function pageHidden() { return (typeof document.hidden === 'boolean') ? document.hidden : false; }
+  on(document, 'visibilitychange', function () {
+    document.body.classList.toggle('paused', pageHidden());
+  });
+
+  /* ---------------- 儲存 ---------------- */
+  function load() {
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      return (o && typeof o === 'object') ? o : null;
+    } catch (e) { return null; }
+  }
+  function save(o) {
+    try { window.localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) { /* 無痕模式等等，靜靜略過 */ }
+  }
+  function wipe() {
+    try { window.localStorage.removeItem(KEY); } catch (e) {}
+  }
+
+  var state = load() || {};
+  var records = Array.isArray(state.records) ? state.records.slice(0, 12) : [];
+  var factor = null;
+  var factorSource = null;
+  if (typeof state.factor === 'number' && isFinite(state.factor) && state.factor > 0) {
+    factor = state.factor;
+    factorSource = (state.factorSource === 'reference') ? 'reference' : 'personal';
+  }
+
+  function persist() {
+    save({
+      records: records,
+      factor: factor,
+      factorSource: factorSource,
+      estValue: $('estValue') ? $('estValue').value : '',
+      estUnit: $('estUnit') ? $('estUnit').value : 'day',
+      taskName: $('taskName') ? $('taskName').value : ''
+    });
+  }
+
+  /* ---------------- 捲動進場 ---------------- */
+  var io = null;
+  function watch(el) {
+    if (!el) return;
+    if (reduced || !hasIO) { el.classList.add('in'); return; }
+    if (!io) {
+      io = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+          if (entries[i].isIntersecting) {
+            entries[i].target.classList.add('in');
+            io.unobserve(entries[i].target);
+          }
+        }
+      }, { rootMargin: '0px 0px -12% 0px', threshold: 0.12 });
+    }
+    io.observe(el);
+  }
+  function watchAll(root) {
+    var nodes = (root || document).querySelectorAll('.reveal, .axisbox, .barset');
+    for (var i = 0; i < nodes.length; i++) watch(nodes[i]);
+  }
+
+  // 回首頁按鈕：離開紙面之後換成深色版本（用 IO，不綁 scroll）
+  var paperIO = null;
+  function watchPaper() {
+    if (paperIO || !hasIO) return;
+    var ps = $('paperstage');
+    if (!ps) return;
+    try {
+      paperIO = new IntersectionObserver(function (entries) {
+        document.body.classList.toggle('dark', !entries[0].isIntersecting);
+      }, { threshold: 0, rootMargin: '-45% 0px -45% 0px' });
+      paperIO.observe(ps);
+    } catch (e) { paperIO = null; }
+  }
+
+  /* ---------------- 圖 1：37 個點 ---------------- */
+  (function buildDots() {
+    var svg = $('dots');
+    if (!svg) return;
+    var n = R.buehler1994.n;                       // 37
+    var onTime = Math.round(n * R.buehler1994.onTimeRate); // ≈ 11
+    var perRow = 10, r = 8, gapX = 30, gapY = 30, x0 = 20, y0 = 20;
+    var frag = '';
+    for (var i = 0; i < n; i++) {
+      var cx = x0 + (i % perRow) * gapX;
+      var cy = y0 + Math.floor(i / perRow) * gapY;
+      var cls = (i < onTime) ? 'ontime' : 'late';
+      frag += '<circle class="' + cls + '" cx="' + cx + '" cy="' + cy + '" r="' + r + '"></circle>';
+    }
+    svg.innerHTML = frag;
+    var cap = $('dotsCap');
+    if (cap) cap.textContent = '準時 ' + onTime + ' 人 / 逾期 ' + (n - onTime) + ' 人';
+  })();
+
+  /* ---------------- 第一屏：估時單 ---------------- */
+  var sheet = $('sheet'), estValue = $('estValue'), estUnit = $('estUnit'),
+      estErr = $('estErr'), perf = $('perf'), rest = $('rest'), stamp = $('stamp');
+
+  if (typeof state.estValue === 'string' && estValue) estValue.value = state.estValue;
+  if (typeof state.estUnit === 'string' && estUnit && P.isUnit(state.estUnit)) estUnit.value = state.estUnit;
+  if (typeof state.taskName === 'string' && $('taskName')) $('taskName').value = state.taskName;
+
+  var opened = false;
+
+  function currentEstimate() {
+    var v = P.parseAmount(estValue ? estValue.value : null);
+    var u = (estUnit && P.isUnit(estUnit.value)) ? estUnit.value : 'day';
+    return { value: v, unit: u };
+  }
+
+  function openRest(scroll) {
+    if (!rest) return;
+    if (!opened) {
+      opened = true;
+      rest.hidden = false;
+      if (perf) perf.hidden = false;
+      if (sheet) sheet.classList.add('stamped');
+      watchPaper();
+      watchAll(rest);
+      // 第一批已經在畫面上的元素直接點亮
+      raf(function () { watchAll(rest); });
+    }
+    if (scroll) {
+      var t = $('ch1');
+      if (t && typeof t.scrollIntoView === 'function') {
+        try { t.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' }); }
+        catch (e) { t.scrollIntoView(); }
+      }
+    }
+  }
+
+  function updateEcho() {
+    var e = currentEstimate();
+    var from = $('echoFrom'), to = $('echoTo');
+    if (!from || !to) return;
+    if (e.value === null || e.value <= 0) {
+      from.textContent = '—';
+      to.textContent = '—';
+      return;
+    }
+    from.textContent = P.formatDuration(e.value, e.unit);
+    var out = P.applyFactor(e.value, STUDENT);
+    to.textContent = (out === null) ? '—' : P.formatDuration(out, e.unit);
+  }
+
+  on(sheet, 'submit', function (ev) {
+    ev.preventDefault();
+    var e = currentEstimate();
+    if (e.value === null) {
+      if (estErr) estErr.textContent = '欄位 02 還是空的（或不是一個數字）。填一個就好。';
+      if (estValue) estValue.focus();
+      return;
+    }
+    if (e.value <= 0) {
+      if (estErr) estErr.textContent = '要大於 0 才算是一段時間。';
+      if (estValue) estValue.focus();
+      return;
+    }
+    if (estErr) estErr.textContent = '';
+    persist();
+    updateEcho();
+    refreshAll();
+    openRest(true);
+  });
+
+  on(estValue, 'input', function () {
+    if (estErr) estErr.textContent = '';
+    updateEcho();
+    refreshFix();
+    persist();
+  });
+  on(estUnit, 'change', function () {
+    updateEcho();
+    refreshFix();
+    persist();
+  });
+  on($('taskName'), 'input', persist);
+
+  /* ---------------- 第四章：紀錄表 ---------------- */
+  var recRows = $('recRows');
+
+  function blankRecord() {
+    return { name: '', predicted: '', actual: '', unit: 'day' };
+  }
+  if (records.length === 0) {
+    records = [blankRecord(), blankRecord(), blankRecord()];
+  }
+
+  function unitOptions(sel) {
+    var out = '';
+    for (var i = 0; i < P.UNIT_ORDER.length; i++) {
+      var u = P.UNIT_ORDER[i];
+      out += '<option value="' + u + '"' + (u === sel ? ' selected' : '') + '>' + P.UNITS[u].label + '</option>';
+    }
+    return out;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function renderRows() {
+    if (!recRows) return;
+    var html = '';
+    for (var i = 0; i < records.length; i++) {
+      var r = records[i], n = i + 1;
+      html +=
+        '<div class="rec" data-i="' + i + '">' +
+          '<input class="rec-name" type="text" maxlength="20" autocomplete="off" value="' + esc(r.name) + '" ' +
+            'placeholder="第 ' + n + ' 件事" aria-label="第 ' + n + ' 筆：這件事叫什麼">' +
+          '<div class="nums">' +
+            '<label><span class="mini">你說要</span>' +
+              '<input class="rec-p" type="number" inputmode="decimal" min="0" step="any" autocomplete="off" ' +
+              'value="' + esc(r.predicted) + '" placeholder="2" aria-label="第 ' + n + ' 筆：你當時說要多久"></label>' +
+            '<label><span class="mini">實際花了</span>' +
+              '<input class="rec-a" type="number" inputmode="decimal" min="0" step="any" autocomplete="off" ' +
+              'value="' + esc(r.actual) + '" placeholder="5" aria-label="第 ' + n + ' 筆：實際花了多久"></label>' +
+            '<label><span class="mini">單位</span>' +
+              '<select class="rec-u" aria-label="第 ' + n + ' 筆：單位">' + unitOptions(r.unit) + '</select></label>' +
+          '</div>' +
+          '<button class="del" type="button" data-del="' + i + '" aria-label="刪除第 ' + n + ' 筆紀錄">×</button>' +
+        '</div>';
+    }
+    recRows.innerHTML = html;
+    markBad();
+  }
+
+  function markBad() {
+    if (!recRows) return;
+    var rows = recRows.querySelectorAll('.rec');
+    for (var i = 0; i < rows.length; i++) {
+      var r = records[i];
+      if (!r) continue;
+      var pEl = rows[i].querySelector('.rec-p');
+      var aEl = rows[i].querySelector('.rec-a');
+      var pv = P.parseAmount(r.predicted);
+      var av = P.parseAmount(r.actual);
+      var pBad = (String(r.predicted).trim() !== '') && !(pv !== null && pv > 0);
+      var aBad = (String(r.actual).trim() !== '') && !(av !== null && av > 0);
+      if (pEl) pEl.classList.toggle('bad', pBad);
+      if (aEl) aEl.classList.toggle('bad', aBad);
+    }
+  }
+
+  function readRows() {
+    if (!recRows) return;
+    var rows = recRows.querySelectorAll('.rec');
+    for (var i = 0; i < rows.length; i++) {
+      if (!records[i]) continue;
+      var nEl = rows[i].querySelector('.rec-name');
+      var pEl = rows[i].querySelector('.rec-p');
+      var aEl = rows[i].querySelector('.rec-a');
+      var uEl = rows[i].querySelector('.rec-u');
+      records[i].name = nEl ? nEl.value : '';
+      records[i].predicted = pEl ? pEl.value : '';
+      records[i].actual = aEl ? aEl.value : '';
+      records[i].unit = (uEl && P.isUnit(uEl.value)) ? uEl.value : 'day';
+    }
+  }
+
+  function validCount() {
+    return P.countValidRecords(records);
+  }
+
+  function updateRecCount() {
+    var el = $('recCount');
+    if (el) el.textContent = '有效紀錄 ' + validCount() + ' 筆';
+  }
+
+  on(recRows, 'input', function () {
+    readRows(); markBad(); updateRecCount(); persist();
+  });
+  on(recRows, 'change', function () {
+    readRows(); markBad(); updateRecCount(); persist();
+  });
+  on(recRows, 'click', function (ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+    var idx = t.getAttribute('data-del');
+    if (idx === null) return;
+    readRows();
+    var i = parseInt(idx, 10);
+    if (isNaN(i) || i < 0 || i >= records.length) return;
+    records.splice(i, 1);
+    if (records.length === 0) records.push(blankRecord());
+    renderRows(); updateRecCount(); persist();
+    var msg = $('recMsg');
+    if (msg) msg.textContent = '刪掉了一筆。';
+    // 刪掉後若係數是個人的，重算一次
+    if (factorSource === 'personal') recompute(false);
+  });
+
+  on($('addRow'), 'click', function () {
+    readRows();
+    if (records.length >= 12) {
+      var m = $('recMsg');
+      if (m) m.textContent = '12 筆夠了。再多也不會更準。';
+      return;
+    }
+    records.push(blankRecord());
+    renderRows(); updateRecCount(); persist();
+    var rows = recRows ? recRows.querySelectorAll('.rec') : [];
+    var last = rows[rows.length - 1];
+    var inp = last ? last.querySelector('.rec-name') : null;
+    if (inp && inp.focus) inp.focus();
+  });
+
+  /* ---------------- 高潮：算係數 ---------------- */
+  var rollToken = 0;
+
+  function rollFactor(target) {
+    var el = $('factorBig');
+    if (!el) return;
+    if (reduced || !hasRAF || pageHidden()) {
+      el.textContent = P.formatFactor(target);
+      return;
+    }
+    var token = ++rollToken;
+    var start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    var from = 1;
+    var dur = 900;
+    function step(now) {
+      if (token !== rollToken) return;
+      if (pageHidden()) { el.textContent = P.formatFactor(target); return; }
+      var t = Math.min(1, ((now || Date.now()) - start) / dur);
+      var eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = P.formatFactor(from + (target - from) * eased);
+      if (t < 1) raf(step);
+      else el.textContent = P.formatFactor(target);
+    }
+    raf(step);
+  }
+
+  function recompute(animate) {
+    readRows();
+    var res = P.factorOrFallback(records);
+    if (res.source === 'personal') {
+      factor = res.factor;
+      factorSource = 'personal';
+    } else if (factorSource !== 'reference') {
+      // 沒有有效紀錄，而且使用者也沒選過備援 → 不硬套
+      factor = null;
+      factorSource = null;
+    }
+    persist();
+    refreshAll(animate);
+    return res;
+  }
+
+  on($('calcBtn'), 'click', function () {
+    readRows();
+    markBad();
+    updateRecCount();
+    var msg = $('recMsg');
+    if (validCount() === 0) {
+      if (msg) msg.textContent = '還沒有可用的紀錄——「你說要」和「實際花了」都要填，而且都要大於 0。';
+      var firstBad = recRows ? recRows.querySelector('.rec-p') : null;
+      if (firstBad && firstBad.focus) firstBad.focus();
+      return;
+    }
+    if (msg) msg.textContent = '';
+    factorSource = 'personal';
+    factor = P.inflationFactor(records);
+    persist();
+    refreshAll(true);
+    showAntidote();
+  });
+
+  on($('fallbackBtn'), 'click', function () {
+    factor = R.FALLBACK_FACTOR;
+    factorSource = 'reference';
+    persist();
+    refreshAll(true);
+    showAntidote();
+  });
+
+  function showAntidote() {
+    var box = $('antidote');
+    if (!box) return;
+    var wasHidden = box.hidden;
+    box.hidden = false;
+    if (wasHidden && !reduced) {
+      box.classList.add('reveal');
+      box.getBoundingClientRect();               // 強制 reflow，確保過渡一定會播
+      raf(function () { box.classList.add('in'); });
+    } else {
+      box.classList.add('reveal', 'in');
+    }
+    rollFactor(factor);
+  }
+
+  /* ---------------- 畫面更新 ---------------- */
+  function refreshFix() {
+    var e = currentEstimate();
+    var was = $('fixWas'), now = $('fixNow'), note = $('fixNote');
+    if (!was || !now) return;
+    if (e.value === null || e.value <= 0) {
+      was.textContent = '—';
+      now.textContent = '—';
+      if (note) note.textContent = '回到最上面把欄位 02 填一個數字，這裡就會有東西。';
+      return;
+    }
+    was.textContent = P.formatDuration(e.value, e.unit);
+    if (factor === null) {
+      now.textContent = '—';
+      return;
+    }
+    var out = P.applyFactor(e.value, factor);
+    now.textContent = (out === null) ? '—' : P.formatDuration(out, e.unit);
+    if (note) {
+      note.textContent = (factorSource === 'reference')
+        ? '這是研究平均值算的。等你想起兩筆自己的紀錄，它就會變成只屬於你的數字。'
+        : '這個數字不是我隨便乘的。是你自己的紀錄算出來的。';
+    }
+  }
+
+  function refreshFactorPanels(animate) {
+    var lab = $('factorLab'), sub = $('factorSub');
+    var youBar = $('cmpYou'), themBar = $('cmpThem'), youVal = $('cmpYouVal'), cmpNote = $('cmpNote');
+
+    var maxF = Math.max(factor || 0, STUDENT, 2);
+    var sYou = (factor && factor > 0) ? Math.min(1, factor / maxF) : 0;
+    var sThem = Math.min(1, STUDENT / maxF);
+
+    function setBar(el, s) {
+      if (!el) return;
+      if (reduced || !hasRAF) { el.style.transition = 'none'; el.style.transform = 'scaleX(' + s + ')'; return; }
+      el.style.transition = 'none';
+      el.style.transform = 'scaleX(0)';
+      el.getBoundingClientRect();
+      raf(function () {
+        el.style.transition = '';
+        el.style.transform = 'scaleX(' + s + ')';
+      });
+    }
+
+    if (animate) { setBar(youBar, sYou); setBar(themBar, sThem); }
+    else {
+      if (youBar) youBar.style.transform = 'scaleX(' + sYou + ')';
+      if (themBar) themBar.style.transform = 'scaleX(' + sThem + ')';
+    }
+
+    var big = $('factorBig');
+    if (big && !animate) big.textContent = (factor && factor > 0) ? P.formatFactor(factor) : '—';
+
+    if (youVal) youVal.textContent = (factor && factor > 0) ? P.formatFactor(factor) : '—';
+    if (cmpNote) {
+      cmpNote.textContent = (factor === null) ? '尚未計算'
+        : (factorSource === 'reference' ? '目前用研究平均值' : '依你的 ' + validCount() + ' 筆紀錄');
+    }
+
+    if (lab) lab.textContent = (factorSource === 'reference') ? '研究平均膨脹係數' : '你的個人膨脹係數';
+    if (sub) {
+      if (factor === null) { sub.textContent = ''; }
+      else if (factorSource === 'reference') {
+        sub.textContent = '借來的數字，先擋著用。';
+      } else {
+        var n = validCount();
+        var diff = factor / STUDENT;
+        var cmpTxt;
+        if (Math.abs(factor - 1) < 0.02) cmpTxt = '你說多久就多久。這很罕見，保重。';
+        else if (factor < 1) cmpTxt = '你其實高估了自己需要的時間——這一類人存在，只是不多。';
+        else if (diff < 0.85) cmpTxt = '比 1994 年那批學生穩。';
+        else if (diff > 1.25) cmpTxt = '比 1994 年那批學生更會低估。';
+        else cmpTxt = '跟 1994 年那批學生差不多。';
+        sub.textContent = '由你的 ' + n + ' 筆紀錄取幾何平均。' + cmpTxt;
+      }
+    }
+  }
+
+  function refreshConv() {
+    var out = $('convOut'), meta = $('convMeta');
+    if (!out) return;
+    if (factor === null) {
+      out.textContent = '—';
+      if (meta) meta.textContent = '先在第四章算出係數。';
+    }
+  }
+
+  function refreshAll(animate) {
+    updateEcho();
+    updateRecCount();
+    refreshFix();
+    refreshFactorPanels(!!animate);
+    refreshConv();
+  }
+
+  /* ---------------- 第五章：換算器 ---------------- */
+  on($('convBtn'), 'click', function () {
+    var out = $('convOut'), meta = $('convMeta');
+    var vEl = $('convValue'), uEl = $('convUnit');
+    var v = P.parseAmount(vEl ? vEl.value : null);
+    var u = (uEl && P.isUnit(uEl.value)) ? uEl.value : 'day';
+    if (!out) return;
+    if (v === null || v <= 0) {
+      out.textContent = '—';
+      if (meta) meta.textContent = '請填一個大於 0 的數字。';
+      if (vEl && vEl.focus) vEl.focus();
+      return;
+    }
+    if (factor === null) {
+      out.textContent = '—';
+      if (meta) meta.textContent = '還沒有係數。先回第四章算一個，或直接用研究平均 ×1.6。';
+      return;
+    }
+    var r = P.applyFactor(v, factor);
+    if (r === null) {
+      out.textContent = '—';
+      if (meta) meta.textContent = '這組數字算不出來，換一個試試。';
+      return;
+    }
+    out.textContent = P.formatDuration(r, u);
+    if (meta) meta.textContent = P.formatDuration(v, u) + ' ' + P.formatFactor(factor) +
+      '（' + (factorSource === 'reference' ? '研究平均' : '你的紀錄') + '）';
+  });
+
+  on($('convValue'), 'keydown', function (ev) {
+    if (ev && ev.key === 'Enter') {
+      ev.preventDefault();
+      var b = $('convBtn');
+      if (b && b.click) b.click();
+    }
+  });
+
+  on($('resetBtn'), 'click', function () {
+    records = [blankRecord(), blankRecord(), blankRecord()];
+    factor = null;
+    factorSource = null;
+    wipe();
+    persist();
+    renderRows();
+    var box = $('antidote');
+    if (box) { box.hidden = true; box.classList.remove('in'); }
+    var out = $('convOut'), meta = $('convMeta');
+    if (out) out.textContent = '—';
+    if (meta) meta.textContent = '';
+    refreshAll(false);
+    var m = $('resetMsg');
+    if (m) m.textContent = '清空了。隨時可以重來。';
+    var rm = $('recMsg');
+    if (rm) rm.textContent = '';
+  });
+
+  /* ---------------- 啟動 ---------------- */
+  renderRows();
+  watchAll(document);
+  refreshAll(false);
+
+  // 之前來過、已經填過表的人：直接把後面攤開，不用再填一次
+  var e0 = currentEstimate();
+  if (e0.value !== null && e0.value > 0) {
+    openRest(false);
+    if (factor !== null) {
+      var box = $('antidote');
+      if (box) { box.hidden = false; box.classList.add('reveal', 'in'); }
+      var fb = $('factorBig');
+      if (fb) fb.textContent = P.formatFactor(factor);
+      refreshAll(false);
+    }
+  }
+})();
+</script>
+</body>
+</html>

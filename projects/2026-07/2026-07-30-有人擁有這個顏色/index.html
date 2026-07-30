@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有人擁有這個顏色 · 顏色可以被註冊成商標嗎</title>
+<meta name="description" content="一片顏色，一個主人。從 Tiffany 藍到 Cadbury 紫，親手當一次商標審查官。">
+<style>
+  :root{
+    --serif:"Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"PMingLiU",serif;
+    --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"SFMono-Regular",Menlo,Consolas,"Roboto Mono",monospace;
+    --ease:cubic-bezier(.22,.8,.3,1);
+  }
+  *{box-sizing:border-box}
+  html{
+    -webkit-text-size-adjust:100%;
+    scroll-behavior:smooth;
+  }
+  body{
+    margin:0;
+    background:#81D8D0;
+    font-family:var(--sans);
+    line-height:1.75;
+    letter-spacing:.015em;
+    -webkit-font-smoothing:antialiased;
+    transition:background-color .8s var(--ease);
+    overflow-x:hidden;
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+  }
+
+  /* ---------- 一屏 ---------- */
+  .screen{
+    position:relative;
+    isolation:isolate;
+    min-height:100vh;
+    min-height:100svh;
+    display:flex;
+    padding:clamp(28px,7vw,96px) clamp(20px,6vw,72px);
+    background-color:var(--bg);
+    color:var(--ink);
+    transition:background-color .8s var(--ease), color .8s var(--ease);
+  }
+  /* 用 margin:auto 置中而不是 align-items:center —— 內容比視窗高時才不會被切掉上緣 */
+  .inner{margin:auto;width:100%;max-width:58rem}
+  .screen::before,.screen::after{
+    content:"";position:absolute;left:0;right:0;height:26vh;
+    pointer-events:none;z-index:-1;
+  }
+  .screen::before{top:0;background:linear-gradient(to bottom,var(--from,transparent),var(--from0,transparent))}
+  .screen::after{bottom:0;background:linear-gradient(to top,var(--to,transparent),var(--to0,transparent))}
+
+  /* ---------- 排版階梯 ---------- */
+  .whisper{
+    font-family:var(--sans);
+    font-size:clamp(15px,2.3vw,20px);
+    letter-spacing:.34em;
+    text-indent:.34em;
+    font-weight:500;
+    margin:0;
+    text-align:center;
+  }
+  .kicker{
+    font-size:clamp(11px,1.5vw,13px);
+    letter-spacing:.3em;
+    text-indent:.3em;
+    text-transform:uppercase;
+    font-weight:600;
+    --o:.62;opacity:.62;
+    margin:0 0 clamp(18px,3vw,30px);
+  }
+  h1,h2,h3{font-family:var(--serif);font-weight:700;margin:0}
+  h1{
+    font-size:clamp(30px,6.6vw,64px);
+    line-height:1.2;
+    letter-spacing:.005em;
+  }
+  h2{
+    font-size:clamp(27px,5.6vw,54px);
+    line-height:1.24;
+  }
+  h3{font-size:clamp(19px,2.8vw,27px);line-height:1.35}
+  .lede{
+    font-size:clamp(17px,2.3vw,22px);
+    margin:clamp(20px,3.4vw,32px) 0 0;
+    max-width:36em;
+  }
+  .fact{
+    font-size:clamp(15px,1.8vw,17.5px);
+    opacity:.86;
+    max-width:34em;
+    margin:0;
+  }
+  .rule{
+    height:1px;border:0;margin:clamp(26px,4vw,42px) 0;
+    background:currentColor;opacity:.22;
+  }
+  .mono{font-family:var(--mono);letter-spacing:.06em}
+  .dim{opacity:.72}
+
+  /* ---------- 進場 ---------- */
+  /* --o = 這個元素本來該有的不透明度。進場動畫回到 --o 而不是寫死 1，
+     否則 .js .rv.in 的特異性會把 .kicker / .echo 的層級蓋掉。 */
+  .js .rv{opacity:0;transform:translateY(18px)}
+  .js .rv.in{
+    opacity:var(--o,1);transform:none;
+    transition:opacity .8s var(--ease) var(--d,0s), transform .8s var(--ease) var(--d,0s);
+  }
+  .no-io .rv,.reduced .rv{opacity:var(--o,1) !important;transform:none !important}
+
+  /* 判決紀錄與結尾在答完之前不出現；沒有 JS 時一律顯示 */
+  .js .locked{display:none}
+
+  /* ---------- 回首頁 ---------- */
+  .home{
+    position:fixed;top:14px;left:14px;z-index:50;
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:13px;letter-spacing:.1em;
+    text-decoration:none;
+    color:#ffffff;
+    background:rgba(0,0,0,.78);
+    border:1px solid rgba(255,255,255,.42);
+    border-radius:999px;
+    padding:7px 15px 8px;
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    transition:transform .25s var(--ease), background-color .25s var(--ease);
+  }
+  .home:hover{background:rgba(0,0,0,.9);transform:translateX(-2px)}
+
+  /* ---------- 聚焦樣式（在任何背景色上都看得見） ---------- */
+  a:focus-visible,button:focus-visible{
+    outline:3px solid currentColor;
+    outline-offset:4px;
+    border-radius:4px;
+  }
+  .home:focus-visible{outline:3px solid #ffffff;outline-offset:3px}
+  .btn:focus-visible{outline:3px solid currentColor;outline-offset:5px}
+
+  /* ---------- 第一屏 ---------- */
+  .hook .inner{display:flex;flex-direction:column;align-items:center;gap:0}
+  .cue{
+    position:absolute;left:0;right:0;bottom:clamp(22px,5vh,46px);
+    text-align:center;font-size:11.5px;letter-spacing:.3em;text-indent:.3em;
+    opacity:.5;
+  }
+  .cue span{display:inline-block;animation:nudge 2.6s var(--ease) infinite}
+  @keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+  .reduced .cue span{animation:none}
+
+  /* ---------- 章節 ---------- */
+  .beat{margin:0 0 clamp(14px,2vw,20px);font-size:clamp(17px,2.3vw,22px);max-width:32em}
+  .beat:last-child{margin-bottom:0}
+  .reveal-card{
+    margin-top:clamp(30px,5vw,52px);
+    border-top:2px solid currentColor;
+    padding-top:clamp(20px,3vw,30px);
+  }
+  .brand{
+    font-family:var(--serif);
+    font-size:clamp(34px,8.4vw,86px);
+    line-height:1.05;
+    font-weight:700;
+    letter-spacing:.01em;
+    margin:0 0 6px;
+  }
+  .swatchline{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;
+    font-family:var(--mono);font-size:13.5px;letter-spacing:.08em;
+    margin:0 0 clamp(18px,3vw,26px);
+  }
+  .facts{list-style:none;padding:0;margin:0;display:grid;gap:clamp(12px,2vw,18px)}
+  .facts li{
+    display:grid;grid-template-columns:4.6rem 1fr;gap:clamp(10px,2vw,20px);
+    align-items:baseline;font-size:clamp(15px,1.85vw,17.5px);
+  }
+  .facts .yr{
+    font-family:var(--mono);font-weight:700;letter-spacing:.04em;
+    font-size:clamp(14px,1.7vw,16px);opacity:.72;
+  }
+
+  /* ---------- 測驗舞台 ---------- */
+  .quiz .inner{max-width:50rem}
+  .stagehead{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+    gap:12px;margin-bottom:clamp(22px,4vw,40px);
+  }
+  /* 舞台上的文字一律不用 opacity 做層級——大面積飽和色的對比餘裕本來就小，
+     半透明會把 4.68:1 直接吃掉。層級改用字級／字重／字距。 */
+  .counter{font-family:var(--mono);font-size:13px;letter-spacing:.12em;margin:0}
+  .dots{display:flex;gap:7px;list-style:none;padding:0;margin:0}
+  .dots li{
+    width:10px;height:10px;border-radius:50%;
+    border:1.5px solid currentColor;opacity:.6;
+    transition:opacity .3s var(--ease), background-color .3s var(--ease);
+  }
+  .dots li[data-state="now"]{opacity:1}
+  .dots li[data-state="done"]{opacity:1;background:currentColor}
+  .qtext{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(25px,5.2vw,50px);line-height:1.26;margin:0;
+  }
+  .qmeta{
+    display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;
+    font-family:var(--mono);font-size:13.5px;letter-spacing:.08em;
+    margin:clamp(16px,2.6vw,24px) 0 0;
+  }
+  .qmeta .tag{
+    border:1px solid currentColor;border-radius:999px;padding:3px 11px 4px;
+  }
+  .choices{
+    display:flex;flex-wrap:wrap;gap:14px;
+    margin:clamp(26px,4.4vw,40px) 0 0;
+  }
+  .btn{
+    font:inherit;font-weight:700;
+    font-size:clamp(16px,2.1vw,19px);
+    letter-spacing:.12em;text-indent:.12em;
+    color:currentColor;background:transparent;
+    border:2px solid currentColor;border-radius:999px;
+    padding:13px 34px 14px;
+    cursor:pointer;
+    transition:transform .2s var(--ease), background-color .22s var(--ease), color .22s var(--ease), opacity .3s var(--ease);
+  }
+  .btn:hover:not(:disabled){background:currentColor;color:var(--bg);transform:translateY(-2px)}
+  .btn:active:not(:disabled){transform:translateY(0)}
+  .btn:disabled{cursor:default;opacity:.5}
+  .btn[data-picked="1"]:disabled{opacity:1;background:currentColor;color:var(--bg)}
+  .reduced .btn{transition:background-color .22s linear, color .22s linear}
+  .reduced .btn:hover:not(:disabled){transform:none}
+  .btn.ghost{border-width:1.5px;font-weight:600;padding:10px 24px 11px;font-size:15px;letter-spacing:.1em}
+
+  .verdict{
+    position:relative;
+    margin-top:clamp(26px,4vw,38px);
+    min-height:9rem;
+  }
+  .stamp{
+    display:inline-block;
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(20px,3.2vw,30px);
+    letter-spacing:.16em;text-indent:.16em;
+    border:3px solid currentColor;border-radius:6px;
+    padding:6px 20px 9px;
+    transform:rotate(-6deg) scale(2.1);
+    opacity:0;
+  }
+  .stamp.hit{
+    transform:rotate(-6deg) scale(1);
+    opacity:1;
+    transition:transform .42s cubic-bezier(.2,1.5,.42,1), opacity .18s linear;
+  }
+  .reduced .stamp{transform:rotate(-6deg) scale(1);opacity:0}
+  .reduced .stamp.hit{opacity:1;transition:opacity .5s linear}
+  .vtitle{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(21px,3.4vw,32px);line-height:1.3;
+    margin:clamp(14px,2.2vw,20px) 0 0;
+  }
+  .vwhy{
+    font-size:clamp(15px,1.85vw,17.5px);
+    margin:10px 0 0;max-width:34em;
+  }
+  .vpick{
+    font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;
+    margin:14px 0 0;
+  }
+  .next{margin-top:clamp(20px,3vw,28px)}
+
+  /* ---------- 分數 ---------- */
+  .board{text-align:left}
+  .bignum{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(72px,20vw,190px);line-height:.92;
+    letter-spacing:-.02em;display:block;
+  }
+  .outof{font-size:clamp(20px,4vw,34px);opacity:.55;font-weight:400}
+  .verdictlist{list-style:none;padding:0;margin:clamp(26px,4vw,38px) 0 0;display:grid;gap:9px}
+  .verdictlist li{
+    position:relative;
+    display:grid;grid-template-columns:1.6rem 1fr auto;gap:12px;align-items:baseline;
+    font-size:clamp(14px,1.7vw,16px);
+    padding-bottom:10px;
+  }
+  .verdictlist li::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:1px;
+    background:currentColor;opacity:.22;
+  }
+  .verdictlist .mark{font-family:var(--mono);font-weight:700}
+  .verdictlist .res{font-family:var(--mono);font-size:12.5px;opacity:.72;letter-spacing:.06em;white-space:nowrap}
+  .note{
+    font-size:13px;opacity:.6;margin:clamp(24px,3.6vw,34px) 0 0;max-width:32em;
+  }
+
+  /* ---------- 結尾 ---------- */
+  .finale .beat{font-size:clamp(18px,2.5vw,24px)}
+  .punch{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(26px,5.6vw,56px);line-height:1.24;
+    margin:clamp(28px,4.6vw,48px) 0 0;max-width:20em;
+  }
+  .echo{
+    margin-top:clamp(30px,5vw,54px);
+    font-size:clamp(14px,1.9vw,17px);
+    letter-spacing:.24em;text-indent:.24em;
+    --o:.62;opacity:.62;
+  }
+
+  footer{
+    background:#81D8D0;color:#000000;
+    padding:0 clamp(20px,6vw,72px) clamp(40px,7vw,70px);
+    font-size:12.5px;line-height:1.9;
+  }
+  footer .inner{max-width:58rem;margin:0 auto;opacity:.62}
+
+  /* ---------- 手機 ---------- */
+  @media (max-width:560px){
+    .screen{padding:82px 20px 70px}
+    .facts li{grid-template-columns:1fr;gap:2px}
+    .facts .yr{display:block}
+    .choices{gap:11px}
+    .btn{flex:1 1 auto;min-width:44%;padding:15px 18px 16px}
+    .verdictlist li{grid-template-columns:1.4rem 1fr;row-gap:2px}
+    .verdictlist .res{grid-column:2;white-space:normal}
+    .stagehead{align-items:flex-start}
+  }
+  /* 降級：位移、彈跳、脈動全部拿掉；大色面之間只留緩慢的交叉淡化——
+     幾百像素的飽和色硬切會閃，淡化反而溫和。 */
+  @media (prefers-reduced-motion: reduce){
+    .cue span{animation:none}
+    .btn:hover:not(:disabled){transform:none}
+    .home:hover{transform:none}
+    .screen{transition:background-color 1s linear, color 1s linear}
+  }
+  .reduced .home:hover{transform:none}
+  .reduced .screen{transition:background-color 1s linear, color 1s linear}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
+
+<main>
+
+  <!-- ①　鉤子 -->
+  <section class="screen hook" data-bg="#81D8D0" style="--bg:#81D8D0;--ink:#000000">
+    <div class="inner">
+      <p class="whisper">這個顏色有主人。</p>
+    </div>
+    <p class="cue" aria-hidden="true"><span>往下</span></p>
+  </section>
+
+  <!-- ②　第一章：你認得它 -->
+  <section class="screen" data-bg="#81D8D0" style="--bg:#81D8D0;--ink:#000000">
+    <div class="inner">
+      <p class="kicker rv">第一章</p>
+      <h1 class="rv" style="--d:.06s">你剛剛已經想到那個牌子了，對吧？</h1>
+      <p class="lede rv" style="--d:.14s">
+        你沒看到商標，沒看到字，沒看到任何一樣東西。<br>
+        只有一片顏色，而你的腦子在半秒內就把名字補上了。
+      </p>
+
+      <div class="reveal-card rv" style="--d:.6s">
+        <p class="brand">Tiffany&nbsp;&amp;&nbsp;Co.</p>
+        <p class="swatchline">
+          <span>Pantone 1837</span>
+          <span>#81D8D0</span>
+          <span class="dim">淺青綠</span>
+        </p>
+        <ul class="facts">
+          <li><span class="yr">1837</span><span>色號就是創立年份。他們把生日印在了自己的顏色上。</span></li>
+          <li><span class="yr">1998</span><span>向美國專利商標局（USPTO）申請，把這個顏色註冊成顏色商標。</span></li>
+          <li><span class="yr">2001</span><span>由 Pantone 為它特別調製。不對外販售——你買不到這一罐。</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③　第二章：怎麼可能 -->
+  <section class="screen" data-bg="#F2EDE4"
+           style="--bg:#F2EDE4;--ink:#000000;--from:#81D8D0;--from0:rgba(129,216,208,0);--to:#644117;--to0:rgba(100,65,23,0)">
+    <div class="inner">
+      <p class="kicker rv">第二章</p>
+      <h2 class="rv" style="--d:.06s">等一下。<br>一個人，怎麼能擁有一個顏色？</h2>
+
+      <div class="reveal-card rv" style="--d:.16s">
+        <h3>1995 年 · 美國最高法院 · Qualitex v. Jacobson</h3>
+        <p class="fact" style="margin-top:14px">
+          故事的主角不是精品店，是一家做<strong>乾洗機燙台墊片</strong>的公司。
+          它把墊片染成一種獨特的綠金色。這件小事一路打到了美國最高法院。
+        </p>
+        <hr class="rule">
+        <p class="beat"><strong>法院說：沒有任何規則絕對禁止顏色本身當商標。</strong></p>
+        <p class="fact">但要過兩關——</p>
+        <ul class="facts" style="margin-top:16px">
+          <li><span class="yr">其一</span><span>那個顏色在消費者心裡，已經代表「這東西是誰做的」。法律上叫<strong>第二層意義</strong>（secondary meaning）。</span></li>
+          <li><span class="yr">其二</span><span>它<strong>不具功能性</strong>。顏色只能是招牌，不能是零件。</span></li>
+        </ul>
+        <hr class="rule">
+        <p class="beat">不過，第一個真的拿到的，比這更早十年。</p>
+        <p class="fact">
+          <strong>1985 年，In re Owens-Corning Fiberglas。</strong>
+          粉紅色的玻璃纖維隔熱棉——美國史上第一個顏色商標。
+          他們甚至請了粉紅豹來當代言人。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④　第三章：你來當審查官 -->
+  <section class="screen quiz" id="quiz" data-bg="#644117" data-stage="1"
+           style="--bg:#644117;--ink:#ffffff">
+    <div class="inner">
+      <div class="stagehead">
+        <p class="counter" id="counter">第 1 題 ／ 共 6 題</p>
+        <ul class="dots" id="dots" aria-hidden="true"></ul>
+      </div>
+
+      <h2 class="qtext" id="qtext">這個顏色，能不能被一家公司獨佔？</h2>
+
+      <p class="qmeta" id="qmeta">
+        <span class="tag" id="qname">深棕</span>
+        <span id="qhex">#644117</span>
+      </p>
+
+      <div class="choices" id="choices">
+        <button class="btn" type="button" id="btnYes" data-choice="yes" aria-label="判定：可以獨佔，這個顏色可以註冊成商標">可　以</button>
+        <button class="btn" type="button" id="btnNo" data-choice="no" aria-label="判定：不行，這個顏色不能被獨佔">不　行</button>
+      </div>
+
+      <div class="verdict" id="verdict" aria-live="polite"></div>
+
+      <div class="next" id="nextWrap"></div>
+
+      <noscript>
+        <p class="fact" style="margin-top:24px">這一段判決遊戲需要 JavaScript 才能玩。</p>
+      </noscript>
+    </div>
+  </section>
+
+  <!-- ⑤　判決紀錄 -->
+  <section class="screen locked" id="scoreScreen" data-bg="#12100E" style="--bg:#12100E;--ink:#ffffff">
+    <div class="inner board">
+      <p class="kicker">判決紀錄</p>
+      <p style="margin:0" aria-live="polite" id="scoreLive">
+        <span class="bignum" id="scoreNum">0</span>
+        <span class="outof">／ 6</span>
+      </p>
+      <p class="lede" id="scoreWord" style="margin-top:18px"></p>
+      <ul class="verdictlist" id="recap"></ul>
+      <p class="note" id="bestLine"></p>
+      <p class="note">Louboutin 那題無論你按哪邊都算半分——因為法院自己也只給了他一半。本頁是趣味知識，不是法律意見。</p>
+      <div class="next"><button class="btn ghost" type="button" id="again" aria-label="重新開始這六題判決">再判一次</button></div>
+    </div>
+  </section>
+
+  <!-- ⑥　結尾 -->
+  <section class="screen finale locked" id="finale" data-bg="#81D8D0"
+           style="--bg:#81D8D0;--ink:#000000;--from:#12100E;--from0:rgba(18,16,14,0)">
+    <div class="inner">
+      <p class="kicker rv">回馬槍</p>
+      <p class="beat rv" style="--d:.06s">回到最開始那片藍。</p>
+      <p class="beat rv" style="--d:.12s">你一眼就認得它。</p>
+      <p class="beat rv" style="--d:.18s">
+        不是因為那個藍特別。它沒有比別的藍更美，也沒有比別的藍更難調——
+        它只是色票裡的一個號碼，<span class="mono">Pantone 1837</span>。
+      </p>
+      <p class="beat rv" style="--d:.24s">你認得它，是因為你看過它幾千次。</p>
+      <p class="punch rv" style="--d:.32s">他們買下的從來不是顏色。<br>是你腦子裡那條，早就鋪好的捷徑。</p>
+      <p class="echo rv" style="--d:.42s">這個顏色有主人。而那個主人，一直住在你這邊。</p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="inner">
+    資料來源：Qualitex v. Jacobson (1995)、In re Owens-Corning Fiberglas (1985)、UK Court of Appeal (2013)、USPTO
+  </div>
+</footer>
+
+<script src="color.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var doc = document;
+  var html = doc.documentElement;
+  html.className += ' js';
+
+  /* ---------- 動作偏好（防呆：matchMedia 可能不存在） ---------- */
+  var mq = (typeof window.matchMedia === 'function')
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+  var reduced = mq ? !!mq.matches : false;
+
+  function applyReduced() {
+    if (reduced) { if (html.className.indexOf('reduced') < 0) html.className += ' reduced'; }
+    else { html.className = html.className.replace(/\breduced\b/g, '').replace(/\s+/g, ' ').trim(); }
+  }
+  applyReduced();
+  if (mq) {
+    var onMQ = function (e) { reduced = !!(e && e.matches !== undefined ? e.matches : mq.matches); applyReduced(); };
+    if (typeof mq.addEventListener === 'function') mq.addEventListener('change', onMQ);
+    else if (typeof mq.addListener === 'function') mq.addListener(onMQ);
+  }
+
+  /* ---------- 顏色工具（來自 color.js，附退路） ---------- */
+  var C = (typeof window.contrastRatio === 'function')
+    ? {
+        pickTextColor: window.pickTextColor,
+        contrastRatio: window.contrastRatio,
+        scoreAnswers: window.scoreAnswers,
+        formatScore: window.formatScore,
+        withAlpha: window.withAlpha
+      }
+    : null;
+
+  function ink(bg) {
+    if (C && C.pickTextColor) return C.pickTextColor(bg);
+    return '#000000';
+  }
+  function fmtScore(n) {
+    if (C && C.formatScore) return C.formatScore(n);
+    return String(Math.round(n * 10) / 10);
+  }
+
+  /* ---------- 每一片色塊的文字色，都用 pickTextColor 動態算 ---------- */
+  var screens = [].slice.call(doc.querySelectorAll('.screen[data-bg]'));
+  screens.forEach(function (el) {
+    var bg = el.getAttribute('data-bg');
+    el.style.setProperty('--bg', bg);
+    el.style.setProperty('--ink', ink(bg));
+  });
+
+  /* ---------- 題庫 ---------- */
+  var QUESTIONS = [
+    {
+      bg: '#644117', name: '深棕',
+      stamp: '可　以', truth: 'yes',
+      title: 'UPS 的棕　Pullman Brown',
+      why: '已經註冊。這個棕色在美國是有主人的。',
+      after: 'Pullman Brown'
+    },
+    {
+      bg: '#F8A3BC', name: '亮粉紅',
+      stamp: '可　以', truth: 'yes',
+      title: 'Owens-Corning 的粉紅　玻璃纖維隔熱棉',
+      why: '1985 年，In re Owens-Corning Fiberglas——美國史上第一個顏色商標。第二章你才剛讀過它。',
+      after: '1985 年，美國第一個'
+    },
+    {
+      bg: '#E20074', name: '洋紅（桃紅）',
+      stamp: '可　以', truth: 'yes',
+      title: 'T-Mobile 的洋紅',
+      why: '可以，已經註冊——而且它以執法兇猛出名。',
+      after: '註冊，執法兇猛'
+    },
+    {
+      bg: '#E31C25', name: '正紅',
+      stamp: '一半一半', truth: 'half',
+      title: 'Christian Louboutin 的紅鞋底',
+      why: '2008 年在美國註冊。但 2012 年美國第二巡迴上訴法院認定：只有在鞋底顏色與鞋面「形成對比」時才受保護。所以他告 YSL 那雙從上到下全紅的鞋，沒告成。',
+      after: '2012 第二巡迴：只保護對比'
+    },
+    {
+      bg: '#4C2C92', name: '深紫',
+      stamp: '不　行', truth: 'no',
+      title: 'Cadbury 的紫　Pantone 2685C',
+      why: '2013 年英國上訴法院判它敗訴。理由不是「紫色不夠像 Cadbury」——是申請書上寫了「或為主要顏色」這幾個字，保護範圍變得不明確。輸在措辭。',
+      after: '2013 英國上訴法院：措辭'
+    },
+    {
+      bg: '#C1272D', name: '番茄紅（示意色）',
+      stamp: '不　行', truth: 'no',
+      title: '番茄醬瓶身的紅　沒有主人',
+      why: '這種紅擺在番茄醬上太理所當然。讓一家獨佔，等於讓所有對手沒得用。',
+      after: '太理所當然'
+    }
+  ];
+  var TRUTH = QUESTIONS.map(function (q) { return q.truth; });
+
+  /* ---------- 小工具：捲動與聚焦都可能不存在，全部包起來 ---------- */
+  function safeScroll(el, instant) {
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    var behavior = (instant || reduced) ? 'auto' : 'smooth';
+    try { el.scrollIntoView({ behavior: behavior, block: 'start' }); }
+    catch (e) { try { el.scrollIntoView(); } catch (e2) { /* 忽略 */ } }
+  }
+  function safeFocus(el) {
+    if (!el || typeof el.focus !== 'function') return;
+    try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (e2) { /* 忽略 */ } }
+  }
+
+  /* ---------- localStorage（前綴 ownacolor_） ---------- */
+  var LS = 'ownacolor_';
+  function lsGet(k) { try { return window.localStorage.getItem(LS + k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { window.localStorage.setItem(LS + k, v); } catch (e) { /* 無痕模式等等，忽略 */ } }
+
+  /* ---------- DOM ---------- */
+  var quiz = doc.getElementById('quiz');
+  var counter = doc.getElementById('counter');
+  var dots = doc.getElementById('dots');
+  var qname = doc.getElementById('qname');
+  var qhex = doc.getElementById('qhex');
+  var choices = doc.getElementById('choices');
+  var btnYes = doc.getElementById('btnYes');
+  var btnNo = doc.getElementById('btnNo');
+  var verdict = doc.getElementById('verdict');
+  var nextWrap = doc.getElementById('nextWrap');
+  var scoreScreen = doc.getElementById('scoreScreen');
+  var finale = doc.getElementById('finale');
+  var scoreNum = doc.getElementById('scoreNum');
+  var scoreWord = doc.getElementById('scoreWord');
+  var recap = doc.getElementById('recap');
+  var bestLine = doc.getElementById('bestLine');
+  var again = doc.getElementById('again');
+
+  var answers = [];
+  var idx = 0;
+  var finished = false;
+  var finalScore = 0;
+
+  /* ---------- 進度點 ---------- */
+  for (var i = 0; i < QUESTIONS.length; i++) {
+    var li = doc.createElement('li');
+    dots.appendChild(li);
+  }
+  function paintDots() {
+    var ls = dots.children;
+    for (var k = 0; k < ls.length; k++) {
+      var state = k < idx ? 'done' : (k === idx && !finished ? 'now' : '');
+      if (state) ls[k].setAttribute('data-state', state);
+      else ls[k].removeAttribute('data-state');
+    }
+  }
+
+  /* ---------- 換色（同時更新 body 底色，避免捲動邊緣露出別的顏色） ---------- */
+  var activeBg = '#81D8D0';
+  function setQuizColor(bg) {
+    quiz.setAttribute('data-bg', bg);
+    quiz.style.setProperty('--bg', bg);
+    quiz.style.setProperty('--ink', ink(bg));
+    if (activeSection === quiz) syncBody(bg);
+  }
+  function syncBody(bg) {
+    activeBg = bg;
+    doc.body.style.backgroundColor = bg;
+  }
+
+  /* ---------- 出題 ---------- */
+  function renderQuestion() {
+    var q = QUESTIONS[idx];
+    setQuizColor(q.bg);
+    counter.textContent = '第 ' + (idx + 1) + ' 題 ／ 共 ' + QUESTIONS.length + ' 題';
+    qname.textContent = q.name;
+    qhex.textContent = q.bg;
+    verdict.innerHTML = '';
+    nextWrap.innerHTML = '';
+    btnYes.disabled = false;
+    btnNo.disabled = false;
+    btnYes.removeAttribute('data-picked');
+    btnNo.removeAttribute('data-picked');
+    choices.style.display = '';
+    paintDots();
+  }
+
+  /* ---------- 揭曉：裁決章蓋下去 ---------- */
+  function reveal(choice) {
+    var q = QUESTIONS[idx];
+    answers[idx] = choice;
+    btnYes.disabled = true;
+    btnNo.disabled = true;
+    (choice === 'yes' ? btnYes : btnNo).setAttribute('data-picked', '1');
+
+    var right = (q.truth === 'half') ? '半對' : (choice === q.truth ? '答對' : '答錯');
+
+    var stamp = doc.createElement('p');
+    stamp.className = 'stamp';
+    stamp.style.margin = '0';
+    stamp.textContent = q.stamp;
+
+    var title = doc.createElement('p');
+    title.className = 'vtitle';
+    title.textContent = q.title;
+
+    var why = doc.createElement('p');
+    why.className = 'vwhy';
+    why.textContent = q.why;
+
+    var pick = doc.createElement('p');
+    pick.className = 'vpick';
+    pick.textContent = '你按的是「' + (choice === 'yes' ? '可以' : '不行') + '」 · ' + right;
+
+    verdict.appendChild(stamp);
+    verdict.appendChild(title);
+    verdict.appendChild(why);
+    verdict.appendChild(pick);
+
+    // 蓋章：只動 transform / opacity
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { stamp.className = 'stamp hit'; });
+      });
+    } else {
+      stamp.className = 'stamp hit';
+    }
+
+    var btn = doc.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn ghost';
+    var last = (idx === QUESTIONS.length - 1);
+    btn.textContent = last ? '看我的判決紀錄 →' : '下一題 →';
+    btn.setAttribute('aria-label', last ? '看我的判決紀錄' : '前往下一題');
+    btn.onclick = function () {
+      if (last) { finish(); }
+      else { idx++; renderQuestion(); }
+    };
+    nextWrap.appendChild(btn);
+    safeFocus(btn);
+  }
+
+  btnYes.addEventListener('click', function () { if (!btnYes.disabled) reveal('yes'); });
+  btnNo.addEventListener('click', function () { if (!btnNo.disabled) reveal('no'); });
+
+  /* ---------- 結算 ---------- */
+  function finish() {
+    finished = true;
+    var res = (C && C.scoreAnswers) ? C.scoreAnswers(answers, TRUTH) : { score: 0, total: TRUTH.length, detail: [] };
+    finalScore = res.score;
+
+    // 舞台先溫和退成中性深色，接上判決紀錄那一屏，避免大面積跳色
+    setQuizColor('#12100E');
+    counter.textContent = '六件案子，判完了。';
+    qname.textContent = '休庭';
+    qhex.textContent = '#12100E';
+    verdict.innerHTML = '';
+    nextWrap.innerHTML = '';
+    choices.style.display = 'none';
+    paintDots();
+
+    scoreScreen.className = scoreScreen.className.replace(/\blocked\b/g, '').trim();
+    finale.className = finale.className.replace(/\blocked\b/g, '').trim();
+    scoreScreen.removeAttribute('hidden');
+    finale.removeAttribute('hidden');
+
+    // 回顧清單：不靠顏色，全部用文字說明
+    recap.innerHTML = '';
+    QUESTIONS.forEach(function (q, n) {
+      var d = res.detail[n] || { credit: 0 };
+      var li = doc.createElement('li');
+      var mark = doc.createElement('span');
+      mark.className = 'mark';
+      mark.textContent = d.credit === 1 ? '○' : (d.credit === 0.5 ? '◐' : '✕');
+      var name = doc.createElement('span');
+      name.textContent = q.title;
+      var res2 = doc.createElement('span');
+      res2.className = 'res';
+      res2.textContent = q.after;
+      li.appendChild(mark);
+      li.appendChild(name);
+      li.appendChild(res2);
+      recap.appendChild(li);
+    });
+
+    var word;
+    if (finalScore >= 5.5) word = '你比很多商標律師還準。顏色的規則，你抓到了。';
+    else if (finalScore >= 4) word = '大致抓到了：顏色能不能獨佔，看的從來不是顏色好不好看。';
+    else if (finalScore >= 2.5) word = '一半一半。這題目本來就沒有直覺——連法院都吵了幾十年。';
+    else word = '幾乎全錯，但別難過：正確答案裡有一半是靠一句措辭決定的。';
+    scoreWord.textContent = word;
+
+    var prev = parseFloat(lsGet('best'));
+    if (!(prev >= 0)) prev = -1;
+    if (finalScore > prev) { lsSet('best', String(finalScore)); bestLine.textContent = '這是你目前最好的一次。'; }
+    else { bestLine.textContent = '你最好的一次：' + fmtScore(prev) + ' ／ 6'; }
+    var plays = parseInt(lsGet('plays'), 10);
+    lsSet('plays', String((plays > 0 ? plays : 0) + 1));
+
+    countUp(finalScore);
+
+    // 捲到判決紀錄
+    var go = function () { safeScroll(scoreScreen); };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go); else go();
+  }
+
+  /* ---------- 分數滾動（rAF、分頁隱藏就直接跳終值） ---------- */
+  var rafId = null;
+  function countUp(target) {
+    if (rafId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId);
+    if (reduced || doc.hidden || typeof requestAnimationFrame !== 'function') {
+      scoreNum.textContent = fmtScore(target);
+      return;
+    }
+    var t0 = null, dur = 950;
+    function step(ts) {
+      if (doc.hidden) { scoreNum.textContent = fmtScore(target); rafId = null; return; }
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      scoreNum.textContent = fmtScore(Math.round(target * e * 2) / 2);
+      if (p < 1) rafId = requestAnimationFrame(step);
+      else { scoreNum.textContent = fmtScore(target); rafId = null; }
+    }
+    rafId = requestAnimationFrame(step);
+  }
+  doc.addEventListener('visibilitychange', function () {
+    if (doc.hidden && rafId) {
+      if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(rafId);
+      rafId = null;
+      scoreNum.textContent = fmtScore(finalScore);
+    }
+  });
+
+  /* ---------- 再判一次 ---------- */
+  again.addEventListener('click', function () {
+    answers = [];
+    idx = 0;
+    finished = false;
+    renderQuestion();
+    // 先瞬間回到法庭，再把底下的判決紀錄收起來——順序反過來會讓畫面被往上拽一下
+    safeScroll(quiz, true);
+    scoreScreen.className += ' locked';
+    finale.className += ' locked';
+    safeFocus(btnYes);
+  });
+
+  /* ---------- 捲動進場 + 目前這屏的底色（防呆：IO 可能不存在） ---------- */
+  var activeSection = null;
+  if (typeof window.IntersectionObserver === 'function') {
+    var revealIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) {
+          en.target.className += ' in';
+          revealIO.unobserve(en.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+    [].slice.call(doc.querySelectorAll('.rv')).forEach(function (el) { revealIO.observe(el); });
+
+    // 誰佔了半個視窗以上，body 底色就跟誰——只影響過捲時露出的那一小條，
+    // 但少了它，橡皮筋回彈會閃出上一片顏色。
+    var bgIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && en.intersectionRatio >= 0.5) {
+          activeSection = en.target;
+          syncBody(en.target.getAttribute('data-bg') || activeBg);
+        }
+      });
+    }, { threshold: 0.5 });
+    screens.forEach(function (el) { bgIO.observe(el); });
+  } else {
+    html.className += ' no-io';
+    syncBody('#81D8D0');
+  }
+
+  /* ---------- 開場 ---------- */
+  renderQuestion();
+  syncBody('#81D8D0');
+
+  // 給測試用：不影響頁面行為
+  window.__ownacolor = {
+    questions: QUESTIONS,
+    truth: TRUTH,
+    answer: function (c) { if (!btnYes.disabled) reveal(c); },
+    next: function () { var b = nextWrap.querySelector('button'); if (b) b.click(); },
+    state: function () { return { idx: idx, finished: finished, score: finalScore, answers: answers.slice() }; }
+  };
+})();
+</script>
+</body>
+</html>

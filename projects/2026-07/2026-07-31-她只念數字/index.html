@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>她只念數字 · 數字電台與那本撕一頁少一頁的密碼本</title>
+<meta name="description" content="凌晨三點，短波裡有個女人用五個一組的方式念數字。她不說她是誰。轉開這台收音機，自己去找她——然後親手解開那串數字。">
+<style>
+:root{
+  --bg:#06080a; --panel:#0e1317; --panel2:#131a20; --line:#212b33;
+  --amber:#f2a94b; --amber-dim:#8a6733; --cyan:#79e6ff; --green:#8ef0a8;
+  --red:#ff6f5e; --text:#dde5ea; --dim:#7d8b95; --dimmer:#4b5660;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","PingFang TC","Microsoft JhengHei",serif;
+  --mono:"SFMono-Regular",Menlo,Consolas,"Roboto Mono","Noto Sans Mono",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--serif); font-size:17px; line-height:1.95;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:99; opacity:.5;
+  background:radial-gradient(120% 90% at 50% 0%,rgba(242,169,75,.05),transparent 55%),
+             radial-gradient(100% 70% at 50% 100%,rgba(121,230,255,.035),transparent 60%);
+}
+a{color:var(--amber)}
+h1,h2,h3{font-weight:600; line-height:1.35; letter-spacing:.01em}
+p{margin:0 0 1.15em}
+.wrap{max-width:720px; margin:0 auto; padding:0 22px}
+.home{
+  position:absolute; top:18px; left:18px; z-index:5; font-family:var(--mono);
+  font-size:12px; letter-spacing:.08em; color:var(--dimmer); text-decoration:none;
+  padding:6px 10px; border:1px solid transparent; border-radius:6px; transition:color .25s,border-color .25s;
+}
+.home:hover,.home:focus-visible{color:var(--amber); border-color:var(--line)}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:4px}
+
+/* ── 第一屏 ───────────────────────────────────────────── */
+#hook{min-height:100svh; display:flex; align-items:center; position:relative}
+#hook .wrap{padding-top:8vh; padding-bottom:8vh}
+.kicker{font-family:var(--mono); font-size:11.5px; letter-spacing:.22em; color:var(--amber-dim); margin-bottom:26px}
+#hook p{font-size:clamp(19px,2.9vw,25px); line-height:1.9; color:#c8d3da; max-width:29em}
+#hook p.big{font-size:clamp(24px,4.6vw,40px); line-height:1.5; color:#f0f4f6; letter-spacing:-.01em; margin-bottom:1em}
+.hush{color:var(--dim)}
+.tick{display:inline-block; width:9px; height:1.05em; background:var(--amber); vertical-align:-.16em; margin-left:.18em; animation:blink 1.15s steps(1,end) infinite}
+@keyframes blink{50%{opacity:0}}
+.startbar{margin-top:44px}
+.btn{
+  font-family:var(--mono); font-size:14px; letter-spacing:.1em; color:#0a0d10;
+  background:var(--amber); border:0; border-radius:999px; padding:14px 30px; cursor:pointer;
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.4), box-shadow .25s, filter .2s;
+  box-shadow:0 6px 30px rgba(242,169,75,.22);
+}
+.btn:hover{transform:translateY(-2px); filter:brightness(1.08)}
+.btn:active{transform:translateY(1px) scale(.985)}
+.btn.ghost{background:transparent; color:var(--amber); border:1px solid var(--amber-dim); box-shadow:none}
+.btn.ghost:hover{background:rgba(242,169,75,.08)}
+.btn[disabled]{opacity:.32; cursor:default; transform:none; box-shadow:none}
+.note{font-family:var(--mono); font-size:11.5px; letter-spacing:.05em; color:var(--dimmer); margin-top:14px}
+
+/* ── 捲動揭露 ─────────────────────────────────────────── */
+.rv{opacity:0; transform:translateY(22px); transition:opacity .85s ease, transform .85s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+
+section{padding:12vh 0}
+.sect-tag{font-family:var(--mono); font-size:11px; letter-spacing:.2em; color:var(--dimmer); margin-bottom:18px}
+h2{font-size:clamp(23px,3.6vw,32px); margin:0 0 .8em}
+.lead{font-size:19px; color:#cbd6dd}
+
+/* ── 收音機 ───────────────────────────────────────────── */
+.rx{
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--line); border-radius:14px; padding:16px 16px 18px;
+  box-shadow:0 24px 70px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.rx-top{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:12px}
+.readout{
+  font-family:var(--mono); font-variant-numeric:tabular-nums; color:var(--amber);
+  font-size:28px; letter-spacing:.02em; text-shadow:0 0 18px rgba(242,169,75,.35); line-height:1;
+}
+.readout small{font-size:12px; color:var(--amber-dim); letter-spacing:.14em; margin-left:6px}
+.meter{flex:1; min-width:110px; height:6px; background:#0a0e11; border:1px solid var(--line); border-radius:99px; overflow:hidden}
+.meter i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#3c6b57,var(--green)); transform-origin:left; transition:width .12s linear}
+.snd{font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; padding:7px 12px; border-radius:99px; border:1px solid var(--line); background:#0a0e11; color:var(--dim); cursor:pointer}
+.snd[aria-pressed="true"]{color:var(--green); border-color:#2f5646}
+.wfwrap{position:relative; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:#040607}
+#wf{display:block; width:100%; height:132px}
+.cursor{position:absolute; top:0; bottom:0; width:1px; background:var(--cyan); box-shadow:0 0 10px var(--cyan); will-change:transform}
+.cursor::before{content:""; position:absolute; top:0; left:-4px; width:9px; height:5px; background:var(--cyan); clip-path:polygon(50% 100%,0 0,100% 0)}
+.band{display:flex; justify-content:space-between; font-family:var(--mono); font-size:10.5px; color:var(--dimmer); margin-top:6px; letter-spacing:.06em}
+#dial{
+  -webkit-appearance:none; appearance:none; width:100%; height:34px; background:transparent; cursor:grab; margin:2px 0 0;
+}
+#dial:active{cursor:grabbing}
+#dial::-webkit-slider-runnable-track{height:10px; background:linear-gradient(180deg,#05080a,#0d1317); border:1px solid var(--line); border-radius:99px}
+#dial::-moz-range-track{height:10px; background:#0a0f13; border:1px solid var(--line); border-radius:99px}
+#dial::-webkit-slider-thumb{
+  -webkit-appearance:none; width:22px; height:28px; margin-top:-10px; border-radius:5px; cursor:grab;
+  background:linear-gradient(180deg,#5b6a75,#232c33); border:1px solid #6d7d88;
+  box-shadow:0 2px 8px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.25);
+}
+#dial::-moz-range-thumb{
+  width:20px; height:26px; border-radius:5px; background:linear-gradient(180deg,#5b6a75,#232c33);
+  border:1px solid #6d7d88; box-shadow:0 2px 8px rgba(0,0,0,.6);
+}
+.rx-bot{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:4px}
+.rx-bot .tiny{font-family:var(--mono); font-size:11px; color:var(--dimmer); letter-spacing:.06em; padding:6px 11px; border:1px solid var(--line); background:#0a0e11; border-radius:99px; cursor:pointer}
+.rx-bot .tiny:hover{color:var(--amber); border-color:var(--amber-dim)}
+.status{
+  font-family:var(--mono); font-size:12.5px; letter-spacing:.08em; color:var(--dim);
+  margin-top:12px; min-height:1.6em;
+}
+.status.lock{color:var(--green)}
+.print{
+  font-family:var(--mono); font-size:14px; letter-spacing:.14em; color:var(--cyan);
+  background:#04070a; border:1px solid var(--line); border-radius:8px; margin-top:10px;
+  padding:12px 14px; min-height:88px; max-height:88px; overflow:hidden;
+  display:flex; flex-direction:column; justify-content:flex-end;
+}
+.print div{opacity:0; animation:fadein .45s forwards}
+@keyframes fadein{to{opacity:1}}
+.print .quiet{color:var(--dimmer); letter-spacing:.08em}
+
+/* ── 日誌卡 ───────────────────────────────────────────── */
+.log{list-style:none; padding:0; margin:26px 0 0; display:grid; gap:14px}
+.card{
+  border:1px solid var(--line); border-radius:12px; background:#0b1014; padding:16px 18px;
+  transition:border-color .5s, background .5s, transform .5s;
+}
+.card.locked{border-style:dashed; border-color:#1a2229; background:transparent}
+.card .slot{font-family:var(--mono); font-size:12px; letter-spacing:.16em; color:var(--dimmer)}
+.card.open{border-color:#2e3d47; background:linear-gradient(180deg,#0e151a,#0a0e12)}
+.card h3{margin:0 0 .5em; font-size:17px; color:var(--amber); font-family:var(--mono); letter-spacing:.04em}
+.card h3 span{color:var(--dim); font-size:12px; letter-spacing:.12em; margin-left:8px}
+.card p{margin:0; font-size:16px; color:#c2cdd4; line-height:1.85}
+.card p+p{margin-top:.7em}
+
+#gate{opacity:.22; pointer-events:none; transition:opacity 1s ease}
+#gate.open{opacity:1; pointer-events:auto}
+
+/* ── 引文與卷宗 ───────────────────────────────────────── */
+blockquote{
+  margin:0 0 1.3em; padding:2px 0 2px 20px; border-left:2px solid var(--amber-dim);
+  color:#d6e0e6; font-size:17px;
+}
+blockquote .zh{display:block; color:var(--dim); font-size:15px; margin-top:.3em}
+.dossier{
+  border:1px solid var(--line); background:
+    repeating-linear-gradient(180deg,transparent 0 30px,rgba(255,255,255,.014) 30px 31px), #0c1115;
+  padding:22px 22px 18px; border-radius:4px; margin:26px 0;
+}
+.dossier .hd{
+  font-family:var(--mono); font-size:11px; letter-spacing:.2em; color:var(--dimmer);
+  border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:16px;
+  display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+}
+.stamp{
+  display:inline-block; font-family:var(--mono); font-size:12px; letter-spacing:.2em; color:var(--red);
+  border:2px solid var(--red); border-radius:4px; padding:5px 12px; transform:rotate(-4deg); opacity:.85;
+}
+
+/* ── 解密台 ───────────────────────────────────────────── */
+.console{
+  background:#080c0f; border:1px solid var(--line); border-radius:12px; padding:18px; margin:26px 0;
+}
+.strip+.strip{margin-top:16px}
+.strip .label{font-family:var(--mono); font-size:11px; letter-spacing:.18em; color:var(--dimmer); margin-bottom:8px}
+.groups{display:flex; flex-wrap:wrap; gap:8px; font-family:var(--mono); font-variant-numeric:tabular-nums}
+.groups b{
+  font-weight:400; font-size:15px; letter-spacing:.16em; padding:5px 9px; border-radius:5px;
+  background:#0d141a; border:1px solid #1b242b; color:var(--cyan);
+}
+.groups.key b{color:var(--amber); background:#12100b; border-color:#2a2114}
+.groups.key.swapping b{transition:transform .4s cubic-bezier(.2,.8,.3,1.3), opacity .4s}
+.cells{
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(52px,1fr)); gap:7px; margin-top:18px;
+}
+.cell{
+  border:1px solid #1b242b; border-radius:6px; background:#0b1116; padding:7px 3px 6px; text-align:center;
+  font-family:var(--mono); opacity:.25;
+}
+.cell.on{opacity:1; background:#0e161c; border-color:#2b3a44}
+.cell .c{font-size:11.5px; color:var(--cyan); letter-spacing:.06em}
+.cell .k{font-size:11.5px; color:var(--amber); letter-spacing:.06em}
+.cell .k::before{content:"−"; color:var(--dimmer); margin-right:1px}
+.cell .l{
+  font-size:19px; color:#fff; line-height:1.25; margin-top:3px; border-top:1px solid #1b242b; padding-top:3px;
+  min-height:1.3em;
+}
+.cell.on .l{color:var(--green)}
+.cell.sp .l{color:var(--dimmer)}
+.plainout{
+  font-family:var(--mono); font-size:clamp(15px,2.6vw,20px); letter-spacing:.1em; color:var(--green);
+  margin-top:18px; min-height:1.6em; word-break:break-word;
+}
+.plainout .zh{display:block; font-family:var(--serif); letter-spacing:0; color:#e8eef1; font-size:20px; margin-top:6px}
+.ctrls{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px; align-items:center}
+
+.punch{font-size:clamp(20px,3.4vw,27px); line-height:1.62; color:#f2f6f8; margin:1.2em 0}
+.tiny-src{font-family:var(--mono); font-size:11px; color:var(--dimmer); letter-spacing:.05em}
+footer{
+  border-top:1px solid var(--line); margin-top:8vh; padding:26px 0 40px;
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--dimmer);
+}
+footer a{color:var(--dim); text-decoration:none}
+footer a:hover{color:var(--amber)}
+
+@media (max-width:560px){
+  body{font-size:16px}
+  section{padding:9vh 0}
+  .readout{font-size:23px}
+  .cells{grid-template-columns:repeat(auto-fill,minmax(46px,1fr)); gap:5px}
+  .rx{padding:13px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1; transform:none; transition:none}
+  .tick{animation:none}
+  .print div{animation:none; opacity:1}
+  .btn{transition:none}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ══ 1. 鉤子 ══════════════════════════════════════════ -->
+<section id="hook">
+  <div class="wrap">
+    <div class="kicker">凌晨 03:15 · 短波</div>
+    <p class="big">你把旋鈕往右轉，雜訊裡忽然浮出一個女人的聲音。<span class="tick"></span></p>
+    <p>她用英文念數字。五個一組，念完停半秒，再念下一組。</p>
+    <p>她不說她是誰，不說她在跟誰講話，念完就消失。<br>
+       明天同一個時間、同一個頻率，她會再來一次。</p>
+    <p class="hush">這種電台在天上跑了快一百年。沒有任何一個國家承認過它們存在——直到 1998 年，有人在邁阿密被抓。</p>
+    <div class="startbar">
+      <button class="btn" id="powerBtn">轉開電源 ▸</button>
+      <div class="note">有聲音，但預設是關的；面板右上角可以隨時打開或關掉。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 2. 收音機 ════════════════════════════════════════ -->
+<section id="radio">
+  <div class="wrap">
+    <div class="sect-tag rv">第一章 · 你得自己去找它們</div>
+    <h2 class="rv">天上那些訊號不會來找你。</h2>
+    <p class="lead rv">這是一台短波接收機，頻段 4000 到 12000 千赫。瀑布圖上那幾條亮線，就是有東西在發射的地方——把旋鈕拖過去，停穩一秒，它會自己咬住。<br><span class="hush">（鍵盤也可以：焦點放到旋鈕上用方向鍵微調、Shift＋方向鍵快轉；或直接用下面兩顆掃描鈕。）</span></p>
+
+    <div class="rx rv" id="rx">
+      <div class="rx-top">
+        <div class="readout"><span id="freq">4000</span><small>kHz</small></div>
+        <div class="meter" aria-hidden="true"><i id="meterFill"></i></div>
+        <button class="snd" id="sndBtn" aria-pressed="false">聲音：關</button>
+      </div>
+      <div class="wfwrap">
+        <canvas id="wf" aria-hidden="true"></canvas>
+        <div class="cursor" id="cursor" aria-hidden="true"></div>
+      </div>
+      <input id="dial" type="range" min="4000" max="12000" step="1" value="4000"
+             aria-label="調頻旋鈕，單位千赫" aria-describedby="status">
+      <div class="band" aria-hidden="true"><span>4000</span><span>6000</span><span>8000</span><span>10000</span><span>12000</span></div>
+      <div class="rx-bot">
+        <button class="tiny" id="scanDown">◀ 掃到上一個訊號</button>
+        <button class="tiny" id="scanUp">掃到下一個訊號 ▶</button>
+      </div>
+      <div class="status" id="status" role="status" aria-live="polite">…嘶——只有雜訊。</div>
+      <div class="print" id="print" aria-live="off"><div class="quiet">（收報紙帶）</div></div>
+    </div>
+
+    <ol class="log" id="log">
+      <li class="card locked" id="card-poacher">
+        <div class="slot">空欄 · 未收到</div>
+        <div class="body" hidden>
+          <h3>E03「Lincolnshire Poacher」<span>11545 kHz</span></h3>
+          <p>每次開場都一樣：英國民謠〈林肯郡的盜獵者〉的兩小節，重複十二遍，然後一個英國腔女聲開始念五個一組的數字。</p>
+          <p>官方從沒承認過它。業餘無線電玩家自己拿測向天線追，最後追到賽普勒斯的英國皇家空軍阿克羅蒂里基地，在那裡找到了幾面對得上的天線。2008 年 7 月，它念完最後一組數字，就再也沒有出現過。</p>
+        </div>
+      </li>
+      <li class="card locked" id="card-atencion">
+        <div class="slot">空欄 · 未收到</div>
+        <div class="body" hidden>
+          <h3>V02a「Atención」<span>5883 kHz</span></h3>
+          <p>西班牙語女聲，開頭永遠是那兩個字：<em>Atención… Atención…</em>，然後是數字。來自古巴。</p>
+          <p>它後來成了全世界第一個被政府正式指控「你在對間諜廣播」的電台。那是 1998 年的事——等一下你會在法庭上再看到它。</p>
+        </div>
+      </li>
+      <li class="card locked" id="card-buzzer">
+        <div class="slot">空欄 · 未收到</div>
+        <div class="body" hidden>
+          <h3>UVB-76「The Buzzer」<span>4625 kHz</span></h3>
+          <p>它不念數字。它就是嗡、嗡、嗡，一分鐘二十幾下，日夜不停。已知最早的錄音是 1982 年。</p>
+          <p>偶爾——非常偶爾——嗡嗡聲會停下來，有人用俄語念一串人名和數字，然後嗡嗡聲回來。最被接受的說法是：它在佔位子，用聲音宣告這個頻率有人要用。而它到現在還在響。</p>
+        </div>
+      </li>
+    </ol>
+    <p class="note" style="margin-top:16px">三個空欄都填滿，下面的東西才會亮起來。</p>
+  </div>
+</section>
+
+<!-- ══ 3. 傳說（找到三個才亮） ═══════════════════════════ -->
+<div id="gate">
+<section id="legend">
+  <div class="wrap">
+    <div class="sect-tag rv">第二章 · 有一段時間，這只是都市傳說</div>
+    <p class="rv">收到了。可是收到了之後呢——你能對誰說？</p>
+    <p class="rv">1992 年，一個叫 Akin Fernandez 的唱片廠牌老闆開始把這些聲音一段一段錄下來。1997 年，Irdial-Discs 把它們做成四張 CD 出版，取名《The Conet Project》：一百五十軌，全是數字、噪音和不明語言的女聲。這是史上第一次，有人把「傳說」變成可以放進音響裡的東西。</p>
+    <p class="rv">後來 Wilco 拿其中一軌取樣，還把整張專輯取名叫《Yankee Hotel Foxtrot》——那正是錄音裡那個聲音念出來的三個字母。Irdial 告了他們，拿到一筆和解金。</p>
+    <p class="rv hush">但錄得再多也沒用。那些數字念的是什麼，沒有人拿得出證據。</p>
+    <p class="rv"><strong>直到有人被抓。</strong></p>
+  </div>
+</section>
+
+<!-- ══ 4. 法庭 ══════════════════════════════════════════ -->
+<section id="court">
+  <div class="wrap">
+    <div class="sect-tag rv">第三章 · 1998 年 9 月，邁阿密</div>
+    <h2 class="rv">證物編號：一台索尼短波收音機。</h2>
+    <p class="rv">FBI 破獲了一個叫「黃蜂網路」（Wasp Network）的古巴情報網。2001 年，其中五人被判有罪，後來被稱作「古巴五人組」。</p>
+    <p class="rv">起訴方端出來的東西很家常：市面上買得到的短波收音機、抄滿數字的筆記本。以及一件他們沒打算解釋清楚的事——他們手上有那些數字的內容。</p>
+
+    <div class="dossier rv">
+      <div class="hd"><span>美國佛州南區聯邦地方法院 · 庭上出示之解密內容（媒體引述）</span><span>V02a「Atención」</span></div>
+      <blockquote>“prioritize and continue to strengthen friendship with Joe and Dennis”
+        <span class="zh">優先並持續加強與 Joe 和 Dennis 的友誼。</span></blockquote>
+      <blockquote>“Under no circumstances should German nor Castor fly with BTTR or another organization on days 24, 25, 26 and 27”
+        <span class="zh">24、25、26、27 這四天，German 和 Castor 絕對不可以搭 BTTR 或其他組織的飛機。</span></blockquote>
+      <blockquote>“Congratulate all the female comrades for International Day of the Woman”
+        <span class="zh">代為祝賀所有女性同志國際婦女節快樂。</span></blockquote>
+    </div>
+
+    <p class="rv">最後那一句才是真正讓人愣住的地方。同一個頻率、同一個女聲、同一種五位數字——被拿來祝女同事三八婦女節快樂。</p>
+    <p class="rv punch">所以，如果今晚你抄到一串數字，你分得出來它是哪一種嗎？</p>
+    <p class="rv"><a href="#decode">往下走，換你來解。 ▾</a></p>
+  </div>
+</section>
+
+<!-- ══ 5. 解密台（高潮） ════════════════════════════════ -->
+<section id="decode">
+  <div class="wrap">
+    <div class="sect-tag rv">第四章 · 解密台</div>
+    <h2 class="rv">工具只有一本小冊子。</h2>
+    <p class="rv">它叫<strong>一次性密碼本</strong>。發報的人和收報的人各有一本一模一樣的，每一頁是一把亂數金鑰，用過就撕掉、燒掉，絕不重複。規則簡單到你現在就能做：<span class="hush">把密文一位一位減掉金鑰，不夠減就加十；再兩位兩位切開，01 是 A、02 是 B，27 是空白。</span></p>
+
+    <div class="console rv">
+      <div class="strip">
+        <div class="label">今晚抄到的 · 十組</div>
+        <div class="groups" id="cipherGroups"></div>
+      </div>
+      <div class="strip">
+        <div class="label">密碼本 · <span id="padName">第 41 頁</span></div>
+        <div class="groups key" id="keyGroups"></div>
+      </div>
+      <div class="ctrls">
+        <button class="btn" id="runBtn">對齊密碼本，開始減 ▸</button>
+        <button class="btn ghost" id="swapBtn" hidden>換一張密碼本 ▸</button>
+      </div>
+      <div class="cells" id="cells" aria-hidden="true"></div>
+      <p class="plainout" id="plainOut" role="status" aria-live="polite"></p>
+    </div>
+
+    <div id="afterFirst" hidden>
+      <p class="rv in">好。你解出來了。</p>
+      <p class="rv in">可是等一下——你怎麼知道你手上這張，是<em>對的</em>那張？</p>
+    </div>
+
+    <div id="afterAll" hidden>
+      <p class="punch">三次。同一串數字，一位都沒改。</p>
+      <p>1949 年，Shannon 把這件事證明成了定理：只要金鑰是真隨機、跟訊息一樣長、而且只用一次，那麼<strong>任何一段等長的話，都存在一把能把這串密文解成它的金鑰</strong>。撤退、進攻、生日快樂，機率完全一樣。</p>
+      <p>所以攔截到的那串數字裡，沒有一丁點資訊。不是很難破——是根本沒有東西可以破。這叫完美保密性，也是密碼學裡唯一一個「數學上已經結案」的東西。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 6. 收尾 ══════════════════════════════════════════ -->
+<section id="ending">
+  <div class="wrap">
+    <div class="sect-tag rv">最後一章</div>
+    <p class="rv">那 FBI 是怎麼辦到的？</p>
+    <p class="rv punch">他們沒有破解任何密碼。</p>
+    <p class="rv">1995 年，探員走進一間公寓，把電腦裡那支解密程式拷貝了一份。三年後，法庭上那幾句話就是這樣來的。</p>
+    <p class="rv">數學那邊，這場仗一次也沒輸過。<br>輸掉的是一把公寓的鑰匙。</p>
+    <p class="rv hush">這也是為什麼一個一百年前的方法到今天還掛在天上：它沒有伺服器可以被駭，沒有金鑰交換可以被攔，收訊端只需要一台在世界任何地方都買得到、開了不會留下任何紀錄的收音機。你的手機每一次連線都在別人的帳本上；短波不會。</p>
+    <p class="rv">2025 年 11 月，還是有人在 4625 千赫錄到那個嗡嗡聲。它今晚也會響。</p>
+    <p class="rv punch">而你現在知道了：聽得見和聽得懂之間，隔的從來不是技術。<br>是一張紙——而且那張紙已經燒掉了。</p>
+    <p class="rv tiny-src">來源：Wikipedia、priyom.org、The Conet Project（Irdial-Discs）、黃蜂網路案審判報導、Shannon 1949。</p>
+  </div>
+</section>
+</div><!-- /gate -->
+
+<footer>
+  <div class="wrap">
+    每日小專案 · 2026-07-31 · <a href="../../../index.html">回首頁</a><br>
+    頁面裡的聲音是即時合成的，不是電台原始錄音。
+  </div>
+</footer>
+
+<script src="otp.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ═══════════════ 共用 ═══════════════ */
+var mqReduce = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : {matches:false, addEventListener:null};
+var reduced = !!mqReduce.matches;
+if (mqReduce.addEventListener) mqReduce.addEventListener('change', function(e){ reduced = e.matches; });
+else if (mqReduce.addListener) mqReduce.addListener(function(e){ reduced = e.matches; });
+
+var $ = function(id){ return document.getElementById(id); };
+var LS = 'nsr_';
+
+/* ── 捲動揭露 ── */
+var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function(entries){
+  entries.forEach(function(en){
+    if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+  });
+}, {rootMargin:'0px 0px -12% 0px', threshold:0.05}) : null;
+function watch(root){
+  var list = (root||document).querySelectorAll('.rv:not(.in)');
+  for (var i=0;i<list.length;i++){ if (io) io.observe(list[i]); else list[i].classList.add('in'); }
+}
+watch(document);
+
+/* ═══════════════ 電台資料 ═══════════════ */
+var FMIN = 4000, FMAX = 12000;
+var STATIONS = [
+  { id:'buzzer',   f:4625,  amp:.95, key:'card-buzzer',
+    title:'UVB-76「The Buzzer」',
+    script:['嗡————','嗡————','嗡————','（它不念數字。它只是佔著這個頻率。）'], loop:true },
+  { id:'atencion', f:5883,  amp:.9,  key:'card-atencion',
+    title:'V02a「Atención」',
+    script:['Atención… Atención…','9 2 4 1 7','0 8 3 3 5','6 1 0 4 9','2 7 7 1 8','（重複一次，然後消失）'] },
+  { id:'music',    f:9410,  amp:.55, decoy:true,
+    title:'某個播音樂的台',
+    script:['（一段音樂）','（一段音樂）','…這只是個一般的廣播電台。'], loop:true },
+  { id:'poacher',  f:11545, amp:.9,  key:'card-poacher',
+    title:'E03「Lincolnshire Poacher」',
+    script:['♪ ♫ ♪ ♫ ——民謠前兩小節','（重複十二遍）','3 9 0 1 7','5 5 2 8 4','1 6 7 3 0','8 4 4 9 2','（結束。祝好運。）'] }
+];
+/* 8000 kHz 的頻段攤在幾百像素上，一個像素就是十幾 kHz——
+   容許誤差得抓寬一點，不然人手根本點不到。鎖定後會自動微調到正確頻率。 */
+var LOCK_KHZ = 40;     // 進入鎖定的容許誤差
+var BW_KHZ   = 420;    // 開始聽得出訊號的範圍
+var DWELL_MS = 650;    // 停留多久才算鎖定
+
+/* ═══════════════ 音訊 ═══════════════ */
+var Snd = (function(){
+  var ac=null, master=null, noiseSrc=null, noiseGain=null, on=false, ready=false;
+  var st = {};          // 每個電台一組 osc/gain
+  function build(){
+    if (ready) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try{
+      ac = new AC();
+      master = ac.createGain(); master.gain.value = 0.0; master.connect(ac.destination);
+      // 白雜訊
+      var len = Math.floor(ac.sampleRate*2), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i=0;i<len;i++) d[i] = (Math.random()*2-1)*0.5;
+      noiseSrc = ac.createBufferSource(); noiseSrc.buffer = buf; noiseSrc.loop = true;
+      var bp = ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1400; bp.Q.value=0.7;
+      noiseGain = ac.createGain(); noiseGain.gain.value = 0.25;
+      noiseSrc.connect(bp); bp.connect(noiseGain); noiseGain.connect(master);
+      noiseSrc.start();
+      STATIONS.forEach(function(s){
+        var o = ac.createOscillator();
+        o.type = (s.id==='buzzer') ? 'sawtooth' : (s.id==='music' ? 'sine' : 'triangle');
+        o.frequency.value = 300;
+        var g = ac.createGain(); g.gain.value = 0;
+        var lp = ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 2200;
+        o.connect(lp); lp.connect(g); g.connect(master); o.start();
+        st[s.id] = {o:o, g:g};
+      });
+      ready = true;
+    }catch(e){ ready=false; }
+  }
+  function setOn(v){
+    on = v;
+    if (on){ build(); if (ac && ac.state==='suspended') ac.resume(); }
+    if (master) master.gain.value = on ? 0.55 : 0.0;
+    if (!on) stopSpeech();
+    try{ localStorage.setItem(LS+'sound', on?'1':'0'); }catch(e){}
+  }
+  function update(prox, tuned, t){
+    if (!on || !ready) return;
+    noiseGain.gain.value = 0.22*(1-0.9*prox) + 0.02;
+    STATIONS.forEach(function(s){
+      var n = st[s.id]; if (!n) return;
+      var p = (tuned && tuned.id===s.id) ? prox : 0;
+      var vol = 0, freq = 300;
+      if (p > 0.02){
+        if (s.id==='buzzer'){
+          var ph = (t % 2000);
+          vol = (ph < 1250 ? 0.16 : 0.0) * p; freq = 340;
+        } else if (s.id==='music'){
+          var mi = Math.floor(t/700) % 4;
+          freq = [392,494,587,494][mi]; vol = 0.06*p;
+        } else if (s.id==='poacher'){
+          var pi = Math.floor(t/380) % 8;
+          freq = [392,392,440,494,587,494,440,392][pi]; vol = 0.09*p;
+        } else {
+          var ai = Math.floor(t/500) % 4;
+          freq = [523,659,523,0][ai]; vol = freq? 0.08*p : 0;
+        }
+      }
+      n.g.gain.value = vol;
+      if (freq) n.o.frequency.value = freq;
+    });
+  }
+  function say(text){
+    if (!on || !window.speechSynthesis) return;
+    try{
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang='en-US'; u.rate=0.72; u.pitch=1.05; u.volume=0.85;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+  function stopSpeech(){ try{ if (window.speechSynthesis) window.speechSynthesis.cancel(); }catch(e){} }
+  function isOn(){ return on; }
+  function park(v){                       // 分頁被切走／離開視線時暫停，不動使用者的開關
+    if (!ready || !ac) return;
+    try{ if (v){ stopSpeech(); ac.suspend(); } else if (on) ac.resume(); }catch(e){}
+  }
+  return {setOn:setOn, update:update, say:say, stopSpeech:stopSpeech, isOn:isOn, park:park};
+})();
+
+/* ═══════════════ 收音機 ═══════════════ */
+var dial=$('dial'), freqEl=$('freq'), meter=$('meterFill'), cursor=$('cursor'),
+    statusEl=$('status'), printEl=$('print'), cv=$('wf'), ctx=null;
+var freq = FMIN, dwell = 0, locked = null, lastT = 0, rowT = 0, running = true, visible = true;
+var found = {};
+var scriptIdx = 0, scriptT = 0;
+
+function nearest(f){
+  var best=null, bd=1e9;
+  for (var i=0;i<STATIONS.length;i++){
+    var d = Math.abs(STATIONS[i].f - f);
+    if (d < bd){ bd = d; best = STATIONS[i]; }
+  }
+  return {s:best, d:bd};
+}
+function proximity(d){ return d>=BW_KHZ ? 0 : Math.pow(1 - d/BW_KHZ, 2.2); }
+
+/* ── 瀑布圖 ── */
+var dpr = Math.min(window.devicePixelRatio || 1, 2);
+var rowData = null, wfW = 1;
+function sizeCanvas(){
+  var r = cv.getBoundingClientRect();
+  wfW = r.width || 1;
+  var w = Math.max(1, Math.round(r.width * dpr));
+  var h = Math.max(1, Math.round(r.height * dpr));
+  if (cv.width !== w || cv.height !== h){          // ← 尺寸真的變了才重設，避免每幀翻倍
+    cv.width = w; cv.height = h;
+    ctx = cv.getContext('2d');
+    ctx.fillStyle = '#040607'; ctx.fillRect(0,0,w,h);
+    rowData = ctx.createImageData(w, 1);
+    if (reduced) paintStatic();
+  }
+  if (!ctx){ ctx = cv.getContext('2d'); rowData = ctx.createImageData(w, 1); }
+}
+/* 關掉動態效果時：一次把整張瀑布圖畫滿，之後不再動 */
+function paintStatic(){
+  if (!ctx) return;
+  for (var i=0; i<cv.height; i++) drawRow();
+}
+function drawRow(){
+  if (!ctx || !rowData) return;
+  var w = cv.width;
+  try{ ctx.drawImage(cv, 0, 1); }catch(e){ return; }
+  var px = rowData.data;
+  var xs = [], amps = [];
+  for (var i=0;i<STATIONS.length;i++){
+    xs.push((STATIONS[i].f - FMIN)/(FMAX-FMIN)*w);
+    amps.push(STATIONS[i].amp * (0.72 + 0.28*Math.random()));
+  }
+  var sigma = Math.max(0.9, 1.1*dpr), inv = 1/(2*sigma*sigma);
+  for (var x=0; x<w; x++){
+    var v = 0.05 + Math.random()*0.16;
+    for (var k=0;k<xs.length;k++){
+      var dx = x - xs[k];
+      if (dx > -8 && dx < 8) v += amps[k]*Math.exp(-dx*dx*inv);
+    }
+    if (v>1) v=1;
+    var o = x*4;
+    px[o]   = 255*v;
+    px[o+1] = 30 + 150*v*v;
+    px[o+2] = 40 + 45*v;
+    px[o+3] = 255;
+  }
+  ctx.putImageData(rowData, 0, 0);
+}
+
+/* ── 收報紙帶 ── */
+function printLine(txt, quiet){
+  var d = document.createElement('div');
+  if (quiet) d.className = 'quiet';
+  d.textContent = txt;
+  printEl.appendChild(d);
+  while (printEl.childNodes.length > 4) printEl.removeChild(printEl.firstChild);
+}
+function clearPrint(){ printEl.innerHTML = ''; }
+
+/* ── 鎖定／解鎖 ── */
+function doLock(s){
+  locked = s; scriptIdx = 0; scriptT = 0;
+  setFreq(s.f, false);                 // 自動微調（AFC）：咬住之後讀數跳到正確頻率
+  statusEl.textContent = '▮ 已鎖定 · ' + s.title;
+  statusEl.classList.add('lock');
+  clearPrint();
+  if (s.key && !found[s.id]){
+    found[s.id] = true;
+    var card = $(s.key);
+    if (card){
+      card.classList.remove('locked'); card.classList.add('open');
+      var slot = card.querySelector('.slot'); if (slot) slot.remove();
+      var body = card.querySelector('.body'); if (body) body.hidden = false;
+      watch(card);
+    }
+    checkGate();
+  }
+}
+function doUnlock(){
+  if (!locked) return;
+  locked = null; dwell = 0;
+  statusEl.classList.remove('lock');
+  Snd.stopSpeech();
+  clearPrint(); printLine('（收報紙帶）', true);
+}
+function checkGate(){
+  var need = ['buzzer','atencion','poacher'], all = true;
+  for (var i=0;i<need.length;i++) if (!found[need[i]]) all = false;
+  if (all && !$('gate').classList.contains('open')){
+    $('gate').classList.add('open');
+    statusEl.textContent = '▮ 三個都收到了。往下捲。';
+    watch($('gate'));
+  }
+}
+
+/* ── 主迴圈 ── */
+function tick(t){
+  if (!running){ return; }
+  requestAnimationFrame(tick);
+  if (!visible || document.hidden) return;
+  var dt = lastT ? Math.min(t - lastT, 100) : 16; lastT = t;
+
+  var n = nearest(freq), prox = proximity(n.d);
+  meter.style.width = Math.round(prox*100) + '%';
+
+  if (n.d <= LOCK_KHZ){
+    dwell += dt;
+    if (!locked && dwell >= DWELL_MS) doLock(n.s);
+  } else {
+    if (locked && n.d > LOCK_KHZ + 15) doUnlock();
+    dwell = 0;
+    if (!locked){
+      statusEl.textContent = prox > 0.55 ? '…有東西。再靠近一點。'
+                           : prox > 0.12 ? '…雜訊裡好像有節奏。'
+                           : '…嘶——只有雜訊。';
+    }
+  }
+
+  /* 紙帶 */
+  if (locked){
+    scriptT += dt;
+    if (scriptT > (scriptIdx===0 ? 250 : 1150)){
+      scriptT = 0;
+      if (scriptIdx < locked.script.length){
+        var line = locked.script[scriptIdx];
+        printLine(line, line.charAt(0)==='（');
+        if (/^[0-9 ]+$/.test(line)) Snd.say(line);
+        scriptIdx++;
+      } else if (locked.loop){ scriptIdx = 0; clearPrint(); }
+    }
+  }
+
+  Snd.update(prox, n.d <= BW_KHZ ? n.s : null, t);
+
+  if (!reduced && t - rowT > 42){ rowT = t; drawRow(); }   // 關掉動態效果時瀑布圖靜止
+}
+
+/* ── 輸入 ── */
+function setFreq(v, fromUser){
+  freq = Math.max(FMIN, Math.min(FMAX, Math.round(v)));
+  if (dial.value != freq) dial.value = freq;
+  freqEl.textContent = freq;
+  dial.setAttribute('aria-valuetext', freq + ' 千赫');
+  cursor.style.transform = 'translateX(' + ((freq-FMIN)/(FMAX-FMIN)*wfW) + 'px)';
+  if (fromUser && locked && Math.abs(locked.f - freq) > LOCK_KHZ + 15) doUnlock();
+}
+dial.addEventListener('input', function(){ setFreq(+dial.value, true); });
+dial.addEventListener('keydown', function(e){                    // Shift＋方向鍵：快轉
+  if (!e.shiftKey) return;
+  var d = (e.key === 'ArrowRight' || e.key === 'ArrowUp') ? 1
+        : (e.key === 'ArrowLeft'  || e.key === 'ArrowDown') ? -1 : 0;
+  if (!d) return;
+  e.preventDefault();
+  setFreq(freq + d*60, true);
+});
+window.addEventListener('resize', function(){ sizeCanvas(); setFreq(freq, false); });
+
+/* 掃描：往指定方向找下一個訊號並平滑滑過去 */
+var sweeping = null;
+function scan(dir){
+  var cands = STATIONS.map(function(s){ return s.f; })
+    .filter(function(f){ return dir>0 ? f > freq + LOCK_KHZ : f < freq - LOCK_KHZ; })
+    .sort(function(a,b){ return dir>0 ? a-b : b-a; });
+  var target = cands.length ? cands[0] : (dir>0 ? FMAX : FMIN);
+  if (reduced){ setFreq(target, true); return; }
+  var from = freq, t0 = 0;
+  if (sweeping) cancelAnimationFrame(sweeping);
+  (function step(ts){
+    if (!t0) t0 = ts;
+    var k = Math.min(1, (ts - t0)/850);
+    var e = 1 - Math.pow(1-k, 3);
+    setFreq(from + (target-from)*e, true);
+    if (k < 1) sweeping = requestAnimationFrame(step); else sweeping = null;
+  })(0);
+}
+$('scanUp').addEventListener('click', function(){ scan(1); });
+$('scanDown').addEventListener('click', function(){ scan(-1); });
+
+/* 聲音開關 */
+var sndBtn = $('sndBtn');
+function setSound(on){
+  Snd.setOn(on);
+  sndBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  sndBtn.textContent = '聲音：' + (on ? '開' : '關');
+}
+sndBtn.addEventListener('click', function(){ setSound(sndBtn.getAttribute('aria-pressed') !== 'true'); });
+
+/* 電源鈕：捲到收音機並開聲音（使用者手勢，音訊才啟動得了；尊重上次的選擇） */
+var prefSound = true;
+try{ prefSound = localStorage.getItem(LS+'sound') !== '0'; }catch(e){}
+$('powerBtn').addEventListener('click', function(){
+  setSound(prefSound);
+  var target = $('radio');
+  if (reduced) window.scrollTo(0, target.offsetTop);
+  else target.scrollIntoView({behavior:'smooth', block:'start'});
+  setTimeout(function(){ dial.focus({preventScroll:true}); }, reduced ? 0 : 700);
+});
+
+/* 離開視線／分頁隱藏就停 */
+if ('IntersectionObserver' in window){
+  new IntersectionObserver(function(es){
+    visible = es[0].isIntersecting;
+    Snd.park(!visible || document.hidden);
+  }, {threshold:0}).observe($('rx'));
+}
+document.addEventListener('visibilitychange', function(){
+  Snd.park(document.hidden || !visible);
+});
+
+sizeCanvas(); paintStatic(); setFreq(FMIN, false);   // 一開始就把瀑布圖填滿，不要留一片黑
+requestAnimationFrame(tick);
+
+/* ═══════════════ 解密台 ═══════════════ */
+var CIPHER = '46206941839159243829118832062515150481952139885357'.split('').map(Number);
+var PADS = [
+  { name:'第 41 頁', key:'26295144887132212315158924932011989873802834835930', zh:'目標確認　繼續執行' },
+  { name:'第 42 頁', key:'45285433637458103402038312851701988476782938795830', zh:'中止行動　返回基地' },
+  { name:'第 43 頁', key:'48295335687457252009138431810818070377911838613630', zh:'祖母　生日快樂' }
+];
+var padIdx = 0, revealing = false;
+
+function renderGroups(el, digits, cls){
+  el.innerHTML = '';
+  var g = OTP.toGroups(digits);
+  for (var i=0;i<g.length;i++){
+    var b = document.createElement('b'); b.textContent = g[i];
+    el.appendChild(b);
+  }
+  if (cls) el.className = cls;
+}
+function keyDigits(i){ return PADS[i].key.split('').map(Number); }
+
+renderGroups($('cipherGroups'), CIPHER, 'groups');
+renderGroups($('keyGroups'), keyDigits(0), 'groups key');
+
+/* 25 個格子：每格 = 一個字元 */
+var cellsEl = $('cells');
+function buildCells(){
+  cellsEl.innerHTML = '';
+  for (var i=0;i<25;i++){
+    var d = document.createElement('div'); d.className='cell';
+    d.innerHTML = '<div class="c"></div><div class="k"></div><div class="l"></div>';
+    cellsEl.appendChild(d);
+  }
+}
+buildCells();
+
+function reveal(idx, cb){
+  if (revealing) return;
+  revealing = true;
+  var key = keyDigits(idx);
+  var plainDigits = OTP.subMod10(CIPHER, key);
+  var text = OTP.digitsToText(plainDigits);
+  var cells = cellsEl.children;
+  $('plainOut').textContent = '';
+  for (var i=0;i<cells.length;i++){ cells[i].classList.remove('on','sp'); }
+  var i2 = 0;
+  function stepOne(){
+    if (i2 >= 25){
+      revealing = false;
+      $('plainOut').innerHTML = text.replace(/ /g,'&nbsp;') + '<span class="zh">' + PADS[idx].zh + '</span>';
+      if (cb) cb();
+      return;
+    }
+    var c = cells[i2];
+    c.querySelector('.c').textContent = '' + CIPHER[i2*2] + CIPHER[i2*2+1];
+    c.querySelector('.k').textContent = '' + key[i2*2] + key[i2*2+1];
+    var ch = text.charAt(i2);
+    c.querySelector('.l').textContent = ch === ' ' ? '␣' : ch;
+    c.classList.add('on');
+    if (ch === ' ') c.classList.add('sp');
+    i2++;
+    if (reduced) stepOne(); else setTimeout(stepOne, 46);
+  }
+  stepOne();
+}
+
+$('runBtn').addEventListener('click', function(){
+  var b = this;
+  b.disabled = true;
+  reveal(0, function(){
+    $('afterFirst').hidden = false;
+    $('swapBtn').hidden = false;
+    watch($('afterFirst'));
+  });
+});
+
+$('swapBtn').addEventListener('click', function(){
+  if (revealing) return;
+  var b = this;
+  padIdx++;
+  if (padIdx >= PADS.length) return;
+  $('padName').textContent = PADS[padIdx].name;
+  renderGroups($('keyGroups'), keyDigits(padIdx), 'groups key');
+  reveal(padIdx, function(){
+    if (padIdx >= PADS.length - 1){
+      b.disabled = true; b.textContent = '沒有下一張了';
+      $('afterAll').hidden = false;
+      watch($('afterAll'));
+    } else {
+      b.textContent = '再換一張 ▸';
+    }
+  });
+});
+
+})();
+</script>
+</body>
+</html>

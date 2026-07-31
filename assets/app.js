@@ -44,11 +44,17 @@ function mark(text, q) {
 
 const state = { q: "", cat: null, group: "date" };
 
+/* 搜尋 haystack 與小寫查詢都做快取：PROJECTS 載入後不再變動，一次建、終身用 */
+let _qKey = "", _qLow = "";
+function qLow() {
+  if (state.q !== _qKey) { _qKey = state.q; _qLow = state.q.toLowerCase(); }
+  return _qLow;
+}
 function matches(p) {
   if (state.cat && p.category !== state.cat) return false;
   if (!state.q) return true;
-  const hay = (p.title + " " + p.desc + " " + p.category + " " + p.date).toLowerCase();
-  return hay.includes(state.q.toLowerCase());
+  const hay = p._hay || (p._hay = (p.title + " " + p.desc + " " + p.category + " " + p.date).toLowerCase());
+  return hay.includes(qLow());
 }
 
 /* 星空連動的安全替身（initSky 啟動後會覆蓋成真實作） */
@@ -81,7 +87,7 @@ function cardHTML(p, gi) {
   const parts = p.date.split("-");
   return `
     <a class="card" href="./${esc(p.dir)}/index.html" data-gi="${gi}" style="--cc:${catColor(p.category)}"
-       aria-label="${esc(p.title)}（${esc(p.date)}・${esc(p.category)}）${esc(p.desc)}">
+       aria-label="${esc(p.title)}（${esc(p.date)}・${esc(p.category)}）">
       <span class="c-top">
         <span class="c-emoji" aria-hidden="true">${esc(p.emoji)}</span>
         ${gi === 0 ? '<span class="c-badge">今日之星</span>' : ""}
@@ -121,6 +127,9 @@ function groupsOf(items) {
 
 const wallEl = $("wall");
 let io = null;
+/* 進場動畫只在首次載入與星軌／星座切換時重播；搜尋、篩選的重建直接就位，
+   否則中文輸入每個 debounce tick 都會讓整面牆重新淡入一次（閃爍） */
+let revealReplay = true;
 
 function renderWall() {
   const items = PROJECTS.map((p, gi) => ({ p, gi })).filter(it => matches(it.p));
@@ -143,16 +152,18 @@ function renderWall() {
       <div class="g-grid">${g.items.map(it => cardHTML(it.p, it.gi)).join("")}</div>
     </section>`).join("");
 
-  revealCards();
-  updateSky();
+  revealCards(revealReplay);
+  revealReplay = false;
+  updateSky(items);
+  return items.length;
 }
 
 /* 進場編排：進入視窗時依序浮現（每批最多疊 8 段延遲，總長 ≤ .4s） */
-function revealCards() {
+function revealCards(replay) {
   const cards = wallEl.querySelectorAll(".card");
   if (io) io.disconnect();
-  if (reduced() || !("IntersectionObserver" in window)) {
-    cards.forEach(c => c.classList.add("in"));
+  if (!replay || reduced() || !("IntersectionObserver" in window)) {
+    cards.forEach(c => { c.style.removeProperty("--d"); c.classList.add("in"); });
     return;
   }
   io = new IntersectionObserver((entries, obs) => {
@@ -214,8 +225,8 @@ qEl.addEventListener("input", () => {
   clearTimeout(qTimer);
   qTimer = setTimeout(() => {
     state.q = v;
-    renderWall();
-    if (v) announce(`搜尋「${v}」，找到 ${PROJECTS.filter(matches).length} 件`);
+    const shown = renderWall(); /* 共用 renderWall 已算好的結果，不再多掃一次 */
+    if (v) announce(`搜尋「${v}」，找到 ${shown} 件`);
   }, 120);
 });
 qEl.addEventListener("keydown", e => {
@@ -254,6 +265,7 @@ function setGroup(g) {
   $("grpDate").setAttribute("aria-pressed", String(g === "date"));
   $("grpCat").setAttribute("aria-pressed", String(g === "cat"));
   try { localStorage.setItem("index.group", g); } catch (e) {}
+  revealReplay = true; /* 分組是整面牆重排，值得重播進場 */
   renderWall();
 }
 $("grpDate").addEventListener("click", () => { setGroup("date"); announce("依星軌（時間）排列"); });
@@ -307,7 +319,13 @@ function countUp(el, to) {
   const probe = (cv && cv.getContext) ? cv.getContext("2d") : null;
   if (!probe) { if (skyWrap) skyWrap.style.display = "none"; return; }
 
-  const hexRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  /* 色碼解析記憶化：全站只有 7 個 hex，卻在每星每幀的路徑上被呼叫 */
+  const hexCache = new Map();
+  const hexRGB = h => {
+    let v = hexCache.get(h);
+    if (!v) { v = [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; hexCache.set(h, v); }
+    return v;
+  };
   const rgba = (h, a) => { const [r, g, b] = hexRGB(h); return `rgba(${r},${g},${b},${a})`; };
   const clamp01 = k => Math.max(0, Math.min(1, k));
   const outCubic = k => 1 - Math.pow(1 - clamp01(k), 3);
@@ -322,7 +340,8 @@ function countUp(el, to) {
   const chrono = PROJECTS.map((p, gi) => ({ p, gi })).reverse(); /* 舊 → 新 */
   let ctx = null, W = 0, H = 0, dpr = 1;
   let farL = null, nearL = null, nebs = [];
-  let stars = [], pathPts = [], pathCum = [], pathLen = 1;
+  let stars = [], starByGi = new Map(), pathPts = [], pathCum = [], pathLen = 1;
+  let igStep = 16; /* 點燈間隔：星多時自動縮短，總長鎖在 ~1.1s（動畫紀律 ≤1.2s） */
   let hoverGi = -1, selGi = -1, lastPT = "mouse";
   let pulses = [], meteor = null, meteorTimer = null, glint = null, glintTimer = null;
   let scan = null, lastScan = -1;
@@ -405,6 +424,8 @@ function countUp(el, to) {
         label, today: it.gi === 0,
       };
     });
+    starByGi = new Map(stars.map(s => [s.gi, s]));
+    igStep = Math.min(16, 1100 / Math.max(1, stars.length));
     /* 星軌折線累積長度（彗星巡行用） */
     pathPts = stars.map(s => [s.x, s.y]);
     pathCum = [0];
@@ -521,7 +542,7 @@ function countUp(el, to) {
       let rr = (s.today ? 4.8 : s.r) * (reduced() ? 1 : .88 + .24 * tw);
       if (hot) { rr *= 1.55; a = Math.min(1, a + .35); }
       if (igniting) {
-        const ig = clamp01((t - bornAt - s.idx * 16) / 380);
+        const ig = clamp01((t - bornAt - s.idx * igStep) / 380);
         a *= ig; rr *= .6 + .4 * ig;
       }
       if (cometPos && on) {
@@ -549,14 +570,14 @@ function countUp(el, to) {
         ctx.font = '10.5px "Noto Sans TC", system-ui, sans-serif';
       }
     }
-    if (igniting && t - bornAt > stars.length * 16 + 420) bornAt = -1;
+    if (igniting && t - bornAt > stars.length * igStep + 420) bornAt = -1;
 
     /* 星光乍現：隨機一顆對你眨眼 */
     if (glint) {
       const k = (t - glint.t0) / 750;
       if (k >= 1) glint = null;
       else {
-        const s = stars.find(z => z.gi === glint.gi);
+        const s = starByGi.get(glint.gi);
         if (s && visSet.has(s.gi)) {
           const a = Math.sin(Math.PI * clamp01(k));
           ctx.lineWidth = 1;
@@ -570,7 +591,7 @@ function countUp(el, to) {
     /* 漣漪（大＝隨機／鎖定；小＝掃描光束沿途應答） */
     pulses = pulses.filter(pl => t - pl.t0 < (pl.small ? 520 : 900));
     for (const pl of pulses) {
-      const s = stars.find(z => z.gi === pl.gi);
+      const s = starByGi.get(pl.gi);
       if (!s) continue;
       const k = (t - pl.t0) / (pl.small ? 520 : 900);
       ctx.strokeStyle = rgba(s.today ? GOLD_HEX : s.hex, ((1 - k) * (pl.small ? .55 : .8)).toFixed(3));
@@ -601,7 +622,7 @@ function countUp(el, to) {
 
   /* ── 掃描星空：光束橫掃 → 減速鎖定 → 準星收束 → 開介紹卡 ── */
   function drawScan(t) {
-    const target = stars.find(z => z.gi === scan.gi);
+    const target = starByGi.get(scan.gi);
     if (!target) { scan = null; return; }
     if (scan.phase === "sweep") {
       const k = clamp01((t - scan.t0) / scan.dur);
@@ -723,7 +744,7 @@ function countUp(el, to) {
   function showTip(gi, withLink) {
     if (gi < 0) { if (selGi < 0) hideTip(); return; }
     const p = PROJECTS[gi];
-    const s = stars.find(z => z.gi === gi);
+    const s = starByGi.get(gi);
     if (!s) return;
     tipEl.style.setProperty("--cc", catColor(p.category));
     tipEl.classList.toggle("tap", !!withLink);
@@ -787,9 +808,11 @@ function countUp(el, to) {
     }
   });
 
-  /* 對外：篩選連動與隨機漣漪 */
-  updateSky = function () {
-    visSet = new Set(PROJECTS.map((p, gi) => matches(p) ? gi : -1).filter(g => g >= 0));
+  /* 對外：篩選連動與隨機漣漪。renderWall 會把算好的結果傳進來，同一個 tick 不重掃 */
+  updateSky = function (items) {
+    visSet = items
+      ? new Set(items.map(it => it.gi))
+      : new Set(PROJECTS.map((p, gi) => matches(p) ? gi : -1).filter(g => g >= 0));
     if (ctx && !running) drawSky(performance.now());
   };
   skyPulse = function (gi) {
@@ -832,8 +855,8 @@ function searchFor(v) {
   const el = $("q");
   el.value = v; state.q = v;
   document.body.classList.toggle("searching", v !== "");
-  renderWall();
-  announce(`篩選 ${v}，找到 ${PROJECTS.filter(matches).length} 件`);
+  const shown = renderWall();
+  announce(`篩選 ${v}，找到 ${shown} 件`);
   const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   $("wall").scrollIntoView({ behavior: rm ? "auto" : "smooth", block: "start" });
 }
@@ -894,4 +917,4 @@ renderActivity();
 let savedGroup = "date";
 try { savedGroup = localStorage.getItem("index.group") || "date"; } catch (e) {}
 setGroup(savedGroup === "cat" ? "cat" : "date");
-mReduced.addEventListener("change", revealCards);
+mReduced.addEventListener("change", () => revealCards(false));

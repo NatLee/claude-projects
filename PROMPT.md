@@ -7,24 +7,31 @@
 
 目標：每天早上自動為使用者的「每日小專案」靜態網站（位於 C:\Users\NatLee\Desktop\claude-projects，已是 git 倉庫，入口為根目錄 `index.html`）新增一個全新、好玩、有質感的**子頁面**，帶來驚喜；並像一位長期協作的同事一樣，順手保養整個網站。全程使用繁體中文。
 
-【大專案架構】整個資料夾是一個可直接部署（如 GitHub Pages）的純靜態網站：
+【大專案架構】整個資料夾是一個純靜態網站，線上版在 GitHub Pages：<https://natlee.github.io/claude-projects/>（由 `main` 部署；本地 commit 即算交付，push 與線上更新由使用者負責）：
 
 ```
 index.html          首頁骨架（只有標記，約 4 KB，平常不要動）
+404.html / .nojekyll 部署硬化（截斷網址回首頁／跳過 Jekyll），不要動
 assets/
-  ├─ data.js        ★ const PROJECTS = [...] —— 作品清單唯一來源，每天只動這個檔
+  ├─ data.js        ★ const PROJECTS = [...] —— 作品清單唯一來源，用 tools/add.js 掛上
   ├─ app.js         首頁渲染引擎：卡片牆、搜尋、篩選、分組、產量圖
   └─ style.css      首頁樣式
-tools/check.js      全站健檢，跑 `node tools/check.js`
+tools/
+  ├─ check.js       全站健檢（品質閘門），跑 `node tools/check.js`
+  ├─ add.js         掛上首頁：驗證欄位與重複後插進 PROJECTS 最上方
+  ├─ snippets.md    標準樣板片段（行為鷹架的 canonical 版本，步驟 3 照抄）
+  ├─ 保養名冊.json   每頁的保養輪替記錄（步驟 8 讀寫）
+  ├─ hooks/         pre-commit（提交前自動健檢）；換機器後跑 node tools/hooks/install.js
+  └─ maintain.js    倉庫保養（清 .git 垃圾＋gc）——只給使用者本機跑，排程不要執行
 README.md           說明文件（不維護作品清單）
 PROMPT.md           本檔
 projects/YYYY-MM/YYYY-MM-DD-專案名/{index.html, 說明.md}
 ```
 
-- **首頁已拆檔**：清單、邏輯、樣式各自獨立。新增作品時**只需要編輯 `assets/data.js`**，`index.html`、`app.js`、`style.css` 一概不要動——卡片牆、今日之星 hero、統計數字、類別籌碼與產量圖都會自動生成。
-- **要看近期做過什麼，讀 `assets/data.js` 的前 60 行就夠**（陣列最上方就是最新的），不要整檔讀進來浪費脈絡。
+- **首頁已拆檔**：清單、邏輯、樣式各自獨立。新增作品時**只需要動 `assets/data.js`**（經 `tools/add.js`），`index.html`、`app.js`、`style.css` 一概不要動——卡片牆、今日之星 hero、統計數字、類別籌碼與產量圖都會自動生成。
+- **要看近期做過什麼，跑 `node tools/check.js`**——報表尾端有「近 14 天題材摘要」與疑似重複警告，那就是步驟 1 的去重依據；再讀 `assets/data.js` 前 30 行確認最新幾筆的互動形式即可，不要整檔讀進來浪費脈絡。
 - **不要用 ES module 或 `fetch()` 載入本機檔案**：全站必須維持雙擊 `file://` 就能開啟，那兩者會被 CORS 擋掉。首頁靠一般的 `<script src>` 依序載入 `data.js` → `app.js`。
-- 每個子頁面一個資料夾，**依月份分組**：`projects/YYYY-MM/YYYY-MM-DD-簡短專案名/`，入口一律是該資料夾內的 `index.html`，並附一份 `說明.md`。
+- 每個子頁面一個資料夾，**依月份分組**：`projects/YYYY-MM/YYYY-MM-DD-簡短專案名/`，入口一律是該資料夾內的 `index.html`，並附一份 `說明.md`。資料夾名**不得以 `_` 或 `.` 開頭**（GitHub Pages 的 Jekyll 會靜默略過這種路徑）。
 - 根目錄只保留 `index.html`、`README.md`、`PROMPT.md`、`assets/`、`tools/` 與 `projects/`，不要在根目錄直接建立專案資料夾。
 - 全站禁止任何後端與資料庫：需要儲存資料時一律使用 localStorage。
 
@@ -41,7 +48,7 @@ projects/YYYY-MM/YYYY-MM-DD-專案名/{index.html, 說明.md}
 
 - 可以是多檔頁面（index.html + style.css + app.js）或單檔自包含頁面。
 - 可從 cdnjs 載入函式庫；除此之外不得依賴任何外部資源（頁面必須自包含、可直接開啟）。
-- 需要儲存使用者資料時使用 localStorage，所有 key 必須加該專案專屬的英文短前綴（例如 `gacha.`、`fermi.`），避免同網域下互相覆蓋。
+- 需要儲存使用者資料時使用 localStorage，所有 key 必須加該專案專屬的英文短前綴（例如 `gacha.`、`fermi.`），避免同網域下互相覆蓋。**前綴要抽成同檔的字面常數**（`const LS = "gacha.";`），check.js 才靜態驗得到；缺分隔符或跨專案撞名現在是錯誤級、會擋門。
 - 互動形式要輪替：遊戲、模擬器、視覺化、工具、收集系統、文字冒險、聲音玩具……不要連續幾天同一型。
 - **容器/敘事形式也要輪替**（見下方【敘事與結構】）：捲動敘事、分章旅程、沉浸式全螢幕、假介面/假文件……別連續兩天同一種。
 
@@ -92,19 +99,20 @@ projects/YYYY-MM/YYYY-MM-DD-專案名/{index.html, 說明.md}
 - **SVG 漸層描邊**：若用 `stroke:url(#grad)`，漸層**一定要**設 `gradientUnits="userSpaceOnUse"` 並給實際座標。預設的 `objectBoundingBox` 會讓**水平或垂直的直線**（bbox 高或寬為 0）**整條線不繪製**——線明明畫了卻看不見。
 - **逐路徑 drop-shadow**：`filter:drop-shadow()` 也依 bbox 決定濾鏡區域，零面積路徑同樣不繪製。要加光暈請掛在**群組 `<g>`** 上，不要掛在個別水平／垂直路徑上。
 - **canvas 一定要有 CSS 尺寸**：若 canvas 只有 `width:100%` 而**沒有 CSS 高度**，版面高度會取自 `height` 屬性；而用 `getBoundingClientRect()×dpr` 回寫該屬性的作法，搭配 `ResizeObserver` 會形成**每幀翻倍的回饋迴圈**（150→300→600…），數幀內就超出畫布上限、整張圖消失（dpr=1 的螢幕剛好不會壞，很難察覺）。
+- **resize 時未比較尺寸就重設 canvas／重生狀態**：手機網址列收放會連發 resize，每次重設 `canvas.width` 都會清空畫布、重灑粒子造成閃動。resize handler 必須**先比較 w／h／dpr、未變就 return**——直接抄 `tools/snippets.md` 的 fitCanvas。這個 bug 曾在至少五頁各自出現、分五天才修完。
 - **dasharray 畫線動畫要可靠重播**：先 `transition:none` 設為隱藏 → 強制 reflow（讀 `getBoundingClientRect()`）→ 在下一個 `requestAnimationFrame` 才開 transition 並設 `dashoffset:0`。直接翻 dashoffset 不保證每次都會播。
 - 畫線動畫請依**實際走訪／繪製方向**產生路徑，否則動畫會倒著播。
 
 【執行步驟】
 
-1. 避免重複：列出 `projects/` 底下既有的月份與專案資料夾，並讀 `assets/data.js` **前 60 行**（`PROJECTS` 陣列最上方就是最近的作品，那是唯一的清單來源），看看最近做過的類別與互動形式，刻意挑最近沒做過的組合、全新的題材。（若本次要做多個，每一個也都要避開**本批稍早已完成**的類別、形式與題材。）
+1. 避免重複：先跑 `node tools/check.js`，用報表尾端的「近 14 天題材摘要」看最近做過的類別與題材，再讀 `assets/data.js` 前 30 行確認最新幾筆的互動形式，刻意挑最近沒做過的組合、全新的題材。歷史教訓：題材撞車發生在相隔 7～10 天（生日悖論、神經元點火各撞過一次），查重不能只看兩三天。（若本次要做多個，每一個也都要避開**本批稍早已完成**的類別、形式與題材；步驟 6 掛上首頁後，check.js 會對最新一批自動跑 emoji 與題材重疊偵測，出現警告要認真處理。）
 
 2. 構思點子與**故事**：挑一類主題，想一個具體、有趣、做得完的點子。凡屬「網路趣聞」「奇聞軼事」「科學趣聞」「學習新知」，先用 WebSearch 找一兩個真實素材或數據當靈感，確保內容正確、有料。**接著先把故事想清楚再動手**（照【敘事與結構】）：這頁的鉤子是什麼？轉折在哪？使用者的哪個動作觸發高潮？結尾的記憶點？要用什麼**容器/敘事形式**（捲動敘事、分章、沉浸場景、假介面……）承載它，且要和最近幾天不同。把這條故事線寫進 `說明.md` 開頭幾句，逼自己講得出來。
 
-3. 建立子頁面：建立 `projects/YYYY-MM/YYYY-MM-DD-簡短專案名`（日期用今天，台灣時區；月份資料夾不存在就一併建立），放入 `index.html` 與所需檔案，達到上述設計品質標準。
+3. 建立子頁面：建立 `projects/YYYY-MM/YYYY-MM-DD-簡短專案名`（日期用今天，台灣時區；月份資料夾不存在就一併建立），放入 `index.html` 與所需檔案，達到上述設計品質標準。**行為鷹架照抄 `tools/snippets.md` 的標準樣板**（reduced-motion、rAF 暫停、IntersectionObserver 進場、fitCanvas、回首頁連結）——那是全站唯一的 canonical 版本，已內建歷來修過的坑；視覺與敘事再自由發揮。
 
 4. 測試（很重要）：
-   - **跑 `node tools/check.js`**——它會一次驗證清單欄位與類別、`dir` 對不對得上實體資料夾、有沒有忘記掛上首頁、全站每一段 JS（含 HTML 內嵌 `<script>`）的語法、`file://` 會壞掉的寫法，以及沒加前綴的 localStorage key。**必須全過才算完成。**
+   - **跑 `node tools/check.js`**——它會一次驗證：清單欄位與類別、日期（真實日曆日、陣列新→舊排序）、desc 長度、`dir` 與實體資料夾雙向對帳、回首頁連結、HTML 基本結構（lang／charset／viewport／title）、全站每一段 JS（含 HTML 內嵌 `<script>`）的語法、`file://` 會壞掉的寫法、本機資源參照（存在＋大小寫）、localStorage 前綴與跨專案撞名、footer 註腳、跨作品重複。**錯誤（❌）必須全清才算完成；提醒（⚠️）不擋門，但要逐條看過、該處理就處理。**
    - 核心演算法／邏輯盡量抽成純函式，用 node 跑斷言驗證正確性（而不只是「看起來會動」）。
    - 確認直接雙擊開啟可完整運作：相對路徑正確、無 fetch 本機檔案、外部資源只來自 cdnjs。
    - 對照下面的「已知渲染地雷」逐項檢查。
@@ -112,15 +120,21 @@ projects/YYYY-MM/YYYY-MM-DD-專案名/{index.html, 說明.md}
 
 5. 附上說明：資料夾內放 `說明.md`——這是什麼、怎麼玩／用、為什麼有趣或實用、完整資料來源（若涉及事實）；若有用 localStorage 在此註明。冗長的來源清單、方法論、隱私與儲存說明**都住在這裡**，不要搬到頁面上（見設計品質標準的「註腳要克制」）。
 
-6. 掛上首頁：編輯 **`assets/data.js`** 的 `PROJECTS` 陣列，把今天的專案**加在陣列最上方**（欄位照既有格式：`date`、`title`、`emoji`、`dir`、`category`、`desc`；**`dir` 要寫完整相對路徑 `projects/YYYY-MM/YYYY-MM-DD-專案名`**；`category` 必須與六大類字串完全一致）。**只動這個陣列**——`index.html`、`assets/app.js`、`assets/style.css` 一概不要碰，卡片牆會自動長出新卡片、今日之星 hero 會自動換成陣列第一筆的作品。（多產出時：整批做完後，把**最滿意的那一個**移到陣列最上方，讓它成為今日之星。）
+6. 掛上首頁：跑 **`node tools/add.js --title "…" --emoji "…" --dir "projects/YYYY-MM/YYYY-MM-DD-專案名" --category "…" --desc "…"`**——它會驗證欄位與類別、dir 實體存在、desc 長度、emoji 與題材重複疑慮，把新作品插進 `assets/data.js` 的 `PROJECTS` **最上方**，並自動跑一次健檢收尾。**desc 是「一句話介紹」：≤120 字、一到三短句、最誘人的東西放最前面**（卡片只顯示 3 行約 60 字，寫再長沒人看得到；完整故事線住在 說明.md）。`index.html`、`assets/app.js`、`assets/style.css` 一概不要碰——卡片牆會自動長出新卡片、今日之星 hero 會自動換成陣列第一筆。（多產出時：整批做完後，把**最滿意的那一個**調到陣列最上方成為今日之星；手動調順序時維持「新→舊」，check.js 會驗。）
 
 7. 不需更新 `README.md`：根 README 已精簡為說明文件，**不再維護作品清單**——清單唯一來源是 `assets/data.js` 的 `PROJECTS` 陣列（步驟 6 已完成）。只有在流程或結構本身改變時才需要動 README。
 
-8. 順手保養（cowork 精神，時間盒 15 分鐘內）：挑一個「最舊的、最近沒被保養過」的既有子頁面快速健檢——點檢主要互動的接線、對照「已知渲染地雷」看有無明顯 bug（語法層面 `tools/check.js` 已經全站掃過）。發現小問題就修（不改玩法、不改 localStorage key）；沒有就跳過。在 commit 訊息註明保養了哪個專案。
+8. 順手保養（cowork 精神，時間盒 15 分鐘內），**照名冊輪替**：
+   - 讀 `tools/保養名冊.json`，挑 `lastMaintained` 最舊的一頁（從未保養的優先、其中建立日期最舊者先）。過去因為沒有記錄，同一頁曾被重複健檢 15 次、九成頁面從沒輪到——名冊就是為了這個。
+   - 點檢主要互動的接線、對照「已知渲染地雷」看有無明顯 bug（語法層面 `tools/check.js` 已經全站掃過）。發現小問題就修（不改玩法、不改 localStorage key）；沒有就記「無需修改」。
+   - **發現的 bug 若屬於可 grep 的模式**（多頁可能有同一寫法），先花五分鐘全站搜同模式、列出受影響清單一次修完，並把該模式補進【已知渲染地雷】與 `tools/snippets.md`——同一個 canvas resize bug 過去曾分五天修五頁，別再重演。
+   - 保養完把該頁的 `lastMaintained` 改成今天、`result` 寫一句話，寫回名冊。在 commit 訊息註明保養了哪個專案。
+   - **禁止**：把子頁面間的重複樣板抽成 `assets/` 底下的執行期共用 JS/CSS、或改寫舊頁去引用共用檔——自包含是刻意設計，共用檔一改就是 130+ 頁的爆炸半徑；需要共用一律走 `tools/snippets.md` 抄進頁面。
 
 9. 整理 git（**只 commit、不 push**——使用者會自己推）：先 `git status` 檢視所有變更，把它們整理成一個乾淨、有條理的 commit（今天的子頁面、首頁 PROJECTS、以及保養修正都納入；若動到不相干的暫存檔或殘留，先排除或清掉再提交）。commit message 用繁體中文，格式如「新增子頁面：YYYY-MM-DD 專案名（類別）」，並在內文條列今天做了什麼（新增專案、掛上首頁、保養了哪個舊專案）。提交後確認 `git status` 是乾淨的，把工作樹留在可直接 push 的狀態。
    - 多產出時：**每個專案各自一個 commit**（各自帶上它的 `assets/data.js` 變更），保養修正併入最後一個 commit 或獨立一個。
-   - **注意這個資料夾是掛載進來的，不允許刪檔（unlink），但 rename 可用。** 因此 git 常會留下 `.git/*.lock`（含 `index.lock`、`HEAD.lock`、`next-index-*.lock`）與 `tmp_obj_*` 殘留，並可能擋住下一次 commit（訊息如「Another git process seems to be running」）。確認沒有 git 程序在跑後，用 **`mv` 改名移開**這些 lock 檔即可繼續（無法用 `rm` 刪除）。提交完成後也記得把殘留的 lock 移開。
+   - 遇到 `.git/*.lock`（`index.lock`、`HEAD.lock`…）或 `tmp_obj_*` 殘留擋住 commit（訊息如「Another git process seems to be running」）時：先確認沒有 git 程序在跑，然後**自測一行 `touch .git/_probe && rm .git/_probe`**——成功就直接 `rm` 清掉殘留（2026-08-01 已實測本機 unlink 可用；過去「不允許刪檔」的說法已過期）；自測失敗（部分掛載環境確實擋過 unlink）才退回 rename，且**只准移入單一約定目錄 `.git/_quarantine/`**，不要再發明新的垃圾桶名字，收尾時嘗試把 `_quarantine` 清空（清不掉就留給下次）。
+   - 收尾驗收：`git count-objects -v` 的 garbage 應為 0、`.git` 根目錄不殘留 `*.lock` 與 `*.stale-*`。**不要跑 `git gc`**——倉庫已設 `gc.auto=0`，打包由使用者本機執行 `node tools/maintain.js` 負責；若發現 `.git` 異常肥大，在步驟 10 呈現時提醒使用者一句即可。
    - 若有其他排程 session 同時在動這個倉庫，**只提交自己這次的檔案**（用明確路徑），不要用 `git add -A` 掃進別人的變更。
 
 10. 呈現：用 present_files 秀出今天子頁面的 `index.html`，一兩句話介紹今天的驚喜；若有保養既有專案，一句話帶過。
@@ -132,5 +146,5 @@ projects/YYYY-MM/YYYY-MM-DD-專案名/{index.html, 說明.md}
 - **先有故事，再有 demo。** 互動是劇情高潮、由使用者觸發，不是掛在說明卡上的配菜。事實融進敘事，不要堆成固定三張卡。
 - 小而完整：一天內做得完並測得過，能用、沒有明顯 bug。
 - 真實正確：凡涉及事實或數據務必查證（WebSearch）。
-- 全站一致的底線：純靜態、自包含、`file://` 雙擊可開、localStorage 加前綴、放在 `projects/YYYY-MM/` 底下、掛上 `assets/data.js` 的 `PROJECTS`、回首頁連結（`../../../index.html`）、`node tools/check.js` 全過、達到設計品質標準——其餘盡情發揮。
+- 全站一致的底線：純靜態、自包含、`file://` 雙擊可開、localStorage 加前綴（抽成字面常數）、放在 `projects/YYYY-MM/` 底下（資料夾名不以 `_`／`.` 開頭）、用 `tools/add.js` 掛上 `PROJECTS`、desc ≤120 字、回首頁連結（`../../../index.html`）、行為鷹架照 `tools/snippets.md`、`node tools/check.js` 全過、達到設計品質標準——其餘盡情發揮。
 - 重點是**故事**、趣味、美感與實用：讓使用者不只「眼睛一亮」，還想一路看到最後。

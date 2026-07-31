@@ -1091,9 +1091,13 @@
   var vuEls=[]; (function(){ var w=document.getElementById('vu'); for(var i=0;i<16;i++){ var b=document.createElement('i'); w.appendChild(b); vuEls.push(b); } })();
   var rc=document.getElementById('rain'), rctx=rc?rc.getContext('2d'):null;
   var drops=[];
+  var rainW=-1, rainH=-1, rainTid=0; // 記住上次尺寸；resize 若尺寸沒變（如手機網址列收放）就不重灑
   function initRain(){
     if(!rc) return;
-    rc.width=rc.clientWidth||320; rc.height=rc.clientHeight||150;
+    var w=rc.clientWidth||320, h=rc.clientHeight||150;
+    if(w===rainW && h===rainH) return;
+    rainW=w; rainH=h;
+    rc.width=w; rc.height=h;
     drops=[];
     for(var i=0;i<70;i++) drops.push({x:Math.random()*rc.width, y:Math.random()*rc.height, l:6+Math.random()*14, v:120+Math.random()*180});
   }
@@ -1146,7 +1150,7 @@
   if(!had){ var P=PRESETS.lofi; state.pattern=P.p.map(function(r){return r.slice();}); state.bpm=P.bpm; state.swing=P.swing; state.name=P.name; }
   syncControls(); renderPattern(); setFilter(state.filter, true);
   updateClock(); setInterval(updateClock, 15000);
-  initRain(); window.addEventListener('resize', initRain);
+  initRain(); window.addEventListener('resize', function(){ clearTimeout(rainTid); rainTid=setTimeout(initRain, 120); });
   if(window.requestAnimationFrame) requestAnimationFrame(draw);
 })();
 </script>

@@ -318,12 +318,17 @@ const ambient = (function(){
   let W = 0, H = 0, dpr = 1, raf = 0, running = false, motes = [];
 
   function size(){
-    if (!cv) return;
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (!cv) return false;
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(window.innerWidth * d);
+    const h = Math.round(window.innerHeight * d);
+    if (cv.width === w && cv.height === h) return false; // 尺寸沒變就不重設（網址列收放不重生微粒）
+    dpr = d;
     W = window.innerWidth; H = window.innerHeight;
-    cv.width = Math.round(W * dpr);
-    cv.height = Math.round(H * dpr);
+    cv.width = w;
+    cv.height = h;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return true;
   }
   function seed(){
     const n = Math.round(Math.min(46, Math.max(20, (W * H) / 42000)));
@@ -378,7 +383,7 @@ const ambient = (function(){
   let rt = 0;
   window.addEventListener("resize", function(){
     clearTimeout(rt);
-    rt = setTimeout(function(){ size(); seed(); }, 160);
+    rt = setTimeout(function(){ if (size()) seed(); }, 160);
   });
   return { init: init, start: start, stop: stop };
 })();

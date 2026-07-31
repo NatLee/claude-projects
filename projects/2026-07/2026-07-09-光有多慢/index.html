@@ -533,7 +533,9 @@
   function resize(){
     dpr = Math.min(window.devicePixelRatio||1, 2);
     var cssW=cv.clientWidth, cssH=cv.clientHeight;
-    cv.width=Math.round(cssW*dpr); cv.height=Math.round(cssH*dpr);
+    var pw=Math.round(cssW*dpr), ph=Math.round(cssH*dpr);
+    if(cv.width===pw && cv.height===ph && W===cssW && H===cssH) return; // 尺寸沒變就不重設、不重生星星
+    cv.width=pw; cv.height=ph;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     W=cssW; H=cssH; baseY=H*0.60;
     stars=[];
@@ -1075,7 +1077,11 @@
     setupObservers();
     lastTs=0; requestAnimationFrame(loop);
   }
-  window.addEventListener('resize',function(){ resize(); orbitDirty=true; updateMars(); });
+  var rszTimer=null;
+  window.addEventListener('resize',function(){
+    clearTimeout(rszTimer);
+    rszTimer=setTimeout(function(){ resize(); orbitDirty=true; updateMars(); },120);
+  });
   boot();
 })();
 </script>

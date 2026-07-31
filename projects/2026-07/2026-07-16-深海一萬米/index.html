@@ -172,8 +172,10 @@
 
   var W=0,H=0,DPR=1, snow=[];
   function layout(){
-    var r=canvas.getBoundingClientRect(); W=r.width; H=r.height;
-    DPR=Math.min(window.devicePixelRatio||1,2);
+    var r=canvas.getBoundingClientRect();
+    var d=Math.min(window.devicePixelRatio||1,2);
+    if(r.width===W&&r.height===H&&d===DPR) return; // 尺寸沒變就不重設、不重生海雪
+    W=r.width; H=r.height; DPR=d;
     canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
     ctx.setTransform(DPR,0,0,DPR,0,0);
     var n=Math.round(W*H/3200); snow=[];
@@ -297,7 +299,8 @@
   canvas.addEventListener('pointercancel', function(){ drag=null; });
   canvas.addEventListener('wheel', function(e){ e.preventDefault(); setDepth(depth+e.deltaY*4,true); }, {passive:false});
 
-  window.addEventListener('resize', function(){ layout(); });
+  var rzTimer=null;
+  window.addEventListener('resize', function(){ clearTimeout(rzTimer); rzTimer=setTimeout(layout,120); });
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
   if('IntersectionObserver' in window){ new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting)start(); else stop(); }); },{threshold:0.02}).observe(canvas); }
   if(reduceMQ.addEventListener) reduceMQ.addEventListener('change', function(){ REDUCE=reduceMQ.matches; });

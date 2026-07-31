@@ -861,9 +861,12 @@
       }
     }
     function resize() {
-      dpr = Math.min(2, window.devicePixelRatio || 1);
-      W = window.innerWidth;
-      H = window.innerHeight;
+      var d = Math.min(2, window.devicePixelRatio || 1);
+      var w = window.innerWidth, h = window.innerHeight;
+      if (w === W && h === H && d === dpr) return; // 尺寸沒變就不重設畫布（重設會清空到下一幀）
+      dpr = d;
+      W = w;
+      H = h;
       canvas.style.width = W + "px";
       canvas.style.height = H + "px";
       canvas.width = W * dpr; canvas.height = H * dpr;

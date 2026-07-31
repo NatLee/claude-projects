@@ -218,8 +218,8 @@
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var r = cv.getBoundingClientRect();
     var w = Math.max(1, r.width), h = Math.max(1, r.height);
-    cv.width = Math.round(w * dpr);
-    cv.height = Math.round(h * dpr);
+    var W = Math.round(w * dpr), H = Math.round(h * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
     var c = cv.getContext('2d');
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, w, h);
@@ -957,10 +957,14 @@
     });
     ro.observe(document.body);
   } else {
+    var rzT = 0;
     window.addEventListener('resize', function () {
-      if (document.hidden) return;
-      if (cards.length) drawForecast(1);
-      drawEbb(1);
+      clearTimeout(rzT);
+      rzT = setTimeout(function () {
+        if (document.hidden) return;
+        if (cards.length) drawForecast(1);
+        drawEbb(1);
+      }, 120);
     });
   }
 

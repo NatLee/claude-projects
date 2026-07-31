@@ -764,14 +764,17 @@
     var io = new IntersectionObserver(function (e) { heroVisible = e[0].isIntersecting; if (heroVisible && !reduceMotion) startHero(); else stopHero(); });
     io.observe(heroCv);
     document.addEventListener('visibilitychange', function () { if (document.hidden) stopHero(); else if (heroVisible && !reduceMotion) startHero(); });
-    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { sizeHero(); buildHeroNodes(); if (reduceMotion) drawHeroStatic(); }, 150); });
+    var rz; window.addEventListener('resize', function () { clearTimeout(rz); rz = setTimeout(function () { if (!sizeHero()) return; buildHeroNodes(); if (reduceMotion) drawHeroStatic(); }, 150); });
     if (reduceMotion) drawHeroStatic(); else startHero();
   }
   function sizeHero() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var r = heroCv.getBoundingClientRect();
-    heroCv.width = Math.max(1, Math.floor(r.width * dpr)); heroCv.height = Math.max(1, Math.floor(r.height * dpr));
+    var W = Math.max(1, Math.floor(r.width * dpr)), H = Math.max(1, Math.floor(r.height * dpr));
+    var changed = heroCv.width !== W || heroCv.height !== H;
+    if (changed) { heroCv.width = W; heroCv.height = H; }
     heroCtx.setTransform(dpr, 0, 0, dpr, 0, 0); heroCv._w = r.width; heroCv._h = r.height;
+    return changed;
   }
   function buildHeroNodes() {
     heroNodes = []; var W = heroCv._w, H = heroCv._h;

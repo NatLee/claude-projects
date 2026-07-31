@@ -96,10 +96,13 @@
   function layout() {
     const r = stage.getBoundingClientRect();
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+    // 尺寸沒變（例如手機網址列收放觸發的 resize）就不重設畫布，保住累積的軌跡
+    if (w === trailCv.width && h === trailCv.height) { layoutChart(); return; }
     S.W = r.width; S.H = r.height;
     for (const cv of [trailCv, stageCv]) {
-      cv.width = Math.round(r.width * dpr);
-      cv.height = Math.round(r.height * dpr);
+      cv.width = w;
+      cv.height = h;
     }
     tctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     sctx.setTransform(dpr, 0, 0, dpr, 0, 0);

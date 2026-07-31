@@ -282,7 +282,15 @@
   playBtn.addEventListener('click', function(){ if(conquered) return; playing=!playing; updatePlayBtn(); startRAF(); });
   resetBtn.addEventListener('click', function(){ reset(); playing=!REDUCE; updatePlayBtn(); startRAF(); });
 
-  window.addEventListener('resize', function(){ sizeCanvas(); render(); });
+  var rzT=null;
+  window.addEventListener('resize', function(){
+    if(rzT) clearTimeout(rzT);
+    rzT=setTimeout(function(){
+      var w=canvas.clientWidth||600, h=Math.round(w*ROWS/COLS), dpr=Math.min(window.devicePixelRatio||1,2);
+      if(canvas.width===Math.round(w*dpr) && canvas.height===Math.round(h*dpr)) return; // 尺寸沒變就不重設
+      sizeCanvas(); render();
+    },120);
+  });
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stopRAF(); else if(started) startRAF(); });
   if('IntersectionObserver' in window){
     new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting) startRAF(); else stopRAF(); }); },{threshold:0.02}).observe(canvas);

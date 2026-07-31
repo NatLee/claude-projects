@@ -612,8 +612,10 @@
     }
     function resize() {
       var dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.floor(window.innerWidth * dpr);
-      canvas.height = Math.floor(window.innerHeight * dpr);
+      var w = Math.floor(window.innerWidth * dpr), h = Math.floor(window.innerHeight * dpr);
+      if (dots.length && canvas.width === w && canvas.height === h) return;
+      canvas.width = w;
+      canvas.height = h;
       canvas.style.width = window.innerWidth + 'px';
       canvas.style.height = window.innerHeight + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

@@ -584,17 +584,24 @@
     return d.getFullYear() + "-" + (m<10?"0":"") + m + "-" + (day<10?"0":"") + day;
   }
 
+  // 純函式：年月推進，日夾在該月天數內（月底扣款不因短月漂移）
+  function addMonthsClamped(d, months, anchorDay){
+    var y = d.getFullYear(), m = d.getMonth() + months;
+    var last = new Date(y, m+1, 0).getDate(); // 目標月的最後一天
+    return new Date(y, m, Math.min(anchorDay, last));
+  }
   // 把過去的扣款日往後滾到下一次（依週期），回傳 Date 或 null
   function nextOccurrence(s){
     if(!s.nextDate) return null;
     var d = new Date(s.nextDate + "T00:00:00");
     if(isNaN(d.getTime())) return null;
+    var anchorDay = d.getDate(); // 記住原始扣款日（月底不脫節）
     var today = new Date(); today.setHours(0,0,0,0);
     var guard = 0;
     while(d < today && guard < 600){
       if(s.cycle==="weekly") d.setDate(d.getDate()+7);
-      else if(s.cycle==="monthly") d.setMonth(d.getMonth()+1);
-      else if(s.cycle==="quarterly") d.setMonth(d.getMonth()+3);
+      else if(s.cycle==="monthly") d = addMonthsClamped(d, 1, anchorDay);
+      else if(s.cycle==="quarterly") d = addMonthsClamped(d, 3, anchorDay);
       else d.setFullYear(d.getFullYear()+1);
       guard++;
     }

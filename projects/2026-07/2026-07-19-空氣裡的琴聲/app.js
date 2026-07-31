@@ -397,11 +397,15 @@
   function sizeCanvas() {
     DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
     fw = stage.clientWidth; fh = playfield.clientHeight;
-    fieldCv.width = Math.round(fw * DPR); fieldCv.height = Math.round(fh * DPR);
+    sw = scopeCv.clientWidth || stage.clientWidth; sh = 66;
+    var fW = Math.round(fw * DPR), fH = Math.round(fh * DPR);
+    var sW = Math.round(sw * DPR), sH = Math.round(sh * DPR);
+    if (fieldCv.width === fW && fieldCv.height === fH &&
+        scopeCv.width === sW && scopeCv.height === sH) return; // 尺寸沒變就不重設
+    fieldCv.width = fW; fieldCv.height = fH;
     fieldCv.style.height = fh + 'px';
     fctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    sw = scopeCv.clientWidth || stage.clientWidth; sh = 66;
-    scopeCv.width = Math.round(sw * DPR); scopeCv.height = Math.round(sh * DPR);
+    scopeCv.width = sW; scopeCv.height = sH;
     sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     placeHand();
     if (!running) { fctx.clearRect(0, 0, fw, fh); drawGuides(); } // 未跑迴圈時也先畫好刻度

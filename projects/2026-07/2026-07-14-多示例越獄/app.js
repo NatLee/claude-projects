@@ -199,8 +199,11 @@
     var rect = canvas.getBoundingClientRect();
     cssW = rect.width; cssH = rect.height;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.max(1, Math.round(cssW * dpr));
-    canvas.height = Math.max(1, Math.round(cssH * dpr));
+    var w = Math.max(1, Math.round(cssW * dpr));
+    var h = Math.max(1, Math.round(cssH * dpr));
+    if (canvas.width === w && canvas.height === h) return; // 尺寸沒變就不重設 canvas
+    canvas.width = w;
+    canvas.height = h;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 

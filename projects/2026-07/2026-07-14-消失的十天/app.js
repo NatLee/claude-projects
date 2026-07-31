@@ -296,11 +296,15 @@
   const fitCanvas = () => {
     const r = cal.getBoundingClientRect();
     const dpr = Math.min(2, devicePixelRatio || 1);
-    ashCv.width = Math.max(1, Math.round(r.width * dpr));
-    ashCv.height = Math.max(1, Math.round(r.height * dpr));
+    const w = Math.max(1, Math.round(r.width * dpr));
+    const h = Math.max(1, Math.round(r.height * dpr));
+    if (w === ashCv.width && h === ashCv.height) return;  // 尺寸沒變就不重設（重設會清空畫布）
+    ashCv.width = w;
+    ashCv.height = h;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   };
-  addEventListener('resize', fitCanvas);
+  let fitT = 0;
+  addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitCanvas, 120); });
 
   const spawnAsh = (rects) => {
     if (reduced || document.hidden) return;

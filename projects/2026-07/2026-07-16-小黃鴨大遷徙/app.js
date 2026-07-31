@@ -164,8 +164,10 @@
 
   function layout() {
     var cssW = canvas.clientWidth || 480;
+    var d = Math.min(window.devicePixelRatio || 1, 2);
+    if (cssW === SIZE && d === DPR) return; // 尺寸沒變就不重設
     SIZE = cssW;
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    DPR = d;
     canvas.width = Math.round(cssW * DPR);
     canvas.height = Math.round(cssW * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -634,7 +636,11 @@
   if (reduceMQ.addEventListener) reduceMQ.addEventListener('change', onReduceChange);
   else if (reduceMQ.addListener) reduceMQ.addListener(onReduceChange);
 
-  window.addEventListener('resize', function () { layout(); draw(0); });
+  var resizeTimer = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { layout(); draw(0); }, 120);
+  });
 
   /* ---------- 啟動 ---------- */
   layout();

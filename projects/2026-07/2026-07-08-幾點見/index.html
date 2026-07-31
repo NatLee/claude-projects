@@ -951,8 +951,11 @@ function makeStars(){
 }
 function skySize(){
   const dpr=Math.min(2, window.devicePixelRatio||1);
-  skyW=window.innerWidth; skyH=window.innerHeight;
-  sky.width=Math.round(skyW*dpr); sky.height=Math.round(skyH*dpr);
+  const w=window.innerWidth, h=window.innerHeight;
+  const pw=Math.round(w*dpr), ph=Math.round(h*dpr);
+  if(sky.width===pw && sky.height===ph && skyW===w && skyH===h) return; // 尺寸沒變就不重設、不重生星空
+  skyW=w; skyH=h;
+  sky.width=pw; sky.height=ph;
   skx.setTransform(dpr,0,0,dpr,0,0);
   makeStars();
   if(reduceMotion) drawSky(performance.now());
@@ -999,7 +1002,8 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden){ if(skyRAF){ cancelAnimationFrame(skyRAF); skyRAF=null; } }
   else startSky();
 });
-window.addEventListener('resize',skySize);
+let skyRszTimer=null;
+window.addEventListener('resize',()=>{ clearTimeout(skyRszTimer); skyRszTimer=setTimeout(skySize,120); });
 
 /* 動態監聽 reduced-motion 切換 */
 function onMotionChange(){

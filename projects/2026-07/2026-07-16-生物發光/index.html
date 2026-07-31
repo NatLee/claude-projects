@@ -198,7 +198,15 @@
   function start(){ if(!running){ running=true; last=performance.now(); rafId=requestAnimationFrame(frame); } }
   function stop(){ running=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; saveLit(); }
 
-  window.addEventListener('resize', function(){ layout(); });
+  var rzT=null;
+  window.addEventListener('resize', function(){
+    if(rzT) clearTimeout(rzT);
+    rzT=setTimeout(function(){
+      var r=canvas.getBoundingClientRect(), d=Math.min(window.devicePixelRatio||1,2);
+      if(canvas.width===Math.round(r.width*d) && canvas.height===Math.round(r.height*d)) return; // 尺寸沒變就不重生粒子
+      layout();
+    },120);
+  });
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stop(); else start(); });
   if('IntersectionObserver' in window){
     new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting)start(); else stop(); }); },{threshold:0.02}).observe(canvas);

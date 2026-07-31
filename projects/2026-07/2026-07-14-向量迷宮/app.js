@@ -381,10 +381,12 @@
     var cssW = Math.max(240, rect.width);
     var cssH = Math.round(cssW * 0.64);
     DPR = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = Math.round(cssW * DPR);
-    cv.height = Math.round(cssH * DPR);
-    cv.style.height = cssH + 'px';
+    var w = Math.round(cssW * DPR), h = Math.round(cssH * DPR);
     CW = cssW; CH = cssH;
+    if (cv.width === w && cv.height === h) return; // 尺寸沒變就不重設 canvas
+    cv.width = w;
+    cv.height = h;
+    cv.style.height = cssH + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
   function px(pt) { return { x: PAD + pt.x * (CW - 2 * PAD), y: PAD + pt.y * (CH - 2 * PAD) }; }

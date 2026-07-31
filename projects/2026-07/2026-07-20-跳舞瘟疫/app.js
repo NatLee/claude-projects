@@ -173,8 +173,10 @@
 
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var hadSize = W > 0;
     W = cv.clientWidth || window.innerWidth;
     H = cv.clientHeight || window.innerHeight;
+    if (hadSize && cv.width === Math.round(W * dpr) && cv.height === Math.round(H * dpr)) return; // 尺寸沒變就不重設
     cv.width = Math.round(W * dpr);
     cv.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);

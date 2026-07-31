@@ -397,8 +397,11 @@ if (typeof document !== 'undefined') {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var cssW = q2.canvas.clientWidth || 600;
     var cssH = 240;
-    q2.canvas.width = Math.round(cssW * dpr);
-    q2.canvas.height = Math.round(cssH * dpr);
+    var pxW = Math.round(cssW * dpr), pxH = Math.round(cssH * dpr);
+    if (q2.canvas.width !== pxW || q2.canvas.height !== pxH) { // 尺寸沒變就不重設 canvas
+      q2.canvas.width = pxW;
+      q2.canvas.height = pxH;
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var W = cssW, H = cssH;
     var padL = 46, padR = 16, padT = 18, padB = 26;

@@ -838,6 +838,10 @@
         io.observe(canvas);
       }
       window.addEventListener('resize', debounce(function () {
+        // 尺寸（含 dpr）沒變就不重建，避免粒子全部重生
+        var d = Math.min(window.devicePixelRatio || 1, 2);
+        var cssW = canvas.clientWidth || 440, cssH = canvas.clientHeight || 440;
+        if (canvas.width === Math.round(cssW * d) && canvas.height === Math.round(cssH * d)) return;
         var wasRunning = running; stop(); setup();
         if (wasRunning) start();
       }, 250));

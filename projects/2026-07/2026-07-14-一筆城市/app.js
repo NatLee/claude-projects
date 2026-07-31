@@ -885,10 +885,12 @@ function resize() {
   const cw = Math.max(280, r.width - 20);
   const ch = Math.round(clamp(cw * 0.56, 220, window.innerHeight * 0.62));
   DPR = Math.min(2, window.devicePixelRatio || 1);
+  const pw = Math.round(cw * DPR), ph = Math.round(ch * DPR);
+  if (canvas.width === pw && canvas.height === ph && W === cw && H === ch) return; // 尺寸沒變就不重設、不重生星空與雨
   W = cw; H = ch;
   canvas.style.height = ch + 'px';
-  canvas.width = Math.round(cw * DPR);
-  canvas.height = Math.round(ch * DPR);
+  canvas.width = pw;
+  canvas.height = ph;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   stars = makeStars(W, H);
   if (weather === 'rain') initRain();

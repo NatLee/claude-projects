@@ -664,7 +664,8 @@
     var canvas = machine.canvas, ctx = canvas.getContext('2d');
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     var cssW = canvas.clientWidth || 460, cssH = canvas.clientHeight || 360;
-    canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+    var pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
+    if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; } // 尺寸沒變就不重設
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     var m = Engine.meta, fp = state.fp;
@@ -850,7 +851,8 @@
     var canvas = mapState.canvas, ctx = canvas.getContext('2d');
     var dpr = Math.min(2, window.devicePixelRatio || 1);
     var g = mapPix();
-    canvas.width = Math.round(g.cssW * dpr); canvas.height = Math.round(g.cssH * dpr);
+    var pw = Math.round(g.cssW * dpr), ph = Math.round(g.cssH * dpr);
+    if (canvas.width !== pw || canvas.height !== ph) { canvas.width = pw; canvas.height = ph; } // 尺寸沒變就不重設
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, g.cssW, g.cssH);
     var m = Engine.meta, pos = mapState.pos, hoverId = mapState.hoverId;

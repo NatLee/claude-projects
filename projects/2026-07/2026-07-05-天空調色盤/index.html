@@ -490,10 +490,13 @@
   for(var s=0;s<150;s++){stars.push({x:Math.random(), y:Math.random()*0.62, r:Math.random()*1.1+0.3, p:Math.random()*6.283, sp:0.6+Math.random()});}
 
   function resize(){
-    dpr=Math.min(window.devicePixelRatio||1,2);
+    var d=Math.min(window.devicePixelRatio||1,2);
     var rect=holder.getBoundingClientRect();
+    var w=Math.round(rect.width*d), h=Math.round(rect.height*d);
+    if(cvs.width===w && cvs.height===h) return; // 只在尺寸真的變才重設（避免網址列收放把天空清空）
+    dpr=d;
     W=rect.width; H=rect.height; horizonY=H*0.72;
-    cvs.width=Math.round(W*dpr); cvs.height=Math.round(H*dpr);
+    cvs.width=w; cvs.height=h;
     ctx.setTransform(dpr,0,0,dpr,0,0);
   }
 
@@ -900,7 +903,8 @@
     sun.x=0.5; sun.y=ratioFromElevation(55);
     updateRun();
   }
-  window.addEventListener('resize', resize);
+  var rzTimer=null;
+  window.addEventListener('resize', function(){ clearTimeout(rzTimer); rzTimer=setTimeout(resize,120); });
   init();
 })();
 </script>

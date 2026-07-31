@@ -137,7 +137,9 @@ function placeBlock(prev, cur, eps){
     dpr=Math.min(window.devicePixelRatio||1, 2);
     var oldW=W;
     W=stage.clientWidth; H=stage.clientHeight;
-    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr);
+    var pw=Math.round(W*dpr), ph=Math.round(H*dpr);
+    if(oldW>0 && cv.width===pw && cv.height===ph){ return; } // 尺寸沒變就不重設
+    cv.width=pw; cv.height=ph;
     ctx.setTransform(dpr,0,0,dpr,0,0);
     if(oldW>0 && oldW!==W && blocks.length){ // 依比例重新縮放，避免跑版
       var r=W/oldW;
@@ -268,7 +270,8 @@ function placeBlock(prev, cur, eps){
 
   // 生命週期
   document.addEventListener("visibilitychange", function(){ paused=document.hidden; if(!paused) last=0; });
-  window.addEventListener("resize", fit);
+  var rz;
+  window.addEventListener("resize", function(){ clearTimeout(rz); rz=setTimeout(fit, 120); });
 
   fit();
   raf=requestAnimationFrame(loop);

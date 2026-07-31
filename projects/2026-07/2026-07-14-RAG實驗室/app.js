@@ -742,7 +742,7 @@
     if (!litmCanvas) return;
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var W = litmCanvas.clientWidth, H = litmCanvas.clientHeight;
-    litmCanvas.width = W * dpr; litmCanvas.height = H * dpr;
+    if (litmCanvas.width !== W * dpr || litmCanvas.height !== H * dpr) { litmCanvas.width = W * dpr; litmCanvas.height = H * dpr; }
     var g = litmCtx; g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
     var padL = 44, padR = 16, padT = 16, padB = 30;
@@ -927,8 +927,10 @@
       if (document.hidden) stopHero();
       else if (heroVisible && !reduceMotion) startHero();
     });
+    var heroRz;
     window.addEventListener('resize', function () {
-      if (reduceMotion || !heroVisible) drawHeroStatic();
+      clearTimeout(heroRz);
+      heroRz = setTimeout(function () { if (reduceMotion || !heroVisible) drawHeroStatic(); }, 120);
     });
     for (var i = 0; i < 22; i++) heroParticles.push({ seg: Math.floor(Math.random() * 4), t: Math.random(), sp: 0.14 + Math.random() * 0.18 });
     if (reduceMotion) drawHeroStatic(); else startHero();
@@ -945,7 +947,7 @@
   function drawHeroFrame(anim) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var W = heroCanvas.clientWidth, H = heroCanvas.clientHeight;
-    heroCanvas.width = W * dpr; heroCanvas.height = H * dpr;
+    if (heroCanvas.width !== W * dpr || heroCanvas.height !== H * dpr) { heroCanvas.width = W * dpr; heroCanvas.height = H * dpr; }
     var g = heroCtx; g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
     heroGeometry(W, H);
@@ -1148,7 +1150,8 @@
     renderSplitDemo('bad');
     renderMoreK();
     runQuery();
-    window.addEventListener('resize', function () { drawLITM(); });
+    var litmRz;
+    window.addEventListener('resize', function () { clearTimeout(litmRz); litmRz = setTimeout(function () { drawLITM(); }, 120); });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

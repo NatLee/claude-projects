@@ -355,6 +355,7 @@ function drawStrings(animate) {
     line.style.strokeDashoffset = (isNew && !reduced()) ? len.toFixed(1) : "0";
     svg.appendChild(line);
     if (isNew && !reduced()) {
+      line.getBoundingClientRect(); // 強制 reflow，確保起始 dashoffset 先被套用，transition 才會播
       requestAnimationFrame(() => { line.style.strokeDashoffset = "0"; });
     }
   });

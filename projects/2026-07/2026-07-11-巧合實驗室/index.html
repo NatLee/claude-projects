@@ -494,8 +494,10 @@ function sizePlot(){
   const cssW = plot.clientWidth || 880;
   const cssH = Math.max(230, Math.min(380, Math.round(cssW * 0.41)));
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  plot.width = Math.round(cssW * dpr);
-  plot.height = Math.round(cssH * dpr);
+  const pw = Math.round(cssW * dpr), ph = Math.round(cssH * dpr);
+  if (plot.width === pw && plot.height === ph && PW === cssW && PH === cssH) return; // 尺寸沒變就不重設、不清空
+  plot.width = pw;
+  plot.height = ph;
   plot.style.height = cssH + "px";
   pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   PW = cssW; PH = cssH;
@@ -656,7 +658,10 @@ function runMonteCarlo(){
 const cvC = $("#confetti");
 const cctx = cvC.getContext("2d");
 let parts = [], confAnim = null;
-function sizeConfetti(){ cvC.width = cvC.offsetWidth; cvC.height = cvC.offsetHeight; }
+function sizeConfetti(){
+  const w = cvC.offsetWidth, h = cvC.offsetHeight;
+  if (cvC.width !== w || cvC.height !== h){ cvC.width = w; cvC.height = h; } // 尺寸沒變就不清空飛行中的彩紙
+}
 function burst(colors, count){
   if (reduced) return;
   sizeConfetti();

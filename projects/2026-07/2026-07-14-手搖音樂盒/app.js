@@ -92,8 +92,10 @@
     W = cssW;
     H = ROWS * cellH + padY * 2;
     dpr = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = Math.round(W * dpr);
-    cv.height = Math.round(H * dpr);
+    const pw = Math.round(W * dpr), ph = Math.round(H * dpr);
+    if (cv.width === pw && cv.height === ph) return; // 尺寸沒變就不重設 canvas
+    cv.width = pw;
+    cv.height = ph;
     cv.style.height = H + 'px';
     ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
     dirty = true;
@@ -997,7 +999,13 @@
   let rzT = 0;
   window.addEventListener('resize', () => {
     clearTimeout(rzT);
-    rzT = setTimeout(() => { layout(); makeFiber(); draw(0); }, 120);
+    rzT = setTimeout(() => {
+      const pw = cv.width, ph = cv.height;
+      layout();
+      if (cv.width === pw && cv.height === ph) return; // 尺寸沒變：不重生纖維、不重繪
+      makeFiber();
+      draw(0);
+    }, 120);
   });
 
   // ---------- 開機 ----------

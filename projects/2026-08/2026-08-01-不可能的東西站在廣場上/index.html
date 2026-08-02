@@ -7,9 +7,9 @@
 <meta name="description" content="1934 年一節拉丁文課，18 歲的他在課本邊上排了九顆立方體，排出一個所有人都同意不可能存在的東西。可是它就站在伯斯的廣場上，13.5 公尺高——換你伸手把它轉開。">
 <style>
 :root{
-  --bg:#0a0b0d; --bg2:#0e1013; --ink:#e9e4da; --dim:#8c877e; --dimmer:#585349;
-  --line:#22262b; --line2:#2e343a;
-  --alu:#cfd6dc; --warm:#e2a862; --cool:#7cc6e8;
+  --bg:#0a0b0d; --bg2:#0e1013; --ink:#ece7dd; --dim:#a29c91; --dimmer:#7b756a;
+  --line:#272c32; --line2:#39404a;
+  --alu:#d5dbe1; --warm:#e8b271; --cool:#8bd0ee;
   --serif:"Iowan Old Style","Noto Serif TC","Songti TC","PingFang TC","Microsoft JhengHei",serif;
   --mono:"SFMono-Regular",Menlo,Consolas,"Roboto Mono","Noto Sans Mono",monospace;
 }
@@ -280,7 +280,7 @@ footer{
 
     <div class="viewport" id="viewport" data-rv data-d="2">
       <canvas id="cv" tabindex="0" role="img"
-        aria-label="不可能三角形雕塑的可旋轉模型。用滑鼠拖曳或方向鍵旋轉視角。"></canvas>
+        aria-label="不可能三角形雕塑的可旋轉模型。用滑鼠拖曳或方向鍵旋轉視角，按 Esc 或 Tab 離開。"></canvas>
       <p class="hint" id="hint">按住拖曳　·　方向鍵也可以</p>
     </div>
 
@@ -442,7 +442,8 @@ function gapWorld(yaw, pitch){        // 頭尾兩顆在畫面上分開多遠
   return Math.hypot(a[0] - b[0], a[1] - b[1]);
 }
 
-var cv = $('cv'), ctx = cv.getContext('2d', { alpha:false });
+var cv = $('cv'), ctx = cv.getContext('2d');
+var painted = false;
 var img = null, buf32 = null, zb = null, cw = 0, chh = 0, cssW = 0, scale = 1, BG32 = 0;
 var yaw = MY, pitch = MP, marked = false;
 try { marked = localStorage.getItem(LS + 'mark') === '1'; } catch (e){}
@@ -576,6 +577,7 @@ function draw(){
     }
   }
   ctx.putImageData(img, 0, 0);
+  painted = true;
   updateReadout();
 }
 
@@ -653,7 +655,16 @@ function markMoved(){
   $('hint').classList.add('gone');
 }
 
-/* 鍵盤 */
+/* 鍵盤：方向鍵會吃掉捲頁，所以聚焦時就要講清楚怎麼離開 */
+var hintEl = $('hint'), hintDefault = hintEl.textContent;
+cv.addEventListener('focus', function(){
+  hintEl.classList.remove('gone');
+  hintEl.textContent = '方向鍵旋轉　·　Esc 或 Tab 離開';
+});
+cv.addEventListener('blur', function(){
+  hintEl.textContent = hintDefault;
+  if (everMoved) hintEl.classList.add('gone');
+});
 cv.addEventListener('keydown', function(ev){
   var s = 3 * Math.PI / 180, used = true;
   if (ev.key === 'ArrowLeft') setAngles(yaw - s, pitch);
@@ -661,6 +672,7 @@ cv.addEventListener('keydown', function(ev){
   else if (ev.key === 'ArrowUp') setAngles(yaw, pitch + s);
   else if (ev.key === 'ArrowDown') setAngles(yaw, pitch - s);
   else if (ev.key === 'Home') snapBack();
+  else if (ev.key === 'Escape'){ cv.blur(); ev.preventDefault(); return; }
   else used = false;
   if (used){ ev.preventDefault(); markMoved(); }
 });
@@ -703,8 +715,33 @@ window.addEventListener('resize', onResize);
 rmq.addEventListener ? rmq.addEventListener('change', function(e){ reduce = e.matches; })
                      : rmq.addListener(function(e){ reduce = e.matches; });
 
-fitCanvas();
-draw();
+/* 起手式：版面還沒定案時 getBoundingClientRect() 會是 0，
+   單靠腳本結尾那一次 draw() 會留下一張空畫布而且再也不會重畫。
+   這裡補上多個時機，畫到真的畫出來為止。 */
+function boot(){
+  fitCanvas();
+  if (!painted || cv.width > 0) draw();
+  return painted;
+}
+boot();
+if (!painted){
+  var tries = 0;
+  (function retry(){
+    if (boot() || ++tries > 40) return;      // 約 40 幀（≈0.7 秒）內補到畫出來
+    requestAnimationFrame(retry);
+  })();
+}
+window.addEventListener('load', boot);
+window.addEventListener('pageshow', boot);   // bfcache 回上一頁
+if (window.IntersectionObserver){
+  new IntersectionObserver(function(es){
+    if (es[0].isIntersecting) boot();
+  }, { threshold: 0 }).observe(cv);
+}
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) boot(); });
+if (document.fonts && document.fonts.ready && document.fonts.ready.then){
+  document.fonts.ready.then(boot);
+}
 
 })();
 </script>

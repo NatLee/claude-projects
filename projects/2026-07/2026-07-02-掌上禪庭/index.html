@@ -1173,6 +1173,17 @@ function boot(){
   },1500);
 }
 window.addEventListener("resize",()=>{clearTimeout(window.__rz);window.__rz=setTimeout(resize,120);});
+/* 容器自己變形（版面重排、字體載入、分割視窗）不一定會觸發 window resize，
+   補一層 ResizeObserver；resize() 內已有「尺寸沒變就 return」的防護，不會每幀重設。 */
+if(window.ResizeObserver){
+  let lw=0,lh=0;
+  new ResizeObserver(()=>{
+    const r=canvas.getBoundingClientRect();
+    const w=Math.round(r.width),h=Math.round(r.height);
+    if(w===lw&&h===lh)return;
+    lw=w;lh=h;resize();
+  }).observe(canvas);
+}
 boot();
 </script>
 </body>

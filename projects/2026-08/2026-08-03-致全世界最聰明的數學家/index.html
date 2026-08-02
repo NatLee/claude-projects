@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>致全世界最聰明的數學家 · 每日小專案</title>
+<meta name="description" content="1696 年，一段點名全歐洲的挑戰：從 A 滑到 B，哪一條路最快？換你畫一條，跟那位匿名者的曲線比一場。">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<main>
+
+  <!-- ════════ 第 0 幕：挑戰書 ════════ -->
+  <section class="act act--open is-in" id="act0" aria-labelledby="t0">
+    <p class="eyebrow">Acta Eruditorum ／ 1696 年 6 月</p>
+    <h1 id="t0">致全世界<br>最聰明的數學家</h1>
+    <p class="lede">一本學術期刊的內頁，一段沒有寄件地址的文字，點名了整個歐洲。<br>寫的人知道答案。他不打算說。</p>
+
+    <div class="decree">
+      <p class="src">問 題</p>
+      <p>「在一個垂直平面上給定兩點 A 與 B。求一條連接兩點的曲線，使一顆只受重力牽引的珠子，從 A 出發滑到 B 所花的時間<b>最短</b>。」</p>
+      <p class="fine">署名：Johann Bernoulli。期限：本年年底之前。<br>後來應萊布尼茲的請求，延到 1697 年復活節，並發往全歐洲。</p>
+    </div>
+
+    <div class="row">
+      <button class="btn" id="go1" type="button">我接受這個挑戰 →</button>
+    </div>
+  </section>
+
+  <!-- ════════ 第 1 幕：先押注 ════════ -->
+  <section class="act" id="act1" hidden aria-labelledby="t1">
+    <p class="eyebrow">第一幕 ／ 押 注</p>
+    <h2 id="t1">三條軌道，同一個起點</h2>
+    <p>A 在左上，B 在右下。三顆一模一樣的珠子，同一秒放手，無摩擦，只有重力。<br><strong>先押一注：誰先到 B？</strong></p>
+
+    <div class="bets" role="group" aria-label="押注哪一條軌道最快">
+      <button class="bet" type="button" id="bet-line" data-k="line" aria-pressed="false">
+        <span class="k">A</span><span class="n">最短的那條</span><span class="d">一路直線，兩點之間距離最短。</span>
+      </button>
+      <button class="bet" type="button" id="bet-hump" data-k="hump" aria-pressed="false">
+        <span class="k">B</span><span class="n">順順的那條</span><span class="d">先緩緩滑行，最後才俯衝下去。</span>
+      </button>
+      <button class="bet" type="button" id="bet-dip" data-k="dip" aria-pressed="false">
+        <span class="k">C</span><span class="n">先摔下去的那條</span><span class="d">開頭近乎垂直墜落，再拉平衝過去。</span>
+      </button>
+    </div>
+
+    <div class="stage">
+      <canvas id="raceCanvas" aria-label="三條軌道的滑降比賽，結果以下方數字呈現"></canvas>
+      <p class="hint" id="raceHint">先選一條，再放手</p>
+    </div>
+    <div class="board" id="raceBoard" aria-live="polite"></div>
+    <div class="row">
+      <button class="btn" id="raceGo" type="button" disabled>放手</button>
+      <button class="btn btn--ghost" id="raceAgain" type="button" hidden>再看一次</button>
+    </div>
+
+    <div class="verdict" id="act1Verdict"></div>
+    <div class="row"><button class="btn" id="go2" type="button" hidden>那最快的到底長什麼樣？ →</button></div>
+  </section>
+
+  <!-- ════════ 第 2 幕：換你畫 ════════ -->
+  <section class="act" id="act2" hidden aria-labelledby="t2">
+    <p class="eyebrow">第二幕 ／ 換 你</p>
+    <h2 id="t2">你畫一條，我讓那位匿名者跟你比</h2>
+    <p>伯努利說他手上有答案，但他一個字都不肯透露。他要看的是——<strong>誰畫得出來。</strong></p>
+    <p class="dim">用手指或滑鼠，從左上的 <span style="color:var(--you)">A</span> 一路往右畫到 <span style="color:var(--you)">B</span>。畫完就放手，我會同時放兩顆珠子。</p>
+
+    <div class="stage stage--tall">
+      <canvas id="drawCanvas" aria-label="可繪製的斜坡畫布：用指標從 A 拖曳到 B 畫出一條路徑，或改用下方滑桿"></canvas>
+      <p class="hint" id="drawHint">從 A 按住，往右畫到 B</p>
+    </div>
+
+    <div class="board" id="drawBoard" aria-live="polite"></div>
+    <div class="row">
+      <button class="btn" id="drawGo" type="button" disabled>放手</button>
+      <button class="btn btn--ghost" id="drawClear" type="button">重畫</button>
+      <button class="btn btn--ghost" id="sliderToggle" type="button" aria-expanded="false" aria-controls="sliderBox">改用滑桿（鍵盤可調）</button>
+    </div>
+
+    <div class="slider" id="sliderBox" hidden>
+      <label for="dip">這條路要先摔得多兇？（←→ 方向鍵可調）<span id="dipLabel" class="dim"></span></label>
+      <input type="range" id="dip" min="0" max="100" value="50" step="1"
+             aria-describedby="dipLabel">
+    </div>
+
+    <div class="verdict" id="act2Verdict"></div>
+    <div class="row"><button class="btn" id="go3" type="button" hidden>那條曲線是什麼？ →</button></div>
+  </section>
+
+  <!-- ════════ 第 3 幕：揭曉 ════════ -->
+  <section class="act" id="act3" hidden aria-labelledby="t3">
+    <p class="eyebrow">第三幕 ／ 揭 曉</p>
+    <h2 id="t3">它不是誰發明的。它每天從你身邊滾過去。</h2>
+    <p>把一顆輪子貼著天花板往右滾。輪緣上黏一支粉筆。<strong>按下去，看它畫什麼。</strong></p>
+
+    <div class="stage">
+      <canvas id="wheelCanvas" aria-label="一顆輪子沿著上緣滾動，輪緣上的粉筆點畫出擺線"></canvas>
+      <p class="hint" id="wheelHint">按「放輪子」</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="wheelGo" type="button">放輪子</button>
+    </div>
+
+    <div class="verdict" id="act3Verdict"></div>
+    <p class="dim">伽利略 1638 年在《兩種新科學》裡證明過：圓弧比直線快。他猜對了方向，猜錯了曲線。</p>
+    <div class="row"><button class="btn" id="go4" type="button">還有更過分的 →</button></div>
+  </section>
+
+  <!-- ════════ 第 4 幕：回馬槍 ════════ -->
+  <section class="act" id="act4" hidden aria-labelledby="t4">
+    <p class="eyebrow">第四幕 ／ 回 馬 槍</p>
+    <h2 id="t4">同一條曲線，還藏了第二個把戲</h2>
+    <p>把它翻過來做成一個碗。五顆珠子擺在<strong>五個不同的高度</strong>，最高的那顆要走的路是最低那顆的十幾倍長。</p>
+    <p class="dim">最上面那顆最後到，對吧？</p>
+
+    <div class="stage">
+      <canvas id="bowlCanvas" aria-label="擺線形狀的碗，五顆不同高度的珠子同時釋放"></canvas>
+      <p class="hint" id="bowlHint">按「放手」</p>
+    </div>
+    <div class="row">
+      <button class="btn" id="bowlGo" type="button">放手</button>
+      <button class="btn btn--ghost" id="bowlStop" type="button" hidden>停</button>
+    </div>
+
+    <div class="verdict" id="act4Verdict"></div>
+    <div class="row"><button class="btn" id="go5" type="button" hidden>那，最後是誰解出來的？ →</button></div>
+  </section>
+
+  <!-- ════════ 第 5 幕：匿名信 ════════ -->
+  <section class="act" id="act5" hidden aria-labelledby="t5">
+    <p class="eyebrow">第五幕 ／ 一 封 沒 有 署 名 的 信</p>
+    <h2 id="t5">1697 年 1 月 29 日，下午四點，倫敦</h2>
+
+    <ul class="timeline">
+      <li><span class="t">下午 4:00</span>一個五十四歲的男人下班回家。他當時的正職是皇家造幣廠的監管，成天在追緝剪邊偽幣的人。桌上有兩份從歐陸寄來的東西，是那道題。</li>
+      <li><span class="t">那 一 夜</span>他沒睡。</li>
+      <li><span class="t">隔天 凌晨 4:00</span>解完了。十二個小時。</li>
+      <li><span class="t">同 日</span>答案送進皇家學會。<strong>沒有署名。</strong></li>
+    </ul>
+
+    <p>期限截止時，全歐洲交回來的解答總共五份：雅各布·伯努利（出題者的哥哥）、萊布尼茲、契恩豪斯、羅必達——以及那份匿名的。</p>
+
+    <div class="letter">
+      <p>伯努利拆開那份沒有名字的稿子，只讀了幾行。</p>
+      <p>他寫信給友人時說，作者「出於過度的謙遜」隱去了姓名，但光憑這幾行就認得出來——</p>
+      <p class="sig">tanquam ex ungue leonem.<br>（從爪子，我認得出獅子。）</p>
+    </div>
+
+    <p>牛頓後來只留下一句抱怨：<span class="latin">「我不喜歡被外國人在數學的事情上一直催逼、取笑。」</span></p>
+
+    <span class="big" id="closer">他花了十二個小時，才把那條線寫下來。<br>而它一直在那裡——每一顆滾過地面的輪子，都在空氣裡把它畫了一遍。</span>
+
+    <p class="dim">下次你把腳踏車推出門，輪子邊緣那一點在你身旁畫出的那條看不見的弧，就是全世界下坡最快的路。</p>
+  </section>
+
+</main>
+
+<footer>
+  <p>史料：Acta Eruditorum（1696–1697）、惠更斯《Horologium Oscillatorium》（1673）、伽利略《兩種新科學》（1638）。</p>
+</footer>
+
+<script src="physics.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

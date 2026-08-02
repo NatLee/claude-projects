@@ -658,11 +658,18 @@
   });
   stopManual.addEventListener("click", stopManualNow);
 
+  // resize 用 rAF 節流：原本每個 resize 事件都直接量一次版面（getBoundingClientRect），
+  // 拖視窗邊緣時會連續觸發同步排版。合併成每幀最多做一次。
+  var resizeRaf = null;
   window.addEventListener("resize", function () {
-    setupCanvas();
-    measureRuler();
-    updateRuler(currentHz);
-    if (!shouldLoop()) drawWave(performance.now());
+    if (resizeRaf !== null) return;
+    resizeRaf = requestAnimationFrame(function () {
+      resizeRaf = null;
+      setupCanvas();
+      measureRuler();
+      updateRuler(currentHz);
+      if (!shouldLoop()) drawWave(performance.now());
+    });
   });
   // 切到背景就停聲，避免惱人
   document.addEventListener("visibilitychange", function () {

@@ -84,15 +84,20 @@
     io.observe(cv);
   }
 
-  /* ---------- 世界 → 像素（拉伸填滿，供第一、二幕） ---------- */
-  function mapper(cv, padL, padR, padT, padB) {
+  /* ---------- 世界 → 像素（拉伸填滿，供第一、二幕） ----------
+   * viewY：畫布縱向要涵蓋到多深的世界座標。
+   * 第一幕沒人會畫到 B 以下，收緊一點才不會在底下留一大條空白；
+   * 第二幕要留空間給你畫深弧，用完整的 VIEW_Y。 */
+  function mapper(cv, padL, padR, padT, padB, viewY) {
     var w = cv._w, h = cv._h;
+    var vy = viewY || VIEW_Y;
     var iw = w - padL - padR, ih = h - padT - padB;
     return {
+      vy: vy,
       x: function (wx) { return padL + wx * iw; },
-      y: function (wy) { return padT + (wy / VIEW_Y) * ih; },
+      y: function (wy) { return padT + (wy / vy) * ih; },
       invX: function (px) { return (px - padL) / iw; },
-      invY: function (py) { return ((py - padT) / ih) * VIEW_Y; }
+      invY: function (py) { return ((py - padT) / ih) * vy; }
     };
   }
 
@@ -122,7 +127,7 @@
     ctx.strokeStyle = 'rgba(143,164,201,.08)';
     ctx.lineWidth = 1;
     for (var i = 1; i <= 3; i++) {
-      var y = m.y(VIEW_Y * i / 4);
+      var y = m.y(m.vy * i / 4);
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
     }
   }
@@ -199,11 +204,11 @@
    * ════════════════════════════════════════════════════════════ */
   (function act1() {
     var cv = $('raceCanvas'), ctx = fit(cv);
-    var m = mapper(cv, 46, 34, 30, 34);
+    var m = mapper(cv, 46, 34, 30, 34, 0.70);
     var picked = null, running = null, finished = false;
     var order = ['line', 'hump', 'dip'];
 
-    function remap() { ctx = fit(cv); m = mapper(cv, 46, 34, 30, 34); render(running ? running.t : (finished ? 99 : 0)); }
+    function remap() { ctx = fit(cv); m = mapper(cv, 46, 34, 30, 34, 0.70); render(running ? running.t : (finished ? 99 : 0)); }
 
     function render(t) {
       var w = cv._w, h = cv._h;
@@ -405,9 +410,10 @@
       say($('act2Verdict'), []);
       setMine(t);
     }
+    /* 只在放開或被系統取消時結束。不要綁 pointerleave：
+       筆畫掃出畫布邊界一下下就會被判定「畫完」，人還在畫就被截斷。 */
     cv.addEventListener('pointerup', endDraw);
     cv.addEventListener('pointercancel', endDraw);
-    cv.addEventListener('pointerleave', endDraw);
 
     /* --- 滑桿（鍵盤替代路徑） --- */
     function sliderPath(v) {
@@ -611,10 +617,11 @@
     function geo() {
       var w = cv._w, h = cv._h;
       var r = Math.min((w - 44) / (2 * Math.PI), (h - 46) / 2);
-      return { r: r, cx: w / 2, cy: 24, w: w, h: h };
+      return { r: r, cx: w / 2, cy: Math.max(12, (h - 2 * r) / 2), w: w, h: h };
     }
-    /* 碗：x = r(φ+sinφ)，y = r(1+cosφ)。φ=0 在最低點（y 最大） */
-    function Q(g, ph) { return { x: g.cx + g.r * (ph + Math.sin(ph)), y: g.cy + 2 * g.r - g.r * (1 + Math.cos(ph)) }; }
+    /* 碗：x = r(φ+sinφ)，y = r(1+cosφ)。φ=0 是最低點（畫布 y 最大），φ=±π 是兩側碗口。
+       注意別把 y 再翻一次——翻了就變成拱門，珠子會往上聚。 */
+    function Q(g, ph) { return { x: g.cx + g.r * (ph + Math.sin(ph)), y: g.cy + g.r * (1 + Math.cos(ph)) }; }
 
     function render() {
       var g = geo();
@@ -632,17 +639,37 @@
       var b = Q(g, 0);
       ctx.strokeStyle = 'rgba(239,228,207,' + (0.18 + flash * 0.7) + ')';
       ctx.lineWidth = 1 + flash * 2;
-      ctx.beginPath(); ctx.moveTo(b.x, b.y - 16 - flash * 26); ctx.lineTo(b.x, b.y + 8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(b.x, b.y - 14 - flash * 30); ctx.lineTo(b.x, b.y + 6); ctx.stroke();
       // 珠子
       var w0 = window.tautochroneOmega(g.r, gPx(g));
-      for (var k = 0; k < PHI.length; k++) {
-        var s = Math.sin(PHI[k] / 2) * Math.cos(w0 * t);
-        var ph2 = 2 * Math.asin(Math.max(-1, Math.min(1, s)));
-        var p2 = Q(g, ph2);
+      var pos = [], k, s, ph2;
+      for (k = 0; k < PHI.length; k++) {
+        s = Math.sin(PHI[k] / 2) * Math.cos(w0 * t);
+        ph2 = 2 * Math.asin(Math.max(-1, Math.min(1, s)));
+        pos.push(Q(g, ph2));
+      }
+      /* 全部重合時畫成同心圓環——五顆疊成一顆會看起來像少了四顆，
+         套成環才看得出「五顆都在這裡」。距離是實際算出來的，沒有作假。 */
+      var spread = 0;
+      for (k = 1; k < pos.length; k++) spread = Math.max(spread, Math.abs(pos[k].x - pos[0].x));
+      var stacked = spread < 3.5;
+      for (k = 0; k < pos.length; k++) {
         ctx.save();
-        ctx.shadowColor = HUES[k]; ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.arc(p2.x, p2.y, 6.5, 0, Math.PI * 2);
-        ctx.fillStyle = HUES[k]; ctx.fill();
+        ctx.shadowColor = HUES[k]; ctx.shadowBlur = stacked ? 8 : 12;
+        ctx.beginPath();
+        if (stacked) {
+          ctx.arc(pos[k].x, pos[k].y, 6.5 + (PHI.length - 1 - k) * 4.2, 0, Math.PI * 2);
+          ctx.strokeStyle = HUES[k]; ctx.lineWidth = 2.4; ctx.stroke();
+        } else {
+          ctx.arc(pos[k].x, pos[k].y, 6.5, 0, Math.PI * 2);
+          ctx.fillStyle = HUES[k]; ctx.fill();
+        }
+        ctx.restore();
+      }
+      if (stacked) {
+        ctx.save();
+        ctx.beginPath(); ctx.arc(pos[0].x, pos[0].y, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#fff6e2'; ctx.fill();
         ctx.restore();
       }
     }
@@ -675,10 +702,17 @@
       var g0 = geo();
       var quarter = Math.PI / (2 * window.tautochroneOmega(g0.r, gPx(g0)));
       var nextPass = quarter;
+      var hold = 0;
       job = addJob({
         step: function (dt) {
+          /* 五顆重合只有一瞬。第一次落底時把畫面按住一拍，讓人真的看見它們疊在一起。 */
+          if (hold > 0) { hold -= dt; flash = Math.max(0, flash - dt * 1.1); render(); return true; }
           t += dt;
-          if (t >= nextPass) { passes++; flash = 1; nextPass += quarter * 2; if (passes === 1) finish(); }
+          if (t >= nextPass) {
+            passes++; flash = 1;
+            if (passes === 1) { t = nextPass; hold = 0.9; finish(); }
+            nextPass += quarter * 2;
+          }
           flash = Math.max(0, flash - dt * 3.2);
           render();
           if (passes >= 7) { job = null; $('bowlStop').hidden = true; return false; }

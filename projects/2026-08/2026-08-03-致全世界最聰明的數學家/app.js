@@ -178,12 +178,16 @@
     lines.forEach(function (h) { var p = document.createElement('p'); p.innerHTML = h; el.appendChild(p); });
   }
 
-  /* ---------- 幕的解鎖 ---------- */
+  /* ---------- 幕的解鎖 ----------
+   * 每一幕在解鎖前是 display:none，畫布量到的尺寸是 0。
+   * 解鎖後必須重新量一次再畫，不能只依賴 ResizeObserver 的時機。 */
+  var refits = {};
   function reveal(id, focusId) {
     var s = $(id);
     if (!s.hidden) return;
     s.hidden = false;
     requestAnimationFrame(function () {
+      if (refits[id]) refits[id]();
       s.classList.add('is-in');
       s.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
       if (focusId && $(focusId)) setTimeout(function () { $(focusId).focus({ preventScroll: true }); }, reduceMotion ? 0 : 700);
@@ -256,6 +260,7 @@
     }
 
     function start() {
+      remap();
       $('raceHint').hidden = true;
       $('raceAgain').hidden = true;
       $('raceGo').disabled = true;
@@ -294,6 +299,7 @@
 
     board($('raceBoard'), rows(0));
     render(0);
+    refits.act1 = remap;
     onResize(cv, remap);
   }());
 
@@ -372,6 +378,7 @@
     }
     cv.addEventListener('pointerdown', function (e) {
       if (running) return;
+      remap();                       // 起筆前先確定座標換算是這一刻的尺寸
       drawing = true; raw = []; mine = null; mineD = null; sliderMode = false;
       $('drawHint').hidden = true;
       cv.setPointerCapture(e.pointerId);
@@ -470,6 +477,7 @@
 
     $('drawGo').addEventListener('click', function () {
       if (!mine || !mineD || !mineD.ok) return;
+      remap();
       $('drawGo').disabled = true;
       $('drawHint').hidden = true;
       var maxT = Math.max(mineD.time, CYC_D.time);
@@ -489,6 +497,7 @@
     });
 
     render(-1);
+    refits.act2 = remap;
     onResize(cv, remap);
   }());
 
@@ -504,8 +513,9 @@
     function geo() {
       var w = cv._w, h = cv._h;
       var padX = 26, padT = 22, padB = 26;
-      var R = Math.min((w - padX * 2) / (TH + 1.15), (h - padT - padB) / 2.15);
-      var x0 = padX + R * 0.06;
+      // 留下整顆輪子的寬度（起點在左、終點在右），開場時輪子不會被切一半
+      var R = Math.min((w - padX * 2) / (TH + 2), (h - padT - padB) / 2.15);
+      var x0 = padX + R;
       var y0 = padT;
       return { R: R, x0: x0, y0: y0, w: w, h: h };
     }
@@ -562,6 +572,7 @@
     }
 
     function start() {
+      refit();
       $('wheelHint').hidden = true;
       $('wheelGo').textContent = '再滾一次';
       if (reduceMotion) { theta = TH; render(); finish(); return; }
@@ -578,11 +589,14 @@
       pauseOffscreen(cv, job);
     }
 
+    function refit() { fit(cv); render(); }
+
     $('wheelGo').addEventListener('click', start);
     $('go3').addEventListener('click', function () { reveal('act3', 'wheelGo'); });
     $('go4').addEventListener('click', function () { reveal('act4', 'bowlGo'); });
     render();
-    onResize(cv, function () { fit(cv); render(); });
+    refits.act3 = refit;
+    onResize(cv, refit);
   }());
 
   /* ══════════════════════════════════════════════════════════════
@@ -647,6 +661,7 @@
     }
 
     function start() {
+      refit();
       $('bowlHint').hidden = true;
       $('bowlGo').textContent = '再放一次';
       if (reduceMotion) {
@@ -680,8 +695,10 @@
       finish();
     });
     $('go5').addEventListener('click', function () { reveal('act5'); });
+    function refit() { fit(cv); render(); }
     render();
-    onResize(cv, function () { fit(cv); render(); });
+    refits.act4 = refit;
+    onResize(cv, refit);
   }());
 
 }());

@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>那顆鍵沒有壞</title>
+<meta name="description" content="電梯裡的關門鍵，大家都說是假的。這一頁讓你親手把它拆開來看。">
+<style>
+:root{
+  --ink:#f2ece1;
+  --ink-dim:#a49b8d;
+  --ink-faint:#6d675e;
+  --bg:#0c0d0f;
+  --steel-1:#1b1e22;
+  --steel-2:#262a30;
+  --steel-3:#343a42;
+  --amber:#f2a93b;
+  --amber-soft:#f9d08a;
+  --copper:#c07a3e;
+  --red:#e05a4c;
+  --green:#4fc79b;
+  --hair:rgba(242,236,225,.13);
+  --serif:"Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+  --dur:.6s;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+/* 電梯井的縱向紋理 */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(115% 70% at 50% 0%,rgba(242,169,59,.055),transparent 62%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.016) 0 1px,transparent 1px 46px);
+}
+
+a{color:inherit}
+button{font:inherit;color:inherit}
+
+/* ---------- 固定的樓層指示器 ---------- */
+.hud{
+  position:fixed;top:14px;right:14px;z-index:40;
+  display:flex;align-items:center;gap:9px;
+  padding:7px 12px 7px 10px;border-radius:11px;
+  background:rgba(12,13,15,.72);border:1px solid var(--hair);
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  font-size:12px;letter-spacing:.09em;color:var(--ink-dim);
+}
+.hud .arrow{color:var(--amber);font-size:11px;transform:translateY(1px)}
+.hud .fl{
+  font-family:var(--sans);font-weight:800;font-size:19px;color:var(--amber);
+  min-width:1.2em;text-align:center;font-variant-numeric:tabular-nums;
+  text-shadow:0 0 14px rgba(242,169,59,.5);
+}
+.hud .nm{max-width:6.5em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+.home{
+  position:fixed;top:16px;left:16px;z-index:40;
+  font-size:12.5px;color:var(--ink-faint);text-decoration:none;letter-spacing:.05em;
+  padding:5px 9px;border-radius:8px;transition:color .25s,background .25s;
+}
+.home:hover,.home:focus-visible{color:var(--ink-dim);background:rgba(255,255,255,.05)}
+
+/* ---------- 版面骨架 ---------- */
+main{position:relative;z-index:1}
+section{
+  position:relative;padding:15vh 22px;
+  max-width:760px;margin:0 auto;
+}
+section.tall{min-height:100svh;display:flex;flex-direction:column;justify-content:center}
+.floormark{
+  font-size:11px;letter-spacing:.34em;color:var(--ink-faint);
+  text-transform:uppercase;margin-bottom:26px;
+}
+.floormark b{color:var(--copper);font-weight:700;letter-spacing:.2em}
+
+h1{
+  font-family:var(--serif);font-weight:700;
+  font-size:clamp(31px,7.4vw,58px);line-height:1.26;margin:0 0 4px;
+  letter-spacing:.01em;
+}
+h2{
+  font-family:var(--serif);font-weight:700;
+  font-size:clamp(23px,4.6vw,34px);line-height:1.4;margin:0 0 20px;
+}
+p{margin:0 0 1.15em;font-size:clamp(15.5px,2.5vw,17.5px);color:#ded7ca}
+p.lead{font-family:var(--serif);font-size:clamp(18px,3.4vw,23px);line-height:1.75;color:var(--ink)}
+p.whisper{color:var(--ink-faint);font-size:14.5px;line-height:1.8}
+em{font-style:normal;color:var(--amber-soft)}
+strong{color:#fff;font-weight:700}
+.num{font-variant-numeric:tabular-nums;color:var(--amber);font-weight:700}
+
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .85s ease,transform .85s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.12s}.d2{transition-delay:.26s}.d3{transition-delay:.4s}.d4{transition-delay:.56s}
+
+.cue{
+  margin-top:44px;font-size:12px;letter-spacing:.3em;color:var(--ink-faint);
+  display:flex;align-items:center;gap:10px;
+}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+hr.rule{border:0;height:1px;background:var(--hair);margin:52px 0}
+
+/* ---------- 電梯門（第一幕） ---------- */
+.car{
+  position:relative;margin:6px auto 0;width:min(100%,430px);
+  aspect-ratio:5/4;border-radius:16px;overflow:hidden;
+  background:linear-gradient(180deg,#101215,#08090b);
+  border:1px solid rgba(242,236,225,.15);
+  box-shadow:0 30px 70px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.hall{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(70% 55% at 50% 42%,rgba(242,169,59,.2),transparent 70%),
+    linear-gradient(180deg,#2a2b28,#141513 62%,#0e0f0d);
+  display:flex;align-items:center;justify-content:center;
+}
+.hall .who{
+  font-size:12.5px;letter-spacing:.24em;color:rgba(242,236,225,.4);
+  transition:opacity .5s;
+}
+.leaf{
+  position:absolute;top:0;bottom:0;width:50.4%;
+  background:
+    linear-gradient(90deg,rgba(0,0,0,.42),transparent 16%,transparent 84%,rgba(0,0,0,.42)),
+    repeating-linear-gradient(90deg,#2f343a 0 3px,#272c31 3px 7px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+  transition:transform 1.5s cubic-bezier(.55,.05,.25,1);
+  will-change:transform;
+}
+.leaf.l{left:0;transform:translateX(-101%)}
+.leaf.r{right:0;transform:translateX(101%)}
+.car.shut .leaf.l,.car.shut .leaf.r{transform:translateX(0)}
+.car.slam .leaf{transition-duration:.34s}
+.sill{position:absolute;left:0;right:0;bottom:0;height:8px;background:linear-gradient(180deg,#4a4f56,#22262b)}
+
+/* ---------- 按鈕面板 ---------- */
+.panel{
+  margin:26px auto 0;width:min(100%,430px);
+  background:linear-gradient(180deg,var(--steel-2),var(--steel-1));
+  border:1px solid rgba(242,236,225,.12);border-radius:14px;
+  padding:20px 20px 17px;
+  box-shadow:0 18px 42px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.panel .row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.btn{
+  --lit:0;
+  position:relative;width:84px;height:84px;border-radius:50%;flex:0 0 auto;
+  border:1px solid rgba(255,255,255,.16);cursor:pointer;
+  background:
+    radial-gradient(60% 60% at 50% 34%,rgba(255,255,255,.11),transparent 70%),
+    linear-gradient(180deg,var(--steel-3),#1d2126);
+  box-shadow:0 6px 0 #0e1114,0 12px 22px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.12);
+  transition:transform .09s ease,box-shadow .09s ease;
+  display:grid;place-items:center;
+  -webkit-tap-highlight-color:transparent;
+}
+.btn:active,.btn.down{transform:translateY(5px);box-shadow:0 1px 0 #0e1114,0 5px 12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
+.btn:focus-visible{outline:2px solid var(--amber);outline-offset:4px}
+.btn .glyph{
+  font-size:27px;line-height:1;color:#cdc6b9;letter-spacing:-2px;
+  transition:color .2s,text-shadow .2s;pointer-events:none;
+}
+.btn .halo{
+  position:absolute;inset:-5px;border-radius:50%;pointer-events:none;
+  border:2px solid var(--amber);opacity:0;
+}
+.btn.flash .halo{animation:ping .55s ease-out}
+@keyframes ping{0%{opacity:.9;transform:scale(.92)}100%{opacity:0;transform:scale(1.25)}}
+.btn.lit .glyph{color:var(--amber);text-shadow:0 0 16px rgba(242,169,59,.8)}
+.btn.lit{border-color:rgba(242,169,59,.5)}
+
+.readout{
+  flex:1 1 190px;min-width:170px;
+  font-size:13px;color:var(--ink-dim);line-height:1.7;letter-spacing:.02em;
+}
+.readout .big{
+  font-size:29px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;
+  display:block;line-height:1.2;
+}
+.readout .lbl{font-size:11px;letter-spacing:.22em;color:var(--ink-faint)}
+.plate{
+  margin-top:15px;padding-top:13px;border-top:1px dashed rgba(242,236,225,.14);
+  font-size:12.5px;color:var(--ink-faint);line-height:1.75;min-height:1.6em;
+}
+.plate.hot{color:var(--amber-soft)}
+
+/* ---------- 4F：跳過鍵 ---------- */
+.holdbar{
+  margin:8px 0 0;height:6px;border-radius:4px;background:rgba(255,255,255,.09);overflow:hidden;
+}
+.holdbar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--copper),var(--amber));border-radius:4px}
+.skiprow{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px}
+.skip{
+  padding:9px 17px;border-radius:9px;cursor:pointer;
+  background:var(--steel-2);border:1px solid rgba(255,255,255,.14);
+  font-size:13.5px;letter-spacing:.06em;transition:transform .08s,background .2s;
+}
+.skip:active{transform:translateY(2px)}
+.skip:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.skipnote{font-size:12.5px;color:var(--ink-faint);min-height:1.4em}
+
+.walker{
+  position:relative;height:58px;margin:22px 0 4px;
+  border-bottom:1px solid var(--hair);
+}
+.walker .fig{
+  position:absolute;bottom:4px;left:0;line-height:0;
+  transition:transform 5s linear;will-change:transform;
+}
+.walker .doormark{
+  position:absolute;bottom:0;right:0;width:2px;height:40px;background:var(--amber);opacity:.6;
+}
+
+/* ---------- 3F：線路檢視 ---------- */
+.wirewrap{
+  margin:4px 0 0;border-radius:14px;padding:14px 10px 10px;
+  background:linear-gradient(180deg,#101317,#0a0c0e);
+  border:1px solid var(--hair);
+}
+.wire-svg{display:block;width:100%;height:auto}
+.boxlbl{font-size:10.5px;letter-spacing:.16em;fill:var(--ink-faint);font-family:var(--sans)}
+.boxttl{font-size:13px;fill:#ded7ca;font-family:var(--sans);font-weight:700}
+.gateno{font-size:15px;fill:var(--red);font-family:var(--sans);font-weight:800}
+.gateyes{font-size:15px;fill:var(--green);font-family:var(--sans);font-weight:800}
+.gatenum{font-size:13px;fill:#ded7ca;font-family:var(--sans);font-weight:700;font-variant-numeric:tabular-nums}
+.ctrls{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.tinybtn{
+  padding:9px 15px;border-radius:9px;cursor:pointer;font-size:13px;letter-spacing:.05em;
+  background:var(--steel-2);border:1px solid rgba(255,255,255,.14);
+  transition:transform .08s,border-color .2s,background .2s;
+}
+.tinybtn:hover:not(:disabled){border-color:rgba(242,169,59,.5)}
+.tinybtn:active:not(:disabled){transform:translateY(2px)}
+.tinybtn:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.tinybtn:disabled{opacity:.35;cursor:default}
+.tinybtn.key{border-color:rgba(242,169,59,.45);color:var(--amber-soft)}
+.tinybtn.key.on{background:rgba(242,169,59,.16);border-color:var(--amber);color:var(--amber)}
+.log{
+  margin-top:14px;font-size:13px;line-height:1.85;color:var(--ink-dim);
+  min-height:3.6em;font-variant-numeric:tabular-nums;
+}
+.log .no{color:var(--red)}
+.log .yes{color:var(--green)}
+.keyslot{margin-top:22px;opacity:0;transform:translateY(12px);transition:opacity .7s,transform .7s}
+.keyslot.on{opacity:1;transform:none}
+
+.shake{animation:shk .34s ease}
+@keyframes shk{
+  0%,100%{transform:translateX(0)}
+  22%{transform:translateX(-5px)}48%{transform:translateX(4px)}74%{transform:translateX(-2px)}
+}
+
+/* ---------- 2F：按鈕牆 ---------- */
+.wall{
+  display:grid;grid-template-columns:repeat(2,1fr);gap:13px;margin-top:6px;
+}
+.plaque{
+  text-align:left;padding:16px 16px 15px;border-radius:13px;cursor:pointer;
+  background:linear-gradient(180deg,var(--steel-2),#161a1e);
+  border:1px solid rgba(255,255,255,.11);
+  transition:border-color .3s,transform .12s,background .3s;
+  display:flex;flex-direction:column;gap:9px;min-height:132px;
+}
+.plaque:hover{border-color:rgba(255,255,255,.24)}
+.plaque:active{transform:translateY(2px)}
+.plaque:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.plaque .lamp{
+  width:13px;height:13px;border-radius:50%;background:#2c3138;
+  border:1px solid rgba(255,255,255,.16);flex:0 0 auto;transition:background .35s,box-shadow .35s;
+}
+.plaque .top{display:flex;align-items:center;gap:10px}
+.plaque .nm{font-size:14.5px;font-weight:700;color:#e6dfd2;letter-spacing:.02em}
+.plaque .ans{font-size:12.8px;line-height:1.7;color:var(--ink-faint);opacity:0;transition:opacity .5s}
+.plaque.done .ans{opacity:1}
+.plaque.done.live{border-color:rgba(79,199,155,.4)}
+.plaque.done.live .lamp{background:var(--green);box-shadow:0 0 14px rgba(79,199,155,.75)}
+.plaque.done.live .ans b{color:var(--green)}
+.plaque.done.dead{border-color:rgba(224,90,76,.34)}
+.plaque.done.dead .lamp{background:#3a2523}
+.plaque.done.dead .ans b{color:var(--red)}
+.plaque .hint{font-size:11px;letter-spacing:.2em;color:var(--ink-faint);margin-top:auto}
+.plaque.done .hint{opacity:0}
+
+/* ---------- 1F：結尾 ---------- */
+.finalcar{
+  width:min(100%,430px);margin:0 auto 30px;
+}
+.tally{
+  margin:30px auto 0;max-width:430px;padding:19px 20px;border-radius:13px;
+  background:rgba(242,169,59,.06);border:1px solid rgba(242,169,59,.24);
+  font-size:14px;line-height:1.9;color:var(--amber-soft);
+}
+.tally .n{font-size:32px;font-weight:800;color:var(--amber);font-variant-numeric:tabular-nums}
+
+footer{
+  max-width:760px;margin:0 auto;padding:60px 22px 74px;
+  font-size:12px;color:var(--ink-faint);line-height:1.9;border-top:1px solid var(--hair);
+}
+footer a{color:var(--ink-dim)}
+
+@media (max-width:560px){
+  section{padding:11vh 18px}
+  .wall{grid-template-columns:1fr}
+  .btn{width:76px;height:76px}
+  .hud .nm{display:none}
+  .panel .row{gap:14px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  .leaf{transition-duration:.01ms}
+  .walker .fig{transition-duration:.01ms}
+  .cue span{animation:none}
+  .btn.flash .halo{animation:none}
+  .shake{animation:none}
+  *{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<div class="hud" aria-hidden="true">
+  <span class="arrow">▼</span>
+  <span class="fl" id="hudFloor">5</span>
+  <span class="nm" id="hudName">現在</span>
+</div>
+
+<main>
+
+<!-- ========================= 5F ========================= -->
+<section class="tall" data-floor="5" data-name="現在">
+  <div class="floormark reveal"><b>5F</b> · 現在</div>
+
+  <h1 class="reveal d1">你已經按了第三次。</h1>
+  <p class="lead reveal d2" style="margin-top:18px">門還開著。</p>
+  <p class="reveal d3" style="color:var(--ink-dim)">走廊上沒有人要進來。你面前這顆鍵，上面刻著兩個往內的箭頭。你知道大家怎麼說它。</p>
+
+  <div class="car reveal d3" id="car5">
+    <div class="hall"><span class="who" id="who5">走廊 · 沒有人</span></div>
+    <div class="leaf l"></div><div class="leaf r"></div>
+    <div class="sill"></div>
+  </div>
+
+  <div class="panel reveal d4">
+    <div class="row">
+      <button class="btn" id="btnClose" aria-label="關門鍵，按下去試試看">
+        <span class="halo"></span><span class="glyph">▶◀</span>
+      </button>
+      <div class="readout">
+        <span class="lbl">你按了</span>
+        <span class="big"><span id="cnt5">0</span> 次</span>
+        <span id="sub5">按下去。想按幾次都可以。</span>
+      </div>
+    </div>
+    <div class="plate" id="plate5" aria-live="polite"></div>
+  </div>
+
+  <div class="cue reveal d4"><span>▼</span> 往下</div>
+</section>
+
+<!-- ========================= 4F ========================= -->
+<section class="tall" data-floor="4" data-name="1990">
+  <div class="floormark reveal"><b>4F</b> · 1990</div>
+
+  <h2 class="reveal d1">1990 年，有人替那扇門立了一條規矩。</h2>
+  <p class="reveal d1">《美國身心障礙者法案》通過那年，順手改寫了全世界電梯的脾氣：門必須開得夠久——久到一個拄著拐杖、撐著手杖、坐著輪椅的人，能不慌不忙地走進來。</p>
+  <p class="reveal d2">於是規範裡多了兩個數字。你在車廂內按了樓層，門全開後至少維持 <span class="num">3</span> 秒。你在走廊上按了呼叫鍵，從電梯回應你到門開始關，至少 <span class="num">5</span> 秒——正式寫法是 T ＝ D ÷ 1.5 ft/s，D 是你站的地方到門中線的距離，而算出來再短，也不准少於 5 秒。</p>
+
+  <div class="walker reveal d2" aria-hidden="true">
+    <span class="fig" id="walkFig">
+      <svg viewBox="0 0 26 34" width="24" height="31" aria-hidden="true">
+        <circle cx="11" cy="5" r="4" fill="#cdc6b9"/>
+        <path d="M11 10 L11 21 M11 21 L7 32 M11 21 L15 31 M11 13 L17 17" stroke="#cdc6b9" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <path d="M17 17 L21 33" stroke="#f2a93b" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+      </svg>
+    </span>
+    <span class="doormark"></span>
+  </div>
+  <div class="holdbar reveal d2" aria-hidden="true"><i id="holdFill"></i></div>
+
+  <div class="skiprow reveal d3">
+    <button class="skip" id="btnSkip">跳過這 5 秒</button>
+    <span class="skipnote" id="skipNote" aria-live="polite"></span>
+  </div>
+
+  <p class="reveal d3" style="margin-top:28px">五秒不長。可是站在門裡的人，量的從來不是秒，是「還要等多久」。而人一旦開始等，手就會自己去找那顆鍵。</p>
+  <p class="whisper reveal d4">於是網路上長出了一個說法：那顆鍵是假的，接都沒接，純粹給你按爽的。這個說法傳了二十年，傳到連《紐約時報》都寫了。</p>
+  <p class="lead reveal d4" style="margin-top:22px">但如果你真的把面板拆開——</p>
+
+  <div class="cue reveal d4"><span>▼</span> 拆開它</div>
+</section>
+
+<!-- ========================= 3F ========================= -->
+<section class="tall" data-floor="3" data-name="線路">
+  <div class="floormark reveal"><b>3F</b> · 線路</div>
+  <h2 class="reveal d1">線是通的。</h2>
+  <p class="reveal d1">這是那顆鍵背後的路。銅線從按鈕接進控制器，控制器再把命令送去門的馬達。中間隔著一道閘——那道閘不是零件，是法規。</p>
+
+  <div class="wirewrap reveal d2" id="wireWrap">
+    <svg class="wire-svg" viewBox="0 0 640 290" role="img" aria-label="關門鍵到門馬達的線路示意圖">
+      <!-- 銅線（本體不上色 ＝ 不繪製，交給下方兩層 use 畫出線芯與外皮） -->
+      <path id="wA" d="M 70 118 L 70 232 Q 70 262 100 262 L 240 262 Q 272 262 272 232 L 272 176" fill="none"/>
+      <path id="wB" d="M 388 132 L 452 132" fill="none"/>
+      <path id="wC" d="M 500 132 L 556 132" fill="none"/>
+
+      <g stroke="#6b4a2c" stroke-width="5" fill="none" stroke-linecap="round">
+        <use href="#wA"/><use href="#wB"/><use href="#wC"/>
+      </g>
+      <g stroke="#c07a3e" stroke-width="2" fill="none" stroke-linecap="round" opacity=".85">
+        <use href="#wA"/><use href="#wB"/><use href="#wC"/>
+      </g>
+
+      <!-- 按鈕 -->
+      <g>
+        <circle cx="70" cy="86" r="31" fill="#242a30" stroke="#4c545d" stroke-width="2"/>
+        <circle id="svgBtnLight" cx="70" cy="86" r="31" fill="none" stroke="#f2a93b" stroke-width="2.5" opacity="0"/>
+        <text x="70" y="93" text-anchor="middle" class="boxttl" style="letter-spacing:-1px">▶◀</text>
+        <text x="70" y="34" text-anchor="middle" class="boxlbl">關門鍵</text>
+      </g>
+
+      <!-- 控制器 -->
+      <g>
+        <rect x="196" y="88" width="192" height="88" rx="11" fill="#181c21" stroke="#3d454e" stroke-width="1.5"/>
+        <text x="212" y="116" class="boxttl">控制器</text>
+        <text x="212" y="137" class="boxlbl">CONTROLLER</text>
+        <circle id="ctrlLed" cx="366" cy="110" r="6" fill="#2c3138"/>
+        <text x="212" y="160" class="boxlbl" id="ctrlMsg">待命</text>
+      </g>
+
+      <!-- ADA 閘門 -->
+      <g>
+        <rect x="452" y="84" width="48" height="96" rx="7" fill="#141a1e" stroke="#3d454e" stroke-width="1.5"/>
+        <rect id="gateBar" x="456" y="88" width="40" height="88" rx="5" fill="rgba(224,90,76,.2)" stroke="#e05a4c" stroke-width="1.5"/>
+        <text x="476" y="128" text-anchor="middle" class="gateno" id="gateIcon">✕</text>
+        <text x="476" y="153" text-anchor="middle" class="gatenum" id="gateCount">5.0</text>
+        <text x="476" y="203" text-anchor="middle" class="boxlbl">最小開門時間</text>
+        <text x="476" y="219" text-anchor="middle" class="boxlbl" style="letter-spacing:.1em">ADA · A17.1</text>
+      </g>
+
+      <!-- 門馬達 -->
+      <g>
+        <rect x="556" y="84" width="60" height="96" rx="9" fill="#181c21" stroke="#3d454e" stroke-width="1.5"/>
+        <rect id="mLeafL" x="562" y="90" width="10" height="84" rx="2" fill="#39404a"/>
+        <rect id="mLeafR" x="600" y="90" width="10" height="84" rx="2" fill="#39404a"/>
+        <text x="586" y="203" text-anchor="middle" class="boxlbl">門</text>
+      </g>
+
+      <!-- 訊號光點 -->
+      <circle id="pulse" cx="-50" cy="-50" r="6" fill="#f2a93b" opacity="0"/>
+      <circle id="spark" cx="-50" cy="-50" r="4" fill="#e05a4c" opacity="0"/>
+    </svg>
+  </div>
+
+  <div class="ctrls reveal d2">
+    <button class="tinybtn" id="wPress">按下關門鍵</button>
+    <button class="tinybtn" id="wReset">重新開門</button>
+  </div>
+  <div class="log" id="wLog" aria-live="polite">門剛開。閘還壓著。按按看。</div>
+
+  <div class="keyslot" id="keySlot">
+    <hr class="rule" style="margin:34px 0 26px">
+    <p>消防隊來的時候，同一顆鍵得立刻聽話。所以面板側邊有一個鑰匙孔——插進去轉開，電梯進入獨立服務模式，法規讓位。</p>
+    <div class="ctrls">
+      <button class="tinybtn key" id="wKey">
+        <svg viewBox="0 0 22 12" width="20" height="11" aria-hidden="true" style="vertical-align:-1px;margin-right:6px">
+          <circle cx="4.5" cy="6" r="3.6" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M8.4 6 L20 6 M16 6 L16 10 M12.6 6 L12.6 9.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/>
+        </svg><span id="wKeyLabel">轉開鑰匙</span>
+      </button>
+      <span class="skipnote" id="keyNote"></span>
+    </div>
+  </div>
+
+  <p class="lead reveal" style="margin-top:40px">同一顆鍵。同一條線。差別只在，這一次沒有人擋在它前面。</p>
+  <p class="reveal">它從來不是假的。它只是——在你按的那個瞬間，被一條保護別人的規矩否決了。</p>
+
+  <div class="cue reveal"><span>▼</span> 但是</div>
+</section>
+
+<!-- ========================= 2F ========================= -->
+<section class="tall" data-floor="2" data-name="其他的鍵">
+  <div class="floormark reveal"><b>2F</b> · 其他的鍵</div>
+  <h2 class="reveal d1">但這世界上，確實有一整面牆的鍵沒有接。</h2>
+  <p class="reveal d1">關門鍵替自己洗清了嫌疑，卻順手把同夥供了出來。下面四顆，你每天都按過。點一顆，看它到底通不通。</p>
+
+  <div class="wall reveal d2" id="wall"></div>
+  <p class="whisper reveal" id="wallSum" style="margin-top:20px;min-height:1.7em"></p>
+
+  <div class="cue reveal"><span>▼</span> 到了</div>
+</section>
+
+<!-- ========================= 1F ========================= -->
+<section class="tall" data-floor="1" data-name="門開了">
+  <div class="floormark reveal"><b>1F</b> · 門開了</div>
+
+  <div class="car finalcar shut reveal d1" id="carEnd">
+    <div class="hall"><span class="who">大廳 · 有光</span></div>
+    <div class="leaf l"></div><div class="leaf r"></div>
+    <div class="sill"></div>
+  </div>
+
+  <h2 class="reveal d1">那些沒接線的鍵，也不是在騙你。</h2>
+  <p class="reveal d2">紐約在一九七〇年代把號誌交給電腦之後，行人按鈕就沒必要接了。市府沒有拆掉它們——因為研究發現，有東西可以按的人，比較不會提早踏進馬路。那顆鍵不控制紅綠燈，它控制你的腳步。</p>
+  <p class="reveal d2">假溫控器也一樣。它不改變室溫，它改變的是「有人在乎我冷」這件事。裝它的人很清楚：抱怨會停，不是因為變暖了，是因為有人可以按。</p>
+  <p class="lead reveal d3" style="margin-top:34px">按鈕真正接的，從來不是門，是等待的人。</p>
+  <p class="reveal d3">而關門鍵是裡面最冤枉的一個。它有接線，它有聽見，它每一次都把你的請求送到了控制器面前。只是控制器手上壓著一張別人的清單。</p>
+
+  <hr class="rule reveal">
+
+  <p class="lead reveal">那多出來的三秒，本來就不是給你的。</p>
+  <p class="reveal">是給還在走廊上、走得比你慢的那個人的。今天他還沒出現，所以你覺得那三秒被偷走了。</p>
+  <p class="lead reveal" style="color:var(--amber-soft)">總有一天，走廊上那個人是你。</p>
+
+  <div class="tally reveal" id="tally" aria-live="polite"></div>
+  <p class="whisper reveal" style="margin-top:26px;text-align:center">門開了。你可以走了。</p>
+</section>
+
+</main>
+
+<footer>
+  <p style="margin:0">資料來源：The New York Times（2016、2004）、ACHR News 業界調查、ASME A17.1 與 ADA 無障礙規範。</p>
+  <p style="margin:6px 0 0"><a href="../../../index.html">← 回每日小專案</a></p>
+</footer>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var L = window.DoorLogic;
+  var LS = 'dcb.';            /* 本頁專屬前綴 */
+  var LS_TOTAL = LS + 'total';
+
+  /* ---------- reduced-motion（含 change 監聽） ---------- */
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var RM = mq.matches;
+  var onMQ = function(e){ RM = e.matches; };
+  if (mq.addEventListener) mq.addEventListener('change', onMQ);
+  else if (mq.addListener) mq.addListener(onMQ);
+
+  var $ = function(id){ return document.getElementById(id); };
+  var hidden = function(){ return document.hidden; };
+
+  /* ---------- 進場揭露 + 樓層指示器 ---------- */
+  var hudFloor = $('hudFloor'), hudName = $('hudName');
+  if ('IntersectionObserver' in window) {
+    var ro = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); ro.unobserve(e.target); } });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function(n){ ro.observe(n); });
+
+    var fo = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (e.isIntersecting) {
+          hudFloor.textContent = e.target.getAttribute('data-floor');
+          hudName.textContent = e.target.getAttribute('data-name');
+        }
+      });
+    }, { threshold: 0.5 });
+    Array.prototype.forEach.call(document.querySelectorAll('section[data-floor]'), function(n){ fo.observe(n); });
+  } else {
+    Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function(n){ n.classList.add('in'); });
+  }
+
+  /* ================= 5F：真的可以按的關門鍵 ================= */
+  var HOLD5 = 5000;                    /* 這一趟的最小開門時間 */
+  var btn = $('btnClose'), cnt5 = $('cnt5'), sub5 = $('sub5'), plate5 = $('plate5');
+  var car5 = $('car5'), who5 = $('who5');
+  var presses = [], t0 = null, closed = false, idleTimer = null, holdTimer = null;
+  var totalPresses = 0;
+  try { totalPresses = parseInt(localStorage.getItem(LS_TOTAL) || '0', 10) || 0; } catch (e) {}
+
+  function startHold(){
+    if (t0 !== null) return;
+    t0 = Date.now();
+    holdTimer = setTimeout(function(){ shutDoor(false); }, HOLD5);
+  }
+  /* 完全不按的人，也讓門自己關 */
+  idleTimer = setTimeout(function(){ if (t0 === null && !closed) shutDoor(true); }, 11000);
+
+  function shutDoor(neverPressed){
+    if (closed) return;
+    closed = true;
+    clearTimeout(holdTimer); clearTimeout(idleTimer);
+    car5.classList.add('shut');
+    who5.style.opacity = '0';
+    btn.classList.remove('lit');
+    if (neverPressed) {
+      plate5.className = 'plate hot';
+      plate5.textContent = '你一次都沒按。門還是關了——時間到，它本來就會關。';
+      sub5.textContent = '這才是重點。';
+      return;
+    }
+    var extra = L.ignoredPresses(presses, HOLD5) - 1;   /* 第一次按之後、門關之前的那幾次 */
+    plate5.className = 'plate hot';
+    plate5.textContent = extra > 0
+      ? '門關上了——在你第一次按下去之後的 ' + L.fmtSec(HOLD5) + ' 秒整。那 ' + L.fmtSec(HOLD5) +
+        ' 秒裡你又按了 ' + extra + ' 次，一次都沒有讓它提早。'
+      : '門關上了——在你按下去之後的 ' + L.fmtSec(HOLD5) + ' 秒整。不早不晚，跟你按不按沒有關係。';
+    sub5.textContent = '大家都說那顆鍵是假的。';
+  }
+
+  btn.addEventListener('click', function(){
+    totalPresses++;
+    try { localStorage.setItem(LS_TOTAL, String(totalPresses)); } catch (e) {}
+    if (closed) {
+      plate5.className = 'plate';
+      plate5.textContent = '門已經關了。現在按它，它反而聽得懂。';
+      return;
+    }
+    startHold();
+    presses.push(Date.now() - t0);
+    cnt5.textContent = String(presses.length);
+    btn.classList.add('lit');
+    if (!RM) {
+      btn.classList.remove('flash');
+      void btn.offsetWidth;                 /* 強制 reflow，讓動畫可重播 */
+      btn.classList.add('flash');
+    }
+    var n = presses.length;
+    if (n === 1) sub5.textContent = '……';
+    else if (n === 2) sub5.textContent = '再一次？';
+    else if (n === 3) sub5.textContent = '門還是開著。';
+    else if (n === 5) sub5.textContent = '你按得比剛才更用力了。';
+    else if (n === 8) sub5.textContent = '沒用。真的。';
+    else if (n >= 12) sub5.textContent = '好了，冷靜。';
+  });
+
+  /* ================= 4F：按了沒用的「跳過」 ================= */
+  var walkFig = $('walkFig'), holdFill = $('holdFill'), btnSkip = $('btnSkip'), skipNote = $('skipNote');
+  var skipCount = 0, walkStarted = false, walkDone = false, walkT0 = 0, walkRAF = 0;
+
+  function walkTick(){
+    if (walkDone) return;
+    if (hidden()) { walkRAF = requestAnimationFrame(walkTick); return; }
+    var p = Math.min(1, (Date.now() - walkT0) / 5000);
+    holdFill.style.width = (p * 100).toFixed(1) + '%';
+    if (p >= 1) {
+      walkDone = true;
+      skipNote.textContent = '好了，五秒到了。你按了 ' + skipCount + ' 次「跳過」。';
+      btnSkip.textContent = '（已經沒事了）';
+      return;
+    }
+    walkRAF = requestAnimationFrame(walkTick);
+  }
+  function startWalk(){
+    if (walkStarted) return;
+    walkStarted = true; walkT0 = Date.now();
+    var w = walkFig.parentNode.clientWidth - 34;
+    if (RM) {
+      walkFig.style.transition = 'none';
+      walkFig.style.transform = 'translateX(' + w + 'px)';
+      holdFill.style.width = '100%';
+      walkDone = true;
+      skipNote.textContent = '五秒，一個人走進門裡的時間。';
+      return;
+    }
+    requestAnimationFrame(function(){ walkFig.style.transform = 'translateX(' + w + 'px)'; });
+    walkRAF = requestAnimationFrame(walkTick);
+  }
+  if ('IntersectionObserver' in window) {
+    var wo = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting) { startWalk(); wo.disconnect(); } });
+    }, { threshold: 0.4 });
+    wo.observe(document.querySelector('.walker'));
+  } else { startWalk(); }
+
+  var SKIP_LINES = ['……', '沒有反應。', '還是沒有反應。', '它甚至沒有亮。', '你知道這一段在講什麼了吧。'];
+  btnSkip.addEventListener('click', function(){
+    if (walkDone) { skipNote.textContent = '早就結束了。'; return; }
+    startWalk();
+    skipCount++;
+    skipNote.textContent = SKIP_LINES[Math.min(skipCount - 1, SKIP_LINES.length - 1)];
+  });
+
+  /* ================= 3F：線路檢視（本頁高潮） ================= */
+  var HOLD3 = 5000;
+  var wPress = $('wPress'), wReset = $('wReset'), wLog = $('wLog'), wKey = $('wKey');
+  var keySlot = $('keySlot'), keyNote = $('keyNote'), wireWrap = $('wireWrap');
+  var pulse = $('pulse'), spark = $('spark'), ctrlLed = $('ctrlLed'), ctrlMsg = $('ctrlMsg');
+  var gateBar = $('gateBar'), gateIcon = $('gateIcon'), gateCount = $('gateCount');
+  var svgBtnLight = $('svgBtnLight'), mL = $('mLeafL'), mR = $('mLeafR');
+  var pathA = document.getElementById('wA'), pathB = document.getElementById('wB'), pathC = document.getElementById('wC');
+
+  var mode = 'normal', open3 = Date.now(), busy = false, blockedTries = 0, keyShown = false;
+  var gateVisible = false, gateLast = 0;
+
+  function gateRemain(){
+    if (mode === 'independent') return 0;
+    return Math.max(0, HOLD3 - (Date.now() - open3));
+  }
+  function paintGate(){
+    var r = gateRemain();
+    var pass = (mode === 'independent') || r <= 0;
+    gateBar.setAttribute('fill', pass ? 'rgba(79,199,155,.18)' : 'rgba(224,90,76,.2)');
+    gateBar.setAttribute('stroke', pass ? '#4fc79b' : '#e05a4c');
+    gateIcon.textContent = pass ? '✓' : '✕';
+    gateIcon.setAttribute('class', pass ? 'gateyes' : 'gateno');
+    gateCount.textContent = mode === 'independent' ? '讓位' : L.fmtSec(r);
+  }
+  /* 只在線路圖進入視窗、分頁可見時重繪，且節流到約 10fps */
+  function gateLoop(ts){
+    if (!gateVisible) return;
+    requestAnimationFrame(gateLoop);
+    if (hidden() || ts - gateLast < 90) return;
+    gateLast = ts;
+    paintGate();
+  }
+  var gateArmed = false;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        var was = gateVisible;
+        gateVisible = e.isIntersecting;
+        if (gateVisible && !was) {
+          /* 你「走到」這一層，門才剛開——倒數從現在起算 */
+          if (!gateArmed) { gateArmed = true; open3 = Date.now(); }
+          requestAnimationFrame(gateLoop);
+        }
+      });
+    }, { threshold: 0.05 }).observe(wireWrap);
+  } else {
+    gateVisible = true; gateArmed = true; open3 = Date.now(); requestAnimationFrame(gateLoop);
+  }
+  paintGate();
+
+  /* 沿 SVG 路徑走的光點：用 getPointAtLength，不碰 dasharray */
+  function travel(path, dot, ms, cb){
+    var total = path.getTotalLength();
+    if (RM || ms <= 0) {
+      var e = path.getPointAtLength(total);
+      dot.setAttribute('cx', e.x); dot.setAttribute('cy', e.y);
+      dot.setAttribute('opacity', '1');
+      setTimeout(function(){ dot.setAttribute('opacity', '0'); cb && cb(); }, RM ? 90 : 0);
+      return;
+    }
+    var s = null;
+    dot.setAttribute('opacity', '1');
+    (function step(ts){
+      if (hidden()) { requestAnimationFrame(step); return; }
+      if (s === null) s = ts;
+      var p = Math.min(1, (ts - s) / ms);
+      var pt = path.getPointAtLength(total * p);
+      dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y);
+      if (p < 1) requestAnimationFrame(step);
+      else { dot.setAttribute('opacity', '0'); cb && cb(); }
+    })(performance.now());
+  }
+
+  function setDoor(shut){
+    /* 門馬達的兩片門（transform 只動位移） */
+    mL.setAttribute('transform', shut ? 'translate(14,0)' : 'translate(0,0)');
+    mR.setAttribute('transform', shut ? 'translate(-14,0)' : 'translate(0,0)');
+    mL.setAttribute('fill', shut ? '#5b6470' : '#39404a');
+    mR.setAttribute('fill', shut ? '#5b6470' : '#39404a');
+  }
+  setDoor(false);
+
+  function showKeySlot(){
+    if (keyShown) return;
+    keyShown = true;
+    keySlot.classList.add('on');
+  }
+
+  function doPress(){
+    if (busy) return;
+    busy = true;
+    svgBtnLight.setAttribute('opacity', '1');
+    ctrlLed.setAttribute('fill', '#2c3138');
+    ctrlMsg.textContent = '訊號傳送中…';
+
+    travel(pathA, pulse, 520, function(){
+      ctrlLed.setAttribute('fill', '#f2a93b');
+      ctrlMsg.textContent = '收到關門請求';
+      var v = L.closeVerdict(Date.now() - open3, HOLD3, mode);
+      setTimeout(function(){
+        if (!v.pass) {
+          travel(pathB, pulse, 240, function(){
+            spark.setAttribute('cx', '452'); spark.setAttribute('cy', '132');
+            spark.setAttribute('opacity', '1');
+            setTimeout(function(){ spark.setAttribute('opacity', '0'); }, 340);
+            blockedTries++;
+            ctrlMsg.textContent = '請求已丟棄';
+            wLog.innerHTML = '<span class="no">✕ 被閘擋下</span>　最小開門時間還剩 ' + L.fmtSec(v.remainMs) +
+              ' 秒。訊號到了控制器，控制器把它丟了。<br>你已經被擋 ' + blockedTries + ' 次。';
+            svgBtnLight.setAttribute('opacity', '0');
+            busy = false;
+            if (blockedTries >= 2) showKeySlot();
+          });
+        } else {
+          travel(pathB, pulse, 240, function(){
+            travel(pathC, pulse, 200, function(){
+              setDoor(true);
+              if (!RM) {
+                wireWrap.classList.remove('shake');
+                wireWrap.getBoundingClientRect();     /* 強制 reflow，動畫才會重播 */
+                wireWrap.classList.add('shake');
+              }
+              ctrlMsg.textContent = '門，關';
+              wLog.innerHTML = mode === 'independent'
+                ? '<span class="yes">✓ 通過</span>　獨立服務模式，閘讓開了。同一顆鍵，同一條線，門立刻關上。'
+                : '<span class="yes">✓ 通過</span>　最小開門時間到了，閘讓開。門關上——這顆鍵一直都是接著的。';
+              svgBtnLight.setAttribute('opacity', '0');
+              busy = false;
+              showKeySlot();
+            });
+          });
+        }
+      }, RM ? 60 : 260);
+    });
+  }
+
+  wPress.addEventListener('click', doPress);
+  wReset.addEventListener('click', function(){
+    if (busy) return;
+    open3 = Date.now();
+    setDoor(false);
+    ctrlLed.setAttribute('fill', '#2c3138');
+    ctrlMsg.textContent = '待命';
+    wLog.textContent = mode === 'independent'
+      ? '門重新開了。鑰匙還轉著——閘不會再擋你。'
+      : '門重新開了。閘又壓了 5.0 秒。';
+  });
+  wKey.addEventListener('click', function(){
+    mode = (mode === 'independent') ? 'normal' : 'independent';
+    wKey.classList.toggle('on', mode === 'independent');
+    $('wKeyLabel').textContent = mode === 'independent' ? '鑰匙已轉開' : '轉開鑰匙';
+    wKey.setAttribute('aria-pressed', mode === 'independent' ? 'true' : 'false');
+    keyNote.textContent = mode === 'independent'
+      ? '獨立服務模式。現在按下去試試。'
+      : '轉回一般模式，閘又回來了。';
+    paintGate();
+  });
+  wKey.setAttribute('aria-pressed', 'false');
+
+  /* ================= 2F：按鈕牆 ================= */
+  var WALL = [
+    { nm:'電梯的關門鍵', live:true,
+      ans:'<b>有接。</b>線是通的，訊號到得了控制器——只是在最小開門時間走完以前，控制器不會照做。' },
+    { nm:'紐約街口的行人按鈕', live:false,
+      ans:'<b>多半沒接。</b>2004 年《紐約時報》清點：全市 3,250 顆行人按鈕裡，超過 2,500 顆按了不影響號誌。' },
+    { nm:'辦公室牆上的溫控器', live:false,
+      ans:'<b>常常是假的。</b>2003 年 ACHR News 的業界調查，70 份回覆裡有 51 份承認裝過不接線的假溫控器。' },
+    { nm:'電梯的開門鍵', live:true,
+      ans:'<b>真的有用。</b>它跟安全裝置站同一邊——規範要求開門保護在門關的過程中至少 20 秒內都得有效。' }
+  ];
+  var wall = $('wall'), wallSum = $('wallSum'), opened = 0;
+  WALL.forEach(function(item){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'plaque';
+    b.setAttribute('aria-label', item.nm + '，點擊查看它到底有沒有接線');
+    b.innerHTML = '<span class="top"><span class="lamp"></span><span class="nm">' + item.nm + '</span></span>' +
+                  '<span class="ans">' + item.ans + '</span>' +
+                  '<span class="hint">按一下</span>';
+    b.addEventListener('click', function(){
+      if (b.classList.contains('done')) return;
+      b.classList.add('done', item.live ? 'live' : 'dead');
+      opened++;
+      if (opened === WALL.length) {
+        wallSum.textContent = '四顆裡，兩顆是真的。而被罵得最兇的那一顆，剛好是有接線的那一顆。';
+      } else {
+        wallSum.textContent = '還有 ' + (WALL.length - opened) + ' 顆沒測。';
+      }
+    });
+    wall.appendChild(b);
+  });
+
+  /* ================= 1F：結算 ================= */
+  var carEnd = $('carEnd'), tally = $('tally');
+  if ('IntersectionObserver' in window) {
+    var eo = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if (!e.isIntersecting) return;
+        eo.disconnect();
+        setTimeout(function(){ carEnd.classList.remove('shut'); }, RM ? 0 : 700);
+        var n = presses.length;
+        var line = n === 0
+          ? '你一次都沒按。門照樣開了、照樣關了——它從頭到尾都在照規矩走。'
+          : '這一頁你按了 <span class="n">' + n + '</span> 次關門鍵。它每一次都聽見了。';
+        var extra = (totalPresses > n)
+          ? '<br><span style="color:var(--ink-faint)">（連同你之前來過的那幾次，累計 ' + totalPresses + ' 次。）</span>'
+          : '';
+        tally.innerHTML = line + extra;
+      });
+    }, { threshold: 0.35 });
+    eo.observe(carEnd);
+  } else {
+    carEnd.classList.remove('shut');
+    tally.textContent = '門開了。';
+  }
+
+  /* 分頁隱藏時停掉閘門計時器的重繪 */
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) paintGate();
+  });
+})();
+</script>
+</body>
+</html>

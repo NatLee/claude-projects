@@ -554,13 +554,29 @@
       ctx.strokeStyle = 'rgba(239,228,207,.55)'; ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(cx, cy, g.R, 0, Math.PI * 2); ctx.stroke();
       /* 貼著天花板往右滾，接觸點在上方，輪子是「逆時針」轉（12 點 → 9 點 → 6 點）。
-         輪輻要跟粉筆點同方向：位置向量是 (−R·sinθ, −R·cosθ)，x 是負號。 */
+         輪輻位置向量是 (−R·sinθ, −R·cosθ)，x 帶負號才會跟粉筆同方向。
+         輪輻整體偏 30°，讓粉筆那根不要剛好疊在灰輪輻上。 */
       ctx.strokeStyle = 'rgba(239,228,207,.22)'; ctx.lineWidth = 1;
       for (var s = 0; s < 6; s++) {
-        var a = theta + s * Math.PI / 3;
+        var a = theta + Math.PI / 6 + s * Math.PI / 3;
         ctx.beginPath(); ctx.moveTo(cx, cy);
         ctx.lineTo(cx - g.R * Math.sin(a), cy - g.R * Math.cos(a)); ctx.stroke();
       }
+      /* 六根輪輻每 60° 就重複一次，光看輪輻分不出轉哪邊。
+         在輪胎上補一段「跟在粉筆後面」的亮弧，打掉旋轉對稱，方向才一眼看得出來。
+         canvas 的 arc 角度從 +x 軸起算、遞增方向在畫面上是順時針，
+         所以粉筆「來時路」在角度較大的那一側。 */
+      var phi = Math.atan2(-Math.cos(theta), -Math.sin(theta));
+      ctx.save();
+      ctx.strokeStyle = COL.rival; ctx.lineWidth = 4.5; ctx.lineCap = 'butt';
+      var SEG = 9, SPAN = 1.25;
+      for (var q = 0; q < SEG; q++) {
+        ctx.globalAlpha = 0.62 * (1 - q / SEG) * (1 - q / SEG);
+        ctx.beginPath();
+        ctx.arc(cx, cy, g.R, phi + SPAN * q / SEG, phi + SPAN * (q + 1) / SEG + 0.012);
+        ctx.stroke();
+      }
+      ctx.restore();
       var pt = P(g, theta);
       ctx.strokeStyle = COL.rival; ctx.lineWidth = 1.8; ctx.globalAlpha = .8;
       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(pt.x, pt.y); ctx.stroke();
@@ -614,7 +630,8 @@
     var cv = $('bowlCanvas'), ctx = fit(cv);
     var PHI = [-2.95, -2.30, -1.70, -1.10, -0.50];
     var HUES = ['#e0a94a', '#e88f6a', '#c9607a', '#8f7fd4', '#5ec8e5'];
-    var job = null, t = 0, passes = 0, flash = 0, revealed = false;
+    var job = null, t = 0, passes = 0, flash = 0, revealed = false, ripple = 0;
+    var HOLD = 0.55;                 // 第一次落底按住的那一拍（期間圓環會往外擴，不會看起來當掉）
 
     function geo() {
       var w = cv._w, h = cv._h;
@@ -650,29 +667,28 @@
         ph2 = 2 * Math.asin(Math.max(-1, Math.min(1, s)));
         pos.push(Q(g, ph2));
       }
-      /* 全部重合時畫成同心圓環——五顆疊成一顆會看起來像少了四顆，
-         套成環才看得出「五顆都在這裡」。距離是實際算出來的，沒有作假。 */
+      /* 珠子永遠是實心的、不會消失。快重合時再「疊上」一圈圈同心環，
+         讓人看得出那一顆其實是五顆——用連續的 f 漸進，不做突然的切換。 */
       var spread = 0;
       for (k = 1; k < pos.length; k++) spread = Math.max(spread, Math.abs(pos[k].x - pos[0].x));
-      var stacked = spread < 3.5;
+      var f = Math.max(0, Math.min(1, 1 - spread / 18));
       for (k = 0; k < pos.length; k++) {
         ctx.save();
-        ctx.shadowColor = HUES[k]; ctx.shadowBlur = stacked ? 8 : 12;
-        ctx.beginPath();
-        if (stacked) {
-          ctx.arc(pos[k].x, pos[k].y, 6.5 + (PHI.length - 1 - k) * 4.2, 0, Math.PI * 2);
-          ctx.strokeStyle = HUES[k]; ctx.lineWidth = 2.4; ctx.stroke();
-        } else {
-          ctx.arc(pos[k].x, pos[k].y, 6.5, 0, Math.PI * 2);
-          ctx.fillStyle = HUES[k]; ctx.fill();
-        }
+        ctx.shadowColor = HUES[k]; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(pos[k].x, pos[k].y, 6.5, 0, Math.PI * 2);
+        ctx.fillStyle = HUES[k]; ctx.fill();
         ctx.restore();
       }
-      if (stacked) {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(pos[0].x, pos[0].y, 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#fff6e2'; ctx.fill();
-        ctx.restore();
+      if (f > 0.02) {
+        for (k = 0; k < pos.length; k++) {
+          ctx.save();
+          ctx.globalAlpha = f * (1 - ripple * 0.55);
+          ctx.strokeStyle = HUES[k]; ctx.lineWidth = 2.4;
+          ctx.beginPath();
+          ctx.arc(pos[k].x, pos[k].y, 6.5 + ((PHI.length - 1 - k) * 4.6 + ripple * 22) * f, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
       }
     }
     /* 讓「四分之一週期」固定在 1.05 秒左右，跟畫面大小無關 */
@@ -699,7 +715,7 @@
         render(); finish(); return;
       }
       if (job) job.dead = true;
-      t = 0; passes = 0; flash = 0;
+      t = 0; passes = 0; flash = 0; ripple = 0;
       $('bowlStop').hidden = false;
       var g0 = geo();
       var quarter = Math.PI / (2 * window.tautochroneOmega(g0.r, gPx(g0)));
@@ -707,12 +723,20 @@
       var hold = 0;
       job = addJob({
         step: function (dt) {
-          /* 五顆重合只有一瞬。第一次落底時把畫面按住一拍，讓人真的看見它們疊在一起。 */
-          if (hold > 0) { hold -= dt; flash = Math.max(0, flash - dt * 1.1); render(); return true; }
+          /* 五顆重合只有一瞬。第一次落底時把時間按住一拍——但畫面不是靜止的：
+             同心環會持續往外擴散淡出，看起來是「撞擊」而不是當機。 */
+          if (hold > 0) {
+            hold -= dt;
+            ripple = Math.min(1, 1 - hold / HOLD);
+            flash = Math.max(0, flash - dt * 1.4);
+            render();
+            return true;
+          }
+          ripple = 0;
           t += dt;
           if (t >= nextPass) {
             passes++; flash = 1;
-            if (passes === 1) { t = nextPass; hold = 0.9; finish(); }
+            if (passes === 1) { t = nextPass; hold = HOLD; finish(); }
             nextPass += quarter * 2;
           }
           flash = Math.max(0, flash - dt * 3.2);

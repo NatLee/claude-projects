@@ -212,6 +212,7 @@
 
     function render(t) {
       var w = cv._w, h = cv._h;
+      if (w < 40 || h < 40) { ctx.clearRect(0, 0, w, h); return; }
       drawFrame(ctx, m, w, h);
       order.forEach(function (k) {
         var tr = TRACKS[k];
@@ -302,10 +303,12 @@
     $('go1').addEventListener('click', function () { reveal('act1', 'bet-line'); });
     $('go2').addEventListener('click', function () { reveal('act2', 'drawClear'); });
 
-    board($('raceBoard'), rows(0));
-    render(0);
+    /* 先掛好重量測與 observer，再做第一次繪製：
+       萬一繪製出事，導覽與重量測也已經就緒。 */
     refits.act1 = remap;
     onResize(cv, remap);
+    board($('raceBoard'), rows(0));
+    render(0);
   }());
 
   /* ══════════════════════════════════════════════════════════════
@@ -320,6 +323,7 @@
 
     function render(t) {
       var w = cv._w, h = cv._h;
+      if (w < 40 || h < 40) { ctx.clearRect(0, 0, w, h); return; }
       drawFrame(ctx, m, w, h);
       // 參考虛線：直線
       ctx.save();
@@ -502,9 +506,9 @@
       pauseOffscreen(cv, running);
     });
 
-    render(-1);
     refits.act2 = remap;
     onResize(cv, remap);
+    render(-1);
   }());
 
   /* ══════════════════════════════════════════════════════════════
@@ -530,6 +534,10 @@
     function render() {
       var g = geo();
       ctx.clearRect(0, 0, g.w, g.h);
+      /* 這一幕解鎖前是 display:none，量到的畫布是 1×1，扣掉內距後半徑會是負的，
+         canvas 的 arc() 收到負半徑會丟 IndexSizeError——一丟就炸穿整支腳本，
+         後面的第四幕連事件都掛不上。畫不動就直接不畫，等 refit 再來。 */
+      if (!(g.R > 1)) return;
       // 天花板
       ctx.strokeStyle = 'rgba(143,164,201,.35)'; ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(0, g.y0); ctx.lineTo(g.w, g.y0); ctx.stroke();
@@ -618,9 +626,9 @@
     $('wheelGo').addEventListener('click', start);
     $('go3').addEventListener('click', function () { reveal('act3', 'wheelGo'); });
     $('go4').addEventListener('click', function () { reveal('act4', 'bowlGo'); });
-    render();
     refits.act3 = refit;
     onResize(cv, refit);
+    render();
   }());
 
   /* ══════════════════════════════════════════════════════════════
@@ -645,6 +653,7 @@
     function render() {
       var g = geo();
       ctx.clearRect(0, 0, g.w, g.h);
+      if (!(g.r > 1)) return;   // 同第三幕：畫布還沒有真正的尺寸就先不畫
       // 碗
       ctx.strokeStyle = 'rgba(143,164,201,.42)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
       ctx.beginPath();
@@ -756,9 +765,9 @@
     });
     $('go5').addEventListener('click', function () { reveal('act5'); });
     function refit() { fit(cv); render(); }
-    render();
     refits.act4 = refit;
     onResize(cv, refit);
+    render();
   }());
 
 }());

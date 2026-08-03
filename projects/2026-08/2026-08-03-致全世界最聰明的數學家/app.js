@@ -553,11 +553,13 @@
       var cx = g.x0 + g.R * theta, cy = g.y0 + g.R;
       ctx.strokeStyle = 'rgba(239,228,207,.55)'; ctx.lineWidth = 1.6;
       ctx.beginPath(); ctx.arc(cx, cy, g.R, 0, Math.PI * 2); ctx.stroke();
+      /* 貼著天花板往右滾，接觸點在上方，輪子是「逆時針」轉（12 點 → 9 點 → 6 點）。
+         輪輻要跟粉筆點同方向：位置向量是 (−R·sinθ, −R·cosθ)，x 是負號。 */
       ctx.strokeStyle = 'rgba(239,228,207,.22)'; ctx.lineWidth = 1;
       for (var s = 0; s < 6; s++) {
         var a = theta + s * Math.PI / 3;
         ctx.beginPath(); ctx.moveTo(cx, cy);
-        ctx.lineTo(cx + g.R * Math.sin(a), cy - g.R * Math.cos(a)); ctx.stroke();
+        ctx.lineTo(cx - g.R * Math.sin(a), cy - g.R * Math.cos(a)); ctx.stroke();
       }
       var pt = P(g, theta);
       ctx.strokeStyle = COL.rival; ctx.lineWidth = 1.8; ctx.globalAlpha = .8;

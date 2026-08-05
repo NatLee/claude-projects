@@ -413,14 +413,19 @@
   var rings=[];           // 模式切換的光環
   var meteors=[];         // 夜間流星
   var nextMeteor=0;
-  var mqReduce=window.matchMedia("(prefers-reduced-motion: reduce)");
-  var reduced=mqReduce.matches;
+  // 保養 2026-08-06：matchMedia 加上存在性判斷。原本無條件呼叫，
+  // 只要環境沒有 matchMedia（舊瀏覽器／內嵌檢視／自動化檢測器）整段腳本就會當場中止，
+  // 整個頁面變成不會動的空畫布。行為完全不變，只是不再把全頁押在這一個 API 上。
+  var mqReduce=window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  var reduced=!!(mqReduce && mqReduce.matches);
   function onMQChange(){
-    reduced=mqReduce.matches;
+    reduced=!!(mqReduce && mqReduce.matches);
     if(reduced){ marsMix=state.mars?1:0; rings.length=0; meteors.length=0; }
   }
-  if(mqReduce.addEventListener) mqReduce.addEventListener("change", onMQChange);
-  else if(mqReduce.addListener) mqReduce.addListener(onMQChange);
+  if(mqReduce){
+    if(mqReduce.addEventListener) mqReduce.addEventListener("change", onMQChange);
+    else if(mqReduce.addListener) mqReduce.addListener(onMQChange);
+  }
 
   // ---------- 物理：氣團（大氣路徑長度） ----------
   // Kasten & Young (1989) 近似式：仰角越低，路徑越長，正午≈1、地平線≈38

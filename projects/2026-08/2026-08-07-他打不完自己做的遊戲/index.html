@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>他打不完自己做的遊戲</title>
+<meta name="description" content="1986 年，一個工程師打不完自己移植的遊戲，於是替自己留了十個按鍵。他本來要在出貨前刪掉它。">
+<style>
+:root{
+  --bg:#06070c;
+  --panel-2:#111622;
+  --ink:#e9f1f6;
+  --ink-dim:#8e9bb0;
+  --ink-faint:#5b6579;
+  --cyan:#5ee6ff;
+  --cyan-deep:#2b8ea6;
+  --amber:#ffa63a;
+  --magenta:#ff5a92;
+  --green:#7dffa8;
+  --hair:rgba(233,241,246,.12);
+  --hair-soft:rgba(233,241,246,.06);
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono","DejaVu Sans Mono",Menlo,Consolas,monospace;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+  --serif:"Noto Serif TC","Songti TC",Georgia,"PMingLiU",serif;
+  --dur:.62s;
+  --ease:cubic-bezier(.22,.68,.24,1);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);line-height:1.95;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(120% 62% at 50% -6%,rgba(94,230,255,.075),transparent 60%),
+    radial-gradient(90% 50% at 88% 108%,rgba(255,90,146,.05),transparent 62%);
+}
+a{color:inherit}
+button{font:inherit;color:inherit}
+::selection{background:rgba(94,230,255,.28)}
+
+.home{
+  position:fixed;top:14px;left:14px;z-index:60;
+  font-size:12.5px;letter-spacing:.06em;color:var(--ink-faint);
+  text-decoration:none;padding:6px 11px;border-radius:99px;
+  background:rgba(6,7,12,.66);border:1px solid var(--hair-soft);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  transition:color .25s,border-color .25s;
+}
+.home:hover,.home:focus-visible{color:var(--cyan);border-color:rgba(94,230,255,.35)}
+
+.sound{
+  position:fixed;top:14px;right:14px;z-index:60;
+  width:36px;height:36px;border-radius:99px;cursor:pointer;
+  background:rgba(6,7,12,.66);border:1px solid var(--hair-soft);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  color:var(--ink-faint);font-size:14px;line-height:1;
+  transition:color .25s,border-color .25s,opacity .25s;
+}
+.sound:hover,.sound:focus-visible{color:var(--cyan);border-color:rgba(94,230,255,.35)}
+.sound[aria-pressed="false"]{opacity:.42}
+
+:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:4px}
+
+main{position:relative;z-index:1}
+section{max-width:760px;margin:0 auto;padding:0 22px}
+
+.reveal{opacity:0;transform:translateY(16px);transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal.d1{transition-delay:.1s}
+.reveal.d2{transition-delay:.22s}
+.reveal.d3{transition-delay:.34s}
+.reveal.d4{transition-delay:.46s}
+
+/* ---------- 第一屏 ---------- */
+.hero{
+  min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  max-width:760px;margin:0 auto;padding:86px 22px 56px;
+}
+.stamp{
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.34em;
+  color:var(--cyan-deep);margin:0 0 26px;
+}
+.hero h1{
+  font-family:var(--serif);font-weight:700;
+  font-size:clamp(2.3rem,7.2vw,3.9rem);line-height:1.26;margin:0;letter-spacing:.01em;
+}
+.hero h1 em{font-style:normal;color:var(--cyan);text-shadow:0 0 34px rgba(94,230,255,.35)}
+.hero .sub{margin:30px 0 0;font-size:clamp(1rem,2.5vw,1.16rem);color:var(--ink-dim);max-width:34ch}
+.hero .sub strong{color:var(--ink);font-weight:600}
+.cursor{
+  display:inline-block;width:.5em;height:1.02em;vertical-align:-.14em;
+  background:var(--cyan);margin-left:.16em;animation:blink 1.05s steps(2,start) infinite;
+}
+@keyframes blink{50%{opacity:0}}
+.scrollhint{
+  margin-top:auto;padding-top:48px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--ink-faint);
+}
+.scrollhint span{display:inline-block;animation:bob 2.1s var(--ease) infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* ---------- 章節 ---------- */
+.chapter{padding:78px 22px 8px}
+.chapter .no{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--cyan-deep);margin:0 0 12px}
+.chapter h2{
+  font-family:var(--serif);font-weight:700;
+  font-size:clamp(1.58rem,4.4vw,2.28rem);line-height:1.4;margin:0 0 26px;letter-spacing:.01em;
+}
+.chapter p{margin:0 0 20px;font-size:1.035rem;color:#c9d4e0}
+.chapter p.lead{font-size:1.12rem;color:var(--ink)}
+.chapter p.beat{
+  font-family:var(--serif);font-size:clamp(1.2rem,3.4vw,1.58rem);line-height:1.68;
+  color:var(--ink);margin:34px 0;
+}
+.chapter b{color:var(--ink);font-weight:600}
+.chapter .cy{color:var(--cyan)}
+.chapter .am{color:var(--amber)}
+
+/* ---------- CRT 螢幕 ---------- */
+.crt{
+  position:relative;margin:34px 0 18px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(180deg,#080b13,#04060b 70%);
+  border:1px solid rgba(94,230,255,.16);
+  box-shadow:0 0 0 1px rgba(0,0,0,.6),0 26px 64px -28px rgba(0,0,0,.9),inset 0 0 70px rgba(94,230,255,.045);
+}
+.crt::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:7;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);
+  opacity:.5;
+}
+.screen{position:relative;height:212px;overflow:hidden}
+@media (min-width:560px){.screen{height:252px}}
+
+.stars{position:absolute;inset:0;z-index:0}
+.starlayer{position:absolute;top:0;left:0;width:200%;height:100%;will-change:transform}
+.starlayer.l1{animation:drift 9s linear infinite}
+.starlayer.l2{animation:drift 17s linear infinite}
+.starlayer.l3{animation:drift 30s linear infinite}
+@keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+.star{position:absolute;border-radius:1px;background:#cfe9f5}
+
+.ship{
+  position:absolute;left:16%;top:50%;z-index:4;
+  width:52px;margin-top:-13px;transform:translateX(-150%);
+  transition:transform .95s var(--ease),opacity .3s;
+  filter:drop-shadow(0 0 9px rgba(94,230,255,.5));
+}
+.ship.fly{transform:translateX(0)}
+.ship.boom{animation:boom .5s var(--ease) forwards}
+@keyframes boom{
+  0%{transform:translateX(0) scale(1);opacity:1}
+  22%{transform:translateX(0) scale(1.55);opacity:1}
+  100%{transform:translateX(0) scale(.18);opacity:0}
+}
+
+.flash{
+  position:absolute;inset:0;z-index:6;pointer-events:none;
+  background:radial-gradient(46% 62% at 22% 50%,rgba(255,255,255,.92),rgba(255,166,58,.34) 34%,transparent 66%);
+  opacity:0;transition:opacity .18s;
+}
+.flash.on{opacity:1}
+
+/* 撿到的 OPTION：繞著飛船轉 */
+.opts{
+  position:absolute;left:16%;top:50%;z-index:3;width:0;height:0;
+  margin-left:26px;opacity:0;transition:opacity .5s .3s;
+}
+.opts.on{opacity:1}
+.opt{
+  position:absolute;left:0;top:0;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;
+  border-radius:99px;background:var(--amber);box-shadow:0 0 12px rgba(255,166,58,.85);
+  animation:orbit 2.7s linear infinite;
+}
+.opt.o2{animation-delay:-1.35s}
+@keyframes orbit{
+  from{transform:rotate(0deg) translateX(27px)}
+  to{transform:rotate(-360deg) translateX(27px)}
+}
+
+/* 膠囊：整條軌道寬，只用 transform 平移 */
+.capsule{position:absolute;inset:0;z-index:2;opacity:0;pointer-events:none}
+.capsule::after{
+  content:"";position:absolute;right:-14px;top:50%;margin-top:-6.5px;
+  width:13px;height:13px;border-radius:3px;background:var(--magenta);
+  box-shadow:0 0 13px rgba(255,90,146,.85);
+}
+.capsule.run{animation:sweep 1.05s linear forwards}
+@keyframes sweep{
+  0%{opacity:1;transform:translate3d(0,0,0)}
+  86%{opacity:1}
+  100%{opacity:0;transform:translate3d(-88%,0,0)}
+}
+
+.hudline{
+  position:absolute;left:0;right:0;top:0;z-index:5;
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:9px 13px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;
+  color:var(--ink-faint);
+}
+.hudline .st{color:var(--cyan)}
+.hudline .st.bad{color:var(--magenta)}
+.hudline .st.good{color:var(--green)}
+
+.pauseword{
+  position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;letter-spacing:.4em;
+  font-size:clamp(1.45rem,5.6vw,2rem);color:rgba(233,241,246,.9);
+  text-shadow:0 0 26px rgba(94,230,255,.45);
+  animation:blink 1.25s steps(2,start) infinite;transition:opacity .4s;
+}
+.pauseword.off{opacity:0;animation:none}
+
+.bigword{
+  position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;letter-spacing:.22em;
+  font-size:clamp(1.35rem,5.2vw,1.95rem);color:var(--amber);
+  text-shadow:0 0 30px rgba(255,166,58,.6);
+  opacity:0;transform:scale(.86);pointer-events:none;
+  transition:opacity .4s var(--ease),transform .5s var(--ease);
+}
+.bigword.on{opacity:1;transform:none}
+
+.meter{display:flex;gap:5px;padding:11px 11px 12px;background:rgba(255,255,255,.022);border-top:1px solid var(--hair-soft)}
+.cell{
+  flex:1;min-width:0;text-align:center;padding:7px 2px 8px;border-radius:6px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.05em;
+  color:var(--ink-faint);background:rgba(255,255,255,.03);border:1px solid transparent;
+  transition:color .3s,background .3s,border-color .3s,transform .3s var(--ease),box-shadow .3s;
+}
+.cell.on{
+  color:#1a1204;background:var(--amber);border-color:rgba(255,166,58,.6);
+  box-shadow:0 0 18px rgba(255,166,58,.42);transform:translateY(-2px);
+}
+@media (max-width:430px){.cell{font-size:8px;letter-spacing:0;padding:6px 1px 7px}}
+
+.crt.shake{animation:shake .4s var(--ease)}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  15%{transform:translateX(-8px)}35%{transform:translateX(7px)}
+  55%{transform:translateX(-5px)}75%{transform:translateX(3px)}
+}
+
+/* ---------- 按鈕 ---------- */
+.btn{
+  display:inline-flex;align-items:center;gap:9px;padding:11px 20px;border-radius:99px;cursor:pointer;
+  background:rgba(94,230,255,.09);border:1px solid rgba(94,230,255,.32);
+  color:var(--cyan);font-size:14px;letter-spacing:.05em;
+  transition:background .25s,transform .18s var(--ease),opacity .25s;
+}
+.btn:hover:not(:disabled){background:rgba(94,230,255,.17)}
+.btn:active:not(:disabled){transform:translateY(1px) scale(.985)}
+.btn:disabled{opacity:.36;cursor:default}
+.runrow{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:4px 0 8px}
+.tries{font-family:var(--mono);font-size:12px;color:var(--ink-faint);letter-spacing:.1em}
+.note{font-size:.95rem;color:var(--ink-dim);min-height:1.9em;margin:10px 0 0}
+
+/* ---------- 三段揭曉 ---------- */
+.chunks{display:grid;gap:12px;margin:30px 0 6px}
+.chunk{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:15px 18px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  border:1px solid var(--hair-soft);
+}
+.chunk .keys{font-family:var(--mono);font-size:clamp(1.3rem,4.6vw,1.75rem);letter-spacing:.22em;color:var(--cyan)}
+.chunk .say{font-size:.95rem;color:var(--ink-dim);letter-spacing:.04em}
+
+/* ---------- 手把 ---------- */
+.pad{display:flex;align-items:center;justify-content:center;gap:clamp(18px,7vw,54px);flex-wrap:wrap;margin:22px 0 4px}
+.dpad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:3px}
+.dbtn,.rbtn{
+  cursor:pointer;background:var(--panel-2);border:1px solid var(--hair);color:var(--ink-dim);
+  transition:background .16s,color .16s,transform .12s,border-color .16s;
+}
+.dbtn{border-radius:8px;font-size:15px;line-height:1;padding:0}
+.dbtn.u{grid-area:1/2}.dbtn.l{grid-area:2/1}.dbtn.r{grid-area:2/3}.dbtn.d{grid-area:3/2}
+.dpad .hubx{grid-area:2/2;background:rgba(255,255,255,.03);border-radius:5px}
+.rbtn{width:56px;height:56px;border-radius:99px;font-family:var(--mono);font-weight:700;font-size:17px;letter-spacing:.04em}
+.rbtn.bb{border-color:rgba(255,90,146,.35);color:#ffa8c4}
+.rbtn.aa{border-color:rgba(255,166,58,.35);color:#ffcf94}
+.dbtn:hover,.rbtn:hover{background:#1a2230;color:var(--ink)}
+.dbtn:active,.rbtn:active,.dbtn.hit,.rbtn.hit{transform:scale(.92);background:rgba(94,230,255,.22);color:#fff;border-color:rgba(94,230,255,.5)}
+.faces{display:flex;gap:12px;align-items:center}
+.pad.mini{gap:clamp(14px,6vw,38px);margin:18px 0 2px}
+.pad.mini .dpad{grid-template-columns:repeat(3,36px);grid-template-rows:repeat(3,36px)}
+.pad.mini .dbtn{font-size:13px}
+.pad.mini .rbtn{width:46px;height:46px;font-size:15px}
+
+.dots{display:flex;justify-content:center;gap:9px;margin:20px 0 6px}
+.dot{
+  width:11px;height:11px;border-radius:99px;background:rgba(255,255,255,.1);
+  border:1px solid var(--hair-soft);
+  transition:background .2s,transform .24s var(--ease),box-shadow .2s;
+}
+.dot.on{background:var(--cyan);box-shadow:0 0 14px rgba(94,230,255,.75);transform:scale(1.18)}
+
+.hintline{
+  text-align:center;font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;
+  color:var(--ink-faint);margin:8px 0 0;min-height:1.7em;
+}
+.hintline.bad{color:var(--magenta)}
+.hintline.good{color:var(--green)}
+
+.won{
+  margin:26px 0 0;padding:20px 22px;border-radius:13px;
+  background:linear-gradient(180deg,rgba(255,166,58,.11),rgba(255,166,58,.03));
+  border:1px solid rgba(255,166,58,.26);
+  opacity:0;transform:translateY(12px);
+  transition:opacity .55s var(--ease),transform .55s var(--ease);
+}
+.won.on{opacity:1;transform:none}
+.won p{margin:0;color:#ffdaa8;font-size:1.02rem}
+.won p+p{margin-top:10px;color:var(--ink-dim);font-size:.95rem}
+
+/* ---------- 擴散磁磚 ---------- */
+.tiles{display:grid;gap:9px;margin:26px 0 6px;grid-template-columns:1fr}
+@media (min-width:600px){.tiles{grid-template-columns:1fr 1fr}}
+.tile{
+  display:flex;gap:13px;align-items:flex-start;padding:13px 15px;border-radius:11px;
+  background:rgba(255,255,255,.022);border:1px solid var(--hair-soft);
+  opacity:.24;filter:saturate(.15);
+  transition:opacity .45s var(--ease),filter .45s var(--ease),transform .45s var(--ease),border-color .45s,background .45s;
+}
+.tile.lit{
+  opacity:1;filter:none;transform:translateY(-2px);
+  background:rgba(94,230,255,.055);border-color:rgba(94,230,255,.24);
+}
+.tile .k{font-family:var(--mono);font-size:15px;color:var(--cyan);width:1.3em;flex:none;text-align:center;padding-top:3px}
+.tile .w{min-width:0}
+.tile .w b{display:block;font-size:.94rem;color:var(--ink);font-weight:600;line-height:1.5}
+.tile .w span{display:block;font-size:.87rem;color:var(--ink-dim);line-height:1.6;margin-top:2px}
+
+/* ---------- 結尾 ---------- */
+.ending{padding:90px 22px 40px;max-width:760px;margin:0 auto}
+.obit{border-left:2px solid rgba(94,230,255,.32);padding-left:20px;margin:0 0 34px}
+.obit .d{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--cyan-deep);margin:0 0 8px}
+.obit p{margin:0 0 14px;color:#c9d4e0}
+.obit p:last-child{margin-bottom:0}
+.codebig{
+  text-align:center;font-family:var(--mono);font-weight:700;
+  font-size:clamp(1.3rem,6vw,2.4rem);letter-spacing:.14em;
+  color:var(--cyan);text-shadow:0 0 40px rgba(94,230,255,.4);margin:40px 0 34px;
+}
+.kicker{
+  font-family:var(--serif);font-size:clamp(1.18rem,3.5vw,1.5rem);line-height:1.72;
+  text-align:center;color:var(--ink);margin:0 0 42px;
+}
+.invite{
+  text-align:center;font-size:.98rem;color:var(--ink-dim);
+  padding:24px 22px 14px;border-radius:13px;
+  border:1px dashed rgba(94,230,255,.22);background:rgba(94,230,255,.028);
+}
+.invite b{color:var(--cyan);font-weight:600}
+
+footer{
+  max-width:760px;margin:0 auto;padding:44px 22px 60px;
+  border-top:1px solid var(--hair-soft);
+  font-size:12.5px;color:var(--ink-faint);letter-spacing:.02em;
+}
+footer a{color:var(--ink-dim);text-decoration:none}
+footer a:hover{color:var(--cyan)}
+
+/* ---------- 最後的彩蛋 ---------- */
+.egg{
+  position:fixed;inset:0;z-index:90;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:22px;
+  text-align:center;
+  background:radial-gradient(62% 62% at 50% 50%,rgba(125,255,168,.14),rgba(3,10,6,.94));
+  opacity:0;visibility:hidden;transition:opacity .6s var(--ease),visibility .6s;
+}
+.egg.on{opacity:1;visibility:visible}
+.egg .l1{font-family:var(--mono);font-size:clamp(1.05rem,5.4vw,1.95rem);letter-spacing:.14em;color:var(--green);text-shadow:0 0 30px rgba(125,255,168,.6)}
+.egg .l2{font-family:var(--serif);font-size:clamp(.95rem,3vw,1.12rem);color:rgba(233,241,246,.86);letter-spacing:.06em}
+
+/* ---------- 暫停 ---------- */
+body.halt .starlayer,body.halt .opt,body.halt .pauseword{animation-play-state:paused}
+body.tabhidden *{animation-play-state:paused !important}
+
+/* ---------- 動態減量 ---------- */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{
+    animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    animation-delay:0ms !important;transition-duration:.001ms !important;
+  }
+  .reveal{opacity:1;transform:none}
+  .starlayer{transform:none}
+  .cursor{opacity:1}
+  .ship{transform:none}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+<button class="sound" id="sndBtn" type="button" aria-pressed="true" aria-label="音效開關">♪</button>
+
+<main>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hero">
+  <p class="stamp reveal">1986 ・ TOKYO</p>
+  <h1 class="reveal d1">這款遊戲太難了，<br><em>他打不完</em>。</h1>
+  <p class="sub reveal d2">而那款遊戲，<strong>是他做的</strong>。<span class="cursor" aria-hidden="true"></span></p>
+  <p class="scrollhint reveal d4"><span>▼ 往下</span></p>
+</header>
+
+<!-- ══════════ 章一 ══════════ -->
+<section class="chapter">
+  <p class="no reveal">CHAPTER 01</p>
+  <h2 class="reveal d1">他的工作，是每天把它從頭打完一次</h2>
+
+  <p class="lead reveal d1">《Gradius》是 1985 年的街機遊戲。隔年，它要搬進紅白機的卡帶裡，負責搬家的工程師叫<b>橋本和久</b>。</p>
+  <p class="reveal d2">移植不是複製貼上。程式每動一行，就得從頭再玩一次，確認沒有把哪裡改壞。而這款遊戲的規矩很硬：你的飛船一開始什麼武器都沒有，靠撿膠囊，一格一格把火力點亮。</p>
+  <p class="reveal d2">被打到一次，<span class="am">全部歸零</span>。</p>
+
+  <div class="crt reveal d3" id="crtDemo">
+    <div class="screen">
+      <div class="stars" id="starsDemo" aria-hidden="true"></div>
+      <div class="capsule" id="demoCap" aria-hidden="true"></div>
+      <div class="hudline" aria-hidden="true">
+        <span>STAGE 1 — PORT TEST</span>
+        <span class="st" id="demoStatus">STANDBY</span>
+      </div>
+      <svg class="ship" id="demoShip" viewBox="0 0 52 26" aria-hidden="true">
+        <polygon points="0,13 15,6 44,10 52,13 44,16 15,20" fill="#5ee6ff"></polygon>
+        <polygon points="14,10 34,11.5 34,14.5 14,16" fill="#0b1a20"></polygon>
+        <polygon points="0,13 9,10.5 9,15.5" fill="#ff5a92"></polygon>
+      </svg>
+      <div class="flash" id="demoFlash" aria-hidden="true"></div>
+    </div>
+    <div class="meter" id="demoMeter" aria-hidden="true">
+      <div class="cell">SPEED UP</div><div class="cell">MISSILE</div><div class="cell">DOUBLE</div>
+      <div class="cell">LASER</div><div class="cell">OPTION</div><div class="cell">?</div>
+    </div>
+  </div>
+
+  <div class="runrow reveal d3">
+    <button class="btn" id="runBtn" type="button">▶ 跑一次測試</button>
+    <span class="tries" id="tries">測試次數 0</span>
+  </div>
+  <p class="note" id="demoNote" role="status" aria-live="polite"></p>
+
+  <p class="beat reveal">他不是玩三次。<br>他每天玩，玩了好幾個月。</p>
+</section>
+
+<!-- ══════════ 章二 ══════════ -->
+<section class="chapter">
+  <p class="no reveal">CHAPTER 02</p>
+  <h2 class="reveal d1">所以他替自己開了一道後門</h2>
+
+  <p class="reveal d1">他要一串按鍵，按下去，飛船身上該有的東西一次全給。條件只有兩個，而這兩個條件互相打架：</p>
+  <p class="reveal d2">要<b>好記到手指自己會走</b>——他每天得按上幾十次。<br>又要<b>絕對不可能在打鬥中誤觸</b>——否則玩家會莫名其妙變成無敵。</p>
+  <p class="reveal d2">他的答案是：只用方向鍵和兩顆鈕，順序左右對稱得像兒歌；而且規定，要先把遊戲<span class="cy">暫停</span>才算數。</p>
+
+  <div class="chunks">
+    <div class="chunk reveal d1"><span class="keys">↑ ↑ ↓ ↓</span><span class="say">上上下下</span></div>
+    <div class="chunk reveal d2"><span class="keys">← → ← →</span><span class="say">左右左右</span></div>
+    <div class="chunk reveal d3"><span class="keys">B A</span><span class="say">乙、甲</span></div>
+  </div>
+
+  <p class="beat reveal">十下。<br>他只打算給自己一個人用。</p>
+</section>
+
+<!-- ══════════ 章三：高潮 ══════════ -->
+<section class="chapter" id="ch3">
+  <p class="no reveal">CHAPTER 03</p>
+  <h2 class="reveal d1">換你按</h2>
+  <p class="reveal d1">遊戲已經替你暫停好了。用鍵盤的方向鍵、<b>B</b>、<b>A</b>，或直接點下面那副手把。錯一下，從頭。</p>
+
+  <div class="crt reveal d2" id="crtPlay">
+    <div class="screen">
+      <div class="stars" id="starsPlay" aria-hidden="true"></div>
+      <div class="hudline" aria-hidden="true">
+        <span>STAGE 1 — PAUSED</span>
+        <span class="st" id="playStatus">POWER 0 / 6</span>
+      </div>
+      <svg class="ship fly" id="playShip" viewBox="0 0 52 26" aria-hidden="true">
+        <polygon points="0,13 15,6 44,10 52,13 44,16 15,20" fill="#5ee6ff"></polygon>
+        <polygon points="14,10 34,11.5 34,14.5 14,16" fill="#0b1a20"></polygon>
+        <polygon points="0,13 9,10.5 9,15.5" fill="#ff5a92"></polygon>
+      </svg>
+      <div class="opts" id="playOpts" aria-hidden="true"><i class="opt"></i><i class="opt o2"></i></div>
+      <div class="pauseword" id="pauseWord" aria-hidden="true">PAUSE</div>
+      <div class="bigword" id="bigWord" aria-hidden="true">FULL POWER</div>
+      <div class="flash" id="playFlash" aria-hidden="true"></div>
+    </div>
+    <div class="meter" id="playMeter" aria-hidden="true">
+      <div class="cell">SPEED UP</div><div class="cell">MISSILE</div><div class="cell">DOUBLE</div>
+      <div class="cell">LASER</div><div class="cell">OPTION</div><div class="cell">?</div>
+    </div>
+  </div>
+
+  <div class="dots reveal d2" id="dots" aria-hidden="true"></div>
+  <p class="hintline reveal d2" id="hint" role="status" aria-live="polite">等待輸入</p>
+
+  <div class="pad reveal d3">
+    <div class="dpad" role="group" aria-label="方向鍵">
+      <button class="dbtn u" type="button" data-token="up" aria-label="上">▲</button>
+      <button class="dbtn l" type="button" data-token="left" aria-label="左">◀</button>
+      <span class="hubx" aria-hidden="true"></span>
+      <button class="dbtn r" type="button" data-token="right" aria-label="右">▶</button>
+      <button class="dbtn d" type="button" data-token="down" aria-label="下">▼</button>
+    </div>
+    <div class="faces">
+      <button class="rbtn bb" type="button" data-token="b" aria-label="B 鍵">B</button>
+      <button class="rbtn aa" type="button" data-token="a" aria-label="A 鍵">A</button>
+    </div>
+  </div>
+
+  <div class="won" id="won">
+    <p>你剛剛按出來的，是 1986 年那個工程師替自己留的路。</p>
+    <p>三十幾年後，你在一個網頁上，用一模一樣的順序把它打開了。</p>
+  </div>
+</section>
+
+<!-- ══════════ 章四：轉折 ══════════ -->
+<section class="chapter">
+  <p class="no reveal">CHAPTER 04</p>
+  <h2 class="reveal d1">只是這十下，本來不該落到你手上</h2>
+
+  <p class="lead reveal d1">它是給測試員用的。出貨前要刪掉。</p>
+  <p class="reveal d2">他沒刪。</p>
+  <p class="reveal d2">等到有人發現的時候，卡帶已經在準備量產了。團隊算了一下：<b>動它，可能生出新的 bug</b>；不動它，這串按鍵夠難誤觸，玩家大概一輩子也碰不到。</p>
+  <p class="beat reveal">他們決定不刪。<br>你剛剛按的那十下，是一件<span class="am">忘了收拾的東西</span>。</p>
+</section>
+
+<!-- ══════════ 章五：擴散 ══════════ -->
+<section class="chapter" id="ch5">
+  <p class="no reveal">CHAPTER 05</p>
+  <h2 class="reveal d1">然後它自己跑了出去</h2>
+
+  <p class="reveal d1">「玩家大概一輩子也碰不到」——這句話錯得非常徹底。</p>
+  <p class="reveal d2">兩年後，《魂斗羅》的紅白機版收下同一串按鍵，換成 <b>30 條命</b>。那款遊戲難到沒有這串按鍵幾乎過不了關，於是它從一個工程師的私人捷徑，變成一整個世代的小孩在放學路上互相交換的暗號。</p>
+  <p class="reveal d2">接著，它爬出了遊戲機。</p>
+  <p class="reveal d2"><span class="cy">再按一次那十下。</span>每按一下，亮一個它跑到過的地方。</p>
+
+  <div class="tiles" id="tiles">
+    <div class="tile"><span class="k">↑</span><span class="w"><b>《魂斗羅》紅白機版・1988</b><span>30 條命。整個世代的通關暗號。</span></span></div>
+    <div class="tile"><span class="k">↑</span><span class="w"><b>Opera 瀏覽器・第 19 到 54 版</b><span>解鎖藏起來的進階設定面板。</span></span></div>
+    <div class="tile"><span class="k">↓</span><span class="w"><b>Discord 的 404 頁面</b><span>網頁找不到，但送你一局貪食蛇。</span></span></div>
+    <div class="tile"><span class="k">↓</span><span class="w"><b>加拿大銀行 150 週年紀念鈔網頁</b><span>鈔票灑滿螢幕，配一段 8-bit 版國歌。</span></span></div>
+    <div class="tile"><span class="k">←</span><span class="w"><b>Google 助理</b><span>回你一句「Cheat mode enabled」。</span></span></div>
+    <div class="tile"><span class="k">→</span><span class="w"><b>Amazon Alexa</b><span>「Super Alexa mode, activated.」然後開始胡言亂語。</span></span></div>
+    <div class="tile"><span class="k">←</span><span class="w"><b>Siri</b><span>只有三種回應：「Cheater!」「Nerd.」「我頭暈了。」</span></span></div>
+    <div class="tile"><span class="k">→</span><span class="w"><b>Twitter 首頁（改名 X 之前）</b><span>左上角那隻鳥會自己轉圈。</span></span></div>
+    <div class="tile"><span class="k">B</span><span class="w"><b>《無敵破壞王》・2012</b><span>糖果王用它撬開整個遊戲的原始碼。</span></span></div>
+    <div class="tile"><span class="k">A</span><span class="w"><b>《要塞英雄》黑洞畫面・2019</b><span>世界毀滅了，但你可以先玩個 Durr Burger。</span></span></div>
+  </div>
+
+  <div class="pad mini">
+    <div class="dpad" role="group" aria-label="方向鍵">
+      <button class="dbtn u" type="button" data-token="up" aria-label="上">▲</button>
+      <button class="dbtn l" type="button" data-token="left" aria-label="左">◀</button>
+      <span class="hubx" aria-hidden="true"></span>
+      <button class="dbtn r" type="button" data-token="right" aria-label="右">▶</button>
+      <button class="dbtn d" type="button" data-token="down" aria-label="下">▼</button>
+    </div>
+    <div class="faces">
+      <button class="rbtn bb" type="button" data-token="b" aria-label="B 鍵">B</button>
+      <button class="rbtn aa" type="button" data-token="a" aria-label="A 鍵">A</button>
+    </div>
+  </div>
+  <p class="hintline" id="hint2" role="status" aria-live="polite">等待輸入</p>
+</section>
+
+<!-- ══════════ 結尾 ══════════ -->
+<section class="ending">
+  <div class="obit reveal">
+    <p class="d">2020 ・ 02 ・ 25</p>
+    <p>橋本和久過世，61 歲。</p>
+    <p>他在 Konami 待了很久，經手過的遊戲不只一款。但那幾天，全世界的訃聞標題都只寫了同一件事——</p>
+  </div>
+
+  <p class="codebig reveal d1">↑↑↓↓←→←→BA</p>
+
+  <p class="kicker reveal d2">一段他打算刪掉的程式碼，<br>替他活到了現在。</p>
+
+  <div class="invite reveal d3">
+    <p style="margin:0 0 4px">這一頁也埋了一組。<b>再按一次</b>。</p>
+    <div class="pad mini">
+      <div class="dpad" role="group" aria-label="方向鍵">
+        <button class="dbtn u" type="button" data-token="up" aria-label="上">▲</button>
+        <button class="dbtn l" type="button" data-token="left" aria-label="左">◀</button>
+        <span class="hubx" aria-hidden="true"></span>
+        <button class="dbtn r" type="button" data-token="right" aria-label="右">▶</button>
+        <button class="dbtn d" type="button" data-token="down" aria-label="下">▼</button>
+      </div>
+      <div class="faces">
+        <button class="rbtn bb" type="button" data-token="b" aria-label="B 鍵">B</button>
+        <button class="rbtn aa" type="button" data-token="a" aria-label="A 鍵">A</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="egg" id="egg" aria-hidden="true">
+  <div class="l1">↑↑↓↓←→←→BA</div>
+  <div class="l2">橋本和久　1958 – 2020</div>
+</div>
+
+<footer>
+  <p style="margin:0">資料來源：Wikipedia〈Konami Code〉〈Kazuhisa Hashimoto〉、1UP.com、NPR。</p>
+  <p style="margin:6px 0 0"><a href="../../../index.html">← 回每日小專案</a></p>
+</footer>
+
+<script src="logic.js"></script>
+<script>
+(function () {
+  'use strict';
+  var L = window.KonamiLogic;
+  var LS = 'konami86.';
+
+  /* ---------- 動態減量 ---------- */
+  var mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = mq.matches;
+  if (mq.addEventListener) mq.addEventListener('change', function (e) { reduced = e.matches; });
+  else if (mq.addListener) mq.addListener(function (e) { reduced = e.matches; });
+
+  /* ---------- 進場 ---------- */
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { rootMargin: '0px 0px -10% 0px', threshold: 0.08 });
+  Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (el) { io.observe(el); });
+
+  /* ---------- 星空：前後兩份一模一樣，平移 -50% 才接得上 ---------- */
+  function makeStars(host) {
+    if (!host) return;
+    var layers = [
+      { cls: 'l1', n: 26, size: 2, alpha: .85 },
+      { cls: 'l2', n: 30, size: 1.6, alpha: .5 },
+      { cls: 'l3', n: 34, size: 1.2, alpha: .3 }
+    ];
+    layers.forEach(function (cfg) {
+      var lay = document.createElement('div');
+      lay.className = 'starlayer ' + cfg.cls;
+      var html = '';
+      for (var i = 0; i < cfg.n; i++) {
+        var x = (i / cfg.n) * 50 + Math.random() * (50 / cfg.n);
+        var y = Math.random() * 100;
+        var css = ';top:' + y.toFixed(2) + '%;width:' + cfg.size + 'px;height:' + cfg.size + 'px;opacity:' + cfg.alpha;
+        html += '<i class="star" style="left:' + x.toFixed(3) + '%' + css + '"></i>';
+        html += '<i class="star" style="left:' + (x + 50).toFixed(3) + '%' + css + '"></i>';
+      }
+      lay.innerHTML = html;
+      host.appendChild(lay);
+    });
+  }
+  makeStars(document.getElementById('starsDemo'));
+  makeStars(document.getElementById('starsPlay'));
+
+  /* ---------- 8-bit 音效：只在使用者動作之後才建立 AudioContext ---------- */
+  var actx = null, soundOn = true;
+  try { if (localStorage.getItem(LS + 'sound') === 'off') soundOn = false; } catch (e) {}
+  var sndBtn = document.getElementById('sndBtn');
+  function paintSound() {
+    sndBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+    sndBtn.setAttribute('aria-label', soundOn ? '音效：開，點一下關閉' : '音效：關，點一下開啟');
+  }
+  paintSound();
+  function ensureCtx() {
+    if (!soundOn) return null;
+    try {
+      if (!actx) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        actx = new AC();
+      }
+      if (actx.state === 'suspended' && actx.resume) actx.resume();
+      return actx;
+    } catch (e) { return null; }
+  }
+  function blip(freq, dur, type, gain, when) {
+    var c = ensureCtx(); if (!c) return;
+    try {
+      var t0 = c.currentTime + (when || 0);
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'square';
+      o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(gain || .06, t0 + .012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + (dur || .1));
+      o.connect(g); g.connect(c.destination);
+      o.start(t0); o.stop(t0 + (dur || .1) + .04);
+    } catch (e) {}
+  }
+  function fanfare() {
+    [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f, i) { blip(f, .13, 'square', .07, i * 0.075); });
+    blip(1567.98, .34, 'square', .06, 0.4);
+  }
+  function buzz() { blip(104, .2, 'sawtooth', .05); }
+  sndBtn.addEventListener('click', function () {
+    soundOn = !soundOn;
+    try { localStorage.setItem(LS + 'sound', soundOn ? 'on' : 'off'); } catch (e) {}
+    paintSound();
+    if (soundOn) blip(660, .08, 'square', .05);
+  });
+
+  /* ---------- 分頁隱藏／離屏暫停 ---------- */
+  var off = { crtDemo: true, crtPlay: true };
+  var visIO = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) { off[en.target.id] = !en.isIntersecting; });
+    syncHalt();
+  }, { threshold: 0 });
+  ['crtDemo', 'crtPlay'].forEach(function (id) {
+    var el = document.getElementById(id); if (el) visIO.observe(el);
+  });
+  function syncHalt() {
+    document.body.classList.toggle('halt', off.crtDemo && off.crtPlay);
+    document.body.classList.toggle('tabhidden', !!document.hidden);
+  }
+  document.addEventListener('visibilitychange', syncHalt);
+  syncHalt();
+
+  /* ---------- 章一：跑一次測試 ---------- */
+  var demoCells = document.getElementById('demoMeter').children;
+  var demoShip = document.getElementById('demoShip');
+  var demoCap = document.getElementById('demoCap');
+  var demoFlash = document.getElementById('demoFlash');
+  var demoStatus = document.getElementById('demoStatus');
+  var demoNote = document.getElementById('demoNote');
+  var runBtn = document.getElementById('runBtn');
+  var triesEl = document.getElementById('tries');
+  var tries = 0, running = false, timers = [];
+
+  function later(fn, ms) { timers.push(setTimeout(fn, ms)); }
+  function setDemoPower(n) {
+    for (var i = 0; i < demoCells.length; i++) demoCells[i].classList.toggle('on', i < n);
+  }
+  function noteFor(n) {
+    if (n === 1) return '亮了三格，然後死掉。火力回到零，一切從頭開始。';
+    if (n === 2) return '又一次。程式改一行，就得再跑一次這種東西。';
+    if (n === 3) return '第三次了。你大概已經開始不耐煩了吧？';
+    return '你按第 ' + n + ' 次了。他按了幾個月。';
+  }
+
+  runBtn.addEventListener('click', function () {
+    if (running) return;
+    running = true; runBtn.disabled = true;
+    timers.forEach(clearTimeout); timers = [];
+    tries++; triesEl.textContent = '測試次數 ' + tries;
+    setDemoPower(0); demoNote.textContent = '';
+    demoShip.classList.remove('boom'); demoShip.classList.remove('fly');
+    demoStatus.textContent = 'RUNNING'; demoStatus.className = 'st';
+
+    if (reduced) {
+      demoShip.classList.add('fly');
+      setDemoPower(3);
+      later(function () {
+        setDemoPower(0);
+        demoStatus.textContent = 'GAME OVER'; demoStatus.className = 'st bad';
+        demoNote.textContent = noteFor(tries);
+        running = false; runBtn.disabled = false;
+      }, 500);
+      return;
+    }
+
+    later(function () { demoShip.classList.add('fly'); }, 40);
+    [1150, 2200, 3250].forEach(function (t, i) {
+      later(function () {
+        /* dasharray／關鍵影格重播：先關掉、強制 reflow、下一格才重新開 */
+        demoCap.classList.remove('run');
+        void demoCap.getBoundingClientRect();
+        requestAnimationFrame(function () { demoCap.classList.add('run'); });
+      }, t - 950);
+      later(function () { setDemoPower(i + 1); blip(520 + i * 160, .09, 'square', .05); }, t);
+    });
+    later(function () { demoFlash.classList.add('on'); demoShip.classList.add('boom'); buzz(); }, 4300);
+    later(function () { demoFlash.classList.remove('on'); }, 4470);
+    later(function () {
+      setDemoPower(0);
+      demoStatus.textContent = 'GAME OVER'; demoStatus.className = 'st bad';
+    }, 4750);
+    later(function () {
+      demoNote.textContent = noteFor(tries);
+      running = false; runBtn.disabled = false;
+    }, 5250);
+  });
+
+  /* ---------- 章三 / 章五 / 結尾：共用一個輸入路由 ---------- */
+  var ch3 = document.getElementById('ch3'), ch5 = document.getElementById('ch5');
+  var crtPlay = document.getElementById('crtPlay');
+  var playCells = document.getElementById('playMeter').children;
+  var playStatus = document.getElementById('playStatus');
+  var pauseWord = document.getElementById('pauseWord');
+  var bigWord = document.getElementById('bigWord');
+  var playOpts = document.getElementById('playOpts');
+  var playFlash = document.getElementById('playFlash');
+  var dotsEl = document.getElementById('dots');
+  var hintEl = document.getElementById('hint');
+  var hint2El = document.getElementById('hint2');
+  var wonEl = document.getElementById('won');
+  var tileEls = document.getElementById('tiles').children;
+  var eggEl = document.getElementById('egg');
+
+  var dots = [];
+  for (var i = 0; i < L.SEQUENCE.length; i++) {
+    var d = document.createElement('i'); d.className = 'dot'; dotsEl.appendChild(d); dots.push(d);
+  }
+
+  var st = { ch3: 0, ch5: 0, finale: 0 };
+  var solved3 = false, solved5 = false, eggTimer = null;
+
+  function paintDots(n) { for (var i = 0; i < dots.length; i++) dots[i].classList.toggle('on', i < n); }
+  function paintTiles(n) { for (var i = 0; i < tileEls.length; i++) tileEls[i].classList.toggle('lit', i < n); }
+
+  function inView(el) {
+    if (!el) return false;
+    var r = el.getBoundingClientRect();
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    return r.top < h * 0.92 && r.bottom > h * 0.08;
+  }
+  function pickTarget() {
+    if (!solved3 && inView(ch3)) return 'ch3';
+    if (!solved5 && inView(ch5)) return 'ch5';
+    if (solved3) return 'finale';
+    return null;
+  }
+
+  function win3() {
+    solved3 = true;
+    try { localStorage.setItem(LS + 'cracked', '1'); } catch (e) {}
+    pauseWord.classList.add('off');
+    playFlash.classList.add('on');
+    setTimeout(function () { playFlash.classList.remove('on'); }, reduced ? 10 : 210);
+    var step = reduced ? 0 : 105;
+    for (var k = 0; k < playCells.length; k++) {
+      (function (j) {
+        setTimeout(function () {
+          playCells[j].classList.add('on');
+          playStatus.textContent = 'POWER ' + (j + 1) + ' / 6';
+        }, step * j);
+      })(k);
+    }
+    setTimeout(function () {
+      playStatus.className = 'st good';
+      playOpts.classList.add('on');
+      bigWord.classList.add('on');
+      wonEl.classList.add('on');
+      hintEl.textContent = 'FULL POWER — 十下到齊';
+      hintEl.className = 'hintline good';
+    }, step * 6 + (reduced ? 10 : 130));
+    fanfare();
+  }
+
+  function win5() {
+    solved5 = true;
+    paintTiles(tileEls.length);
+    hint2El.textContent = '十下，十個地方';
+    hint2El.className = 'hintline good';
+    blip(1046.5, .18, 'square', .06);
+    blip(1318.5, .28, 'square', .05, .1);
+  }
+
+  function popEgg() {
+    if (eggTimer) return;
+    eggEl.classList.add('on');
+    blip(659.25, .12, 'triangle', .05);
+    blip(987.77, .55, 'triangle', .045, .12);
+    eggTimer = setTimeout(function () {
+      eggEl.classList.remove('on');
+      setTimeout(function () { eggTimer = null; }, 700);
+    }, 3600);
+  }
+
+  function handle(token) {
+    if (!token) return;
+    var target = pickTarget();
+    if (!target) return;
+
+    if (target === 'ch3') {
+      var r = L.feed(st.ch3, token);
+      st.ch3 = r.progress;
+      paintDots(st.ch3);
+      if (r.result === 'advance') {
+        hintEl.textContent = st.ch3 + ' / 10';
+        hintEl.className = 'hintline';
+        blip(300 + st.ch3 * 62, .07, 'square', .05);
+      } else if (r.result === 'reset') {
+        hintEl.textContent = '按錯了，從頭';
+        hintEl.className = 'hintline bad';
+        buzz();
+        if (!reduced) {
+          crtPlay.classList.remove('shake');
+          void crtPlay.getBoundingClientRect();
+          requestAnimationFrame(function () { crtPlay.classList.add('shake'); });
+        }
+      } else if (r.result === 'complete') {
+        win3();
+      }
+      return;
+    }
+
+    if (target === 'ch5') {
+      var r5 = L.feed(st.ch5, token);
+      st.ch5 = r5.progress;
+      paintTiles(st.ch5);
+      if (r5.result === 'advance') {
+        hint2El.textContent = st.ch5 + ' / 10';
+        hint2El.className = 'hintline';
+        blip(300 + st.ch5 * 62, .07, 'square', .05);
+      } else if (r5.result === 'reset') {
+        hint2El.textContent = '按錯了，從頭';
+        hint2El.className = 'hintline bad';
+        buzz();
+      } else if (r5.result === 'complete') {
+        win5();
+      }
+      return;
+    }
+
+    var rf = L.feed(st.finale, token);
+    st.finale = rf.result === 'complete' ? 0 : rf.progress;
+    if (rf.result === 'complete') popEgg();
+  }
+
+  /* 鍵盤 */
+  window.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    var token = L.normalize(e.key);
+    if (!token) return;
+    var target = pickTarget();
+    if (!target) return;
+    /* 只有互動區在視野裡才吃掉方向鍵，其他時候留給使用者捲動 */
+    if ((target === 'ch3' || target === 'ch5') &&
+        (token === 'up' || token === 'down' || token === 'left' || token === 'right')) {
+      e.preventDefault();
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-token="' + token + '"]'), function (btn) {
+      btn.classList.add('hit');
+      setTimeout(function () { btn.classList.remove('hit'); }, 140);
+    });
+    handle(token);
+  });
+
+  /* 畫面上的手把 */
+  Array.prototype.forEach.call(document.querySelectorAll('[data-token]'), function (btn) {
+    btn.addEventListener('click', function () { handle(btn.getAttribute('data-token')); });
+  });
+})();
+</script>
+</body>
+</html>

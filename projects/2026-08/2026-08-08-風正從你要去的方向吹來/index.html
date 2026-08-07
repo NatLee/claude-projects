@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>風正從你要去的方向吹來</title>
+<meta name="description" content="風從正北來，你要去正北。所有人都說這辦不到——直到你把舵推開四十五度。">
+<style>
+  :root{
+    --ink:#050a11; --ink2:#0a1420; --sea:#0a1826; --sea2:#0f2333;
+    --line:#1b2f42; --fg:#e9f0f6; --dim:#8ba3b6;
+    --sail:#f4ecd8; --hull:#c9924e; --wind:#5f97b2;
+    --hot:#ff6b4a; --good:#49d6a4; --gold:#f0c05a;
+    --serif: "Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--ink); color:var(--fg);
+    font-family:var(--serif); font-size:18px; line-height:1.85;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  .home{
+    position:fixed; top:14px; left:16px; z-index:60;
+    font-family:var(--sans); font-size:12.5px; letter-spacing:.08em;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border-radius:999px;
+    background:rgba(5,10,17,.55); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.07); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.22)}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+
+  .wrap{max-width:660px; margin:0 auto; padding:0 22px}
+  p{margin:0 0 1.15em}
+  .lede{font-size:1.06em; color:#cfdce7}
+  .dim{color:var(--dim)}
+  em{font-style:normal; color:var(--gold)}
+  strong{font-weight:600; color:#fff}
+
+  /* ---------- 第一屏 ---------- */
+  .hero{position:relative; min-height:100svh; display:flex; align-items:flex-end; overflow:hidden}
+  .hero canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+  .hero::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 8%, transparent 30%, rgba(5,10,17,.72) 72%, var(--ink) 100%);
+  }
+  .hero-copy{position:relative; z-index:2; width:100%; padding:0 0 12vh}
+  .kicker{
+    font-family:var(--sans); font-size:12px; letter-spacing:.34em; text-transform:uppercase;
+    color:var(--wind); margin:0 0 .8em;
+  }
+  h1{
+    font-size:clamp(2.5rem,9vw,4.3rem); line-height:1.06; margin:0 0 .5em;
+    font-weight:500; letter-spacing:-.01em;
+  }
+  h1 span{display:block; color:var(--dim); font-size:.44em; letter-spacing:.02em; margin-top:.7em; line-height:1.6}
+  .scroll-hint{
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.28em; color:var(--dim);
+    display:flex; align-items:center; gap:10px; margin:2.2em 0 0;
+  }
+  .scroll-hint i{display:block; width:34px; height:1px; background:linear-gradient(90deg,var(--dim),transparent)}
+
+  /* ---------- 章節 ---------- */
+  .chapter{padding:14vh 0 4vh; position:relative}
+  .chnum{
+    font-family:var(--sans); font-size:11px; letter-spacing:.4em; color:var(--wind);
+    margin:0 0 1.1em; display:flex; align-items:center; gap:12px;
+  }
+  .chnum::before{content:""; width:26px; height:1px; background:var(--line)}
+  h2{font-size:clamp(1.6rem,4.6vw,2.25rem); line-height:1.3; font-weight:500; margin:0 0 .9em; letter-spacing:-.005em}
+  h3{font-family:var(--sans); font-size:13px; letter-spacing:.2em; color:var(--dim); font-weight:600; margin:0 0 .7em}
+
+  .rise{opacity:0; transform:translateY(16px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  /* ---------- 舞台 ---------- */
+  .stage{
+    margin:2.4em -22px; padding:14px; background:linear-gradient(180deg,var(--sea2),var(--sea));
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  @media(min-width:620px){ .stage{margin:2.6em 0; border:1px solid var(--line); border-radius:14px} }
+  .stage canvas{display:block; width:100%; border-radius:8px; background:#08131f}
+  #cvHelm{height:300px}
+  #cvFoil{height:280px}
+  #cvKeel{height:270px}
+  #cvRace{height:440px; max-width:400px; margin:0 auto}
+  @media(max-width:560px){ #cvHelm{height:260px} #cvFoil{height:240px} #cvKeel{height:240px} #cvRace{height:400px} }
+
+  .ctl{margin-top:14px; font-family:var(--sans)}
+  .ctl label{display:block; font-size:11.5px; letter-spacing:.18em; color:var(--dim); margin-bottom:8px}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:26px; background:transparent; cursor:grab;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:3px; background:var(--line); border-radius:2px}
+  input[type=range]::-moz-range-track{height:3px; background:var(--line); border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:20px; height:20px; margin-top:-8.5px; border-radius:50%;
+    background:var(--gold); border:none; box-shadow:0 0 0 5px rgba(240,192,90,.14);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:20px; height:20px; border-radius:50%; background:var(--gold); border:none;
+    box-shadow:0 0 0 5px rgba(240,192,90,.14);
+  }
+  .readout{
+    display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:6px;
+    font-family:var(--sans); font-size:13px; color:var(--dim);
+  }
+  .readout b{color:var(--fg); font-weight:600; font-variant-numeric:tabular-nums}
+  .tag{
+    font-family:var(--sans); font-size:11px; letter-spacing:.16em; padding:3px 9px; border-radius:999px;
+    border:1px solid currentColor;
+  }
+  .tag.nogo{color:var(--hot)} .tag.ok{color:var(--good)} .tag.mid{color:var(--gold)}
+
+  button{
+    font-family:var(--sans); font-size:13px; letter-spacing:.06em; color:var(--fg);
+    background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:9px;
+    padding:10px 16px; cursor:pointer; transition:background .18s, border-color .18s, transform .12s;
+  }
+  button:hover{background:rgba(255,255,255,.1); border-color:#2d4c66}
+  button:active{transform:translateY(1px)}
+  button[aria-pressed=true]{border-color:var(--good); color:var(--good); background:rgba(73,214,164,.09)}
+
+  .whisper{
+    font-family:var(--sans); font-size:13.5px; color:var(--good); margin-top:12px;
+    opacity:0; transform:translateY(6px); transition:opacity .5s, transform .5s;
+  }
+  .whisper.on{opacity:1; transform:none}
+
+  .pull{
+    font-size:clamp(1.3rem,4vw,1.75rem); line-height:1.5; color:#fff; margin:2.2em 0;
+    padding-left:20px; border-left:2px solid var(--gold);
+  }
+
+  /* ---------- 掌舵 ---------- */
+  .hud{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0 0;
+    font-family:var(--sans); text-align:center;
+  }
+  .hud div span{display:block; font-size:10px; letter-spacing:.16em; color:var(--dim); margin-bottom:3px}
+  .hud div b{font-size:19px; font-weight:600; font-variant-numeric:tabular-nums}
+  .vmgbar{height:4px; background:var(--line); border-radius:2px; margin-top:12px; overflow:hidden}
+  .vmgbar i{display:block; height:100%; width:0; background:var(--good); border-radius:2px; transition:width .12s linear}
+  .helmrow{display:flex; gap:10px; margin-top:14px}
+  .helmrow button{flex:1; padding:15px 0; font-size:17px; touch-action:manipulation; user-select:none}
+  .racemsg{
+    font-family:var(--sans); font-size:14px; line-height:1.7; margin-top:14px; min-height:1.7em;
+    color:var(--gold);
+  }
+  .result{margin-top:14px; font-family:var(--sans); font-size:14px; line-height:1.9; color:var(--dim)}
+  .result b{color:var(--fg); font-variant-numeric:tabular-nums}
+
+  /* ---------- 收尾 ---------- */
+  .finale{padding:16vh 0 6vh; text-align:center}
+  .bignum{
+    font-family:var(--sans); font-size:clamp(3.4rem,15vw,6.5rem); font-weight:200; letter-spacing:-.03em;
+    color:var(--gold); font-variant-numeric:tabular-nums; line-height:1; margin:.1em 0;
+  }
+  .bignum small{font-size:.2em; letter-spacing:.3em; color:var(--dim); display:block; margin-top:1.4em}
+  footer{
+    border-top:1px solid var(--line); margin-top:12vh; padding:24px 0 40px;
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.05em; color:#4d6273;
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  footer a{color:#4d6273; text-decoration:none; border-bottom:1px solid #21323f}
+  footer a:hover{color:var(--dim)}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .whisper{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hero">
+  <canvas id="cvHero" aria-hidden="true"></canvas>
+  <div class="hero-copy">
+    <div class="wrap">
+      <p class="kicker">風 · 從 · 正 · 北</p>
+      <h1>你要去的地方<br>風正從那裡吹來
+        <span>船頭已經對準了。帆在拍，聲音像遠處有人鼓掌。<br>而你，一寸也沒有前進。</span>
+      </h1>
+      <p class="scroll-hint"><i></i>往下捲</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════════ 一 ══════════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第一章 · 死角</p>
+    <h2 class="rise">你被關在一個九十度的角落裡</h2>
+    <p class="rise">水手把它叫作 <em>no-go zone</em>——死角。風來的方向左右各三十度左右，這一整塊扇形裡，帆兩面同時受風，攤成一面旗子，什麼力都生不出來。</p>
+    <p class="rise">你手上只有一根舵柄。<strong>把它推開看看。</strong></p>
+  </div>
+
+  <div class="stage rise">
+    <canvas id="cvHelm" aria-hidden="true"></canvas>
+    <div class="ctl">
+      <label for="helm">船頭方向（0° ＝ 正對著風）</label>
+      <input id="helm" type="range" min="-180" max="180" step="1" value="0"
+             aria-describedby="helmOut" aria-label="船頭方向，單位度，0 度為正對著風">
+      <div class="readout" id="helmOut" aria-live="polite">
+        <span id="helmTag" class="tag nogo">死角</span>
+        <span>離風角 <b id="helmA">0°</b></span>
+        <span>船速 <b id="helmV">0.0 節</b></span>
+        <span>往北的分速 <b id="helmM">0.0 節</b></span>
+      </div>
+      <p class="whisper" id="helmWhisper">帆安靜下來了——它不再拍動，它鼓成了一片弧。</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">帆吃到風了。船動了。</p>
+    <p class="rise">可是你看看它在往哪裡走：<strong>東北。</strong>你想去的是正北。</p>
+    <p class="rise dim">先別急著問怎麼辦。先問一件更奇怪的事——它憑什麼往前？風明明是從斜前方壓過來的。</p>
+  </div>
+</section>
+
+<!-- ══════════ 二 ══════════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第二章 · 那不是一個口袋</p>
+    <h2 class="rise">帆不是被風推的，是被自己拉的</h2>
+    <p class="rise">我們從小畫的帆船，帆是一個鼓鼓的袋子，風灌進去，把船往前推。順風時大致如此。但貼著風走的時候，帆做的是完全不同的一件事：</p>
+    <p class="rise"><strong>它是一片直立的機翼。</strong>它不接住空氣，它讓空氣轉彎。而空氣被推向一邊的同時，會用同樣大的力把帆推向另一邊——牛頓第三定律，一字不差。</p>
+    <p class="rise dim">（順帶一提：課本上「上面的路比較長所以跑比較快」那套說法，早就被實測推翻了。空氣不需要趕在誰之前抵達後緣。）</p>
+    <p class="rise">拉一下帆的角度，看那股力怎麼長出來、又怎麼死掉。</p>
+  </div>
+
+  <div class="stage rise">
+    <canvas id="cvFoil" aria-hidden="true"></canvas>
+    <div class="ctl">
+      <label for="foil">帆對著氣流的角度（迎角）</label>
+      <input id="foil" type="range" min="0" max="45" step="1" value="0"
+             aria-describedby="foilOut" aria-label="帆的迎角，單位度">
+      <div class="readout" id="foilOut" aria-live="polite">
+        <span id="foilTag" class="tag nogo">拍動</span>
+        <span>迎角 <b id="foilA">0°</b></span>
+        <span>產生的力 <b id="foilL">0%</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">零度：兩面受力相等，帆在抖，力是零。</p>
+    <p class="rise">二十二度左右：氣流貼著弧面滑過去，被整片拐彎，力最大。</p>
+    <p class="rise">三十五度：氣流剝離了，帆後面變成一團亂流——角度更大，力卻更小。<em>失速。</em></p>
+    <p class="pull rise">但你有沒有注意到那支箭的方向？<br>它幾乎垂直於帆面。<br>而它，跟你想去的地方沒什麼關係。</p>
+  </div>
+</section>
+
+<!-- ══════════ 三 ══════════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第三章 · 水面下的那一半</p>
+    <h2 class="rise">四分之一往前，其餘的想把你推倒</h2>
+    <p class="rise">貼風航行時，帆跟船身中線大約只夾十五度。那股力落在船頭方向上的分量，<strong>只有二十六％</strong>；剩下的，是它的三點七倍，全部朝著側面。</p>
+    <p class="rise">照理說，這艘船應該像一塊肥皂一樣打橫滑走。它沒有。因為船底下藏著另一片機翼——龍骨。它在水裡做著跟帆一模一樣的事，把側向的力整個吃掉。</p>
+    <p class="rise"><strong>把它拔起來試試。</strong></p>
+  </div>
+
+  <div class="stage rise">
+    <canvas id="cvKeel" aria-hidden="true"></canvas>
+    <div class="ctl">
+      <button id="keelBtn" aria-pressed="true">龍骨：放下</button>
+      <div class="readout" style="margin-top:12px" id="keelOut" aria-live="polite">
+        <span>往前 <b id="keelF">26%</b></span>
+        <span>往側面 <b id="keelS">97%</b></span>
+        <span id="keelState" class="tag ok">側向力被抵銷</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">帆和龍骨，一片在空氣裡，一片在水裡，方向相反地互相拉扯。</p>
+    <p class="rise">船夾在中間，被兩股幾乎抵銷的巨力擠出一條縫——那條縫，就是它往前的全部。</p>
+  </div>
+</section>
+
+<!-- ══════════ 四 ══════════ -->
+<section class="chapter" id="raceSec">
+  <div class="wrap">
+    <p class="chnum rise">第四章 · 換你掌舵</p>
+    <h2 class="rise">浮標在正北四百公尺</h2>
+    <p class="rise">風十二節，從正北吹來。浮標就在正北。你現在知道你不能直直開過去了——但你也知道，偏得太多，你就是在往東邊跑。</p>
+    <p class="rise">船頭現在朝北，船速零。<strong>計時器還沒開始，因為你還沒動。</strong></p>
+  </div>
+
+  <div class="stage rise">
+    <canvas id="cvRace" aria-hidden="true"></canvas>
+    <div class="hud">
+      <div><span>船速</span><b id="rV">0.0</b></div>
+      <div><span>離風角</span><b id="rA">0°</b></div>
+      <div><span>往北分速</span><b id="rM">0.0</b></div>
+      <div><span>時間</span><b id="rT">0:00</b></div>
+    </div>
+    <div class="vmgbar" aria-hidden="true"><i id="rBar"></i></div>
+    <div class="helmrow">
+      <button id="btnL" aria-label="左舵">◀ 左舵</button>
+      <button id="btnR" aria-label="右舵">右舵 ▶</button>
+    </div>
+    <p class="racemsg" id="raceMsg" role="status" aria-live="polite">按住左舵或右舵（鍵盤 ← →）開始。</p>
+    <div class="result" id="raceResult" hidden></div>
+    <div class="ctl" style="margin-top:14px"><button id="btnReset">重新來過</button></div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">你走的路比直線長了大約四成。你還是比較快到。</p>
+    <p class="rise">因為在這片水上，<strong>距離不是成本，角度才是。</strong>那條四十五度的斜線，是船速和方向談判出來的最好結果：再貼近風一點，船就慢下來；再放開一點，船很快，但快得離題。</p>
+    <p class="rise dim">有件事順便說一下：貼到三十五度，和放到六十五度，最後往北的速度<em>一模一樣</em>——一個太貪心，一個太隨便，殊途同歸地慢。</p>
+  </div>
+</section>
+
+<!-- ══════════ 收尾 ══════════ -->
+<section class="finale">
+  <div class="wrap">
+    <p class="rise">最後一件事，關於你以為最舒服的那個方向。</p>
+    <p class="rise">順風的時候，風從背後推你。船越快，你感受到的風越弱；等你跑到和風一樣快，帆前後就沒有壓差了。<strong>順著風，你永遠追不上風。</strong></p>
+    <p class="rise">而側著風跑的船不受這條限制——它靠的不是被推，是升力，越快，它感受到的相對風反而越強。</p>
+    <p class="rise">2012 年 11 月 24 日，納米比亞鯨灣，二十七節的風。Paul Larsen 開著 Vestas Sailrocket 2 衝過五百公尺計時區，平均速度：</p>
+    <p class="bignum" id="bignum">0.00<small>節 · 風速的 2.4 倍</small></p>
+    <p class="rise" style="margin-top:2.4em">風沒有變快。</p>
+    <p class="rise" style="font-size:1.25em;color:#fff">是他不肯順著它。</p>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <span>資料來源：Physics Today〈The physics of sailing〉、World Sailing、Vestas Sailrocket。</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script src="polar.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var LS = 'sail26.';
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+  var C = {
+    sea:'#08131f', sea2:'#0d2033', line:'#1b2f42', dim:'#8ba3b6',
+    sail:'#f4ecd8', hull:'#c9924e', wind:'#5f97b2',
+    hot:'#ff6b4a', good:'#49d6a4', gold:'#f0c05a', fg:'#e9f0f6'
+  };
+  var TAU = Math.PI * 2;
+  var rad = function(d){ return d * Math.PI / 180; };
+  var clamp = function(v,a,b){ return v < a ? a : v > b ? b : v; };
+
+  /* ---------------- 舞台引擎：一個 rAF、多個畫布 ---------------- */
+  var stages = [];
+  function addStage(id, draw, opts){
+    var cv = document.getElementById(id);
+    if (!cv) return null;
+    var st = {
+      cv: cv, ctx: cv.getContext('2d'), draw: draw,
+      w: 0, h: 0, dpr: 1, visible: false, dirty: true,
+      animated: !!(opts && opts.animated), state: (opts && opts.state) || {}
+    };
+    function measure(){
+      var r = st.cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：避免 ResizeObserver 每幀把畫布尺寸翻倍而整張圖消失 */
+      if (st.cv.width !== nw || st.cv.height !== nh){ st.cv.width = nw; st.cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    st.measure = measure;
+    measure();
+    if (window.ResizeObserver){
+      var ro = new ResizeObserver(function(){ measure(); });
+      ro.observe(cv);
+    } else {
+      window.addEventListener('resize', measure);
+    }
+    if (window.IntersectionObserver){
+      new IntersectionObserver(function(es){
+        es.forEach(function(e){ st.visible = e.isIntersecting; if (e.isIntersecting) st.dirty = true; });
+      }, { rootMargin: '80px' }).observe(cv);
+    } else { st.visible = true; }
+    stages.push(st);
+    return st;
+  }
+
+  var last = 0;
+  function frame(now){
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+    if (!document.hidden){
+      for (var i = 0; i < stages.length; i++){
+        var s = stages[i];
+        if (!s.visible || !s.w) continue;
+        var wants = s.dirty || (s.animated && !reduced) || s.force;
+        if (!wants) continue;
+        s.dirty = false;
+        var ctx = s.ctx;
+        ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+        ctx.clearRect(0, 0, s.w, s.h);
+        s.draw(ctx, s.w, s.h, reduced ? 0 : now / 1000, dt, s.state);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', function(){
+    last = 0;
+    stages.forEach(function(s){ s.dirty = true; });
+  });
+  function onRM(){
+    reduced = RM.matches;
+    stages.forEach(function(s){ s.dirty = true; });
+    if (reduced) revealAll();
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  /* ---------------- 進場 ---------------- */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll(){ risers.forEach(function(el){ el.classList.add('in'); }); }
+  if (reduced || !window.IntersectionObserver) revealAll();
+  else {
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -12% 0px' });
+    risers.forEach(function(el){ io.observe(el); });
+  }
+
+  /* ---------------- 共用畫法 ---------------- */
+  function seaBackdrop(ctx, w, h, t, dense){
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#0e2233'); g.addColorStop(1, '#071019');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    /* 風痕：空氣從北（上）往南（下）流 */
+    var n = dense ? 26 : 16;
+    ctx.strokeStyle = 'rgba(95,151,178,.16)'; ctx.lineWidth = 1;
+    for (var i = 0; i < n; i++){
+      var x = ((i * 97) % 100) / 100 * w;
+      var len = 16 + ((i * 37) % 40);
+      var sp = 26 + ((i * 13) % 22);
+      var y = ((i * 61) % 100) / 100 * (h + 120) + (t * sp) % (h + 120) - 60;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + len); ctx.stroke();
+    }
+  }
+
+  /* 俯視的船。heading：0＝正北（正對風），順時針為正 */
+  function drawBoat(ctx, cx, cy, heading, s, o){
+    o = o || {};
+    var twa = normTWA(heading);
+    var sailDeg = clamp(twa * 0.55, 0, 82);
+    var side = heading === 0 ? 1 : (heading > 0 ? 1 : -1);
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rad(heading));
+
+    if (o.wake && o.wake > 0.02){
+      ctx.strokeStyle = 'rgba(233,240,246,' + (0.05 + 0.12 * o.wake) + ')';
+      ctx.lineWidth = 1.5;
+      for (var k = -1; k <= 1; k += 2){
+        ctx.beginPath();
+        ctx.moveTo(k * 0.3 * s, 1.3 * s);
+        ctx.quadraticCurveTo(k * 0.9 * s, (2.2 + 1.6 * o.wake) * s, k * 1.5 * s, (3.2 + 3 * o.wake) * s);
+        ctx.stroke();
+      }
+    }
+    /* 龍骨（水下） */
+    if (o.keel !== false){
+      ctx.fillStyle = 'rgba(20,44,64,.85)';
+      ctx.beginPath(); ctx.ellipse(0, 0.15 * s, 0.16 * s, 1.05 * s, 0, 0, TAU); ctx.fill();
+    }
+    /* 船身 */
+    ctx.beginPath();
+    ctx.moveTo(0, -1.75 * s);
+    ctx.bezierCurveTo(0.46 * s, -0.9 * s, 0.56 * s, 0.5 * s, 0.42 * s, 1.35 * s);
+    ctx.lineTo(-0.42 * s, 1.35 * s);
+    ctx.bezierCurveTo(-0.56 * s, 0.5 * s, -0.46 * s, -0.9 * s, 0, -1.75 * s);
+    ctx.closePath();
+    var hg = ctx.createLinearGradient(0, -1.7 * s, 0, 1.4 * s);
+    hg.addColorStop(0, '#e6c088'); hg.addColorStop(1, '#a4702f');
+    ctx.fillStyle = hg; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1; ctx.stroke();
+
+    /* 帆 */
+    var mx = 0, my = -0.85 * s, L = 1.85 * s;
+    if (o.luff){
+      ctx.strokeStyle = C.sail; ctx.lineWidth = 2.2; ctx.globalAlpha = .85;
+      ctx.beginPath(); ctx.moveTo(mx, my);
+      var ph = (o.t || 0) * 11;
+      for (var i2 = 1; i2 <= 8; i2++){
+        var f = i2 / 8;
+        ctx.lineTo(mx + Math.sin(ph + f * 5.5) * 0.28 * s * f, my + f * L);
+      }
+      ctx.stroke(); ctx.globalAlpha = 1;
+    } else {
+      var a = rad(sailDeg) * side;
+      var ex = mx + Math.sin(a) * L, ey = my + Math.cos(a) * L;
+      var mxp = (mx + ex) / 2, myp = (my + ey) / 2;
+      var nx = Math.cos(a) * side, ny = -Math.sin(a) * side;
+      var camber = 0.3 * s;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.quadraticCurveTo(mxp + nx * camber, myp + ny * camber, ex, ey);
+      ctx.quadraticCurveTo(mxp + nx * camber * 0.55, myp + ny * camber * 0.55, mx, my);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(244,236,216,.9)'; ctx.fill();
+      ctx.strokeStyle = C.sail; ctx.lineWidth = 1.4; ctx.stroke();
+    }
+    /* 桅杆 */
+    ctx.fillStyle = '#f4ecd8';
+    ctx.beginPath(); ctx.arc(mx, my, 0.1 * s, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+
+  function arrow(ctx, x1, y1, x2, y2, color, wdt){
+    var dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+    if (len < 2) return;
+    var ux = dx / len, uy = dy / len, hd = Math.min(11, len * 0.34);
+    ctx.strokeStyle = color; ctx.lineWidth = wdt || 2.4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2 - ux * hd * 0.7, y2 - uy * hd * 0.7); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - ux * hd + uy * hd * 0.42, y2 - uy * hd - ux * hd * 0.42);
+    ctx.lineTo(x2 - ux * hd - uy * hd * 0.42, y2 - uy * hd + ux * hd * 0.42);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function label(ctx, x, y, text, color, align, size){
+    ctx.fillStyle = color;
+    ctx.font = (size || 11) + 'px -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+    ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  }
+  /* 有底色的標籤：疊在船身或箭頭上也讀得到 */
+  function labelBox(ctx, x, y, text, color, size){
+    size = size || 11;
+    ctx.font = size + 'px -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+    var wdt = ctx.measureText(text).width, ph = size + 8;
+    ctx.fillStyle = 'rgba(6,14,22,.82)';
+    if (ctx.roundRect){
+      ctx.beginPath(); ctx.roundRect(x - wdt / 2 - 6, y - ph / 2, wdt + 12, ph, 5); ctx.fill();
+    } else {
+      ctx.fillRect(x - wdt / 2 - 6, y - ph / 2, wdt + 12, ph);
+    }
+    label(ctx, x, y, text, color, 'center', size);
+  }
+
+  /* ---------------- 第一屏 ---------------- */
+  addStage('cvHero', function(ctx, w, h, t){
+    seaBackdrop(ctx, w, h, t, true);
+    var s = Math.min(w, h) * 0.062;
+    drawBoat(ctx, w * 0.5, h * 0.42, 0, s, { luff: true, t: t, wake: 0 });
+    ctx.save();
+    ctx.globalAlpha = .5;
+    arrow(ctx, w * 0.5, h * 0.42 - s * 5.2, w * 0.5, h * 0.42 - s * 3.1, C.wind, 2);
+    label(ctx, w * 0.5, h * 0.42 - s * 5.8, '風', C.wind, 'center', 12);
+    ctx.restore();
+  }, { animated: true });
+
+  /* ---------------- 一：死角 ---------------- */
+  var helm = document.getElementById('helm');
+  var helmTag = document.getElementById('helmTag'), helmA = document.getElementById('helmA');
+  var helmV = document.getElementById('helmV'), helmM = document.getElementById('helmM');
+  var helmWhisper = document.getElementById('helmWhisper');
+  var WIND_KN = 12;
+  var helmSt = { h: 0, esc: false };
+
+  var stHelm = addStage('cvHelm', function(ctx, w, h, t, dt, S){
+    seaBackdrop(ctx, w, h, t, false);
+    var cx = w * 0.5, cy = h * 0.56, s = Math.min(w * 0.5, h) * 0.14;
+    var R = Math.min(w * 0.44, h * 0.46);
+    /* 死角扇形 */
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.beginPath(); ctx.moveTo(0, 0);
+    ctx.arc(0, 0, R, -Math.PI / 2 - rad(30), -Math.PI / 2 + rad(30));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,107,74,.13)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,107,74,.4)'; ctx.setLineDash([4, 5]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(rad(-30)) * R, -Math.cos(rad(-30)) * R);
+    ctx.moveTo(0, 0); ctx.lineTo(Math.sin(rad(30)) * R, -Math.cos(rad(30)) * R);
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+    label(ctx, cx, cy - R * 0.62, '死　角', 'rgba(255,107,74,.75)', 'center', 12);
+
+    var twa = normTWA(S.h);
+    var f = polarFactor(twa);
+    /* 航跡 */
+    if (f > 0.02){
+      ctx.save(); ctx.translate(cx, cy);
+      ctx.strokeStyle = 'rgba(73,214,164,.5)'; ctx.setLineDash([5, 6]); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(0, 0);
+      ctx.lineTo(Math.sin(rad(S.h)) * R * 0.92, -Math.cos(rad(S.h)) * R * 0.92);
+      ctx.stroke(); ctx.setLineDash([]); ctx.restore();
+    }
+    arrow(ctx, cx, 16, cx, 44, 'rgba(95,151,178,.8)', 2);
+    label(ctx, cx + 10, 30, '風 ' + WIND_KN + ' 節', 'rgba(95,151,178,.85)', 'left', 11);
+    drawBoat(ctx, cx, cy, S.h, s, { luff: f <= 0.001, t: t, wake: f });
+  }, { animated: true, state: helmSt });
+
+  function updHelm(){
+    var hd = +helm.value;
+    helmSt.h = hd;
+    var twa = normTWA(hd);
+    var v = boatSpeed(twa, WIND_KN);
+    var vm = vmgUpwind(twa, WIND_KN);
+    helmA.textContent = Math.round(twa) + '°';
+    helmV.textContent = v.toFixed(1) + ' 節';
+    helmM.textContent = (vm > 0 ? vm.toFixed(1) : '0.0') + ' 節';
+    var tag = helmTag;
+    if (twa <= 30){ tag.textContent = '死角'; tag.className = 'tag nogo'; }
+    else if (twa < 70){ tag.textContent = '貼風'; tag.className = 'tag ok'; }
+    else if (twa < 120){ tag.textContent = '橫風'; tag.className = 'tag mid'; }
+    else { tag.textContent = '順風'; tag.className = 'tag mid'; }
+    if (twa > 30 && !helmSt.esc){ helmSt.esc = true; helmWhisper.classList.add('on'); }
+    if (stHelm) stHelm.dirty = true;
+  }
+  helm.addEventListener('input', updHelm);
+  updHelm();
+
+  /* ---------------- 二：機翼 ---------------- */
+  var foil = document.getElementById('foil');
+  var foilTag = document.getElementById('foilTag'), foilA = document.getElementById('foilA'), foilL = document.getElementById('foilL');
+  var foilSt = { a: 0 };
+  var CLMAX = liftCoef(22.5);
+
+  var stFoil = addStage('cvFoil', function(ctx, w, h, t, dt, S){
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#0c1c2b'); g.addColorStop(1, '#070f18');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+
+    var cx = w * 0.5, cy = h * 0.52;
+    var chord = Math.min(w * 0.3, 130);
+    var a = S.a, cl = liftCoef(a), rel = cl / CLMAX;
+    var stalled = a > 32, luffing = a < 4;
+    var defl = 34 * rel;
+
+    /* 流線 */
+    var lines = 9;
+    ctx.lineWidth = 1.3;
+    for (var i = 0; i < lines; i++){
+      var y0 = h * 0.14 + (h * 0.72) * (i / (lines - 1));
+      var d = Math.exp(-Math.pow(y0 - cy, 2) / (2 * Math.pow(h * 0.2, 2)));
+      var bend = defl * d;
+      var near = d > 0.45;
+      ctx.strokeStyle = near ? 'rgba(160,205,230,.75)' : 'rgba(95,151,178,.32)';
+      ctx.setLineDash([9, 7]);
+      ctx.lineDashOffset = -(t * 46) % 16;
+      ctx.beginPath();
+      ctx.moveTo(-4, y0);
+      ctx.lineTo(cx - chord * 0.85, y0);
+      ctx.bezierCurveTo(cx - chord * 0.3, y0 - bend * 0.55, cx + chord * 0.25, y0 + bend * 0.5, cx + chord * 0.9, y0 + bend);
+      ctx.lineTo(w + 4, y0 + bend);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.lineDashOffset = 0;
+
+    /* 亂流 */
+    if (stalled){
+      var n = 7;
+      for (var j = 0; j < n; j++){
+        var px = cx + chord * 0.35 + j * 16 + Math.sin(t * 1.6 + j) * 5;
+        var py = cy + 12 + Math.sin(t * 2.3 + j * 1.7) * 22;
+        var r = 6 + (j % 3) * 3;
+        ctx.strokeStyle = 'rgba(255,107,74,' + (0.5 - j * 0.045) + ')';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(px, py, r, t * 2 + j, t * 2 + j + 4.4);
+        ctx.stroke();
+      }
+    }
+
+    /* 帆（側視弧線） */
+    var th = rad(a);
+    var hx = Math.cos(th) * chord / 2, hy = Math.sin(th) * chord / 2;
+    var x1 = cx - hx, y1 = cy - hy, x2 = cx + hx, y2 = cy + hy;
+    var camb = 0.14 * chord;
+    ctx.lineCap = 'round';
+    if (luffing){
+      ctx.strokeStyle = 'rgba(244,236,216,.75)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x1, y1);
+      for (var q = 1; q <= 6; q++){
+        var fq = q / 6;
+        ctx.lineTo(x1 + (x2 - x1) * fq, y1 + (y2 - y1) * fq + Math.sin(t * 9 + fq * 6) * 7 * fq);
+      }
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = C.sail; ctx.lineWidth = 3.4;
+      ctx.beginPath(); ctx.moveTo(x1, y1);
+      ctx.quadraticCurveTo(cx + Math.sin(th) * camb, cy - Math.cos(th) * camb, x2, y2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#f4ecd8';
+    ctx.beginPath(); ctx.arc(x1, y1, 4, 0, TAU); ctx.fill();
+
+    /* 力 */
+    if (cl > 0.02){
+      var fl = 26 + 62 * rel;
+      arrow(ctx, cx, cy, cx + Math.sin(th) * fl, cy - Math.cos(th) * fl, stalled ? 'rgba(255,107,74,.9)' : C.good, 3);
+      label(ctx, cx + Math.sin(th) * (fl + 16), cy - Math.cos(th) * (fl + 16), '力', stalled ? C.hot : C.good, 'center', 12);
+    }
+    label(ctx, 10, 16, '空氣 →', 'rgba(95,151,178,.8)', 'left', 11);
+    if (luffing) label(ctx, w - 10, 16, '兩面受力相等 · 力＝0', 'rgba(255,107,74,.8)', 'right', 11);
+    if (stalled) label(ctx, w - 10, 16, '氣流剝離 · 失速', 'rgba(255,107,74,.9)', 'right', 11);
+  }, { animated: true, state: foilSt });
+
+  function updFoil(){
+    var a = +foil.value;
+    foilSt.a = a;
+    var rel = liftCoef(a) / CLMAX;
+    foilA.textContent = a + '°';
+    foilL.textContent = Math.round(rel * 100) + '%';
+    if (a < 4){ foilTag.textContent = '拍動'; foilTag.className = 'tag nogo'; }
+    else if (a <= 32){ foilTag.textContent = '貼合'; foilTag.className = 'tag ok'; }
+    else { foilTag.textContent = '失速'; foilTag.className = 'tag nogo'; }
+    if (stFoil) stFoil.dirty = true;
+  }
+  foil.addEventListener('input', updFoil);
+  updFoil();
+
+  /* ---------------- 三：龍骨 ---------------- */
+  var keelBtn = document.getElementById('keelBtn');
+  var keelState = document.getElementById('keelState');
+  var split = forceSplit(15);
+  document.getElementById('keelF').textContent = Math.round(split.forward * 100) + '%';
+  document.getElementById('keelS').textContent = Math.round(split.lateral * 100) + '%';
+  var keelSt = { on: true, foam: null };
+
+  var stKeel = addStage('cvKeel', function(ctx, w, h, t, dt, S){
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#0e2233'); g.addColorStop(1, '#071019');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+
+    var heading = 45;
+    /* 實際走的方向：有龍骨＝跟船頭一致；沒龍骨＝整艘往下風滑 62 度 */
+    var travel = S.on ? heading : heading + 62;
+    var spd = 46;
+
+    /* 水面浮沫往反方向流，用來表現船在動（船本身不移動，版面才穩） */
+    if (!S.foam){
+      S.foam = [];
+      for (var i = 0; i < 26; i++) S.foam.push([(i * 173 % 100) / 100, (i * 61 % 100) / 100]);
+    }
+    var tvx = Math.sin(rad(travel)), tvy = -Math.cos(rad(travel));
+    ctx.fillStyle = 'rgba(95,151,178,.28)';
+    for (var f = 0; f < S.foam.length; f++){
+      var pt = S.foam[f];
+      if (!reduced){
+        pt[0] -= tvx * spd * dt / w; pt[1] -= tvy * spd * dt / h;
+        if (pt[0] < 0) pt[0] += 1; if (pt[0] > 1) pt[0] -= 1;
+        if (pt[1] < 0) pt[1] += 1; if (pt[1] > 1) pt[1] -= 1;
+      }
+      ctx.beginPath(); ctx.arc(pt[0] * w, pt[1] * h, 1.6, 0, TAU); ctx.fill();
+    }
+
+    arrow(ctx, w - 26, 14, w - 26, 44, 'rgba(95,151,178,.75)', 2);
+    label(ctx, w - 34, 30, '風', 'rgba(95,151,178,.85)', 'right', 11);
+
+    var cx = w * 0.44, cy = h * 0.5;
+    var s = Math.min(w * 0.5, h) * 0.105;
+
+    /* 實際航跡方向 */
+    ctx.strokeStyle = S.on ? 'rgba(73,214,164,.45)' : 'rgba(255,107,74,.6)';
+    ctx.setLineDash([5, 6]); ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(cx - tvx * s * 2.4, cy - tvy * s * 2.4);
+    ctx.lineTo(cx + tvx * (s * 2.4 + 66), cy + tvy * (s * 2.4 + 66)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    drawBoat(ctx, cx, cy, heading, s, { keel: S.on, wake: 0.35 });
+
+    var sailDeg = 15;
+    var fdir = heading + 90 - sailDeg;      /* 力的方向：幾乎垂直於帆面 */
+    var Ltot = 76;
+    var fx = Math.sin(rad(fdir)), fy = -Math.cos(rad(fdir));
+    var hx = Math.sin(rad(heading)), hy = -Math.cos(rad(heading));
+    var lx = Math.sin(rad(heading + 90)), ly = -Math.cos(rad(heading + 90));
+    var fwd = Ltot * split.forward, lat = Ltot * split.lateral;
+
+    arrow(ctx, cx, cy, cx + lx * lat, cy + ly * lat, C.hot, 2.4);
+    arrow(ctx, cx, cy, cx + hx * fwd, cy + hy * fwd, C.good, 2.4);
+    arrow(ctx, cx, cy, cx + fx * Ltot, cy + fy * Ltot, 'rgba(244,236,216,.9)', 2.8);
+    if (S.on) arrow(ctx, cx - lx * 6, cy - ly * 6, cx - lx * (lat + 6), cy - ly * (lat + 6), '#4aa3d8', 2.4);
+
+    labelBox(ctx, cx + fx * (Ltot + 18), cy + fy * (Ltot + 18), '帆給的力', '#f4ecd8');
+    labelBox(ctx, cx + hx * (fwd + 34), cy + hy * (fwd + 34), '往前 26%', C.good);
+    labelBox(ctx, cx + lx * (lat + 20), cy + ly * (lat + 20), '往側面 97%', C.hot);
+    if (S.on) labelBox(ctx, cx - lx * (lat + 22), cy - ly * (lat + 22), '龍骨頂回去', '#4aa3d8');
+    labelBox(ctx, cx + tvx * (s * 2.4 + 78), cy + tvy * (s * 2.4 + 78),
+             S.on ? '實際往前' : '實際在打橫滑', S.on ? C.good : C.hot);
+  }, { animated: true, state: keelSt });
+
+  keelBtn.addEventListener('click', function(){
+    keelSt.on = !keelSt.on;
+    keelSt.x = 0; keelSt.y = 0;
+    keelBtn.setAttribute('aria-pressed', keelSt.on ? 'true' : 'false');
+    keelBtn.textContent = '龍骨：' + (keelSt.on ? '放下' : '拔起');
+    keelState.textContent = keelSt.on ? '側向力被抵銷' : '側向力沒人管';
+    keelState.className = 'tag ' + (keelSt.on ? 'ok' : 'nogo');
+    if (stKeel) stKeel.dirty = true;
+  });
+
+  /* ---------------- 四：掌舵 ---------------- */
+  var MARK_Y = 400, HALF_W = 180, TIME_SCALE = 6, TURN = 45, TAUV = 2.2;
+  var WIND_MS = WIND_KN * 0.5144;
+  var BEST = bestUpwindAngle();
+  var R = {
+    started: false, done: false, tSim: 0,
+    p: { x: 0, y: 0, h: 0, v: 0, trail: [] },
+    g: { x: 0, y: 0, h: BEST, v: 0, trail: [], side: 1, done: false, time: 0 },
+    input: 0, lastSide: 0, hinting: false, msgShown: {}
+  };
+  var rV = document.getElementById('rV'), rA = document.getElementById('rA'),
+      rM = document.getElementById('rM'), rT = document.getElementById('rT'),
+      rBar = document.getElementById('rBar'), raceMsg = document.getElementById('raceMsg'),
+      raceResult = document.getElementById('raceResult');
+
+  function fmt(sec){
+    var m = Math.floor(sec / 60), s2 = Math.floor(sec % 60);
+    return m + ':' + (s2 < 10 ? '0' : '') + s2;
+  }
+  function step(b, dtSim, targetH){
+    var dh = targetH - b.h;
+    var mx = TURN * dtSim;
+    b.h += clamp(dh, -mx, mx);
+    if (b.h > 180) b.h -= 360;
+    if (b.h < -180) b.h += 360;
+    var tv = boatSpeed(normTWA(b.h), WIND_MS);
+    b.v += (tv - b.v) * (1 - Math.exp(-dtSim / TAUV));
+    b.x += Math.sin(rad(b.h)) * b.v * dtSim;
+    b.y += Math.cos(rad(b.h)) * b.v * dtSim;
+    if (b.x > HALF_W + 20){ b.x = HALF_W + 20; }
+    if (b.x < -HALF_W - 20){ b.x = -HALF_W - 20; }
+    var tr = b.trail;
+    if (!tr.length || Math.hypot(b.x - tr[tr.length - 1][0], b.y - tr[tr.length - 1][1]) > 4) tr.push([b.x, b.y]);
+  }
+  function say(key, text){
+    if (R.msgShown[key] || R.hinting) return;
+    R.msgShown[key] = true;
+    raceMsg.textContent = text;
+  }
+  /* 被擠到航道邊上時要一直提醒，不然玩家會沿著邊界一路north 卻永遠不算抵達 */
+  function edgeHint(){
+    var out = Math.abs(R.p.x) > HALF_W - 8;
+    if (out && !R.hinting){
+      R.hinting = true;
+      raceMsg.textContent = '你被擠到航道' + (R.p.x > 0 ? '東' : '西') + '邊了——換舷，把船頭甩到另一邊去。';
+    } else if (!out && R.hinting){
+      R.hinting = false;
+      raceMsg.textContent = '回到航道上了。';
+    }
+  }
+
+  var stRace = addStage('cvRace', function(ctx, w, h, t, dt, S){
+    if (!R.done && R.started && dt > 0){
+      var dtS = dt * TIME_SCALE;
+      R.tSim += dtS;
+      step(R.p, dtS, R.p.h + R.input * TURN * 0.9);
+      /* 對手：完美的四十五度之字 */
+      if (!R.g.done){
+        if (Math.abs(R.g.x) > HALF_W * 0.62 && Math.sign(R.g.x) === R.g.side) R.g.side *= -1;
+        step(R.g, dtS, BEST * R.g.side);
+        if (R.g.y >= MARK_Y){ R.g.done = true; R.g.time = R.tSim; }
+      }
+      edgeHint();
+      var twaP = normTWA(R.p.h);
+      if (twaP > 30) say('move', '帆吃到風了。看看右邊那條綠色的柱子——那是你真正往北的速度。');
+      if (twaP > 38 && twaP < 54) say('sweet', '就是這個角度。船速和方向在這裡談成了最好的價錢。');
+      if (twaP > 30){
+        var sgn = R.p.h > 0 ? 1 : -1;
+        if (R.lastSide && sgn !== R.lastSide && Math.abs(R.p.y) > 40) say('tack', '換舷了。你正在繞路——而你正在贏。');
+        R.lastSide = sgn;
+      }
+      if (R.p.y >= MARK_Y && Math.abs(R.p.x) <= HALF_W) finish();
+    }
+
+    /* 座標轉換 */
+    var pad = 14;
+    var sx = (w - pad * 2) / (HALF_W * 2 + 40);
+    var sy = (h - pad * 2) / (MARK_Y + 70);
+    var sc = Math.min(sx, sy);
+    var ox = w / 2, oy = h - pad - 30 * sc;
+    var X = function(x){ return ox + x * sc; };
+    var Y = function(y){ return oy - y * sc; };
+
+    seaBackdrop(ctx, w, h, t, false);
+    /* 航道 */
+    ctx.strokeStyle = 'rgba(27,47,66,.9)'; ctx.lineWidth = 1; ctx.setLineDash([3, 7]);
+    ctx.beginPath(); ctx.moveTo(X(-HALF_W), Y(-30)); ctx.lineTo(X(-HALF_W), Y(MARK_Y + 30));
+    ctx.moveTo(X(HALF_W), Y(-30)); ctx.lineTo(X(HALF_W), Y(MARK_Y + 30)); ctx.stroke();
+    ctx.setLineDash([]);
+    /* 終點線 */
+    ctx.strokeStyle = 'rgba(240,192,90,.55)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(X(-HALF_W), Y(MARK_Y)); ctx.lineTo(X(HALF_W), Y(MARK_Y)); ctx.stroke();
+    ctx.fillStyle = C.gold;
+    ctx.beginPath(); ctx.arc(X(0), Y(MARK_Y), 5, 0, TAU); ctx.fill();
+    label(ctx, X(0), Y(MARK_Y) - 15, '浮標 · 正北 400 公尺', 'rgba(240,192,90,.85)', 'center', 11);
+    /* 起點 */
+    ctx.strokeStyle = 'rgba(139,163,182,.35)';
+    ctx.beginPath(); ctx.moveTo(X(-HALF_W), Y(0)); ctx.lineTo(X(HALF_W), Y(0)); ctx.stroke();
+    /* 風 */
+    arrow(ctx, w - 22, 12, w - 22, 40, 'rgba(95,151,178,.75)', 2);
+    label(ctx, w - 30, 26, '風', 'rgba(95,151,178,.85)', 'right', 11);
+
+    function trail(tr, color, wdt){
+      if (tr.length < 2) return;
+      ctx.strokeStyle = color; ctx.lineWidth = wdt; ctx.lineJoin = 'round';
+      ctx.beginPath(); ctx.moveTo(X(tr[0][0]), Y(tr[0][1]));
+      for (var i = 1; i < tr.length; i++) ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+      ctx.stroke();
+    }
+    trail(R.g.trail, 'rgba(139,163,182,.4)', 1.4);
+    trail(R.p.trail, 'rgba(73,214,164,.75)', 2);
+
+    var bs = Math.max(7, 13 * sc * 1.4);
+    ctx.globalAlpha = .55;
+    drawBoat(ctx, X(R.g.x), Y(R.g.y), R.g.h, bs * 0.8, { wake: 0.3 });
+    ctx.globalAlpha = 1;
+    drawBoat(ctx, X(R.p.x), Y(R.p.y), R.p.h, bs, { luff: R.p.v < 0.25, t: t, wake: clamp(R.p.v / 4, 0, 1) });
+
+    if (!R.started){
+      label(ctx, X(R.p.x) + bs * 2, Y(R.p.y), '船速 0', 'rgba(255,107,74,.9)', 'left', 12);
+    }
+    /* HUD */
+    var twa = normTWA(R.p.h);
+    var vm = R.p.v * Math.cos(rad(twa));
+    rV.textContent = (R.p.v / 0.5144).toFixed(1);
+    rA.textContent = Math.round(twa) + '°';
+    rM.textContent = (vm > 0 ? vm / 0.5144 : 0).toFixed(1);
+    rT.textContent = fmt(R.tSim);
+    rBar.style.width = clamp((vm / (WIND_MS * 0.537)) * 100, 0, 100) + '%';
+  }, { animated: true, state: R });
+
+  function finish(){
+    R.done = true;
+    var mine = R.tSim;
+    var pathLen = 0;
+    for (var i = 1; i < R.p.trail.length; i++)
+      pathLen += Math.hypot(R.p.trail[i][0] - R.p.trail[i-1][0], R.p.trail[i][1] - R.p.trail[i-1][1]);
+    var best = parseFloat(localStorage.getItem(LS + 'best') || '0');
+    var isBest = !best || mine < best;
+    if (isBest) localStorage.setItem(LS + 'best', String(Math.round(mine * 10) / 10));
+    if (stRace) stRace.force = false;
+    raceMsg.textContent = '到了。';
+    raceResult.hidden = false;
+    raceResult.innerHTML =
+      '你的時間 <b>' + fmt(mine) + '</b>　（走了 <b>' + Math.round(pathLen) + '</b> 公尺，直線只有 400）<br>' +
+      '完美的 ' + BEST.toFixed(0) + ' 度之字：<b>' + (R.g.done ? fmt(R.g.time) : '還在路上') + '</b><br>' +
+      '一直直直指著北：<b>永遠</b>' +
+      (isBest ? '<br><span style="color:var(--gold)">這是你目前最快的一次。</span>' :
+                '<br>你最快的一次：<b>' + fmt(best) + '</b>');
+    if (stRace) stRace.dirty = true;
+  }
+
+  function setInput(v){
+    if (R.done) return;
+    R.input = v;
+    if (v !== 0 && !R.started){
+      R.started = true;
+      /* 掌舵是使用者主動觸發的必要動作：即使開了減少動態，這一關仍要跑 */
+      if (stRace) stRace.force = true;
+      raceMsg.textContent = '計時開始。';
+    }
+  }
+  function hold(btn, v){
+    btn.addEventListener('pointerdown', function(e){ e.preventDefault(); setInput(v); });
+    btn.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); setInput(v); } });
+    btn.addEventListener('keyup', function(e){ if (e.key === 'Enter' || e.key === ' ') setInput(0); });
+    btn.addEventListener('blur', function(){ setInput(0); });
+  }
+  window.addEventListener('pointerup', function(){ setInput(0); });
+  window.addEventListener('pointercancel', function(){ setInput(0); });
+  hold(document.getElementById('btnL'), -1);
+  hold(document.getElementById('btnR'), 1);
+
+  var raceSec = document.getElementById('raceSec');
+  var raceNear = false;
+  if (window.IntersectionObserver){
+    new IntersectionObserver(function(es){ es.forEach(function(e){ raceNear = e.isIntersecting; }); },
+      { threshold: 0.15 }).observe(raceSec);
+  } else raceNear = true;
+  window.addEventListener('keydown', function(e){
+    if (!raceNear) return;
+    var tg = e.target && e.target.tagName;
+    if (tg === 'INPUT' || tg === 'TEXTAREA') return;
+    if (e.key === 'ArrowLeft'){ e.preventDefault(); setInput(-1); }
+    else if (e.key === 'ArrowRight'){ e.preventDefault(); setInput(1); }
+  });
+  window.addEventListener('keyup', function(e){
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') setInput(0);
+  });
+
+  document.getElementById('btnReset').addEventListener('click', function(){
+    R.started = false; R.done = false; R.tSim = 0; R.input = 0; R.msgShown = {}; R.lastSide = 0; R.hinting = false;
+    R.p = { x: 0, y: 0, h: 0, v: 0, trail: [] };
+    R.g = { x: 0, y: 0, h: BEST, v: 0, trail: [], side: 1, done: false, time: 0 };
+    raceResult.hidden = true;
+    raceMsg.textContent = '按住左舵或右舵（鍵盤 ← →）開始。';
+    if (stRace){ stRace.force = false; stRace.dirty = true; }
+  });
+
+  /* ---------------- 收尾：數字滾動 ---------------- */
+  var bignum = document.getElementById('bignum');
+  function rollTo(target){
+    if (reduced){ bignum.firstChild.nodeValue = target.toFixed(2); return; }
+    var t0 = performance.now(), dur = 1600;
+    (function tick(now){
+      var k = clamp((now - t0) / dur, 0, 1);
+      var e = 1 - Math.pow(1 - k, 3);
+      bignum.firstChild.nodeValue = (target * e).toFixed(2);
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  if (window.IntersectionObserver){
+    var bo = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting){ rollTo(65.45); bo.unobserve(e.target); } });
+    }, { threshold: 0.6 });
+    bo.observe(bignum);
+  } else rollTo(65.45);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你按下之前那半秒</title>
+<meta name="description" content="坐進那張椅子，按二十次。然後把你自己的資料疊起來——那條被印了四十年的曲線，會在你眼前長出來。">
+<style>
+  :root{
+    --ink:#06090d; --panel:#0c1319; --panel2:#101a22; --line:#1d2b35;
+    --fg:#e9eef2; --dim:#82949f; --dim2:#5d6d78;
+    --paper:#eae1cd; --paper2:#ddd0b4; --grid:#c9a08f; --pen:#2b2320;
+    --amber:#f0b040; --red:#e2543f; --blue:#6fb6e8; --green:#5fd0a0;
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--ink); color:var(--fg);
+    font-family:var(--serif); font-size:18px; line-height:1.85;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--amber); outline-offset:3px}
+  .home{
+    position:fixed; top:14px; left:16px; z-index:60;
+    font-family:var(--mono); font-size:12px; letter-spacing:.06em;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border-radius:999px;
+    background:rgba(6,9,13,.62); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.07); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.24)}
+
+  .wrap{max-width:660px; margin:0 auto; padding:0 22px}
+  p{margin:0 0 1.15em}
+  .dim{color:var(--dim)}
+  em{font-style:normal; color:var(--amber)}
+  strong{font-weight:600; color:#fff}
+
+  /* ── 第一屏 ── */
+  .hero{position:relative; min-height:100svh; display:flex; flex-direction:column; justify-content:center; overflow:hidden}
+  .hero::before{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(90% 60% at 50% 34%, rgba(240,176,64,.07), transparent 62%);
+  }
+  #cvHero{display:block; width:100%; height:min(46vh,330px); position:relative; z-index:1}
+  .hero-copy{position:relative; z-index:2; padding:4vh 0 0}
+  .kicker{
+    font-family:var(--mono); font-size:11px; letter-spacing:.26em; text-transform:uppercase;
+    color:var(--dim2); margin:0 0 1em;
+  }
+  h1{font-size:clamp(2.3rem,8.4vw,4rem); line-height:1.08; margin:0 0 .45em; font-weight:500; letter-spacing:-.01em}
+  h1 span{display:block; color:var(--dim); font-size:.36em; letter-spacing:.01em; margin-top:.9em; line-height:1.7}
+  .scroll-hint{
+    font-family:var(--mono); font-size:11px; letter-spacing:.24em; color:var(--dim2);
+    display:flex; align-items:center; gap:10px; margin:2.4em 0 0;
+  }
+  .scroll-hint i{display:block; width:32px; height:1px; background:linear-gradient(90deg,var(--dim2),transparent)}
+
+  /* ── 章節 ── */
+  .chapter{padding:13vh 0 3vh; position:relative}
+  .chnum{
+    font-family:var(--mono); font-size:11px; letter-spacing:.3em; color:var(--amber);
+    margin:0 0 1.1em; display:flex; align-items:center; gap:12px;
+  }
+  .chnum::before{content:""; width:24px; height:1px; background:var(--line)}
+  h2{font-size:clamp(1.55rem,4.5vw,2.15rem); line-height:1.32; font-weight:500; margin:0 0 .9em; letter-spacing:-.005em}
+  .rise{opacity:0; transform:translateY(16px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+  .pull{
+    font-size:clamp(1.2rem,3.7vw,1.6rem); line-height:1.55; color:#fff; margin:2.2em 0;
+    padding-left:20px; border-left:2px solid var(--amber);
+  }
+  .rules{list-style:none; margin:1.6em 0 0; padding:0}
+  .rules li{
+    position:relative; padding:0 0 0 46px; margin:0 0 1.05em; line-height:1.8;
+  }
+  .rules li b{
+    position:absolute; left:0; top:.15em; font-family:var(--mono); font-size:11px; letter-spacing:.1em;
+    color:var(--amber); border:1px solid rgba(240,176,64,.35); border-radius:4px; padding:1px 6px; font-weight:400;
+  }
+
+  /* ── 機器 ── */
+  .rig{
+    margin:2.6em -22px; background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:16px 14px 18px;
+  }
+  @media(min-width:620px){ .rig{margin:2.8em 0; border:1px solid var(--line); border-radius:14px; padding:18px} }
+  .rigtop{
+    display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; color:var(--dim2); margin-bottom:12px;
+  }
+  .led{display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--red); margin-right:7px; vertical-align:1px}
+  .led.on{background:var(--green); box-shadow:0 0 7px rgba(95,208,160,.8)}
+
+  .bench{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+  @media(max-width:560px){ .bench{grid-template-columns:1fr} }
+  .cell{min-width:0}
+  #cvClock{display:block; width:100%; height:290px; background:#080d12; border-radius:10px; border:1px solid var(--line)}
+  #cvRoll{display:block; width:100%; height:290px; border-radius:10px; background:var(--paper)}
+  @media(max-width:560px){ #cvClock{height:250px} #cvRoll{height:230px} }
+
+  .press{
+    width:100%; margin-top:14px; font-family:var(--sans); font-size:19px; letter-spacing:.24em;
+    color:#20160a; background:linear-gradient(180deg,#f4c266,#d99626);
+    border:none; border-radius:12px; padding:18px 0; cursor:pointer;
+    box-shadow:0 6px 0 #8f5c11, 0 10px 22px rgba(0,0,0,.45);
+    transition:transform .08s ease, box-shadow .08s ease, filter .2s;
+    touch-action:manipulation; user-select:none;
+  }
+  .press:active{transform:translateY(4px); box-shadow:0 2px 0 #8f5c11, 0 5px 12px rgba(0,0,0,.45)}
+  .press[disabled]{filter:grayscale(.75) brightness(.6); cursor:default; box-shadow:0 6px 0 #3c3427}
+  .press.armed{animation:breathe 3.4s ease-in-out infinite}
+  @keyframes breathe{0%,100%{filter:brightness(1)}50%{filter:brightness(1.11)}}
+
+  .mark{margin-top:14px; font-family:var(--sans); font-size:14px; line-height:1.75}
+  .mark p{margin:0 0 10px; color:var(--fg)}
+  .slid{display:flex; align-items:center; gap:12px; flex-wrap:wrap}
+  .slid label{font-size:12px; letter-spacing:.1em; color:var(--dim); flex:0 0 auto}
+  input[type=range]{-webkit-appearance:none; appearance:none; flex:1 1 150px; height:26px; background:transparent; cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:3px; background:var(--line); border-radius:2px}
+  input[type=range]::-moz-range-track{height:3px; background:var(--line); border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px; margin-top:-8.5px; border-radius:50%; background:var(--green); border:none; box-shadow:0 0 0 5px rgba(95,208,160,.15)}
+  input[type=range]::-moz-range-thumb{width:20px; height:20px; border-radius:50%; background:var(--green); border:none; box-shadow:0 0 0 5px rgba(95,208,160,.15)}
+
+  button.ghost{
+    font-family:var(--sans); font-size:13px; letter-spacing:.06em; color:var(--fg);
+    background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:9px;
+    padding:10px 16px; cursor:pointer; transition:background .18s, border-color .18s, transform .1s;
+  }
+  button.ghost:hover{background:rgba(255,255,255,.1); border-color:#2f4454}
+  button.ghost:active{transform:translateY(1px)}
+  button.ghost[disabled]{opacity:.4; cursor:default}
+  button.big{
+    display:block; width:100%; font-size:15px; letter-spacing:.1em; padding:16px 0; margin-top:6px;
+    border-color:rgba(240,176,64,.4); color:var(--amber);
+  }
+  button.big:hover{background:rgba(240,176,64,.09); border-color:var(--amber)}
+
+  .stat{
+    display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:12px;
+    font-family:var(--mono); font-size:12px; color:var(--dim);
+  }
+  .stat b{color:var(--fg); font-weight:500}
+  .status{
+    font-family:var(--sans); font-size:14px; line-height:1.7; color:var(--amber);
+    margin:12px 0 0; min-height:3.4em;
+  }
+  .tiny{font-family:var(--sans); font-size:12.5px; color:var(--dim2); line-height:1.7; margin-top:14px}
+  .tiny a{color:var(--dim)}
+  .skip{margin-top:10px; display:flex; gap:10px; flex-wrap:wrap}
+
+  /* ── 分析 ── */
+  .scope{
+    margin:2.4em -22px; padding:14px; background:var(--panel);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  @media(min-width:620px){ .scope{margin:2.6em 0; border:1px solid var(--line); border-radius:14px} }
+  #cvAvg{display:block; width:100%; height:340px; background:#070c11; border-radius:9px}
+  @media(max-width:560px){ #cvAvg{height:300px} }
+  .legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:12px; font-family:var(--mono); font-size:11.5px; color:var(--dim)}
+  .legend i{display:inline-block; width:14px; height:2px; margin-right:6px; vertical-align:4px}
+  .moderow{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+  .moderow button{flex:1 1 auto}
+  button.ghost[aria-pressed=true]{border-color:var(--amber); color:var(--amber); background:rgba(240,176,64,.1)}
+
+  .bignum{
+    font-family:var(--mono); font-size:clamp(2.6rem,12vw,4.6rem); font-weight:400; letter-spacing:-.02em;
+    color:var(--amber); line-height:1; margin:.2em 0 .1em;
+  }
+  .bignum small{display:block; font-size:.2em; letter-spacing:.26em; color:var(--dim2); margin-top:1.5em}
+
+  .finale{padding:14vh 0 4vh}
+  footer{
+    border-top:1px solid var(--line); margin-top:11vh; padding:22px 0 40px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.03em; color:#4a5a65;
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  footer a{color:#4a5a65; text-decoration:none; border-bottom:1px solid #1f2c35}
+  footer a:hover{color:var(--dim)}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .press.armed{animation:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<!-- ═══ 第一屏 ═══ -->
+<header class="hero">
+  <canvas id="cvHero" role="img" aria-label="一個實驗用的圓形鐘面，一個亮點沿著圓周快速旋轉，每 2.56 秒繞一圈"></canvas>
+  <div class="hero-copy">
+    <div class="wrap">
+      <p class="kicker">1983 · UCSF · 一張椅子、一個按鈕</p>
+      <h1>等你想按的時候，就按
+        <span>沒有人會催你。<br>這個房間裡唯一在動的東西，是那個點。</span>
+      </h1>
+      <p class="scroll-hint"><i></i>往下捲，坐下來</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══ 一 ═══ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第一章 · 三條規則</p>
+    <h2 class="rise">那不是時鐘。它轉一圈只要 2.56 秒</h2>
+    <p class="rise">所以上面每一小格大約是 <em>43 毫秒</em>——比你眨一次眼還短。你要用它，把一個念頭釘在時間軸上。</p>
+    <ul class="rules">
+      <li class="rise"><b>一</b>想按的時候就按。不要計畫，不要數拍子，不要挑一個好看的數字。手指自己會知道。</li>
+      <li class="rise"><b>二</b>兩次之間至少讓那個點多走三秒。太急了不算。</li>
+      <li class="rise"><b>三</b>每按完一次，回想「我要按了」這個念頭<strong>第一次冒出來</strong>的那一瞬間——那時候，點在哪裡？把它指出來。</li>
+    </ul>
+    <p class="rise" style="margin-top:1.8em">左邊是鐘。右邊那台會吐紙的，是記錄器。</p>
+    <p class="rise dim">（你頭上當然沒有電極。記錄器裡跑的是一個真的會漂移的神經雜訊模型——你每一次按下的時刻，都會被餵進它的時間軸。）</p>
+  </div>
+
+  <!-- ── 實驗站 ── -->
+  <div class="rig rise" id="rig">
+    <div class="rigtop">
+      <span><span class="led" id="led"></span><span id="ledTxt">待機</span></span>
+      <span>RECORDER · Cz · 200 Hz · SIMULATED</span>
+    </div>
+
+    <div class="bench">
+      <div class="cell">
+        <canvas id="cvClock" role="img" aria-label="實驗鐘面：亮點沿圓周旋轉，一圈 2.56 秒；中央顯示目前刻度與已等待秒數"></canvas>
+        <button class="press armed" id="btnPress" aria-describedby="status">按</button>
+        <div class="stat" aria-hidden="true">
+          <span>刻度 <b id="oTick">—</b></span>
+          <span>已等 <b id="oWait">0.0</b> 秒</span>
+        </div>
+      </div>
+      <div class="cell">
+        <canvas id="cvRoll" role="img" aria-label="記錄紙：每按一次就多印出一條當次的模擬腦電波形"></canvas>
+        <div class="stat" aria-hidden="true">
+          <span>試次 <b id="oN">0</b> / 20</span>
+          <span>你的 W <b id="oW">—</b></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="mark" id="markBox" hidden>
+      <p id="markAsk">剛才，你第一次覺得「我要按了」——那時候，點在哪裡？</p>
+      <div class="slid">
+        <label for="wSlider">或用滑桿</label>
+        <input id="wSlider" type="range" min="0" max="1500" step="10" value="750"
+               aria-label="意識到想按的時刻，在按下之前多少毫秒">
+        <span class="stat" style="margin:0"><b id="wOut">750</b> 毫秒前</span>
+        <button class="ghost" id="btnMark">記下</button>
+      </div>
+    </div>
+
+    <p class="status" id="status" role="status" aria-live="polite">鐘已經在轉了。等你想按的時候，就按。</p>
+
+    <div class="skip">
+      <button class="ghost" id="btnAuto" aria-pressed="false">我標夠了，接下來只按</button>
+      <button class="ghost" id="btnEnough" disabled>按夠了，去看結果</button>
+    </div>
+    <p class="tiny">按鈕可以用滑鼠、也可以用鍵盤的空白鍵或 Enter。整段實驗大約兩到三分鐘。</p>
+  </div>
+
+  <div class="wrap">
+    <p class="rise dim">紙上那些線，一條一條看，什麼都不是。歪歪扭扭，沒有一條看起來像有計畫。</p>
+  </div>
+</section>
+
+<!-- ═══ 二：疊起來 ═══ -->
+<section class="chapter" id="actTwo" hidden>
+  <div class="wrap">
+    <p class="chnum rise">第二章 · 對齊</p>
+    <h2 class="rise">現在，把它們全部疊在同一個零點上</h2>
+    <p class="rise">零點就是<strong>你按下的那一瞬間</strong>。每一條線往回拉一秒半，一條壓一條，然後取平均。</p>
+    <p class="rise">Libet 那間實驗室做的，就是這一步。</p>
+  </div>
+
+  <div class="scope rise">
+    <canvas id="cvAvg" role="img" aria-label="平均後的腦電曲線圖，橫軸是按下之前的毫秒數"></canvas>
+    <div class="legend" aria-hidden="true">
+      <span><i style="background:#9fb4c2"></i>你的每一次</span>
+      <span><i style="background:#f0b040"></i>平均</span>
+      <span><i style="background:#e2543f"></i>−550 ms</span>
+      <span><i style="background:#6fb6e8"></i>−200 ms</span>
+      <span><i style="background:#5fd0a0"></i>你的 W</span>
+    </div>
+    <div class="moderow">
+      <button class="ghost" id="btnAlignOnset" aria-pressed="false">疊起來（以按下的瞬間對齊）</button>
+      <button class="ghost" id="btnAlignRand" hidden aria-pressed="false">以「隨機時刻」對齊</button>
+      <button class="ghost" id="btnReshuffle" hidden>再抽一次</button>
+    </div>
+    <p class="status" id="avgMsg" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="wrap" id="afterAvg" hidden>
+    <p class="rise">那條慢慢爬上來的東西有名字：<em>準備電位</em>（readiness potential）。1965 年被發現，1983 年被 Libet 拿來做一件更狠的事——把它跟「你說你意識到的那一刻」放在同一條時間軸上。</p>
+    <p class="rise">在 Libet 的受試者身上，準備電位大約在動作前 <strong>550 毫秒</strong>開始爬；而他們自述「第一次意識到想動」的時刻 W，平均落在動作前 <strong>200 毫秒</strong>。</p>
+    <p class="pull rise">腦，比你早了大約三分之一秒。</p>
+    <p class="rise">四十年來，這張圖被印在無數本書上，配著同一句結論：決定是腦先做的，意識只是事後收到通知。</p>
+    <p class="rise dim">（Libet 自己倒是留了一道門縫。他認為那 200 毫秒還夠你喊停——他叫它 <em>veto</em>，否決權。）</p>
+    <p class="rise">在你把這頁關掉、去思考自由意志之前，先做一件事。</p>
+    <p class="rise"><strong>別動那批資料。只換一種對齊方式。</strong></p>
+    <button class="ghost big rise" id="btnGoTwist">同一批資料，換一種零點 →</button>
+  </div>
+</section>
+
+<!-- ═══ 三：換對齊 ═══ -->
+<section class="chapter" id="actThree" hidden>
+  <div class="wrap">
+    <p class="chnum rise">第三章 · 曲線不見了</p>
+    <h2 class="rise">同一批線。你一條都沒改</h2>
+    <p class="rise">上面那張圖，零點已經換成<strong>隨機挑的一個時刻</strong>——不是你按下的那一刻，是等待期間隨便一個瞬間。</p>
+    <p class="rise">同一批資料，同樣的疊法，同樣的平均。</p>
+    <p class="rise">而那條著名的斜坡，攤平成一團雜訊了。剩下的起伏只有原本的幾分之一，而且沒有方向——你按得越多次，它越接近一條平線。</p>
+    <p class="rise">回上面按幾次「再抽一次」。每次抽到的隨機時刻都不同，攤平的形狀也不同——但它從來不會爬起來。</p>
+    <p class="pull rise">那條曲線不在資料裡。<br>它在你選擇的那個零點裡。</p>
+  </div>
+</section>
+
+<!-- ═══ 四：記憶點 ═══ -->
+<section class="chapter finale" id="actFour" hidden>
+  <div class="wrap">
+    <p class="chnum rise">第四章 · 有人在 2012 年說了這件事</p>
+    <h2 class="rise">記錄器裡那個模型，沒有「準備」這個東西</h2>
+    <p class="rise">它只有兩樣：一團會漂移的雜訊，和一條門檻。</p>
+    <p class="rise" style="font-family:var(--mono);font-size:14px;color:var(--dim);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:14px 16px;line-height:2">
+      x(t+dt) = x(t) + (−λ·x(t) + I)·dt + c·ξ·√dt<br>
+      <span style="color:var(--dim2)">x 越過門檻 θ ⟶ 動作發生</span>
+    </p>
+    <p class="rise">雜訊上下晃，晃過那條線，手就動了。裡面沒有任何一行程式碼在「準備」什麼、在「醞釀」什麼。</p>
+    <p class="rise">但你只在「它剛好晃過線」的那些時刻回頭看。而能越過門檻的那一次，前面那一小段幾乎一定是往上的——不然它不會越過去。</p>
+    <p class="rise"><strong>把幾十段這樣的尾巴疊起來平均，你必然得到一條緩慢上升的曲線。</strong>即使底下什麼準備都沒有。</p>
+    <p class="rise">2012 年，Aaron Schurger、Jacobo Sitt 與 Stanislas Dehaene 在 <em>PNAS</em> 上把這件事寫成一篇論文。他們沒有推翻資料，他們動的是那個零點。</p>
+
+    <p class="bignum" id="bignum">0<small>你剛剛親手畫出來的那條曲線</small></p>
+
+    <p class="rise">你不是在看一顆腦怎麼下決定。你是在看「越過門檻」這件事，長什麼形狀。</p>
+
+    <p class="rise" style="margin-top:2.6em">最後，一件必須誠實說的事。</p>
+    <p class="rise">這不代表 Schurger 贏了，也不代表自由意志被救回來了。準備電位到底是什麼，到 2020 年代還在吵：隨機漂移、累積歷程、時間估計、預期節奏，每一種說法都還在桌上，各自有實驗撐著。</p>
+    <p class="rise">這一頁能證明的只有一件很小、但很難忽視的事——</p>
+    <p class="pull rise">一條曲線的形狀，<br>有一部分來自你決定從哪裡開始看它。</p>
+    <p class="rise">下次有人拿一張圖告訴你某件事是註定的，先問一句：<strong>這張圖，是以什麼時刻對齊的？</strong></p>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <span>資料來源：Libet et al., Brain (1983)；Schurger et al., PNAS (2012)</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ===== MODEL START =====================================================
+ * 有洩漏的隨機累積器（leaky stochastic accumulator）
+ *   x(t+dt) = x(t) + (−λ·x(t) + I)·dt + c·ξ·√dt      ξ ~ N(0,1)
+ *   x 由下往上越過門檻 θ ⟶ 動作發生（＝那一試次的「按下」）
+ * 這一段完全不碰 DOM，可以直接丟進 node 跑斷言。
+ * ===================================================================== */
+(function (root) {
+  'use strict';
+
+  var P = {
+    dt: 0.005,      /* 5 ms 一步（＝ 200 Hz 取樣）*/
+    leak: 3,        /* λ：洩漏率 1/s，時間常數 1/λ ≈ 333 ms */
+    I: 0.12,        /* I：微弱的驅動（「總之要動一下」的指令）*/
+    noise: 0.20,    /* c：雜訊強度 */
+    theta: 0.20,    /* θ：門檻 */
+    minWait: 3.0,   /* 兩次動作之間至少 3 秒（Libet 對受試者的要求）*/
+    maxWait: 25,
+    pre: 300,       /* 取樣：動作前 300 步 ＝ 1500 ms */
+    post: 50,       /* 動作後 50 步 ＝ 250 ms */
+    baseN: 40,      /* 基線校正：取 epoch 最前面 40 步 ＝ 200 ms */
+    gap: 200        /* 隨機對齊時，零點至少距離真正的動作 1000 ms */
+  };
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gaussPair(r) {
+    var u = 0, v = 0;
+    while (u <= 1e-12) u = r();
+    v = r();
+    var m = Math.sqrt(-2 * Math.log(u));
+    return [m * Math.cos(6.283185307179586 * v), m * Math.sin(6.283185307179586 * v)];
+  }
+
+  /* 跑一個試次。回傳 null＝這次等不到 3 秒就越過門檻，整段作廢（對應規則二）。 */
+  function simTrial(seed) {
+    var r = mulberry32(seed >>> 0), dt = P.dt, sq = Math.sqrt(dt);
+    var x = P.I / P.leak, tr = [x];
+    var n = Math.round(P.maxWait / dt), minN = Math.round(P.minWait / dt);
+    var g = null, gi = 2;
+    for (var i = 1; i <= n; i++) {
+      if (gi > 1) { g = gaussPair(r); gi = 0; }
+      var z = g[gi++], prev = x;
+      x = x + (-P.leak * x + P.I) * dt + P.noise * z * sq;
+      tr.push(x);
+      if (prev < P.theta && x >= P.theta) {
+        if (i < minN) return null;
+        /* 動作之後再多跑一小段，記錄紙上才有真實的尾巴（不是被凍住的直線）*/
+        for (var k = 0; k < P.post; k++) {
+          if (gi > 1) { g = gaussPair(r); gi = 0; }
+          x = x + (-P.leak * x + P.I) * dt + P.noise * g[gi++] * sq;
+          tr.push(x);
+        }
+        return { trace: tr, onset: i, wait: i * dt };
+      }
+    }
+    return null;
+  }
+
+  /* 從模型自己的分布裡，挑一個「等待時間跟你這次差不多」的試次。
+     使用者的按鍵節奏因此真的決定了資料，而不是只當裝飾。 */
+  function matchTrial(waitSec, seed) {
+    var w = Math.max(P.minWait, Math.min(P.maxWait - 1, waitSec));
+    var r = mulberry32(seed >>> 0), best = null, bd = Infinity;
+    for (var i = 0; i < 180; i++) {
+      var t = simTrial((r() * 4294967295) >>> 0);
+      if (!t) continue;
+      var d = Math.abs(t.wait - w);
+      if (d < bd) { bd = d; best = t; }
+      if (d < 0.25) break;
+    }
+    return best;
+  }
+
+  /* 取出以 idx 為零點的 epoch，並做基線校正 */
+  function epochAt(trial, idx) {
+    var L = P.pre + P.post + 1, a = idx - P.pre, out = new Array(L), tr = trial.trace, last = tr.length - 1;
+    for (var k = 0; k < L; k++) {
+      var j = a + k;
+      out[k] = j < 0 ? tr[0] : (j > last ? tr[last] : tr[j]);
+    }
+    var s = 0;
+    for (var m = 0; m < P.baseN; m++) s += out[m];
+    s /= P.baseN;
+    for (var q = 0; q < L; q++) out[q] -= s;
+    return out;
+  }
+
+  /* mode: 'onset' ＝ 以動作發生的那一步對齊；'random' ＝ 以等待期間的隨機時刻對齊 */
+  function alignIndex(trial, mode, rnd) {
+    if (mode === 'onset') return trial.onset;
+    var lo = P.pre, hi = trial.onset - P.gap;
+    if (hi <= lo) hi = lo + 1;
+    return lo + Math.floor(rnd() * (hi - lo));
+  }
+  function epochs(trials, mode, rnd) {
+    var out = [];
+    for (var i = 0; i < trials.length; i++) out.push(epochAt(trials[i], alignIndex(trials[i], mode, rnd)));
+    return out;
+  }
+  function averageOf(eps) {
+    var L = P.pre + P.post + 1, acc = new Array(L), n = eps.length || 1;
+    for (var k = 0; k < L; k++) acc[k] = 0;
+    for (var i = 0; i < eps.length; i++) for (var j = 0; j < L; j++) acc[j] += eps[i][j];
+    for (var q = 0; q < L; q++) acc[q] /= n;
+    return acc;
+  }
+  function averageEpochs(trials, mode, rnd) { return averageOf(epochs(trials, mode, rnd)); }
+
+  function idxOfMs(ms) { return P.pre + Math.round(ms / 1000 / P.dt); }
+  /* 把曲線切成等寬的時間箱，回傳每箱平均（斷言與判讀用） */
+  function binMeans(avg, fromMs, toMs, stepMs) {
+    var out = [];
+    for (var t = fromMs; t < toMs; t += stepMs) {
+      var i0 = idxOfMs(t), i1 = idxOfMs(t + stepMs), s = 0, n = 0;
+      for (var i = i0; i < i1; i++) { s += avg[i]; n++; }
+      out.push(s / (n || 1));
+    }
+    return out;
+  }
+  /* 爬升起點：把曲線切成 50 ms 分箱（壓掉單點雜訊），從 0 往回找
+     最後一段「連續兩箱都低於峰值 10%」的位置。用連續兩箱是因為
+     試次少的時候單一箱很容易被雜訊頂上去，起點會被誤判到很早。 */
+  function rampOnsetMs(avg) {
+    var peak = avg[idxOfMs(0)], thr = peak * 0.1;
+    var b = binMeans(avg, -1500, 0, 50), run = 0;
+    for (var i = b.length - 1; i >= 0; i--) {
+      if (b[i] <= thr) { run++; if (run >= 2) return -1500 + (i + 2) * 50; }
+      else run = 0;
+    }
+    return -1500;
+  }
+  /* 均方根：比單點峰值穩定，用來比較兩種對齊方式的振幅 */
+  function rmsWindow(avg, fromMs, toMs) {
+    var i0 = idxOfMs(fromMs), i1 = idxOfMs(toMs), s = 0, n = 0;
+    for (var i = i0; i <= i1; i++) { s += avg[i] * avg[i]; n++; }
+    return Math.sqrt(s / (n || 1));
+  }
+  function maxAbs(a) {
+    var m = 0;
+    for (var i = 0; i < a.length; i++) { var v = Math.abs(a[i]); if (v > m) m = v; }
+    return m;
+  }
+
+  root.LIBET = {
+    P: P, mulberry32: mulberry32, simTrial: simTrial, matchTrial: matchTrial,
+    epochAt: epochAt, epochs: epochs, averageOf: averageOf, averageEpochs: averageEpochs,
+    binMeans: binMeans, idxOfMs: idxOfMs, rampOnsetMs: rampOnsetMs,
+    maxAbs: maxAbs, rmsWindow: rmsWindow
+  };
+})(typeof window !== 'undefined' ? window : globalThis);
+/* ===== MODEL END ===== */
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var M = window.LIBET, P = M.P;
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+  var TAU = Math.PI * 2;
+  var CLOCK_MS = 2560;                 /* Libet 的鐘：一圈 2.56 秒 */
+  var TARGET = 20, MIN_ANALYZE = 12;
+  var C = {
+    fg: '#e9eef2', dim: '#82949f', dim2: '#5d6d78', line: '#1d2b35',
+    amber: '#f0b040', red: '#e2543f', blue: '#6fb6e8', green: '#5fd0a0',
+    paper: '#eae1cd', grid: '#c9a08f', pen: '#2b2320'
+  };
+  var clamp = function (v, a, b) { return v < a ? a : (v > b ? b : v); };
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- 舞台引擎：單一 rAF、多畫布、離屏／隱藏即停 ---------- */
+  var stages = [];
+  function addStage(id, draw, opts) {
+    var cv = $(id);
+    if (!cv) return null;
+    var st = {
+      cv: cv, ctx: cv.getContext('2d'), draw: draw,
+      w: 0, h: 0, dpr: 1, visible: false, dirty: true, force: false,
+      animated: !!(opts && opts.animated), state: (opts && opts.state) || {}
+    };
+    function measure() {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：否則 ResizeObserver 會每幀把畫布尺寸翻倍，整張圖消失 */
+      if (cv.width !== nw || cv.height !== nh) { cv.width = nw; cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    st.measure = measure;
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(cv);
+    else window.addEventListener('resize', measure);
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { st.visible = e.isIntersecting; if (e.isIntersecting) st.dirty = true; });
+      }, { rootMargin: '90px' }).observe(cv);
+    } else st.visible = true;
+    stages.push(st);
+    return st;
+  }
+  var last = 0;
+  function frame(now) {
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+    if (!document.hidden) {
+      for (var i = 0; i < stages.length; i++) {
+        var s = stages[i];
+        if (!s.visible || !s.w) continue;
+        if (!(s.dirty || s.force || (s.animated && !reduced))) continue;
+        s.dirty = false;
+        var ctx = s.ctx;
+        ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+        ctx.clearRect(0, 0, s.w, s.h);
+        s.draw(ctx, s.w, s.h, now / 1000, dt, s.state);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', function () {
+    last = 0;
+    stages.forEach(function (s) { s.dirty = true; });
+  });
+  /* 減少動態時鐘面不轉，但秒數仍要能讀：低頻重繪 */
+  setInterval(function () {
+    if (reduced && stClock) stClock.dirty = true;
+  }, 250);
+
+  /* ---------- 進場 ---------- */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  var io = null;
+  function observeRisers() {
+    if (reduced || !window.IntersectionObserver) {
+      risers.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    if (!io) {
+      io = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+      }, { rootMargin: '0px 0px -10% 0px' });
+    }
+    risers.forEach(function (el) { if (!el.classList.contains('in')) io.observe(el); });
+  }
+  observeRisers();
+  function onRM() {
+    reduced = RM.matches;
+    observeRisers();
+    stages.forEach(function (s) { s.dirty = true; });
+    if (reduced && avgSt.playing) { avgSt.prog = 1; avgSt.playing = false; if (stAvg) stAvg.force = false; }
+    syncMarkUI();
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  /* ---------- 小工具 ---------- */
+  function label(ctx, x, y, text, color, align, size, font) {
+    ctx.fillStyle = color;
+    ctx.font = (size || 11) + 'px ' + (font || 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace');
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  }
+  function chip(ctx, x, y, text, color, size) {
+    size = size || 10.5;
+    ctx.font = size + 'px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+    var w = ctx.measureText(text).width, h = size + 8;
+    ctx.fillStyle = 'rgba(6,10,15,.86)';
+    if (ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x - 5, y - h / 2, w + 10, h, 4); ctx.fill(); }
+    else ctx.fillRect(x - 5, y - h / 2, w + 10, h);
+    label(ctx, x, y, text, color, 'left', size);
+  }
+
+  /* ---------- 鐘面 ---------- */
+  function drawDial(ctx, cx, cy, R, opts) {
+    opts = opts || {};
+    ctx.strokeStyle = 'rgba(130,148,159,.28)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, TAU); ctx.stroke();
+    for (var i = 0; i < 60; i++) {
+      var a = -Math.PI / 2 + i / 60 * TAU;
+      var big = i % 5 === 0;
+      var r0 = R - (big ? 9 : 4.5), r1 = R;
+      ctx.strokeStyle = big ? 'rgba(130,148,159,.55)' : 'rgba(130,148,159,.22)';
+      ctx.lineWidth = big ? 1.4 : 1;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+      ctx.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.stroke();
+      if (big && R > 70) {
+        var lr = R - 22;
+        label(ctx, cx + Math.cos(a) * lr, cy + Math.sin(a) * lr, String(i), 'rgba(130,148,159,.5)', 'center', 9.5);
+      }
+    }
+    if (opts.arc) {
+      ctx.strokeStyle = 'rgba(240,176,64,.36)';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.arc(cx, cy, R - 4.5, opts.arc[0], opts.arc[1]);
+      ctx.stroke();
+    }
+  }
+  function spotAt(ctx, cx, cy, R, ang, color, r) {
+    var x = cx + Math.cos(ang) * R, y = cy + Math.sin(ang) * R;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(x, y, r || 5, 0, TAU); ctx.fill();
+    return [x, y];
+  }
+  function angOfMs(ms) { return -Math.PI / 2 + ((ms % CLOCK_MS) / CLOCK_MS) * TAU; }
+
+  /* ---------- 第一屏 ---------- */
+  addStage('cvHero', function (ctx, w, h, t) {
+    var cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.36;
+    drawDial(ctx, cx, cy, R, null);
+    var ms = reduced ? 0 : t * 1000;
+    if (!reduced) {
+      for (var k = 6; k >= 1; k--) {
+        var a = angOfMs(ms - k * 34);
+        ctx.globalAlpha = 0.1 * (7 - k) / 6;
+        spotAt(ctx, cx, cy, R - 4.5, a, C.amber, 4.4);
+      }
+      ctx.globalAlpha = 1;
+    }
+    spotAt(ctx, cx, cy, R - 4.5, angOfMs(ms), C.amber, 5.2);
+    label(ctx, cx, cy - 8, '2.56 s', 'rgba(130,148,159,.45)', 'center', 12);
+    label(ctx, cx, cy + 10, '每格 43 ms', 'rgba(130,148,159,.3)', 'center', 10);
+  }, { animated: true });
+
+  /* ---------- 實驗站狀態 ---------- */
+  var S = {
+    phase: 'wait',           /* wait ｜ mark ｜ done */
+    waitStart: performance.now(),
+    pressAt: 0, pressAng: 0, lastWaited: 0,
+    trials: [], epochsCache: [], wList: [], autoW: false,
+    seedSalt: (Date.now() ^ 0x9e3779b9) >>> 0
+  };
+  var elLed = $('led'), elLedTxt = $('ledTxt'), elTick = $('oTick'), elWait = $('oWait');
+  var elN = $('oN'), elW = $('oW'), elStatus = $('status');
+  var btnPress = $('btnPress'), markBox = $('markBox'), markAsk = $('markAsk');
+  var wSlider = $('wSlider'), wOut = $('wOut'), btnMark = $('btnMark');
+  var btnAuto = $('btnAuto'), btnEnough = $('btnEnough');
+
+  function say(txt) { elStatus.textContent = txt; }
+
+  var clockSt = {};
+  var stClock = addStage('cvClock', function (ctx, w, h, t, dt) {
+    var cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.40;
+    var now = performance.now();
+    var arc = null;
+    if (S.phase === 'mark') {
+      arc = [angOfMs(S.pressAt - 1500), angOfMs(S.pressAt)];
+    }
+    drawDial(ctx, cx, cy, R, { arc: arc });
+
+    if (S.phase === 'mark') {
+      /* 凍結：亮出最後 1.5 秒那一段，等你指出 W */
+      var pAng = angOfMs(S.pressAt);
+      spotAt(ctx, cx, cy, R - 4.5, pAng, C.red, 5.6);
+      label(ctx, cx + Math.cos(pAng) * (R + 15), cy + Math.sin(pAng) * (R + 15), '按下', C.red, 'center', 9.5);
+      label(ctx, cx, cy - 26, '已凍結', C.red, 'center', 11);
+      var wv = +wSlider.value;
+      var wa = angOfMs(S.pressAt - wv);
+      spotAt(ctx, cx, cy, R - 4.5, wa, C.green, 5);
+      label(ctx, cx + Math.cos(wa) * (R + 15), cy + Math.sin(wa) * (R + 15), 'W', C.green, 'center', 9.5);
+      label(ctx, cx, cy - 4, String(wv) + ' ms', C.green, 'center', 17);
+      label(ctx, cx, cy + 16, '按下之前', 'rgba(130,148,159,.55)', 'center', 10);
+    } else if (S.phase === 'done') {
+      label(ctx, cx, cy - 6, '結束', 'rgba(130,148,159,.6)', 'center', 14);
+      label(ctx, cx, cy + 14, String(S.trials.length) + ' 次', 'rgba(130,148,159,.4)', 'center', 11);
+    } else {
+      var el = now - S.waitStart;
+      if (!reduced) {
+        for (var k = 6; k >= 1; k--) {
+          ctx.globalAlpha = 0.1 * (7 - k) / 6;
+          spotAt(ctx, cx, cy, R - 4.5, angOfMs(now - k * 34), C.amber, 4.6);
+        }
+        ctx.globalAlpha = 1;
+        spotAt(ctx, cx, cy, R - 4.5, angOfMs(now), C.amber, 5.6);
+      }
+      var ready = el >= P.minWait * 1000;
+      label(ctx, cx, cy - 6, (el / 1000).toFixed(1) + ' s', ready ? C.green : 'rgba(130,148,159,.55)', 'center', 20);
+      label(ctx, cx, cy + 16, ready ? '可以按了' : '至少等 3.0 s', ready ? 'rgba(95,208,160,.7)' : 'rgba(130,148,159,.4)', 'center', 10);
+      /* 非動畫的替代讀法（畫面上的數字讀出，不依賴看見那個點在轉） */
+      elTick.textContent = String(Math.floor((now % CLOCK_MS) / CLOCK_MS * 60));
+      elWait.textContent = (el / 1000).toFixed(1);
+    }
+  }, { animated: true, state: clockSt });
+
+  /* ---------- 記錄紙 ---------- */
+  var rollSt = {};
+  var stRoll = addStage('cvRoll', function (ctx, w, h) {
+    ctx.fillStyle = C.paper; ctx.fillRect(0, 0, w, h);
+    /* 腦電紙的細格 */
+    ctx.strokeStyle = 'rgba(201,160,143,.42)'; ctx.lineWidth = 1;
+    var g = 12;
+    ctx.beginPath();
+    for (var x = g; x < w; x += g) { ctx.moveTo(x + .5, 0); ctx.lineTo(x + .5, h); }
+    for (var y = g; y < h; y += g) { ctx.moveTo(0, y + .5); ctx.lineTo(w, y + .5); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(201,160,143,.75)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var x2 = g * 5; x2 < w; x2 += g * 5) { ctx.moveTo(x2 + .5, 0); ctx.lineTo(x2 + .5, h); }
+    ctx.stroke();
+
+    var rows = Math.max(TARGET, S.trials.length) + 1;
+    var rowH = h / rows, padL = 30, padR = 8;
+    var n = S.trials.length;
+    for (var i = 0; i < n; i++) {
+      var ep = S.epochsCache[i];
+      var y0 = rowH * (i + 1);
+      var amp = rowH * 0.62;
+      ctx.strokeStyle = 'rgba(43,35,32,.8)';
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      for (var k = 0; k < ep.length; k++) {
+        var px = padL + (w - padL - padR) * (k / (ep.length - 1));
+        var py = y0 - clamp(ep[k] / 0.13, -1.5, 1.5) * amp;
+        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      label(ctx, 6, y0, ('0' + (i + 1)).slice(-2), 'rgba(43,35,32,.42)', 'left', Math.min(9, rowH * 0.6));
+    }
+    /* 按下的那一刻：紙上的紅線 */
+    var zx = padL + (w - padL - padR) * (P.pre / (P.pre + P.post));
+    ctx.strokeStyle = 'rgba(226,84,63,.65)'; ctx.lineWidth = 1;
+    ctx.setLineDash([3, 4]);
+    ctx.beginPath(); ctx.moveTo(zx, 0); ctx.lineTo(zx, h); ctx.stroke();
+    ctx.setLineDash([]);
+    label(ctx, zx - 5, h - 8, '按下', 'rgba(226,84,63,.85)', 'right', 9.5);
+    if (!n) label(ctx, w / 2, h / 2, '尚未印出任何一次', 'rgba(43,35,32,.35)', 'center', 12);
+  }, { state: rollSt });
+
+  /* ---------- 按下 ---------- */
+  function nowMs() { return performance.now(); }
+  function setLed(on, txt) {
+    elLed.className = 'led' + (on ? ' on' : '');
+    elLedTxt.textContent = txt;
+  }
+  function syncMarkUI() {
+    if (S.phase !== 'mark') return;
+    markAsk.textContent = reduced
+      ? '剛才，你第一次覺得「我要按了」——那是在按下之前多久？用滑桿標出來。'
+      : '剛才，你第一次覺得「我要按了」——那時候，點在哪裡？點一下鐘面上亮起來的那一段。';
+  }
+
+  var RHYTHM = {
+    1: '第一條印出來了。歪的。沒關係，本來就該是歪的。',
+    3: '不要想「這次要不要按」——想了就不算隨意了。',
+    6: '你已經抓到節奏了。',
+    10: '一半。到目前為止，紙上沒有任何一條看起來像有計畫。',
+    15: '再五次。',
+    18: '快好了。'
+  };
+
+  function doPress() {
+    if (S.phase !== 'wait') return;
+    var t = nowMs(), waited = (t - S.waitStart) / 1000;
+    if (waited < P.minWait) {
+      say('太快了——那個點還沒走滿三秒。再等一下，等到你真的想按。');
+      return;
+    }
+    S.pressAt = t;
+    S.pressAng = angOfMs(t);
+    if (S.autoW) { commitTrial(waited, null); return; }
+    S.phase = 'mark';
+    setLed(false, '凍結 · 等你標記');
+    markBox.hidden = false;
+    wSlider.value = 750;
+    wOut.textContent = '750';
+    btnPress.disabled = true;
+    btnPress.classList.remove('armed');
+    S.lastWaited = waited;
+    if (stClock) stClock.animated = false;
+    syncMarkUI();
+    say(reduced ? '鐘停住了。用滑桿標出你意識到的時刻，再按「記下」。'
+                : '鐘停住了。點一下鐘面上那段亮起來的圓弧——或用下面的滑桿。');
+    if (stClock) stClock.dirty = true;
+  }
+
+  function commitTrial(waited, wMs) {
+    var idx = S.trials.length;
+    var seed = ((idx + 1) * 2654435761 ^ Math.round(waited * 1000) * 7919 ^ S.seedSalt) >>> 0;
+    var tr = M.matchTrial(waited, seed);
+    if (!tr) { say('這一次沒收到乾淨的訊號，再按一次。'); resetWait(); return; }
+    S.trials.push(tr);
+    S.epochsCache.push(M.epochAt(tr, tr.onset));
+    if (wMs != null) S.wList.push(wMs);
+
+    elN.textContent = String(S.trials.length);
+    elW.textContent = S.wList.length ? ('−' + Math.round(meanW()) + ' ms') : '—';
+    if (stRoll) stRoll.dirty = true;
+
+    var n = S.trials.length;
+    if (n >= MIN_ANALYZE) btnEnough.disabled = false;
+    if (n >= TARGET) { finishRun(); return; }
+    var msg = RHYTHM[n];
+    resetWait(msg || null);
+  }
+
+  function meanW() {
+    var s = 0;
+    for (var i = 0; i < S.wList.length; i++) s += S.wList[i];
+    return s / (S.wList.length || 1);
+  }
+
+  function resetWait(msg) {
+    S.phase = 'wait';
+    S.waitStart = nowMs();
+    markBox.hidden = true;
+    btnPress.disabled = false;
+    btnPress.classList.add('armed');
+    setLed(true, '記錄中 · ' + S.trials.length + '/' + TARGET);
+    say(msg || '記下了。紙又吐出一段。等你下次想按。');
+    if (stClock) { stClock.animated = true; stClock.dirty = true; }
+  }
+
+  function finishRun() {
+    S.phase = 'done';
+    markBox.hidden = true;
+    btnPress.disabled = true;
+    btnPress.classList.remove('armed');
+    btnEnough.disabled = true;
+    btnAuto.disabled = true;
+    setLed(false, '完成 · ' + S.trials.length + ' 次');
+    say(S.trials.length + ' 次。紙吐完了。往下捲——現在才是有趣的部分。');
+    if (stClock) { stClock.animated = false; stClock.dirty = true; }
+    unlock();
+  }
+
+  function unlock() {
+    var two = $('actTwo');
+    if (!two.hidden) return;
+    two.hidden = false;
+    observeRisers();
+    var msg = $('avgMsg');
+    msg.textContent = '按下面的按鈕，把你的 ' + S.trials.length + ' 次疊起來。';
+    if (stAvg) { stAvg.measure(); stAvg.dirty = true; }
+  }
+
+  btnPress.addEventListener('click', doPress);
+  btnMark.addEventListener('click', function () {
+    if (S.phase !== 'mark') return;
+    var v = clamp(+wSlider.value, 0, 1500);
+    commitTrial(S.lastWaited, v);
+  });
+  wSlider.addEventListener('input', function () {
+    wOut.textContent = wSlider.value;
+    if (stClock) stClock.dirty = true;
+  });
+  btnAuto.addEventListener('click', function () {
+    S.autoW = !S.autoW;
+    btnAuto.setAttribute('aria-pressed', S.autoW ? 'true' : 'false');
+    btnAuto.textContent = S.autoW ? '再開始標記' : '我標夠了，接下來只按';
+    say(S.autoW ? '好，接下來只要按。你的 W 就用已經標好的那幾次算。'
+                : '好，接下來每次都會問你 W。');
+  });
+  btnEnough.addEventListener('click', function () {
+    if (S.trials.length < MIN_ANALYZE) return;
+    finishRun();
+  });
+
+  /* 點鐘面標記 W */
+  $('cvClock').addEventListener('click', function (e) {
+    if (S.phase !== 'mark' || reduced) return;
+    var r = this.getBoundingClientRect();
+    var cx = r.width / 2, cy = r.height / 2;
+    var dx = (e.clientX - r.left) - cx, dy = (e.clientY - r.top) - cy;
+    var R = Math.min(r.width, r.height) * 0.40;
+    var d = Math.hypot(dx, dy);
+    if (d < R * 0.45) { say('點在圓周上——那圈亮起來的地方。'); return; }
+    var ang = Math.atan2(dy, dx);
+    var pa = angOfMs(S.pressAt);
+    var back = ((pa - ang) % TAU + TAU) % TAU / TAU * CLOCK_MS;
+    if (back > 1800) { say('那個位置已經在你按下之後了。請點亮起來的那一段——按下之前的最後一秒半。'); return; }
+    var v = Math.round(clamp(back, 0, 1500));
+    wSlider.value = String(v);
+    wOut.textContent = String(v);
+    commitTrial(S.lastWaited, v);
+  });
+
+  /* 鍵盤：站在實驗站前面時，空白鍵／Enter 就是按鈕 */
+  var rigNear = false;
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { rigNear = e.isIntersecting; });
+    }, { threshold: 0.2 }).observe($('rig'));
+  } else rigNear = true;
+  window.addEventListener('keydown', function (e) {
+    if (!rigNear || S.phase === 'done') return;
+    if (e.key !== ' ' && e.key !== 'Enter' && e.key !== 'Spacebar') return;
+    var tg = e.target;
+    if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'BUTTON' || tg.tagName === 'A')) return; /* 讓原生行為處理 */
+    e.preventDefault();
+    if (S.phase === 'wait') doPress();
+    else if (S.phase === 'mark') commitTrial(S.lastWaited, clamp(+wSlider.value, 0, 1500));
+  });
+
+  setLed(true, '記錄中 · 0/' + TARGET);
+
+  /* ---------- 平均圖 ---------- */
+  var avgSt = { mode: null, prog: 0, playing: false, eps: [], avg: null, rndSeed: 20120816 };
+  var stAvg = addStage('cvAvg', function (ctx, w, h, t, dt, A) {
+    var padL = 44, padR = 16, padT = 26, padB = 34;
+    var x0 = padL, x1 = w - padR, y0 = padT, y1 = h - padB;
+    var msMin = -1500, msMax = 250;
+    var X = function (ms) { return x0 + (ms - msMin) / (msMax - msMin) * (x1 - x0); };
+    var yTop = 0.30, yBot = -0.10;
+    var Y = function (v) { return y1 - (v - yBot) / (yTop - yBot) * (y1 - y0); };
+
+    /* 底 */
+    ctx.fillStyle = '#070c11'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = 'rgba(29,43,53,.9)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var ms = -1500; ms <= 250; ms += 250) { ctx.moveTo(X(ms), y0); ctx.lineTo(X(ms), y1); }
+    for (var v = -0.10; v <= 0.30; v += 0.05) { ctx.moveTo(x0, Y(v)); ctx.lineTo(x1, Y(v)); }
+    ctx.stroke();
+    /* 軸標 */
+    for (var ms2 = -1500; ms2 <= 0; ms2 += 500) {
+      label(ctx, X(ms2), y1 + 14, ms2 === 0 ? '0' : String(ms2), 'rgba(130,148,159,.6)', 'center', 10);
+    }
+    label(ctx, (x0 + x1) / 2, h - 8, '距離零點的時間（毫秒）', 'rgba(93,109,120,.85)', 'center', 10);
+    label(ctx, 6, y0 - 12, '電位（模型單位）', 'rgba(93,109,120,.85)', 'left', 10);
+
+    /* 基線 */
+    ctx.strokeStyle = 'rgba(130,148,159,.35)';
+    ctx.beginPath(); ctx.moveTo(x0, Y(0)); ctx.lineTo(x1, Y(0)); ctx.stroke();
+
+    if (!A.avg) {
+      label(ctx, (x0 + x1) / 2, (y0 + y1) / 2, '按下方的按鈕，開始疊', 'rgba(93,109,120,.7)', 'center', 12);
+      return;
+    }
+
+    if (A.playing) {
+      A.prog = Math.min(1, A.prog + dt / 1.25);
+      if (A.prog >= 1) { A.playing = false; stAvg.force = false; onAvgDone(); }
+    }
+    var L = A.avg.length, upto = Math.max(2, Math.round(L * A.prog));
+
+    /* 每一次（幽靈線） */
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(159,180,194,.16)';
+    for (var i = 0; i < A.eps.length; i++) {
+      var ep = A.eps[i];
+      ctx.beginPath();
+      for (var k = 0; k < upto; k++) {
+        var px = X(msMin + (k / (L - 1)) * (msMax - msMin));
+        var py = Y(clamp(ep[k], yBot, yTop));
+        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+    }
+
+    /* 零點 */
+    ctx.strokeStyle = 'rgba(233,238,242,.5)'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(X(0), y0); ctx.lineTo(X(0), y1); ctx.stroke();
+    label(ctx, X(0) + 5, y0 + 6, A.mode === 'onset' ? '按下' : '隨機零點',
+      'rgba(233,238,242,.8)', 'left', 10);
+
+    /* 標記線 */
+    function vline(ms, color, text, ty) {
+      if (ms < msMin) return;
+      ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+      ctx.setLineDash([4, 5]);
+      ctx.beginPath(); ctx.moveTo(X(ms), y0); ctx.lineTo(X(ms), y1); ctx.stroke();
+      ctx.setLineDash([]);
+      chip(ctx, X(ms) + 5, ty, text, color);
+    }
+    if (A.mode === 'onset') {
+      vline(-550, C.red, '−550 準備電位起點', y0 + 8);
+      vline(-200, C.blue, '−200 意識到（Libet）', y0 + 26);
+      if (S.wList.length) vline(-meanW(), C.green, '−' + Math.round(meanW()) + ' 你的 W', y0 + 44);
+    }
+
+    /* 平均線 */
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 2.6; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (var q = 0; q < upto; q++) {
+      var qx = X(msMin + (q / (L - 1)) * (msMax - msMin));
+      var qy = Y(clamp(A.avg[q], yBot, yTop));
+      if (q === 0) ctx.moveTo(qx, qy); else ctx.lineTo(qx, qy);
+    }
+    ctx.stroke();
+
+    var title = A.mode === 'onset'
+      ? String(S.trials.length) + ' 次 · 以按下的瞬間對齊'
+      : String(S.trials.length) + ' 次 · 以隨機時刻對齊';
+    label(ctx, x1, y0 - 12, title, 'rgba(130,148,159,.75)', 'right', 10.5);
+  }, { state: avgSt });
+
+  function buildAvg(mode) {
+    var rnd = M.mulberry32(avgSt.rndSeed >>> 0);
+    avgSt.eps = M.epochs(S.trials, mode, rnd);
+    avgSt.avg = M.averageOf(avgSt.eps);
+    avgSt.mode = mode;
+    avgSt.prog = reduced ? 1 : 0;
+    avgSt.playing = !reduced;
+    if (stAvg) { stAvg.force = avgSt.playing; stAvg.dirty = true; }
+    if (!avgSt.playing) onAvgDone();
+  }
+
+  var seenRandom = false;
+  function onAvgDone() {
+    var msg = $('avgMsg');
+    if (avgSt.mode === 'onset') {
+      var onsetMs = M.rampOnsetMs(avgSt.avg);
+      var peak = avgSt.avg[M.idxOfMs(0)];
+      msg.textContent = '你的 ' + S.trials.length + ' 次疊起來了。這條線大約在按下之前 '
+        + Math.abs(Math.round(onsetMs / 10) * 10) + ' 毫秒開始往上爬'
+        + (S.wList.length ? ('，而你說你在 ' + Math.round(meanW()) + ' 毫秒前才意識到。') : '。');
+      $('afterAvg').hidden = false;
+      observeRisers();
+      $('btnAlignRand').hidden = false;
+      window.__rp = { onsetMs: onsetMs, peak: peak };
+    } else {
+      var mA = M.maxAbs(avgSt.avg);
+      msg.textContent = '平了。同一批線、同樣的平均，只是零點換了地方——最大振幅剩下 '
+        + (mA / 0.001).toFixed(0) + ' 個單位，原本是 '
+        + (window.__rp ? (window.__rp.peak / 0.001).toFixed(0) : '—') + '。';
+      $('btnReshuffle').hidden = false;
+      if (!seenRandom) {
+        seenRandom = true;
+        $('actThree').hidden = false;
+        $('actFour').hidden = false;
+        observeRisers();
+        rollBignum();
+      }
+    }
+  }
+
+  $('btnAlignOnset').addEventListener('click', function () {
+    if (!S.trials.length) return;
+    setPressed(this, true); setPressed($('btnAlignRand'), false);
+    buildAvg('onset');
+  });
+  $('btnAlignRand').addEventListener('click', function () {
+    if (!S.trials.length) return;
+    setPressed(this, true); setPressed($('btnAlignOnset'), false);
+    buildAvg('random');
+  });
+  $('btnReshuffle').addEventListener('click', function () {
+    avgSt.rndSeed = (avgSt.rndSeed * 1103515245 + 12345) >>> 0;
+    setPressed($('btnAlignRand'), true); setPressed($('btnAlignOnset'), false);
+    buildAvg('random');
+  });
+  $('btnGoTwist').addEventListener('click', function () {
+    setPressed($('btnAlignRand'), true); setPressed($('btnAlignOnset'), false);
+    buildAvg('random');
+    var cv = $('cvAvg');
+    if (cv && cv.scrollIntoView) cv.scrollIntoView({ block: 'center' });
+  });
+  function setPressed(btn, on) { if (btn) btn.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+
+  /* ---------- 收尾數字 ---------- */
+  var bignum = $('bignum'), rolled = false;
+  function rollBignum() {
+    if (rolled) return;
+    rolled = true;
+    var target = S.trials.length;
+    if (reduced) { bignum.firstChild.nodeValue = String(target); return; }
+    var t0 = performance.now(), dur = 1300;
+    (function tick(now) {
+      var k = clamp((now - t0) / dur, 0, 1);
+      var e = 1 - Math.pow(1 - k, 3);
+      bignum.firstChild.nodeValue = String(Math.round(target * e));
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+})();
+</script>
+</body>
+</html>

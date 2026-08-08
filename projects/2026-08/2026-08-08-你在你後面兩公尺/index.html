@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你在你後面兩公尺</title>
+<meta name="description" content="戴上顯示器，畫面來自你背後兩公尺的兩台攝影機。有人要戳你的胸口了——同步，還是差半秒？開關在你手上。">
+<style>
+  :root{
+    --ink:#04070b; --ink2:#070c12; --panel:#0a1119;
+    --fg:#e7eef4; --dim:#8698a8; --faint:#4d5f6e;
+    --line:#16232f;
+    --amber:#ffc14d;      /* 「你」 */
+    --cool:#82bcd6;       /* 房間、器材 */
+    --sync:#5fe0b4;
+    --async:#ff8264;
+    --bone:#ded6c6;
+    --mono: ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--ink); color:var(--fg);
+    font-family:var(--serif); font-size:18px; line-height:1.9;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    transition:background .9s ease;
+  }
+  body.off{background:var(--ink2)}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--amber); outline-offset:3px}
+
+  .home{
+    position:fixed; top:12px; left:14px; z-index:80;
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.1em;
+    color:var(--dim); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(4,7,11,.6); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.08); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.24)}
+
+  /* ══════════ 頭戴顯示器裡的畫面 ══════════ */
+  .feed{position:fixed; inset:0; z-index:0; overflow:hidden}
+  .feed canvas{display:block; width:100%; height:100%}
+  .feed .layer{position:absolute; inset:0; pointer-events:none}
+  .scan{
+    background:repeating-linear-gradient(180deg,
+      rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+    mix-blend-mode:overlay; opacity:.55; transition:opacity .9s ease;
+  }
+  .vig{
+    background:
+      radial-gradient(130% 105% at 50% 46%, transparent 42%, rgba(2,4,7,.55) 76%, rgba(2,4,7,.94) 100%);
+    transition:opacity .9s ease;
+  }
+  .osd{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; color:rgba(130,188,214,.5);
+    transition:opacity .9s ease;
+  }
+  .osd span{position:absolute; white-space:nowrap}
+  .osd .tl{top:14px; left:0; right:0; text-align:center}
+  .osd .bl{bottom:14px; left:18px}
+  .osd .br{bottom:14px; right:18px}
+  .osd i{
+    position:absolute; width:16px; height:16px; border:1px solid rgba(130,188,214,.32);
+  }
+  .osd .c1{top:44px; left:22px; border-right:0; border-bottom:0}
+  .osd .c2{top:44px; right:22px; border-left:0; border-bottom:0}
+  .osd .c3{bottom:40px; left:22px; border-right:0; border-top:0}
+  .osd .c4{bottom:40px; right:22px; border-left:0; border-top:0}
+  @media (max-width:560px){ .osd .tl{font-size:9.5px} .osd .c1,.osd .c2,.osd .c3,.osd .c4{display:none} }
+
+  body.off .feed{opacity:.13}
+  body.off .scan,body.off .osd{opacity:0}
+  .feed{transition:opacity .9s ease}
+  .feed.recoil{animation:recoil .34s cubic-bezier(.2,.8,.3,1)}
+  @keyframes recoil{
+    0%{transform:translate3d(0,0,0)}
+    26%{transform:translate3d(0,-7px,0)}
+    62%{transform:translate3d(0,3px,0)}
+    100%{transform:translate3d(0,0,0)}
+  }
+
+  /* ══════════ 文字層 ══════════ */
+  main{position:relative; z-index:2}
+  .wrap{max-width:620px; margin:0 auto; padding:0 24px}
+  p{margin:0 0 1.2em}
+
+  .beat{
+    display:inline-block; max-width:100%;
+    background:rgba(4,7,11,.62); backdrop-filter:blur(9px);
+    border-left:2px solid rgba(255,193,77,.32);
+    padding:14px 20px; margin:0 0 26px; border-radius:0 8px 8px 0;
+  }
+  .beat p{margin:0}
+  .beat p + p{margin-top:.7em}
+
+  .rise{opacity:0; transform:translateY(18px); transition:opacity .85s ease, transform .85s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  .hero{
+    position:relative; min-height:100vh; min-height:100svh;
+    display:flex; align-items:flex-end; padding-bottom:11vh;
+  }
+  h1{
+    font-size:clamp(2.4rem,8.4vw,4.1rem); line-height:1.12; margin:0;
+    font-weight:500; letter-spacing:-.012em;
+  }
+  .hint{
+    font-family:var(--mono); font-size:11px; letter-spacing:.24em; color:var(--faint);
+    margin:2.6em 0 0; display:flex; align-items:center; gap:11px; flex-wrap:wrap;
+  }
+  .hint i{display:block; width:30px; height:1px; background:linear-gradient(90deg,var(--faint),transparent)}
+  .hint em{font-style:normal; letter-spacing:.1em; opacity:.75}
+
+  .act{padding:22vh 0 8vh}
+  .act.tall{padding-bottom:26vh}
+  .big{font-size:clamp(1.5rem,5.2vw,2.15rem); line-height:1.44; font-weight:500; letter-spacing:-.005em; margin:0}
+  .dim{color:var(--dim)}
+  em.k{font-style:normal; color:var(--amber)}
+  strong{font-weight:600; color:#fff}
+  .mono{font-family:var(--mono); font-size:12px; letter-spacing:.14em; color:var(--cool); opacity:.72}
+
+  /* 高潮段落：由狀態解鎖的句子 */
+  .unlock{
+    opacity:0; transform:translateY(10px); pointer-events:none;
+    transition:opacity .7s ease, transform .7s ease;
+  }
+  .unlock.on{opacity:1; transform:none; pointer-events:auto}
+  .titleline{
+    font-size:clamp(2rem,7.4vw,3.4rem); line-height:1.18; font-weight:500;
+    color:var(--amber); margin:.5em 0 .4em; letter-spacing:-.015em;
+  }
+
+  /* ══════════ 揭曉之後（拿下顯示器） ══════════ */
+  .paper{
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    padding:26px 0; margin:2.4em 0; font-family:var(--sans); font-size:14.5px; line-height:1.95;
+    color:var(--dim);
+  }
+  .paper b{color:var(--fg); font-weight:600}
+  .paper .cite{font-family:var(--mono); font-size:11.5px; letter-spacing:.06em; color:var(--faint); display:block; margin-top:.9em}
+  .quote{
+    font-size:clamp(1.15rem,3.6vw,1.5rem); line-height:1.6; color:#fff;
+    padding-left:22px; border-left:2px solid var(--amber); margin:2.2em 0;
+  }
+  .quote small{display:block; font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--faint); margin-top:1em}
+  .note{
+    font-family:var(--sans); font-size:14.5px; line-height:1.95; color:var(--dim);
+    border:1px solid var(--line); border-radius:10px; padding:20px 22px; margin:2.4em 0;
+  }
+  .note h2{font-family:var(--mono); font-size:11px; letter-spacing:.24em; color:var(--faint); font-weight:600; margin:0 0 .9em}
+  .note strong{color:#dbe6ee}
+
+  .finale{padding:14vh 0 6vh}
+  .finale p{font-size:clamp(1.15rem,3.6vw,1.5rem); line-height:1.62}
+  .last{color:var(--amber); font-size:clamp(1.4rem,5vw,2.1rem) !important; margin-top:1.6em !important}
+
+  footer{
+    border-top:1px solid var(--line); margin-top:12vh; padding:22px 0 44px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.05em; color:#41525f;
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  footer a{color:#41525f; text-decoration:none; border-bottom:1px solid #1c2932}
+  footer a:hover{color:var(--dim)}
+
+  /* ══════════ 控制台 ══════════ */
+  .hud{
+    position:fixed; left:0; right:0; bottom:0; z-index:60;
+    padding:0 14px 14px; display:flex; justify-content:center;
+    opacity:0; visibility:hidden; transform:translateY(16px);
+    transition:opacity .5s ease, transform .5s ease, visibility .5s;
+  }
+  .hud.on{opacity:1; visibility:visible; transform:none}
+  .hud-in{
+    width:100%; max-width:600px; background:rgba(7,12,18,.9); backdrop-filter:blur(12px);
+    border:1px solid rgba(255,255,255,.09); border-radius:14px; padding:13px 14px 11px;
+    font-family:var(--sans); box-shadow:0 14px 40px rgba(0,0,0,.5);
+  }
+  .modes{display:flex; gap:6px; background:rgba(255,255,255,.045); padding:3px; border-radius:9px}
+  .modes button{
+    flex:1; font-family:var(--sans); font-size:12.5px; letter-spacing:.04em; color:var(--dim);
+    background:transparent; border:0; border-radius:7px; padding:8px 4px; cursor:pointer;
+    transition:background .2s, color .2s; line-height:1.3;
+  }
+  .modes button span{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; opacity:.6}
+  .modes button[aria-checked=true]{background:rgba(95,224,180,.13); color:var(--sync)}
+  #mAsync[aria-checked=true]{background:rgba(255,130,100,.13); color:var(--async)}
+
+  .row{display:flex; gap:8px; margin-top:9px; align-items:stretch}
+  .poke{
+    flex:1; font-family:var(--sans); font-size:15px; font-weight:600; letter-spacing:.06em;
+    color:#08131a; background:linear-gradient(180deg,#ffd688,#efab35); border:0;
+    border-radius:10px; padding:14px 10px; cursor:pointer; touch-action:manipulation;
+    user-select:none; -webkit-user-select:none; transition:transform .1s ease, filter .2s ease;
+  }
+  .poke:hover{filter:brightness(1.08)}
+  .poke.down{transform:scale(.975); filter:brightness(.9)}
+  .ghost{
+    font-family:var(--sans); font-size:12.5px; color:var(--dim); background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:0 14px; cursor:pointer;
+    transition:background .2s, color .2s; white-space:nowrap;
+  }
+  .ghost:hover{background:rgba(255,255,255,.1); color:var(--fg)}
+  #hammer{border-color:rgba(255,130,100,.35); color:var(--async)}
+
+  .meter{
+    position:relative; height:4px; border-radius:3px; background:rgba(255,255,255,.08);
+    margin:12px 0 6px; overflow:hidden;
+  }
+  .meter i{
+    display:block; height:100%; width:100%; border-radius:3px;
+    background:linear-gradient(90deg,#c98a2a,var(--amber));
+    transform:scaleX(0); transform-origin:0 50%;
+  }
+  .meter b{position:absolute; top:-3px; bottom:-3px; left:60%; width:1px; background:rgba(255,255,255,.34)}
+  .mtext{
+    margin:0; font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--faint);
+    display:flex; justify-content:space-between; gap:10px;
+  }
+  .mtext b{color:var(--amber); font-weight:400}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+  @media (max-width:560px){
+    body{font-size:17px}
+    .wrap{padding:0 18px}
+    .beat{padding:12px 15px; margin-bottom:20px}
+    .hud{padding:0 8px 8px}
+    .row{flex-wrap:wrap}
+    .ghost{flex:1; padding:10px 8px}
+    .poke{flex-basis:100%}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .unlock{transition:none}
+    .feed,.scan,.osd,body{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<!-- ══════════ 顯示器裡的畫面 ══════════ -->
+<div class="feed" id="feed" aria-hidden="true">
+  <canvas id="cv"></canvas>
+  <div class="layer scan" id="scan"></div>
+  <div class="layer vig"></div>
+  <div class="layer osd" id="osd">
+    <span class="tl">CAM&nbsp;A·B　立體　640×480　71.5°　延遲&nbsp;&lt;25&nbsp;ms</span>
+    <span class="bl">距離 2.00 m</span>
+    <span class="br">鏡頭高度 = 眼高</span>
+    <i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i>
+  </div>
+</div>
+
+<main>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<section class="hero">
+  <div class="wrap">
+    <h1>那是你的背。</h1>
+    <p class="hint"><i></i>往下捲<em>（畫面有緩慢的視角移動）</em></p>
+  </div>
+</section>
+
+<!-- ══════════ 一、鋪陳 ══════════ -->
+<section class="act">
+  <div class="wrap">
+    <p class="beat rise"><span class="big">兩公尺。與你的眼睛同高。</span></p>
+    <p class="beat rise"><span class="big">你可以稍微轉頭。<span class="dim">移動一下滑鼠，或用手指拖曳。</span></span></p>
+    <p class="beat rise"><span class="big">他沒有回頭。</span></p>
+    <p class="beat rise"><span class="big">你低頭想找自己的胸口。<br>畫面下緣什麼都沒有。</span></p>
+    <p class="beat rise"><span class="mono">房間 3.5 m × 6 m　椅子在正中央</span></p>
+    <p class="beat rise"><span class="big">椅子旁邊站著一個人。<br>他手上有兩根棍子——你只看得見其中一根。</span></p>
+  </div>
+</section>
+
+<!-- ══════════ 二、高潮 ══════════ -->
+<section class="act tall" id="actPoke">
+  <div class="wrap">
+    <p class="beat rise"><span class="big">他要戳你了。</span></p>
+    <p class="beat rise"><span class="big"><strong>按住下面那顆鈕。</strong>他每秒戳一下。</span></p>
+
+    <div class="unlock" id="u1">
+      <p class="beat"><span class="big">你看見的那一下，和你胸口感覺到的那一下，是同一下。</span></p>
+    </div>
+
+    <div class="unlock" id="u2">
+      <p class="titleline">你在你後面兩公尺。</p>
+      <p class="beat"><span class="big">椅子上那個東西，一分鐘前還是你。</span></p>
+    </div>
+
+    <div class="unlock" id="u3">
+      <p class="beat"><span class="big">現在把開關扳到<em class="k">不同步</em>，再按一次。<br><span class="dim">看見和摸到之間，差半秒。</span></span></p>
+    </div>
+
+    <div class="unlock" id="u4">
+      <p class="beat"><span class="big">回來了。<br><strong>差半秒，就沒了。</strong></span></p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 三、轉折 ══════════ -->
+<section class="act" id="actReveal">
+  <div class="wrap">
+    <p class="beat rise"><span class="big">你剛剛玩的那個開關，是 2007 年 8 月 24 日《Science》上的一篇論文。</span></p>
+
+    <div class="paper rise">
+      <b>器材清單：</b>一副頭戴顯示器（640×480，對角視角 71.5°）。兩台同步的監視器攝影機，並排、間距抓成兩眼的寬度，放在受試者背後 <b>2 公尺</b>、與眼睛同高。兩根塑膠棒，<b>直徑 1 公分、長 20 公分</b>。一個節拍器，<b>每秒一下</b>。<br>
+      實驗者站在受試者旁邊，一根棒子戳他看不見的真胸口，另一根在鏡頭正下方做出一模一樣的動作。受試者看不見戳胸口的那隻手——被自己的身體擋住了。刺激兩分鐘，然後填十道題的問卷：三題問錯覺，七題是誘導性的對照題。
+      <span class="cite">H. H. Ehrsson, “The Experimental Induction of Out-of-Body Experiences”, Science 317, 1048 (2007). DOI 10.1126/science.1142175</span>
+    </div>
+
+    <p class="rise">十八個人。全部都在錯覺題上點頭，在對照題上搖頭。有人還沒填問卷就先開口了——</p>
+
+    <p class="quote rise">「我剛才坐在那邊，在我自己的後面。」
+      <small>—— 實驗紀錄裡的原話之一</small></p>
+
+    <p class="rise">然後 Ehrsson 做了一件更狠的事。他拿鎚子，往鏡頭下方那個看不見的「你」砸下去。</p>
+    <p class="rise dim">十二個人接上皮膚電反應電極。同步刺激之後被砸，反應顯著上升；不同步之後被砸，沒有。焦慮自評：<strong>4.3 對 2.6</strong>。有幾個人真的縮了一下——只在同步那一組。</p>
+    <p class="rise">嘴巴可以說「我知道那不是我」。皮膚不會說謊。</p>
+  </div>
+</section>
+
+<!-- ══════════ 四、記憶點 ══════════ -->
+<section class="act" id="actEnd">
+  <div class="wrap">
+    <p class="rise">這不是新把戲。1998 年有人把一隻橡膠手放在桌上，同時刷你看不見的真手和那隻假手。刷一分鐘，你會開始覺得那隻橡膠的是你的。那叫<strong>橡膠手錯覺</strong>。</p>
+    <p class="rise">Ehrsson 做的事只有一件：把那隻手換成整個人。</p>
+
+    <div class="finale">
+      <p class="rise">所以「我在這裡」不是一個事實，是一個<em class="k">結論</em>。</p>
+      <p class="rise">大腦每一刻都在結算：眼睛說我在這裡，皮膚說我在這裡，肌肉說我在這裡——三票一致，結案，下一秒重算一次。</p>
+      <p class="rise dim">它算得太快、太順、太少出錯，所以你從來沒發現它在作答。</p>
+      <p class="rise">兩根棍子就能讓它答錯。差半秒就能讓它答對。</p>
+
+      <div class="note rise">
+        <h2>要說清楚的一件事</h2>
+        實驗室裡誘發出來的錯覺，和臨床上、癲癇發作時、瀕死狀態下那些自發的出體經驗，<strong>不是同一件事</strong>。Ehrsson 自己在論文的補充資料裡就寫了：這個錯覺背後的多感官機制，是不是神經精神科文獻裡那些出體經驗的機制，「當然仍是一個未解的問題」。
+        <br><br>
+        這個實驗證明的不是「出體經驗是假的」。它證明的是：<strong>不需要靈魂離開身體，這種感覺也做得出來</strong>。那是一個機制上的候選解釋，不是判決書。
+      </div>
+
+      <p class="rise">最後。</p>
+      <p class="rise">這一頁一開始，我寫了一句「那是你的背」。</p>
+      <p class="rise">你連反駁都沒有想過。</p>
+      <p class="rise">而你現在覺得自己在螢幕前面的這個位置——</p>
+      <p class="rise last">那也是算出來的。它正在算。</p>
+    </div>
+
+    <footer>
+      <span>資料來源：Ehrsson, Science (2007)</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<!-- ══════════ 控制台 ══════════ -->
+<div class="hud" id="hud">
+  <div class="hud-in">
+    <div class="modes" role="radiogroup" aria-label="看見的觸碰與感覺到的觸碰，時間關係">
+      <button type="button" id="mSync" role="radio" aria-checked="true">同步<span>時間差 0 ms</span></button>
+      <button type="button" id="mAsync" role="radio" aria-checked="false">不同步<span>時間差 500 ms</span></button>
+    </div>
+    <div class="row">
+      <button type="button" class="poke" id="poke" aria-label="按住，讓實驗者戳你的胸口，每秒一下">按住 ─ 戳</button>
+      <button type="button" class="ghost" id="hammer" hidden>揮下鎚子</button>
+      <button type="button" class="ghost" id="reset">重來</button>
+    </div>
+    <div class="meter" aria-hidden="true"><i id="bar"></i><b></b></div>
+    <p class="mtext" aria-hidden="true"><span>錯覺強度 <b id="pct">0%</b></span><span id="stateTxt">你在椅子上</span></p>
+    <p class="sr" id="live" role="status" aria-live="polite"></p>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ════════════════ 核心純函式（node assert 驗過） ════════════════ */
+  /* ===PURE-START=== */
+  var SYNC_TAU_MS = 220;   /* 視覺—觸覺時間差的容許尺度 */
+  var GAIN        = 0.20;  /* 一次完全同步的刺激，錯覺強度增量 */
+  var PENALTY     = 0.15;  /* 一次完全不同步的刺激，扣減量 */
+  var DECAY_TAU   = 9.0;   /* 停止刺激後的衰減時間常數（秒） */
+  var THRESHOLD   = 0.60;  /* 「你已經在攝影機那裡」的門檻 */
+
+  function clamp01(v){ return v < 0 ? 0 : v > 1 ? 1 : v; }
+  /* 時間差 → 同步程度（0…1）。0 ms 給 1；500 ms 幾乎給 0 */
+  function syncGain(offsetMs){
+    var d = (offsetMs || 0) / SYNC_TAU_MS;
+    return Math.exp(-d * d);
+  }
+  /* 一次刺激之後的錯覺強度 */
+  function applyTouch(s, offsetMs){
+    var g = syncGain(offsetMs);
+    return clamp01(s + GAIN * g - PENALTY * (1 - g));
+  }
+  /* 無刺激時的指數衰減 */
+  function decayIllusion(s, dtSec){
+    return s * Math.exp(-(dtSec > 0 ? dtSec : 0) / DECAY_TAU);
+  }
+  function easeInOut(t){
+    t = clamp01(t);
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  }
+  /* 視點標記在「身體」與「攝影機」之間的插值 */
+  function lerp3(a, b, t){
+    var e = easeInOut(t), k = 1 - e;   /* 用這個寫法，端點才會精準落在 a 與 b 上 */
+    return [a[0] * k + b[0] * e, a[1] * k + b[1] * e, a[2] * k + b[2] * e];
+  }
+  /* ===PURE-END=== */
+
+  /* ════════════════ 基本設定 ════════════════ */
+  var mReduced = matchMedia('(prefers-reduced-motion: reduce)');
+  function reduced(){ return mReduced.matches; }
+
+  var CONTACT_MS = 360;   /* 看見的棒子碰到虛擬胸口的時刻 */
+  var ASYNC_MS   = 500;   /* 不同步模式的時間差 */
+  var ROD_MS     = 560;   /* 棒子飛過去的動畫長度 */
+  var BEAT_MS    = 1000;  /* 節拍器：每秒一下（照論文） */
+
+  var C = {
+    grid:'rgba(96,140,168,.20)', gridFar:'rgba(96,140,168,.09)',
+    wall:'rgba(110,158,186,.16)', edge:'rgba(130,188,214,.30)',
+    amber:'#ffc14d', cool:'#82bcd6', bone:'#ded6c6',
+    dim:'#8698a8', sync:'#5fe0b4', async:'#ff8264'
+  };
+  var TAU = Math.PI * 2;
+  var D2R = Math.PI / 180;
+
+  /* ════════════════ 畫布 ════════════════ */
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var W = 0, H = 0, DPR = 1, CX = 0, CY = 0, F = 600;
+
+  function fitCanvas(force){
+    var w = cv.clientWidth, h = cv.clientHeight;
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    if (!force && w === W && h === H && d === DPR) return false; /* 尺寸未變就短路 */
+    if (!w || !h) return false;
+    W = w; H = h; DPR = d;
+    cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    CX = W / 2; CY = H / 2;
+    /* 直向畫面用垂直取景；橫向畫面另外壓一個水平上限，讓房間兩側進得來 */
+    F = (H / 2) / Math.tan(26 * D2R);
+    if (W / H > 1.1) F = Math.min(F, (W / 2) / Math.tan(44 * D2R));
+    return true;
+  }
+
+  /* ════════════════ 相機與投影 ════════════════ */
+  var CAM_H = 1.20;                 /* 攝影機離地高度＝坐姿眼高 */
+  var PITCH = 7 * D2R;
+  var sinP = Math.sin(PITCH), cosP = Math.cos(PITCH);
+  var yaw = 0, yawTarget = 0;       /* 使用者的小幅轉頭 */
+  var drop = 0;                     /* 錯覺越強，視點越沉向鏡頭下方那個「胸口」 */
+
+  function toCam(p){
+    var x = p[0], y = p[1] + drop, z = p[2];
+    var cy0 = Math.cos(yaw), sy0 = Math.sin(yaw);
+    var xr = x * cy0 + z * sy0;
+    var zr = -x * sy0 + z * cy0;
+    var yr = y * cosP + zr * sinP;
+    var zr2 = -y * sinP + zr * cosP;
+    return [xr, yr, zr2];
+  }
+  function px(c){ return { x: CX + F * c[0] / c[2], y: CY - F * c[1] / c[2], s: F / c[2] }; }
+  function proj(p){ return px(toCam(p)); }
+
+  var ZMIN = 0.30;
+  function clipSeg(a, b){
+    if (a[2] >= ZMIN && b[2] >= ZMIN) return [a, b];
+    if (a[2] < ZMIN && b[2] < ZMIN) return null;
+    var t = (ZMIN - a[2]) / (b[2] - a[2]);
+    var m = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, ZMIN];
+    return a[2] < ZMIN ? [m, b] : [a, m];
+  }
+  function line3(p1, p2){
+    var seg = clipSeg(toCam(p1), toCam(p2));
+    if (!seg) return;
+    var a = px(seg[0]), b = px(seg[1]);
+    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+  }
+  function poly3(pts){
+    ctx.beginPath();
+    for (var i = 0; i < pts.length; i++){
+      var q = proj(pts[i]);
+      if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y);
+    }
+    ctx.closePath();
+  }
+
+  /* ════════════════ 房間 ════════════════ */
+  var HW = 1.75, FLOOR = -CAM_H, CEIL = 2.55 - CAM_H, ZF = 5.0;
+
+  function drawRoom(){
+    var g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#080e15'); g.addColorStop(0.46, '#0a1119'); g.addColorStop(1, '#04070b');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    /* 地板上的一圈燈光 */
+    var lp = proj([0, FLOOR, 2.0]);
+    if (isFinite(lp.x) && isFinite(lp.y)){
+      var rg = ctx.createRadialGradient(lp.x, lp.y, 0, lp.x, lp.y, Math.max(80, F * 0.5));
+      rg.addColorStop(0, 'rgba(120,168,196,.13)');
+      rg.addColorStop(1, 'rgba(120,168,196,0)');
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    }
+
+    var i;
+    /* 地板：橫線（越遠越淡） */
+    ctx.lineWidth = 1;
+    for (i = 1; i <= 10; i++){
+      var z = i * 0.5;
+      ctx.strokeStyle = 'rgba(96,140,168,' + (0.24 - 0.016 * i).toFixed(3) + ')';
+      ctx.beginPath(); line3([-HW, FLOOR, z], [HW, FLOOR, z]); ctx.stroke();
+    }
+    /* 地板：縱線 */
+    ctx.strokeStyle = C.gridFar;
+    ctx.beginPath();
+    for (i = -5; i <= 5; i++) line3([i * 0.35, FLOOR, 0.45], [i * 0.35, FLOOR, ZF]);
+    ctx.stroke();
+
+    /* 牆與天花板的輪廓 */
+    ctx.strokeStyle = C.wall;
+    ctx.beginPath();
+    line3([-HW, FLOOR, 0.45], [-HW, FLOOR, ZF]);
+    line3([ HW, FLOOR, 0.45], [ HW, FLOOR, ZF]);
+    line3([-HW, CEIL, 0.75], [-HW, CEIL, ZF]);
+    line3([ HW, CEIL, 0.75], [ HW, CEIL, ZF]);
+    for (i = 2; i <= 10; i += 2){
+      line3([-HW, FLOOR, i * 0.5], [-HW, CEIL, i * 0.5]);
+      line3([ HW, FLOOR, i * 0.5], [ HW, CEIL, i * 0.5]);
+    }
+    ctx.stroke();
+
+    /* 對面的牆＋一扇門 */
+    ctx.strokeStyle = C.edge;
+    ctx.beginPath();
+    line3([-HW, FLOOR, ZF], [HW, FLOOR, ZF]);
+    line3([-HW, CEIL, ZF], [HW, CEIL, ZF]);
+    line3([-HW, FLOOR, ZF], [-HW, CEIL, ZF]);
+    line3([ HW, FLOOR, ZF], [ HW, CEIL, ZF]);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(130,188,214,.22)';
+    ctx.beginPath();
+    line3([0.52, FLOOR, ZF], [0.52, FLOOR + 2.02, ZF]);
+    line3([1.42, FLOOR, ZF], [1.42, FLOOR + 2.02, ZF]);
+    line3([0.52, FLOOR + 2.02, ZF], [1.42, FLOOR + 2.02, ZF]);
+    ctx.stroke();
+
+    /* 左牆上的一塊板子 */
+    ctx.strokeStyle = 'rgba(130,188,214,.16)';
+    ctx.beginPath();
+    line3([-HW, 0.62, 3.0], [-HW, 0.62, 4.1]);
+    line3([-HW, -0.06, 3.0], [-HW, -0.06, 4.1]);
+    line3([-HW, 0.62, 3.0], [-HW, -0.06, 3.0]);
+    line3([-HW, 0.62, 4.1], [-HW, -0.06, 4.1]);
+    ctx.stroke();
+
+    /* 右前方一張桌子 */
+    ctx.strokeStyle = 'rgba(110,158,186,.26)';
+    poly3([[-1.62, -0.42, 3.3], [-0.72, -0.42, 3.3], [-0.72, -0.42, 4.1], [-1.62, -0.42, 4.1]]);
+    ctx.stroke();
+    ctx.beginPath();
+    line3([-1.58, -0.42, 3.36], [-1.58, FLOOR, 3.36]);
+    line3([-0.78, -0.42, 3.36], [-0.78, FLOOR, 3.36]);
+    ctx.stroke();
+  }
+
+  /* ════════════════ 椅子上的那個人 ════════════════ */
+  var BZ = 2.00;
+  var CHEST = [0, -0.32, 1.90];         /* 身體的胸口（從背後看的位置） */
+  var GHOST = [0, -0.30, 0.34];         /* 鏡頭下方的「虛擬胸口」 */
+
+  function rim(s, a){
+    return 'rgba(' + Math.round(255 * (1 - s) + 138 * s) + ',' +
+                     Math.round(196 * (1 - s) + 162 * s) + ',' +
+                     Math.round(88 * (1 - s) + 182 * s) + ',' + a.toFixed(3) + ')';
+  }
+
+  function drawSitter(t, s){
+    var br = reduced() ? 0 : Math.sin(t * 1.55) * 0.006;
+    var sw = reduced() ? 0 : Math.sin(t * 0.29) * 0.006;
+    var shY = -0.15 + br, hdY = 0.045 + br * 1.2;
+    var P = function(x, y, z){ return proj([x + sw, y, z]); };
+
+    /* 椅腳與椅面 */
+    ctx.strokeStyle = 'rgba(148,176,196,.26)'; ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    line3([-0.21, -0.75, 1.86], [-0.19, FLOOR, 1.88]);
+    line3([ 0.21, -0.75, 1.86], [ 0.19, FLOOR, 1.88]);
+    line3([-0.21, -0.75, 2.22], [-0.19, FLOOR, 2.20]);
+    line3([ 0.21, -0.75, 2.22], [ 0.19, FLOOR, 2.20]);
+    ctx.stroke();
+    poly3([[-0.22, -0.75, 1.84], [0.22, -0.75, 1.84], [0.22, -0.75, 2.24], [-0.22, -0.75, 2.24]]);
+    ctx.fillStyle = 'rgba(16,27,37,.95)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(148,176,196,.30)'; ctx.stroke();
+
+    var shL = P(-0.225, shY, BZ),   shR = P(0.225, shY, BZ);
+    var wsL = P(-0.172, -0.56, BZ), wsR = P(0.172, -0.56, BZ);
+    var hpL = P(-0.198, -0.76, BZ), hpR = P(0.198, -0.76, BZ);
+    var nkL = P(-0.050, shY + 0.022, BZ), nkR = P(0.050, shY + 0.022, BZ);
+
+    /* 手臂：垂在身體兩側，被軀幹壓住內側 */
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#152230';
+    ctx.lineWidth = Math.max(4, (shR.x - shL.x) * 0.15);
+    var aL1 = P(-0.205, shY - 0.035, BZ + 0.03), aL2 = P(-0.238, -0.57, BZ + 0.04);
+    var aR1 = P( 0.205, shY - 0.035, BZ + 0.03), aR2 = P( 0.238, -0.57, BZ + 0.04);
+    ctx.beginPath();
+    ctx.moveTo(aL1.x, aL1.y); ctx.lineTo(aL2.x, aL2.y);
+    ctx.moveTo(aR1.x, aR1.y); ctx.lineTo(aR2.x, aR2.y);
+    ctx.stroke();
+    ctx.restore();
+
+    /* 軀幹（背面） */
+    ctx.beginPath();
+    ctx.moveTo(shL.x, shL.y);
+    ctx.quadraticCurveTo(shL.x - 3, (shL.y + wsL.y) * 0.5, wsL.x, wsL.y);
+    ctx.quadraticCurveTo(wsL.x - 2, (wsL.y + hpL.y) * 0.5, hpL.x, hpL.y);
+    ctx.lineTo(hpR.x, hpR.y);
+    ctx.quadraticCurveTo(wsR.x + 2, (wsR.y + hpR.y) * 0.5, wsR.x, wsR.y);
+    ctx.quadraticCurveTo(shR.x + 3, (shR.y + wsR.y) * 0.5, shR.x, shR.y);
+    ctx.quadraticCurveTo((shR.x + nkR.x) * 0.5, nkR.y + (shR.y - nkR.y) * 0.15, nkR.x, nkR.y);
+    ctx.lineTo(nkL.x, nkL.y);
+    ctx.quadraticCurveTo((shL.x + nkL.x) * 0.5, nkL.y + (shL.y - nkL.y) * 0.15, shL.x, shL.y);
+    ctx.closePath();
+    var tg = ctx.createLinearGradient(0, nkL.y, 0, hpL.y);
+    tg.addColorStop(0, '#31434f'); tg.addColorStop(0.55, '#24333f'); tg.addColorStop(1, '#141f29');
+    ctx.fillStyle = tg; ctx.fill();
+    ctx.strokeStyle = rim(s, 0.24 + 0.20 * (1 - s));
+    ctx.lineWidth = 1.5; ctx.stroke();
+
+    /* 脊線與兩片肩胛：讓它讀得出來是一個背 */
+    ctx.save();
+    ctx.strokeStyle = 'rgba(8,14,20,.5)'; ctx.lineWidth = 1.2;
+    var spT = P(0, shY - 0.06, BZ), spB = P(0, -0.66, BZ);
+    ctx.beginPath(); ctx.moveTo(spT.x, spT.y); ctx.lineTo(spB.x, spB.y); ctx.stroke();
+    var bl1 = P(-0.135, shY - 0.05, BZ), bl2 = P(-0.09, -0.36, BZ);
+    var br1 = P( 0.135, shY - 0.05, BZ), br2 = P( 0.09, -0.36, BZ);
+    ctx.beginPath();
+    ctx.moveTo(bl1.x, bl1.y); ctx.quadraticCurveTo(bl1.x - 4, (bl1.y + bl2.y) * 0.5, bl2.x, bl2.y);
+    ctx.moveTo(br1.x, br1.y); ctx.quadraticCurveTo(br1.x + 4, (br1.y + br2.y) * 0.5, br2.x, br2.y);
+    ctx.stroke();
+    ctx.restore();
+
+    /* 矮椅背（在身體與鏡頭之間） */
+    poly3([[-0.205, -0.75, 1.855], [0.205, -0.75, 1.855], [0.205, -0.555, 1.855], [-0.205, -0.555, 1.855]]);
+    ctx.fillStyle = 'rgba(12,21,29,.96)'; ctx.fill();
+    ctx.strokeStyle = 'rgba(148,176,196,.30)'; ctx.lineWidth = 1.3; ctx.stroke();
+
+    /* 脖子 */
+    poly3([[-0.050 + sw, shY + 0.015, BZ + 0.01], [0.050 + sw, shY + 0.015, BZ + 0.01],
+           [0.044 + sw, hdY - 0.082, BZ + 0.01], [-0.044 + sw, hdY - 0.082, BZ + 0.01]]);
+    ctx.fillStyle = '#394a56'; ctx.fill();
+
+    /* 後腦 */
+    var hd = P(0, hdY, BZ + 0.02);
+    var rx = 0.093 * hd.s, ry = 0.112 * hd.s;
+    var hg = ctx.createRadialGradient(hd.x - rx * 0.32, hd.y - ry * 0.5, rx * 0.1, hd.x, hd.y, ry * 1.2);
+    hg.addColorStop(0, '#43555f'); hg.addColorStop(1, '#1a2530');
+    ctx.beginPath(); ctx.ellipse(hd.x, hd.y, rx, ry, 0, 0, TAU); ctx.fillStyle = hg; ctx.fill();
+    /* 頭髮：蓋住上面四分之三，留下後頸 */
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(hd.x, hd.y, rx, ry, 0, 0, TAU); ctx.clip();
+    ctx.beginPath();
+    ctx.ellipse(hd.x, hd.y - ry * 0.16, rx * 1.02, ry * 0.92, 0, 0, TAU);
+    ctx.fillStyle = '#151f29'; ctx.fill();
+    ctx.restore();
+    /* 頭頂緣光 */
+    ctx.beginPath(); ctx.ellipse(hd.x, hd.y, rx, ry, 0, Math.PI * 1.16, Math.PI * 1.84);
+    ctx.strokeStyle = rim(s, 0.5 + 0.3 * (1 - s));
+    ctx.lineWidth = 2; ctx.stroke();
+
+    return { hd: hd, rx: rx, ry: ry, sL: shL, sR: shR, hL: hpL, hR: hpR };
+  }
+
+  /* 錯覺成立之後，畫面開始把那個身體當成一個「物件」 */
+  function drawTrackBox(fig, s){
+    var a = (s - 0.42) / 0.33;
+    if (a <= 0) return;
+    a = Math.min(1, a);
+    var x1 = Math.min(fig.sL.x, fig.hL.x) - 14, x2 = Math.max(fig.sR.x, fig.hR.x) + 14;
+    var y1 = fig.hd.y - fig.ry - 16, y2 = Math.max(fig.hL.y, fig.hR.y) + 10;
+    ctx.save();
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = 'rgba(150,178,196,' + (0.5 * a).toFixed(3) + ')';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+    ctx.setLineDash([]);
+    ctx.font = '10px ' + MONO;
+    ctx.fillStyle = 'rgba(150,178,196,' + (0.72 * a).toFixed(3) + ')';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(s > 0.75 ? 'OBJ · 不是你' : 'OBJ · 人形', x1, y1 - 6);
+    ctx.restore();
+  }
+
+  /* ════════════════ 站在旁邊的實驗者 ════════════════ */
+  var EX = 0.95, EZ = 2.45;
+  var SHOULDER = [EX - 0.18, 0.29, EZ - 0.06];
+
+  function drawExperimenter(rod){
+    var head = proj([EX, 0.46, EZ]);
+    var rx = 0.086 * head.s, ry = 0.102 * head.s;
+    ctx.fillStyle = '#101a24';
+    /* 腿 */
+    poly3([[EX - 0.145, -0.22, EZ], [EX - 0.015, -0.22, EZ], [EX - 0.035, FLOOR, EZ], [EX - 0.135, FLOOR, EZ]]);
+    ctx.fill();
+    poly3([[EX + 0.015, -0.22, EZ], [EX + 0.145, -0.22, EZ], [EX + 0.135, FLOOR, EZ], [EX + 0.035, FLOOR, EZ]]);
+    ctx.fill();
+    /* 軀幹：肩寬、腰窄 */
+    var s1 = proj([EX - 0.19, 0.30, EZ]), s2 = proj([EX + 0.19, 0.30, EZ]);
+    var w1 = proj([EX - 0.135, -0.08, EZ]), w2 = proj([EX + 0.135, -0.08, EZ]);
+    var p1 = proj([EX - 0.155, -0.24, EZ]), p2 = proj([EX + 0.155, -0.24, EZ]);
+    var nk = proj([EX, 0.33, EZ]);
+    ctx.beginPath();
+    ctx.moveTo(s1.x, s1.y);
+    ctx.quadraticCurveTo(s1.x - 2, (s1.y + w1.y) * 0.5, w1.x, w1.y);
+    ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
+    ctx.quadraticCurveTo(w2.x + 2, (s2.y + w2.y) * 0.5, s2.x, s2.y);
+    ctx.quadraticCurveTo(nk.x, nk.y - (s2.y - nk.y) * 0.3, s1.x, s1.y);
+    ctx.closePath(); ctx.fill();
+    /* 脖子與頭 */
+    poly3([[EX - 0.045, 0.31, EZ], [EX + 0.045, 0.31, EZ], [EX + 0.04, 0.38, EZ], [EX - 0.04, 0.38, EZ]]);
+    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(head.x, head.y, rx, ry, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = 'rgba(130,188,214,.24)'; ctx.lineWidth = 1.3;
+    ctx.beginPath(); ctx.ellipse(head.x, head.y, rx, ry, 0, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
+
+    /* 看得見的那隻手臂：伸向鏡頭，然後在畫面下緣消失 */
+    if (rod){
+      var fade = 1 - smooth(0.42, 0.82, rod.u);
+      if (fade > 0.02){
+        var sh = proj(SHOULDER);
+        var hand = proj(rod.back);
+        ctx.save();
+        ctx.globalAlpha = fade;
+        ctx.strokeStyle = '#243646'; ctx.lineCap = 'round';
+        ctx.lineWidth = Math.max(4, 0.055 * sh.s);
+        ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+        ctx.fillStyle = '#2e4354';
+        ctx.beginPath(); ctx.arc(hand.x, hand.y, Math.max(3, 0.035 * hand.s), 0, TAU); ctx.fill();
+        ctx.restore();
+      }
+    }
+  }
+  function smooth(a, b, x){
+    var t = clamp01((x - a) / (b - a));
+    return t * t * (3 - 2 * t);
+  }
+
+  /* ════════════════ 棒子 ════════════════ */
+  var ROD_A = [0.70, 0.08, 2.05];   /* 從實驗者手上出發 */
+  var ROD_B = [0.03, -0.42, 0.31];  /* 鏡頭正下方那個看不見的「胸口」 */
+
+  function rodPose(u){
+    var e = easeInOut(u);
+    var tip = [ROD_A[0] + (ROD_B[0] - ROD_A[0]) * e,
+               ROD_A[1] + (ROD_B[1] - ROD_A[1]) * e,
+               ROD_A[2] + (ROD_B[2] - ROD_A[2]) * e];
+    var dx = ROD_B[0] - ROD_A[0], dy = ROD_B[1] - ROD_A[1], dz = ROD_B[2] - ROD_A[2];
+    var L = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+    var back = [tip[0] - dx / L * 0.20, tip[1] - dy / L * 0.20, tip[2] - dz / L * 0.20];
+    return { u: u, tip: tip, back: back };
+  }
+  function drawRod(rod, color, thick){
+    var a = toCam(rod.tip), b = toCam(rod.back);
+    var seg = clipSeg(a, b);
+    if (!seg) return;
+    var p1 = px(seg[0]), p2 = px(seg[1]);
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = color || C.bone;
+    ctx.lineWidth = Math.max(2, (thick || 0.011) * Math.max(p1.s, p2.s));
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ════════════════ 感覺到的那一下（看不見的胸口） ════════════════ */
+  var felts = [];
+  function drawFelt(now){
+    for (var i = felts.length - 1; i >= 0; i--){
+      var k = (now - felts[i].t) / 620;
+      if (k >= 1){ felts.splice(i, 1); continue; }
+      var a = (1 - k) * 0.55;
+      var rr = 30 + k * Math.max(W, H) * 0.34;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,193,77,' + a.toFixed(3) + ')';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.arc(CX, H + 26, rr, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ════════════════ 「你」的標記 ════════════════ */
+  var MONO = 'ui-monospace,Menlo,Consolas,"Microsoft JhengHei",monospace';
+
+  function drawMarker(s, t){
+    var p = lerp3(CHEST, GHOST, s);
+    var m = proj(p);
+    var body = proj(CHEST);
+
+    /* 從身體牽出來的那條線 */
+    if (s > 0.02){
+      ctx.save();
+      ctx.setLineDash([3, 6]);
+      ctx.strokeStyle = 'rgba(255,193,77,' + (0.16 + 0.2 * (1 - s)).toFixed(3) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(body.x, body.y); ctx.lineTo(m.x, m.y); ctx.stroke();
+      ctx.restore();
+    }
+
+    var puls = reduced() ? 1 : 1 + Math.sin(t * 2.3) * 0.06;
+    var r = Math.max(7, 0.055 * m.s) * puls;
+    ctx.save();
+    ctx.translate(m.x, m.y);
+    ctx.rotate(Math.PI / 4);
+    ctx.strokeStyle = C.amber; ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.95;
+    ctx.strokeRect(-r, -r, r * 2, r * 2);
+    ctx.globalAlpha = 0.13;
+    ctx.fillStyle = C.amber;
+    ctx.fillRect(-r, -r, r * 2, r * 2);
+    ctx.globalAlpha = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.34, 0); ctx.lineTo(r * 0.34, 0);
+    ctx.moveTo(0, -r * 0.34); ctx.lineTo(0, r * 0.34);
+    ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.restore();
+
+    /* 標記抵達鏡頭之後，整個畫框接手當「你」 */
+    if (s > 0.72){
+      var ba = (s - 0.72) / 0.28 * 0.55;
+      var pad = Math.max(18, Math.min(W, H) * 0.045), L = Math.max(22, Math.min(W, H) * 0.06);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,193,77,' + ba.toFixed(3) + ')';
+      ctx.lineWidth = 2; ctx.lineCap = 'butt';
+      ctx.beginPath();
+      ctx.moveTo(pad, pad + L); ctx.lineTo(pad, pad); ctx.lineTo(pad + L, pad);
+      ctx.moveTo(W - pad - L, pad); ctx.lineTo(W - pad, pad); ctx.lineTo(W - pad, pad + L);
+      ctx.moveTo(pad, H - pad - L); ctx.lineTo(pad, H - pad); ctx.lineTo(pad + L, H - pad);
+      ctx.moveTo(W - pad - L, H - pad); ctx.lineTo(W - pad, H - pad); ctx.lineTo(W - pad, H - pad - L);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    var label = s < 0.3 ? '你' : (s < THRESHOLD ? '你？' : '你在這裡');
+    ctx.save();
+    ctx.font = (s < THRESHOLD ? 12 : 13) + 'px ' + MONO;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    var tw = ctx.measureText(label).width;
+    var ly = m.y - r - 16;
+    if (ly < 24) ly = m.y + r + 18;
+    if (ly > H - 30) ly = H - 30;        /* 標記沉到畫面外時，字仍要留在框內 */
+    if (ly < 26) ly = 26;
+    ctx.fillStyle = 'rgba(4,7,11,.78)';
+    ctx.fillRect(m.x - tw / 2 - 7, ly - 10, tw + 14, 20);
+    ctx.fillStyle = C.amber;
+    ctx.fillText(label, m.x, ly);
+    ctx.restore();
+
+    /* 身體那邊的稱呼跟著改 */
+    var bl = s < 0.3 ? '' : (s < THRESHOLD ? '他？' : '某個人的背');
+    if (bl){
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (s - 0.3) / 0.25);
+      ctx.font = '11px ' + MONO;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      var by = body.y - 34;
+      ctx.fillStyle = 'rgba(150,178,196,.9)';
+      ctx.fillText(bl, body.x + 30, by);
+      ctx.strokeStyle = 'rgba(150,178,196,.45)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(body.x + 8, body.y - 6); ctx.lineTo(body.x + 25, by); ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  /* ════════════════ 訊號質感 ════════════════ */
+  function drawSignal(t, s){
+    /* 很慢、很淡的一道橫帶 */
+    if (!reduced()){
+      var bandH = 170;
+      var y = ((t * 24) % (H + bandH * 2)) - bandH;
+      var bg = ctx.createLinearGradient(0, y, 0, y + bandH);
+      bg.addColorStop(0, 'rgba(150,200,225,0)');
+      bg.addColorStop(0.5, 'rgba(150,200,225,.035)');
+      bg.addColorStop(1, 'rgba(150,200,225,0)');
+      ctx.fillStyle = bg; ctx.fillRect(0, y, W, bandH);
+    }
+    /* 錯覺越強，畫面越暖、邊緣越收 */
+    if (s > 0.02){
+      var rg = ctx.createRadialGradient(CX, H * 0.68, Math.min(W, H) * 0.2, CX, H * 0.68, Math.max(W, H) * 0.78);
+      rg.addColorStop(0, 'rgba(255,193,77,0)');
+      rg.addColorStop(1, 'rgba(255,170,60,' + (0.13 * s).toFixed(3) + ')');
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    }
+    /* 鎚子落下之後的一下暖光 */
+    if (hitAt){
+      var k = (performance.now() - hitAt) / 520;
+      if (k >= 1) hitAt = 0;
+      else {
+        var a = (1 - k) * 0.1;
+        var hg2 = ctx.createRadialGradient(CX, H * 0.9, 0, CX, H * 0.9, Math.max(W, H) * 0.8);
+        hg2.addColorStop(0, 'rgba(255,140,90,' + a.toFixed(3) + ')');
+        hg2.addColorStop(1, 'rgba(255,140,90,0)');
+        ctx.fillStyle = hg2; ctx.fillRect(0, 0, W, H);
+      }
+    }
+  }
+
+  /* ════════════════ 狀態 ════════════════ */
+  var strength = 0;
+  var mode = 'sync';
+  var rods = [];          /* 正在飛的棒子 */
+  var hammers = [];
+  var hitAt = 0;
+  var everThreshold = false, everBackDown = false, everAsync = false;
+  var lastAnnounce = '';
+
+  /* ════════════════ 繪製一幀 ════════════════ */
+  function render(t){
+    var s = strength;
+    drop = 0.075 * easeInOut(s);
+    ctx.clearRect(0, 0, W, H);
+    drawRoom();
+    var rod = rods.length ? rods[rods.length - 1] : null;
+    drawExperimenter(rod);
+    var fig = drawSitter(t, s);
+    drawTrackBox(fig, s);
+    for (var i = 0; i < rods.length; i++) drawRod(rods[i], C.bone);
+    for (var j = 0; j < hammers.length; j++) drawRod(hammers[j], '#c9705a', 0.030);
+    drawMarker(s, t);
+    drawFelt(performance.now());
+    drawSignal(t, s);
+  }
+
+  /* ════════════════ rAF 迴圈（分頁隱藏／減少動態／離屏即停） ════════════════ */
+  var running = false, rafId = 0, last = 0, sceneOn = true;
+
+  function frame(now){
+    if (!running) return;
+    var t = now / 1000;
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+
+    /* 衰減 */
+    if (strength > 0.0005 && dt > 0){
+      strength = decayIllusion(strength, dt);
+      syncUI();
+    }
+    /* 轉頭 */
+    yaw += (yawTarget - yaw) * Math.min(1, dt * 3.2);
+    /* 棒子 */
+    for (var i = rods.length - 1; i >= 0; i--){
+      var k = (now - rods[i].t0) / ROD_MS;
+      if (k >= 1.9){ rods.splice(i, 1); continue; }
+      var u = k <= 1 ? k : Math.max(0, 1 - (k - 1) / 0.9);
+      var pose = rodPose(u);
+      rods[i].tip = pose.tip; rods[i].back = pose.back; rods[i].u = u;
+    }
+    for (var h = hammers.length - 1; h >= 0; h--){
+      var kh = (now - hammers[h].t0) / 300;
+      if (kh >= 1.8){ hammers.splice(h, 1); continue; }
+      var uh = kh <= 1 ? kh : Math.max(0, 1 - (kh - 1) / 0.8);
+      var ph = rodPose(uh);
+      hammers[h].tip = ph.tip; hammers[h].back = ph.back; hammers[h].u = uh;
+    }
+    render(t);
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function setRunning(){
+    var want = !document.hidden && !reduced() && sceneOn;
+    if (want && !running){ running = true; last = 0; rafId = requestAnimationFrame(frame); }
+    else if (!want && running){ running = false; cancelAnimationFrame(rafId); }
+  }
+  document.addEventListener('visibilitychange', function(){ setRunning(); if (!running) redraw(); });
+
+  /* 減少動態時：不跑迴圈，只在狀態改變的當下重畫一次 */
+  function redraw(){
+    if (running) return;
+    if (fitCanvas(false)) { /* 尺寸變了 */ }
+    render(0);
+  }
+
+  function onReducedChange(){
+    if (reduced()){ yaw = 0; yawTarget = 0; }
+    setRunning();
+    if (!running) redraw();
+  }
+  if (mReduced.addEventListener) mReduced.addEventListener('change', onReducedChange);
+  else if (mReduced.addListener) mReduced.addListener(onReducedChange);
+
+  var rzT = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(rzT);
+    rzT = setTimeout(function(){ if (fitCanvas(false) && !running) redraw(); }, 120);
+  });
+
+  /* ════════════════ 轉頭 ════════════════ */
+  var feed = document.getElementById('feed');
+  window.addEventListener('pointermove', function(e){
+    if (reduced() || e.pointerType === 'touch') return;
+    yawTarget = ((e.clientX / Math.max(1, window.innerWidth)) - 0.5) * 0.20;
+  }, { passive: true });
+  var dragX = null;
+  window.addEventListener('touchstart', function(e){
+    if (e.touches.length === 1) dragX = e.touches[0].clientX;
+  }, { passive: true });
+  window.addEventListener('touchmove', function(e){
+    if (reduced() || dragX === null || e.touches.length !== 1) return;
+    var d = (e.touches[0].clientX - dragX) / Math.max(1, window.innerWidth);
+    yawTarget = Math.max(-0.16, Math.min(0.16, yawTarget + d * 0.22));
+    dragX = e.touches[0].clientX;
+  }, { passive: true });
+  window.addEventListener('touchend', function(){ dragX = null; }, { passive: true });
+
+  /* ════════════════ 控制台 ════════════════ */
+  var hud = document.getElementById('hud');
+  var pokeBtn = document.getElementById('poke');
+  var mSync = document.getElementById('mSync'), mAsync = document.getElementById('mAsync');
+  var hammerBtn = document.getElementById('hammer');
+  var resetBtn = document.getElementById('reset');
+  var bar = document.getElementById('bar'), pct = document.getElementById('pct');
+  var stateTxt = document.getElementById('stateTxt'), live = document.getElementById('live');
+  var u1 = document.getElementById('u1'), u2 = document.getElementById('u2'),
+      u3 = document.getElementById('u3'), u4 = document.getElementById('u4');
+
+  function say(msg){
+    if (msg === lastAnnounce) return;
+    lastAnnounce = msg;
+    live.textContent = msg;
+  }
+
+  var lastPct = -1;
+  function syncUI(){
+    var s = strength;
+    var p = Math.round(s * 100);
+    if (p !== lastPct){                    /* 衰減時每幀都會呼叫，數字沒變就別動 DOM */
+      lastPct = p;
+      bar.style.transform = 'scaleX(' + s.toFixed(3) + ')';
+      pct.textContent = p + '%';
+      stateTxt.textContent = s >= THRESHOLD ? '你在攝影機那裡' : (s > 0.25 ? '正在鬆動' : '你在椅子上');
+    }
+
+    if (s >= 0.3) u1.classList.add('on');
+    if (s >= THRESHOLD && !everThreshold){
+      everThreshold = true;
+      u2.classList.add('on');
+      u3.classList.add('on');
+      hammerBtn.hidden = false;
+      say('錯覺成立：你現在的位置在椅子後方兩公尺的攝影機處，正看著自己的背。');
+    }
+    if (everThreshold && everAsync && s < 0.25 && !everBackDown){
+      everBackDown = true;
+      u4.classList.add('on');
+      say('錯覺消失：你回到椅子上。看見與摸到之間差了半秒，開關就關掉了。');
+    }
+  }
+
+  function setMode(m){
+    mode = m;
+    mSync.setAttribute('aria-checked', m === 'sync' ? 'true' : 'false');
+    mAsync.setAttribute('aria-checked', m === 'async' ? 'true' : 'false');
+    if (m === 'async'){ everAsync = true; say('切換到不同步：看見的觸碰之後，過半秒你才會感覺到。'); }
+    else say('切換到同步：看見的觸碰與感覺到的觸碰同時發生。');
+  }
+  mSync.addEventListener('click', function(){ setMode('sync'); });
+  mAsync.addEventListener('click', function(){ setMode('async'); });
+
+  /* 一次刺激 */
+  function beat(){
+    var now = performance.now();
+    var pose = rodPose(0);
+    rods.push({ t0: now, tip: pose.tip, back: pose.back, u: 0 });
+    if (rods.length > 3) rods.shift();
+    var offset = mode === 'sync' ? 0 : ASYNC_MS;
+
+    if (reduced()){
+      /* 靜態模式：棒子直接畫在接觸位置，不做飛行動畫 */
+      var contact = rodPose(0.94);
+      rods[rods.length - 1].tip = contact.tip;
+      rods[rods.length - 1].back = contact.back;
+      rods[rods.length - 1].u = 0.94;
+      redraw();
+      setTimeout(function(){ rods.length = 0; feltNow(offset); redraw(); }, 260);
+      setTimeout(function(){ felts.length = 0; redraw(); }, 960);
+      return;
+    }
+    setTimeout(function(){ feltNow(offset); }, CONTACT_MS + offset);
+  }
+  function feltNow(offset){
+    felts.push({ t: performance.now() });
+    if (felts.length > 4) felts.shift();
+    strength = applyTouch(strength, offset);
+    syncUI();
+    if (reduced()) redraw();
+  }
+
+  /* 按住＝每秒一下（照論文的節拍器） */
+  var poking = false, metro = 0;
+  function startPoke(){
+    if (poking) return;
+    poking = true;
+    pokeBtn.classList.add('down');
+    beat();
+    metro = setInterval(beat, BEAT_MS);
+  }
+  function stopPoke(){
+    if (!poking) return;
+    poking = false;
+    clearInterval(metro);
+    pokeBtn.classList.remove('down');
+  }
+  pokeBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); pokeBtn.focus(); startPoke(); });
+  pokeBtn.addEventListener('keydown', function(e){
+    if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ e.preventDefault(); startPoke(); }
+  });
+  pokeBtn.addEventListener('keyup', function(e){
+    if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); stopPoke(); }
+  });
+  pokeBtn.addEventListener('blur', stopPoke);
+  window.addEventListener('pointerup', stopPoke);
+  window.addEventListener('pointercancel', stopPoke);
+
+  /* 鎚子 */
+  hammerBtn.addEventListener('click', function(){
+    var now = performance.now();
+    var pose = rodPose(0);
+    hammers.push({ t0: now, tip: pose.tip, back: pose.back, u: 0 });
+    var s = strength;
+    setTimeout(function(){
+      hitAt = performance.now();
+      if (s >= 0.5){
+        if (!reduced()){
+          feed.classList.remove('recoil');
+          feed.getBoundingClientRect();
+          feed.classList.add('recoil');
+        }
+        say('你縮了一下。皮膚電反應明顯上升——身體把那個位置當成自己。');
+      } else {
+        say('幾乎沒有反應。那只是螢幕上的一個位置。');
+      }
+      if (reduced()) redraw();
+    }, reduced() ? 0 : 290);
+    if (reduced()) redraw();
+  });
+  feed.addEventListener('animationend', function(){ feed.classList.remove('recoil'); });
+
+  resetBtn.addEventListener('click', function(){
+    strength = 0; rods.length = 0; hammers.length = 0; felts.length = 0;
+    syncUI(); say('已重設。錯覺強度歸零。');
+    if (!running) redraw();
+  });
+
+  /* ════════════════ 捲動編排 ════════════════ */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll(){ for (var i = 0; i < risers.length; i++) risers[i].classList.add('in'); }
+  if (reduced() || !('IntersectionObserver' in window)) revealAll();
+  else {
+    var io = new IntersectionObserver(function(es, obs){
+      for (var i = 0; i < es.length; i++){
+        if (es[i].isIntersecting){ es[i].target.classList.add('in'); obs.unobserve(es[i].target); }
+      }
+    }, { rootMargin: '0px 0px -10% 0px' });
+    for (var i2 = 0; i2 < risers.length; i2++) io.observe(risers[i2]);
+  }
+
+  if ('IntersectionObserver' in window){
+    new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++) hud.classList.toggle('on', es[i].isIntersecting);
+    }, { rootMargin: '-12% 0px -18% 0px' }).observe(document.getElementById('actPoke'));
+
+    /* 揭曉：把顯示器拿下來 */
+    new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++) document.body.classList.toggle('off', es[i].isIntersecting);
+    }, { rootMargin: '0px 0px -55% 0px' }).observe(document.getElementById('actReveal'));
+
+    /* 走到最後一段（畫面已經淡掉）就把迴圈停下來 */
+    new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++){ sceneOn = !es[i].isIntersecting; }
+      setRunning();
+    }, { rootMargin: '-45% 0px 0px 0px' }).observe(document.getElementById('actEnd'));
+  }
+
+  /* ════════════════ 啟動 ════════════════ */
+  fitCanvas(true);
+  syncUI();
+  setRunning();
+  if (!running) redraw();
+  /* 首幀保險：字型／版面就緒後再量一次 */
+  setTimeout(function(){ if (fitCanvas(false) && !running) redraw(); }, 250);
+})();
+</script>
+</body>
+</html>

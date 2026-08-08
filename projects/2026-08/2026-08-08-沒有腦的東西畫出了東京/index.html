@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>沒有腦的東西畫出了東京</title>
+<meta name="description" content="三十個城市，中間是東京。你先畫一次鐵路網——然後看一坨黃色的黏液，用一條蠢到不行的規則，畫出差不多同一張。">
+<style>
+  :root{
+    --bg:#070a0f; --bg2:#0b1018;
+    --dish:#111823; --dish2:#0a0f16; --rim:#1e2a37;
+    --fg:#e9eff6; --dim:#8698ab; --dim2:#5b6d7e;
+    --you:#57cfef; --slime:#f3c34c; --jr:#ff8271;
+    --line:#1a2431;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth; background:var(--bg)}
+  body{
+    margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans);
+    font-size:17px; line-height:1.82; -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--slime); outline-offset:3px; border-radius:4px}
+
+  .home{
+    position:fixed; top:12px; left:14px; z-index:80;
+    font-size:12px; letter-spacing:.09em; color:var(--dim); text-decoration:none;
+    padding:6px 11px; border-radius:999px; background:rgba(7,10,15,.7);
+    border:1px solid rgba(255,255,255,.08); backdrop-filter:blur(6px);
+    transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.24)}
+
+  /* ─────────── 版面：左邊釘住的培養皿，右邊捲動的故事 ─────────── */
+  .layout{max-width:1420px; margin:0 auto; padding:0 20px}
+  @media(min-width:900px){
+    .layout{display:grid; grid-template-columns:minmax(0,1fr) minmax(360px,430px); gap:44px; padding:0 30px}
+    .stage{position:sticky; top:0; height:100vh; height:100svh; align-self:start;
+           display:flex; flex-direction:column; justify-content:center; gap:12px; padding:18px 0}
+  }
+  @media(max-width:899px){
+    .stage{position:sticky; top:0; z-index:20; padding:8px 0 10px;
+           background:linear-gradient(180deg,var(--bg) 92%,rgba(7,10,15,0));
+           margin:0 -20px; padding-left:20px; padding-right:20px}
+    body{font-size:16px}
+    .caption{font-size:9.5px; gap:4px 12px; margin-top:7px}
+    .hud div{padding:7px 6px 8px}
+    .hud b{font-size:17px}
+    .hudwho{margin-top:5px}
+  }
+
+  /* ─────────── 培養皿 ─────────── */
+  .dish{
+    position:relative; width:100%; border-radius:18px; overflow:hidden;
+    background:radial-gradient(120% 100% at 50% 30%, var(--dish), var(--dish2) 70%, #060a10);
+    border:1px solid var(--rim); box-shadow:0 24px 60px -30px #000, inset 0 0 60px -20px rgba(120,160,200,.09);
+    height:min(58vh,520px);
+  }
+  @media(max-width:899px){ .dish{height:40vh; height:40svh; min-height:230px} }
+  .dish.drawing{touch-action:none}
+  .dish canvas{position:absolute; inset:0; display:block; width:100%; height:100%}
+  .nodes{position:absolute; inset:0}
+  .node{
+    position:absolute; width:30px; height:30px; margin:-15px 0 0 -15px; padding:0;
+    background:transparent; border:0; border-radius:50%; cursor:pointer;
+    pointer-events:none; -webkit-tap-highlight-color:transparent;
+  }
+  .node::after{
+    content:""; position:absolute; inset:5px; border-radius:50%;
+    border:1.5px solid transparent; transition:transform .18s ease, border-color .18s ease;
+    transform:scale(.6);
+  }
+  .node:focus-visible::after{border-color:var(--slime); transform:scale(1.25)}
+  .node[aria-pressed=true]::after{border-color:var(--you); transform:scale(1.35)}
+
+  .caption{
+    display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; color:var(--dim2); margin-top:9px;
+  }
+  .caption i{display:inline-block; width:16px; height:0; border-top:2.5px solid currentColor; vertical-align:middle; margin-right:5px}
+  .caption .k{display:inline-flex; align-items:center; white-space:nowrap}
+  .k.you{color:var(--you)} .k.sl{color:var(--slime)} .k.jr{color:var(--jr)}
+
+  /* HUD：三個數字 */
+  .hud{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-top:10px;
+  }
+  .hud div{background:var(--bg2); padding:9px 10px 10px; text-align:center}
+  .hud span{display:block; font-family:var(--mono); font-size:9.5px; letter-spacing:.1em; color:var(--dim2); margin-bottom:2px}
+  .hud b{font-family:var(--mono); font-size:19px; font-weight:600; letter-spacing:-.01em; font-variant-numeric:tabular-nums}
+  .hud small{font-size:.55em; color:var(--dim); font-weight:400; margin-left:2px}
+  .hudwho{
+    font-family:var(--mono); font-size:10px; letter-spacing:.16em; color:var(--dim2);
+    text-align:center; margin-top:7px; transition:color .3s;
+  }
+
+  /* ─────────── 故事欄 ─────────── */
+  .story{padding:0 0 8vh}
+  @media(min-width:900px){ .story{padding-top:14vh} }
+  @media(max-width:899px){ .story{padding-top:22px} }
+  .act{padding:0 0 12vh}
+  @media(max-width:899px){ .act{padding-bottom:15vh} }
+  .kick{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.3em; color:var(--dim2);
+    margin:0 0 1.4em; display:flex; align-items:center; gap:10px;
+  }
+  .kick::before{content:""; width:22px; height:1px; background:var(--line)}
+  h1{font-size:clamp(2rem,5.2vw,2.9rem); line-height:1.16; margin:0 0 .7em; font-weight:600; letter-spacing:-.015em}
+  h2{font-size:clamp(1.35rem,3.2vw,1.72rem); line-height:1.35; margin:0 0 .8em; font-weight:600; letter-spacing:-.01em}
+  p{margin:0 0 1.1em}
+  .dim{color:var(--dim)}
+  strong{color:#fff; font-weight:600}
+  em{font-style:normal; color:var(--slime)}
+  .you-t{color:var(--you)} .sl-t{color:var(--slime)} .jr-t{color:var(--jr)}
+
+  .rise{opacity:0; transform:translateY(14px); transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  .btn{
+    font-family:var(--sans); font-size:14.5px; font-weight:600; letter-spacing:.02em; color:var(--fg);
+    background:rgba(255,255,255,.045); border:1px solid var(--rim); border-radius:11px;
+    padding:13px 20px; cursor:pointer; transition:background .18s, border-color .18s, transform .12s, color .18s;
+  }
+  .btn:hover{background:rgba(255,255,255,.09); border-color:#33465b}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.4; cursor:default}
+  .btn.hero{
+    border-color:rgba(243,195,76,.5); color:var(--slime); background:rgba(243,195,76,.08);
+    font-size:16px; padding:15px 24px;
+  }
+  .btn.hero:hover{background:rgba(243,195,76,.16); border-color:var(--slime)}
+
+  .hint{
+    font-family:var(--mono); font-size:12px; line-height:1.7; color:var(--dim);
+    min-height:1.7em; margin:.9em 0 0;
+  }
+  .keys{
+    font-family:var(--mono); font-size:11.5px; color:var(--dim2); line-height:2;
+    border-left:2px solid var(--line); padding-left:14px; margin:1.4em 0;
+  }
+  kbd{
+    font-family:var(--mono); font-size:10.5px; color:var(--dim); background:rgba(255,255,255,.05);
+    border:1px solid var(--line); border-radius:4px; padding:1px 5px; margin:0 1px;
+  }
+
+  .card{
+    border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin:1.6em 0;
+    background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));
+  }
+  .card h3{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.2em; color:var(--dim2);
+    font-weight:600; margin:0 0 12px;
+  }
+  .verdict{font-size:15px; line-height:1.75; color:var(--fg); margin:0}
+  .verdict b{color:var(--you)}
+
+  /* 三方對照 */
+  table{width:100%; border-collapse:collapse; font-family:var(--mono); margin:.4em 0 0}
+  caption{caption-side:top; text-align:left; font-family:var(--mono); font-size:10.5px;
+          letter-spacing:.2em; color:var(--dim2); padding-bottom:10px}
+  th,td{padding:9px 6px; text-align:right; font-size:13.5px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left; font-size:11px; color:var(--dim2); letter-spacing:.04em; font-weight:400}
+  thead th{font-size:11px; letter-spacing:.06em; font-weight:600; color:var(--dim)}
+  thead th.c-you{color:var(--you)} thead th.c-sl{color:var(--slime)} thead th.c-jr{color:var(--jr)}
+  tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
+  td.best{color:#fff; position:relative}
+  td.best::after{content:"·"; position:absolute; right:-2px; top:6px; color:var(--slime)}
+
+  .bignum{
+    font-family:var(--mono); font-size:clamp(2.6rem,11vw,4.4rem); font-weight:300; letter-spacing:-.04em;
+    color:var(--slime); line-height:1; margin:.5em 0 .1em; font-variant-numeric:tabular-nums;
+  }
+  .bignum small{display:block; font-size:.16em; letter-spacing:.28em; color:var(--dim2); margin-top:1.7em}
+
+  .rule{
+    border:1px dashed rgba(243,195,76,.35); border-radius:14px; padding:18px 20px; margin:1.8em 0;
+    background:rgba(243,195,76,.045); font-size:15.5px; line-height:1.8;
+  }
+  .rule p{margin:0 0 .5em} .rule p:last-child{margin:0}
+  .rule .n{font-family:var(--mono); color:var(--slime); margin-right:8px}
+
+  .note{font-size:14px; color:var(--dim); line-height:1.8}
+  .final{font-size:clamp(1.2rem,3.4vw,1.55rem); line-height:1.55; color:#fff; font-weight:500}
+
+  footer{
+    border-top:1px solid var(--line); margin-top:8vh; padding:22px 0 40px;
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; color:var(--dim2);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  footer a{color:var(--dim2); text-decoration:none; border-bottom:1px solid var(--line)}
+  footer a:hover{color:var(--dim)}
+
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .node::after{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<div class="layout">
+
+  <!-- ══════════ 舞台：一張地圖，從頭用到尾 ══════════ -->
+  <div class="stage">
+    <div class="dish" id="dish">
+      <canvas id="map" aria-hidden="true"></canvas>
+      <div class="nodes" id="nodes" role="group" aria-label="關東三十個城市。用方向鍵移動，Enter 選取或連線"></div>
+    </div>
+    <div class="caption">
+      <span class="k">●&nbsp;城市</span>
+      <span class="k you"><i></i>你畫的</span>
+      <span class="k sl"><i></i>黏菌</span>
+      <span class="k jr"><i></i>JR（示意）</span>
+      <span class="k">海／山＝過不去</span>
+    </div>
+    <div class="hud">
+      <div><span>總長度</span><b id="mLen">—</b></div>
+      <div><span>平均繞路</span><b id="mDet">—</b></div>
+      <div><span>斷一條就孤立</span><b id="mRisk">—</b></div>
+    </div>
+    <p class="hudwho" id="hudWho">還沒有人畫任何一條線</p>
+  </div>
+
+  <!-- ══════════ 故事 ══════════ -->
+  <main class="story">
+
+    <!-- 鉤子 -->
+    <section class="act" id="act0">
+      <p class="kick rise">關 東 · 三 十 個 城 市</p>
+      <h1 class="rise">JR 想了幾十年的那張圖，<br>你先畫畫看</h1>
+      <p class="rise">那三十個點，是東京周邊的城市。正中間、帶著白色圈圈的那個，是<strong>東京</strong>。</p>
+      <p class="rise">深藍色那塊是東京灣，西邊那兩塊是山。<strong>都過不去。</strong></p>
+      <p class="rise">真正的路線圖，是幾十年、無數場會議、無數份預算書談出來的結果。現在那張圖不在了，桌上只剩這三十個點。</p>
+      <p class="rise dim">先別急著往下捲。往左邊看，動手。</p>
+    </section>
+
+    <!-- 你畫 -->
+    <section class="act" id="act1">
+      <p class="kick rise">第 一 位 參 賽 者 · 你</p>
+      <h2 class="rise">規則只有一條：每個城市都要連得上</h2>
+      <p class="rise">點一個城市，再點另一個，中間就多一條路。連著點下去可以一路拉成一條線。也可以直接<strong>按住拖過去</strong>。</p>
+      <p class="rise">點在同一條線的兩端，就把它拆掉。</p>
+      <p class="keys rise">
+        鍵盤：<kbd>Tab</kbd> 進入地圖　<kbd>↑↓←→</kbd> 換城市<br>
+        <kbd>Enter</kbd> 選取／連線　<kbd>Esc</kbd> 取消選取
+      </p>
+      <p class="rise">左上那三個數字會一直跟著你動：<strong>要蓋多長</strong>、<strong>大家平均要繞多遠</strong>、<strong>斷一條會不會有城市被孤立</strong>。</p>
+      <p class="hint" id="hint" role="status" aria-live="polite">還沒有任何一條線。</p>
+      <p class="rise" style="margin-top:1.5em">
+        <button class="btn" id="btnDone" type="button">我畫完了，看看成績</button>
+      </p>
+      <div class="card" id="scoreCard" hidden>
+        <h3>你 的 網 路</h3>
+        <p class="verdict" id="verdict"></p>
+      </div>
+    </section>
+
+    <!-- 轉折 -->
+    <section class="act" id="act2" hidden>
+      <p class="kick rise">第 二 位 參 賽 者 · ？</p>
+      <h2 class="rise">現在，換牠上場</h2>
+      <p class="rise">牠沒有規劃部門，沒有預算書，沒有開過任何一場會。</p>
+      <p class="rise">也沒有腦。沒有神經元。<strong>甚至不是多細胞生物</strong>——牠是<em>一顆</em>細胞，裡面裝著幾百萬個細胞核，攤開來像一片黃色的網。名字叫<strong>多頭絨泡黏菌</strong>（<span lang="la">Physarum polycephalum</span>）。</p>
+      <p class="rise">2010 年，北海道大學的中垣俊之團隊把牠放進一個濕的培養皿。他們按照<strong>東京周邊城市的實際地理位置</strong>，在每個位置擺上一片燕麥當食物。</p>
+      <p class="rise">黏菌討厭強光。所以研究者<em>用光線把海和山畫了進去</em>——照亮的地方，牠不會爬過去。</p>
+      <p class="rise">然後把牠放在「東京」上，關燈，等。</p>
+      <p class="rise" style="margin-top:1.6em">
+        <button class="btn hero" id="btnGo" type="button">放牠上去</button>
+      </p>
+      <p class="hint" id="narrate" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- 對照 -->
+    <section class="act" id="act3" hidden>
+      <p class="kick rise">二 十 六 小 時 後</p>
+      <h2 class="rise">把真正的 JR 路線疊上去</h2>
+      <p class="rise">珊瑚色那幾條，是實際的 JR 東京鐵路網（示意畫法）。黃色的是黏菌。</p>
+      <p class="rise" id="matchLine"></p>
+      <div class="card rise">
+        <table id="cmp">
+          <caption>三 方 對 照</caption>
+          <thead><tr><th scope="col"></th><th scope="col" class="c-you">你</th><th scope="col" class="c-sl">黏菌</th><th scope="col" class="c-jr">JR</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">總長度（公里）</th><td id="tYouLen">—</td><td id="tSlLen">—</td><td id="tJrLen">—</td></tr>
+            <tr><th scope="row">平均繞路（倍）</th><td id="tYouDet">—</td><td id="tSlDet">—</td><td id="tJrDet">—</td></tr>
+            <tr><th scope="row">斷一條就孤立</th><td id="tYouRisk">—</td><td id="tSlRisk">—</td><td id="tJrRisk">—</td></tr>
+            <tr><th scope="row">管道／路段數</th><td id="tYouN">—</td><td id="tSlN">—</td><td id="tJrN">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="rise">數字擺在一起就很清楚：這坨黏液蓋出來的東西，<strong>造價跟 JR 差不多、繞路多一點點、但更禁得起斷</strong>。</p>
+      <p class="rise dim">論文裡真正做的比較更嚴謹，結論是同一個方向：在成本、運輸效率、抗斷裂韌性這三項上，黏菌長出來的網路可以和人類工程師規劃的相當，某些指標上甚至更好。</p>
+    </section>
+
+    <!-- 記憶點 -->
+    <section class="act" id="act4" hidden>
+      <p class="kick rise">牠 用 的 規 則</p>
+      <h2 class="rise">蠢到你會有點生氣</h2>
+      <p class="rise">黏菌身體裡是一堆管子，管子裡的原生質來回流動。牠遵守的規則整條抄在下面：</p>
+      <div class="rule rise">
+        <p><span class="n">1.</span>流過的量多的管子，變粗。</p>
+        <p><span class="n">2.</span>流過的量少的管子，萎縮，最後消失。</p>
+      </div>
+      <p class="rise">沒有第三條。</p>
+      <p class="rise">沒有全域地圖，沒有目標函數，沒有誰在中間協調，沒有任何一個地方存著「整張網路長什麼樣」。粗的管子阻力小，於是吸走更多流量，於是變得更粗——就這個正回饋，反覆跑一整晚。</p>
+      <p class="rise">你剛才畫線的時候在想什麼？「這裡應該接一條」「這樣太繞了」「這條備用」。你在腦子裡跑了一個模型。</p>
+      <p class="rise"><strong>牠沒有腦子可以跑。</strong></p>
+      <p class="rise note" style="margin-top:2em">研究者把這兩條規則寫成了方程式，調一個參數就能讓網路在「省錢」和「耐斷」之間滑動。他們認為這對設計真實世界的網路有用——那是他們的詮釋。至於「所以認知不需要腦嗎」，論文沒有這樣說；那是另一群人在吵的架。</p>
+
+      <p class="rise" style="margin-top:3em">最後拉遠一點。</p>
+      <p class="rise">三十個城市之間，有 435 條線可以畫，也就是——</p>
+      <p class="bignum" id="bignum">0<small>種 畫 法</small></p>
+      <p class="rise">比可觀測宇宙裡的原子還多十的五十次方倍。</p>
+      <p class="rise final" style="margin-top:1.6em">牠一種也沒有算過。<br>牠只是流來流去。</p>
+    </section>
+
+    <footer>
+      <span>資料來源：Tero et al., Science (2010)</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ══════════════════════════ MODEL:BEGIN ══════════════════════════
+   純函式區：座標、候選管道、三項指標、黏菌迭代。
+   這一段不碰 DOM，node 端可直接抽出來跑斷言。
+   ★ 座標是「示意用的簡化相對位置」，不是實測 GPS（見 說明.md）。 */
+
+/* 名稱, 緯度, 經度, 標籤方位, 是否主要城市 */
+var CITIES = [
+  ["東京",35.681,139.767,"r",1],["新宿",35.690,139.700,"l",1],["上野",35.714,139.777,"t",0],
+  ["品川",35.629,139.739,"b",0],["川崎",35.531,139.697,"r",0],["橫濱",35.466,139.622,"l",1],
+  ["大船",35.352,139.531,"b",0],["藤澤",35.339,139.487,"l",0],["平塚",35.327,139.349,"b",0],
+  ["小田原",35.256,139.155,"b",1],["橫須賀",35.283,139.671,"b",0],["海老名",35.451,139.390,"l",0],
+  ["町田",35.541,139.447,"t",0],["八王子",35.656,139.339,"l",1],["立川",35.699,139.414,"t",0],
+  ["川越",35.906,139.485,"l",0],["大宮",35.906,139.624,"r",1],["熊谷",36.139,139.390,"l",0],
+  ["高崎",36.322,139.013,"l",1],["久喜",36.062,139.667,"r",0],["小山",36.315,139.802,"r",0],
+  ["宇都宮",36.559,139.899,"r",1],["柏",35.862,139.971,"r",0],["松戶",35.784,139.901,"l",0],
+  ["船橋",35.702,139.985,"b",0],["千葉",35.613,140.114,"r",1],["成田",35.775,140.319,"r",1],
+  ["木更津",35.381,139.917,"b",1],["土浦",36.078,140.204,"r",0],["水戶",36.366,140.471,"r",1]
+];
+var NC = CITIES.length;
+var HUB = 0; /* 東京：黏菌下菌的位置，也是求解時的接地點 */
+
+/* 光照禁區（示意）：東京灣、丹澤山地、秩父山地。以 [經度,緯度] 多邊形描述。 */
+var BLOCK = [
+  {kind:"sea", pts:[[139.80,35.62],[139.73,35.52],[139.69,35.42],[139.73,35.30],[139.80,35.23],[139.86,35.30],[139.88,35.42],[139.94,35.54],[139.89,35.62]]},
+  {kind:"mtn", pts:[[139.08,35.32],[139.30,35.34],[139.33,35.55],[139.18,35.63],[139.03,35.50]]},
+  {kind:"mtn", pts:[[139.05,35.86],[139.38,35.84],[139.45,36.06],[139.15,36.16],[138.98,36.00]]}
+];
+
+/* 等距投影成公里（緯度 35.9° 附近） */
+var KM_LAT = 110.57, KM_LON = 111.32 * Math.cos(35.9 * Math.PI / 180);
+var PXY = CITIES.map(function(c){ return [c[2] * KM_LON, -c[1] * KM_LAT]; });
+function distKm(i, j){ return Math.hypot(PXY[i][0]-PXY[j][0], PXY[i][1]-PXY[j][1]); }
+
+function segCross(p1,p2,q1,q2){
+  function cr(o,a,b){ return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0]); }
+  var d1=cr(q1,q2,p1), d2=cr(q1,q2,p2), d3=cr(p1,p2,q1), d4=cr(p1,p2,q2);
+  return ((d1>0&&d2<0)||(d1<0&&d2>0)) && ((d3>0&&d4<0)||(d3<0&&d4>0));
+}
+function inPoly(p, poly){
+  var c = false;
+  for (var i=0, j=poly.length-1; i<poly.length; j=i++){
+    var a=poly[i], b=poly[j];
+    if (((a[1]>p[1]) !== (b[1]>p[1])) && (p[0] < (b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1]) + a[0])) c = !c;
+  }
+  return c;
+}
+/* 這條連線有沒有穿過光照禁區 */
+function blockedPair(i, j){
+  var a=[CITIES[i][2],CITIES[i][1]], b=[CITIES[j][2],CITIES[j][1]];
+  var mid=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+  for (var k=0;k<BLOCK.length;k++){
+    var poly = BLOCK[k].pts;
+    if (inPoly(mid, poly)) return true;
+    for (var m=0, n=poly.length-1; m<poly.length; n=m++){
+      if (segCross(a, b, poly[m], poly[n])) return true;
+    }
+  }
+  return false;
+}
+
+/* 候選管道＝Gabriel 圖 ∪ k 近鄰，再扣掉穿越禁區的。
+   模擬黏菌初期「凡是能去的地方都先鋪一層」。 */
+function buildCandidates(k){
+  var out = [], seen = {};
+  function add(i,j){
+    var a=Math.min(i,j), b=Math.max(i,j), key=a+"_"+b;
+    if (seen[key] || blockedPair(a,b)) return;
+    seen[key] = 1; out.push([a, b, distKm(a,b)]);
+  }
+  for (var i=0;i<NC;i++) for (var j=i+1;j<NC;j++){
+    var mx=(PXY[i][0]+PXY[j][0])/2, my=(PXY[i][1]+PXY[j][1])/2, r=distKm(i,j)/2, ok=true;
+    for (var m=0;m<NC;m++){
+      if (m===i||m===j) continue;
+      if (Math.hypot(PXY[m][0]-mx, PXY[m][1]-my) < r - 1e-9){ ok=false; break; }
+    }
+    if (ok) add(i,j);
+  }
+  for (var i2=0;i2<NC;i2++){
+    var ds=[];
+    for (var j2=0;j2<NC;j2++) if (j2!==i2) ds.push([j2, distKm(i2,j2)]);
+    ds.sort(function(a,b){ return a[1]-b[1]; });
+    for (var q=0;q<k && q<ds.length;q++) add(i2, ds[q][0]);
+  }
+  return out;
+}
+
+/* ── 三項指標 ───────────────────────────── */
+function totalLength(edges){ var s=0; for (var i=0;i<edges.length;i++) s+=edges[i][2]; return s; }
+
+function isConnected(edges, skipIdx){
+  var adj=[]; for (var i=0;i<NC;i++) adj.push([]);
+  for (var e=0;e<edges.length;e++){
+    if (e===skipIdx) continue;
+    adj[edges[e][0]].push(edges[e][1]); adj[edges[e][1]].push(edges[e][0]);
+  }
+  var seen=[], st=[HUB], c=0;
+  for (var s=0;s<NC;s++) seen.push(false);
+  seen[HUB]=true;
+  while (st.length){
+    var v=st.pop(); c++;
+    for (var a=0;a<adj[v].length;a++){ var u=adj[v][a]; if(!seen[u]){ seen[u]=true; st.push(u); } }
+  }
+  return c===NC;
+}
+function strandedCities(edges){
+  var deg=[]; for (var i=0;i<NC;i++) deg.push(0);
+  edges.forEach(function(e){ deg[e[0]]++; deg[e[1]]++; });
+  var out=[]; for (var j=0;j<NC;j++) if (deg[j]===0) out.push(j);
+  return out;
+}
+function allPairsDist(edges){
+  var INF=Infinity, d=[];
+  for (var i=0;i<NC;i++){ var row=[]; for (var j=0;j<NC;j++) row.push(i===j?0:INF); d.push(row); }
+  edges.forEach(function(e){ if (e[2]<d[e[0]][e[1]]){ d[e[0]][e[1]]=e[2]; d[e[1]][e[0]]=e[2]; } });
+  for (var k=0;k<NC;k++) for (var i2=0;i2<NC;i2++){
+    var dik=d[i2][k]; if (dik===INF) continue;
+    for (var j2=0;j2<NC;j2++){ var v=dik+d[k][j2]; if (v<d[i2][j2]) d[i2][j2]=v; }
+  }
+  return d;
+}
+/* 平均繞路：所有城市配對「沿網路走的距離 ÷ 直線距離」的平均。1＝完全不繞。 */
+function avgDetour(edges){
+  var d=allPairsDist(edges), s=0, n=0;
+  for (var i=0;i<NC;i++) for (var j=i+1;j<NC;j++){
+    if (!isFinite(d[i][j])) return Infinity;
+    s += d[i][j]/distKm(i,j); n++;
+  }
+  return n ? s/n : Infinity;
+}
+/* 韌性：隨機拆掉一條，整張網被切開的機率。越低越耐斷。 */
+function faultRisk(edges){
+  if (!edges.length) return 1;
+  if (!isConnected(edges, -1)) return 1;
+  var bad=0;
+  for (var i=0;i<edges.length;i++) if (!isConnected(edges, i)) bad++;
+  return bad/edges.length;
+}
+/* 最小生成樹：最省錢的連法，拿來當對照基準 */
+function buildMST(cands){
+  var es=cands.slice().sort(function(a,b){ return a[2]-b[2]; });
+  var par=[]; for (var i=0;i<NC;i++) par.push(i);
+  function find(x){ while (par[x]!==x){ par[x]=par[par[x]]; x=par[x]; } return x; }
+  var out=[];
+  for (var e=0;e<es.length;e++){
+    var a=find(es[e][0]), b=find(es[e][1]);
+    if (a!==b){ par[a]=b; out.push(es[e]); }
+  }
+  return out;
+}
+/* 從 HUB 出發的最短距離（給生長動畫排序用；方向＝實際生長方向） */
+function dijkstraFromHub(cands){
+  var adj=[]; for (var i=0;i<NC;i++) adj.push([]);
+  cands.forEach(function(e){ adj[e[0]].push([e[1],e[2]]); adj[e[1]].push([e[0],e[2]]); });
+  var dist=[]; for (var j=0;j<NC;j++) dist.push(Infinity);
+  dist[HUB]=0;
+  var done=[]; for (var k=0;k<NC;k++) done.push(false);
+  for (var it=0;it<NC;it++){
+    var best=-1, bv=Infinity;
+    for (var v=0;v<NC;v++) if (!done[v] && dist[v]<bv){ bv=dist[v]; best=v; }
+    if (best<0) break;
+    done[best]=true;
+    for (var a=0;a<adj[best].length;a++){
+      var nb=adj[best][a];
+      if (dist[best]+nb[1] < dist[nb[0]]) dist[nb[0]] = dist[best]+nb[1];
+    }
+  }
+  return dist;
+}
+
+/* ── 黏菌模型 ───────────────────────────────────────────────
+   每條候選管道有導度 D 與長度 L。把網路當電路解：
+     每組城市配對 (s,t) 送進單位流量，解 Kirchhoff 得壓力 p，
+     管道流量 Q = D/L · (p_s − p_t)。
+   全部配對的 |Q| 平均起來當作「這條管子被用得多不多」，然後
+     dD/dt = |Q|^γ − D          （用得多的變粗，用得少的萎縮）
+   每步再把 D 整體正規化，避免數值飄走。 */
+function physInit(cands){ var D=[]; for (var i=0;i<cands.length;i++) D.push(1); return D; }
+
+function physStep(cands, D, opt){
+  var gamma = opt.gamma, dt = opt.dt, n = NC - 1;
+  var A=[], i, j, k, r, c;
+  for (i=0;i<n;i++) A.push(new Float64Array(n));
+  for (var e=0;e<cands.length;e++){
+    var i0=cands[e][0], j0=cands[e][1], g=D[e]/cands[e][2];
+    if (i0>0) A[i0-1][i0-1]+=g;
+    if (j0>0) A[j0-1][j0-1]+=g;
+    if (i0>0 && j0>0){ A[i0-1][j0-1]-=g; A[j0-1][i0-1]-=g; }
+  }
+  var piv=[]; for (i=0;i<n;i++) piv.push(i);
+  for (k=0;k<n;k++){
+    var mx=Math.abs(A[k][k]), mi=k;
+    for (r=k+1;r<n;r++) if (Math.abs(A[r][k])>mx){ mx=Math.abs(A[r][k]); mi=r; }
+    if (mi!==k){ var t=A[k]; A[k]=A[mi]; A[mi]=t; var tp=piv[k]; piv[k]=piv[mi]; piv[mi]=tp; }
+    var dg=A[k][k];
+    if (Math.abs(dg)<1e-12){ A[k][k]=dg=1e-12; }
+    for (r=k+1;r<n;r++){
+      var f=A[r][k]/dg;
+      if (f===0) continue;
+      A[r][k]=f;
+      for (c=k+1;c<n;c++) A[r][c]-=f*A[k][c];
+    }
+  }
+  var y=new Float64Array(n), x=new Float64Array(n);
+  function solve(b){
+    var ii, jj, s;
+    for (ii=0;ii<n;ii++){ s=b[piv[ii]]; for (jj=0;jj<ii;jj++) s-=A[ii][jj]*y[jj]; y[ii]=s; }
+    for (ii=n-1;ii>=0;ii--){ s=y[ii]; for (jj=ii+1;jj<n;jj++) s-=A[ii][jj]*x[jj]; x[ii]=s/A[ii][ii]; }
+    return x;
+  }
+  var Q=new Float64Array(cands.length), b=new Float64Array(n), p=new Float64Array(NC);
+  for (var s2=0;s2<NC;s2++) for (var t2=s2+1;t2<NC;t2++){
+    b.fill(0);
+    if (s2>0) b[s2-1]=1;
+    if (t2>0) b[t2-1]=-1;
+    var px=solve(b);
+    p[0]=0;
+    for (var q=0;q<n;q++) p[q+1]=px[q];
+    for (var e2=0;e2<cands.length;e2++){
+      Q[e2] += Math.abs(D[e2]/cands[e2][2] * (p[cands[e2][0]] - p[cands[e2][1]]));
+    }
+  }
+  var sum=0;
+  for (var e3=0;e3<cands.length;e3++){
+    var flow = Q[e3]/NC;
+    D[e3] += dt * (Math.pow(flow, gamma) - D[e3]);
+    if (D[e3] < 1e-9) D[e3] = 1e-9;
+    sum += D[e3];
+  }
+  var mean = sum/cands.length;
+  for (var e4=0;e4<cands.length;e4++) D[e4] /= mean;
+  return D;
+}
+/* 修剪：導度掉到最粗管道的 thr 以下就消失 */
+function physPrune(cands, D, thr){
+  var mx=0, i;
+  for (i=0;i<D.length;i++) if (D[i]>mx) mx=D[i];
+  var out=[];
+  for (i=0;i<cands.length;i++) if (D[i] >= thr*mx) out.push(cands[i]);
+  return out;
+}
+
+/* JR 東京鐵路網（示意畫法，不是官方路線資料） */
+var JR_PAIRS = [
+  ["東京","上野"],["上野","新宿"],["新宿","品川"],["品川","東京"],
+  ["新宿","立川"],["立川","八王子"],
+  ["品川","川崎"],["川崎","橫濱"],["橫濱","大船"],["大船","藤澤"],["藤澤","平塚"],["平塚","小田原"],
+  ["大船","橫須賀"],["橫濱","町田"],["町田","八王子"],["平塚","海老名"],["海老名","町田"],
+  ["八王子","川越"],["川越","大宮"],["上野","大宮"],["川崎","立川"],
+  ["大宮","熊谷"],["熊谷","高崎"],["大宮","久喜"],["久喜","小山"],["小山","宇都宮"],
+  ["上野","松戶"],["松戶","柏"],["柏","土浦"],["土浦","水戶"],
+  ["東京","船橋"],["船橋","千葉"],["千葉","成田"],["千葉","木更津"],["松戶","船橋"]
+];
+function buildJR(){
+  var idx={}; CITIES.forEach(function(c,i){ idx[c[0]]=i; });
+  return JR_PAIRS.map(function(p){
+    var a=idx[p[0]], b=idx[p[1]];
+    return [Math.min(a,b), Math.max(a,b), distKm(a,b)];
+  });
+}
+function overlapRatio(a, b){
+  var set={}, i;
+  for (i=0;i<b.length;i++) set[b[i][0]+"_"+b[i][1]] = 1;
+  var hit=0;
+  for (i=0;i<a.length;i++) if (set[a[i][0]+"_"+a[i][1]]) hit++;
+  return a.length ? hit/a.length : 0;
+}
+
+var MODEL = {
+  CITIES:CITIES, BLOCK:BLOCK, NC:NC, HUB:HUB, PXY:PXY, distKm:distKm,
+  blockedPair:blockedPair, buildCandidates:buildCandidates, totalLength:totalLength,
+  isConnected:isConnected, strandedCities:strandedCities, avgDetour:avgDetour,
+  faultRisk:faultRisk, buildMST:buildMST, dijkstraFromHub:dijkstraFromHub,
+  physInit:physInit, physStep:physStep, physPrune:physPrune,
+  buildJR:buildJR, overlapRatio:overlapRatio
+};
+if (typeof module !== "undefined" && module.exports) module.exports = MODEL;
+/* ══════════════════════════ MODEL:END ══════════════════════════ */
+
+/* ══════════════════════════ 參數 ══════════════════════════ */
+var LS      = "physarum26.";
+var GAMMA   = 1.4;    /* 越大越傾向留下少數幾條主幹 */
+var DT      = 0.25;
+var ITERS   = 160;    /* 收斂所需迭代（實測 150 步內 Δ<1e-6） */
+var PRUNE   = 0.05;   /* 低於最粗管道 5% 就剪掉 */
+var KNN     = 4;
+
+var CANDS   = buildCandidates(KNN);
+var JR      = buildJR();
+var HUBDIST = dijkstraFromHub(CANDS);
+
+/* ══════════════════════════ 環境 ══════════════════════════ */
+var mReduced = matchMedia("(prefers-reduced-motion: reduce)");
+function reduced(){ return mReduced.matches; }
+
+var dish   = document.getElementById("dish");
+var cv     = document.getElementById("map");
+var ctx    = cv.getContext("2d");
+var nodesEl= document.getElementById("nodes");
+var hintEl = document.getElementById("hint");
+var narrEl = document.getElementById("narrate");
+
+var S = {
+  phase: "draw",        /* draw → grow → adapt → settled → compare */
+  you: {},              /* 使用者畫的線："a_b" → true */
+  sel: -1,
+  focus: 0,
+  D: null,
+  iter: 0,
+  front: 0, frontMax: 1,
+  slimeAlpha: 0, youAlpha: 1, jrAlpha: 0, lightAlpha: 0,
+  pruneFade: 1,
+  slimeEdges: null,
+  hoverX: -1, hoverY: -1,
+  dragAnchor: -1, dragMoved: false
+};
+
+/* ══════════════════════════ 版面座標 ══════════════════════════ */
+var W=0, H=0, DPR=1;
+var LAY = { ox:0, oy:0, sc:1 };
+var BB = (function(){
+  var x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;
+  PXY.forEach(function(p){ x0=Math.min(x0,p[0]); y0=Math.min(y0,p[1]); x1=Math.max(x1,p[0]); y1=Math.max(y1,p[1]); });
+  return {x0:x0,y0:y0,w:x1-x0,h:y1-y0};
+})();
+
+function relayout(){
+  var padX = Math.max(26, W*0.075), padY = Math.max(26, H*0.085);
+  var sc = Math.min((W-padX*2)/BB.w, (H-padY*2)/BB.h);
+  LAY.sc = sc;
+  LAY.ox = (W - BB.w*sc)/2 - BB.x0*sc;
+  LAY.oy = (H - BB.h*sc)/2 - BB.y0*sc;
+}
+function SX(i){ return PXY[i][0]*LAY.sc + LAY.ox; }
+function SY(i){ return PXY[i][1]*LAY.sc + LAY.oy; }
+function GX(lon){ return lon*KM_LON*LAY.sc + LAY.ox; }
+function GY(lat){ return -lat*KM_LAT*LAY.sc + LAY.oy; }
+
+function fitCanvas(force){
+  var w = cv.clientWidth, h = cv.clientHeight, d = Math.min(2, window.devicePixelRatio || 1);
+  if (!w || !h) return false;
+  if (!force && w===W && h===H && d===DPR) return false;   /* 尺寸沒變就別重設，否則畫布會被清空 */
+  W=w; H=h; DPR=d;
+  cv.width = Math.round(w*d); cv.height = Math.round(h*d);
+  ctx.setTransform(d,0,0,d,0,0);
+  relayout(); placeNodes();
+  return true;
+}
+
+/* ══════════════════════════ 城市按鈕（鍵盤入口） ══════════════════════════ */
+var nodeBtns = CITIES.map(function(c, i){
+  var b = document.createElement("button");
+  b.type = "button";
+  b.className = "node";
+  b.setAttribute("aria-label", "城市 " + c[0]);
+  b.setAttribute("aria-pressed", "false");
+  b.tabIndex = i===0 ? 0 : -1;
+  b.dataset.i = String(i);
+  nodesEl.appendChild(b);
+  return b;
+});
+function placeNodes(){
+  for (var i=0;i<NC;i++){
+    nodeBtns[i].style.left = SX(i) + "px";
+    nodeBtns[i].style.top  = SY(i) + "px";
+  }
+}
+
+/* ══════════════════════════ 使用者的網路 ══════════════════════════ */
+function key(a,b){ return Math.min(a,b) + "_" + Math.max(a,b); }
+function youEdges(){
+  var out=[];
+  for (var k in S.you){
+    if (!S.you[k]) continue;
+    var p=k.split("_"), a=+p[0], b=+p[1];
+    out.push([a,b,distKm(a,b)]);
+  }
+  return out;
+}
+function saveYou(){
+  try { localStorage.setItem(LS + "net", JSON.stringify(Object.keys(S.you))); } catch(e){}
+}
+function loadYou(){
+  try {
+    var raw = localStorage.getItem(LS + "net");
+    if (!raw) return;
+    var arr = JSON.parse(raw);
+    if (!arr || !arr.length) return;
+    for (var i=0;i<arr.length;i++){
+      var p = String(arr[i]).split("_"), a=+p[0], b=+p[1];
+      if (a>=0 && b>=0 && a<NC && b<NC && a!==b && !blockedPair(a,b)) S.you[key(a,b)] = true;
+    }
+  } catch(e){}
+}
+
+function toggleEdge(a,b){
+  if (a===b) return "same";
+  if (blockedPair(a,b)){ return "blocked"; }
+  var k = key(a,b);
+  if (S.you[k]){ delete S.you[k]; saveYou(); return "removed"; }
+  S.you[k] = true; saveYou(); return "added";
+}
+
+/* ══════════════════════════ 指標與 HUD ══════════════════════════ */
+var mLen=document.getElementById("mLen"), mDet=document.getElementById("mDet"),
+    mRisk=document.getElementById("mRisk"), hudWho=document.getElementById("hudWho");
+
+function measure(edges){
+  var conn = edges.length ? isConnected(edges,-1) : false;
+  return {
+    n: edges.length,
+    len: totalLength(edges),
+    det: conn ? avgDetour(edges) : Infinity,
+    risk: conn ? faultRisk(edges) : 1,
+    conn: conn
+  };
+}
+function fmtLen(v){ return Math.round(v).toLocaleString("en-US"); }
+function fmtDet(v){ return isFinite(v) ? "×" + v.toFixed(2) : "—"; }
+function fmtRisk(v, conn){ return conn ? Math.round(v*100) + "%" : "—"; }
+
+var lastHud = {len:0};
+function setHud(m, who, colour){
+  rollNum(mLen, lastHud.len, m.len, function(v){ return fmtLen(v); });
+  lastHud.len = m.len;
+  mDet.textContent = fmtDet(m.det);
+  mRisk.textContent = fmtRisk(m.risk, m.conn);
+  mLen.style.color = mDet.style.color = mRisk.style.color = colour || "";
+  hudWho.textContent = who;
+}
+function rollNum(el, from, to, fmt){
+  if (reduced() || Math.abs(to-from) < 1){ el.textContent = fmt(to); return; }
+  var t0 = performance.now(), dur = 520;
+  if (el._raf) cancelAnimationFrame(el._raf);
+  (function tick(now){
+    var k = Math.max(0, Math.min(1, (now-t0)/dur)), e = 1-Math.pow(1-k,3);
+    el.textContent = fmt(from + (to-from)*e);
+    if (k<1) el._raf = requestAnimationFrame(tick);
+  })(t0);
+}
+
+function updateYouHud(){
+  var e = youEdges(), m = measure(e);
+  if (!e.length){
+    mLen.textContent="—"; mDet.textContent="—"; mRisk.textContent="—";
+    lastHud.len = 0;
+    hudWho.textContent = "還沒有人畫任何一條線";
+    return m;
+  }
+  setHud(m, "你 畫 的 網 路", "var(--you)");
+  return m;
+}
+
+/* ══════════════════════════ 繪圖 ══════════════════════════ */
+var dirty = true;
+function mark(){ dirty = true; }
+
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function drawBlockers(){
+  for (var i=0;i<BLOCK.length;i++){
+    var b = BLOCK[i], pts = b.pts;
+    ctx.beginPath();
+    ctx.moveTo(GX(pts[0][0]), GY(pts[0][1]));
+    for (var j=1;j<pts.length;j++) ctx.lineTo(GX(pts[j][0]), GY(pts[j][1]));
+    ctx.closePath();
+    if (b.kind === "sea"){
+      ctx.fillStyle = "rgba(58,104,150,.20)";
+      ctx.strokeStyle = "rgba(90,150,200,.22)";
+    } else {
+      ctx.fillStyle = "rgba(126,110,80,.17)";
+      ctx.strokeStyle = "rgba(170,150,110,.18)";
+    }
+    ctx.fill();
+    ctx.lineWidth = 1; ctx.stroke();
+    if (S.lightAlpha > 0.01){
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.fillStyle = "rgba(255,246,214," + (0.16*S.lightAlpha).toFixed(3) + ")";
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+function strokeEdges(edges, colour, width, alpha, glow){
+  if (alpha <= 0.01 || !edges || !edges.length) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = colour;
+  ctx.lineWidth = width;
+  ctx.lineCap = "round";
+  if (glow){ ctx.shadowColor = colour; ctx.shadowBlur = glow; }
+  ctx.beginPath();
+  for (var i=0;i<edges.length;i++){
+    var e = edges[i];
+    ctx.moveTo(SX(e[0]), SY(e[0]));
+    ctx.lineTo(SX(e[1]), SY(e[1]));
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+function drawSlime(){
+  if (S.slimeAlpha <= 0.01 || !S.D) return;
+  var mx = 0, i;
+  for (i=0;i<S.D.length;i++) if (S.D[i] > mx) mx = S.D[i];
+  if (mx <= 0) return;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.shadowColor = "rgba(243,195,76,.55)";
+  ctx.shadowBlur = 8;
+  for (i=0;i<CANDS.length;i++){
+    var e = CANDS[i], rel = S.D[i]/mx;
+    /* 生長階段：從近端往遠端長出來（依實際生長方向，不會倒放） */
+    var a = e[0], b = e[1];
+    if (HUBDIST[a] > HUBDIST[b]){ a = e[1]; b = e[0]; }
+    var t0 = Math.min(HUBDIST[e[0]], HUBDIST[e[1]]);
+    var frac = 1;
+    if (S.phase === "grow"){
+      frac = Math.max(0, Math.min(1, (S.front - t0) / Math.max(e[2], 1e-6)));
+      if (frac <= 0) continue;
+    }
+    var alpha = S.slimeAlpha * (rel >= PRUNE ? 1 : Math.max(0, (rel/PRUNE) * S.pruneFade));
+    if (alpha <= 0.012) continue;
+    var w = 0.7 + 8.2 * Math.pow(rel, 0.45);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = "#f3c34c";
+    ctx.lineWidth = w;
+    var x0 = SX(a), y0 = SY(a), x1 = SX(b), y1 = SY(b);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 + (x1-x0)*frac, y0 + (y1-y0)*frac);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawCities(){
+  var small = W < 520;
+  ctx.save();
+  for (var i=0;i<NC;i++){
+    var x = SX(i), y = SY(i), isHub = (i===HUB);
+    var sel = (S.sel===i);
+    ctx.beginPath();
+    ctx.arc(x, y, isHub ? 5.4 : 3.4, 0, Math.PI*2);
+    ctx.fillStyle = isHub ? "#ffffff" : "#c3d3e2";
+    ctx.fill();
+    if (isHub){
+      ctx.beginPath(); ctx.arc(x, y, 9.5, 0, Math.PI*2);
+      ctx.strokeStyle = "rgba(255,255,255,.28)"; ctx.lineWidth = 1; ctx.stroke();
+    }
+    if (sel){
+      ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI*2);
+      ctx.strokeStyle = "#57cfef"; ctx.lineWidth = 1.6; ctx.stroke();
+    }
+    if (!small || CITIES[i][4] || isHub){
+      var pos = CITIES[i][3], dx = 0, dy = 0, al = "center", bl = "middle";
+      if (pos==="r"){ dx = 9; al = "left"; }
+      else if (pos==="l"){ dx = -9; al = "right"; }
+      else if (pos==="t"){ dy = -11; bl = "bottom"; }
+      else { dy = 11; bl = "top"; }
+      ctx.font = (isHub ? "600 12px " : "10.5px ") + '-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+      ctx.textAlign = al; ctx.textBaseline = bl;
+      ctx.fillStyle = isHub ? "rgba(255,255,255,.95)" : "rgba(160,180,198,.72)";
+      ctx.fillText(CITIES[i][0], x+dx, y+dy);
+    }
+  }
+  ctx.restore();
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  roundRectPath(0.5, 0.5, W-1, H-1, 17);
+  ctx.save();
+  ctx.clip();
+
+  /* 培養基紋理 */
+  var g = ctx.createRadialGradient(W*0.5, H*0.32, 10, W*0.5, H*0.5, Math.max(W,H)*0.78);
+  g.addColorStop(0, "rgba(30,44,62,.55)");
+  g.addColorStop(1, "rgba(6,10,16,0)");
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  drawBlockers();
+
+  /* JR 在下（當底），黏菌在上——重合的地方會看到黃管子躺在珊瑚色軌道上 */
+  strokeEdges(JR, "#ff8271", 5.5, S.jrAlpha*0.5, 0);
+  strokeEdges(JR, "#ff8271", 1.6, S.jrAlpha*0.95, 0);
+
+  strokeEdges(youEdges(), "#57cfef", 2.1, S.youAlpha, 0);
+
+  /* 拖曳／選取中的預覽線 */
+  if (S.sel >= 0 && S.hoverX >= 0 && S.phase === "draw"){
+    ctx.save();
+    ctx.globalAlpha = .5; ctx.strokeStyle = "#57cfef"; ctx.lineWidth = 1.4;
+    ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(SX(S.sel), SY(S.sel)); ctx.lineTo(S.hoverX, S.hoverY); ctx.stroke();
+    ctx.restore();
+  }
+
+  drawSlime();
+  drawCities();
+
+  ctx.restore();
+  ctx.strokeStyle = "rgba(120,160,200,.10)";
+  ctx.lineWidth = 1;
+  roundRectPath(0.5, 0.5, W-1, H-1, 17);
+  ctx.stroke();
+}
+
+/* ══════════════════════════ rAF 迴圈 ══════════════════════════ */
+var running = false, rafId = 0, lastT = 0, inView = true;
+function frame(now){
+  if (!running) return;
+  var dt = lastT ? Math.min(0.05, (now-lastT)/1000) : 0;
+  lastT = now;
+  if (tickAnim(dt) || dirty){ dirty = false; draw(); }
+  rafId = requestAnimationFrame(frame);
+}
+function setRunning(){
+  var want = !document.hidden && inView;
+  if (want && !running){ running = true; lastT = 0; rafId = requestAnimationFrame(frame); }
+  else if (!want && running){ running = false; cancelAnimationFrame(rafId); }
+}
+document.addEventListener("visibilitychange", setRunning);
+if (window.IntersectionObserver){
+  new IntersectionObserver(function(es){
+    es.forEach(function(e){ inView = e.isIntersecting; });
+    setRunning();
+  }, {rootMargin:"40px"}).observe(dish);
+}
+
+/* 動畫狀態機：回傳 true 表示需要重畫 */
+var GROW_SEC = 3.4, ADAPT_SEC = 6.2, FADE = 1.1;
+var fadeT = 0;
+function tickAnim(dt){
+  if (dt <= 0) return false;
+  var busy = false;
+
+  if (S.phase === "grow"){
+    S.slimeAlpha = Math.min(1, S.slimeAlpha + dt/0.5);
+    S.front += (S.frontMax/GROW_SEC) * dt;
+    busy = true;
+    if (S.front >= S.frontMax){ S.front = S.frontMax; startAdapt(); }
+  } else if (S.phase === "adapt"){
+    var per = ITERS/ADAPT_SEC;
+    S.iterAcc = (S.iterAcc || 0) + per*dt;
+    var steps = Math.floor(S.iterAcc);
+    if (steps > 0){
+      S.iterAcc -= steps;
+      steps = Math.min(steps, 6);
+      for (var i=0;i<steps && S.iter<ITERS;i++){ physStep(CANDS, S.D, {gamma:GAMMA, dt:DT}); S.iter++; }
+    }
+    narrateAdapt();
+    busy = true;
+    if (S.iter >= ITERS) startSettle();
+  } else if (S.phase === "settle"){
+    fadeT += dt;
+    S.pruneFade = Math.max(0, 1 - fadeT/FADE);
+    busy = true;
+    if (fadeT >= FADE){ S.pruneFade = 0; finishSettle(); }
+  } else if (S.phase === "compare"){
+    if (S.jrAlpha < 1){ S.jrAlpha = Math.min(1, S.jrAlpha + dt/FADE); busy = true; }
+    if (S.youAlpha > 0.28){ S.youAlpha = Math.max(0.28, S.youAlpha - dt/FADE); busy = true; }
+  }
+  if (S.lightWant !== undefined){
+    var target = S.lightWant;
+    if (Math.abs(S.lightAlpha - target) > 0.01){
+      S.lightAlpha += (target - S.lightAlpha) * Math.min(1, dt*2.2);
+      busy = true;
+    }
+  }
+  return busy;
+}
+
+/* ══════════════════════════ 指標與旁白 ══════════════════════════ */
+function say(el, text){ if (el.textContent !== text) el.textContent = text; }
+
+var narrStage = -1;
+function narrateAdapt(){
+  var k = S.iter/ITERS, stage;
+  if (k < 0.25) stage = 0; else if (k < 0.6) stage = 1; else stage = 2;
+  if (stage === narrStage) return;
+  narrStage = stage;
+  say(narrEl, [
+    "食物全部找到了。現在牠開始做第二件事——把不划算的管道收掉。",
+    "用得多的管道變粗。用得少的萎縮。就這一條規則，一直跑。",
+    "剩下的管子越來越少，也越來越粗。"
+  ][stage]);
+}
+
+/* ══════════════════════════ 互動：畫線 ══════════════════════════ */
+function nearestNode(x, y, maxPx){
+  var best=-1, bd=maxPx*maxPx;
+  for (var i=0;i<NC;i++){
+    var dx=SX(i)-x, dy=SY(i)-y, d=dx*dx+dy*dy;
+    if (d < bd){ bd=d; best=i; }
+  }
+  return best;
+}
+function announceEdge(res, a, b){
+  var n = Object.keys(S.you).length;
+  if (res === "blocked"){
+    say(hintEl, CITIES[a][0] + " 到 " + CITIES[b][0] + " 中間是海或山，過不去。");
+    return;
+  }
+  if (res === "added" || res === "removed"){
+    var stranded = strandedCities(youEdges());
+    var tail = stranded.length
+      ? "　還有 " + stranded.length + " 個城市沒接上（" + stranded.slice(0,3).map(function(i){return CITIES[i][0];}).join("、") + (stranded.length>3?"…":"") + "）"
+      : (isConnected(youEdges(),-1) ? "　全部連上了。" : "　還有城市連不到東京。");
+    say(hintEl, (res==="added" ? "接上 " : "拆掉 ") + CITIES[a][0] + "－" + CITIES[b][0] + "　共 " + n + " 條" + tail);
+  }
+}
+function setRoving(i){
+  nodeBtns[S.focus].tabIndex = -1;
+  S.focus = i;
+  nodeBtns[i].tabIndex = 0;
+}
+function actOn(node){
+  if (S.phase !== "draw") return;
+  setRoving(node);
+  if (S.sel < 0){ S.sel = node; say(hintEl, "選了 " + CITIES[node][0] + "。再點一個城市就連起來。"); syncPressed(); mark(); return; }
+  if (S.sel === node){ S.sel = -1; say(hintEl, "取消選取。"); syncPressed(); mark(); return; }
+  var a = S.sel, res = toggleEdge(a, node);
+  if (res !== "blocked") S.sel = node;
+  announceEdge(res, a, node);
+  syncPressed();
+  updateYouHud(); mark();
+}
+
+dish.addEventListener("pointerdown", function(e){
+  if (S.phase !== "draw") return;
+  var r = cv.getBoundingClientRect();
+  var n = nearestNode(e.clientX-r.left, e.clientY-r.top, 24);
+  if (n < 0) return;
+  S.dragAnchor = n; S.dragMoved = false;
+  try { dish.setPointerCapture(e.pointerId); } catch(err){}
+  e.preventDefault();
+});
+dish.addEventListener("pointermove", function(e){
+  if (S.phase !== "draw") return;
+  var r = cv.getBoundingClientRect();
+  var x = e.clientX-r.left, y = e.clientY-r.top;
+  if (S.sel >= 0){ S.hoverX = x; S.hoverY = y; mark(); }
+  if (S.dragAnchor < 0) return;
+  var n = nearestNode(x, y, 22);
+  if (n >= 0 && n !== S.dragAnchor){
+    var a = S.dragAnchor;
+    if (!S.you[key(a,n)]){
+      var res = toggleEdge(a, n);
+      announceEdge(res, a, n);
+      updateYouHud();
+    }
+    S.dragAnchor = n; S.dragMoved = true; S.sel = n;
+    mark();
+  }
+});
+function endDrag(e){
+  if (S.dragAnchor >= 0 && !S.dragMoved) actOn(S.dragAnchor);
+  S.dragAnchor = -1; S.dragMoved = false;
+  if (e && e.pointerId !== undefined){ try { dish.releasePointerCapture(e.pointerId); } catch(err){} }
+}
+dish.addEventListener("pointerup", endDrag);
+dish.addEventListener("pointercancel", function(e){ S.dragAnchor=-1; S.dragMoved=false; });
+dish.addEventListener("pointerleave", function(){ S.hoverX=-1; S.hoverY=-1; mark(); });
+
+/* 鍵盤：方向鍵換城市、Enter 連線 */
+function moveFocus(from, dx, dy){
+  var best=-1, bs=Infinity;
+  for (var i=0;i<NC;i++){
+    if (i===from) continue;
+    var vx = SX(i)-SX(from), vy = SY(i)-SY(from);
+    var d = Math.hypot(vx,vy);
+    if (d < 1) continue;
+    var dot = (vx*dx + vy*dy)/d;
+    if (dot < 0.5) continue;                       /* 只找該方向 ±60° 內的 */
+    var score = d/(dot*dot);
+    if (score < bs){ bs = score; best = i; }
+  }
+  return best;
+}
+nodesEl.addEventListener("keydown", function(e){
+  var i = +(e.target.dataset && e.target.dataset.i);
+  if (isNaN(i) || !e.target.classList.contains("node")) return;
+  var dir = null;
+  if (e.key === "ArrowRight") dir = [1,0];
+  else if (e.key === "ArrowLeft") dir = [-1,0];
+  else if (e.key === "ArrowUp") dir = [0,-1];
+  else if (e.key === "ArrowDown") dir = [0,1];
+  if (dir){
+    e.preventDefault();
+    var n = moveFocus(i, dir[0], dir[1]);
+    if (n >= 0) focusNode(n);
+    return;
+  }
+  if (e.key === "Enter" || e.key === " "){
+    e.preventDefault();
+    actOn(i);
+    syncPressed();
+    return;
+  }
+  if (e.key === "Escape"){ S.sel = -1; say(hintEl, "取消選取。"); syncPressed(); mark(); }
+});
+function focusNode(i){
+  setRoving(i);
+  nodeBtns[i].focus({preventScroll:true});
+  say(hintEl, CITIES[i][0] + (S.sel>=0 ? "（按 Enter 與 " + CITIES[S.sel][0] + " 連線）" : "（按 Enter 選取）"));
+}
+function syncPressed(){
+  for (var i=0;i<NC;i++) nodeBtns[i].setAttribute("aria-pressed", S.sel===i ? "true" : "false");
+}
+nodesEl.addEventListener("focusin", function(e){
+  var i = +(e.target.dataset && e.target.dataset.i);
+  if (!isNaN(i)) setRoving(i);
+});
+
+/* ══════════════════════════ 流程 ══════════════════════════ */
+var act2 = document.getElementById("act2"), act3 = document.getElementById("act3"), act4 = document.getElementById("act4");
+var btnDone = document.getElementById("btnDone"), btnGo = document.getElementById("btnGo");
+var scoreCard = document.getElementById("scoreCard"), verdict = document.getElementById("verdict");
+
+var JRM = measure(JR);
+var MSTM = measure(buildMST(CANDS));
+var SLM = null, YOUM = null;
+
+function verdictText(m){
+  if (!m.n) return "你一條線都沒畫。也行——直接看下一位參賽者怎麼做。";
+  if (!m.conn){
+    var st = strandedCities(youEdges());
+    return "你的網路還沒接完："
+      + (st.length ? "有 " + st.length + " 個城市完全沒有線。" : "有城市連不回東京。")
+      + " 總長 <b>" + fmtLen(m.len) + "</b> 公里。繞路和韌性要等全部連上才算得出來。";
+  }
+  var bits = [];
+  bits.push("總長 <b>" + fmtLen(m.len) + "</b> 公里");
+  bits.push("平均繞路 <b>" + fmtDet(m.det) + "</b>");
+  bits.push("斷一條就有城市被孤立的機率 <b>" + Math.round(m.risk*100) + "%</b>");
+  var tail;
+  if (m.risk > 0.95) tail = "你畫的是一棵樹：一條都不能斷。省錢，但很脆。";
+  else if (m.len < MSTM.len*1.15) tail = "非常省。你幾乎踩在「最省錢的連法」上了。";
+  else if (m.det < 1.25 && m.risk < 0.25) tail = "又快又耐斷——代價是你鋪了很多鐵軌。";
+  else if (m.len > JRM.len*1.6) tail = "很豪華。錢是別人出的嗎？";
+  else tail = "在成本和繞路之間，你抓了一個折衷。";
+  return bits.join("　") + "<br><span style='color:var(--dim)'>" + tail + "</span>";
+}
+
+btnDone.addEventListener("click", function(){
+  YOUM = measure(youEdges());
+  verdict.innerHTML = verdictText(YOUM);
+  scoreCard.hidden = false;
+  act2.hidden = false;
+  revealNew();
+  S.lightWant = 0;
+  btnDone.textContent = "重新看一次成績";
+  setTimeout(function(){ act2.scrollIntoView({behavior: reduced() ? "auto" : "smooth", block:"start"}); }, 60);
+});
+
+/* 捲到「用光畫地形」那段時，禁區亮起來 */
+if (window.IntersectionObserver){
+  new IntersectionObserver(function(es){
+    es.forEach(function(e){ S.lightWant = e.isIntersecting ? 1 : 0; });
+  }, {threshold:0.35}).observe(act2);
+} else { S.lightWant = 0; }
+
+btnGo.addEventListener("click", function(){
+  if (S.phase !== "draw") return;
+  YOUM = measure(youEdges());
+  if (scoreCard.hidden){ verdict.innerHTML = verdictText(YOUM); scoreCard.hidden = false; }
+  btnGo.disabled = true;
+  btnGo.textContent = "牠已經上去了";
+  S.sel = -1; syncPressed();
+  dish.classList.remove("drawing");
+  S.D = physInit(CANDS);
+  S.iter = 0; S.iterAcc = 0;
+  S.frontMax = 0;
+  for (var i=0;i<CANDS.length;i++){
+    var t0 = Math.min(HUBDIST[CANDS[i][0]], HUBDIST[CANDS[i][1]]);
+    S.frontMax = Math.max(S.frontMax, t0 + CANDS[i][2]);
+  }
+  S.youAlpha = 0.28;
+  say(narrEl, "牠從東京開始往外爬。凡是能去的地方，牠先全部鋪過一遍。");
+  hudWho.textContent = "黏 菌 · 生 長 中";
+  mLen.style.color = mDet.style.color = mRisk.style.color = "var(--slime)";
+  mLen.textContent = "…"; mDet.textContent = "…"; mRisk.textContent = "…";
+  if (reduced()){
+    S.slimeAlpha = 1; S.front = S.frontMax;
+    for (var k=0;k<ITERS;k++) physStep(CANDS, S.D, {gamma:GAMMA, dt:DT});
+    S.iter = ITERS; S.pruneFade = 0;
+    S.phase = "settle";
+    finishSettle();
+    S.jrAlpha = 1; S.youAlpha = 0.28;
+  } else {
+    S.phase = "grow";
+    S.front = 0; S.slimeAlpha = 0;
+    setRunning();
+  }
+  mark();
+});
+
+function startAdapt(){
+  S.phase = "adapt";
+  narrStage = -1;
+  hudWho.textContent = "黏 菌 · 修 剪 中";
+}
+function startSettle(){
+  S.phase = "settle";
+  fadeT = 0;
+  say(narrEl, "停了。");
+}
+function finishSettle(){
+  S.phase = "compare";
+  S.slimeEdges = physPrune(CANDS, S.D, PRUNE);
+  SLM = measure(S.slimeEdges);
+  lastHud.len = 0;
+  setHud(SLM, "黏 菌 長 出 來 的 網 路", "var(--slime)");
+  say(narrEl, "二十六小時後，培養皿裡剩下這個。");
+  act3.hidden = false; act4.hidden = false;
+  fillTable();
+  revealNew();
+  setTimeout(function(){ act3.scrollIntoView({behavior: reduced() ? "auto" : "smooth", block:"start"}); }, 400);
+  mark();
+}
+
+function fillTable(){
+  var you = YOUM || measure(youEdges());
+  function put(id, v){ document.getElementById(id).textContent = v; }
+  put("tYouLen", you.n ? fmtLen(you.len) : "—");
+  put("tSlLen",  fmtLen(SLM.len));
+  put("tJrLen",  fmtLen(JRM.len));
+  put("tYouDet", you.conn ? you.det.toFixed(2) : "—");
+  put("tSlDet",  SLM.det.toFixed(2));
+  put("tJrDet",  JRM.det.toFixed(2));
+  put("tYouRisk", you.conn ? Math.round(you.risk*100)+"%" : "—");
+  put("tSlRisk",  Math.round(SLM.risk*100)+"%");
+  put("tJrRisk",  Math.round(JRM.risk*100)+"%");
+  put("tYouN", you.n ? String(you.n) : "—");
+  put("tSlN",  String(SLM.n));
+  put("tJrN",  String(JRM.n));
+  /* 標出每一列最好的 */
+  markBest(["tYouLen","tSlLen","tJrLen"], [you.conn?you.len:Infinity, SLM.len, JRM.len]);
+  markBest(["tYouDet","tSlDet","tJrDet"], [you.conn?you.det:Infinity, SLM.det, JRM.det]);
+  markBest(["tYouRisk","tSlRisk","tJrRisk"], [you.conn?you.risk:Infinity, SLM.risk, JRM.risk]);
+
+  var ov = overlapRatio(S.slimeEdges, JR);
+  document.getElementById("matchLine").innerHTML =
+    "牠長出來的 <b>" + SLM.n + "</b> 條管道裡，有 <b>" + Math.round(ov*SLM.n) +
+    "</b> 條直接躺在 JR 的路線上——<strong>" + Math.round(ov*100) + "%</strong>。沒人告訴牠那些路線在哪裡。";
+}
+function markBest(ids, vals){
+  var mn = Math.min.apply(null, vals);
+  for (var i=0;i<ids.length;i++){
+    var el = document.getElementById(ids[i]);
+    if (vals[i] === mn && isFinite(mn)) el.classList.add("best"); else el.classList.remove("best");
+  }
+}
+
+/* ══════════════════════════ 捲動進場 ══════════════════════════ */
+var io = null;
+function revealAll(){
+  var els = document.querySelectorAll(".rise");
+  for (var i=0;i<els.length;i++) els[i].classList.add("in");
+}
+function revealNew(){
+  if (!io){ revealAll(); return; }
+  var els = document.querySelectorAll(".rise:not(.in)");
+  for (var i=0;i<els.length;i++) io.observe(els[i]);
+}
+if (reduced() || !window.IntersectionObserver){
+  revealAll();
+} else {
+  io = new IntersectionObserver(function(es, obs){
+    for (var i=0;i<es.length;i++) if (es[i].isIntersecting){ es[i].target.classList.add("in"); obs.unobserve(es[i].target); }
+  }, {rootMargin:"0px 0px -8% 0px"});
+  revealNew();
+}
+
+/* 收尾大數字：2^435 ≈ 8.9 × 10^130 */
+var bignum = document.getElementById("bignum");
+function rollBig(){
+  var target = 8.9;
+  function put(v){ bignum.firstChild.nodeValue = v.toFixed(1) + " × 10¹³⁰"; }
+  if (reduced()){ put(target); return; }
+  var t0 = performance.now(), dur = 1500;
+  (function tick(now){
+    var k = Math.max(0, Math.min(1,(now-t0)/dur)), e = 1-Math.pow(1-k,3);
+    put(target*e);
+    if (k<1) requestAnimationFrame(tick);
+  })(t0);
+}
+if (window.IntersectionObserver){
+  var bo = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if (e.isIntersecting){ rollBig(); bo.unobserve(e.target); } });
+  }, {threshold:0.5});
+  bo.observe(bignum);
+} else rollBig();
+
+/* ══════════════════════════ 減少動態：動態切換 ══════════════════════════ */
+function onReducedChange(){
+  if (reduced()){
+    revealAll();
+    if (S.phase === "grow" || S.phase === "adapt"){
+      S.front = S.frontMax; S.slimeAlpha = 1;
+      while (S.iter < ITERS){ physStep(CANDS, S.D, {gamma:GAMMA, dt:DT}); S.iter++; }
+      S.pruneFade = 0;
+      finishSettle();
+    }
+    if (S.phase === "compare"){ S.jrAlpha = 1; S.youAlpha = 0.28; }
+    S.lightAlpha = S.lightWant || 0;
+  }
+  mark(); setRunning();
+}
+if (mReduced.addEventListener) mReduced.addEventListener("change", onReducedChange);
+else if (mReduced.addListener) mReduced.addListener(onReducedChange);
+
+/* ══════════════════════════ 啟動 ══════════════════════════ */
+var rzT = null;
+window.addEventListener("resize", function(){
+  clearTimeout(rzT);
+  rzT = setTimeout(function(){ if (fitCanvas(false)) mark(); }, 120);
+});
+if (window.ResizeObserver){
+  var ro = new ResizeObserver(function(){ if (fitCanvas(false)) mark(); });
+  ro.observe(dish);
+}
+
+loadYou();
+dish.classList.add("drawing");
+fitCanvas(true);
+syncPressed();
+var initM = updateYouHud();
+if (initM.n) say(hintEl, "沿用你上次畫的 " + initM.n + " 條線。想重畫就把線點掉。");
+mark();
+setRunning();
+
+})();
+</script>
+</body>
+</html>

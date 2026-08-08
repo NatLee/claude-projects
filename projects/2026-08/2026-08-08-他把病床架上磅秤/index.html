@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>他把病床架上磅秤</title>
+<meta name="description" content="1907 年，一位醫師在六位臨終病人身上找一個數字。他找到了一次。這本簿子現在攤開在你面前——你要不要親手檢查那一次？">
+<style>
+  :root{
+    --desk:#191410; --desk2:#221b14;
+    --paper:#e9e0c9; --paper2:#e0d5ba; --paper3:#d3c6a4;
+    --rule:#c9b998;
+    --ink:#2c241a; --ink2:#4c4132; --faint:#8b7d64;
+    --blue:#2e4560; --red:#9b3a24; --green:#4c6a44; --gold:#9a7a2c;
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC","PMingLiU",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--desk); color:var(--ink);
+    font-family:var(--serif); font-size:17.5px; line-height:1.92;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(46,69,96,.2)}
+  :focus-visible{outline:2px solid var(--red); outline-offset:3px}
+
+  .home{
+    position:fixed; top:12px; left:14px; z-index:80;
+    font-family:var(--sans); font-size:12px; letter-spacing:.1em;
+    color:#a3937a; text-decoration:none;
+    padding:6px 11px; border-radius:2px;
+    background:rgba(25,20,16,.72); border:1px solid rgba(180,160,125,.22);
+    backdrop-filter:blur(5px); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:#e6d9bd; border-color:rgba(200,180,140,.5)}
+
+  /* ── 紙 ── */
+  .sheet{
+    max-width:780px; margin:0 auto; position:relative;
+    background:
+      radial-gradient(120% 60% at 12% 0%, rgba(160,130,80,.10), transparent 60%),
+      radial-gradient(90% 50% at 95% 78%, rgba(140,110,60,.12), transparent 62%),
+      linear-gradient(180deg, var(--paper) 0%, var(--paper2) 55%, var(--paper) 100%);
+    box-shadow:0 0 0 1px rgba(90,70,40,.22), 0 24px 70px rgba(0,0,0,.55);
+    overflow:hidden;
+  }
+  .sheet::before{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background:repeating-linear-gradient(180deg, transparent 0 33px, rgba(150,125,80,.13) 33px 34px);
+    opacity:.55;
+  }
+  .sheet::after{
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+    background:radial-gradient(140% 110% at 50% 50%, transparent 62%, rgba(80,60,30,.16) 100%);
+  }
+  .wrap{position:relative; z-index:1; padding:0 clamp(20px,5.2vw,54px)}
+
+  p{margin:0 0 1.2em}
+  .dim{color:var(--ink2)}
+  .fine{color:var(--faint); font-size:.92em}
+  strong{font-weight:700; color:#1e180f}
+  em{font-style:normal; color:var(--red)}
+
+  /* ── 第一屏 ── */
+  .hero{position:relative; min-height:100svh; display:flex; flex-direction:column; justify-content:center; padding:12vh 0 8vh}
+  .hero canvas{display:block; width:100%; height:300px; margin:0 0 6vh}
+  .stamp{
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.34em; color:var(--faint);
+    text-transform:uppercase; margin:0 0 1.5em;
+  }
+  h1{
+    font-size:clamp(2rem,6.6vw,3.15rem); line-height:1.28; margin:0 0 .7em;
+    font-weight:600; letter-spacing:-.01em; color:#1c160e;
+  }
+  .sub{font-size:1.02em; color:var(--ink2); max-width:30em}
+  .hint{
+    font-family:var(--sans); font-size:11px; letter-spacing:.3em; color:var(--faint);
+    display:flex; align-items:center; gap:10px; margin-top:3em;
+  }
+  .hint i{display:block; width:30px; height:1px; background:var(--rule)}
+
+  /* ── 章節 ── */
+  .ch{padding:9vh 0 3vh; position:relative}
+  .chn{
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.36em; color:var(--red);
+    margin:0 0 1.1em; display:flex; align-items:center; gap:11px;
+  }
+  .chn::before{content:""; width:22px; height:1px; background:var(--red); opacity:.5}
+  h2{font-size:clamp(1.45rem,4.2vw,2rem); line-height:1.42; font-weight:600; margin:0 0 .95em; color:#1c160e}
+
+  .rise{opacity:0; transform:translateY(14px); transition:opacity .75s ease, transform .75s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  .pull{
+    font-size:clamp(1.15rem,3.3vw,1.42rem); line-height:1.72; margin:2em 0;
+    padding-left:18px; border-left:2px solid var(--red); color:#1c160e;
+  }
+
+  /* ── 面板（貼在簿子上的紙） ── */
+  .panel{
+    margin:2.2em calc(-1 * clamp(6px,1.6vw,16px)) ;
+    background:linear-gradient(180deg,rgba(255,252,242,.72),rgba(248,242,226,.5));
+    border:1px solid rgba(120,96,58,.28); border-radius:3px;
+    padding:clamp(16px,3vw,24px);
+    box-shadow:0 2px 0 rgba(120,96,58,.12), 0 10px 26px rgba(90,70,40,.10);
+  }
+  .panel canvas{display:block; width:100%}
+  .plabel{
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.24em; color:var(--faint);
+    margin:0 0 1.1em; text-transform:uppercase;
+  }
+
+  /* ── 控制項 ── */
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:28px; background:transparent; cursor:ew-resize; display:block}
+  input[type=range]::-webkit-slider-runnable-track{height:2px; background:var(--rule)}
+  input[type=range]::-moz-range-track{height:2px; background:var(--rule)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:19px; height:19px; margin-top:-8.5px; border-radius:50%;
+    background:var(--ink); border:2px solid var(--paper); box-shadow:0 0 0 1px var(--ink);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:15px; height:15px; border-radius:50%; background:var(--ink);
+    border:2px solid var(--paper); box-shadow:0 0 0 1px var(--ink);
+  }
+  .rowout{
+    display:flex; flex-wrap:wrap; gap:6px 22px; font-family:var(--sans); font-size:13px; color:var(--faint);
+    margin-top:2px;
+  }
+  .rowout b{color:var(--ink); font-weight:600; font-variant-numeric:tabular-nums}
+  .chip{
+    font-family:var(--sans); font-size:11px; letter-spacing:.12em; padding:2px 9px;
+    border:1px solid currentColor; border-radius:2px;
+  }
+  .chip.no{color:var(--faint)} .chip.yes{color:var(--red)}
+
+  button{
+    font-family:var(--sans); font-size:13px; letter-spacing:.05em; color:var(--ink);
+    background:rgba(255,253,246,.6); border:1px solid rgba(110,88,52,.42); border-radius:2px;
+    padding:9px 15px; cursor:pointer;
+    transition:background .18s, border-color .18s, color .18s, transform .12s;
+  }
+  button:hover{background:rgba(255,255,250,.95); border-color:rgba(110,88,52,.8)}
+  button:active{transform:translateY(1px)}
+
+  .whisper{
+    font-family:var(--sans); font-size:13px; color:var(--red); margin:14px 0 0;
+    opacity:0; transform:translateY(5px); transition:opacity .5s, transform .5s;
+  }
+  .whisper.on{opacity:1; transform:none}
+
+  /* ── 紀錄簿分頁 ── */
+  .ledger{display:grid; grid-template-columns:132px 1fr; gap:0; margin:2.2em 0}
+  .tabs{display:flex; flex-direction:column; gap:5px; border-right:1px solid rgba(120,96,58,.3); padding-right:12px}
+  .tab{
+    position:relative; text-align:left; padding:10px 26px 10px 11px; line-height:1.35;
+    border-radius:2px 0 0 2px; border:1px solid transparent; background:transparent;
+    color:var(--ink2); font-family:var(--sans); font-size:13px;
+  }
+  .tab i{display:block; font-style:normal; font-size:10.5px; letter-spacing:.1em; color:var(--faint); margin-top:2px}
+  .tab:hover{background:rgba(255,253,246,.7)}
+  .tab[aria-selected=true]{
+    background:linear-gradient(180deg,rgba(255,252,242,.95),rgba(248,242,226,.7));
+    border-color:rgba(120,96,58,.34); border-right-color:transparent; color:var(--ink); font-weight:600;
+  }
+  .tab .mk{position:absolute; right:9px; top:9px; font-size:11px; letter-spacing:0}
+  .tab .mk.ok{color:var(--green)} .tab .mk.no{color:var(--red)}
+  .pages{padding-left:clamp(14px,3vw,24px); min-height:430px}
+  .page{opacity:0; transform:translateY(8px); transition:opacity .45s ease, transform .45s ease}
+  .page.shown{opacity:1; transform:none}
+  .pnum{font-family:var(--sans); font-size:10.5px; letter-spacing:.3em; color:var(--red); margin:0 0 .5em}
+  .pmeta{
+    display:flex; flex-wrap:wrap; gap:4px 18px; font-family:var(--sans); font-size:12px;
+    color:var(--faint); margin:0 0 1.3em; padding-bottom:.9em; border-bottom:1px dotted rgba(120,96,58,.45);
+  }
+  .quote{margin:1.5em 0; padding:0}
+  .quote p{
+    margin:0; font-size:1.03em; line-height:1.85; color:var(--blue);
+    font-style:italic; letter-spacing:.01em;
+  }
+  .quote .ul{display:block; width:min(100%,340px); height:11px; margin-top:2px}
+  .quote .ul path{fill:none; stroke:var(--blue); stroke-width:1.5; stroke-linecap:round; opacity:.55; stroke-dasharray:100; stroke-dashoffset:100}
+  .pen span{display:inline-block; opacity:0; transform:translateY(4px)}
+  .pen.lit span{opacity:1; transform:none; transition:opacity .32s ease, transform .32s ease}
+
+  .verdict{margin-top:1.6em; padding-top:1.1em; border-top:1px dotted rgba(120,96,58,.45)}
+  .vq{font-family:var(--sans); font-size:13px; color:var(--ink2); margin:0 0 .8em; letter-spacing:.03em}
+  .vbtns{display:flex; gap:9px; flex-wrap:wrap}
+  .vb[aria-pressed=true]{background:rgba(76,106,68,.14); border-color:var(--green); color:var(--green); font-weight:600}
+  .vb.pick-no[aria-pressed=true]{background:rgba(155,58,36,.11); border-color:var(--red); color:var(--red)}
+  .vafter{margin-top:1.2em}
+  .vlabel{font-family:var(--sans); font-size:10.5px; letter-spacing:.24em; color:var(--faint); margin:0 0 .5em}
+  .vafter p:last-child{margin-bottom:0}
+  .vafter .his{
+    font-family:var(--sans); font-size:12.5px; color:var(--red); margin-top:.7em;
+    padding-left:11px; border-left:2px solid rgba(155,58,36,.45);
+  }
+  .prog{font-family:var(--sans); font-size:12px; letter-spacing:.14em; color:var(--faint); margin:0}
+  .tally{margin-top:2em}
+  .tally ol{margin:.6em 0 0; padding-left:1.3em}
+  .tally li{margin-bottom:.35em}
+
+  /* ── 大數字 ── */
+  .big{
+    font-family:var(--sans); font-weight:200; letter-spacing:-.035em; line-height:1;
+    font-variant-numeric:tabular-nums; color:#1c160e; margin:.1em 0 .1em;
+    font-size:clamp(3.6rem,15vw,6rem);
+  }
+  .big small{font-size:.19em; letter-spacing:.3em; font-weight:400; color:var(--faint); margin-left:.7em}
+
+  /* ── 儀器面板 ── */
+  .gauge canvas{display:block; width:100%; height:220px}
+  .readbig{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-top:6px}
+  .readbig .big{margin:0; font-size:clamp(2.6rem,10vw,3.9rem)}
+  .unc{font-family:var(--sans); font-size:13px; color:var(--faint); margin:0}
+  .unc b{color:var(--ink); font-variant-numeric:tabular-nums; font-weight:600}
+
+  .axis{position:relative; height:52px; margin:16px 0 4px}
+  .axis-track{position:absolute; left:0; right:0; top:20px; height:1px; background:var(--rule)}
+  .axis-zero{position:absolute; top:8px; height:25px; width:1px; background:var(--ink); left:33.333%}
+  .axis-band, .axis-mark{position:absolute; left:0; width:100%; transform-origin:left center; will-change:transform}
+  .axis-band{
+    top:12px; height:17px; background:rgba(155,58,36,.16); border-top:1px solid rgba(155,58,36,.4);
+    border-bottom:1px solid rgba(155,58,36,.4); transform:translateX(33.333%) scaleX(0);
+    transition:transform .5s cubic-bezier(.3,.7,.3,1);
+  }
+  .axis-band.drown{background:rgba(155,58,36,.3)}
+  .axis-mark{top:4px; height:33px; transform:translateX(68.77%)}
+  .axis-mark::before{content:""; position:absolute; left:-1px; top:0; width:3px; height:100%; background:var(--ink)}
+  .axis-mark{transition:transform .5s cubic-bezier(.3,.7,.3,1)}
+  .axis-labels{
+    position:absolute; left:0; right:0; top:33px; font-family:var(--sans); font-size:10.5px;
+    color:var(--faint); font-variant-numeric:tabular-nums;
+  }
+  .axis-labels span{position:absolute; transform:translateX(-50%)}
+
+  .sig{
+    font-family:var(--sans); font-size:13.5px; line-height:1.65; margin:14px 0 0;
+    padding:10px 13px; border-radius:2px; background:rgba(76,106,68,.1); color:var(--green);
+    border-left:2px solid var(--green);
+  }
+  .sig.drown{background:rgba(155,58,36,.11); color:var(--red); border-left-color:var(--red)}
+
+  .fxlist{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:20px}
+  .fx{
+    display:block; text-align:left; padding:12px 13px; line-height:1.55;
+    background:rgba(255,253,246,.5); border-color:rgba(110,88,52,.3);
+  }
+  .fxh{display:flex; justify-content:space-between; align-items:baseline; gap:10px}
+  .fxh b{font-size:13.5px; color:var(--ink); font-weight:600}
+  .fxn{
+    font-style:normal; font-size:11px; color:var(--faint); white-space:nowrap;
+    font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  }
+  .fxd{display:block; font-size:12px; color:var(--ink2); margin-top:5px; font-family:var(--sans)}
+  .fx[aria-pressed=true]{
+    background:rgba(155,58,36,.09); border-color:rgba(155,58,36,.55);
+  }
+  .fx[aria-pressed=true] .fxn{color:var(--red)}
+  .fx.dud[aria-pressed=true]{background:rgba(120,96,58,.09); border-color:rgba(110,88,52,.5)}
+  .fx.dud[aria-pressed=true] .fxn{color:var(--faint)}
+  .fxfoot{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:16px}
+  .fxfoot .note{font-family:var(--sans); font-size:11.5px; color:var(--faint); margin:0}
+
+  /* ── 十五隻狗 ── */
+  .dogs{display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin:1.8em 0}
+  .dog{
+    text-align:center; padding:9px 2px; border:1px solid rgba(120,96,58,.28); border-radius:2px;
+    font-family:var(--sans); background:rgba(255,253,246,.4);
+    opacity:0; transform:translateY(8px); transition:opacity .45s ease, transform .45s ease;
+  }
+  .dog.in{opacity:1; transform:none}
+  .dog i{display:block; font-style:normal; font-size:9.5px; letter-spacing:.14em; color:var(--faint)}
+  .dog b{display:block; font-size:16px; font-weight:400; color:var(--ink2); font-variant-numeric:tabular-nums; margin-top:2px}
+
+  /* ── 收尾 ── */
+  .five{margin:2em 0 0; padding:0; list-style:none; counter-reset:f}
+  .five li{
+    counter-increment:f; position:relative; padding-left:2.4em; margin-bottom:.85em; line-height:1.75;
+  }
+  .five li::before{
+    content:counter(f); position:absolute; left:0; top:.05em;
+    font-family:var(--sans); font-size:11px; letter-spacing:.1em; color:var(--red);
+    border:1px solid rgba(155,58,36,.45); border-radius:50%; width:1.7em; height:1.7em;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .finale{padding:10vh 0 4vh}
+  .last{font-size:clamp(1.2rem,3.6vw,1.55rem); line-height:1.68; color:#1c160e; margin-top:2.2em}
+  footer{
+    position:relative; z-index:1; margin:8vh clamp(20px,5.2vw,54px) 0;
+    border-top:1px solid rgba(120,96,58,.35); padding:20px 0 34px;
+    font-family:var(--sans); font-size:11px; letter-spacing:.04em; color:var(--faint);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  footer a{color:var(--faint); text-decoration:none; border-bottom:1px solid rgba(120,96,58,.5)}
+  footer a:hover{color:var(--ink)}
+
+  @media (max-width:560px){
+    body{font-size:16.5px}
+    .hero canvas{height:200px}
+    .gauge canvas{height:180px}
+    .ledger{grid-template-columns:1fr; gap:14px}
+    .tabs{
+      flex-direction:row; overflow-x:auto; padding:0 0 8px; gap:7px;
+      border-right:none; border-bottom:1px solid rgba(120,96,58,.3);
+      -webkit-overflow-scrolling:touch;
+    }
+    .tab{flex:0 0 auto; border-radius:2px; padding:8px 26px 8px 12px}
+    .tab[aria-selected=true]{border-right-color:rgba(120,96,58,.34)}
+    .tab .mk{top:50%; margin-top:-.6em; right:8px}
+    .pages{padding-left:0; min-height:0}
+    .fxlist{grid-template-columns:1fr}
+    .dogs{grid-template-columns:repeat(3,1fr)}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise,.page,.dog{opacity:1 !important; transform:none !important; transition:none !important}
+    .pen span{opacity:1 !important; transform:none !important}
+    .whisper{transition:none}
+    .axis-band,.axis-mark{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<div class="sheet">
+
+<!-- ═══════════ 第一屏 ═══════════ -->
+<header class="hero">
+  <canvas id="cvHero" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <p class="stamp">Haverhill, Mass. · 1901</p>
+    <h1>三小時四十分鐘之後，<br>那根橫樑自己掉了下去</h1>
+    <p class="sub">它撞在下面那根限位桿上，發出一聲，沒有回彈。<br>床上那個人，剛剛停止呼吸。</p>
+    <p class="hint"><i></i>往下翻</p>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════ 一 ═══════════ -->
+<section class="ch">
+  <div class="wrap">
+    <p class="chn rise">第一頁 · 那台裝置</p>
+    <h2 class="rise">他不是在量體重</h2>
+    <p class="rise">1901 年，麻薩諸塞州哈弗希爾的一位醫師 Duncan MacDougall，在幾間安養機構裡找到了六位時日無多的病人。他找的是特定的病：會讓人極度衰弱、死時幾乎不會動的那種。</p>
+    <p class="rise">因為他需要他們躺著別動。他把整張病床——連床帶人——架上了一台工業用的槓桿磅秤。</p>
+    <p class="rise">先摸一下這台秤。它的靈敏度是十分之二盎司。</p>
+  </div>
+
+  <div class="wrap">
+    <div class="panel rise">
+      <p class="plabel">試著往秤上加東西</p>
+      <canvas id="cvWeigh" aria-hidden="true" style="height:200px"></canvas>
+      <label for="wSlider" style="display:block;font-family:var(--sans);font-size:11.5px;letter-spacing:.16em;color:var(--faint);margin:12px 0 2px">加上的重量（公克）</label>
+      <input id="wSlider" type="range" min="0" max="40" step="0.1" value="0"
+             aria-describedby="wOut" aria-label="往秤上加的重量，單位公克">
+      <div class="rowout" id="wOut" aria-live="polite">
+        <span>加上 <b id="wG">0.0</b> 公克</span>
+        <span id="wTag" class="chip no">橫樑沒有動</span>
+      </div>
+      <p class="whisper" id="wWhisper">五點六公克。這是這台秤能說出口的、最小的一句話。</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">低於 5.67 公克，這根橫樑什麼也不會告訴你。它不是壞了——它就是聽不見那麼小的聲音。</p>
+    <p class="rise dim">記住這個數字。等一下你會需要它。</p>
+  </div>
+</section>
+
+<!-- ═══════════ 二 ═══════════ -->
+<section class="ch" id="chLedger">
+  <div class="wrap">
+    <p class="chn rise">第二頁 · 六筆紀錄</p>
+    <h2 class="rise">簿子裡有六個人，沒有一個留下名字</h2>
+    <p class="rise">在他的紀錄裡，他們是「第一例」到「第六例」。四位死於肺結核，一位死於糖尿病昏迷，一位死因未載。</p>
+    <p class="rise">接下來的六頁，是他自己寫的。我不加評語。<strong>你來判。</strong></p>
+  </div>
+
+  <div class="wrap">
+    <div class="panel rise">
+      <div class="ledger">
+        <div class="tabs" role="tablist" aria-label="六筆病例紀錄">
+          <button class="tab" role="tab" id="tb1" aria-controls="pn1" aria-selected="true" tabindex="0">第一例<i>肺結核</i></button>
+          <button class="tab" role="tab" id="tb2" aria-controls="pn2" aria-selected="false" tabindex="-1">第二例<i>肺結核</i></button>
+          <button class="tab" role="tab" id="tb3" aria-controls="pn3" aria-selected="false" tabindex="-1">第三例<i>肺結核</i></button>
+          <button class="tab" role="tab" id="tb4" aria-controls="pn4" aria-selected="false" tabindex="-1">第四例<i>糖尿病昏迷</i></button>
+          <button class="tab" role="tab" id="tb5" aria-controls="pn5" aria-selected="false" tabindex="-1">第五例<i>肺結核</i></button>
+          <button class="tab" role="tab" id="tb6" aria-controls="pn6" aria-selected="false" tabindex="-1">第六例<i>未載</i></button>
+        </div>
+
+        <div class="pages">
+
+          <section class="page" role="tabpanel" id="pn1" aria-labelledby="tb1" tabindex="0" data-his="keep">
+            <p class="pnum">第 一 例</p>
+            <p class="pmeta"><span>男性 · 肺結核</span><span>觀察 3 小時 40 分</span></p>
+            <p>床架在磅秤上之後，他躺了三小時四十分鐘。這段時間裡體重穩定下降，<strong>每小時約一盎司</strong>——他自己算過，那是呼吸與出汗帶走的水分。</p>
+            <p>然後他停止呼吸。與死亡同時，橫樑末端落下，撞上下方的限位桿，發出一聲，沒有回彈。差額經測定為 <strong>四分之三盎司</strong>。</p>
+            <blockquote class="quote">
+              <p class="pen">「在那三小時四十分鐘裡，我一直讓橫樑末端略高於平衡點、靠近上限位桿，好讓這次測試更具決定性。」</p>
+              <svg class="ul" viewBox="0 0 340 11" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M3 7 C 58 3, 108 10, 168 5.5 S 268 3.5, 337 7"/></svg>
+            </blockquote>
+            <div class="verdict" data-k="1">
+              <p class="vq">這一筆，能用嗎？</p>
+              <div class="vbtns">
+                <button class="vb" data-v="ok" aria-pressed="false">可採信</button>
+                <button class="vb pick-no" data-v="no" aria-pressed="false">不可採信</button>
+              </div>
+              <div class="vafter" hidden>
+                <p class="vlabel">他自己的註記</p>
+                <p>他認為蒸發解釋不了：既有的水分流失是每分鐘六十分之一盎司，而這一次是幾秒鐘內的四分之三盎司。他請同事上床用力吸吐，橫樑沒有動；病人的膀胱排出的少量尿液留在床上，不影響讀數。</p>
+                <p class="his">這是他留下的那一筆。全世界記得的，就是這一格。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" role="tabpanel" id="pn2" aria-labelledby="tb2" tabindex="0" hidden data-his="keep">
+            <p class="pnum">第 二 例</p>
+            <p class="pmeta"><span>男性 · 肺結核</span><span>觀察 4 小時 15 分</span></p>
+            <p>前四小時，每小時流失四分之三盎司。最後十五分鐘，他已經停止呼吸，但顏面肌肉還在抽動。與最後一次抽動同時，橫樑落下——<strong>半盎司</strong>。</p>
+            <p>同事上前聽診，心跳已經停止。他再測一次，差額變成<strong>一盎司半又五十格令</strong>。</p>
+            <blockquote class="quote">
+              <p class="pen">「這位病人與第一位性情全然不同，他的死亡非常漸進，我們很難從一般的徵象說出他究竟在哪一刻死去。」</p>
+              <svg class="ul" viewBox="0 0 340 11" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M3 6 C 66 10, 116 3, 176 8 S 272 4, 337 6.5"/></svg>
+            </blockquote>
+            <div class="verdict" data-k="2">
+              <p class="vq">這一筆，能用嗎？</p>
+              <div class="vbtns">
+                <button class="vb" data-v="ok" aria-pressed="false">可採信</button>
+                <button class="vb pick-no" data-v="no" aria-pressed="false">不可採信</button>
+              </div>
+              <div class="vafter" hidden>
+                <p class="vlabel">他自己的註記</p>
+                <p>他把那十八分鐘寫成「疑慮期」，然後把它整段算進失重裡。同一個人，兩個數字：14 公克，或者 46 公克。</p>
+                <p class="his">差別不在病人身上。差別在於你把「死亡」放在哪一秒。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" role="tabpanel" id="pn3" aria-labelledby="tb3" tabindex="0" hidden data-his="keep">
+            <p class="pnum">第 三 例</p>
+            <p class="pmeta"><span>男性 · 肺結核</span><span>觀察時長未載</span></p>
+            <p>這一筆很短。原文只有一句話。</p>
+            <blockquote class="quote">
+              <p class="pen">「我的第三例，一位死於肺結核的男性，顯示與死亡同時流失半盎司，數分鐘後另外流失一盎司。」</p>
+              <svg class="ul" viewBox="0 0 340 11" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M3 7.5 C 54 4, 114 9.5, 174 5 S 266 8, 337 5.5"/></svg>
+            </blockquote>
+            <div class="verdict" data-k="3">
+              <p class="vq">這一筆，能用嗎？</p>
+              <div class="vbtns">
+                <button class="vb" data-v="ok" aria-pressed="false">可採信</button>
+                <button class="vb pick-no" data-v="no" aria-pressed="false">不可採信</button>
+              </div>
+              <div class="vafter" hidden>
+                <p class="vlabel">他自己的註記</p>
+                <p>沒有註記。他把它寫完就過去了。</p>
+                <p class="his">但請注意那個「數分鐘後」。失重沒有停在死亡那一刻——它繼續進行。這是一個過程的樣子，不是一次事件的樣子。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" role="tabpanel" id="pn4" aria-labelledby="tb4" tabindex="0" hidden data-his="drop">
+            <p class="pnum">第 四 例</p>
+            <p class="pmeta"><span>女性 · 糖尿病昏迷</span><span>觀察時長未載</span></p>
+            <p>這一次天平沒有校準好。而且，用他自己的話說，現場有「不少反對這項工作的人」在干擾。</p>
+            <p>死亡時橫樑確實下沉了，需要八分之三到二分之一盎司才能把它帶回死前的位置。</p>
+            <blockquote class="quote">
+              <p class="pen">「儘管如此，我認為這次測試沒有價值。」</p>
+              <svg class="ul" viewBox="0 0 340 11" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M3 6.5 C 48 9.5, 104 3, 164 8 S 264 5, 337 7"/></svg>
+            </blockquote>
+            <div class="verdict" data-k="4">
+              <p class="vq">這一筆，能用嗎？</p>
+              <div class="vbtns">
+                <button class="vb" data-v="ok" aria-pressed="false">可採信</button>
+                <button class="vb pick-no" data-v="no" aria-pressed="false">不可採信</button>
+              </div>
+              <div class="vafter" hidden>
+                <p class="vlabel">他自己的註記</p>
+                <p>就是上面那一句。他自己劃掉了這一筆。</p>
+                <p class="his">六位病人裡，唯一的一位女性。她在紀錄裡只有兩行。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" role="tabpanel" id="pn5" aria-labelledby="tb5" tabindex="0" hidden data-his="keep">
+            <p class="pnum">第 五 例</p>
+            <p class="pmeta"><span>男性 · 肺結核</span><span>觀察時長未載</span></p>
+            <p>與死亡完全同時，橫樑明顯落下，約八分之三盎司。落下的力道跟第一例一樣大，撞得一樣響。</p>
+            <p>接著他做了一件對的事：用砝碼把橫樑抬回去，再把砝碼移除，看它會不會沉回原處。</p>
+            <p><strong>它沒有。整整十五分鐘，那根橫樑就是不肯回去。</strong></p>
+            <blockquote class="quote">
+              <p class="pen">「我們這次的天平校得非常靈敏。」</p>
+              <svg class="ul" viewBox="0 0 340 11" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M3 7 C 62 4.5, 112 9, 172 5 S 270 7.5, 337 5"/></svg>
+            </blockquote>
+            <div class="verdict" data-k="5">
+              <p class="vq">這一筆，能用嗎？</p>
+              <div class="vbtns">
+                <button class="vb" data-v="ok" aria-pressed="false">可採信</button>
+                <button class="vb pick-no" data-v="no" aria-pressed="false">不可採信</button>
+              </div>
+              <div class="vafter" hidden>
+                <p class="vlabel">他自己的註記</p>
+                <p>他把「橫樑不肯回去」寫成了一個奇怪的現象，然後留下這一筆當作證據。</p>
+                <p class="his">一台放回原重量卻回不到原讀數的秤，說的不是病人的事。它說的是它自己。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" role="tabpanel" id="pn6" aria-labelledby="tb6" tabindex="0" hidden data-his="drop">
+            <p class="pnum">第 六 例</p>
+            <p class="pmeta"><span>死因未載</span><span>觀察不到 5 分鐘</span></p>
+            <p>病人被抬上床之後不到五分鐘就過世了。當時他還在調整橫樑，磅秤的震動根本還沒停。</p>
+            <p>他當場記下的數字是<strong>一盎司半</strong>。</p>
+            <blockquote class="quote">
+              <p class="pen">「這次實驗太過倉促，天平的震動尚未完全停止，那一盎司半的表觀失重，可能來自橫樑上滑動砝碼的意外位移。」</p>
+              <svg class="ul" viewBox="0 0 340 11" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M3 6 C 56 9, 118 4, 178 8.5 S 268 4.5, 337 7"/></svg>
+            </blockquote>
+            <div class="verdict" data-k="6">
+              <p class="vq">這一筆，能用嗎？</p>
+              <div class="vbtns">
+                <button class="vb" data-v="ok" aria-pressed="false">可採信</button>
+                <button class="vb pick-no" data-v="no" aria-pressed="false">不可採信</button>
+              </div>
+              <div class="vafter" hidden>
+                <p class="vlabel">他自己的註記</p>
+                <p>他也劃掉了這一筆。理由寫得很清楚：晃動還沒停。</p>
+                <p class="his">但請把那個被劃掉的數字記下來——<strong>一盎司半，等於 42.5 公克</strong>。這台裝置在受擾時，能憑空生出這麼大的假訊號。這個數字等一下會回來找我們。</p>
+              </div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+
+      <p class="prog" id="prog" aria-live="polite">已判定 0 / 6</p>
+
+      <div class="tally" id="tally" hidden>
+        <p class="vlabel">結算</p>
+        <p>六筆判完了。把它們排在一起看：</p>
+        <ol>
+          <li><strong>第四例、第六例</strong>——他自己作廢了。</li>
+          <li><strong>第二例</strong>——同一個人有兩個數字，差別只在你把死亡定在哪一秒。</li>
+          <li><strong>第三例</strong>——失重沒有停下來，數分鐘後還在繼續。</li>
+          <li><strong>第五例</strong>——那台秤被抬回去之後，十五分鐘不肯沉回原位。</li>
+        </ol>
+        <p style="margin-top:1.1em">剩下一筆。</p>
+        <p><strong>他用那一筆，寫了一篇論文。</strong></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 三 ═══════════ -->
+<section class="ch">
+  <div class="wrap">
+    <p class="chn rise">第三頁 · 那個數字</p>
+    <h2 class="rise">四分之三盎司</h2>
+    <p class="rise">現在可以把它換算出來了。第一例那個乾淨、突然、撞得響亮的差額，換成公制是——</p>
+    <p class="big" id="bigReveal">0.0<small>公克</small></p>
+    <p class="rise">你認得它。它是一部電影的片名，是無數次被當成常識講出來的一句話。</p>
+    <p class="rise">它來自一位病人、一台秤、一個下午。</p>
+    <p class="pull rise">而它從來沒有被任何人重複出來過。<br>一次也沒有。</p>
+  </div>
+</section>
+
+<!-- ═══════════ 四 ═══════════ -->
+<section class="ch" id="chLab">
+  <div class="wrap">
+    <p class="chn rise">第四頁 · 磅秤在你手上</p>
+    <h2 class="rise">他當年沒有排除的，你現在可以一個一個打開</h2>
+    <p class="rise">1907 年 5 月，另一位醫師 Augustus P. Clarke 在同一份期刊上指出：人死的那一刻，肺不再冷卻血液，體溫會略微上升，出汗與蒸發隨之加劇——那足以吃掉這個數字。</p>
+    <p class="rise">Clarke 只是第一個。下面六個因素，全部是從 MacDougall 自己那篇論文裡讀出來的。<strong>打開它們。</strong></p>
+  </div>
+
+  <div class="wrap">
+    <div class="panel rise gauge">
+      <p class="plabel">第一例 · 重新檢驗</p>
+      <canvas id="cvBeam" aria-hidden="true"></canvas>
+
+      <div class="readbig">
+        <p class="big"><span id="resNum">21.3</span><small>公克</small></p>
+        <p class="unc">不確定度 <b id="uncNum">±0.0</b> 公克</p>
+      </div>
+
+      <div class="axis" aria-hidden="true">
+        <div class="axis-track"></div>
+        <div class="axis-band" id="band"></div>
+        <div class="axis-zero"></div>
+        <div class="axis-mark" id="mark"></div>
+        <div class="axis-labels">
+          <span style="left:0%">−20</span>
+          <span style="left:33.333%">0</span>
+          <span style="left:66.667%">+20</span>
+          <span style="left:100%">+40</span>
+        </div>
+      </div>
+
+      <p class="sig" id="sigLine" role="status" aria-live="polite">還沒有打開任何因素。訊號 21.3 公克，誤差 0——一個乾淨得不真實的數字。</p>
+
+      <div class="fxlist" id="fxList">
+        <button class="fx" data-f="res" aria-pressed="false">
+          <span class="fxh"><b>這台秤只看得見 5.7 公克</b><i class="fxn">±5.7</i></span>
+          <span class="fxd">他自陳靈敏度為十分之二盎司。21.3 公克，只有三又四分之三格。</span>
+        </button>
+        <button class="fx" data-f="stick" aria-pressed="false">
+          <span class="fxh"><b>橫樑被頂在上限位桿旁</b><i class="fxn">−7.1 ±4.7</i></span>
+          <span class="fxd">他寫著「我一直讓橫樑略高於平衡點」。靠住桿子的橫樑會卡住，累積的失重會一次釋放——那聲「突然」，可能是裝置給的。</span>
+        </button>
+        <button class="fx" data-f="sweat" aria-pressed="false">
+          <span class="fxh"><b>臨終體溫上升與出汗</b><i class="fxn">−4.0 ±4.0</i></span>
+          <span class="fxd">Clarke，1907。他自己量過基線是每分鐘約 0.47 公克；臨終數分鐘內這個速率會上升。</span>
+        </button>
+        <button class="fx" data-f="time" aria-pressed="false">
+          <span class="fxh"><b>死亡的時刻由誰決定</b><i class="fxn">±4.7</i></span>
+          <span class="fxd">第二例他自己記了十八分鐘的疑慮期。半盎司，還是一盎司半又五十格令？看你怎麼說。</span>
+        </button>
+        <button class="fx" data-f="jar" aria-pressed="false">
+          <span class="fxh"><b>床架與磅秤的機械擾動</b><i class="fxn">±10.6</i></span>
+          <span class="fxd">第六例他自己承認，未停止的晃動能製造 42.5 公克的假訊號。這裡保守只取四分之一。</span>
+        </button>
+        <button class="fx dud" data-f="breath" aria-pressed="false">
+          <span class="fxh"><b>最後一口氣的空氣</b><i class="fxn">−0.3 ±0.3</i></span>
+          <span class="fxd">聽起來很有道理的一條。打開看看它有多少份量。</span>
+        </button>
+      </div>
+
+      <div class="fxfoot">
+        <button id="fxAll">全部打開</button>
+        <button id="fxNone">重設</button>
+        <p class="note">這六個都是<strong>量級估算</strong>，不是實測，也不是重做一次實驗。它們回答的是「這些加起來夠不夠淹掉訊號」。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise" id="afterLab">數字停在十公克左右，沒有歸零。那是刻意的——把它湊到剛好等於零，會是另一種造假。</p>
+    <p class="rise">真正發生的事是：<strong>誤差帶長得比訊號還大，零被吞進去了。</strong>剩下的那十公克，可能是真的，也可能是二十四公克，也可能是負四公克。這台秤沒有能力分辨。</p>
+    <p class="rise">還有那條「最後一口氣」。它幾乎沒有動——因為呼出的空氣會被等體積的空氣補回來，淨變化只剩零點幾公克。<em>而且他早就試過了</em>：他自己躺上那張病床，用力吸吐，橫樑一動也不動。</p>
+    <p class="rise dim">拆一個實驗，不是把每一句反駁都丟上去。是要分得出哪一句真的成立。</p>
+  </div>
+</section>
+
+<!-- ═══════════ 五 ═══════════ -->
+<section class="ch" id="chDogs">
+  <div class="wrap">
+    <p class="chn rise">第五頁 · 對照組</p>
+    <h2 class="rise">後來，他量了十五隻狗</h2>
+    <p class="rise">同一台秤、同一套方法。狗重十五到七十磅，秤的靈敏度做到十六分之一盎司——比量人的時候還細。</p>
+  </div>
+
+  <div class="wrap"><div class="dogs" id="dogs" aria-hidden="true"></div>
+    <p class="fine" style="font-family:var(--sans);text-align:center;margin-top:-.4em">十五次量測，死亡時的重量變化：全部為零</p>
+  </div>
+
+  <div class="wrap">
+    <p class="rise" style="margin-top:1.6em">結果一致為負。<strong>沒有任何一隻狗在死亡時失去重量。</strong></p>
+    <p class="rise">一個乾淨的負結果，通常是研究者最該停下來的時刻——同樣的裝置，在一組樣本上什麼都測不到。</p>
+    <p class="rise">他的結論是：狗沒有靈魂。</p>
+    <p class="rise dim">而他在同一頁上也寫了：這批狗的測試因為給了兩種鎮靜藥物而失效；他本來想用病重到無力掙扎的狗，但他找不到。<br>Clarke 後來指出的那件事他沒有回應：狗沒有汗腺。牠們本來就不會用那種方式失重。</p>
+  </div>
+</section>
+
+<!-- ═══════════ 收尾 ═══════════ -->
+<section class="ch finale">
+  <div class="wrap">
+    <p class="chn rise">最後一頁</p>
+    <h2 class="rise">他不是騙子</h2>
+    <p class="rise">1907 年 3 月 11 日，在他來得及發表之前，紐約時報就先登了出來：〈Soul has Weight, Physician Thinks〉。四月，論文刊在《American Medicine》上。</p>
+    <p class="rise">而在那篇論文的倒數第二段，他自己寫下了這句話：</p>
+    <p class="pull rise">「我很清楚，這件事必須做過大量的實驗，才能證明到毫無錯誤的可能。」</p>
+    <p class="rise">他知道。他寫下來了。</p>
+    <p class="rise">1920 年他過世。這個實驗，從來沒有被任何人重複過一次。</p>
+    <p class="rise">2003 年，一部電影用那個數字當片名。</p>
+
+    <p class="rise" style="margin-top:2.4em">如果要說他錯在哪裡，不是「他相信有靈魂」。他真正想做的事其實很了不起：把一個兩千年來只屬於神學的問題，搬進一個可以被測量的房間。那個房間他找到了。</p>
+    <p class="rise">他只是沒有在裡面待夠久。少了五件事：</p>
+    <ul class="five">
+      <li class="rise">先說好什麼結果算數——判準要在看到資料之前就寫下來。</li>
+      <li class="rise">夠多的樣本——六個人，其中只有一個符合。</li>
+      <li class="rise">對照。他做了一個（自己躺上床呼吸），只做了一個。</li>
+      <li class="rise">不知情的第三人來讀數，而不是那個希望它成立的人。</li>
+      <li class="rise">讓別人重做一次。這一件，一百二十年了，還是零。</li>
+    </ul>
+
+    <p class="last rise">那本簿子還攤在那裡。<br>第一頁的第一行沒有變過——<br>只是後面該有的那幾百頁，一直空著。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <span>資料來源：MacDougall, American Medicine (1907)；Journal of the ASPR；Wikipedia；Discover Magazine。</span>
+  <a href="../../../index.html">← 回首頁</a>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var LS = 'gram21.';
+
+  /* ═════════ 純函式（node assert 直接抽這一段驗） ═════════ */
+  /* ===== PURE_START ===== */
+  var OZ_G   = 28.3495;          /* 1 盎司 = 28.3495 公克 */
+  var BASE_G = 0.75 * OZ_G;      /* 3/4 盎司 = 21.26 公克 */
+  var RATE   = OZ_G / 60;        /* 他自己量的基線水分流失：1 盎司/小時 ≈ 0.4725 公克/分 */
+
+  /* sub：扣減的中心估計；unc：不確定度半寬。皆為量級估算，依據見 說明.md */
+  var FACTORS = [
+    { id:'res',    sub:0,   unc:0.2 * OZ_G },   /* 天平靈敏度 2/10 盎司 = 5.67 */
+    { id:'stick',  sub:15 * RATE, unc:10 * RATE },/* 限位桿靜摩擦累積 5–25 分鐘 */
+    { id:'sweat',  sub:4,   unc:4 },            /* Clarke：臨終出汗，0–8 公克 */
+    { id:'time',   sub:0,   unc:10 * RATE },    /* 死亡時刻 ±10 分鐘 */
+    { id:'jar',    sub:0,   unc:1.5 * OZ_G / 4 },/* 第六例自陳 1.5 盎司假訊號，保守取 1/4 */
+    { id:'breath', sub:0.3, unc:0.3 }           /* 最後一口氣：這條反駁不成立 */
+  ];
+
+  function tally(active){
+    var sub = 0, q = 0, i, f;
+    for (i = 0; i < FACTORS.length; i++){
+      f = FACTORS[i];
+      if (!active || !active[f.id]) continue;
+      sub += f.sub;
+      q   += f.unc * f.unc;
+    }
+    var v = BASE_G - sub;
+    var u = Math.sqrt(q);
+    return { value:v, unc:u, lo:v - u, hi:v + u, significant:(v - u > 0) || (v + u < 0) };
+  }
+
+  /* 阻尼彈簧：半隱式尤拉。dt 夾住，回前景的大時間步不會炸 */
+  function stepBeam(s, target, dt, w, z){
+    if (!(dt > 0)) return s;
+    if (dt > 0.05) dt = 0.05;
+    var a = -w * w * (s.a - target) - 2 * z * w * s.v;
+    s.v += a * dt;
+    s.a += s.v * dt;
+    return s;
+  }
+
+  function gramsToDeg(g, maxDeg, span){
+    var d = g / span * maxDeg;
+    return d < -maxDeg ? -maxDeg : (d > maxDeg ? maxDeg : d);
+  }
+  /* ===== PURE_END ===== */
+
+  var MAXDEG = 5.7;              /* 橫樑末端撞到限位桿的角度（由畫布幾何算出） */
+  var SENS   = 0.2 * OZ_G;       /* 5.67 公克 */
+
+  var INK   = '#2c241a', FAINT = '#8b7d64', RULE = '#c9b998',
+      RED   = '#9b3a24', BLUE = '#2e4560', PAPER = 'rgba(255,252,242,.85)';
+
+  /* ═════════ 減少動態 ═════════ */
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+
+  /* ═════════ canvas 舞台引擎（單一 rAF） ═════════ */
+  var stages = [];
+  function addStage(id, draw, state){
+    var cv = document.getElementById(id);
+    if (!cv) return null;
+    var st = { cv:cv, ctx:cv.getContext('2d'), draw:draw, w:0, h:0, dpr:1,
+               visible:false, dirty:true, state:state || {} };
+    function measure(){
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：ResizeObserver 連發不會每幀翻倍、不會清空畫布 */
+      if (cv.width !== nw || cv.height !== nh){ cv.width = nw; cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    measure();
+    if (window.ResizeObserver){ new ResizeObserver(measure).observe(cv); }
+    else { window.addEventListener('resize', measure); }
+    if (window.IntersectionObserver){
+      new IntersectionObserver(function(es){
+        for (var i = 0; i < es.length; i++){
+          st.visible = es[i].isIntersecting;
+          if (es[i].isIntersecting) st.dirty = true;
+        }
+      }, { rootMargin:'100px' }).observe(cv);
+    } else { st.visible = true; }
+    stages.push(st);
+    return st;
+  }
+
+  var last = 0;
+  function frame(now){
+    requestAnimationFrame(frame);
+    if (document.hidden){ last = 0; return; }
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+    for (var i = 0; i < stages.length; i++){
+      var s = stages[i];
+      if (!s.visible || !s.w) continue;
+      if (!s.dirty && !s.live) continue;
+      s.dirty = false;
+      var ctx = s.ctx;
+      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+      ctx.clearRect(0, 0, s.w, s.h);
+      s.draw(ctx, s.w, s.h, now / 1000, dt, s.state);
+    }
+  }
+  requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', function(){
+    last = 0;
+    for (var i = 0; i < stages.length; i++) stages[i].dirty = true;
+  });
+
+  /* ═════════ 天平繪製（水平橫樑 → 走 canvas，避開 SVG 漸層描邊地雷） ═════════ */
+  /* 設計座標 100 × 54，等比置中 */
+  function drawRig(ctx, w, h, deg, o){
+    o = o || {};
+    var u = Math.min(w / 100, h / 54);
+    var ox = (w - 100 * u) / 2, oy = (h - 54 * u) / 2;
+    function X(x){ return ox + x * u; }
+    function Y(y){ return oy + y * u; }
+    function line(x1, y1, x2, y2){ ctx.beginPath(); ctx.moveTo(X(x1), Y(y1)); ctx.lineTo(X(x2), Y(y2)); ctx.stroke(); }
+
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    var lw = Math.max(1, 0.85 * u);
+
+    /* 地面 */
+    ctx.strokeStyle = RULE; ctx.lineWidth = Math.max(1, 0.5 * u);
+    ctx.setLineDash([2 * u, 2 * u]);
+    line(3, 50, 97, 50);
+    ctx.setLineDash([]);
+
+    /* 平台底座 */
+    ctx.strokeStyle = INK; ctx.lineWidth = lw;
+    ctx.fillStyle = PAPER;
+    ctx.beginPath();
+    ctx.rect(X(5), Y(41), 40 * u, 6 * u);
+    ctx.fill(); ctx.stroke();
+    line(9, 47, 9, 50); line(41, 47, 41, 50);
+    ctx.strokeStyle = FAINT; ctx.lineWidth = Math.max(1, 0.5 * u);
+    line(5, 44, 45, 44);
+
+    /* 病床（抽象線條，不畫人） */
+    ctx.strokeStyle = INK; ctx.lineWidth = lw;
+    line(9, 31, 43, 31);                 /* 床面 */
+    line(11, 31, 11, 41); line(41, 31, 41, 41);  /* 床腳 */
+    line(9, 23, 9, 31);                  /* 床頭板 */
+    line(9, 23, 13, 23);
+    /* 被單輪廓：一條起伏的曲線 */
+    ctx.strokeStyle = FAINT; ctx.lineWidth = Math.max(1, 0.7 * u);
+    ctx.fillStyle = 'rgba(180,158,115,.16)';
+    ctx.beginPath();
+    ctx.moveTo(X(12), Y(31));
+    ctx.bezierCurveTo(X(17), Y(26.6), X(24), Y(28.4), X(30), Y(29));
+    ctx.bezierCurveTo(X(35), Y(29.5), X(38), Y(30.4), X(41), Y(31));
+    ctx.lineTo(X(12), Y(31));
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    /* 連桿與立柱 */
+    ctx.strokeStyle = FAINT; ctx.lineWidth = Math.max(1, 0.55 * u);
+    line(45, 45, 57, 45);
+    ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.2, 1.3 * u);
+    line(57, 47, 57, 14.6);
+    ctx.lineWidth = lw;
+    line(52, 47, 62, 47);
+
+    /* 限位桿（⊐ 形，末端 x = 89） */
+    ctx.strokeStyle = RED; ctx.lineWidth = Math.max(1, 0.8 * u);
+    line(87, 10.6, 91.5, 10.6);
+    line(87, 17.4, 91.5, 17.4);
+    ctx.strokeStyle = 'rgba(155,58,36,.4)';
+    line(91.5, 10.6, 91.5, 17.4);
+
+    /* 支點 */
+    ctx.fillStyle = INK;
+    ctx.beginPath();
+    ctx.moveTo(X(57), Y(14)); ctx.lineTo(X(55.2), Y(18)); ctx.lineTo(X(58.8), Y(18));
+    ctx.closePath(); ctx.fill();
+
+    /* 橫樑（繞支點旋轉） */
+    ctx.save();
+    ctx.translate(X(57), Y(14));
+    ctx.rotate(deg * Math.PI / 180);
+    ctx.strokeStyle = INK; ctx.lineWidth = Math.max(1.3, 1.5 * u);
+    ctx.beginPath(); ctx.moveTo(-14 * u, 0); ctx.lineTo(32 * u, 0); ctx.stroke();
+    /* 滑動砝碼 */
+    ctx.fillStyle = INK;
+    ctx.fillRect(11 * u, -2.4 * u, 2.6 * u, 2.4 * u);
+    ctx.fillRect(21 * u, -2.0 * u, 2.0 * u, 2.0 * u);
+    /* 橫樑刻度 */
+    ctx.strokeStyle = FAINT; ctx.lineWidth = Math.max(1, 0.4 * u);
+    for (var k = 2; k <= 30; k += 4){
+      ctx.beginPath(); ctx.moveTo(k * u, 0); ctx.lineTo(k * u, -1.2 * u); ctx.stroke();
+    }
+    /* 左端吊點 */
+    ctx.strokeStyle = INK; ctx.lineWidth = lw;
+    ctx.beginPath(); ctx.arc(-13 * u, 1.4 * u, 1.3 * u, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+
+    /* 標註 */
+    if (o.mark){
+      ctx.fillStyle = FAINT;
+      ctx.font = Math.max(9, 2.4 * u) + 'px -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+      ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      ctx.fillText('上限位桿', X(85), Y(8.4));
+      ctx.fillText('下限位桿', X(85), Y(19.6));
+      ctx.textAlign = 'left';
+    }
+  }
+
+  /* ═════════ 第一屏：橫樑撐三小時四十分，然後落下 ═════════ */
+  var heroS = { a:-MAXDEG, v:0, t:0, dropped:false };
+  var stHero = addStage('cvHero', function(ctx, w, h, now, dt, S){
+    if (reduced){
+      drawRig(ctx, w, h, MAXDEG, { mark:true });
+      return;
+    }
+    S.t += dt;
+    var target;
+    if (!S.dropped && S.t > 2.6){ S.dropped = true; }
+    if (S.dropped){
+      target = MAXDEG;
+      /* 臨界阻尼：落下、撞上、不回彈 */
+      stepBeam(S, target, dt, 7.2, 1.0);
+      if (S.a > MAXDEG){ S.a = MAXDEG; S.v = 0; }
+    } else {
+      /* 頂在上限位桿旁，微微顫著 */
+      S.a = -MAXDEG + Math.sin(now * 1.9) * 0.09 + Math.sin(now * 4.7) * 0.04;
+    }
+    drawRig(ctx, w, h, S.a, { mark:true });
+  }, heroS);
+  if (stHero) stHero.live = !reduced;   /* 減少動態：改由 dirty 驅動，不每幀重畫 */
+
+  /* ═════════ 一：解析度 ═════════ */
+  var wS = document.getElementById('wSlider'),
+      wG = document.getElementById('wG'),
+      wTag = document.getElementById('wTag'),
+      wWhisper = document.getElementById('wWhisper');
+  var weighS = { a:0, v:0, target:0, broke:false };
+  var stWeigh = addStage('cvWeigh', function(ctx, w, h, now, dt, S){
+    if (reduced){ S.a = S.target; }
+    else {
+      stepBeam(S, S.target, dt, 9, 0.42);
+      if (Math.abs(S.a - S.target) > 0.002 || Math.abs(S.v) > 0.002) stWeigh.dirty = true;
+    }
+    drawRig(ctx, w, h, S.a, {});
+  }, weighS);
+
+  function updWeigh(){
+    var g = +wS.value;
+    wG.textContent = g.toFixed(1);
+    /* 靜摩擦：低於靈敏度，橫樑根本不動 */
+    weighS.target = (g < SENS) ? 0 : gramsToDeg(g, MAXDEG, 34);
+    if (g < SENS){
+      wTag.textContent = '橫樑沒有動';
+      wTag.className = 'chip no';
+    } else {
+      wTag.textContent = '橫樑動了';
+      wTag.className = 'chip yes';
+      if (!weighS.broke){ weighS.broke = true; wWhisper.classList.add('on'); }
+    }
+    if (stWeigh) stWeigh.dirty = true;
+  }
+  wS.addEventListener('input', updWeigh);
+  updWeigh();
+
+  /* ═════════ 進場 ═════════ */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll(){ for (var i = 0; i < risers.length; i++) risers[i].classList.add('in'); }
+  if (reduced || !window.IntersectionObserver) revealAll();
+  else {
+    var ioR = new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++){
+        if (es[i].isIntersecting){ es[i].target.classList.add('in'); ioR.unobserve(es[i].target); }
+      }
+    }, { rootMargin:'0px 0px -10% 0px' });
+    for (var ri = 0; ri < risers.length; ri++) ioR.observe(risers[ri]);
+  }
+
+  /* ═════════ 鋼筆字：逐字浮現 ＋ 底線 dasharray（可靠重播） ═════════ */
+  var pens = [].slice.call(document.querySelectorAll('.pen'));
+  for (var pi = 0; pi < pens.length; pi++){
+    var txt = pens[pi].textContent, frag = document.createDocumentFragment();
+    for (var ci = 0; ci < txt.length; ci++){
+      var sp = document.createElement('span');
+      sp.textContent = txt.charAt(ci);
+      frag.appendChild(sp);
+    }
+    pens[pi].textContent = '';
+    pens[pi].appendChild(frag);
+  }
+  function playPen(panel){
+    var pen = panel.querySelector('.pen');
+    var path = panel.querySelector('.ul path');
+    if (pen){
+      var spans = pen.getElementsByTagName('span');
+      if (reduced){
+        pen.classList.add('lit');
+        for (var i = 0; i < spans.length; i++) spans[i].style.transitionDelay = '0ms';
+      } else {
+        pen.classList.remove('lit');
+        for (var j = 0; j < spans.length; j++) spans[j].style.transitionDelay = (j * 17) + 'ms';
+        pen.getBoundingClientRect();          /* 強制 reflow */
+        requestAnimationFrame(function(){ pen.classList.add('lit'); });
+      }
+    }
+    if (path){
+      if (reduced){
+        path.style.transition = 'none';
+        path.style.strokeDashoffset = '0';
+      } else {
+        /* 樣板順序：transition:none → 設隱藏 → 強制 reflow → 下一個 rAF 才開 transition */
+        path.style.transition = 'none';
+        path.style.strokeDashoffset = '100';
+        path.getBoundingClientRect();
+        requestAnimationFrame(function(){
+          path.style.transition = 'stroke-dashoffset .95s cubic-bezier(.4,.08,.3,1) .25s';
+          path.style.strokeDashoffset = '0';
+        });
+      }
+    }
+  }
+
+  /* ═════════ 二：紀錄簿分頁 ＋ 判定 ═════════ */
+  var tabs  = [].slice.call(document.querySelectorAll('.tab'));
+  var pages = [].slice.call(document.querySelectorAll('.page'));
+  var progEl = document.getElementById('prog');
+  var tallyEl = document.getElementById('tally');
+  var verdicts = {};
+
+  try {
+    var raw = localStorage.getItem(LS + 'verdicts');
+    if (raw){
+      var parts = raw.split(',');
+      for (var vi = 0; vi < parts.length; vi++){
+        var m = /^([1-6])([on])$/.exec(parts[vi]);
+        if (m) verdicts[m[1]] = (m[2] === 'o' ? 'ok' : 'no');
+      }
+    }
+  } catch (e){ /* 隱私模式：不存也能玩 */ }
+
+  function saveVerdicts(){
+    var out = [], k;
+    for (k in verdicts){ if (verdicts.hasOwnProperty(k)) out.push(k + (verdicts[k] === 'ok' ? 'o' : 'n')); }
+    try { localStorage.setItem(LS + 'verdicts', out.join(',')); } catch (e){}
+  }
+
+  function selectTab(idx, focus){
+    for (var i = 0; i < tabs.length; i++){
+      var on = (i === idx);
+      tabs[i].setAttribute('aria-selected', on ? 'true' : 'false');
+      tabs[i].tabIndex = on ? 0 : -1;
+      pages[i].hidden = !on;
+      if (on){
+        pages[i].classList.remove('shown');
+        pages[i].getBoundingClientRect();
+        if (reduced) pages[i].classList.add('shown');
+        else requestAnimationFrame(function(el){ return function(){ el.classList.add('shown'); }; }(pages[i]));
+        playPen(pages[i]);
+      }
+    }
+    if (focus) tabs[idx].focus();
+  }
+
+  for (var ti = 0; ti < tabs.length; ti++){
+    (function(i){
+      tabs[i].addEventListener('click', function(){ selectTab(i, false); });
+      tabs[i].addEventListener('keydown', function(e){
+        var n = -1;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') n = (i + 1) % tabs.length;
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') n = (i - 1 + tabs.length) % tabs.length;
+        else if (e.key === 'Home') n = 0;
+        else if (e.key === 'End') n = tabs.length - 1;
+        if (n >= 0){ e.preventDefault(); selectTab(n, true); }
+      });
+    })(ti);
+  }
+
+  function paintVerdict(page, k){
+    var v = verdicts[k];
+    var btns = page.querySelectorAll('.vb');
+    for (var i = 0; i < btns.length; i++){
+      btns[i].setAttribute('aria-pressed', (v && btns[i].getAttribute('data-v') === v) ? 'true' : 'false');
+    }
+    var after = page.querySelector('.vafter');
+    if (after) after.hidden = !v;
+    var tab = document.getElementById('tb' + k);
+    var mk = tab.querySelector('.mk');
+    if (v){
+      if (!mk){ mk = document.createElement('span'); mk.className = 'mk'; tab.appendChild(mk); }
+      mk.className = 'mk ' + (v === 'ok' ? 'ok' : 'no');
+      mk.textContent = (v === 'ok' ? '✓' : '✕');
+    } else if (mk){ tab.removeChild(mk); }
+  }
+
+  function updProgress(){
+    var n = 0, k;
+    for (k in verdicts){ if (verdicts.hasOwnProperty(k)) n++; }
+    progEl.textContent = '已判定 ' + n + ' / 6';
+    if (n === 6 && tallyEl.hidden){
+      tallyEl.hidden = false;
+      progEl.textContent = '已判定 6 / 6 —— 六筆都看完了。';
+    }
+  }
+
+  for (var pj = 0; pj < pages.length; pj++){
+    (function(page){
+      var k = page.querySelector('.verdict').getAttribute('data-k');
+      var btns = page.querySelectorAll('.vb');
+      for (var i = 0; i < btns.length; i++){
+        (function(btn){
+          btn.addEventListener('click', function(){
+            verdicts[k] = btn.getAttribute('data-v');
+            saveVerdicts();
+            paintVerdict(page, k);
+            updProgress();
+          });
+        })(btns[i]);
+      }
+      paintVerdict(page, k);
+    })(pages[pj]);
+  }
+  updProgress();
+  selectTab(0, false);
+
+  /* ═════════ 三：數字揭曉 ═════════ */
+  var bigReveal = document.getElementById('bigReveal');
+  function rollTo(el, target, dur){
+    var node = el.firstChild;
+    if (reduced){ node.nodeValue = target.toFixed(1); return; }
+    var t0 = performance.now();
+    (function tick(now){
+      var k = (now - t0) / dur; if (k > 1) k = 1;
+      var e = 1 - Math.pow(1 - k, 3);
+      node.nodeValue = (target * e).toFixed(1);
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  if (window.IntersectionObserver){
+    var ioBig = new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++){
+        if (es[i].isIntersecting){ rollTo(bigReveal, BASE_G, 1500); ioBig.unobserve(es[i].target); }
+      }
+    }, { threshold:0.7 });
+    ioBig.observe(bigReveal);
+  } else { rollTo(bigReveal, BASE_G, 1500); }
+
+  /* ═════════ 四：干擾因素面板（高潮） ═════════ */
+  var AX_MIN = -20, AX_SPAN = 60;
+  var active = {};
+  var resNum = document.getElementById('resNum'),
+      uncNum = document.getElementById('uncNum'),
+      band   = document.getElementById('band'),
+      mark   = document.getElementById('mark'),
+      sigLine = document.getElementById('sigLine');
+  var fxBtns = [].slice.call(document.querySelectorAll('.fx'));
+  var beamS = { a:gramsToDeg(BASE_G, MAXDEG, 26), v:0, target:gramsToDeg(BASE_G, MAXDEG, 26), noise:0 };
+  var shown = { value:BASE_G, unc:0 };
+  var animTok = 0;
+
+  var stBeam = addStage('cvBeam', function(ctx, w, h, now, dt, S){
+    var tgt = S.target;
+    if (!reduced && S.noise > 0.01){
+      /* 平滑雜訊：誤差越大，指針越分不清自己在哪 */
+      tgt += (Math.sin(now * 1.31) * 0.55 + Math.sin(now * 2.17 + 1.1) * 0.3 + Math.sin(now * 0.71 + 2.4) * 0.15) * S.noise;
+    }
+    if (reduced) S.a = S.target;
+    else stepBeam(S, tgt, dt, 6.4, 0.36);
+    if (S.a > MAXDEG){ S.a = MAXDEG; if (S.v > 0) S.v = 0; }
+    if (S.a < -MAXDEG){ S.a = -MAXDEG; if (S.v < 0) S.v = 0; }
+    drawRig(ctx, w, h, S.a, { mark:true });
+  }, beamS);
+  if (stBeam) stBeam.live = !reduced;
+
+  function pct(g){ return (g - AX_MIN) / AX_SPAN * 100; }
+
+  function tweenReadout(toV, toU){
+    var fromV = shown.value, fromU = shown.unc;
+    var tok = ++animTok, t0 = performance.now(), dur = 520;
+    if (reduced){
+      shown.value = toV; shown.unc = toU;
+      resNum.textContent = toV.toFixed(1);
+      uncNum.textContent = '±' + toU.toFixed(1);
+      return;
+    }
+    (function tick(now){
+      if (tok !== animTok) return;
+      var k = (now - t0) / dur; if (k > 1) k = 1;
+      var e = 1 - Math.pow(1 - k, 3);
+      shown.value = fromV + (toV - fromV) * e;
+      shown.unc   = fromU + (toU - fromU) * e;
+      resNum.textContent = shown.value.toFixed(1);
+      uncNum.textContent = '±' + shown.unc.toFixed(1);
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  function nActive(){
+    var n = 0, k;
+    for (k in active){ if (active.hasOwnProperty(k) && active[k]) n++; }
+    return n;
+  }
+
+  function updLab(){
+    var r = tally(active);
+    tweenReadout(r.value, r.unc);
+
+    var lo = Math.max(AX_MIN, r.lo), hi = Math.min(AX_MIN + AX_SPAN, r.hi);
+    band.style.transform = 'translateX(' + pct(lo).toFixed(3) + '%) scaleX(' + ((hi - lo) / AX_SPAN).toFixed(4) + ')';
+    mark.style.transform = 'translateX(' + pct(r.value).toFixed(3) + '%)';
+
+    var drown = !r.significant;
+    band.className = 'axis-band' + (drown ? ' drown' : '');
+    sigLine.className = 'sig' + (drown ? ' drown' : '');
+
+    beamS.target = gramsToDeg(r.value, MAXDEG, 26);
+    beamS.noise  = gramsToDeg(r.unc, MAXDEG, 26) * 0.5;
+
+    var n = nActive();
+    if (n === 0){
+      sigLine.textContent = '還沒有打開任何因素。訊號 21.3 公克，誤差 0——一個乾淨得不真實的數字。';
+    } else if (!drown){
+      sigLine.textContent = '剩餘 ' + r.value.toFixed(1) + ' 公克，不確定度 ±' + r.unc.toFixed(1) +
+        '。區間 ' + r.lo.toFixed(1) + ' 到 ' + r.hi.toFixed(1) + ' 還沒碰到零——訊號暫時撐住了。';
+    } else {
+      sigLine.textContent = '剩餘 ' + r.value.toFixed(1) + ' 公克，不確定度 ±' + r.unc.toFixed(1) +
+        '。區間 ' + r.lo.toFixed(1) + ' 到 ' + r.hi.toFixed(1) + ' —— 零落在裡面了。' +
+        '這個訊號和「什麼都沒發生」，這台秤分不出來。';
+    }
+    if (stBeam) stBeam.dirty = true;
+  }
+
+  for (var fi = 0; fi < fxBtns.length; fi++){
+    (function(btn){
+      var id = btn.getAttribute('data-f');
+      btn.addEventListener('click', function(){
+        active[id] = !active[id];
+        btn.setAttribute('aria-pressed', active[id] ? 'true' : 'false');
+        if (id === 'breath' && active[id]){
+          var d = btn.querySelector('.fxd');
+          d.textContent = '幾乎沒動——因為呼出的空氣被等體積的空氣補回來了。而且他自己躺上床試過，橫樑沒有反應。這條反駁站不住腳。';
+        }
+        updLab();
+      });
+    })(fxBtns[fi]);
+  }
+  document.getElementById('fxAll').addEventListener('click', function(){
+    for (var i = 0; i < fxBtns.length; i++){
+      var id = fxBtns[i].getAttribute('data-f');
+      if (!active[id]) fxBtns[i].click();
+    }
+  });
+  document.getElementById('fxNone').addEventListener('click', function(){
+    for (var i = 0; i < fxBtns.length; i++){
+      var id = fxBtns[i].getAttribute('data-f');
+      active[id] = false;
+      fxBtns[i].setAttribute('aria-pressed', 'false');
+    }
+    updLab();
+  });
+  updLab();
+
+  /* ═════════ 五：十五隻狗 ═════════ */
+  var dogsEl = document.getElementById('dogs');
+  for (var di = 1; di <= 15; di++){
+    var d = document.createElement('div');
+    d.className = 'dog';
+    d.innerHTML = '<i>犬 ' + (di < 10 ? '0' : '') + di + '</i><b>0.00</b>';
+    dogsEl.appendChild(d);
+  }
+  var dogEls = [].slice.call(dogsEl.children);
+  function showDogs(){
+    for (var i = 0; i < dogEls.length; i++){
+      (function(el, i){
+        if (reduced) el.classList.add('in');
+        else setTimeout(function(){ el.classList.add('in'); }, i * 55);
+      })(dogEls[i], i);
+    }
+  }
+  if (reduced || !window.IntersectionObserver) showDogs();
+  else {
+    var ioD = new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++){
+        if (es[i].isIntersecting){ showDogs(); ioD.unobserve(es[i].target); }
+      }
+    }, { threshold:0.25 });
+    ioD.observe(dogsEl);
+  }
+
+  /* ═════════ reduced-motion 動態切換 ═════════ */
+  function onRM(){
+    reduced = RM.matches;
+    if (reduced){
+      revealAll();
+      showDogs();
+      for (var i = 0; i < pages.length; i++) pages[i].classList.add('shown');
+      var lits = document.querySelectorAll('.pen');
+      for (var j = 0; j < lits.length; j++) lits[j].classList.add('lit');
+      var paths = document.querySelectorAll('.ul path');
+      for (var m = 0; m < paths.length; m++){
+        paths[m].style.transition = 'none';
+        paths[m].style.strokeDashoffset = '0';
+      }
+    }
+    if (stHero) stHero.live = !reduced;
+    if (stBeam) stBeam.live = !reduced;
+    for (var s = 0; s < stages.length; s++) stages[s].dirty = true;
+    updLab();
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  /* 對外曝露給測試用（node 端直接取 PURE 區塊，這裡只是保險） */
+  window.__gram21 = { tally:tally, stepBeam:stepBeam, gramsToDeg:gramsToDeg, FACTORS:FACTORS, BASE_G:BASE_G };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>心跳停了之後那小時</title>
+<meta name="description" content="心電圖平了之後的六十分鐘裡，儀器記錄到什麼。一份很難做的研究，量到了原本以為不會存在的訊號，然後很小心地沒有下結論。">
+<style>
+  :root{
+    --bg:#05080b; --panel:#080d13; --panel2:#0a1018; --line:#16222d; --grid:#0d1721;
+    --fg:#dbe6ee; --dim:#7d92a3; --dim2:#4a5c6b;
+    --ecg:#5fc9a3; --eeg:#8fb0e8; --ox:#c2a066; --key:#9fd8dc;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:var(--serif); font-size:17.5px; line-height:1.9;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--key); outline-offset:3px; border-radius:3px}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+  .home{
+    position:fixed; top:12px; left:14px; z-index:60;
+    font-family:var(--sans); font-size:12px; letter-spacing:.1em;
+    color:var(--dim2); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(5,8,11,.7); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.06); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.2)}
+
+  .wrap{max-width:660px; margin:0 auto; padding:0 22px}
+  .wide{max-width:1000px; margin:0 auto; padding:0 22px}
+  p{margin:0 0 1.15em}
+  .dim{color:var(--dim)}
+  strong{font-weight:600; color:#fff}
+  em{font-style:normal; color:var(--key)}
+  .mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+
+  /* ─────────── 第一屏 ─────────── */
+  .hero{min-height:100svh; display:flex; flex-direction:column; justify-content:center; position:relative}
+  .hero .wrap{width:100%}
+  .kicker{
+    font-family:var(--sans); font-size:11px; letter-spacing:.36em; color:var(--dim2);
+    margin:0 0 2.6em; text-transform:uppercase;
+  }
+  .clockbig{
+    font-family:var(--mono); font-size:clamp(3.2rem,13vw,5.6rem); line-height:1; font-weight:300;
+    letter-spacing:.02em; color:var(--fg); margin:0 0 .35em; font-variant-numeric:tabular-nums;
+  }
+  #cvHero{display:block; width:100%; height:120px; margin:0 0 2.4em}
+  .hero-line{font-size:clamp(1.05rem,3.2vw,1.3rem); line-height:1.75; color:#c3d2de; max-width:30em; margin:0}
+  .hint{
+    font-family:var(--sans); font-size:11px; letter-spacing:.26em; color:var(--dim2);
+    display:flex; align-items:center; gap:10px; margin:3.4em 0 0;
+  }
+  .hint i{display:block; width:30px; height:1px; background:linear-gradient(90deg,var(--dim2),transparent)}
+
+  /* ─────────── 章節 ─────────── */
+  section{padding:11vh 0 3vh}
+  .ch{font-family:var(--sans); font-size:11px; letter-spacing:.34em; color:var(--dim2); margin:0 0 1.3em; display:flex; align-items:center; gap:12px}
+  .ch::before{content:""; width:22px; height:1px; background:var(--line)}
+  h2{font-size:clamp(1.45rem,4.2vw,2rem); line-height:1.4; font-weight:500; margin:0 0 1em; letter-spacing:-.005em; color:#f0f5f9}
+  .rise{opacity:0; transform:translateY(14px); transition:opacity .75s ease, transform .75s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  /* ─────────── 監視器 ─────────── */
+  .mon{
+    --gut:98px; --pad:9px;
+    max-width:1000px; margin:2.6em auto; padding:16px 16px 14px;
+    background:linear-gradient(180deg,var(--panel2),var(--panel));
+    border:1px solid var(--line); border-radius:12px;
+  }
+  @media(max-width:700px){ .mon{--gut:56px; padding:12px 10px 10px; border-radius:10px; margin-left:0; margin-right:0} }
+  .monhead{
+    display:flex; justify-content:space-between; align-items:baseline; gap:14px; flex-wrap:wrap;
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.16em; color:var(--dim2);
+    border-bottom:1px solid var(--line); padding-bottom:10px; margin-bottom:12px;
+  }
+  .monhead b{font-family:var(--mono); font-size:18px; letter-spacing:.02em; color:var(--fg); font-weight:400; font-variant-numeric:tabular-nums}
+  .row{display:grid; grid-template-columns:var(--gut) 1fr; align-items:center}
+  .gut{font-family:var(--sans); padding-right:10px; text-align:right; line-height:1.35}
+  .gut b{display:block; font-size:10px; letter-spacing:.18em; color:var(--dim2); font-weight:600}
+  .gut span{display:block; font-size:11.5px; color:var(--dim)}
+  @media(max-width:700px){ .gut span{font-size:10px} }
+
+  .ruler{position:relative; height:30px}
+  .ruler .tick{position:absolute; top:16px; width:1px; height:6px; background:var(--line)}
+  .ruler .tick.maj{height:10px; top:12px; background:#243544}
+  .ruler .tlab{position:absolute; top:-2px; transform:translateX(-50%); font-family:var(--mono); font-size:10px; color:var(--dim2)}
+  .ruler .mk{
+    position:absolute; top:22px; width:5px; height:5px; margin-left:-2.5px; border-radius:50%;
+    background:var(--dim2); opacity:.25; transition:opacity .45s ease, transform .45s ease; transform:scale(.7);
+  }
+  .ruler .mk.on{opacity:1; transform:none; background:var(--ecg)}
+  .ruler .mk.res.on{background:var(--key)}
+  .ruler .bm{
+    position:absolute; top:20px; width:9px; height:9px; margin-left:-4.5px; border-radius:50%;
+    border:1px solid var(--eeg); background:rgba(143,176,232,.18);
+    opacity:0; transform:scale(.5); transition:opacity .5s ease, transform .5s cubic-bezier(.2,.9,.3,1.4);
+  }
+  .ruler .bm.on{opacity:1; transform:none}
+
+  .chan{position:relative; margin:2px 0}
+  .plot{position:relative}
+  .plot canvas{display:block; width:100%; background:#060a0f; border-radius:6px}
+  #cvEcg{height:96px}
+  #cvEeg{height:126px}
+  #cvOx{height:78px}
+  @media(max-width:700px){ #cvEcg{height:80px} #cvEeg{height:108px} #cvOx{height:66px} }
+  .lock{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center; gap:12px;
+    flex-wrap:wrap; padding:8px; text-align:center;
+    background:rgba(6,10,15,.94); border:1px dashed var(--line); border-radius:6px;
+    transition:opacity .55s ease; font-family:var(--sans); font-size:12.5px; color:var(--dim2);
+  }
+  .lock.gone{opacity:0; pointer-events:none}
+
+  button{
+    font-family:var(--sans); font-size:12.5px; letter-spacing:.06em; color:var(--fg);
+    background:rgba(255,255,255,.045); border:1px solid var(--line); border-radius:8px;
+    padding:9px 15px; cursor:pointer; transition:background .18s, border-color .18s, color .18s, transform .12s;
+  }
+  button:hover:not(:disabled){background:rgba(255,255,255,.09); border-color:#2a3f52}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  button.key{border-color:#2b4a5c; color:var(--key)}
+  button.key:hover:not(:disabled){background:rgba(159,216,220,.09); border-color:#3d6a80}
+  button[aria-pressed=true]{border-color:#3f5f7a; color:var(--eeg); background:rgba(143,176,232,.1)}
+
+  .scrubrow{margin-top:10px}
+  input[type=range]{-webkit-appearance:none; appearance:none; width:100%; height:26px; background:transparent; cursor:ew-resize; display:block}
+  input[type=range]::-webkit-slider-runnable-track{height:2px; background:var(--line); border-radius:2px}
+  input[type=range]::-moz-range-track{height:2px; background:var(--line); border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; margin-top:-8px; border-radius:50%;
+    background:#0d1720; border:1px solid var(--key); box-shadow:0 0 0 4px rgba(159,216,220,.1);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:#0d1720; border:1px solid var(--key);
+    box-shadow:0 0 0 4px rgba(159,216,220,.1);
+  }
+  .note{font-family:var(--sans); font-size:11.5px; line-height:1.7; color:var(--dim2); margin:10px 0 0}
+
+  .inspect{
+    display:grid; grid-template-columns:1fr 250px; gap:14px; margin-top:14px;
+    border-top:1px solid var(--line); padding-top:14px;
+  }
+  @media(max-width:700px){ .inspect{grid-template-columns:1fr} }
+  #cvZoom{display:block; width:100%; height:130px; background:#060a0f; border-radius:6px}
+  .zlab{font-family:var(--sans); font-size:10.5px; letter-spacing:.16em; color:var(--dim2); margin:0 0 6px}
+  .bands{font-family:var(--sans); font-size:11.5px}
+  .bandrow{display:grid; grid-template-columns:74px 1fr 34px; align-items:center; gap:8px; margin-bottom:7px}
+  .bandrow span{color:var(--dim)}
+  .bandrow .bar{height:4px; background:#101c26; border-radius:2px; overflow:hidden}
+  .bandrow .bar i{display:block; height:100%; background:var(--eeg); border-radius:2px; transform-origin:left center; transform:scaleX(0); transition:transform .18s linear; width:100%}
+  .bandrow em{color:var(--dim2); font-family:var(--mono); font-size:10.5px; text-align:right; font-style:normal}
+
+  .log{
+    margin-top:14px; border-top:1px solid var(--line); padding-top:12px;
+    display:grid; grid-template-columns:1fr 1fr; gap:2px 24px;
+    font-family:var(--sans); font-size:12.5px; line-height:1.75;
+  }
+  @media(max-width:700px){ .log{grid-template-columns:1fr} }
+  .log li{list-style:none; display:flex; gap:10px; opacity:.22; transition:opacity .5s ease, transform .5s ease; transform:translateX(-4px)}
+  .log li.on{opacity:1; transform:none}
+  .log li b{font-family:var(--mono); color:var(--dim2); font-weight:400; flex:none; font-variant-numeric:tabular-nums}
+  .log li.res b{color:var(--key)}
+  .log li span{color:var(--dim)}
+  .log li.on span{color:#b9c9d6}
+  .log ul{margin:0; padding:0}
+
+  /* ─────────── 四人紀錄 ─────────── */
+  .four{max-width:760px; margin:2.4em auto; padding:14px; border:1px solid var(--line); border-radius:12px; background:var(--panel)}
+  #cvFour{display:block; width:100%; height:230px; background:#060a0f; border-radius:6px}
+  @media(max-width:700px){ #cvFour{height:200px} }
+  .fourhead{display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; font-family:var(--sans); font-size:11.5px; letter-spacing:.14em; color:var(--dim2); margin-bottom:10px}
+
+  /* ─────────── 生還者層 ─────────── */
+  .layer{max-width:760px; margin:2.4em auto; padding:18px 16px; border:1px solid var(--line); border-radius:12px; background:var(--panel)}
+  .layer.locked{text-align:center; color:var(--dim2); font-family:var(--sans); font-size:13px}
+  .chain{display:flex; flex-wrap:wrap; gap:6px 10px; align-items:baseline; font-family:var(--sans); font-size:12.5px; color:var(--dim); margin:0 0 1.4em}
+  .chain b{font-family:var(--mono); font-size:22px; color:var(--fg); font-weight:400; font-variant-numeric:tabular-nums}
+  .chain i{font-style:normal; color:var(--dim2)}
+  .people{display:grid; grid-template-columns:repeat(10,1fr); gap:9px 8px; max-width:340px; margin:0 0 16px}
+  .fig{position:relative; display:block; height:26px; transition:transform .4s ease; transition-delay:var(--d,0ms)}
+  .fig i{position:absolute; left:50%; background:var(--c,#1e2a34); transition:background .4s ease; transition-delay:var(--d,0ms)}
+  .fig .hd{top:0; width:8px; height:8px; margin-left:-4px; border-radius:50%}
+  .fig .bd{top:10px; width:12px; height:16px; margin-left:-6px; border-radius:5px 5px 3px 3px}
+  .fig.on{transform:translateY(-2px)}
+  .fig.on.a{--c:var(--eeg)} .fig.on.b{--c:var(--key)} .fig.on.c{--c:#f0e3c0}
+  .pctrow{display:flex; gap:8px; flex-wrap:wrap; margin:0 0 14px}
+  .bignum{font-family:var(--mono); font-size:clamp(2.4rem,9vw,3.4rem); font-weight:300; line-height:1; color:var(--fg); font-variant-numeric:tabular-nums; margin:0 0 .2em}
+  .bigcap{font-family:var(--sans); font-size:13px; line-height:1.8; color:var(--dim); min-height:3.6em; margin:0}
+
+  .tablet{border:1px solid var(--line); border-radius:10px; padding:14px; background:#070c11; margin:1.6em 0 0}
+  .tabscreen{
+    height:78px; border-radius:6px; background:linear-gradient(180deg,#0d151d,#0a1219); border:1px solid #16222d;
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--sans); font-size:12px; color:var(--dim2); letter-spacing:.1em;
+  }
+  .strip{display:grid; grid-template-columns:repeat(10,1fr); gap:5px; margin:10px 0}
+  .strip i{display:block; height:16px; border-radius:3px; background:#111c25; transition:background .35s ease}
+  .strip i.on{background:var(--key)}
+  .tabaudio{font-family:var(--mono); font-size:12.5px; color:var(--dim); letter-spacing:.06em}
+
+  /* ─────────── 沒有說 ─────────── */
+  .nosay{max-width:660px; margin:0 auto; padding:0 22px; list-style:none}
+  .nosay li{position:relative; padding-left:1.9em; margin:0 0 1em; color:#c3d2de}
+  .nosay li::before{
+    content:"沒有"; position:absolute; left:0; top:.42em; font-family:var(--sans); font-size:9.5px;
+    letter-spacing:.1em; color:var(--dim2); border:1px solid var(--line); border-radius:3px; padding:1px 3px; line-height:1.2;
+  }
+  .nosay li.yes::before{content:"有"; color:var(--key); border-color:#2b4a5c}
+  .limits{
+    max-width:660px; margin:2.6em auto 0; padding:16px 18px; border-left:2px solid var(--line);
+    font-family:var(--sans); font-size:13px; line-height:1.95; color:var(--dim);
+  }
+  .limits b{color:#c3d2de; font-weight:600}
+
+  .close{padding:14vh 0 6vh; text-align:left}
+  .close p{font-size:clamp(1.1rem,3.4vw,1.4rem); line-height:1.8; color:#c8d6e2; margin:0 0 1.1em}
+  .close p.last{color:#fff}
+  footer{
+    border-top:1px solid var(--line); margin-top:10vh; padding:22px 0 40px;
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.04em; color:#3f5261;
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  footer a{color:#3f5261; text-decoration:none; border-bottom:1px solid #1b2833}
+  footer a:hover{color:var(--dim)}
+
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.9)}100%{transform:scale(1)}}
+  .bm.pulse{animation:pop .7s cubic-bezier(.2,.8,.3,1)}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .log li{transition:none} .ruler .mk,.ruler .bm{transition:none}
+    .fig,.fig i,.bandrow .bar i,.strip i,.lock{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+<p class="sr" id="live" role="status" aria-live="polite"></p>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">院內心跳停止 · 連續紀錄</p>
+    <p class="clockbig">00:00</p>
+    <canvas id="cvHero" aria-hidden="true"></canvas>
+    <p class="hero-line">線平了。<br>接下來的六十分鐘，我們一直以為上面不會再有東西。</p>
+    <p class="hint"><i></i>往下</p>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════════ 一 · 紀錄 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="ch rise">一 · 紀錄</p>
+    <h2 class="rise">這條線待會兒會動，但那不是心跳</h2>
+    <p class="rise">急救開始之後，心電圖不會維持一條直線。它會規律地上下晃——那是有人用手把胸廓壓下去、再放開，機器忠實地把這個機械動作記了下來。心臟本身沒有出力。</p>
+    <p class="rise">下面是同一場急救的六十分鐘。<strong>時間軸拖到哪裡，紀錄就寫到哪裡。</strong></p>
+  </div>
+
+  <div class="wide rise">
+  <div class="mon" id="mon">
+    <div class="monhead">
+      <span>紀錄 · 院內心跳停止 · 連續監測</span>
+      <b id="clock">T+00:00</b>
+    </div>
+
+    <div class="row">
+      <div class="gut" aria-hidden="true"></div>
+      <div class="ruler" id="ruler"></div>
+    </div>
+
+    <div class="row chan">
+      <div class="gut"><b>CH1</b><span>心電圖</span></div>
+      <div class="plot"><canvas id="cvEcg" aria-hidden="true"></canvas></div>
+    </div>
+
+    <div class="row chan">
+      <div class="gut"><b>CH2</b><span>腦電圖</span></div>
+      <div class="plot">
+        <canvas id="cvEeg" aria-hidden="true"></canvas>
+        <div class="lock" id="lockEeg">
+          <span id="lockEegTxt">先把時間軸往前拖一段</span>
+          <button id="btnEeg" class="key" disabled>開啟通道 2 · 腦電圖</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row chan">
+      <div class="gut"><b>CH3</b><span>腦部氧合</span></div>
+      <div class="plot">
+        <canvas id="cvOx" aria-hidden="true"></canvas>
+        <div class="lock" id="lockOx">
+          <span id="lockOxTxt">還有第三條</span>
+          <button id="btnOx" disabled>開啟通道 3 · rSO₂</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row scrubrow">
+      <div class="gut" aria-hidden="true"></div>
+      <input id="scrub" type="range" min="0" max="60" step="0.1" value="0"
+             aria-label="急救時間軸，從第 0 分到第 60 分，可用左右方向鍵移動"
+             aria-valuetext="第 0 分 0 秒">
+    </div>
+
+    <div class="inspect">
+      <div>
+        <p class="zlab" id="zoomLab">放大 · T+00:00 附近的 2 秒</p>
+        <canvas id="cvZoom" aria-hidden="true"></canvas>
+      </div>
+      <div class="bands" id="bandBox" aria-hidden="true">
+        <p class="zlab">此刻腦電圖的頻段組成</p>
+        <div class="bandrow"><span>δ delta</span><div class="bar"><i data-b="0"></i></div><em>1–4</em></div>
+        <div class="bandrow"><span>θ theta</span><div class="bar"><i data-b="1"></i></div><em>4–8</em></div>
+        <div class="bandrow"><span>α alpha</span><div class="bar"><i data-b="2"></i></div><em>8–13</em></div>
+        <div class="bandrow"><span>β beta</span><div class="bar"><i data-b="3"></i></div><em>15–25</em></div>
+        <div class="bandrow"><span>γ gamma</span><div class="bar"><i data-b="4"></i></div><em>25–55</em></div>
+      </div>
+    </div>
+
+    <div class="log"><ul id="logA"></ul><ul id="logB"></ul></div>
+
+    <p class="note">三條通道是依兩篇論文公開描述合成的示意訊號，用來表現時間關係與頻段組成，不是任何病人的原始紀錄。</p>
+  </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">每隔兩分鐘出現的那一小段空白，是團隊停下來判讀節律、按壓的人換手。一整個小時，流程幾乎沒有變化。</p>
+    <p class="rise dim">至於這段時間裡腦子在做什麼——紀錄上沒有寫。因為以前沒有人在急救的同時去量它。</p>
+  </div>
+</section>
+
+<!-- ══════════ 二 · 第二條通道 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="ch rise">二 · 第二條通道</p>
+    <h2 class="rise">2017 到 2020 年，25 個院內地點做了一件很麻煩的事</h2>
+    <p class="rise">他們在 CPR 進行的同時，把腦電圖接上去，連續錄。同一時間還做了腦部氧合監測，以及一項獨立的視聽測驗——那個測驗待會兒再說。</p>
+    <p class="rise">現在，回到上面那台監視器，<strong>把第二條通道打開</strong>。</p>
+    <p class="rise dim">（通道 2 的按鈕會在你把時間軸拖過第 20 分之後亮起來。）</p>
+  </div>
+</section>
+
+<!-- ══════════ 三 · 三段 ══════════ -->
+<section id="secAfter">
+  <div class="wrap">
+    <p class="ch rise">三 · 不是一整條，是幾段</p>
+    <h2 class="rise">原本以為會是平的地方，冒出了訊號</h2>
+    <p class="rise">那不是雜訊的形狀。把時間軸停在其中一段上，下面那個小窗會把那兩秒放大，右邊會列出裡面分得出來的頻段——delta、theta、alpha、beta，一直到 gamma。和一個清醒的人身上量到的，是同一批頻段。</p>
+    <p class="rise">論文的說法是：在有腦電紀錄的病人裡，有一部分出現了與意識相符的腦電特徵，而且是斷續出現的，<em>最晚出現在 CPR 開始後的 35 到 60 分鐘</em>。</p>
+    <p class="rise dim">上面那三段的位置是依這個描述放的示意位置，不是某一位病人的實際時間點——沒有任何一份公開資料長成一條可以逐分鐘對照的曲線。</p>
+    <p class="rise">在此之前，這被認為不可能。原因就在第三條通道上。</p>
+    <p class="rise dim">（通道 3 的按鈕，在你打開通道 2 之後就會亮。）</p>
+    <p class="rise" id="oxAfter" hidden>腦部血流在這一小時裡一直很差。按壓能擠出一點，停下來判讀時又掉回去。在這樣的供氧下，上面那些訊號原本被認為不會存在。<strong>它們存在。</strong></p>
+  </div>
+</section>
+
+<!-- ══════════ 四 · 另一份紀錄 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="ch rise">四 · 另一份紀錄</p>
+    <h2 class="rise">只有四個人</h2>
+    <p class="rise">2023 年，另一個團隊發表了一份規模小得多的分析：四位因病撤除呼吸器的病人，在全身缺氧的過程中被連續記錄腦電。</p>
+    <p class="rise">其中兩位出現了明顯的 gamma 湧現，一位在移除呼吸器後數秒內，左前中顳葉的 gamma 功率就明顯上升；beta、gamma1、gamma2 的絕對功率在額葉與中央區升高。gamma 的連結性同時是局部的（顳頂枕交界）與跨區的（顳頂枕與對側前額葉之間）。</p>
+    <p class="rise">另外兩位<strong>沒有</strong>。</p>
+  </div>
+
+  <div class="wide rise">
+  <div class="four">
+    <div class="fourhead">
+      <span>撤除呼吸器後 0–120 秒 · 四位病人 · 示意</span>
+      <button id="btnFour">顯示那四筆紀錄</button>
+    </div>
+    <canvas id="cvFour" aria-hidden="true"></canvas>
+    <p class="note" id="fourNote">四分之二。這就是全部的樣本。</p>
+  </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">論文自己在討論裡寫得很清楚：樣本數極小，另外兩位沒有出現同樣現象，而且——<strong>我們無法知道這些病人當時經驗到了什麼</strong>。作者明確反對從這裡往外推。</p>
+  </div>
+</section>
+
+<!-- ══════════ 五 · 生還者說了什麼 ══════════ -->
+<section id="secSurv">
+  <div class="wrap">
+    <p class="ch rise">五 · 另一邊</p>
+    <h2 class="rise">儀器記了一整個小時。他們也去問了活下來的人</h2>
+    <p class="rise">機器上的訊號說明不了經驗。所以同一份研究還做了訪談：心跳停止當時，你記得什麼嗎？</p>
+  </div>
+
+  <div class="wide">
+  <div class="layer locked rise" id="layerLocked">
+    <p style="margin:.4em 0 1em">把上面的時間軸拉到第 60 分，這一層會自己打開。</p>
+    <button id="btnLayer">或者，直接打開這一層</button>
+  </div>
+
+  <div class="layer rise" id="layerOpen" hidden>
+    <div class="chain">
+      <b id="n1">0</b><i>位院內心跳停止</i>
+      <b id="n2">0</b><i>位生還</i>
+      <b id="n3">0</b><i>位完成訪談</i>
+      <b id="n4">0</b><i>位報告了疑似有意識的記憶或知覺</i>
+    </div>
+
+    <div class="people" id="people" aria-hidden="true"></div>
+
+    <div class="pctrow" role="group" aria-label="三個比例">
+      <button id="p40" aria-pressed="false">約 40%</button>
+      <button id="p20" aria-pressed="false">約 20%</button>
+      <button id="p3" aria-pressed="false">約 3%</button>
+    </div>
+
+    <p class="bignum" id="bigPct">—</p>
+    <p class="bigcap" id="bigCap" role="status" aria-live="polite">按上面三顆按鈕，看這 100 個人裡有多少。分母是 28 位完成訪談的生還者。</p>
+
+    <p class="note">這三個是三個不同的問題，不是同一個圓餅切出來的三塊；它們可以重疊。</p>
+  </div>
+  </div>
+
+  <div class="wrap" style="margin-top:2.6em">
+    <p class="rise">「有意識存在的感覺，但沒有明確回憶」——這一格是最難處理的。它既不是「什麼都沒有」，也不是一段可以覆述的內容。它就這樣掛在那裡。</p>
+    <p class="rise">而研究者早就知道自述靠不住。所以他們在每一場急救旁邊，放了一台平板和一副藍牙耳機。</p>
+  </div>
+
+  <div class="wide rise">
+  <div class="layer">
+    <div class="tablet">
+      <div class="tabscreen" id="tabScreen">十張預設圖像，隨機顯示其中一張</div>
+      <div class="strip" id="strip" aria-hidden="true"></div>
+      <p class="tabaudio">耳機重複播放：Apple &nbsp;·&nbsp; Pear &nbsp;·&nbsp; Banana</p>
+      <p style="margin:12px 0 0"><button id="btnDraw">重新隨機抽一張</button></p>
+    </div>
+    <p class="note" style="margin-top:14px">
+      這台平板記下每一次播放的時刻。它把「這個人當時是不是真的知覺到現場」變成一件可以事後對答案的事，而不是只能聽當事人怎麼說。<br>
+      結果：完成訪談的人裡，<strong>沒有人</strong>說出平板上的圖像；<strong>一位</strong>說出了水果。一次命中排除不了巧合，論文也沒有把它當成證據——它被當成一個可行性的註腳。
+    </p>
+  </div>
+  </div>
+</section>
+
+<!-- ══════════ 六 · 沒有說 ══════════ -->
+<section>
+  <div class="wrap">
+    <p class="ch rise">六 · 這份研究沒有說什麼</p>
+    <h2 class="rise">它最厲害的地方，是它拒絕下結論</h2>
+    <p class="rise">一份量到了原本以為不存在的訊號的研究，最容易做的事就是把話說滿。它沒有。</p>
+  </div>
+
+  <ul class="nosay rise">
+    <li>沒有說這些腦電活動代表病人當時是有意識的。腦電圖量的是電活動，不是經驗。</li>
+    <li>沒有說有來生，也沒有說意識可以離開身體。這兩件事不在它的量測範圍內。</li>
+    <li>沒有說那些回憶確實發生在心跳停止的那段時間裡——記憶的時間點無法從訪談中確定。</li>
+    <li>沒有說那位說出水果名稱的病人證明了什麼。一個樣本不能排除巧合。</li>
+    <li class="yes">有說的是：以目前的判準，「儀器上量不到訊號」和「腦裡沒有活動」，是兩件不同的事。</li>
+  </ul>
+
+  <div class="limits rise">
+    <b>樣本與限制</b><br>
+    AWARE-II：<span class="mono">567</span> 位院內心跳停止 → <span class="mono">53</span> 位生還（<span class="mono">9.3%</span>）→ <span class="mono">28</span> 位完成訪談 → <span class="mono">11</span> 位報告了疑似有意識的記憶或知覺。頁面上那三個百分比，分母都是這 28 個人。<br><br>
+    另一份研究：<span class="mono">4</span> 位病人，<span class="mono">2</span> 位出現 gamma 湧現。作者在論文中明確表示無法得知這些病人當時經驗到了什麼。<br><br>
+    兩份研究都不是隨機分派，也都不可能在同一個人身上重複一次。這是它們共同的天花板。
+  </div>
+</section>
+
+<!-- ══════════ 收尾 ══════════ -->
+<section class="close">
+  <div class="wrap">
+    <p class="rise">這一小時裡，儀器一直開著。</p>
+    <p class="rise">過去我們把上面的空白讀成一個結論——那裡沒有訊號，所以那裡什麼都沒有。</p>
+    <p class="rise">現在我們知道，那只是一個還沒有量到的地方。</p>
+    <p class="rise last" style="margin-top:2em">沒有訊號，和沒有經驗，不是同一件事。</p>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <span>資料來源：Parnia et al., Resuscitation (2023)；Borjigin et al., PNAS (2023)</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+ * 純函式層：時間軸對映、訊號合成、比例計算
+ * 全部可獨立驗證（node assert），不碰 DOM
+ * ══════════════════════════════════════════════════════════════ */
+var SIG = (function () {
+  'use strict';
+
+  var SPAN = 60;                       /* 時間軸總長：分 */
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  /* ---- 決定性偽亂數（mulberry32）：同一顆種子每次都長一樣 ---- */
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hash1(n) { var s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); }
+  /* 平滑的決定性雜訊，值域約 −1…1 */
+  function valueNoise(x) {
+    var i = Math.floor(x), f = x - i;
+    var a = hash1(i), b = hash1(i + 1), u = f * f * (3 - 2 * f);
+    return (a + (b - a) * u) * 2 - 1;
+  }
+  /* 包絡的有機抖動：0.82…1.10 */
+  function envJitter(x) { return 0.96 + 0.14 * (0.5 * valueNoise(x * 0.61) + 0.5 * valueNoise(x * 1.73 + 7)); }
+
+  /* ---- 頻段（Hz）：AWARE-II 論文列出的那五個 ---- */
+  var BANDS = [
+    { k: 'delta', lo: 1,  hi: 4  },
+    { k: 'theta', lo: 4,  hi: 8  },
+    { k: 'alpha', lo: 8,  hi: 13 },
+    { k: 'beta',  lo: 15, hi: 25 },
+    { k: 'gamma', lo: 25, hi: 55 }
+  ];
+  /* 每個頻段固定取 4 個成分（頻率、相位），由種子決定 */
+  function makeComps(seed, per) {
+    per = per || 4;
+    var r = rng(seed), out = [];
+    for (var b = 0; b < BANDS.length; b++) {
+      var arr = [];
+      for (var i = 0; i < per; i++) arr.push({ f: BANDS[b].lo + (BANDS[b].hi - BANDS[b].lo) * r(), p: r() * Math.PI * 2 });
+      out.push(arr);
+    }
+    return out;
+  }
+  function bandValue(comps, bi, tSec) {
+    var arr = comps[bi], s = 0;
+    for (var i = 0; i < arr.length; i++) s += Math.sin(2 * Math.PI * arr[i].f * tSec + arr[i].p);
+    return s / arr.length;
+  }
+
+  /* ---- 抑制期的基線振幅，與三段爆發的頻段配方 ---- */
+  var BASE = [0.10, 0.05, 0.02, 0.015, 0.010];
+  var BURSTS = [
+    { at: 20, w: 1.5, mix: [0.90, 0.62, 0.30, 0.14, 0.10] },
+    { at: 35, w: 1.8, mix: [0.72, 0.78, 0.58, 0.36, 0.26] },
+    { at: 60, w: 2.1, mix: [0.60, 0.62, 0.55, 0.50, 0.56] }
+  ];
+  function burstWeight(i, m) { var d = (m - BURSTS[i].at) / BURSTS[i].w; return Math.exp(-0.5 * d * d); }
+  /* 第 bi 個頻段在第 m 分鐘的振幅；revealed = 已揭曉的爆發數 */
+  function ampAt(bi, m, revealed) {
+    var a = BASE[bi], n = revealed == null ? BURSTS.length : revealed, i, wg;
+    for (i = 0; i < BURSTS.length && i < n; i++) {
+      wg = burstWeight(i, m);
+      if (wg > 1e-4) a += wg * BURSTS[i].mix[bi];
+    }
+    return a;
+  }
+  /* 振幅包絡：對隨機相位正弦和，RMS = √(Σ(a·√2/4)²)，峰值約 3×RMS */
+  function eegEnv(m, revealed) {
+    var s = 0, i, x;
+    for (i = 0; i < BANDS.length; i++) { x = 0.35355 * ampAt(i, m, revealed); s += x * x; }
+    return 3 * Math.sqrt(s) * envJitter(m + 3.7);
+  }
+  /* 原始波形：各頻段正弦疊加 ＋ 少量雜訊 */
+  function eegWave(comps, m, revealed) {
+    var tSec = m * 60, v = 0, i;
+    for (i = 0; i < BANDS.length; i++) v += ampAt(i, m, revealed) * bandValue(comps, i, tSec);
+    return v + 0.03 * valueNoise(tSec * 41);
+  }
+
+  /* ---- 心電圖：心臟沒有出力，線上的起伏是壓胸的機械假影 ---- */
+  var CPR_START = 0.25;      /* 分：開始按壓 */
+  var CYCLE = 2;             /* 分：每兩分鐘判讀一次節律 */
+  var PAUSE = 8 / 60;        /* 分：判讀與換手的暫停長度 */
+  var RATE = 110 / 60;       /* Hz：每分鐘約 110 下 */
+  function compressing(m) {
+    if (m < CPR_START) return false;
+    var ph = (m - CPR_START) % CYCLE;
+    return ph <= CYCLE - PAUSE;
+  }
+  function ecgEnv(m) {
+    if (!compressing(m)) return 0.04 * envJitter(m * 3.1);
+    return (0.58 + 0.05 * valueNoise(m * 0.9)) * envJitter(m * 3.1);
+  }
+  function ecgWave(m) {
+    var tSec = m * 60, base = 0.03 * valueNoise(tSec * 53 + 11);
+    if (!compressing(m)) return base;
+    var ph = 2 * Math.PI * RATE * tSec;
+    return (Math.sin(ph) * 0.55 + Math.sin(2 * ph + 1.1) * 0.14) * (1 + 0.06 * valueNoise(m * 0.9)) + base;
+  }
+
+  /* ---- 腦部氧合 rSO₂（％，示意）：按壓時擠上去一點，一停就掉 ---- */
+  function rso2(m) {
+    if (m < CPR_START) return 68 - (m / CPR_START) * 30;
+    var slow = 31 + 3.4 * Math.sin(m * 0.42 + 1.1) + 1.8 * valueNoise(m * 1.7);
+    return slow + (compressing(m) ? 4.2 : -4.6);
+  }
+
+  /* ---- 另一份研究：四位病人、撤除呼吸器後 0–120 秒（示意包絡）---- */
+  var FOUR = [
+    { surge: true,  at: 13, w: 10, gain: 1.00 },
+    { surge: true,  at: 29, w: 15, gain: 0.76 },
+    { surge: false },
+    { surge: false }
+  ];
+  function fourEnv(i, sec) {
+    var p = FOUR[i], base = 0.10 + 0.05 * Math.exp(-sec / 70);
+    if (!p.surge) return base * envJitter(sec * 0.06 + i * 5.1);
+    var d = (sec - p.at) / p.w;
+    return (base + p.gain * Math.exp(-0.5 * d * d)) * envJitter(sec * 0.06 + i * 5.1);
+  }
+
+  /* ---- 時間軸對映（pad = range 拇指半徑，讓刻度與拇指對齊）---- */
+  function timeToX(m, w, pad) { return pad + (clamp(m, 0, SPAN) / SPAN) * (w - 2 * pad); }
+  function xToTime(x, w, pad) { return clamp((x - pad) / (w - 2 * pad), 0, 1) * SPAN; }
+  function eventAt(events, m) {
+    var r = null;
+    for (var i = 0; i < events.length; i++) if (events[i].t <= m + 1e-9) r = events[i];
+    return r;
+  }
+
+  /* ---- AWARE-II 的分母鏈與比例 ---- */
+  var AWARE = { enrolled: 567, survived: 53, interviewed: 28, reported: 11 };
+  function ratePct(a, b) { return a / b * 100; }
+  function figureCount(percent, total) { return Math.round(percent * (total == null ? 100 : total) / 100); }
+
+  return {
+    SPAN: SPAN, BANDS: BANDS, BURSTS: BURSTS, AWARE: AWARE, FOUR: FOUR,
+    CPR_START: CPR_START, CYCLE: CYCLE, PAUSE: PAUSE,
+    clamp: clamp, rng: rng, valueNoise: valueNoise, envJitter: envJitter,
+    makeComps: makeComps, bandValue: bandValue, ampAt: ampAt,
+    eegEnv: eegEnv, eegWave: eegWave,
+    compressing: compressing, ecgEnv: ecgEnv, ecgWave: ecgWave, rso2: rso2,
+    fourEnv: fourEnv, timeToX: timeToX, xToTime: xToTime, eventAt: eventAt,
+    ratePct: ratePct, figureCount: figureCount
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = SIG;
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+  var PAD = 9;
+  var C = {
+    grid: '#0d1721', line: '#16222d', dim: '#4a5c6b',
+    ecg: '#5fc9a3', eeg: '#8fb0e8', ox: '#c2a066', key: '#9fd8dc'
+  };
+  var comps = SIG.makeComps(20230711, 4);
+  var live = document.getElementById('live');
+  function say(t) { live.textContent = t; }
+
+  /* ───────── 舞台引擎：一個 rAF、多個畫布 ───────── */
+  var stages = [];
+  function addStage(id, draw, opts) {
+    var cv = document.getElementById(id);
+    if (!cv) return null;
+    var st = {
+      cv: cv, ctx: cv.getContext('2d'), draw: draw,
+      w: 0, h: 0, dpr: 1, visible: false, dirty: true,
+      animated: !!(opts && opts.animated)
+    };
+    function measure() {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：否則 ResizeObserver 會每幀把畫布尺寸翻倍，整張圖消失 */
+      if (cv.width !== nw || cv.height !== nh) { cv.width = nw; cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(cv);
+    else window.addEventListener('resize', measure);
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { st.visible = e.isIntersecting; if (e.isIntersecting) st.dirty = true; });
+        setRunning();
+      }, { rootMargin: '100px' }).observe(cv);
+    } else { st.visible = true; }
+    stages.push(st);
+    return st;
+  }
+
+  var running = false, rafId = 0, last = 0;
+  function frame(now) {
+    if (!running) return;
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+    if (sweep.on) tickSweep(dt);
+    for (var i = 0; i < stages.length; i++) {
+      var s = stages[i];
+      if (!s.visible || !s.w) continue;
+      if (!s.dirty && !(s.animated && !reduced)) continue;
+      s.dirty = false;
+      var ctx = s.ctx;
+      ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+      ctx.clearRect(0, 0, s.w, s.h);
+      s.draw(ctx, s.w, s.h, reduced ? 0 : now / 1000, dt);
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+  function setRunning() {
+    var any = false;
+    for (var i = 0; i < stages.length; i++) if (stages[i].visible) { any = true; break; }
+    var want = !document.hidden && any;
+    if (want && !running) { running = true; last = 0; rafId = requestAnimationFrame(frame); }
+    else if (!want && running) { running = false; cancelAnimationFrame(rafId); }
+  }
+  function dirty() { for (var i = 0; i < stages.length; i++) stages[i].dirty = true; setRunning(); }
+  document.addEventListener('visibilitychange', function () { last = 0; setRunning(); });
+  function onRM() {
+    reduced = RM.matches;
+    if (reduced) {
+      revealAll();
+      if (sweep && sweep.on) { sweep.on = false; finishSweep(); }   /* 回放中途改設定：直接跳到結果 */
+    }
+    dirty();
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  /* ───────── 捲動進場 ───────── */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll() { risers.forEach(function (el) { el.classList.add('in'); }); }
+  if (reduced || !window.IntersectionObserver) revealAll();
+  else {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    risers.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ───────── 共用畫法 ───────── */
+  function gridBg(ctx, w, h, minorMin) {
+    ctx.fillStyle = '#060a0f'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var m = 0; m <= 60; m += (minorMin || 5)) {
+      var x = Math.round(SIG.timeToX(m, w, PAD)) + 0.5;
+      ctx.moveTo(x, 0); ctx.lineTo(x, h);
+    }
+    var mid = Math.round(h / 2) + 0.5;
+    ctx.moveTo(0, mid); ctx.lineTo(w, mid);
+    ctx.stroke();
+  }
+  /* 包絡帶：沿上緣走完再沿下緣走回來（依實際繪製方向產生路徑） */
+  function ribbon(ctx, w, h, toX, envFn, scale, fill, stroke) {
+    var mid = h / 2, x, m, e;
+    var x0 = Math.max(PAD, 0), x1 = Math.min(toX, w - PAD);
+    if (x1 <= x0 + 1) return;
+    ctx.beginPath();
+    for (x = x0; x <= x1; x++) { m = SIG.xToTime(x, w, PAD); ctx.lineTo(x, mid - envFn(m) * scale); }
+    for (x = x1; x >= x0; x--) { m = SIG.xToTime(x, w, PAD); ctx.lineTo(x, mid + envFn(m) * scale); }
+    ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill();
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  }
+  function playhead(ctx, w, h, x, color) {
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(Math.round(x) + 0.5, 0); ctx.lineTo(Math.round(x) + 0.5, h); ctx.stroke();
+  }
+  function tinyLabel(ctx, x, y, text, color, align) {
+    ctx.fillStyle = color;
+    ctx.font = '10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+    ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  }
+
+  /* ───────── 第一屏：一條平的線 ───────── */
+  addStage('cvHero', function (ctx, w, h, t) {
+    var mid = h / 2;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var gx = 0; gx <= w; gx += 40) { ctx.moveTo(gx + 0.5, mid - 26); ctx.lineTo(gx + 0.5, mid + 26); }
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(95,201,163,.75)'; ctx.lineWidth = 1.4; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (var x = 0; x <= w; x++) ctx.lineTo(x, mid + SIG.valueNoise(x * 0.13 + 4) * 0.9);
+    ctx.stroke();
+    if (!reduced) {
+      var sx = (t * 0.14 % 1) * w;
+      var g = ctx.createLinearGradient(sx - 70, 0, sx, 0);
+      g.addColorStop(0, 'rgba(95,201,163,0)'); g.addColorStop(1, 'rgba(95,201,163,.5)');
+      ctx.strokeStyle = g; ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      for (var x2 = Math.max(0, sx - 70); x2 <= sx; x2++) ctx.lineTo(x2, mid + SIG.valueNoise(x2 * 0.13 + 4) * 0.9);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(95,201,163,.9)';
+      ctx.beginPath(); ctx.arc(sx, mid, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }, { animated: true });
+
+  /* ───────── 狀態 ───────── */
+  var S = {
+    t: 0,            /* 目前時間（分） */
+    reachedEcg: 0,   /* ECG 已寫到的分鐘（只增不減） */
+    reachedEeg: 0,
+    reachedOx: 0,
+    eegOn: false, oxOn: false, revealed: 0,
+    fourOn: false, layerOn: false
+  };
+  var sweep = { on: false, t: 0 };
+
+  /* ───────── 急救紀錄事件 ───────── */
+  var EVENTS = [
+    { t: 0.0,  s: '發現無脈搏、無反應' },
+    { t: 0.3,  s: '開始胸外按壓（每分鐘約 110 下）' },
+    { t: 0.8,  s: '接上監視器、貼上去顫貼片' },
+    { t: 2.2,  s: '節律判讀 · 按壓者換手' },
+    { t: 3.0,  s: '第一劑腎上腺素' },
+    { t: 5.5,  s: '建立高階呼吸道' },
+    { t: 8.0,  s: '第二劑腎上腺素' },
+    { t: 10.0, s: '額頭貼上腦部氧合探頭', r: 1 },
+    { t: 12.0, s: '平板與耳機就位', r: 1 },
+    { t: 16.2, s: '節律判讀 · 換手（每兩分鐘一次，之後不再逐一列出）' },
+    { t: 24.0, s: '持續按壓、持續給藥' },
+    { t: 40.0, s: '第四十分鐘。流程沒有變。' },
+    { t: 60.0, s: '第六十分鐘。' }
+  ];
+
+  /* 刻度尺 */
+  var ruler = document.getElementById('ruler');
+  function atLeft(frac) { return 'calc(' + PAD + 'px + (100% - ' + (PAD * 2) + 'px) * ' + frac + ')'; }
+  (function buildRuler() {
+    var html = '', m;
+    for (m = 0; m <= 60; m += 5) {
+      html += '<i class="tick' + (m % 15 === 0 ? ' maj' : '') + '" style="left:' + atLeft(m / 60) + '"></i>';
+      if (m % 15 === 0) html += '<i class="tlab" style="left:' + atLeft(m / 60) + '">' + m + '</i>';
+    }
+    for (var i = 0; i < EVENTS.length; i++)
+      html += '<i class="mk' + (EVENTS[i].r ? ' res' : '') + '" data-e="' + i + '" style="left:' + atLeft(EVENTS[i].t / 60) + '"></i>';
+    for (var b = 0; b < SIG.BURSTS.length; b++)
+      html += '<i class="bm" data-b="' + b + '" style="left:' + atLeft(SIG.BURSTS[b].at / 60) + '"></i>';
+    ruler.innerHTML = html;
+  })();
+  var marks = [].slice.call(ruler.querySelectorAll('.mk'));
+  var bmarks = [].slice.call(ruler.querySelectorAll('.bm'));
+
+  /* 事件紀錄清單 */
+  var logA = document.getElementById('logA'), logB = document.getElementById('logB');
+  var logItems = [];
+  (function buildLog() {
+    var half = Math.ceil(EVENTS.length / 2);
+    EVENTS.forEach(function (e, i) {
+      var li = document.createElement('li');
+      if (e.r) li.className = 'res';
+      li.innerHTML = '<b>' + fmt(e.t) + '</b><span>' + e.s + (e.r ? '（研究流程）' : '') + '</span>';
+      (i < half ? logA : logB).appendChild(li);
+      logItems.push(li);
+    });
+  })();
+  function fmt(min) {
+    var total = Math.floor(min * 60);
+    var mm = Math.floor(total / 60), ss = total % 60;
+    return (mm < 10 ? '0' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+  }
+
+  /* ───────── 通道畫布 ───────── */
+  var stEcg = addStage('cvEcg', function (ctx, w, h) {
+    gridBg(ctx, w, h);
+    var scale = (h / 2) * 0.78;
+    var toX = SIG.timeToX(S.reachedEcg, w, PAD);
+    ribbon(ctx, w, h, toX, SIG.ecgEnv, scale, 'rgba(95,201,163,.20)', 'rgba(95,201,163,.65)');
+    if (S.reachedEcg < 0.05) tinyLabel(ctx, PAD + 8, h / 2 - 14, '往右拖，紀錄就開始寫', C.dim);
+    playhead(ctx, w, h, SIG.timeToX(S.t, w, PAD), 'rgba(159,216,220,.5)');
+  });
+
+  var stEeg = addStage('cvEeg', function (ctx, w, h) {
+    gridBg(ctx, w, h);
+    if (!S.eegOn) return;
+    var scale = (h / 2) * 0.62;
+    var toX = SIG.timeToX(S.reachedEeg, w, PAD);
+    ribbon(ctx, w, h, toX, function (m) { return SIG.eegEnv(m, S.revealed); }, scale,
+           'rgba(143,176,232,.22)', 'rgba(143,176,232,.7)');
+    for (var b = 0; b < S.revealed; b++) {
+      var bx = SIG.timeToX(SIG.BURSTS[b].at, w, PAD);
+      if (bx > toX + 2) continue;
+      ctx.strokeStyle = 'rgba(143,176,232,.3)'; ctx.lineWidth = 1;
+      ctx.setLineDash([2, 4]);
+      ctx.beginPath(); ctx.moveTo(Math.round(bx) + 0.5, h - 16); ctx.lineTo(Math.round(bx) + 0.5, h / 2); ctx.stroke();
+      ctx.setLineDash([]);
+      tinyLabel(ctx, bx, h - 9, SIG.BURSTS[b].at + ' 分', 'rgba(143,176,232,.8)', 'center');
+    }
+    playhead(ctx, w, h, SIG.timeToX(S.t, w, PAD), 'rgba(159,216,220,.5)');
+  });
+
+  var stOx = addStage('cvOx', function (ctx, w, h) {
+    gridBg(ctx, w, h);
+    if (!S.oxOn) return;
+    var top = 8, bot = h - 8;
+    function Y(pct) { return bot - (SIG.clamp(pct, 0, 90) / 90) * (bot - top); }
+    /* 一般清醒範圍 60–80% */
+    ctx.fillStyle = 'rgba(194,160,102,.07)';
+    ctx.fillRect(PAD, Y(80), w - PAD * 2, Y(60) - Y(80));
+    ctx.strokeStyle = 'rgba(194,160,102,.25)'; ctx.lineWidth = 1; ctx.setLineDash([3, 5]);
+    ctx.beginPath(); ctx.moveTo(PAD, Math.round(Y(60)) + 0.5); ctx.lineTo(w - PAD, Math.round(Y(60)) + 0.5); ctx.stroke();
+    ctx.setLineDash([]);
+    tinyLabel(ctx, w - PAD - 4, Y(70), '一般清醒 60–80%', 'rgba(194,160,102,.6)', 'right');
+
+    var toX = SIG.timeToX(S.reachedOx, w, PAD);
+    if (toX > PAD + 1) {
+      ctx.strokeStyle = C.ox; ctx.lineWidth = 1.4; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (var x = PAD; x <= Math.min(toX, w - PAD); x++) ctx.lineTo(x, Y(SIG.rso2(SIG.xToTime(x, w, PAD))));
+      ctx.stroke();
+    }
+    playhead(ctx, w, h, SIG.timeToX(S.t, w, PAD), 'rgba(159,216,220,.5)');
+  });
+
+  /* ───────── 放大窗（真波形，2 秒）───────── */
+  var zoomLab = document.getElementById('zoomLab');
+  addStage('cvZoom', function (ctx, w, h) {
+    ctx.fillStyle = '#060a0f'; ctx.fillRect(0, 0, w, h);
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var gx = 0; gx <= w; gx += Math.max(20, w / 10)) { ctx.moveTo(Math.round(gx) + 0.5, 0); ctx.lineTo(Math.round(gx) + 0.5, h); }
+    ctx.stroke();
+
+    var winMin = 2 / 60;                       /* 2 秒 */
+    var t0 = SIG.clamp(S.t - winMin / 2, 0, 60 - winMin);
+    var laneH = S.eegOn ? h / 2 : h;
+    var x, m;
+
+    /* 上：心電圖 */
+    ctx.strokeStyle = 'rgba(95,201,163,.85)'; ctx.lineWidth = 1.3; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (x = 0; x <= w; x++) {
+      m = t0 + (x / w) * winMin;
+      ctx.lineTo(x, laneH * 0.5 + SIG.ecgWave(m) * laneH * 0.34);
+    }
+    ctx.stroke();
+    tinyLabel(ctx, 6, 11, 'CH1', 'rgba(95,201,163,.55)');
+
+    /* 下：腦電圖 */
+    if (S.eegOn) {
+      ctx.strokeStyle = 'rgba(143,176,232,.9)'; ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      for (x = 0; x <= w; x++) {
+        m = t0 + (x / w) * winMin;
+        ctx.lineTo(x, laneH * 1.5 + SIG.eegWave(comps, m, S.revealed) * laneH * 0.3);
+      }
+      ctx.stroke();
+      ctx.strokeStyle = C.line;
+      ctx.beginPath(); ctx.moveTo(0, Math.round(laneH) + 0.5); ctx.lineTo(w, Math.round(laneH) + 0.5); ctx.stroke();
+      tinyLabel(ctx, 6, laneH + 11, 'CH2', 'rgba(143,176,232,.55)');
+    }
+  });
+
+  /* ───────── 頻段長條 ───────── */
+  var bars = [].slice.call(document.querySelectorAll('.bandrow .bar i'));
+  function updBands() {
+    var maxA = 0.75, i;
+    for (i = 0; i < bars.length; i++) {
+      var a = S.eegOn ? SIG.ampAt(i, S.t, S.revealed) : 0;
+      bars[i].style.transform = 'scaleX(' + SIG.clamp(a / maxA, 0, 1).toFixed(3) + ')';
+    }
+  }
+
+  /* ───────── 時間軸拖曳 ───────── */
+  var scrub = document.getElementById('scrub');
+  var clock = document.getElementById('clock');
+  var btnEeg = document.getElementById('btnEeg'), lockEeg = document.getElementById('lockEeg'), lockEegTxt = document.getElementById('lockEegTxt');
+  var btnOx = document.getElementById('btnOx'), lockOx = document.getElementById('lockOx');
+
+  function setT(v, fromSweep) {
+    S.t = SIG.clamp(v, 0, 60);
+    if (!fromSweep) scrub.value = String(S.t);
+    if (S.t > S.reachedEcg) S.reachedEcg = S.t;
+    if (S.eegOn && S.t > S.reachedEeg) S.reachedEeg = S.t;
+    if (S.oxOn && S.t > S.reachedOx) S.reachedOx = S.t;
+
+    clock.textContent = 'T+' + fmt(S.t);
+    zoomLab.textContent = '放大 · T+' + fmt(S.t) + ' 附近的 2 秒';
+    var ev = SIG.eventAt(EVENTS, S.reachedEcg);
+    scrub.setAttribute('aria-valuetext', '第 ' + Math.floor(S.t) + ' 分 ' + Math.round(S.t % 1 * 60) + ' 秒' + (ev ? '，' + ev.s : ''));
+
+    for (var i = 0; i < EVENTS.length; i++) {
+      var on = EVENTS[i].t <= S.reachedEcg + 1e-9;
+      if (on !== marks[i].classList.contains('on')) {
+        marks[i].classList.toggle('on', on);
+        logItems[i].classList.toggle('on', on);
+      }
+    }
+    if (!S.eegOn && S.reachedEcg >= 20 && btnEeg.disabled) {
+      btnEeg.disabled = false;
+      lockEegTxt.textContent = '這一小時裡，腦子在做什麼？';
+      say('通道 2 可以開啟了。');
+    }
+    if (!S.layerOn && !sweep.on && S.reachedEcg >= 59.5 && S.eegOn) openLayer();
+    updBands();
+    dirty();
+  }
+  scrub.addEventListener('input', function () { if (!sweep.on) setT(+scrub.value); });
+
+  /* ───────── 轉折：打開通道 2 ───────── */
+  var SWEEP_RATE = 10.5;   /* 分 / 秒 */
+  function revealBurst(i) {
+    S.revealed = i + 1;
+    var bm = bmarks[i];
+    bm.classList.add('on');
+    if (!reduced) { bm.classList.remove('pulse'); void bm.offsetWidth; bm.classList.add('pulse'); }
+    say('第 ' + SIG.BURSTS[i].at + ' 分鐘：腦電圖上出現訊號。');
+  }
+  function finishSweep() {
+    S.revealed = SIG.BURSTS.length;
+    bmarks.forEach(function (b) { b.classList.add('on'); });
+    S.reachedEeg = 60;
+    setT(60);
+    say('腦電圖通道已完整顯示：第 20、35、60 分鐘各有一段訊號。');
+  }
+  function tickSweep(dt) {
+    sweep.t += dt * SWEEP_RATE;
+    for (var i = S.revealed; i < SIG.BURSTS.length; i++) {
+      if (sweep.t >= SIG.BURSTS[i].at) revealBurst(i); else break;
+    }
+    if (sweep.t >= 60) { sweep.t = 60; sweep.on = false; setT(60, true); scrub.value = '60'; return; }
+    setT(sweep.t, true);
+    scrub.value = String(sweep.t);
+  }
+  btnEeg.addEventListener('click', function () {
+    if (S.eegOn) return;
+    S.eegOn = true;
+    lockEeg.classList.add('gone');
+    document.getElementById('bandBox').removeAttribute('aria-hidden');
+    btnOx.disabled = false;
+    document.getElementById('lockOxTxt').textContent = '同一段時間，腦子拿到多少氧';
+    if (reduced) {
+      finishSweep();
+    } else {
+      S.reachedEeg = 0;
+      sweep.t = 0; sweep.on = true;
+      setT(0, true);
+      say('通道 2 已開啟，正在從第 0 分回放。');
+    }
+    setRunning();
+  });
+
+  btnOx.addEventListener('click', function () {
+    if (S.oxOn) return;
+    S.oxOn = true;
+    S.reachedOx = 60;
+    lockOx.classList.add('gone');
+    document.getElementById('oxAfter').hidden = false;
+    document.getElementById('oxAfter').classList.add('rise', 'in');
+    say('通道 3 已開啟：整段時間的腦部氧合都遠低於一般清醒範圍。');
+    dirty();
+  });
+
+  /* ───────── 四位病人 ───────── */
+  var stFour = addStage('cvFour', function (ctx, w, h) {
+    ctx.fillStyle = '#060a0f'; ctx.fillRect(0, 0, w, h);
+    var padL = 74, padR = 12, top = 10, rows = 4;
+    var rh = (h - top * 2) / rows;
+    ctx.strokeStyle = C.grid; ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (var s = 0; s <= 120; s += 20) {
+      var gx = Math.round(padL + (s / 120) * (w - padL - padR)) + 0.5;
+      ctx.moveTo(gx, top); ctx.lineTo(gx, h - top);
+    }
+    ctx.stroke();
+    tinyLabel(ctx, padL, h - 3, '0 秒', C.dim);
+    tinyLabel(ctx, w - padR, h - 3, '120 秒', C.dim, 'right');
+
+    for (var i = 0; i < rows; i++) {
+      var mid = top + rh * (i + 0.5);
+      var surge = SIG.FOUR[i].surge;
+      tinyLabel(ctx, padL - 10, mid, '病人 ' + (i + 1), surge ? 'rgba(143,176,232,.85)' : C.dim, 'right');
+      ctx.strokeStyle = C.grid;
+      ctx.beginPath(); ctx.moveTo(padL, Math.round(mid) + 0.5); ctx.lineTo(w - padR, Math.round(mid) + 0.5); ctx.stroke();
+      if (!S.fourOn) continue;
+      var scale = rh * 0.40;
+      ctx.beginPath();
+      var x, sec;
+      for (x = padL; x <= w - padR; x++) { sec = (x - padL) / (w - padL - padR) * 120; ctx.lineTo(x, mid - SIG.fourEnv(i, sec) * scale); }
+      for (x = w - padR; x >= padL; x--) { sec = (x - padL) / (w - padL - padR) * 120; ctx.lineTo(x, mid + SIG.fourEnv(i, sec) * scale); }
+      ctx.closePath();
+      ctx.fillStyle = surge ? 'rgba(143,176,232,.22)' : 'rgba(74,92,107,.18)';
+      ctx.fill();
+      ctx.strokeStyle = surge ? 'rgba(143,176,232,.75)' : 'rgba(74,92,107,.7)';
+      ctx.lineWidth = 1; ctx.stroke();
+    }
+  });
+  document.getElementById('btnFour').addEventListener('click', function () {
+    S.fourOn = !S.fourOn;
+    this.textContent = S.fourOn ? '收起' : '顯示那四筆紀錄';
+    document.getElementById('fourNote').textContent = S.fourOn
+      ? '上面兩位出現了 gamma 湧現。下面兩位，同樣的量測、同樣的過程，沒有。四分之二，這就是全部的樣本。'
+      : '四分之二。這就是全部的樣本。';
+    if (S.fourOn) say('四筆紀錄已顯示：病人 1 與病人 2 出現 gamma 湧現，病人 3 與病人 4 沒有。');
+    if (stFour) stFour.dirty = true;
+    setRunning();
+  });
+
+  /* ───────── 生還者層 ───────── */
+  var people = document.getElementById('people');
+  (function buildPeople() {
+    var html = '';
+    for (var i = 0; i < 100; i++) html += '<span class="fig" style="--d:' + (i % 10 * 14 + Math.floor(i / 10) * 26) + 'ms"><i class="hd"></i><i class="bd"></i></span>';
+    people.innerHTML = html;
+  })();
+  var figs = [].slice.call(people.querySelectorAll('.fig'));
+
+  function rollTo(el, target, dur, suffix) {
+    if (reduced) { el.textContent = target + (suffix || ''); return; }
+    var t0 = performance.now();
+    (function tick(now) {
+      var k = SIG.clamp((now - t0) / dur, 0, 1);
+      var e = 1 - Math.pow(1 - k, 3);
+      el.textContent = Math.round(target * e) + (suffix || '');
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  function openLayer() {
+    if (S.layerOn) return;
+    S.layerOn = true;
+    document.getElementById('layerLocked').hidden = true;
+    var lo = document.getElementById('layerOpen');
+    lo.hidden = false;
+    lo.classList.add('in');
+    var A = SIG.AWARE;
+    rollTo(document.getElementById('n1'), A.enrolled, 1100);
+    rollTo(document.getElementById('n2'), A.survived, 1300);
+    rollTo(document.getElementById('n3'), A.interviewed, 1500);
+    rollTo(document.getElementById('n4'), A.reported, 1700);
+    say('這一層打開了：' + A.enrolled + ' 位院內心跳停止，' + A.survived + ' 位生還，' + A.interviewed + ' 位完成訪談，' + A.reported + ' 位報告了疑似有意識的記憶或知覺。');
+  }
+  document.getElementById('btnLayer').addEventListener('click', openLayer);
+
+  var PCTS = [
+    { id: 'p40', pct: 40, cls: 'a', cap: '約 40% 的生還者報告：當時有一種「意識存在」的感覺，但說不出具體內容。既不是空白，也不是一段能覆述的回憶。' },
+    { id: 'p20', pct: 20, cls: 'b', cap: '約 20% 報告的內容，符合研究者定義的「回憶起的死亡經驗」（recalled experience of death）的特徵。這是一個描述性的分類，不是一種解釋。' },
+    { id: 'p3',  pct: 3,  cls: 'c', cap: '約 3% 有明確的外顯意識——能說出當時周遭發生的事。在 28 個人的樣本裡，這大約是一個人。' }
+  ];
+  var bigPct = document.getElementById('bigPct'), bigCap = document.getElementById('bigCap');
+  var activePct = null;
+  PCTS.forEach(function (p) {
+    var btn = document.getElementById(p.id);
+    btn.addEventListener('click', function () {
+      var turnOff = activePct === p.id;
+      PCTS.forEach(function (q) { document.getElementById(q.id).setAttribute('aria-pressed', 'false'); });
+      figs.forEach(function (f) { f.className = 'fig'; });
+      if (turnOff) {
+        activePct = null;
+        bigPct.textContent = '—';
+        bigCap.textContent = '按上面三顆按鈕，看這 100 個人裡有多少。分母是 28 位完成訪談的生還者。';
+        return;
+      }
+      activePct = p.id;
+      btn.setAttribute('aria-pressed', 'true');
+      var n = SIG.figureCount(p.pct, 100);
+      for (var i = 0; i < n; i++) figs[i].className = 'fig on ' + p.cls;
+      bigPct.textContent = '0%';
+      if (reduced) bigPct.textContent = p.pct + '%';
+      else rollTo(bigPct, p.pct, 800, '%');
+      bigCap.textContent = p.cap;
+    });
+  });
+
+  /* ───────── 平板：十張圖隨機一張 ───────── */
+  var strip = document.getElementById('strip');
+  (function buildStrip() {
+    var html = '';
+    for (var i = 0; i < 10; i++) html += '<i data-i="' + i + '"></i>';
+    strip.innerHTML = html;
+  })();
+  var cells = [].slice.call(strip.querySelectorAll('i'));
+  var tabScreen = document.getElementById('tabScreen');
+  function drawImage() {
+    var k = Math.floor(Math.random() * 10);
+    cells.forEach(function (c, i) { c.classList.toggle('on', i === k); });
+    tabScreen.textContent = '這一場顯示的是第 ' + (k + 1) + ' 張';
+    say('平板抽到第 ' + (k + 1) + ' 張圖像。');
+  }
+  document.getElementById('btnDraw').addEventListener('click', drawImage);
+  cells[0].classList.add('on');
+
+  /* ───────── 起手 ───────── */
+  setT(0);
+  updBands();
+  setRunning();
+})();
+</script>
+</body>
+</html>

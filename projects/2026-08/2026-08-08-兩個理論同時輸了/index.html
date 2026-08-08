@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>兩個理論同時輸了</title>
+<meta name="description" content="他們在實驗開始之前，就先簽字承認自己什麼時候算輸。七年後，信封拆開了。">
+<style>
+  :root{
+    --ink:#0a0910; --ink2:#100e18; --line:#241f30; --line2:#332b44;
+    --fg:#ece7e0; --dim:#8e879c; --dim2:#6a6379;
+    --paper:#e7dcc3; --paper2:#cdbf9f;
+    --wax:#c2382f; --wax2:#7d1f1b;
+    --gold:#d3a24c;
+    --iit:#7f9fd6; --gnwt:#5fc79a;
+    --stamp-fail:#c2382f; --stamp-pass:#d3a24c; --stamp-none:#9b8fb4;
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--ink); color:var(--fg);
+    font-family:var(--serif); font-size:18px; line-height:1.85;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:3px}
+  .home{
+    position:fixed; top:14px; left:16px; z-index:60;
+    font-family:var(--sans); font-size:12.5px; letter-spacing:.08em;
+    color:var(--dim); text-decoration:none; padding:6px 10px; border-radius:999px;
+    background:rgba(10,9,16,.6); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.07); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.24)}
+
+  .wrap{max-width:680px; margin:0 auto; padding:0 22px}
+  p{margin:0 0 1.15em}
+  .dim{color:var(--dim)}
+  em{font-style:normal; color:var(--gold)}
+  strong{font-weight:600; color:#fff}
+
+  /* ---------- 第一屏 ---------- */
+  .hero{position:relative; min-height:100svh; display:flex; align-items:flex-end; overflow:hidden}
+  .hero canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+  .hero::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(115% 75% at 50% 12%, transparent 24%, rgba(10,9,16,.7) 68%, var(--ink) 100%);
+  }
+  .hero-copy{position:relative; z-index:2; width:100%; padding:0 0 11vh}
+  .kicker{
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.36em;
+    color:var(--gold); margin:0 0 1.1em;
+  }
+  h1{
+    font-size:clamp(2.15rem,7.6vw,3.6rem); line-height:1.16; margin:0 0 .5em;
+    font-weight:500; letter-spacing:-.005em;
+  }
+  h1 span{display:block; color:var(--dim); font-size:.42em; letter-spacing:.02em; margin-top:.9em; line-height:1.7}
+  .scroll-hint{
+    font-family:var(--sans); font-size:11px; letter-spacing:.28em; color:var(--dim2);
+    display:flex; align-items:center; gap:10px; margin:2.4em 0 0;
+  }
+  .scroll-hint i{display:block; width:34px; height:1px; background:linear-gradient(90deg,var(--dim2),transparent)}
+
+  /* ---------- 章節 ---------- */
+  .chapter{padding:13vh 0 3vh; position:relative}
+  .chnum{
+    font-family:var(--sans); font-size:11px; letter-spacing:.38em; color:var(--gold);
+    margin:0 0 1.1em; display:flex; align-items:center; gap:12px;
+  }
+  .chnum::before{content:""; width:26px; height:1px; background:var(--line2)}
+  h2{font-size:clamp(1.5rem,4.4vw,2.1rem); line-height:1.35; font-weight:500; margin:0 0 .9em}
+  .rise{opacity:0; transform:translateY(16px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+  .pull{
+    font-size:clamp(1.2rem,3.6vw,1.6rem); line-height:1.55; color:#fff; margin:2.2em 0;
+    padding-left:20px; border-left:2px solid var(--wax);
+  }
+
+  /* ---------- 舞台 ---------- */
+  .stage{
+    margin:2.4em -22px; padding:16px; background:linear-gradient(180deg,#14111d,#0d0b14);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  @media(min-width:640px){ .stage{margin:2.6em 0; border:1px solid var(--line); border-radius:14px} }
+  .stage canvas{display:block; width:100%; border-radius:9px; background:#0b0912}
+  #cvBrain{height:250px}
+  #cvEnv{height:380px}
+  @media(max-width:560px){ #cvBrain{height:200px} #cvEnv{height:320px} }
+  .caption{font-family:var(--sans); font-size:11.5px; letter-spacing:.06em; color:var(--dim2); margin:10px 0 0; text-align:center}
+
+  /* ---------- 兩派名牌 ---------- */
+  .sides{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:2em 0}
+  @media(max-width:560px){ .sides{grid-template-columns:1fr} }
+  .side{
+    border:1px solid var(--line); border-radius:12px; padding:16px 16px 18px;
+    background:rgba(255,255,255,.017); transition:border-color .25s, transform .25s;
+  }
+  .side:hover{transform:translateY(-2px)}
+  .side.iit{border-top:2px solid var(--iit)} .side.iit:hover{border-color:var(--iit)}
+  .side.gnwt{border-top:2px solid var(--gnwt)} .side.gnwt:hover{border-color:var(--gnwt)}
+  .side h3{font-family:var(--sans); font-size:12px; letter-spacing:.2em; margin:0 0 .2em; font-weight:600}
+  .side.iit h3{color:var(--iit)} .side.gnwt h3{color:var(--gnwt)}
+  .side .who{font-family:var(--sans); font-size:11.5px; color:var(--dim2); margin:0 0 .9em; letter-spacing:.04em}
+  .side p{font-size:15.5px; line-height:1.8; margin:0}
+
+  /* ---------- 賭注紙條 ---------- */
+  .bet{
+    margin:2.2em 0; border:1px solid var(--line); border-radius:12px; overflow:hidden;
+    background:linear-gradient(180deg,rgba(231,220,195,.045),rgba(231,220,195,.012));
+  }
+  .bet-head{
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    padding:13px 16px; border-bottom:1px dashed var(--line2); background:rgba(255,255,255,.02);
+  }
+  .bet-no{font-family:var(--sans); font-size:11px; letter-spacing:.28em; color:var(--gold)}
+  .bet-q{font-size:16.5px; color:#fff; flex:1 1 200px}
+  .badge{
+    font-family:var(--sans); font-size:10px; letter-spacing:.14em; padding:3px 8px;
+    border-radius:999px; border:1px solid currentColor; color:var(--dim2); white-space:nowrap;
+  }
+  .badge.key{color:var(--wax)}
+  .bet-body{display:grid; grid-template-columns:1fr 1fr}
+  @media(max-width:560px){ .bet-body{grid-template-columns:1fr} }
+  .claim{padding:15px 16px 17px; font-size:15.5px; line-height:1.78}
+  .claim + .claim{border-left:1px dashed var(--line2)}
+  @media(max-width:560px){ .claim + .claim{border-left:none; border-top:1px dashed var(--line2)} }
+  .claim .tag{
+    display:block; font-family:var(--sans); font-size:11px; letter-spacing:.16em;
+    margin-bottom:.55em; font-weight:600;
+  }
+  .claim.iit .tag{color:var(--iit)} .claim.gnwt .tag{color:var(--gnwt)}
+  .claim .aside{display:block; font-family:var(--sans); font-size:12px; color:var(--dim2); margin-top:.7em; line-height:1.7}
+
+  /* ---------- 下注 ---------- */
+  fieldset{border:none; margin:0 0 1.7em; padding:0}
+  legend{
+    font-family:var(--sans); font-size:13px; letter-spacing:.04em; color:var(--fg);
+    padding:0; margin-bottom:.7em; line-height:1.6;
+  }
+  legend b{color:var(--gold); font-weight:600; letter-spacing:.2em; font-size:11px; display:block; margin-bottom:.25em}
+  .opts{display:flex; gap:9px; flex-wrap:wrap}
+  .opt{position:relative; flex:1 1 150px; cursor:pointer}
+  .opt input{position:absolute; opacity:0; width:1px; height:1px; margin:0}
+  .opt span{
+    display:block; text-align:center; font-family:var(--sans); font-size:13px;
+    padding:11px 8px; border:1px solid var(--line2); border-radius:9px; color:var(--dim);
+    background:rgba(255,255,255,.02); transition:color .2s, border-color .2s, background .2s, transform .12s;
+  }
+  .opt:hover span{color:var(--fg); border-color:#4a4060}
+  .opt input:focus-visible + span{outline:2px solid var(--gold); outline-offset:3px}
+  .opt input:checked + span{color:#0a0910; font-weight:600; transform:translateY(-1px)}
+  .opt.iit input:checked + span{background:var(--iit); border-color:var(--iit)}
+  .opt.gnwt input:checked + span{background:var(--gnwt); border-color:var(--gnwt)}
+  .opt.none input:checked + span{background:var(--dim); border-color:var(--dim)}
+
+  /* ---------- 按鈕 ---------- */
+  button{
+    font-family:var(--sans); font-size:13.5px; letter-spacing:.06em; color:var(--fg);
+    background:rgba(255,255,255,.05); border:1px solid var(--line2); border-radius:9px;
+    padding:12px 20px; cursor:pointer; transition:background .18s, border-color .18s, transform .12s, opacity .2s;
+  }
+  button:hover:not(:disabled){background:rgba(255,255,255,.1); border-color:#4a4060}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.4; cursor:not-allowed}
+  .btn-gold{border-color:var(--gold); color:var(--gold)}
+  .btn-gold:hover:not(:disabled){background:rgba(211,162,76,.12)}
+
+  /* 火漆按鈕（疊在畫布上） */
+  .envwrap{position:relative}
+  .sealbtn{
+    position:absolute; left:50%; top:64%; transform:translate(-50%,-50%);
+    width:92px; height:92px; border-radius:50%; padding:0;
+    background:transparent; border:1px dashed rgba(211,162,76,0);
+    color:transparent; font-size:1px; overflow:hidden;
+  }
+  .sealbtn:hover:not(:disabled){background:transparent; border-color:rgba(211,162,76,.5)}
+  .sealbtn:focus-visible{border-color:rgba(211,162,76,.8)}
+  .sealhint{
+    font-family:var(--sans); font-size:12.5px; letter-spacing:.16em; color:var(--gold);
+    text-align:center; margin:12px 0 0;
+  }
+  .sealhint.pulse{animation:breathe 2.6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.55}50%{opacity:1}}
+
+  /* ---------- 判決卡 ---------- */
+  .vc{
+    margin:1.6em 0; border:1px solid var(--line2); border-radius:12px; overflow:hidden;
+    background:linear-gradient(180deg,rgba(231,220,195,.06),rgba(231,220,195,.015));
+    opacity:0; transform:translateY(14px); transition:opacity .55s ease, transform .55s cubic-bezier(.2,.7,.3,1);
+  }
+  .vc.in{opacity:1; transform:none}
+  .vc-head{padding:12px 16px; border-bottom:1px dashed var(--line2); background:rgba(255,255,255,.025)}
+  .vc-head p{margin:0; font-family:var(--sans); font-size:11px; letter-spacing:.26em; color:var(--gold)}
+  .vc-head h4{margin:.35em 0 0; font-size:16.5px; font-weight:500; color:#fff; line-height:1.5}
+  .vrow{display:grid; grid-template-columns:1fr 1fr}
+  @media(max-width:560px){ .vrow{grid-template-columns:1fr} }
+  .vside{padding:15px 16px 18px; position:relative}
+  .vside + .vside{border-left:1px dashed var(--line2)}
+  @media(max-width:560px){ .vside + .vside{border-left:none; border-top:1px dashed var(--line2)} }
+  .vside .tag{display:block; font-family:var(--sans); font-size:11px; letter-spacing:.16em; font-weight:600; margin-bottom:.5em}
+  .vside.iit .tag{color:var(--iit)} .vside.gnwt .tag{color:var(--gnwt)}
+  .vside p{font-size:14.5px; line-height:1.75; color:var(--dim); margin:0 0 .9em}
+  .stamp{
+    display:inline-block; font-family:var(--sans); font-size:14px; font-weight:700; letter-spacing:.22em;
+    padding:6px 13px 6px 15px; border:2px solid currentColor; border-radius:4px;
+    opacity:0; transform:scale(2.3) rotate(-16deg);
+    transition:opacity .34s ease, transform .34s cubic-bezier(.2,1.5,.4,1);
+  }
+  .stamp.on{opacity:.92; transform:scale(1) rotate(-5deg)}
+  .stamp.pass{color:var(--stamp-pass)}
+  .stamp.fail{color:var(--stamp-fail)}
+  .stamp.none{color:var(--stamp-none)}
+  .vwhy{
+    padding:14px 16px 16px; border-top:1px dashed var(--line2); margin:0;
+    font-size:14.5px; line-height:1.8; color:var(--dim); background:rgba(0,0,0,.16);
+  }
+  .vwhy b{color:var(--fg)}
+  .bigcount{
+    font-family:var(--sans); font-variant-numeric:tabular-nums; color:var(--wax);
+    font-size:1.5em; font-weight:600; letter-spacing:-.01em;
+  }
+
+  /* ---------- 記分板 ---------- */
+  .board{
+    margin:2.4em 0; border:1px solid var(--line2); border-radius:14px; overflow:hidden;
+    background:linear-gradient(180deg,#16121f,#0d0b14);
+  }
+  .board-t{
+    padding:12px 16px; border-bottom:1px solid var(--line); background:rgba(255,255,255,.03);
+    font-family:var(--sans); font-size:11px; letter-spacing:.28em; color:var(--dim2);
+  }
+  .brow{display:grid; grid-template-columns:1fr 1fr; }
+  .bcell{padding:20px 16px 22px; text-align:center}
+  .bcell + .bcell{border-left:1px solid var(--line)}
+  .bcell .nm{font-family:var(--sans); font-size:12px; letter-spacing:.2em; font-weight:600; margin:0 0 .1em}
+  .bcell.iit .nm{color:var(--iit)} .bcell.gnwt .nm{color:var(--gnwt)}
+  .bcell .sub{font-family:var(--sans); font-size:11px; color:var(--dim2); margin:0 0 .5em; letter-spacing:.04em}
+  .bcell .num{
+    font-family:var(--sans); font-size:clamp(2.4rem,10vw,3.4rem); font-weight:200; line-height:1;
+    font-variant-numeric:tabular-nums; color:var(--fg); margin:0;
+  }
+  .board-note{
+    padding:14px 16px 16px; border-top:1px solid var(--line); margin:0;
+    font-family:var(--sans); font-size:13.5px; line-height:1.8; color:var(--dim);
+  }
+  .verdict-strip{
+    display:grid; grid-template-columns:1fr 1fr; border-top:1px solid var(--line);
+  }
+  .vstrip{padding:16px; text-align:center}
+  .vstrip + .vstrip{border-left:1px solid var(--line)}
+  .vstrip .lbl{font-family:var(--sans); font-size:11px; letter-spacing:.16em; color:var(--dim2); display:block; margin-bottom:.7em}
+  .yours{
+    margin:2em 0; padding:18px 18px 20px; border:1px solid var(--line2); border-radius:12px;
+    background:rgba(255,255,255,.02); font-family:var(--sans); font-size:14px; line-height:1.85; color:var(--dim);
+  }
+  .yours .hit{font-size:2.1rem; font-weight:200; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.1; display:block; margin-bottom:.2em}
+  .yours ul{margin:.9em 0 0; padding-left:1.1em}
+  .yours li{margin:.3em 0}
+  .yours .ok{color:var(--gnwt)} .yours .no{color:var(--wax)}
+
+  /* ---------- 收尾 ---------- */
+  .finale{padding:15vh 0 5vh}
+  .finale .wrap > p{font-size:1.02em}
+  .kicker-line{
+    font-size:clamp(1.9rem,7.5vw,3.1rem); line-height:1.25; color:#fff; font-weight:500;
+    margin:1.4em 0 .3em; text-align:center;
+  }
+  .kicker-line em{color:var(--gold)}
+  footer{
+    border-top:1px solid var(--line); margin-top:11vh; padding:24px 0 40px;
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.05em; color:#57506a;
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  footer a{color:#57506a; text-decoration:none; border-bottom:1px solid #2b2438}
+  footer a:hover{color:var(--dim)}
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .vc{transition:none}
+    .stamp{transition:none}
+    .side{transition:none}
+    .sealhint.pulse{animation:none; opacity:1}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<header class="hero">
+  <canvas id="cvHero" aria-hidden="true"></canvas>
+  <div class="hero-copy">
+    <div class="wrap">
+      <p class="kicker">一 份 封 了 七 年 的 信 封</p>
+      <h1>他們先簽字承認<br>自己什麼時候算輸
+        <span>然後才開始做實驗。<br>科學史上，這個順序很少有人願意接受。</span>
+      </h1>
+      <p class="scroll-hint"><i></i>往下捲</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════════ 一 ══════════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第一章 · 換一種吵法</p>
+    <h2 class="rise">一般的科學爭論可以吵二十七年</h2>
+    <p class="rise">流程通常是這樣：你做你的實驗，我做我的實驗，各自拿到剛好支持自己的資料，然後在研討會上互相說對方的方法有問題。誰都不會輸，因為誰都沒有事先說過什麼叫輸。</p>
+    <p class="rise">意識研究就這樣吵到了第二十七年。</p>
+    <p class="rise">後來有人換了個玩法。一個誰都不挺的第三方聯盟出面，把兩派的主帥請到同一張桌子上，要求他們——不是各自回去做實驗——而是<strong>一起把那個實驗設計出來</strong>。</p>
+    <p class="rise">然後做一件更難的事：各自寫下<em>在什麼結果之下，我承認我錯了</em>。白紙黑字，公開預先註冊，簽名，封存。</p>
+    <p class="pull rise">先簽字，再做實驗。<br>順序反過來，整件事的性質就變了。</p>
+  </div>
+</section>
+
+<!-- ══════════ 二 ══════════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第二章 · 桌上的兩個人</p>
+    <h2 class="rise">一個說在後腦，一個說在額頭</h2>
+    <p class="rise">這場對決做得起來，是因為兩派的預測不是模模糊糊的「大腦很複雜」，而是指著同一顆腦上<strong>相反的兩塊地方</strong>。</p>
+  </div>
+
+  <div class="stage rise">
+    <canvas id="cvBrain" aria-hidden="true"></canvas>
+    <p class="caption">大腦側視示意。左為額葉，右為後腦。</p>
+  </div>
+
+  <div class="wrap">
+    <div class="sides rise">
+      <div class="side iit">
+        <h3>IIT · 整合資訊理論</h3>
+        <p class="who">Giulio Tononi</p>
+        <p>意識是一團神經網路「自己影響自己」的能力。它住在後腦——枕葉、顳葉、頂葉交界的那塊熱區，而且必須<strong>一直整合著、一直同步著</strong>。前額葉？對意識來說不是必要的。</p>
+      </div>
+      <div class="side gnwt">
+        <h3>GNWT · 全域神經工作空間論</h3>
+        <p class="who">Stanislas Dehaene</p>
+        <p>意識是一次廣播。訊息被前額葉<strong>「點燃」</strong>，像信號彈一樣炸開來送給全腦。沒有點燃，那個東西就只是在你腦裡跑，不會被你看見。</p>
+      </div>
+    </div>
+    <p class="rise dim">兩個理論同年出生，各自活了二十幾年，各自累積了一整櫃支持自己的證據。誰也沒能說服誰——因為誰也沒被逼著說清楚，什麼樣的資料能殺死自己。</p>
+  </div>
+</section>
+
+<!-- ══════════ 三 ══════════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第三章 · 信封裡的三張紙</p>
+    <h2 class="rise">賭注長什麼樣子</h2>
+    <p class="rise">實驗本身故意做得無聊：受試者看一張清清楚楚的圖片——臉、物體、字母、假字——播 0.5 秒、1.0 秒或 1.5 秒。沒有模稜兩可的知覺，沒有「你到底有沒有看到」的爭辯空間。</p>
+    <p class="rise">然後用三種方法同時盯著腦：<strong>fMRI 120 人、MEG 102 人、顱內電極 34 人，合計 256 位受試者</strong>。每種方法至少兩間獨立實驗室各做一遍，資料交給不挺任何一方的中立團隊分析。前後大約七年。</p>
+    <p class="rise">信封裡裝的，是這三條。</p>
+
+    <article class="bet rise">
+      <div class="bet-head">
+        <span class="bet-no">賭注 一</span>
+        <span class="bet-q">意識的內容，能從哪一塊皮質讀出來？</span>
+        <span class="badge">對 IIT 非關鍵</span><span class="badge key">對 GNWT 關鍵</span>
+      </div>
+      <div class="bet-body">
+        <div class="claim iit"><span class="tag">IIT 押</span>後側皮質最強。把前額葉的訊號加進來，解碼也不會變得更準。
+          <span class="aside">IIT 自己註明：這一條不是我的核心，因為我談的是資訊在網路「內部」的因果力，不是外人能從外面讀到多少。</span></div>
+        <div class="claim gnwt"><span class="tag">GNWT 押</span>前額葉一定讀得出來。而且不只是「這是一張臉」——連這張臉朝哪一邊、是哪一張臉，都要讀得到。
+          <span class="aside">因為 GNWT 說前額葉是意識內容的廣播台，內容有多豐富，那裡就該有多豐富。</span></div>
+      </div>
+    </article>
+
+    <article class="bet rise">
+      <div class="bet-head">
+        <span class="bet-no">賭注 二</span>
+        <span class="bet-q">畫面一直在，這段期間腦裡在做什麼？</span>
+        <span class="badge key">兩邊的招牌機制</span>
+      </div>
+      <div class="bet-body">
+        <div class="claim iit"><span class="tag">IIT 押</span>後腦熱區要一路撐著。畫面播 0.5 秒就撐 0.5 秒，播 1.5 秒就撐 1.5 秒——意識持續多久，那裡的活動就持續多久。</div>
+        <div class="claim gnwt"><span class="tag">GNWT 押</span>前額葉在畫面「出現」和「消失」的時候<strong>各點燃一次</strong>（約 0.3 到 0.5 秒），中間那段是不需要活動的靜默保存。
+          <span class="aside">關鍵在「消失」那一下：工作空間要被通知內容換掉了，所以結束時一定要再燒一次。</span></div>
+      </div>
+    </article>
+
+    <article class="bet rise">
+      <div class="bet-head">
+        <span class="bet-no">賭注 三</span>
+        <span class="bet-q">哪兩塊地方，必須同步起來？</span>
+        <span class="badge key">兩邊都押了重注</span>
+      </div>
+      <div class="bet-body">
+        <div class="claim iit"><span class="tag">IIT 押</span>短程、後側內部、而且<strong>持續</strong>的同步：初級視覺區 V1／V2 要跟臉孔區、物體區一直牽著手。網路連得起來，意識才存在。</div>
+        <div class="claim gnwt"><span class="tag">GNWT 押</span>長程同步：類別選擇區要跟前額葉牽手，把內容送上廣播台。</div>
+      </div>
+    </article>
+
+    <p class="rise">三條都寫好了，怎麼算過、怎麼算沒過，也一併寫好了。<strong>然後才開機。</strong></p>
+  </div>
+</section>
+
+<!-- ══════════ 四 · 下注 ══════════ -->
+<section class="chapter" id="betSec">
+  <div class="wrap">
+    <p class="chnum rise">第四章 · 換你押</p>
+    <h2 class="rise">信封還封著。在拆開之前，你先押。</h2>
+    <p class="rise dim">每一條，你覺得誰寫對了？沒有陷阱題，但也不保證每題都有贏家。</p>
+
+    <form class="rise" id="betForm">
+      <fieldset>
+        <legend><b>賭注 一</b>意識的內容，能從哪一塊皮質讀出來？</legend>
+        <div class="opts">
+          <label class="opt iit"><input type="radio" name="b1" value="iit"><span>IIT 押對</span></label>
+          <label class="opt gnwt"><input type="radio" name="b1" value="gnwt"><span>GNWT 押對</span></label>
+          <label class="opt none"><input type="radio" name="b1" value="neither"><span>兩邊都沒撐住</span></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend><b>賭注 二</b>畫面一直在的時候，腦裡在做什麼？</legend>
+        <div class="opts">
+          <label class="opt iit"><input type="radio" name="b2" value="iit"><span>IIT 押對</span></label>
+          <label class="opt gnwt"><input type="radio" name="b2" value="gnwt"><span>GNWT 押對</span></label>
+          <label class="opt none"><input type="radio" name="b2" value="neither"><span>兩邊都沒撐住</span></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend><b>賭注 三</b>哪兩塊地方必須同步起來？</legend>
+        <div class="opts">
+          <label class="opt iit"><input type="radio" name="b3" value="iit"><span>IIT 押對</span></label>
+          <label class="opt gnwt"><input type="radio" name="b3" value="gnwt"><span>GNWT 押對</span></label>
+          <label class="opt none"><input type="radio" name="b3" value="neither"><span>兩邊都沒撐住</span></label>
+        </div>
+      </fieldset>
+    </form>
+    <p class="dim rise" id="betStatus" role="status" aria-live="polite" style="font-family:var(--sans);font-size:13px">三條都押完，火漆才會鬆動。</p>
+  </div>
+</section>
+
+<!-- ══════════ 五 · 拆封 ══════════ -->
+<section class="chapter" id="openSec">
+  <div class="wrap">
+    <p class="chnum rise">第五章 · 拆封</p>
+    <h2 class="rise">2025 年 4 月 30 日</h2>
+    <p class="rise">資料收完了，分析跑完了。信封還是那個信封，上面的字一個都沒改過。</p>
+  </div>
+
+  <div class="stage rise">
+    <div class="envwrap">
+      <canvas id="cvEnv" aria-hidden="true"></canvas>
+      <button class="sealbtn" id="btnSeal" disabled aria-label="拆開這個密封的預先註冊信封">拆封</button>
+    </div>
+    <p class="sealhint" id="sealHint">先押完三條，火漆才會鬆動</p>
+  </div>
+
+  <div class="wrap">
+    <p class="sr" id="live" role="status" aria-live="polite"></p>
+    <div id="verdicts">
+
+      <article class="vc" id="v1" hidden>
+        <div class="vc-head"><p>賭注 一 · 判定</p><h4>內容確實在前額葉找得到——但只找得到一半</h4></div>
+        <div class="vrow">
+          <div class="vside iit"><span class="tag">IIT</span>
+            <p>後側皮質從「這是臉還是物體」到「臉朝哪一邊」，三種量測方法都解得出來。</p>
+            <b class="stamp pass">預測成立</b>
+          </div>
+          <div class="vside gnwt"><span class="tag">GNWT</span>
+            <p>類別資訊在下額葉的確有。但「朝向」和「身分」這兩個維度，在前額葉幾乎抓不到。</p>
+            <b class="stamp fail">預測不成立</b>
+          </div>
+        </div>
+        <p class="vwhy">當初講好的過關條件是「類別和朝向都要讀得到」。GNWT 只拿到前半。<b>你的意識裡那張臉是斜的還是正的——前額葉沒有這個欄位。</b></p>
+      </article>
+
+      <article class="vc" id="v2" hidden>
+        <div class="vc-head"><p>賭注 二 · 判定</p><h4>那個「結束時的點燃」，一次都沒有出現</h4></div>
+        <div class="vrow">
+          <div class="vside iit"><span class="tag">IIT</span>
+            <p>枕葉與外側顳葉的反應確實一路撐著，而且撐多久跟著畫面播多久走。</p>
+            <b class="stamp pass">預測成立</b>
+          </div>
+          <div class="vside gnwt"><span class="tag">GNWT</span>
+            <p>插在前額葉裡的 655 個顱內電極，符合「開頭燒一次、結束再燒一次」的數量：<span class="bigcount" id="roll655">655</span></p>
+            <b class="stamp fail">預測不成立</b>
+          </div>
+        </div>
+        <p class="vwhy">不是訊號太弱。同一套分析在別的腦區抓到了十個符合這種波形的電極，只是那些電極長在視覺皮質，不在前額葉。<b>貝氏分析對 655 個電極全數支持虛無假設。</b></p>
+      </article>
+
+      <article class="vc" id="v3" hidden>
+        <div class="vc-head"><p>賭注 三 · 判定</p><h4>這一條，兩個人的簽名都在上面</h4></div>
+        <div class="vrow">
+          <div class="vside iit"><span class="tag">IIT</span>
+            <p>後側皮質內部那個「持續的同步」——沒有出現。這是整篇論文對 IIT 最直接的一擊。</p>
+            <b class="stamp fail">預測不成立</b>
+          </div>
+          <div class="vside gnwt"><span class="tag">GNWT</span>
+            <p>長程同步是找到了，但發生在前額葉與<em>早期視覺區</em>之間，不完全是 GNWT 畫的那條線。</p>
+            <b class="stamp none">打了折</b>
+          </div>
+        </div>
+        <p class="vwhy">當初預先註冊的那個同步指標，攤開來看：<b>兩個理論都沒被支持。</b>而 IIT 的整套說法建立在「網路連結決定意識」上——後側連不起來，這句話就懸在半空。</p>
+      </article>
+
+    </div>
+
+    <p style="margin-top:1.8em"><button id="btnNext" class="btn-gold" hidden>揭開第一條</button></p>
+  </div>
+</section>
+
+<!-- ══════════ 六 · 記分板 ══════════ -->
+<section class="chapter" id="boardSec" hidden>
+  <div class="wrap">
+    <p class="chnum rise in">第六章 · 結算</p>
+    <h2 class="rise in">如果只看比分，IIT 好像贏了</h2>
+
+    <div class="board">
+      <p class="board-t">表 面 比 分 · 三 條 賭 注</p>
+      <div class="brow">
+        <div class="bcell iit"><p class="nm">IIT</p><p class="sub">押中的條數</p><p class="num" id="scIIT">0.0</p></div>
+        <div class="bcell gnwt"><p class="nm">GNWT</p><p class="sub">押中的條數</p><p class="num" id="scGNWT">0.0</p></div>
+      </div>
+      <p class="board-note">但比分不是這場對賭的規則。規則是他們自己寫的——<strong>這一條如果倒了，我就認輸。</strong>把那幾條挑出來看：</p>
+      <div class="verdict-strip">
+        <div class="vstrip"><span class="lbl">IIT 的關鍵條目</span><b class="stamp fail on" style="opacity:.92">未全身而退</b></div>
+        <div class="vstrip"><span class="lbl">GNWT 的關鍵條目</span><b class="stamp fail on" style="opacity:.92">未全身而退</b></div>
+      </div>
+    </div>
+
+    <div class="yours" id="yours">
+      <span class="hit" id="hitNum">0 / 3</span>
+      <span id="hitWord">你押中的條數。</span>
+      <ul id="hitList"></ul>
+    </div>
+
+    <p>IIT 表面上拿下兩條，卻在自己標為關鍵的那一條上被打穿；GNWT 三條全都不完整，包括它整個理論賴以成立的那次「點燃」。</p>
+    <p><strong>兩個理論的核心預測，都沒有全身而退。</strong></p>
+  </div>
+</section>
+
+<!-- ══════════ 收尾 ══════════ -->
+<section class="finale">
+  <div class="wrap">
+    <p class="rise">聽起來像壞消息。花七年、256 個人、三套上千萬的儀器，結論是兩邊都不對。</p>
+    <p class="rise">可是你回頭看一眼那個信封。</p>
+    <p class="rise">它裡面裝的其實不是預測。預測誰都會寫，寫錯了改一改就好——他們當然可以修改理論的生物學版本，論文自己第一段就先寫明了這個可能。</p>
+    <p class="rise">信封裡真正裝的，是一份兩邊都簽了名的協議，意思只有一句：<em>不管出來的是什麼，我都認。</em></p>
+    <p class="rise">二十七年來，這兩個理論最大的問題從來不是誰對。是不管資料長成什麼樣，它們事後都解釋得通——因為沒有人事先把話說死。</p>
+    <p class="rise">這一次說死了。所以這一次，資料真的動得了它們。</p>
+    <p class="rise" style="margin-top:2.4em">所以這篇論文最重要的東西，不在信封裡面。</p>
+    <p class="kicker-line rise">是<em>那個信封</em>。</p>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <span>資料來源：Nature (2025)、Cogitate Consortium。</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+  'use strict';
+
+  var LS = 'cogitate26.';
+
+  /* ═══════════ 純邏輯（可被 node 抽出來單獨驗證） ═══════════ */
+  /* @pure-start */
+  var BETS = [
+    { id:'b1', verdict:{ iit:'pass', gnwt:'fail'    }, critical:{ iit:false, gnwt:true } },
+    { id:'b2', verdict:{ iit:'pass', gnwt:'fail'    }, critical:{ iit:true,  gnwt:true } },
+    { id:'b3', verdict:{ iit:'fail', gnwt:'partial' }, critical:{ iit:true,  gnwt:true } }
+  ];
+  var PT = { pass:1, partial:0.5, fail:0 };
+
+  /* 表面比分：成立 1 分、打折 0.5 分、不成立 0 分 */
+  function surfaceScore(bets, side){
+    var s = 0;
+    for (var i = 0; i < bets.length; i++) s += PT[bets[i].verdict[side]];
+    return s;
+  }
+  /* 該派自己標為關鍵、卻沒過的條目 */
+  function criticalBreaches(bets, side){
+    var out = [];
+    for (var i = 0; i < bets.length; i++){
+      var b = bets[i];
+      if (b.critical[side] && b.verdict[side] !== 'pass') out.push(b.id);
+    }
+    return out;
+  }
+  /* 一條賭注的贏家：只有「成立」才算贏；都成立算 both，都沒成立算 neither */
+  function betWinner(v){
+    var i = v.iit === 'pass', g = v.gnwt === 'pass';
+    if (i && g) return 'both';
+    if (i) return 'iit';
+    if (g) return 'gnwt';
+    return 'neither';
+  }
+  /* 對答案 */
+  function gradeGuesses(bets, picks){
+    var hits = 0, detail = [];
+    for (var i = 0; i < bets.length; i++){
+      var ans = betWinner(bets[i].verdict);
+      var ok = picks[i] === ans;
+      if (ok) hits++;
+      detail.push({ id: bets[i].id, pick: picks[i] || null, answer: ans, ok: ok });
+    }
+    return { hits: hits, total: bets.length, detail: detail };
+  }
+  /* @pure-end */
+
+  var SIDE_NAME = { iit:'IIT', gnwt:'GNWT', neither:'兩邊都沒撐住', both:'兩邊都成立' };
+  var BET_NAME = { b1:'賭注一 · 內容藏在哪裡', b2:'賭注二 · 持續著的時候', b3:'賭注三 · 誰跟誰同步' };
+
+  /* ═══════════ 動態偏好 ═══════════ */
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+
+  /* ═══════════ 舞台引擎：一個 rAF、多個畫布 ═══════════ */
+  var stages = [];
+  function addStage(id, draw, opts){
+    var cv = document.getElementById(id);
+    if (!cv) return null;
+    var st = {
+      cv: cv, ctx: cv.getContext('2d'), draw: draw,
+      w: 0, h: 0, dpr: 1, visible: false, dirty: true, force: false,
+      animated: !!(opts && opts.animated), state: (opts && opts.state) || {}
+    };
+    function measure(){
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：否則 ResizeObserver 每幀把畫布尺寸翻倍，整張圖會消失 */
+      if (cv.width !== nw || cv.height !== nh){ cv.width = nw; cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    st.measure = measure;
+    measure();
+    if (window.ResizeObserver){
+      new ResizeObserver(function(){ measure(); }).observe(cv);
+    } else {
+      window.addEventListener('resize', measure);
+    }
+    if (window.IntersectionObserver){
+      new IntersectionObserver(function(es){
+        for (var i = 0; i < es.length; i++){
+          st.visible = es[i].isIntersecting;
+          if (es[i].isIntersecting) st.dirty = true;
+        }
+      }, { rootMargin: '90px' }).observe(cv);
+    } else { st.visible = true; }
+    stages.push(st);
+    return st;
+  }
+
+  var last = 0;
+  function frame(now){
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0;
+    last = now;
+    if (!document.hidden){
+      for (var i = 0; i < stages.length; i++){
+        var s = stages[i];
+        if (!s.visible || !s.w) continue;
+        var wants = s.dirty || s.force || (s.animated && !reduced);
+        if (!wants) continue;
+        s.dirty = false;
+        var ctx = s.ctx;
+        ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+        ctx.clearRect(0, 0, s.w, s.h);
+        s.draw(ctx, s.w, s.h, reduced ? 0 : now / 1000, reduced ? 0 : dt, s.state);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', function(){
+    last = 0;
+    for (var i = 0; i < stages.length; i++) stages[i].dirty = true;
+  });
+
+  /* ═══════════ 捲動進場 ═══════════ */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll(){
+    for (var i = 0; i < risers.length; i++) risers[i].classList.add('in');
+  }
+  var io = null;
+  if (reduced || !window.IntersectionObserver) revealAll();
+  else {
+    io = new IntersectionObserver(function(es){
+      for (var i = 0; i < es.length; i++){
+        if (es[i].isIntersecting){ es[i].target.classList.add('in'); io.unobserve(es[i].target); }
+      }
+    }, { rootMargin: '0px 0px -10% 0px' });
+    for (var ri = 0; ri < risers.length; ri++) io.observe(risers[ri]);
+  }
+
+  function onRM(){
+    reduced = RM.matches;
+    for (var i = 0; i < stages.length; i++) stages[i].dirty = true;
+    if (reduced){
+      revealAll();
+      if (env && env.phase === 'opening'){ env.phase = 'open'; env.p = 1; env.shards.length = 0; }
+    }
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  /* ═══════════ 共用畫法 ═══════════ */
+  var TAU = Math.PI * 2;
+  function clamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+  function ease(k){ return 1 - Math.pow(1 - clamp(k, 0, 1), 3); }
+  function span(t, a, b){ return clamp((t - a) / (b - a), 0, 1); }
+  function label(ctx, x, y, text, color, align, size, weight){
+    ctx.fillStyle = color;
+    ctx.font = (weight ? weight + ' ' : '') + (size || 11) + 'px -apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+    ctx.textAlign = 'left';
+  }
+
+  /* ═══════════ 第一屏：紙屑塵埃 ═══════════ */
+  addStage('cvHero', function(ctx, w, h, t){
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#15111f'); g.addColorStop(1, '#0a0910');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    var n = 54;
+    for (var i = 0; i < n; i++){
+      var sx = ((i * 137) % 1000) / 1000;
+      var sp = 7 + ((i * 29) % 17);
+      var y = h - (((i * 311) % 1000) / 1000 * (h + 200) + t * sp) % (h + 200);
+      var x = sx * w + Math.sin(t * 0.28 + i) * 16;
+      var r = 0.7 + ((i * 7) % 5) * 0.32;
+      var a = 0.09 + ((i * 13) % 9) * 0.024;
+      ctx.fillStyle = i % 7 === 0 ? 'rgba(211,162,76,' + (a * 1.5) + ')' : 'rgba(231,220,195,' + a + ')';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill();
+    }
+  }, { animated: true });
+
+  /* ═══════════ 大腦剖面：兩塊發亮的地方 ═══════════ */
+  function brainPath(ctx, x, y, W, H){
+    function px(u){ return x + u * W; }
+    function py(v){ return y + v * H; }
+    ctx.beginPath();
+    ctx.moveTo(px(0.10), py(0.62));
+    ctx.bezierCurveTo(px(0.05), py(0.40), px(0.14), py(0.14), px(0.34), py(0.09));
+    ctx.bezierCurveTo(px(0.53), py(0.02), px(0.76), py(0.08), px(0.87), py(0.25));
+    ctx.bezierCurveTo(px(0.97), py(0.38), px(0.97), py(0.55), px(0.88), py(0.64));
+    ctx.bezierCurveTo(px(0.82), py(0.71), px(0.74), py(0.73), px(0.66), py(0.71));
+    ctx.bezierCurveTo(px(0.58), py(0.82), px(0.44), py(0.87), px(0.30), py(0.80));
+    ctx.bezierCurveTo(px(0.20), py(0.76), px(0.10), py(0.73), px(0.10), py(0.62));
+    ctx.closePath();
+  }
+  addStage('cvBrain', function(ctx, w, h, t){
+    ctx.fillStyle = '#0b0912'; ctx.fillRect(0, 0, w, h);
+    var BW = Math.min(w * 0.78, 420), BH = BW * 0.62;
+    if (BH > h * 0.8){ BH = h * 0.8; BW = BH / 0.62; }
+    var x = (w - BW) / 2, y = (h - BH) / 2 - h * 0.02;
+
+    ctx.save();
+    brainPath(ctx, x, y, BW, BH);
+    ctx.fillStyle = '#171325'; ctx.fill();
+    ctx.clip();
+
+    var wave = reduced ? 0.5 : (Math.sin(t * 0.9) * 0.5 + 0.5);
+    var aG = 0.30 + 0.5 * wave;         /* GNWT：前額葉 */
+    var aI = 0.30 + 0.5 * (1 - wave);   /* IIT：後腦熱區 */
+
+    var gx = x + BW * 0.20, gy = y + BH * 0.42;
+    var g1 = ctx.createRadialGradient(gx, gy, 2, gx, gy, BW * 0.26);
+    g1.addColorStop(0, 'rgba(95,199,154,' + (aG * 0.85) + ')');
+    g1.addColorStop(1, 'rgba(95,199,154,0)');
+    ctx.fillStyle = g1; ctx.fillRect(x, y, BW, BH);
+
+    var ix = x + BW * 0.76, iy = y + BH * 0.46;
+    var g2 = ctx.createRadialGradient(ix, iy, 2, ix, iy, BW * 0.28);
+    g2.addColorStop(0, 'rgba(127,159,214,' + (aI * 0.85) + ')');
+    g2.addColorStop(1, 'rgba(127,159,214,0)');
+    ctx.fillStyle = g2; ctx.fillRect(x, y, BW, BH);
+
+    /* 幾道皺褶，讓它不只是一個泡泡 */
+    ctx.strokeStyle = 'rgba(231,220,195,.10)'; ctx.lineWidth = 1.2;
+    for (var k = 0; k < 5; k++){
+      var yy = y + BH * (0.22 + k * 0.13);
+      ctx.beginPath();
+      ctx.moveTo(x + BW * 0.08, yy);
+      ctx.bezierCurveTo(x + BW * 0.34, yy - BH * 0.06, x + BW * 0.62, yy + BH * 0.07, x + BW * 0.94, yy - BH * 0.02);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    brainPath(ctx, x, y, BW, BH);
+    ctx.strokeStyle = 'rgba(231,220,195,.28)'; ctx.lineWidth = 1.4; ctx.stroke();
+
+    /* 標籤：拉線畫在群組外，不掛任何濾鏡 */
+    ctx.strokeStyle = 'rgba(95,199,154,.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx - BW * 0.06, y - 4); ctx.stroke();
+    label(ctx, gx - BW * 0.06, y - 14, 'GNWT · 前額葉「點燃」', 'rgba(95,199,154,.92)', 'center', 11.5, '600');
+
+    ctx.strokeStyle = 'rgba(127,159,214,.5)';
+    ctx.beginPath(); ctx.moveTo(ix, iy); ctx.lineTo(ix + BW * 0.05, y + BH + 6); ctx.stroke();
+    label(ctx, Math.min(ix + BW * 0.05, w - 8), y + BH + 16, 'IIT · 後側熱區', 'rgba(127,159,214,.92)', 'center', 11.5, '600');
+  }, { animated: true });
+
+  /* ═══════════ 信封與火漆 ═══════════ */
+  var env = { phase: 'sealed', p: 0, shards: [], t0: 0, jitter: 0 };
+
+  function sealShape(ctx, r){
+    ctx.beginPath();
+    for (var i = 0; i <= 26; i++){
+      var a = i / 26 * TAU;
+      var rr = r * (1 + Math.sin(a * 7) * 0.045 + Math.sin(a * 3 + 1.2) * 0.035);
+      var px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+  function drawSealBody(ctx, r){
+    sealShape(ctx, r);
+    var g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r * 1.15);
+    g.addColorStop(0, '#e05a4c'); g.addColorStop(0.55, '#c2382f'); g.addColorStop(1, '#6f1a17');
+    ctx.fillStyle = g; ctx.fill();
+    ctx.strokeStyle = 'rgba(60,10,8,.55)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.66, 0, TAU);
+    ctx.strokeStyle = 'rgba(255,190,180,.28)'; ctx.lineWidth = 1.4; ctx.stroke();
+    label(ctx, 0, 1, '封', 'rgba(70,14,11,.9)', 'center', Math.max(11, r * 0.72), '700');
+  }
+  function drawSealHalf(ctx, cx, cy, r, side, off, ang, alpha){
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx + off * side * 1.9, cy + off * 0.55);
+    ctx.rotate(ang * side);
+    ctx.beginPath();
+    if (side < 0) ctx.rect(-r * 1.5, -r * 1.5, r * 1.5 + 0.6, r * 3);
+    else ctx.rect(-0.6, -r * 1.5, r * 1.5 + 0.6, r * 3);
+    ctx.clip();
+    drawSealBody(ctx, r);
+    ctx.restore();
+  }
+
+  var stEnv = addStage('cvEnv', function(ctx, w, h, t, dt, S){
+    ctx.fillStyle = '#0b0912'; ctx.fillRect(0, 0, w, h);
+    var EW = Math.min(w * 0.74, 400), EH = EW * 0.60;
+    var cx = w / 2, cy = h * 0.62;
+    var x0 = cx - EW / 2, y0 = cy - EH / 2;
+    var r = Math.max(16, EW * 0.105);
+
+    /* 進度 */
+    if (S.phase === 'opening'){
+      S.p = Math.min(1, S.p + (dt || 0) / 1.9);
+      if (S.p >= 1) S.phase = 'open';
+    }
+    var p = S.phase === 'open' ? 1 : (S.phase === 'sealed' ? 0 : S.p);
+
+    var crack = span(p, 0.10, 0.42);
+    var flap  = ease(span(p, 0.38, 0.72));
+    var rise  = ease(span(p, 0.52, 1.0));
+    var shake = (p > 0 && p < 0.12 && !reduced) ? Math.sin(t * 60) * 2.2 : 0;
+
+    /* 底光 */
+    var bg = ctx.createRadialGradient(cx, cy, 8, cx, cy, EW * 0.9);
+    bg.addColorStop(0, 'rgba(211,162,76,' + (0.06 + 0.06 * rise) + ')');
+    bg.addColorStop(1, 'rgba(211,162,76,0)');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+
+    /* 信紙（在信封後面往上抽出） */
+    if (rise > 0.001){
+      var LW = EW * 0.86, LH = EH * 0.92;
+      var lyRest = y0 + EH * 0.06;
+      var riseOff = Math.max(0, lyRest - 12);      /* 抽到頂端剩 12px，抬頭才不會被切掉 */
+      var ly = lyRest - riseOff * rise;
+      var lx = cx - LW / 2;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, rise * 1.6);
+      var pg = ctx.createLinearGradient(lx, ly, lx, ly + LH);
+      pg.addColorStop(0, '#e9dfc8'); pg.addColorStop(1, '#c8b995');
+      ctx.fillStyle = pg;
+      ctx.fillRect(lx, ly, LW, LH);
+      ctx.strokeStyle = 'rgba(90,72,44,.35)'; ctx.lineWidth = 1; ctx.strokeRect(lx, ly, LW, LH);
+      label(ctx, lx + LW * 0.5, ly + LH * 0.10, '預先註冊 · 兩造已簽署', 'rgba(120,32,26,.85)', 'center', Math.max(9, LW * 0.036), '700');
+      ctx.strokeStyle = 'rgba(90,72,44,.30)'; ctx.lineWidth = 1;
+      for (var li = 0; li < 4; li++){
+        var yy = ly + LH * (0.20 + li * 0.062);
+        ctx.beginPath();
+        ctx.moveTo(lx + LW * 0.12, yy);
+        ctx.lineTo(lx + LW * (li === 3 ? 0.58 : 0.88), yy);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(shake, 0);
+
+    /* 信封本體 */
+    var eg = ctx.createLinearGradient(x0, y0, x0, y0 + EH);
+    eg.addColorStop(0, '#3a3348'); eg.addColorStop(1, '#241f31');
+    ctx.fillStyle = eg;
+    ctx.fillRect(x0, y0, EW, EH);
+    ctx.strokeStyle = 'rgba(231,220,195,.20)'; ctx.lineWidth = 1.2;
+    ctx.strokeRect(x0, y0, EW, EH);
+
+    /* 前口袋（兩條斜摺線） */
+    ctx.strokeStyle = 'rgba(231,220,195,.13)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 + EH); ctx.lineTo(cx, y0 + EH * 0.46);
+    ctx.lineTo(x0 + EW, y0 + EH); ctx.stroke();
+
+    /* 封口（k：1＝闔上、負值＝掀開） */
+    var k = 1 - flap * 1.85;
+    var tipY = y0 + EH * 0.54 * k;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0); ctx.lineTo(x0 + EW, y0); ctx.lineTo(cx, tipY); ctx.closePath();
+    var fg = ctx.createLinearGradient(x0, y0, cx, tipY);
+    if (k > 0){ fg.addColorStop(0, '#453c58'); fg.addColorStop(1, '#2c2539'); }
+    else { fg.addColorStop(0, '#221d2e'); fg.addColorStop(1, '#171320'); }
+    ctx.fillStyle = fg; ctx.fill();
+    ctx.strokeStyle = 'rgba(231,220,195,.22)'; ctx.lineWidth = 1.1; ctx.stroke();
+
+    /* 火漆 */
+    var sy = y0 + EH * 0.54 * Math.max(k, 0.06);
+    if (crack <= 0.001){
+      ctx.save(); ctx.translate(cx, sy);
+      if (!reduced && S.phase === 'sealed'){
+        var pulse = 1 + Math.sin(t * 1.5) * 0.012;
+        ctx.scale(pulse, pulse);
+      }
+      drawSealBody(ctx, r);
+      ctx.restore();
+    } else if (crack < 1){
+      var off = crack * r * 1.35, ang = crack * 0.55, al = 1 - crack * 0.55;
+      drawSealHalf(ctx, cx, sy, r, -1, off, ang, al);
+      drawSealHalf(ctx, cx, sy, r, 1, off, ang, al);
+    }
+    ctx.restore();
+
+    /* 碎屑 */
+    if (S.shards.length){
+      for (var i = S.shards.length - 1; i >= 0; i--){
+        var sh = S.shards[i];
+        if (dt){
+          sh.vy += 420 * dt; sh.x += sh.vx * dt; sh.y += sh.vy * dt;
+          sh.rot += sh.vr * dt; sh.life -= dt;
+        }
+        if (sh.life <= 0){ S.shards.splice(i, 1); continue; }
+        ctx.save();
+        ctx.globalAlpha = clamp(sh.life / 0.9, 0, 1) * 0.95;
+        ctx.translate(sh.x, sh.y); ctx.rotate(sh.rot);
+        ctx.fillStyle = sh.c;
+        ctx.beginPath();
+        ctx.moveTo(-sh.r, -sh.r * 0.55); ctx.lineTo(sh.r * 1.1, -sh.r * 0.2); ctx.lineTo(0, sh.r);
+        ctx.closePath(); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    if (S.phase === 'sealed'){
+      label(ctx, cx, y0 - 16, '封存於 2022 · 兩造簽名在內', 'rgba(142,135,156,.85)', 'center', 11.5);
+    }
+  }, { animated: true, state: env });
+
+  function spawnShards(){
+    if (reduced) return;
+    var s = stEnv; if (!s) return;
+    var w = s.w, h = s.h;
+    var EW = Math.min(w * 0.74, 400), EH = EW * 0.60;
+    var cx = w / 2, cy = h * 0.62, y0 = cy - EH / 2;
+    var sy = y0 + EH * 0.54;
+    var cols = ['#c2382f', '#e05a4c', '#8d2621', '#6f1a17'];
+    for (var i = 0; i < 26; i++){
+      var a = Math.random() * TAU, sp = 60 + Math.random() * 210;
+      env.shards.push({
+        x: cx + Math.cos(a) * 6, y: sy + Math.sin(a) * 6,
+        vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 90,
+        r: 2 + Math.random() * 4.4, rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 9,
+        life: 0.75 + Math.random() * 0.75, c: cols[i % cols.length]
+      });
+    }
+  }
+
+  /* ═══════════ 下注 ═══════════ */
+  var form = document.getElementById('betForm');
+  var betStatus = document.getElementById('betStatus');
+  var btnSeal = document.getElementById('btnSeal');
+  var sealHint = document.getElementById('sealHint');
+  var picks = [null, null, null];
+
+  try {
+    var saved = JSON.parse(localStorage.getItem(LS + 'bets') || 'null');
+    if (saved && saved.length === 3){
+      for (var si = 0; si < 3; si++){
+        if (saved[si] === 'iit' || saved[si] === 'gnwt' || saved[si] === 'neither'){
+          var inp = form.querySelector('input[name="b' + (si + 1) + '"][value="' + saved[si] + '"]');
+          if (inp){ inp.checked = true; picks[si] = saved[si]; }
+        }
+      }
+    }
+  } catch (e){ /* 讀不到就當作沒押過 */ }
+
+  function syncBets(){
+    var done = 0;
+    for (var i = 0; i < 3; i++) if (picks[i]) done++;
+    var all = done === 3;
+    btnSeal.disabled = !all;
+    if (all){
+      betStatus.textContent = '三條都押完了。往下捲，火漆等你。';
+      sealHint.textContent = '點一下那枚火漆 · 拆封';
+      sealHint.classList.add('pulse');
+    } else {
+      betStatus.textContent = '還差 ' + (3 - done) + ' 條。三條都押完，火漆才會鬆動。';
+      sealHint.textContent = '先押完三條，火漆才會鬆動';
+      sealHint.classList.remove('pulse');
+    }
+    try { localStorage.setItem(LS + 'bets', JSON.stringify(picks)); } catch (e2){ /* 無痕模式：略過 */ }
+  }
+  form.addEventListener('change', function(e){
+    var n = e.target && e.target.name;
+    if (!n) return;
+    var idx = parseInt(n.slice(1), 10) - 1;
+    if (idx >= 0 && idx < 3){ picks[idx] = e.target.value; syncBets(); }
+  });
+  syncBets();
+
+  /* ═══════════ 拆封 ═══════════ */
+  var btnNext = document.getElementById('btnNext');
+  var live = document.getElementById('live');
+  var boardSec = document.getElementById('boardSec');
+  var revealed = 0;
+  var ORDINAL = ['第一條', '第二條', '第三條'];
+
+  function openEnvelope(){
+    if (env.phase !== 'sealed') return;
+    env.phase = 'opening';
+    env.p = reduced ? 1 : 0.001;
+    if (reduced) env.phase = 'open';
+    else setTimeout(spawnShards, 190);
+    btnSeal.disabled = true;
+    btnSeal.hidden = true;
+    sealHint.classList.remove('pulse');
+    sealHint.textContent = '火漆裂了。信封裡的三條，一條一條來。';
+    live.textContent = '信封已拆開。可以開始逐條揭曉。';
+    btnNext.hidden = false;
+    btnNext.textContent = '揭開第一條';
+    if (stEnv) stEnv.dirty = true;
+  }
+  btnSeal.addEventListener('click', openEnvelope);
+  document.getElementById('cvEnv').addEventListener('click', function(){
+    if (!btnSeal.hidden && !btnSeal.disabled) openEnvelope();
+  });
+
+  function rollDown(el, from, to, dur){
+    if (reduced){ el.textContent = String(to); return; }
+    var t0 = performance.now();
+    (function tick(now){
+      var k = ease((now - t0) / dur);
+      el.textContent = String(Math.round(from + (to - from) * k));
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  function revealNext(){
+    if (revealed >= 3) return;
+    var card = document.getElementById('v' + (revealed + 1));
+    card.hidden = false;
+    card.getBoundingClientRect();          /* 強制 reflow，讓 transition 可靠播放 */
+    requestAnimationFrame(function(){
+      card.classList.add('in');
+      var stamps = card.querySelectorAll('.stamp');
+      for (var i = 0; i < stamps.length; i++){
+        (function(el, d){
+          setTimeout(function(){ el.classList.add('on'); }, reduced ? 0 : d);
+        })(stamps[i], 320 + i * 240);
+      }
+      if (card.id === 'v2'){
+        setTimeout(function(){ rollDown(document.getElementById('roll655'), 655, 0, 1400); }, reduced ? 0 : 700);
+      }
+    });
+    revealed++;
+    live.textContent = '已揭曉' + ORDINAL[revealed - 1] + '。' + card.querySelector('h4').textContent;
+    if (revealed < 3){
+      btnNext.textContent = '揭開' + ORDINAL[revealed];
+    } else {
+      btnNext.hidden = true;
+      showBoard();
+    }
+  }
+  btnNext.addEventListener('click', revealNext);
+
+  /* ═══════════ 記分板 ═══════════ */
+  function rollNum(el, to, dur, dec){
+    if (reduced){ el.textContent = to.toFixed(dec); return; }
+    var t0 = performance.now();
+    (function tick(now){
+      var k = ease((now - t0) / dur);
+      el.textContent = (to * k).toFixed(dec);
+      if (k < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  function showBoard(){
+    var g = gradeGuesses(BETS, picks);
+    var hitNum = document.getElementById('hitNum');
+    var hitWord = document.getElementById('hitWord');
+    var hitList = document.getElementById('hitList');
+
+    hitNum.textContent = g.hits + ' / ' + g.total;
+    hitWord.textContent = g.hits === 3 ? '你三條全中。你比兩位理論主帥都準。'
+      : g.hits === 0 ? '你三條全錯——不過在座沒有人有資格笑你。'
+      : '你押中的條數。';
+    hitList.innerHTML = '';
+    for (var i = 0; i < g.detail.length; i++){
+      var d = g.detail[i];
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="' + (d.ok ? 'ok' : 'no') + '">' + (d.ok ? '中' : '沒中') + '</span>　' +
+        BET_NAME[d.id] + '：你押「' + (SIDE_NAME[d.pick] || '沒押') + '」，實際「' + SIDE_NAME[d.answer] + '」';
+      hitList.appendChild(li);
+    }
+
+    boardSec.hidden = false;
+    boardSec.getBoundingClientRect();
+    var si = document.getElementById('scIIT');
+    var sg = document.getElementById('scGNWT');
+    requestAnimationFrame(function(){
+      rollNum(si, surfaceScore(BETS, 'iit'), 1200, 1);
+      rollNum(sg, surfaceScore(BETS, 'gnwt'), 1200, 1);
+    });
+
+    var bi = criticalBreaches(BETS, 'iit').length;
+    var bg = criticalBreaches(BETS, 'gnwt').length;
+    live.textContent = '三條都揭曉了。表面比分 IIT ' + surfaceScore(BETS, 'iit').toFixed(1) +
+      '、GNWT ' + surfaceScore(BETS, 'gnwt').toFixed(1) +
+      '；但關鍵條目未過的數量，IIT ' + bi + ' 條、GNWT ' + bg + ' 條——兩邊都沒有全身而退。你押中 ' + g.hits + ' 條。';
+  }
+})();
+</script>
+</body>
+</html>

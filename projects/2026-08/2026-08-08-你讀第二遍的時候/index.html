@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你讀第二遍的時候</title>
+<meta name="description" content="兩段材料、兩種讀法、一份考卷。你同時是兩個實驗組的受試者——先押注，再交卷，然後看看你的信心押錯了哪一邊。">
+<style>
+  :root{
+    --bg:#080a0e; --bg2:#0c1119; --panel:#101620;
+    --line:#1b2430; --line2:#2a3543;
+    --ink:#e9eef5; --dim:#8a97a6; --dim2:#5b6673;
+    --re:#f2a03c;    /* 重讀 */
+    --rt:#46cfc4;    /* 回想 */
+    --you:#ff5f8d;   /* 你的預測 */
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,"PingFang TC",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--serif); font-size:17.5px; line-height:1.9;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--you); outline-offset:3px; border-radius:4px}
+  p{margin:0 0 1.15em}
+  strong{font-weight:600; color:#fff}
+  em{font-style:normal; color:var(--re)}
+  .dim{color:var(--dim)}
+  .tiny{font-family:var(--sans); font-size:12.5px; line-height:1.75; color:var(--dim2)}
+
+  .home{
+    position:fixed; top:12px; left:13px; z-index:90;
+    font-family:var(--sans); font-size:12px; letter-spacing:.1em;
+    color:var(--dim); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(8,10,14,.76); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.08); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--ink); border-color:rgba(255,255,255,.26)}
+
+  /* ══════════ 進度軌 ══════════ */
+  .rail{
+    position:sticky; top:0; z-index:60;
+    display:flex; gap:0; align-items:stretch; flex-wrap:nowrap;
+    padding:9px 16px 9px 108px; overflow-x:auto; scrollbar-width:none;
+    background:rgba(8,10,14,.88); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.14em; color:var(--dim2);
+  }
+  .rail::-webkit-scrollbar{display:none}
+  .rail .seg{
+    display:flex; align-items:center; gap:7px; white-space:nowrap;
+    padding:3px 13px 3px 0; margin-right:12px; border-right:1px solid var(--line);
+    transition:color .3s;
+  }
+  .rail .seg:last-child{border-right:none}
+  .rail .seg.done{color:var(--dim)}
+  .rail .seg.now{color:var(--ink)}
+  .rail .dots{display:flex; gap:3px}
+  .rail .dots b{
+    width:5px; height:5px; border-radius:50%; background:var(--line2);
+    transition:background .3s, transform .3s; transform-origin:center;
+  }
+  .rail .seg.re .dots b.lit{background:var(--re)}
+  .rail .seg.rt .dots b.lit{background:var(--rt)}
+  .rail .seg.gen .dots b.lit{background:var(--ink)}
+  .rail .dots b.beat{transform:scale(1.5)}
+
+  /* ══════════ 舞台 ══════════ */
+  main{max-width:700px; margin:0 auto; padding:0 26px 4vh}
+  .stage{padding:9vh 0 2vh; border-bottom:1px solid transparent}
+  .stage.first{padding-top:11vh}
+  .kicker{
+    font-family:var(--sans); font-size:11px; letter-spacing:.34em;
+    text-transform:uppercase; color:var(--dim2); margin:0 0 1.5em;
+  }
+  h1{font-size:clamp(2rem,7.4vw,3.3rem); line-height:1.2; font-weight:500; letter-spacing:-.015em; margin:0 0 .6em}
+  h2{font-size:clamp(1.4rem,4.2vw,1.95rem); line-height:1.35; font-weight:500; letter-spacing:-.008em; margin:0 0 .7em}
+  h3{font-family:var(--sans); font-size:12px; letter-spacing:.2em; color:var(--dim2); font-weight:500; margin:2.4em 0 .9em}
+  .lead{max-width:30em}
+
+  .fade{opacity:0; transform:translateY(12px); transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1)}
+  .fade.in{opacity:1; transform:none}
+
+  /* 材料 */
+  .passage{
+    font-size:clamp(1.02rem,2.6vw,1.16rem); line-height:2.05; letter-spacing:.01em;
+    background:var(--bg2); border:1px solid var(--line); border-radius:13px;
+    padding:22px 24px; margin:1.5em 0 0; color:#f4f7fb;
+  }
+  .passage.gone{
+    color:var(--dim2); font-family:var(--sans); font-size:12.5px; letter-spacing:.12em;
+    text-align:center; line-height:1.8; padding:26px 24px;
+  }
+  .ptag{
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.24em; color:var(--dim2);
+    display:flex; gap:10px; align-items:center; margin:0 0 12px;
+  }
+  .ptag i{display:block; width:8px; height:8px; border-radius:50%; background:var(--line2)}
+  .re .ptag i{background:var(--re)}
+  .rt .ptag i{background:var(--rt)}
+
+  /* 控制列 */
+  .rig{margin-top:14px}
+  .meter{height:2px; background:var(--line); border-radius:2px; overflow:hidden; margin:0 0 12px}
+  .meter i{display:block; height:100%; background:var(--dim2); transform:scaleX(0); transform-origin:left center}
+  .re .meter i{background:var(--re)}
+  .rt .meter i{background:var(--rt)}
+  .cue{
+    font-family:var(--sans); font-size:13px; line-height:1.75; color:var(--dim);
+    min-height:1.75em; margin:0 0 12px;
+  }
+  .cue b{color:var(--ink); font-weight:600}
+
+  .btn{
+    font-family:var(--sans); font-size:13px; letter-spacing:.06em; color:var(--ink);
+    background:rgba(255,255,255,.045); border:1px solid var(--line2); border-radius:9px;
+    padding:11px 18px; cursor:pointer;
+    transition:background .18s, border-color .18s, color .18s, transform .12s;
+  }
+  .btn:hover:not(:disabled){background:rgba(255,255,255,.1); border-color:#3b4959}
+  .btn:active:not(:disabled){transform:translateY(1px)}
+  .btn:disabled{opacity:.38; cursor:default}
+  .btn.go{border-color:var(--you); color:var(--you); background:rgba(255,95,141,.09)}
+  .btn.go:hover:not(:disabled){background:rgba(255,95,141,.18)}
+  .btn.ghost{border-color:var(--line); color:var(--dim2); font-size:12px; padding:9px 14px}
+  .btnrow{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+
+  textarea{
+    width:100%; font-family:var(--serif); font-size:16px; line-height:1.85; color:var(--ink);
+    background:var(--panel); border:1px solid var(--line2); border-radius:10px;
+    padding:12px 14px; resize:vertical; min-height:120px;
+  }
+  textarea:focus{outline:none; border-color:var(--rt)}
+  .rlab{display:block; font-family:var(--sans); font-size:11.5px; letter-spacing:.16em; color:var(--dim2); margin:0 0 8px}
+
+  .gapbox{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+  }
+  .gapbox .prob{font-family:var(--mono); font-size:22px; letter-spacing:.02em; color:var(--ink)}
+  input[type=text],input[type=number]{
+    font-family:var(--mono); font-size:16px; color:var(--ink);
+    background:transparent; border:none; border-bottom:1.5px solid var(--line2);
+    padding:4px 6px; width:96px; -moz-appearance:textfield;
+  }
+  input[type=text]:focus,input[type=number]:focus{outline:none; border-bottom-color:var(--you)}
+  input::-webkit-outer-spin-button,input::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  .gapbox .hint{font-family:var(--sans); font-size:11.5px; color:var(--dim2)}
+  .gapbox .tally{font-family:var(--mono); font-size:12px; color:var(--dim2); margin-left:auto}
+
+  /* 預測 */
+  .predrow{margin:1.8em 0 0}
+  .predrow label{display:block; font-family:var(--sans); font-size:12.5px; color:var(--dim); margin:0 0 6px}
+  .predrow .val{font-family:var(--mono); font-size:26px; color:#fff; font-variant-numeric:tabular-nums}
+  .predrow .val small{font-size:14px; color:var(--dim2); margin-left:2px}
+  .predrow.re .val{color:var(--re)} .predrow.rt .val{color:var(--rt)}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:24px;
+    background:transparent; cursor:pointer; display:block; margin-top:2px;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:3px; background:var(--line2); border-radius:2px}
+  input[type=range]::-moz-range-track{height:3px; background:var(--line2); border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; margin-top:-7.5px; border-radius:50%;
+    background:var(--you); border:none; box-shadow:0 0 0 4px rgba(255,95,141,.16);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--you); border:none;
+    box-shadow:0 0 0 4px rgba(255,95,141,.16);
+  }
+
+  fieldset{border:none; margin:1.8em 0 0; padding:0}
+  legend{font-family:var(--sans); font-size:12.5px; color:var(--dim); padding:0; margin-bottom:9px}
+  .picks{display:flex; gap:9px; flex-wrap:wrap}
+  .pick{
+    display:flex; align-items:center; gap:8px; cursor:pointer;
+    font-family:var(--sans); font-size:13px; color:var(--dim);
+    border:1px solid var(--line2); border-radius:9px; padding:9px 14px;
+    transition:border-color .18s, color .18s, background .18s;
+  }
+  .pick:hover{color:var(--ink); border-color:#3b4959}
+  .pick input{accent-color:#ff5f8d; margin:0}
+  .pick.on{color:#fff; background:rgba(255,95,141,.1); border-color:var(--you)}
+
+  /* 考卷 */
+  .paper{border:1px solid var(--line); border-radius:13px; background:var(--bg2); padding:6px 20px 18px; margin-top:1.5em}
+  .qrow{display:block; padding:16px 0; border-bottom:1px solid var(--line)}
+  .qrow:last-child{border-bottom:none}
+  .qrow .qn{font-family:var(--mono); font-size:11px; color:var(--dim2); letter-spacing:.1em}
+  .qrow .qt{display:block; font-size:16px; line-height:1.7; margin:3px 0 9px}
+  .qrow input[type=text]{width:100%; font-family:var(--serif); font-size:16px}
+  .examfoot{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:1.3em}
+  .examfoot .count{font-family:var(--mono); font-size:12px; color:var(--dim2)}
+
+  /* 結果 */
+  .chartwrap{margin:1.6em 0 0}
+  canvas.chart{
+    display:block; width:100%; height:308px;
+    background:var(--bg2); border:1px solid var(--line); border-radius:13px;
+  }
+  canvas.chart.lines{height:270px}
+  .cap{font-family:var(--sans); font-size:11px; line-height:1.7; color:var(--dim2); margin:9px 3px 0}
+  .verdict{
+    font-size:clamp(1.1rem,3vw,1.4rem); line-height:1.65; color:#fff; font-weight:500;
+    margin:1.5em 0; padding-left:18px; border-left:2px solid var(--you);
+  }
+  .aside{
+    font-size:14.5px; line-height:1.85; color:var(--dim);
+    border-left:1px solid var(--line2); padding-left:16px; margin:1.8em 0;
+  }
+  .aside b{color:var(--ink); font-weight:600}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums}
+  .tbl{width:100%; border-collapse:collapse; margin-top:1.2em; font-size:13px; font-family:var(--sans)}
+  .tbl th{text-align:left; font-weight:500; color:var(--dim2); font-size:10.5px; letter-spacing:.13em; padding:0 8px 6px 0; border-bottom:1px solid var(--line)}
+  .tbl td{padding:8px 8px 0 0; color:var(--dim); font-family:var(--mono); font-variant-numeric:tabular-nums}
+  .tbl td:first-child{font-family:var(--sans); color:var(--ink)}
+  .tbl tr.re td:first-child{color:var(--re)}
+  .tbl tr.rt td:first-child{color:var(--rt)}
+
+  .honest{
+    border:1px dashed var(--line2); border-radius:12px; padding:16px 18px; margin:2em 0;
+    font-family:var(--sans); font-size:13px; line-height:1.8; color:var(--dim);
+  }
+  .honest b{color:var(--ink); font-weight:600}
+
+  .rule{height:1px; background:var(--line); margin:3em 0; border:none}
+  .big{font-size:clamp(1.3rem,4vw,1.85rem); line-height:1.55; color:#fff; font-weight:500; margin:1.3em 0}
+
+  footer{
+    max-width:700px; margin:8vh auto 0; padding:22px 26px 46px;
+    border-top:1px solid var(--line);
+    font-family:var(--sans); font-size:11px; line-height:1.9; letter-spacing:.03em; color:var(--dim2);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  footer a{color:var(--dim2); text-decoration:none; border-bottom:1px solid var(--line2)}
+  footer a:hover{color:var(--dim)}
+
+  @media (max-width:560px){
+    body{font-size:16.5px}
+    main{padding:0 18px 4vh}
+    .rail{padding-right:12px}
+    .passage{padding:18px 17px}
+    .paper{padding:4px 15px 14px}
+    .predrow .val{font-size:22px}
+    canvas.chart{height:266px}
+    canvas.chart.lines{height:236px}
+    .picks{flex-direction:column; align-items:stretch}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade{opacity:1; transform:none; transition:none}
+    .rail .dots b{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<div class="rail" id="rail" aria-hidden="true"></div>
+
+<main>
+
+<!-- ═══════════ 第一半 ═══════════ -->
+<section class="stage first" id="st1">
+  <p class="kicker">實驗已經開始了</p>
+  <h1>記住這一段。</h1>
+  <p class="lead dim" id="lead1">等一下要考。不要抄，不要拍照，也不要往下捲——下面沒有答案。</p>
+
+  <div id="box1">
+    <p class="ptag"><i></i><span id="tag1">材料 · 第一半</span></p>
+    <article class="passage" id="pass1"></article>
+    <div class="rig">
+      <div class="meter"><i id="fill1"></i></div>
+      <p class="cue" id="cue1" role="status" aria-live="polite"></p>
+
+      <div id="recall1" hidden>
+        <label class="rlab" for="rta1">把你還記得的，全部寫下來</label>
+        <textarea id="rta1" aria-label="自由回憶第一半的材料"></textarea>
+        <div class="btnrow" style="margin-top:10px">
+          <button class="btn" id="rdone1" type="button">寫完了</button>
+          <span class="tiny" id="rnote1"></span>
+        </div>
+      </div>
+
+      <div class="gapbox" id="gap1" hidden>
+        <span class="prob" id="gapq1">—</span>
+        <input type="text" inputmode="numeric" id="gapin1" aria-label="心算題答案" autocomplete="off">
+        <span class="hint">隨便算算，這題不計分</span>
+        <span class="tally" id="gapt1"></span>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn go" id="go1" type="button">開始</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="after1" hidden>
+    <p class="aside fade" id="after1txt"></p>
+    <div class="btnrow"><button class="btn go" id="next1" type="button">換下一半</button></div>
+  </div>
+</section>
+
+<!-- ═══════════ 第二半 ═══════════ -->
+<section class="stage" id="st2" hidden>
+  <p class="kicker" id="kick2">第二半</p>
+  <h2 id="h2title">換一段材料，換一種讀法。</h2>
+  <p class="lead dim" id="lead2"></p>
+
+  <div id="box2">
+    <p class="ptag"><i></i><span id="tag2">材料 · 第二半</span></p>
+    <article class="passage" id="pass2"></article>
+    <div class="rig">
+      <div class="meter"><i id="fill2"></i></div>
+      <p class="cue" id="cue2" role="status" aria-live="polite"></p>
+
+      <div id="recall2" hidden>
+        <label class="rlab" for="rta2">把你還記得的，全部寫下來</label>
+        <textarea id="rta2" aria-label="自由回憶第二半的材料"></textarea>
+        <div class="btnrow" style="margin-top:10px">
+          <button class="btn" id="rdone2" type="button">寫完了</button>
+          <span class="tiny" id="rnote2"></span>
+        </div>
+      </div>
+
+      <div class="gapbox" id="gap2" hidden>
+        <span class="prob" id="gapq2">—</span>
+        <input type="text" inputmode="numeric" id="gapin2" aria-label="心算題答案" autocomplete="off">
+        <span class="hint">隨便算算，這題不計分</span>
+        <span class="tally" id="gapt2"></span>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn go" id="go2" type="button">開始</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="after2" hidden>
+    <p class="aside fade" id="after2txt"></p>
+    <p class="tiny fade">那兩段都是為這場實驗寫的虛構短文。故意的——沒有人能靠既有知識作弊，兩半的難度才真的配得起來。它們的句數、字數、標點數與可考的點全部對齊過：各 5 句、159 對 161 字、各 6 個可考點，型別一個對一個。</p>
+    <div class="btnrow"><button class="btn go" id="next2" type="button">好了，兩半都做完了</button></div>
+  </div>
+</section>
+
+<!-- ═══════════ 預測 ═══════════ -->
+<section class="stage" id="st3" hidden>
+  <p class="kicker">先押注，再交卷</p>
+  <h2>等一下考你。你覺得哪一半記得比較牢？</h2>
+  <p class="lead dim">這一步比考試本身重要。先把你的直覺鎖住，鎖住之後不能改。</p>
+
+  <div class="predrow re">
+    <label for="pre-re" id="lab-re">你讀了三遍的那半</label>
+    <div class="val"><span id="pv-re">50</span><small>%</small></div>
+    <input type="range" id="pre-re" min="0" max="100" step="5" value="50" aria-labelledby="lab-re">
+  </div>
+  <div class="predrow rt">
+    <label for="pre-rt" id="lab-rt">你回想了三次的那半</label>
+    <div class="val"><span id="pv-rt">50</span><small>%</small></div>
+    <input type="range" id="pre-rt" min="0" max="100" step="5" value="50" aria-labelledby="lab-rt">
+  </div>
+
+  <fieldset>
+    <legend>直接說：哪一半你比較有把握？</legend>
+    <div class="picks" id="picks">
+      <label class="pick"><input type="radio" name="bet" value="re"><span id="betRe">讀三遍的那半</span></label>
+      <label class="pick"><input type="radio" name="bet" value="tie"><span>差不多</span></label>
+      <label class="pick"><input type="radio" name="bet" value="rt"><span id="betRt">回想三次的那半</span></label>
+    </div>
+  </fieldset>
+
+  <div class="btnrow" style="margin-top:2em">
+    <button class="btn go" id="lockPred" type="button" disabled>鎖住我的預測</button>
+    <span class="tiny" id="lockNote">先選一個，才能鎖。</span>
+  </div>
+</section>
+
+<!-- ═══════════ 延遲 ═══════════ -->
+<section class="stage" id="st4" hidden>
+  <p class="kicker">這裡有一個做不到的東西</p>
+  <h2>真正的差距，要幾天後才會拉開。</h2>
+  <p class="lead">原研究的最終測驗排在 <em>5 分鐘</em>、<em>2 天</em>、<em>1 週</em> 之後。分水嶺在第二天。一個網頁留不住你兩天，所以這裡只能給你一個縮小版：</p>
+
+  <div class="honest">
+    <b>誠實說在前面。</b>接下來是 60 秒的干擾——不是兩天。<b>這不是原研究的複製</b>，樣本只有你一個，材料是我寫的，延遲被壓成了一分鐘。所以等一下如果「讀三遍」那半贏了，那正是預期之中：原研究在 5 分鐘的短延遲下，重讀組也是贏的（81% 對 75%）。差別在於——時間還沒開始咬。
+  </div>
+
+  <div class="rig">
+    <div class="meter"><i id="fill4"></i></div>
+    <p class="cue" id="cue4" role="status" aria-live="polite">按下去，時間開始走。</p>
+    <div class="gapbox" id="gap4" hidden>
+      <span class="prob" id="gapq4">—</span>
+      <input type="text" inputmode="numeric" id="gapin4" aria-label="心算題答案" autocomplete="off">
+      <span class="hint">算完一題就換一題，答錯不扣分</span>
+      <span class="tally" id="gapt4"></span>
+    </div>
+    <div class="btnrow">
+      <button class="btn go" id="go4" type="button">開始等 60 秒</button>
+      <button class="btn ghost" id="skip4" type="button" hidden>我不等了，直接考</button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 考試 ═══════════ -->
+<section class="stage" id="st5" hidden>
+  <p class="kicker">交卷之前不會告訴你任何事</p>
+  <h2>十二題。兩半各六題，順序打散了。</h2>
+  <p class="lead dim">拼錯字沒關係，數字寫阿拉伯或國字都收。想不起來就空著——空白也是資料。</p>
+
+  <div class="paper" id="paper"></div>
+
+  <div class="examfoot">
+    <button class="btn go" id="submitExam" type="button">交卷</button>
+    <span class="count" id="answered" role="status" aria-live="polite">已作答 0 / 12</span>
+  </div>
+</section>
+
+<!-- ═══════════ 結果 ═══════════ -->
+<section class="stage" id="st6" hidden>
+  <p class="kicker">落差</p>
+  <h2 id="resHead">你押的，和你考的。</h2>
+
+  <div class="chartwrap">
+    <canvas class="chart" id="cvYou" role="img" aria-label="長條圖：你的預測與實際分數對照"></canvas>
+    <p class="cap" id="capYou"></p>
+  </div>
+
+  <p class="verdict fade" id="verdict"></p>
+  <div class="tiny" id="recallLens" style="margin:-.6em 0 1.6em"></div>
+
+  <h3 class="fade">那條線在第二天交叉</h3>
+  <p class="fade" id="studyLead">2006 年，120 個大學生讀了兩篇短文。同一個人，一篇多讀一次，另一篇改成做一次<strong>沒有回饋</strong>的自由回憶——重讀那篇被完整重看了一遍，考的那篇只能重新經歷自己想得起來的部分。最終測驗抽籤分成三組，分別排在 5 分鐘、2 天、1 週之後：</p>
+
+  <div class="chartwrap">
+    <canvas class="chart lines" id="cvStudy" role="img" aria-label="折線圖：重複閱讀組與測驗組在 5 分鐘、2 天、1 週後的回憶率，兩條線在 2 天處交叉"></canvas>
+    <p class="cap">Roediger &amp; Karpicke (2006) 實驗一，最終測驗答對的意念單位比例（每篇 30 個）。橫軸是三個獨立的延遲條件，不是等距時間。</p>
+  </div>
+
+  <p class="fade">五分鐘後，重讀組贏 6 個百分點。兩天後，反過來輸 14 個。一週後輸 14 個。<strong>被考過的那組在一週後記得的，比重讀組在兩天後記得的還多</strong>——那一次測驗替他們多擋了五天的遺忘。</p>
+
+  <h3 class="fade">而這一頁真正要講的，不是那條交叉線</h3>
+  <p class="fade">同一篇論文的實驗二，把重讀推到極端：180 個學生，一組把文章讀四遍（平均整整讀完 <span class="num">14.2</span> 次），一組只讀一遍、接著做三次沒有回饋的回憶（總共只讀完 <span class="num">3.4</span> 次）。臨走前，每個人替自己打一個分數：<strong>你覺得一週後你會記得多好？</strong>（1 到 7 分）</p>
+
+  <table class="tbl fade">
+    <thead><tr><th>一組人</th><th>讀完全文幾次</th><th>自評信心（1–7）</th><th>一週後答對</th></tr></thead>
+    <tbody>
+      <tr class="re"><td>讀四遍</td><td>14.2</td><td>4.8</td><td>40%</td></tr>
+      <tr><td>讀三遍＋考一次</td><td>10.3</td><td>4.2</td><td>56%</td></tr>
+      <tr class="rt"><td>讀一遍＋考三次</td><td>3.4</td><td>4.0</td><td>61%</td></tr>
+    </tbody>
+  </table>
+  <p class="cap">Roediger &amp; Karpicke (2006) 實驗二。信心那一欄的差異是顯著的，方向剛好和成績相反。</p>
+
+  <p class="fade" style="margin-top:1.8em">信心那一欄，和最右邊那一欄，<strong>排序完全顛倒</strong>。讀最多次的人最有把握，也記得最少。兩年後同一組人用 40 對斯瓦希里語單字再問一次，四種練法的成績從 <span class="num">33%</span> 到 <span class="num">80%</span>，差了四個標準差——而所有人對自己的預測都停在 <span class="num">50%</span> 上下，<strong>幾乎沒有差別</strong>。他們的信心根本沒有連到成績上。</p>
+
+  <p class="verdict fade">你不是不會判斷自己學會了沒有。你是拿錯了儀表——那根指針量的是「讀起來順不順」，不是「還在不在」。</p>
+
+  <div class="btnrow" style="margin-top:2.2em">
+    <button class="btn go" id="toCoda" type="button">還有一件事</button>
+  </div>
+</section>
+
+<!-- ═══════════ 回馬槍 ═══════════ -->
+<section class="stage" id="st7" hidden>
+  <p class="kicker">最後一件事</p>
+  <h2>順便一提：你剛剛讀這一頁，讀得很順吧。</h2>
+  <p class="lead">順到你大概已經覺得自己懂了。那個感覺，就是這一頁從頭到尾在講的那根壞掉的指針。要不要現在校一次？</p>
+
+  <div class="paper" id="codaPaper" hidden></div>
+
+  <div class="btnrow" style="margin-top:1.4em">
+    <button class="btn go" id="codaStart" type="button">那考我這一頁</button>
+    <button class="btn" id="codaSubmit" type="button" hidden>看結果</button>
+  </div>
+
+  <div id="codaOut" hidden>
+    <p class="verdict" id="codaScore"></p>
+    <p>這一頁你只讀了一遍，沒有人考過你。剛剛那三題，是你的第一次提取。</p>
+    <p>明天還留在你身上的，會是那三題的答案——不會是你讀得最順的那幾段。</p>
+    <p class="big">儀表是壞的。你可以不修它。<br>只要別再用它決定什麼時候可以停下來。</p>
+  </div>
+
+  <hr class="rule">
+  <p class="tiny">附帶一提，這不是在說「讀書沒用」。沒有讀進去的東西，你提取不出來——提取練習需要先有輸入。它也不是萬用的：效果依材料、依測驗形式、依你有沒有讀懂而變。真正被推翻的只有一件事，就是「多讀幾遍，讀到順為止」這個停止條件。</p>
+</section>
+
+</main>
+
+<footer>
+  <span>資料來源：Roediger &amp; Karpicke, Psychological Science (2006)</span>
+  <a href="../../../index.html">← 回首頁</a>
+</footer>
+
+<!-- ══════════════ 純函式核心：材料、正規化、評分、落差 ══════════════ -->
+<script>
+var RRX = (function () {
+  'use strict';
+
+  /* ---------- 中文數字 ---------- */
+  var CJK_D = { '〇':0,'零':0,'一':1,'二':2,'兩':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9 };
+  var CJK_U = { '十':10,'百':100,'千':1000 };
+  var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o, k); };
+
+  /* 全形→半形、轉小寫、去空白與標點；保留中日文與英數 */
+  function normalize(s) {
+    s = String(s == null ? '' : s);
+    s = s.replace(/[！-～]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+    s = s.replace(/　/g, ' ');
+    s = s.toLowerCase();
+    s = s.replace(/\s+/g, '');
+    s = s.replace(/[!-\/:-@\[-`{-~]/g, '');
+    s = s.replace(/[。，、；：？！「」『』（）《》〈〉〔〕【】—…·．～]/g, '');
+    return s;
+  }
+
+  function cjkRuns(s) { return s.match(/[〇零一二三四五六七八九十百千兩两]+/g) || []; }
+
+  /* 「兩百六十」→260、「七」→7、「十二」→12 */
+  function parseCjk(run) {
+    var num = 0, cur = 0, seen = false, i, ch;
+    for (i = 0; i < run.length; i++) {
+      ch = run[i];
+      if (has(CJK_D, ch)) { cur = CJK_D[ch]; seen = true; }
+      else if (has(CJK_U, ch)) {
+        if (cur === 0) cur = 1;
+        num += cur * CJK_U[ch]; cur = 0; seen = true;
+      }
+    }
+    return seen ? num + cur : null;
+  }
+
+  /* 逐位讀（年份用）：「一八九〇」→"1890"。含十百千者不逐位讀，否則「四十」會被讀成 4 */
+  function digitRead(run) {
+    if (/[十百千]/.test(run)) return null;
+    var out = '', i;
+    for (i = 0; i < run.length; i++) out += CJK_D[run[i]];
+    return out;
+  }
+
+  /* 從自由作答裡撈出所有可能的數字（字串形式，已去前導零） */
+  function numbersIn(text) {
+    var s = normalize(text), set = {}, runs, i, v, dr;
+    (s.match(/\d+/g) || []).forEach(function (d) { set[String(parseInt(d, 10))] = 1; });
+    runs = cjkRuns(s);
+    for (i = 0; i < runs.length; i++) {
+      v = parseCjk(runs[i]);
+      if (v !== null && v > 0) set[String(v)] = 1;
+      dr = digitRead(runs[i]);
+      if (dr !== null && /^\d+$/.test(dr)) set[String(parseInt(dr, 10))] = 1;
+    }
+    return set;
+  }
+
+  /* 編輯距離（給三字以上的關鍵詞放寬一個字） */
+  function lev(a, b) {
+    var m = a.length, n = b.length, i, j, prev, tmp, row = [];
+    if (!m) return n;
+    if (!n) return m;
+    for (j = 0; j <= n; j++) row[j] = j;
+    for (i = 1; i <= m; i++) {
+      prev = row[0]; row[0] = i;
+      for (j = 1; j <= n; j++) {
+        tmp = row[j];
+        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+        prev = tmp;
+      }
+    }
+    return row[n];
+  }
+
+  /* 關鍵詞比對：先正規化子字串比對，三字以上再放寬一個編輯距離。
+     含數字語意的答案（fuzzy=false）不放寬——否則「九個世紀」會被判成「七個世紀」。 */
+  function wordHit(input, aliases, fuzzy) {
+    var s = normalize(input), i, a, j, w;
+    if (!s || !aliases) return false;
+    if (fuzzy === undefined) fuzzy = true;
+    for (i = 0; i < aliases.length; i++) {
+      a = normalize(aliases[i]);
+      if (!a) continue;
+      if (s.indexOf(a) >= 0) return true;
+      if (fuzzy && a.length >= 3) {
+        for (j = 0; j + a.length - 1 <= s.length; j++) {
+          w = s.substr(j, a.length);
+          if (w.length >= a.length - 1 && lev(w, a) <= 1) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /* 單題評分 */
+  function gradeOne(fact, input) {
+    if (!fact) return false;
+    var s = normalize(input);
+    if (!s) return false;
+    if (fact.kind === 'num') {
+      var got = numbersIn(input), i;
+      for (i = 0; i < fact.nums.length; i++) if (got[fact.nums[i]]) return true;
+      return wordHit(input, fact.accept, false);
+    }
+    return wordHit(input, fact.accept, true);
+  }
+
+  function gradeAll(facts, answers) {
+    var per = [], n = 0, i, ok;
+    for (i = 0; i < facts.length; i++) {
+      ok = gradeOne(facts[i], answers && answers[facts[i].id]);
+      per.push(ok);
+      if (ok) n++;
+    }
+    return { correct: n, total: facts.length, per: per };
+  }
+
+  /* ---------- 兩份材料 ----------
+     句法骨架逐句對齊、可考點型別逐位對齊、字數與標點數相同。
+     內容是為這場實驗寫的虛構說明文——這樣沒有人能靠先備知識作弊，
+     兩半的難度才真的可以配對。 */
+  var MATERIALS = {
+    salt: {
+      id: 'salt', title: '灰岬 · 鹽鐘',
+      text: '灰岬的海邊立著一種空心的岩柱，當地人叫它鹽鐘。漲潮的海水從柱底滲進去，退潮曬乾後留下一層鹽晶，一年大約增厚四毫米。一八九〇年代起，漁民開始拿它看潮：柱身濕到第幾道環，就知道潮水還要漲多久。二〇〇三年一場颶風削斷了岬角上最高的那一根，斷面上數出兩百六十圈鹽環。研究者據此推算，那根鹽鐘從冒出地面到倒下，站了將近七個世紀。',
+      facts: [
+        { id: 'salt1', slot: 'name', kind: 'word', q: '灰岬海邊那種空心的岩柱，當地人叫它什麼？',
+          accept: ['鹽鐘', '鹽鍾', '塩鐘', '盐钟', '盐鐘', '鹽钟'] },
+        { id: 'salt2', slot: 'size', kind: 'num', q: '它一年大約增厚幾毫米？',
+          nums: ['4'], accept: ['四毫米', '四公釐'] },
+        { id: 'salt3', slot: 'year', kind: 'num', q: '漁民從哪個年代開始拿它看潮？（寫西元年）',
+          nums: ['1890'], accept: ['一八九〇', '一八九零'] },
+        { id: 'salt4', slot: 'event', kind: 'word', q: '二〇〇三年，是什麼削斷了岬角上最高的那一根？',
+          accept: ['颶風', '颶风', '飓風', '飓风'] },
+        { id: 'salt5', slot: 'count', kind: 'num', q: '斷面上數出幾圈鹽環？',
+          nums: ['260'], accept: ['兩百六十', '二百六十'] },
+        { id: 'salt6', slot: 'span', kind: 'num', q: '推算它一共站了多久？（幾個世紀，或幾年）',
+          nums: ['7', '700'], accept: ['七個世紀', '七世紀', '七百年'] }
+      ]
+    },
+    sand: {
+      id: 'sand', title: '白磧 · 沙笛',
+      text: '白磧的沙丘下住著一種挖穴的甲蟲，當地人叫牠沙笛。夜裡的風掃過洞口那圈細砂，會發出低音，一隻蟲一季大約推出兩公斤砂。一九二〇年代起，商隊開始拿牠看風：洞口的缺口朝哪一邊，明天的風就從哪一邊來。二〇一一年一場沙暴埋掉了沙丘上最大的一片繁殖地，挖開後數出三百四十個洞。研究者據此推算，那片沙笛群落從遷來到消失，撐了將近九個世紀。',
+      facts: [
+        { id: 'sand1', slot: 'name', kind: 'word', q: '白磧沙丘下那種挖穴的甲蟲，當地人叫牠什麼？',
+          accept: ['沙笛', '砂笛'] },
+        { id: 'sand2', slot: 'size', kind: 'num', q: '一隻蟲一季大約推出幾公斤的砂？',
+          nums: ['2'], accept: ['兩公斤', '二公斤', '两公斤'] },
+        { id: 'sand3', slot: 'year', kind: 'num', q: '商隊從哪個年代開始拿牠看風？（寫西元年）',
+          nums: ['1920'], accept: ['一九二〇', '一九二零'] },
+        { id: 'sand4', slot: 'event', kind: 'word', q: '二〇一一年，是什麼埋掉了最大的一片繁殖地？',
+          accept: ['沙暴', '砂暴', '沙塵暴', '沙尘暴'] },
+        { id: 'sand5', slot: 'count', kind: 'num', q: '挖開後數出幾個洞？',
+          nums: ['340'], accept: ['三百四十'] },
+        { id: 'sand6', slot: 'span', kind: 'num', q: '推算那個群落一共撐了多久？（幾個世紀，或幾年）',
+          nums: ['9', '900'], accept: ['九個世紀', '九世紀', '九百年'] }
+      ]
+    }
+  };
+
+  var PUNCT_RE = /[。，、：；？！]/g;
+
+  /* 兩半是否對等：可考點數、型別序列、字數、標點數 */
+  function equivalence() {
+    var a = MATERIALS.salt, b = MATERIALS.sand, i;
+    var slotsA = a.facts.map(function (f) { return f.slot; });
+    var slotsB = b.facts.map(function (f) { return f.slot; });
+    var kindsA = a.facts.map(function (f) { return f.kind; });
+    var kindsB = b.facts.map(function (f) { return f.kind; });
+    var sameSlots = slotsA.length === slotsB.length;
+    for (i = 0; sameSlots && i < slotsA.length; i++) {
+      if (slotsA[i] !== slotsB[i] || kindsA[i] !== kindsB[i]) sameSlots = false;
+    }
+    return {
+      factsA: a.facts.length, factsB: b.facts.length,
+      sameFactCount: a.facts.length === b.facts.length,
+      sameSlotSequence: sameSlots,
+      charsA: a.text.length, charsB: b.text.length,
+      charDelta: Math.abs(a.text.length - b.text.length),
+      punctA: (a.text.match(PUNCT_RE) || []).length,
+      punctB: (b.text.match(PUNCT_RE) || []).length,
+      sentencesA: (a.text.match(/。/g) || []).length,
+      sentencesB: (b.text.match(/。/g) || []).length
+    };
+  }
+
+  /* ---------- 預測與實測的落差 ---------- */
+  function clamp(v, lo, hi) { v = Number(v); if (!isFinite(v)) v = lo; return Math.max(lo, Math.min(hi, v)); }
+  function pct(n, d) { return d > 0 ? Math.round((n / d) * 100) : 0; }
+
+  function computeGap(r) {
+    var pr = Math.round(clamp(r.predReread, 0, 100));
+    var pt = Math.round(clamp(r.predRetrieve, 0, 100));
+    var ar = pct(r.scoreReread, r.totalReread);
+    var at = pct(r.scoreRetrieve, r.totalRetrieve);
+    return {
+      predReread: pr, predRetrieve: pt,
+      actualReread: ar, actualRetrieve: at,
+      predGap: pr - pt,               /* 你以為的落差（重讀 − 回想） */
+      actualGap: ar - at,             /* 實際落差 */
+      miss: (pr - pt) - (ar - at),    /* 正數＝你高估了重讀那半的優勢 */
+      errReread: pr - ar,
+      errRetrieve: pt - at,
+      absErr: Math.round(((Math.abs(pr - ar) + Math.abs(pt - at)) / 2) * 10) / 10,
+      backedReread: pr > pt,
+      tiePred: pr === pt,
+      retrievalWon: at > ar,
+      tieActual: at === ar
+    };
+  }
+
+  function shuffle(list, rnd) {
+    var a = list.slice(), i, j, t;
+    rnd = rnd || Math.random;
+    for (i = a.length - 1; i > 0; i--) {
+      j = Math.floor(rnd() * (i + 1));
+      t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  return {
+    MATERIALS: MATERIALS,
+    normalize: normalize,
+    parseCjk: parseCjk,
+    digitRead: digitRead,
+    numbersIn: numbersIn,
+    lev: lev,
+    wordHit: wordHit,
+    gradeOne: gradeOne,
+    gradeAll: gradeAll,
+    equivalence: equivalence,
+    computeGap: computeGap,
+    shuffle: shuffle
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = RRX;
+</script>
+
+<!-- ══════════════ 舞台驅動 ══════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  var LS = 'rereadx26.';
+  var M = RRX.MATERIALS;
+
+  /* ---------- 減動態 ---------- */
+  var mReduced = (window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null);
+  function reduced() { return !!(mReduced && mReduced.matches); }
+  function onReducedChange(fn) {
+    if (!mReduced) return;
+    if (mReduced.addEventListener) mReduced.addEventListener('change', fn);
+    else if (mReduced.addListener) mReduced.addListener(fn);
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- 單一 rAF 迴圈：計時器＋圖表動畫 ---------- */
+  var clock = { on: false, left: 0, total: 0, tick: null, done: null };
+  var anim = { on: false, t: 0, dur: 1, target: null };
+  var running = false, rafId = 0, lastT = 0;
+
+  function needFrames() { return clock.on || (anim.on && !reduced()); }
+
+  function tickClock(dt) {
+    if (!clock.on) return;
+    clock.left -= dt;
+    if (clock.left <= 0) {
+      var d = clock.done, t = clock.tick;
+      clock.on = false; clock.tick = null; clock.done = null;
+      if (t) t(0, clock.total);
+      if (d) d();
+    } else if (clock.tick) clock.tick(clock.left, clock.total);
+  }
+
+  function tickAnim(dt) {
+    if (!anim.on) return;
+    anim.t += dt;
+    var p = Math.min(1, anim.t / anim.dur);
+    var fn = anim.target;
+    /* 先收尾再回呼：回呼裡可以安全地接著開下一段動畫，不會被這裡清掉 */
+    if (p >= 1) { anim.on = false; anim.target = null; }
+    if (fn) fn(p);
+  }
+
+  function frame(t) {
+    if (!running) return;
+    var dt = Math.min(120, t - lastT);
+    lastT = t;
+    tickClock(dt);
+    tickAnim(dt);
+    if (!needFrames()) { running = false; return; }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  function setRunning() {
+    var want = !document.hidden && needFrames();
+    if (want && !running) {
+      running = true;
+      lastT = (window.performance && performance.now) ? performance.now() : Date.now();
+      rafId = requestAnimationFrame(frame);
+    } else if (!want && running) {
+      running = false;
+      cancelAnimationFrame(rafId);
+    }
+  }
+  document.addEventListener('visibilitychange', setRunning);
+  onReducedChange(function () { setRunning(); redrawAll(); });
+
+  function startClock(ms, onTick, onDone) {
+    clock.on = true; clock.total = ms; clock.left = ms;
+    clock.tick = onTick || null; clock.done = onDone || null;
+    if (onTick) onTick(ms, ms);
+    setRunning();
+  }
+  function stopClock() { clock.on = false; clock.tick = null; clock.done = null; }
+  function startAnim(dur, target) {
+    if (reduced()) { target(1); return; }
+    anim.on = true; anim.t = 0; anim.dur = dur; anim.target = target;
+    setRunning();
+  }
+
+  /* ---------- 捲動進場 ---------- */
+  var io = null;
+  function watchReveal(root) {
+    var src = (root || document), i, all = [], list = [];
+    if (src.getElementsByClassName) all = src.getElementsByClassName('fade');
+    for (i = 0; i < all.length; i++) if (!all[i].classList.contains('in')) list.push(all[i]);
+    if (reduced() || !('IntersectionObserver' in window)) {
+      for (i = 0; i < list.length; i++) list[i].classList.add('in');
+      return;
+    }
+    if (!io) {
+      io = new IntersectionObserver(function (es, obs) {
+        for (var k = 0; k < es.length; k++) {
+          if (es[k].isIntersecting) { es[k].target.classList.add('in'); obs.unobserve(es[k].target); }
+        }
+      }, { rootMargin: '40px 0px' });
+    }
+    for (i = 0; i < list.length; i++) io.observe(list[i]);
+  }
+
+  function goTo(el) {
+    el.hidden = false;
+    watchReveal(el);
+    if (el.scrollIntoView) {
+      try { el.scrollIntoView({ block: 'start', behavior: reduced() ? 'auto' : 'smooth' }); }
+      catch (e) { el.scrollIntoView(); }
+    }
+  }
+
+  /* ---------- 擲硬幣：材料配對 × 順序 ---------- */
+  var coinMat = Math.random() < 0.5;   /* 哪一份材料配到「重讀」 */
+  var coinOrd = Math.random() < 0.5;   /* 哪一種讀法先做 */
+  var ARM = {
+    re: { mode: 're', mat: coinMat ? M.salt : M.sand, label: '重複閱讀', short: '讀三遍' },
+    rt: { mode: 'rt', mat: coinMat ? M.sand : M.salt, label: '提取練習', short: '回想三次' }
+  };
+  var ORDER = coinOrd ? [ARM.re, ARM.rt] : [ARM.rt, ARM.re];
+
+  /* ---------- 進度軌 ---------- */
+  var railSegs = [];
+  function buildRail() {
+    var rail = $('rail'), i;
+    var defs = [
+      { cls: ORDER[0].mode, name: '第一半 · ' + (ORDER[0].mode === 're' ? '讀 ×3' : '讀 ×1 ＋ 回想 ×3'), dots: ORDER[0].mode === 're' ? 3 : 4 },
+      { cls: ORDER[1].mode, name: '第二半 · ' + (ORDER[1].mode === 're' ? '讀 ×3' : '讀 ×1 ＋ 回想 ×3'), dots: ORDER[1].mode === 're' ? 3 : 4 },
+      { cls: 'gen', name: '押注', dots: 1 },
+      { cls: 'gen', name: '延遲', dots: 1 },
+      { cls: 'gen', name: '考試', dots: 1 },
+      { cls: 'gen', name: '落差', dots: 1 }
+    ];
+    rail.innerHTML = '';
+    for (i = 0; i < defs.length; i++) {
+      var seg = document.createElement('span');
+      seg.className = 'seg ' + defs[i].cls;
+      var lab = document.createElement('span');
+      lab.textContent = defs[i].name;
+      var dots = document.createElement('span');
+      dots.className = 'dots';
+      for (var k = 0; k < defs[i].dots; k++) dots.appendChild(document.createElement('b'));
+      seg.appendChild(lab); seg.appendChild(dots);
+      rail.appendChild(seg);
+      railSegs.push(seg);
+    }
+  }
+  function railSet(idx, dotIdx, state) {
+    var i;
+    for (i = 0; i < railSegs.length; i++) {
+      railSegs[i].classList.remove('now');
+      if (i < idx) railSegs[i].classList.add('done');
+    }
+    if (railSegs[idx]) {
+      railSegs[idx].classList.add('now');
+      var bs = railSegs[idx].querySelectorAll('b');
+      for (i = 0; i < bs.length; i++) {
+        bs[i].classList.toggle('lit', i <= dotIdx);
+        bs[i].classList.toggle('beat', i === dotIdx && state !== 'done');
+      }
+    }
+  }
+
+  /* ---------- 心算干擾 ---------- */
+  function newProblem() {
+    var a = 3 + Math.floor(Math.random() * 11), b = 3 + Math.floor(Math.random() * 11);
+    return { a: a, b: b, ans: a * b };
+  }
+  function wireGap(qEl, inEl, tallyEl) {
+    var st = { p: null, n: 0 };
+    function next() {
+      st.p = newProblem();
+      qEl.textContent = st.p.a + ' × ' + st.p.b + ' =';
+      inEl.value = '';
+    }
+    function onInput() {
+      if (!st.p) return;
+      var v = parseInt(String(inEl.value).replace(/\D/g, ''), 10);
+      if (v === st.p.ans) {
+        st.n++;
+        if (tallyEl) tallyEl.textContent = '答對 ' + st.n;
+        next();
+      }
+    }
+    inEl.addEventListener('input', onInput);
+    return { start: function () { st.n = 0; if (tallyEl) tallyEl.textContent = ''; next(); }, count: function () { return st.n; } };
+  }
+
+  /* ---------- 一個「半」的流程 ---------- */
+  var READ_MS = 22000, GAP_MS = 8000, RECALL_MS = 35000;
+
+  function makeBlock(n, arm, onFinish) {
+    var box = $('box' + n), pass = $('pass' + n), fill = $('fill' + n), cue = $('cue' + n);
+    var go = $('go' + n), recallWrap = $('recall' + n), rta = $('rta' + n), rdone = $('rdone' + n);
+    var rnote = $('rnote' + n), gapBox = $('gap' + n), tag = $('tag' + n);
+    var gap = wireGap($('gapq' + n), $('gapin' + n), $('gapt' + n));
+    var railIdx = n - 1;
+    var recalls = [];
+    var step = 0;
+
+    box.classList.add(arm.mode);
+    tag.textContent = '材料 · ' + arm.mat.title;
+    pass.textContent = arm.mat.text;
+
+    function bar(p) { fill.style.transform = 'scaleX(' + Math.max(0, Math.min(1, p)) + ')'; }
+    function showPassage(on) {
+      if (on) { pass.classList.remove('gone'); pass.textContent = arm.mat.text; }
+      else { pass.classList.add('gone'); pass.textContent = '（材料收走了）'; }
+    }
+
+    function runTimed(ms, label, done) {
+      startClock(ms, function (left, total) {
+        bar(1 - left / total);
+        cue.textContent = label + '　剩 ' + Math.ceil(left / 1000) + ' 秒';
+      }, done);
+    }
+
+    /* 重複閱讀：讀 → 干擾 → 讀 → 干擾 → 讀 */
+    var REREAD_LINES = [
+      '第一遍。從頭讀到尾，不用背，讀就好。',
+      '第二遍。這次會順很多——記住那個「順」的感覺。',
+      '第三遍。第三遍幾乎不費力了對吧。'
+    ];
+    var REREAD_AFTER = [
+      '好。清一下腦袋。',
+      '再清一次。'
+    ];
+
+    function rereadStep() {
+      if (step >= 3) { finish(); return; }
+      railSet(railIdx, step, 'now');
+      showPassage(true);
+      go.hidden = true;
+      gapBox.hidden = true;
+      runTimed(READ_MS, REREAD_LINES[step], function () {
+        step++;
+        if (step >= 3) { finish(); return; }
+        showPassage(false);
+        gapBox.hidden = false;
+        gap.start();
+        runTimed(GAP_MS, REREAD_AFTER[step - 1], rereadStep);
+      });
+    }
+
+    /* 提取練習：讀一遍 → 干擾 → 回想 ×3（無回饋） */
+    var RECALL_LINES = ['第一次回想。', '第二次回想。', '第三次回想。'];
+    var NO_FEEDBACK = [
+      '收下了。不告訴你對不對——這是刻意的，原研究就是這樣做的。',
+      '又收下了。還是不給你答案。',
+      '第三份收下了。你從頭到尾沒有再看過那段字。'
+    ];
+
+    function retrieveStep() {
+      if (step === 0) {
+        railSet(railIdx, 0, 'now');
+        showPassage(true);
+        go.hidden = true;
+        gapBox.hidden = true;
+        runTimed(READ_MS, '只讀這一遍。之後不會再給你看了。', function () {
+          step = 1;
+          showPassage(false);
+          gapBox.hidden = false;
+          gap.start();
+          runTimed(GAP_MS, '清一下腦袋。', retrieveStep);
+        });
+        return;
+      }
+      if (step > 3) { finish(); return; }
+      railSet(railIdx, step, 'now');
+      gapBox.hidden = true;
+      recallWrap.hidden = false;
+      rta.value = '';
+      rnote.textContent = '沒有回饋。寫完就收走。';
+      if (rta.focus) { try { rta.focus(); } catch (e) {} }
+      runTimed(RECALL_MS, RECALL_LINES[step - 1], submitRecall);
+    }
+
+    function submitRecall() {
+      if (recallWrap.hidden) return;
+      stopClock();
+      recalls.push(String(rta.value || ''));
+      cue.textContent = NO_FEEDBACK[Math.min(2, step - 1)];
+      recallWrap.hidden = true;
+      bar(0);
+      step++;
+      if (step > 3) { window.setTimeout(finish, 900); return; }
+      window.setTimeout(retrieveStep, 900);
+    }
+
+    function finish() {
+      stopClock();
+      railSet(railIdx, 9, 'done');
+      showPassage(false);
+      gapBox.hidden = true;
+      recallWrap.hidden = true;
+      go.hidden = true;
+      bar(1);
+      cue.textContent = '這一半做完了。';
+      onFinish(recalls);
+    }
+
+    rdone.addEventListener('click', submitRecall);
+    go.addEventListener('click', function () {
+      step = 0;
+      if (arm.mode === 're') rereadStep(); else retrieveStep();
+    });
+    go.textContent = arm.mode === 're' ? '開始 · 讀三遍' : '開始 · 讀一遍';
+    cue.textContent = arm.mode === 're'
+      ? '按下去，每一遍 22 秒，中間有短暫的空檔。'
+      : '按下去，只有 22 秒。之後這段字就收走了。';
+    return { start: function () { go.hidden = false; } };
+  }
+
+  /* ---------- 組裝 ---------- */
+  buildRail();
+  railSet(0, -1, 'now');
+
+  var state = { recallsRT: [], pred: { re: 50, rt: 50, bet: '' }, score: null, gap: null };
+
+  $('lead1').textContent = ORDER[0].mode === 're'
+    ? '等一下要考。不要抄，不要拍照，也不要往下捲——下面沒有答案。'
+    : '等一下要考。你只會看到它一次，所以這一次要看仔細。';
+
+  var b1 = makeBlock(1, ORDER[0], function (recalls) {
+    if (ORDER[0].mode === 'rt') state.recallsRT = recalls;
+    $('after1').hidden = false;
+    $('after1txt').textContent = ORDER[0].mode === 're'
+      ? '你剛剛把它讀了三遍。第三遍讀起來幾乎不費力——這件事等一下會變成重點。'
+      : '你剛剛把同一段東西從腦袋裡拉出來三次，而且沒有人告訴你對不對。你連一個字都沒有重讀到。';
+    watchReveal($('after1'));
+  });
+  var b2 = makeBlock(2, ORDER[1], function (recalls) {
+    if (ORDER[1].mode === 'rt') state.recallsRT = recalls;
+    $('after2').hidden = false;
+    $('after2txt').textContent = ORDER[1].mode === 're'
+      ? '兩半的差別只有一個：一半你多讀了兩遍，一半你多想了三次。字數一樣，可考的點一樣多，都是六個。'
+      : '兩半的差別只有一個：一半你多讀了兩遍，一半你多想了三次——而且回想那半，你從來沒收到過答案。';
+    watchReveal($('after2'));
+  });
+  b1.start();
+
+  $('lead2').textContent = ORDER[1].mode === 're'
+    ? '這一半換個方式：讀三遍，中間穿插短暫的空檔。哪一份材料配到哪一種讀法，是剛剛擲硬幣決定的。'
+    : '這一半換個方式：只讀一遍，然後回想三次，而且不會告訴你對不對。哪一份材料配到哪一種讀法，是剛剛擲硬幣決定的。';
+
+  $('next1').addEventListener('click', function () {
+    $('next1').disabled = true;
+    railSet(1, -1, 'now');
+    goTo($('st2'));
+    b2.start();
+  });
+
+  /* ---------- 預測 ---------- */
+  $('next2').addEventListener('click', function () {
+    $('next2').disabled = true;
+    railSet(2, 0, 'now');
+    $('betRe').textContent = ARM.re.mat.title.split(' · ')[1] + '（讀三遍的那半）';
+    $('betRt').textContent = ARM.rt.mat.title.split(' · ')[1] + '（回想三次的那半）';
+    $('lab-re').textContent = '「' + ARM.re.mat.title + '」——你讀了三遍的那半';
+    $('lab-rt').textContent = '「' + ARM.rt.mat.title + '」——你回想了三次的那半';
+    goTo($('st3'));
+  });
+
+  function bindSlider(id, out, key) {
+    var el = $(id);
+    el.addEventListener('input', function () {
+      $(out).textContent = el.value;
+      state.pred[key] = parseInt(el.value, 10);
+    });
+  }
+  bindSlider('pre-re', 'pv-re', 're');
+  bindSlider('pre-rt', 'pv-rt', 'rt');
+
+  var picks = $('picks');
+  var betLabels = [], betInputs = [];
+  (function () {
+    var kids = picks.children, i, inp;
+    for (i = 0; i < kids.length; i++) {
+      inp = kids[i].getElementsByTagName('input')[0];
+      if (!inp) continue;
+      betLabels.push(kids[i]); betInputs.push(inp);
+    }
+  })();
+  picks.addEventListener('change', function (e) {
+    var t = e.target, i;
+    if (!t || t.name !== 'bet') return;
+    state.pred.bet = t.value;
+    for (i = 0; i < betInputs.length; i++) betLabels[i].classList.toggle('on', !!betInputs[i].checked);
+    $('lockPred').disabled = false;
+    $('lockNote').textContent = '鎖了就不能改。';
+  });
+
+  $('lockPred').addEventListener('click', function () {
+    $('lockPred').disabled = true;
+    $('pre-re').disabled = true;
+    $('pre-rt').disabled = true;
+    var i;
+    for (i = 0; i < betInputs.length; i++) betInputs[i].disabled = true;
+    $('lockNote').textContent = '鎖住了：' + state.pred.re + '% 對 ' + state.pred.rt + '%。';
+    railSet(3, 0, 'now');
+    goTo($('st4'));
+  });
+
+  /* ---------- 延遲 ---------- */
+  var DELAY_MS = 60000;
+  var gap4 = wireGap($('gapq4'), $('gapin4'), $('gapt4'));
+  function toExam(skipped) {
+    stopClock();
+    $('fill4').style.transform = 'scaleX(1)';
+    $('gap4').hidden = true;
+    $('go4').hidden = true;
+    $('skip4').hidden = true;
+    $('cue4').textContent = skipped ? '你剛剛把那一分鐘也砍掉了。記住這件事。' : '一分鐘到了。';
+    railSet(4, 0, 'now');
+    buildExam();
+    goTo($('st5'));
+  }
+  $('go4').addEventListener('click', function () {
+    $('go4').hidden = true;
+    $('skip4').hidden = false;
+    $('gap4').hidden = false;
+    gap4.start();
+    startClock(DELAY_MS, function (left, total) {
+      $('fill4').style.transform = 'scaleX(' + (1 - left / total) + ')';
+      $('cue4').textContent = '還剩 ' + Math.ceil(left / 1000) + ' 秒。原研究是 172800 秒。';
+    }, function () { toExam(false); });
+  });
+  $('skip4').addEventListener('click', function () { toExam(true); });
+
+  /* ---------- 考卷 ---------- */
+  var examOrder = [], examInputs = [];
+  function buildExam() {
+    if (examOrder.length) return;
+    var all = ARM.re.mat.facts.concat(ARM.rt.mat.facts);
+    examOrder = RRX.shuffle(all);
+    var paper = $('paper');
+    paper.innerHTML = '';
+    examInputs = [];
+    examOrder.forEach(function (f, i) {
+      var row = document.createElement('label');
+      row.className = 'qrow';
+      var qn = document.createElement('span');
+      qn.className = 'qn';
+      qn.textContent = String(i + 1).length < 2 ? '0' + (i + 1) : String(i + 1);
+      var qt = document.createElement('span');
+      qt.className = 'qt';
+      qt.textContent = f.q;
+      var inp = document.createElement('input');
+      inp.type = 'text';
+      inp.setAttribute('autocomplete', 'off');
+      inp.setAttribute('aria-label', '第 ' + (i + 1) + ' 題：' + f.q);
+      inp.setAttribute('data-fid', f.id);
+      inp._fid = f.id;
+      inp.addEventListener('input', updateAnswered);
+      row.appendChild(qn); row.appendChild(qt); row.appendChild(inp);
+      paper.appendChild(row);
+      examInputs.push(inp);
+    });
+    updateAnswered();
+  }
+  function collect() {
+    var out = {}, i;
+    for (i = 0; i < examInputs.length; i++) out[examInputs[i]._fid] = examInputs[i].value;
+    return out;
+  }
+  function updateAnswered() {
+    var i, n = 0;
+    for (i = 0; i < examInputs.length; i++) if (RRX.normalize(examInputs[i].value)) n++;
+    $('answered').textContent = '已作答 ' + n + ' / ' + examInputs.length;
+  }
+
+  $('submitExam').addEventListener('click', function () {
+    $('submitExam').disabled = true;
+    var ans = collect();
+    var gRe = RRX.gradeAll(ARM.re.mat.facts, ans);
+    var gRt = RRX.gradeAll(ARM.rt.mat.facts, ans);
+    state.score = { re: gRe, rt: gRt };
+    state.gap = RRX.computeGap({
+      predReread: state.pred.re, predRetrieve: state.pred.rt,
+      scoreReread: gRe.correct, totalReread: gRe.total,
+      scoreRetrieve: gRt.correct, totalRetrieve: gRt.total
+    });
+    save();
+    railSet(5, 0, 'done');
+    showResult();
+    goTo($('st6'));
+  });
+
+  function save() {
+    try {
+      localStorage.setItem(LS + 'last', JSON.stringify({
+        t: Date.now(),
+        reMat: ARM.re.mat.id, first: ORDER[0].mode,
+        pred: state.pred, gap: state.gap
+      }));
+    } catch (e) {}
+  }
+  function lastRun() {
+    try {
+      var raw = localStorage.getItem(LS + 'last');
+      if (!raw) return null;
+      var o = JSON.parse(raw);
+      return (o && o.gap) ? o : null;
+    } catch (e) { return null; }
+  }
+  var prev = lastRun();
+
+  /* ---------- 圖表 ---------- */
+  var cvYou = $('cvYou'), cvStudy = $('cvStudy');
+  var youP = 0, studyP = 0, drawn = false;
+
+  function fitCanvas(cv, force) {
+    var w = cv.clientWidth, h = cv.clientHeight;
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    if (!w || !h) return false;
+    if (!force && cv._w === w && cv._h === h && cv._d === d) return false;
+    cv._w = w; cv._h = h; cv._d = d;
+    cv.width = Math.round(w * d);
+    cv.height = Math.round(h * d);
+    var c = cv.getContext('2d');
+    if (c && c.setTransform) c.setTransform(d, 0, 0, d, 0, 0);
+    return true;
+  }
+
+  var CSSV = { re: '#f2a03c', rt: '#46cfc4', you: '#ff5f8d', line: '#1b2430', line2: '#2a3543', dim: '#8a97a6', dim2: '#5b6673', ink: '#e9eef5' };
+
+  function axisFont(ctx, size) { ctx.font = size + 'px ' + '-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC",sans-serif'; }
+
+  function drawYou(p) {
+    if (!state.gap) return;
+    var cv = cvYou, ctx = cv.getContext('2d');
+    if (!ctx) return;
+    var W = cv._w || cv.clientWidth, H = cv._h || cv.clientHeight;
+    if (!W || !H) return;
+    ctx.clearRect(0, 0, W, H);
+    var padL = 40, padR = 18, padT = 26, padB = 54;
+    var x0 = padL, x1 = W - padR, y0 = H - padB, y1 = padT;
+    var span = y0 - y1;
+    var yOf = function (v) { return y0 - (v / 100) * span; };
+
+    /* 格線 */
+    ctx.strokeStyle = CSSV.line; ctx.lineWidth = 1;
+    axisFont(ctx, 10); ctx.fillStyle = CSSV.dim2;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    [0, 25, 50, 75, 100].forEach(function (v) {
+      var y = Math.round(yOf(v)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+      ctx.fillText(v + '%', x0 - 8, y);
+    });
+
+    var groups = [
+      { key: 're', col: CSSV.re, name: '讀三遍的那半', pred: state.gap.predReread, act: state.gap.actualReread, mat: ARM.re.mat.title },
+      { key: 'rt', col: CSSV.rt, name: '回想三次的那半', pred: state.gap.predRetrieve, act: state.gap.actualRetrieve, mat: ARM.rt.mat.title }
+    ];
+    var gw = (x1 - x0) / 2;
+    var bw = Math.min(58, gw * 0.28);
+    groups.forEach(function (g, i) {
+      var cx = x0 + gw * i + gw / 2;
+      var xPred = cx - bw - 6, xAct = cx + 6;
+
+      /* 預測：空心＋虛線頂 */
+      var yp = yOf(g.pred);
+      ctx.save();
+      ctx.strokeStyle = CSSV.you; ctx.lineWidth = 1.4;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeRect(xPred + 0.5, yp + 0.5, bw, y0 - yp);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,95,141,.10)';
+      ctx.fillRect(xPred, yp, bw, y0 - yp);
+
+      /* 實際：實心，動畫長高 */
+      var h = (y0 - yOf(g.act)) * p;
+      ctx.fillStyle = g.col;
+      ctx.fillRect(xAct, y0 - h, bw, h);
+
+      /* 標籤 */
+      axisFont(ctx, 11); ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = CSSV.you;
+      ctx.fillText(g.pred + '%', xPred + bw / 2, yp - 6);
+      if (p > 0.55) {
+        ctx.fillStyle = g.col;
+        ctx.fillText(g.act + '%', xAct + bw / 2, y0 - h - 6);
+      }
+      axisFont(ctx, 11.5); ctx.textBaseline = 'top'; ctx.fillStyle = CSSV.ink;
+      ctx.fillText(g.name, cx, y0 + 10);
+      axisFont(ctx, 10); ctx.fillStyle = CSSV.dim2;
+      ctx.fillText(g.mat, cx, y0 + 27);
+    });
+
+    /* 圖例：第二段依實際量到的寬度接上去，窄畫布也不會疊住 */
+    axisFont(ctx, 10); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    var leg1 = '虛線＝你考前的預測';
+    ctx.fillStyle = CSSV.you; ctx.fillText(leg1, x0 + 2, y1 - 12);
+    ctx.fillStyle = CSSV.dim2;
+    ctx.fillText('實心＝實際答對', x0 + 2 + ctx.measureText(leg1).width + 16, y1 - 12);
+
+    /* 基線 */
+    ctx.strokeStyle = CSSV.line2; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, y0 + 0.5); ctx.lineTo(x1, y0 + 0.5); ctx.stroke();
+  }
+
+  var STUDY = {
+    labels: ['5 分鐘後', '2 天後', '1 週後'],
+    reread: [81, 54, 42],
+    tested: [75, 68, 56]
+  };
+
+  function drawStudy(p) {
+    var cv = cvStudy, ctx = cv.getContext('2d');
+    if (!ctx) return;
+    var W = cv._w || cv.clientWidth, H = cv._h || cv.clientHeight;
+    if (!W || !H) return;
+    ctx.clearRect(0, 0, W, H);
+    var padL = 40, padR = 74, padT = 26, padB = 40;
+    var x0 = padL, x1 = W - padR, y0 = H - padB, y1 = padT;
+    var span = y0 - y1;
+    var lo = 30, hi = 90;
+    var yOf = function (v) { return y0 - ((v - lo) / (hi - lo)) * span; };
+    var xOf = function (i) { return x0 + (x1 - x0) * (i / 2); };
+
+    ctx.strokeStyle = CSSV.line; ctx.lineWidth = 1;
+    axisFont(ctx, 10); ctx.fillStyle = CSSV.dim2;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    [40, 50, 60, 70, 80].forEach(function (v) {
+      var y = Math.round(yOf(v)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+      ctx.fillText(v + '%', x0 - 8, y);
+    });
+    axisFont(ctx, 11); ctx.textAlign = 'center'; ctx.textBaseline = 'top'; ctx.fillStyle = CSSV.dim;
+    STUDY.labels.forEach(function (t, i) { ctx.fillText(t, xOf(i), y0 + 10); });
+
+    /* 依實際時間方向（左→右）逐段畫，不會倒放 */
+    function poly(vals, col, dash, marker, label, above) {
+      var totalSeg = 2, prog = p * totalSeg;
+      ctx.save();
+      ctx.strokeStyle = col; ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (dash) ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(xOf(0), yOf(vals[0]));
+      for (var i = 0; i < totalSeg; i++) {
+        var t = Math.max(0, Math.min(1, prog - i));
+        if (t <= 0) break;
+        var ax = xOf(i), ay = yOf(vals[i]), bx = xOf(i + 1), by = yOf(vals[i + 1]);
+        ctx.lineTo(ax + (bx - ax) * t, ay + (by - ay) * t);
+      }
+      ctx.stroke();
+      ctx.restore();
+
+      for (var k = 0; k <= 2; k++) {
+        if (prog < k - 0.001) break;
+        var mx = xOf(k), my = yOf(vals[k]);
+        ctx.fillStyle = col;
+        if (marker === 'square') ctx.fillRect(mx - 3.5, my - 3.5, 7, 7);
+        else { ctx.beginPath(); ctx.arc(mx, my, 4, 0, Math.PI * 2); ctx.fill(); }
+        axisFont(ctx, 10.5);
+        /* 左端靠右排、右端靠左排，才不會壓到 y 軸刻度與線末的名稱 */
+        ctx.textAlign = k === 0 ? 'left' : (k === 2 ? 'right' : 'center');
+        ctx.textBaseline = above ? 'bottom' : 'top';
+        ctx.fillText(vals[k] + '%', mx + (k === 0 ? 8 : (k === 2 ? -8 : 0)), my + (above ? -9 : 9));
+      }
+      if (p >= 0.98) {
+        axisFont(ctx, 11); ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = col;
+        ctx.fillText(label, xOf(2) + 12, yOf(vals[2]));
+      }
+    }
+    /* 數字標籤一上一下，交叉點附近才不會疊住 */
+    poly(STUDY.reread, CSSV.re, false, 'square', '重複閱讀', true);
+    poly(STUDY.tested, CSSV.rt, true, 'circle', '考過一次', false);
+
+    ctx.strokeStyle = CSSV.line2; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0, y0 + 0.5); ctx.lineTo(x1, y0 + 0.5); ctx.stroke();
+  }
+
+  function redrawAll() {
+    if (!drawn) return;
+    fitCanvas(cvYou); drawYou(youP);
+    fitCanvas(cvStudy); drawStudy(studyP);
+  }
+
+  var rzT = null;
+  window.addEventListener('resize', function () {
+    window.clearTimeout(rzT);
+    rzT = window.setTimeout(function () {
+      if (!drawn) return;
+      var a = fitCanvas(cvYou), b = fitCanvas(cvStudy);
+      if (a) drawYou(youP);
+      if (b) drawStudy(studyP);
+    }, 130);
+  });
+
+  /* ---------- 結果 ---------- */
+  function showResult() {
+    var g = state.gap;
+    drawn = true;
+    fitCanvas(cvYou, true);
+    fitCanvas(cvStudy, true);
+    youP = 0; studyP = 0;
+    drawYou(0); drawStudy(0);
+
+    startAnim(1100, function (t) {
+      youP = t < 0 ? 0 : (t > 1 ? 1 : t);
+      drawYou(youP);
+      if (youP >= 1) {
+        startAnim(1300, function (u) { studyP = u; drawStudy(studyP); });
+      }
+    });
+
+    var bet = state.pred.bet;
+    var betTxt = bet === 're' ? '你押的是讀三遍那半'
+      : (bet === 'rt' ? '你押的是回想三次那半' : '你覺得兩半差不多');
+    $('capYou').textContent = betTxt + '（' + g.predReread + '% 對 ' + g.predRetrieve + '%）；實際是 '
+      + g.actualReread + '% 對 ' + g.actualRetrieve + '%。'
+      + '「' + ARM.re.mat.title + '」被分到重複閱讀，「' + ARM.rt.mat.title + '」被分到提取練習——那是開頁時擲硬幣決定的。';
+
+    var v;
+    if (g.retrievalWon) {
+      v = '在只有一分鐘的延遲下，回想那半就已經贏了 ' + Math.abs(g.actualGap) + ' 個百分點。原研究要到第二天才會看到這個方向。';
+    } else if (g.tieActual) {
+      v = '兩半打平。這在一分鐘的延遲下很正常——原研究裡兩條線的交叉點也不在五分鐘，而在兩天以後。';
+    } else {
+      v = '讀三遍那半贏了 ' + g.actualGap + ' 個百分點。這也是原研究在五分鐘時看到的方向（81% 對 75%）。問題不在今天，在第二天。';
+    }
+    if (Math.abs(g.miss) >= 15) {
+      v += ' 而你押的落差是 ' + g.predGap + ' 個百分點，實際是 ' + g.actualGap + '——你對「哪一半比較牢」的判斷，偏了 ' + Math.abs(g.miss) + ' 個百分點。';
+    }
+    $('verdict').textContent = v;
+    $('resHead').textContent = g.backedReread ? '你押了讀得比較順的那一半。' : '你押的，和你考的。';
+
+    var lens = '';
+    if (state.recallsRT.length === 3) {
+      var lens3 = state.recallsRT.map(function (s) { return RRX.normalize(s).length; });
+      lens = '你三次回想寫下的字數：' + lens3.join(' / ') + '。原研究裡三次測驗的成績也幾乎沒動（20.9、21.2、21.1 個意念單位）——沒有回饋，你一個新字都沒學到。可是一週後，你會記得比較多。';
+    }
+    if (prev && prev.gap) {
+      lens += (lens ? ' ' : '') + '（上一次你押 ' + prev.gap.predReread + '% 對 ' + prev.gap.predRetrieve + '%，考出來是 ' + prev.gap.actualReread + '% 對 ' + prev.gap.actualRetrieve + '%。）';
+    }
+    $('recallLens').textContent = lens;
+
+    cvYou.setAttribute('aria-label',
+      '長條圖：讀三遍那半，你預測 ' + g.predReread + '%、實際 ' + g.actualReread + '%；'
+      + '回想三次那半，你預測 ' + g.predRetrieve + '%、實際 ' + g.actualRetrieve + '%。');
+    watchReveal($('st6'));
+  }
+
+  /* ---------- 回馬槍 ---------- */
+  var CODA = [
+    { q: '這頁引的那份研究，最終測驗分別排在多久之後？',
+      opts: ['5 分鐘 / 1 天 / 1 個月', '5 分鐘 / 2 天 / 1 週', '立刻 / 3 天 / 1 個月', '1 小時 / 1 週 / 1 個月'], a: 1 },
+    { q: '一週後，把文章讀了四遍的那組答對了幾成？',
+      opts: ['40%', '56%', '61%', '75%'], a: 0 },
+    { q: '學習階段的那幾次測驗，有給受試者對錯回饋嗎？',
+      opts: ['有，每題都對答案', '只有答錯的才給', '完全沒有', '受試者可以自己選'], a: 2 }
+  ];
+
+  $('toCoda').addEventListener('click', function () {
+    $('toCoda').disabled = true;
+    goTo($('st7'));
+  });
+
+  var codaInputs = [];
+  $('codaStart').addEventListener('click', function () {
+    $('codaStart').hidden = true;
+    var paper = $('codaPaper');
+    paper.innerHTML = '';
+    codaInputs = [];
+    CODA.forEach(function (item, i) {
+      var row = document.createElement('div');
+      row.className = 'qrow';
+      var qn = document.createElement('span');
+      qn.className = 'qn'; qn.textContent = '0' + (i + 1);
+      var qt = document.createElement('span');
+      qt.className = 'qt'; qt.textContent = item.q;
+      row.appendChild(qn); row.appendChild(qt);
+      var box = document.createElement('div');
+      box.className = 'picks';
+      var group = [];
+      item.opts.forEach(function (o, k) {
+        var lab = document.createElement('label');
+        lab.className = 'pick';
+        var inp = document.createElement('input');
+        inp.type = 'radio'; inp.name = 'coda' + i; inp.value = String(k);
+        var sp = document.createElement('span'); sp.textContent = o;
+        lab.appendChild(inp); lab.appendChild(sp);
+        box.appendChild(lab);
+        group.push({ input: inp, label: lab });
+      });
+      codaInputs.push(group);
+      row.appendChild(box);
+      paper.appendChild(row);
+    });
+    paper.hidden = false;
+    $('codaSubmit').hidden = false;
+    watchReveal(paper);
+  });
+
+  $('codaSubmit').addEventListener('click', function () {
+    $('codaSubmit').disabled = true;
+    var n = 0;
+    CODA.forEach(function (item, i) {
+      var group = codaInputs[i] || [], picked = -1, k;
+      for (k = 0; k < group.length; k++) if (group[k].input.checked) picked = k;
+      if (picked === item.a) n++;
+      for (k = 0; k < group.length; k++) {
+        group[k].input.disabled = true;
+        if (k === item.a) group[k].label.classList.add('on');
+      }
+    });
+    $('codaScore').textContent = '三題答對 ' + n + ' 題。';
+    $('codaOut').hidden = false;
+    watchReveal($('codaOut'));
+  });
+
+  /* ---------- 初始 ---------- */
+  watchReveal(document);
+  setRunning();
+
+  /* 開發自檢：兩半材料必須對等（不對等就在主控台喊，不影響使用者） */
+  (function () {
+    var eq = RRX.equivalence();
+    if (!eq.sameFactCount || !eq.sameSlotSequence || eq.charDelta > 8 || eq.punctA !== eq.punctB) {
+      if (window.console && console.warn) console.warn('[rereadx26] 兩半材料不對等', eq);
+    }
+  })();
+})();
+</script>
+
+</body>
+</html>

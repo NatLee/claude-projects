@@ -512,17 +512,20 @@
     poly3([[-HW, FLOOR, 0.45], [HW, FLOOR, 0.45], [HW, FLOOR, ZF], [-HW, FLOOR, ZF]]);
     var fh = proj([0, FLOOR, ZF]).y, fn = proj([0, FLOOR, 0.6]).y;
     var fg = ctx.createLinearGradient(0, fh, 0, fn);
-    fg.addColorStop(0, '#0d1720'); fg.addColorStop(1, '#070d13');
+    fg.addColorStop(0, '#152430'); fg.addColorStop(0.55, '#101c26'); fg.addColorStop(1, '#0a121a');
     ctx.fillStyle = fg; ctx.fill();
 
     var wg = ctx.createLinearGradient(0, 0, W, 0);
-    wg.addColorStop(0, '#0c141d'); wg.addColorStop(0.5, '#080f16'); wg.addColorStop(1, '#0c141d');
+    wg.addColorStop(0, '#16232e'); wg.addColorStop(0.5, '#0d151d'); wg.addColorStop(1, '#16232e');
     poly3([[-HW, FLOOR, 0.45], [-HW, CEIL, 0.75], [-HW, CEIL, ZF], [-HW, FLOOR, ZF]]);
     ctx.fillStyle = wg; ctx.fill();
     poly3([[HW, FLOOR, 0.45], [HW, CEIL, 0.75], [HW, CEIL, ZF], [HW, FLOOR, ZF]]);
     ctx.fill();
     poly3([[-HW, FLOOR, ZF], [HW, FLOOR, ZF], [HW, CEIL, ZF], [-HW, CEIL, ZF]]);
-    ctx.fillStyle = '#0a121a'; ctx.fill();
+    ctx.fillStyle = '#111d27'; ctx.fill();
+    /* 天花板：壓在上緣，房間才有蓋子 */
+    poly3([[-HW, CEIL, 0.75], [HW, CEIL, 0.75], [HW, CEIL, ZF], [-HW, CEIL, ZF]]);
+    ctx.fillStyle = '#080e15'; ctx.fill();
 
     /* 地板上的一圈燈光 */
     var lp = proj([0, FLOOR, 2.0]);
@@ -825,18 +828,24 @@
     if (!isFinite(hand.x)) return;
     /* 從畫面右緣入鏡，不是從角落拉一條大對角線 */
     var ex = W * 1.08, ey = H * 0.86;
-    var wArm = clamp(0.070 * hand.s, 9, 22);
+    /* 前臂畫成上粗下細的多邊形：等寬的長條看起來像木板，不像手臂 */
+    var wNear = clamp(0.115 * hand.s, 16, 46);   /* 靠近畫面邊緣、離鏡頭最近的那一端 */
+    var wFar = clamp(0.062 * hand.s, 8, 20);     /* 手腕 */
+    var dx = hand.x - ex, dy = hand.y - ey, dl = Math.hypot(dx, dy) || 1;
+    var nx = -dy / dl, ny = dx / dl;
     ctx.save();
     ctx.globalAlpha = fade;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = '#0b1219';
-    ctx.lineWidth = wArm + 3;
-    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hand.x, hand.y); ctx.stroke();
-    var ag = ctx.createLinearGradient(ex, ey, hand.x, hand.y);
-    ag.addColorStop(0, '#1a2833'); ag.addColorStop(1, '#2a3d4c');
-    ctx.strokeStyle = ag;
-    ctx.lineWidth = wArm;
-    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(ex + nx * wNear, ey + ny * wNear);
+    ctx.lineTo(hand.x + nx * wFar, hand.y + ny * wFar);
+    ctx.lineTo(hand.x - nx * wFar, hand.y - ny * wFar);
+    ctx.lineTo(ex - nx * wNear, ey - ny * wNear);
+    ctx.closePath();
+    var ag = ctx.createLinearGradient(ex + nx * wNear, ey + ny * wNear, ex - nx * wNear, ey - ny * wNear);
+    ag.addColorStop(0, '#31465a'); ag.addColorStop(0.5, '#1d2b38'); ag.addColorStop(1, '#0d151d');
+    ctx.fillStyle = ag; ctx.fill();
+    ctx.strokeStyle = 'rgba(140,186,210,.16)'; ctx.lineWidth = 1.2; ctx.stroke();
     /* 拳頭 */
     var hr = clamp(0.042 * hand.s, 5, 15);
     var hg2 = ctx.createRadialGradient(hand.x - hr * 0.4, hand.y - hr * 0.4, hr * 0.1, hand.x, hand.y, hr);

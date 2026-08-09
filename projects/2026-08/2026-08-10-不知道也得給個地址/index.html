@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>不知道也得給個地址 · 每日小專案</title>
+<style>
+:root{
+  --bg:#0a0c10; --bg2:#0e1219; --panel:#131926; --line:#25314a;
+  --ink:#e8e3d8; --ink2:#a9b1c2; --ink3:#6f7a8f;
+  --dawn:#e9b566; --wheat:#c9a45e; --field:#2a2b22; --field2:#33342a;
+  --pin:#e0463c; --pin2:#ff6a52; --cyan:#63d3e0; --lake:#2b5f7a;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); line-height:2;
+  font-size:clamp(16px,1rem + .2vw,18px);
+}
+p{margin:0 0 1.15em}
+main{display:block}
+section{position:relative; padding:clamp(76px,13vh,140px) 22px}
+.wrap{max-width:660px; margin:0 auto}
+.home{
+  position:absolute; top:16px; left:18px; z-index:20;
+  color:#67718a; text-decoration:none; font-size:13px; letter-spacing:.08em;
+  padding:5px 9px; border-radius:5px; transition:color .25s,background .25s;
+}
+.home:hover,.home:focus-visible{color:var(--ink); background:rgba(255,255,255,.07)}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:3px}
+.mono{font-family:var(--mono)}
+.dim{color:var(--ink3)}
+
+/* ---------- 進場 ---------- */
+.rv{opacity:0; transform:translateY(18px); transition:opacity .9s cubic-bezier(.2,.7,.3,1),transform .9s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+
+/* ---------- 第一屏 ---------- */
+#open{
+  min-height:100svh; display:flex; align-items:center; justify-content:center;
+  padding:100px 22px 130px; overflow:hidden; isolation:isolate; text-align:left;
+}
+#open::before{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:46%;
+  background:linear-gradient(180deg,rgba(233,181,102,0) 0%,rgba(233,181,102,.09) 62%,rgba(233,181,102,.22) 100%);
+  z-index:-2;
+}
+#open::after{
+  content:""; position:absolute; left:-10%; right:-10%; bottom:12%; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(233,181,102,.55) 30%,rgba(233,181,102,.75) 55%,transparent);
+  z-index:-1;
+}
+.stamp{font-family:var(--mono); font-size:12.5px; letter-spacing:.22em; color:var(--dawn); margin-bottom:26px}
+h1{
+  font-size:clamp(34px,8.4vw,60px); line-height:1.24; margin:0 0 26px;
+  font-weight:600; letter-spacing:.01em;
+}
+.lead{font-size:clamp(17px,1.06rem + .2vw,20px); color:#cfc9bd; max-width:33em}
+.cue{
+  position:absolute; left:50%; bottom:34px; transform:translateX(-50%);
+  font-size:11.5px; letter-spacing:.2em; color:#5d6478; font-family:var(--mono);
+  animation:bob 2.6s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);opacity:.55}50%{transform:translateX(-50%) translateY(7px);opacity:1}}
+
+/* ---------- 敲門紀錄 ---------- */
+#knocks{background:var(--bg2)}
+.log{list-style:none; margin:0 0 34px; padding:0; border-left:1px solid var(--line)}
+.log li{
+  position:relative; padding:11px 0 11px 22px; color:var(--ink2);
+  font-size:16.5px; line-height:1.75;
+}
+.log li::before{
+  content:""; position:absolute; left:-3.5px; top:22px; width:6px; height:6px;
+  border-radius:50%; background:var(--pin); box-shadow:0 0 0 3px var(--bg2);
+}
+.log li b{color:var(--ink); font-weight:600; font-family:var(--mono); font-size:13px; letter-spacing:.04em; margin-right:.55em}
+.punch{font-size:clamp(19px,1.2rem + .4vw,24px); line-height:1.7; color:var(--ink); margin-top:8px}
+
+/* ---------- 那棟房子 ---------- */
+.bignum{
+  font-family:var(--mono); font-variant-numeric:tabular-nums;
+  font-size:clamp(38px,11vw,74px); line-height:1.1; color:var(--pin2);
+  letter-spacing:-.02em; margin:34px 0 6px; word-break:break-all;
+}
+.bigcap{font-size:14.5px; color:var(--ink3); letter-spacing:.05em; margin-bottom:34px}
+
+/* ---------- 主控台 ---------- */
+#console{background:linear-gradient(180deg,var(--bg2),#0b0f16)}
+.term{
+  border:1px solid var(--line); border-radius:12px; background:var(--panel);
+  padding:22px 20px; margin:26px 0; font-family:var(--mono); font-size:14px;
+  line-height:1.85; color:var(--ink2); box-shadow:0 24px 60px -34px #000;
+}
+.term .bar{
+  display:flex; align-items:center; gap:7px; margin:-22px -20px 18px; padding:11px 16px;
+  border-bottom:1px solid var(--line); font-size:11.5px; letter-spacing:.14em; color:var(--ink3);
+}
+.term .bar i{width:8px; height:8px; border-radius:50%; background:#2f3a52; display:block}
+.q{color:var(--ink); font-family:var(--serif); font-size:17px; line-height:1.85; margin:0 0 16px}
+.opts{display:flex; flex-direction:column; gap:10px; margin:0 0 4px}
+button{font:inherit; color:inherit; cursor:pointer}
+.opt{
+  text-align:left; background:#182031; border:1px solid var(--line); color:var(--ink);
+  border-radius:9px; padding:13px 15px; font-family:var(--mono); font-size:13.5px;
+  line-height:1.6; transition:background .2s,border-color .2s,transform .12s,opacity .3s;
+}
+.opt:hover:not(:disabled){background:#1e2a40; border-color:#3b4b6d}
+.opt:active:not(:disabled){transform:translateY(1px)}
+.opt:disabled{opacity:.34; cursor:default}
+.opt.picked{border-color:var(--cyan); background:#16283040}
+.reply{
+  margin:14px 0 0; padding:13px 15px; border-left:2px solid var(--dawn);
+  background:#1a1a1408; color:#d6cfc0; font-family:var(--serif); font-size:16px; line-height:1.8;
+  display:none;
+}
+.reply.show{display:block; animation:fade .5s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.step{display:none; margin-top:30px}
+.step.show{display:block; animation:fade .6s ease both}
+
+.coord{
+  font-family:var(--mono); font-size:clamp(22px,6.4vw,34px); letter-spacing:.02em;
+  color:var(--cyan); margin:6px 0 4px; font-variant-numeric:tabular-nums;
+  transition:color .4s;
+}
+.coord.ugly{color:var(--ink2)}
+.coordcap{font-size:13.5px; color:var(--ink3); margin-bottom:18px; font-family:var(--serif)}
+.btn{
+  background:var(--cyan); color:#06222a; border:0; border-radius:9px;
+  padding:12px 20px; font-family:var(--mono); font-size:13.5px; letter-spacing:.06em;
+  font-weight:700; transition:filter .2s,transform .12s,opacity .3s;
+}
+.btn:hover:not(:disabled){filter:brightness(1.12)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.35; cursor:default}
+.btn.deploy{background:var(--pin); color:#fff; padding:15px 28px; font-size:15px; letter-spacing:.12em}
+.btn.ghost{background:transparent; color:var(--ink); border:1px solid var(--line)}
+.jump{
+  margin:12px 0 0; font-family:var(--serif); font-size:17px; color:var(--dawn);
+  display:none;
+}
+.jump.show{display:block; animation:fade .5s ease both}
+
+/* 精度 */
+.prec{display:grid; grid-template-columns:150px 1fr; gap:24px; align-items:center; margin:20px 0 6px}
+.boxwrap{
+  position:relative; width:150px; height:150px; border:1px dashed #33405c; border-radius:6px;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  background:repeating-linear-gradient(45deg,#141a26,#141a26 8px,#161d2b 8px,#161d2b 16px);
+}
+.boxwrap::after{
+  content:""; position:absolute; left:50%; top:50%; width:5px; height:5px; margin:-2.5px 0 0 -2.5px;
+  border-radius:50%; background:var(--pin); z-index:2;
+}
+.gridbox{
+  width:140px; height:140px; border:1.5px solid var(--cyan); background:rgba(99,211,224,.09);
+  border-radius:2px; transition:transform .55s cubic-bezier(.3,.8,.3,1);
+  transform-origin:center;
+}
+input[type=range]{width:100%; accent-color:var(--cyan); height:26px}
+.preclab{font-family:var(--mono); font-size:13px; color:var(--ink2); margin-top:10px; line-height:1.9}
+.preclab b{color:var(--cyan); font-weight:600}
+@media(max-width:560px){
+  .prec{grid-template-columns:1fr; gap:16px; justify-items:center}
+  .boxwrap{width:132px; height:132px}
+  .gridbox{width:124px; height:124px}
+  .precright{width:100%}
+}
+
+/* ---------- 第三幕：黏住的地圖 ＋ 捲動節拍 ---------- */
+#act3{display:none; padding:0; background:#06080c}
+#act3.show{display:block}
+.stage{
+  position:sticky; top:0; z-index:5; background:#06080c;
+  padding:14px 14px 12px; border-bottom:1px solid #131a27;
+}
+.stagein{position:relative; max-width:760px; margin:0 auto}
+canvas{
+  display:block; width:100%; aspect-ratio:16/10; border-radius:10px;
+  background:#0b0d10;
+}
+@supports not (aspect-ratio:16/10){ canvas{height:56vw; max-height:420px} }
+.hud{
+  position:absolute; left:12px; top:11px; font-family:var(--mono);
+  font-size:11.5px; letter-spacing:.1em; color:#8b96ab; pointer-events:none;
+  text-shadow:0 1px 6px #000;
+}
+.hud .n{
+  display:block; font-size:clamp(20px,5.4vw,30px); letter-spacing:0; color:var(--pin2);
+  font-variant-numeric:tabular-nums; margin-top:2px;
+}
+.beats{max-width:660px; margin:0 auto; padding:64px 22px 40px}
+.beat{margin:0 0 78px}
+.beat .yr{
+  font-family:var(--mono); font-size:12.5px; letter-spacing:.18em; color:var(--dawn);
+  display:block; margin-bottom:9px;
+}
+.beat p{font-size:17px; line-height:1.95; color:#ccc6ba; margin:0}
+.beat.big p{font-size:clamp(19px,1.2rem + .4vw,23px); color:var(--ink)}
+.movewrap{margin:0 0 40px; text-align:center}
+.after{
+  display:none; margin-top:26px; font-size:clamp(19px,1.2rem + .4vw,23px);
+  color:var(--ink); line-height:1.75;
+}
+.after.show{display:block; animation:fade .8s ease both}
+
+/* ---------- 收尾 ---------- */
+#ocean{
+  background:linear-gradient(180deg,#06080c 0%,#071722 45%,#04101a 100%);
+  min-height:96svh; display:flex; align-items:center;
+}
+.buoy{
+  font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--cyan);
+  border:1px solid #1d3f52; border-radius:9px; padding:14px 16px; margin:26px 0;
+  background:#08202c; line-height:1.9;
+}
+.last{
+  font-size:clamp(20px,1.3rem + .5vw,26px); line-height:1.72; color:var(--ink);
+  margin-top:38px; border-top:1px solid #17303e; padding-top:34px;
+}
+footer{
+  border-top:1px solid #121824; padding:30px 22px 46px; text-align:center;
+  color:#5a6376; font-size:12.5px; line-height:1.9; font-family:var(--mono);
+}
+footer p{margin:0; max-width:640px; margin:0 auto}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1; transform:none; transition:none}
+  .cue{animation:none}
+  .reply.show,.step.show,.jump.show,.after.show{animation:none}
+  .gridbox{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<main>
+
+<!-- ============ 第一屏 ============ -->
+<section id="open">
+  <div class="wrap">
+    <div class="stamp rv">堪薩斯州 · 波特溫東北 6.4 公里</div>
+    <h1 class="rv">不知道<br>也得給個地址</h1>
+    <p class="lead rv">早上六點四十分，車道上又停了車。來的人手裡有搜索票、有傳票、有擔架。他們要找的人不住在這裡——十四年來，每一次都不住在這裡。</p>
+  </div>
+  <div class="cue" aria-hidden="true">往下 ↓</div>
+</section>
+
+<!-- ============ 敲門的人 ============ -->
+<section id="knocks">
+  <div class="wrap">
+    <p class="rv dim mono" style="font-size:12.5px;letter-spacing:.18em">來過這棟房子的人（節錄）</p>
+    <ul class="log">
+      <li class="rv"><b>SHERIFF</b>找一輛被偷走的卡車。</li>
+      <li class="rv"><b>FBI</b>找一個網路詐騙集團的據點。</li>
+      <li class="rv"><b>US MARSHALS</b>找一個逃走的人。</li>
+      <li class="rv"><b>IRS</b>來收一筆沒人欠的稅。</li>
+      <li class="rv"><b>POLICE</b>找一個離家出走的少女，說她的手機顯示在這裡。</li>
+      <li class="rv"><b>AMBULANCE</b>來接一個在網路上說要自殺的退伍軍人。</li>
+      <li class="rv"><b>ANONYMOUS</b>半夜把車開進院子，只想看看「是誰在搞我」。有人在車道上丟下一個壞掉的馬桶。</li>
+    </ul>
+    <p class="punch rv">他們每一個都確定自己找對了地方。因為螢幕上就是這麼寫的。</p>
+  </div>
+</section>
+
+<!-- ============ 那棟房子 ============ -->
+<section id="house">
+  <div class="wrap">
+    <p class="rv">這是一塊三百六十英畝的地，一棟白色農舍，租給一對夫妻，屋主是一位八十二歲的女士。沒有機房，沒有駭客，連網路都是慢的。</p>
+    <p class="rv">但是在全世界的資料庫裡，有這麼多個 IP 位址說自己住在這裡：</p>
+    <div class="bignum rv" id="ipcount" aria-live="off">0</div>
+    <div class="bigcap rv">個 IP 位址 · 同一組經緯度 · 同一個院子</div>
+    <p class="rv">沒有人恨這家人。沒有人選中他們。要弄懂為什麼，得回到 2002 年，回到某個人的鍵盤前面——</p>
+    <p class="rv punch">那個人是你。</p>
+  </div>
+</section>
+
+<!-- ============ 主控台 ============ -->
+<section id="console">
+  <div class="wrap">
+    <p class="rv mono dim" style="font-size:12.5px;letter-spacing:.18em">2002 · 你的工作</p>
+    <p class="rv">你在一家很小的公司，任務只有一句話：<b>給我一個 IP，我告訴你它在哪。</b>大部分時候查得出來。剩下的那些，查不出來——可是函式還是得回傳點什麼。</p>
+
+    <div class="term rv">
+      <div class="bar" aria-hidden="true"><i></i><i></i><i></i>&nbsp;geoip / resolve.c</div>
+      <div>if (!found) {<br>&nbsp;&nbsp;&nbsp;&nbsp;return <span style="color:var(--pin2)">/* ← 你要在這裡填一個東西 */</span><br>}</div>
+    </div>
+
+    <p class="q rv">查不到的時候，你要回傳什麼？</p>
+    <div class="opts rv">
+      <button class="opt" id="o1" type="button">回傳 null——就老實說不知道</button>
+      <button class="opt" id="o2" type="button">回傳大西洋上的 0, 0</button>
+      <button class="opt" id="o3" type="button">回傳美國本土的地理中心</button>
+    </div>
+    <div class="reply" id="reply" role="status"></div>
+    <div class="jump" id="jump">…好，那就用國土中心。<button class="btn ghost" id="goCenter" type="button" style="margin-left:10px">繼續 →</button></div>
+
+    <!-- Step 2：把座標寫漂亮 -->
+    <div class="step" id="step2">
+      <p class="q">官方認定的美國本土地理中心在這裡——堪薩斯州黎巴嫩鎮附近的一塊牧場。</p>
+      <div class="coord ugly" id="c2">39°50′N&nbsp; 98°35′W</div>
+      <div class="coordcap" id="c2cap">很精準。也很難看：一串沒有人想背、沒有人想打進設定檔的數字。</div>
+      <button class="btn" id="pretty" type="button">把它寫漂亮一點</button>
+      <div class="reply" id="prettyReply" role="status"></div>
+    </div>
+
+    <!-- Step 3：小數點 -->
+    <div class="step" id="step3">
+      <p class="q">最後一件事：小數點後面留幾位？</p>
+      <div class="prec">
+        <div class="boxwrap" aria-hidden="true"><div class="gridbox" id="gbox"></div></div>
+        <div class="precright">
+          <label for="prec" style="font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;color:var(--ink3)">小數位數（往右拉拉看）</label>
+          <input type="range" id="prec" min="0" max="4" step="1" value="0"
+                 aria-label="座標小數位數" aria-describedby="preclab">
+          <div class="preclab" id="preclab" aria-live="polite"></div>
+        </div>
+      </div>
+      <p class="rv in" style="margin-top:20px">你拉的不是精度。你知道的事情一個字都沒有變多——變多的只有相信這串數字的人。</p>
+      <div style="margin-top:26px"><button class="btn deploy" id="deploy" type="button">部署</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 第三幕：黏住的地圖 ＋ 節拍 ============ -->
+<section id="act3" aria-label="預設座標落點示意">
+  <div class="stage">
+    <div class="stagein">
+      <canvas id="map" aria-label="示意地圖：所有查不到位置的 IP 都落在同一個農舍上"></canvas>
+      <div class="hud" id="hud">
+        DEFAULT_LOCATION = <span id="hudco">38.0000, -97.0000</span>
+        <span class="n" id="hudn" aria-live="polite">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="beats">
+    <div class="beat rv"><span class="yr">2002</span><p>第一批查不到的 IP 落地了。程式沒有出錯——它只是照著你寫的那行做。</p></div>
+    <div class="beat rv"><span class="yr">接下來幾年</span><p>這組座標被裝進防詐系統、廣告平台、社群網站的風控、執法單位的查詢工具。全世界任何人，查任何一個查不到的 IP，得到的都是同一個院子。</p></div>
+    <div class="beat rv"><span class="yr">2011 起</span><p>敲門的人開始出現。屋主報警，警察查了她的地址，然後告訴她：紀錄上顯示，這裡確實有問題。</p></div>
+    <div class="beat rv big"><span class="yr">2016 · 4 月</span><p>一位記者循著這組座標往回查，第一次把數字寫出來：六億個 IP 位址。這家人不是倒楣，他們是<b>預設值</b>。</p></div>
+    <div class="beat rv"><span class="yr">2016 · 8 月</span><p>房客把公司告上聯邦法院。訴狀裡寫的不是駭客攻擊，是一行設定。</p></div>
+    <div class="beat rv"><span class="yr">後來</span><p>公司把預設點搬走了。搬到堪薩斯一座水庫的水面正中央——因為沒有人住在湖裡。</p></div>
+    <div class="movewrap rv"><button class="btn deploy" id="move" type="button">把預設值搬走</button></div>
+    <div class="after" id="afterTxt">兩秒鐘。改一行設定的事。<br><span class="dim" style="font-size:.8em">——在那之前，它在那裡待了十四年。</span></div>
+  </div>
+</section>
+
+<!-- ============ 收尾 ============ -->
+<section id="ocean">
+  <div class="wrap">
+    <p class="rv">鏡頭拉遠。越過堪薩斯，越過海岸，一直到大西洋中央——赤道和本初子午線交會的那一點。</p>
+    <p class="rv">還記得你剛才沒選的那個選項嗎？</p>
+    <div class="coord rv" style="color:var(--cyan)">0.0000, 0.0000</div>
+    <p class="rv">那裡沒有島。但每年有數以百萬計「地址解析失敗」的資料被送到這個座標，多到有人替它取了名字：<b>Null Island</b>。它出現在地圖圖資裡、出現在地名資料庫裡，被人畫進地圖、做成 T 恤——一個因為錯誤而長出來的地方。</p>
+    <p class="rv">而水面上真的漂著一個東西。</p>
+    <div class="buoy rv">
+      STATION 13010 · 「SOUL」<br>
+      <span style="color:var(--ink3)">熱帶大西洋觀測浮標陣列（PIRATA）· 每天回報風速、水溫、氣壓</span>
+    </div>
+    <p class="rv">一顆浮標，在零度零分零秒的海面上，安靜地量著天氣。全世界最多人「到訪」的地點，只有它常住。</p>
+    <p class="last rv">電腦很少說「我不知道」。它會給你一個座標。<br>有時候座標上只有一顆浮標。<br>有時候，上面站著一位八十二歲的女士，正在開門。</p>
+  </div>
+</section>
+
+<footer>
+  <p>資料來源：Fusion（Kashmir Hill, 2016）、The Washington Post、Time、MaxMind 官方說明、NOAA／PIRATA 浮標資料。地圖為示意重繪，非實際航照。</p>
+</footer>
+
+</main>
+
+<script src="pure.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  /* ---------------- 常數：這一頁所有數字的來源 ---------------- */
+  var TARGET = 600000000;                 // 落在同一座標的 IP 數
+  var OFF_LAT = 39.8333, OFF_LON = -98.5833;  // 官方地理中心 39°50′N 98°35′W
+  var DEF_LAT = 38, DEF_LON = -97;            // 被寫進設定檔的那一組
+  var SHIFT_KM = haversineKm(OFF_LAT, OFF_LON, DEF_LAT, DEF_LON);
+
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+  var $ = function(id){ return document.getElementById(id); };
+
+  /* ---------------- 進場 ---------------- */
+  var revealIO = new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add('in'); revealIO.unobserve(e.target); }
+    });
+  }, { threshold:.12, rootMargin:'0px 0px -8% 0px' });
+  Array.prototype.forEach.call(document.querySelectorAll('.rv'), function(el, i){
+    el.style.transitionDelay = Math.min(i % 8, 7) * 55 + 'ms';
+    revealIO.observe(el);
+  });
+
+  /* ---------------- 大數字滾動 ---------------- */
+  var countEl = $('ipcount');
+  var countIO = new IntersectionObserver(function(es){
+    if (!es[0].isIntersecting) return;
+    countIO.disconnect();
+    if (reduced){ countEl.textContent = commas(TARGET); return; }
+    var t0 = 0, DUR = 2200;
+    var step = function(now){
+      if (!t0) t0 = now;
+      var p = Math.min(1, (now - t0) / DUR);
+      var e = 1 - Math.pow(1 - p, 3);
+      countEl.textContent = commas(Math.round(TARGET * e));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, { threshold:.6 });
+  countIO.observe(countEl);
+
+  /* ---------------- 主控台：三個選項 ---------------- */
+  var replies = {
+    o1: '誠實。可是下游那張地圖畫不出 null——它會空白、會當掉，客戶會打電話進來問「你們的資料是不是壞了」。你的主管說：隨便給個點就好。',
+    o2: '幾內亞灣，離最近的陸地六百公里。乾淨、俐落、絕對不會有人住。記住這個選項——等一下我們會再回到那裡。不過你的客戶都在美國，他們不想每次「不知道」就被丟到非洲外海。',
+    o3: '很合理。不知道在哪，就說在正中間——誤差平均起來最小。教科書會同意你。'
+  };
+  var picked = false;
+  ['o1','o2','o3'].forEach(function(id){
+    $(id).addEventListener('click', function(){
+      if (picked) return;
+      picked = true;
+      this.classList.add('picked');
+      ['o1','o2','o3'].forEach(function(o){ if (o !== id) $(o).disabled = true; });
+      var r = $('reply');
+      r.textContent = replies[id];
+      r.classList.add('show');
+      if (id === 'o3'){
+        setTimeout(function(){ $('step2').classList.add('show'); }, reduced ? 0 : 420);
+      } else {
+        $('jump').classList.add('show');
+      }
+    });
+  });
+  $('goCenter').addEventListener('click', function(){
+    $('jump').style.display = 'none';
+    $('step2').classList.add('show');
+    $('step2').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block:'center' });
+  });
+
+  /* ---------------- 把座標寫漂亮 ---------------- */
+  var prettied = false;
+  $('pretty').addEventListener('click', function(){
+    if (prettied) return;
+    prettied = true;
+    this.disabled = true;
+    var c = $('c2');
+    c.classList.remove('ugly');
+    c.textContent = toDM(DEF_LAT,'lat') + '  ' + toDM(DEF_LON,'lon');
+    $('c2cap').textContent = '38 度、97 度。整整齊齊，好記，打起來快。';
+    var pr = $('prettyReply');
+    pr.innerHTML = '你剛剛把這個點往東南方移了 <b style="color:var(--pin2)">' + fmtKm(SHIFT_KM) +
+      '</b>。它離開了那塊牧場，落進另一戶人家的院子——一塊三百六十英畝的地，一棟白色農舍。你當然不知道，地圖上那裡什麼都沒有。';
+    pr.classList.add('show');
+    setTimeout(function(){ $('step3').classList.add('show'); }, reduced ? 0 : 700);
+  });
+  function fmtKm(km){
+    return (Math.round(km * 10) / 10).toString() + ' 公里';
+  }
+
+  /* ---------------- 小數位數 ---------------- */
+  var slider = $('prec'), gbox = $('gbox'), preclab = $('preclab');
+  var SCALES = [1, .42, .175, .073, .03];
+  function renderPrec(){
+    var d = parseInt(slider.value, 10);
+    gbox.style.transform = 'scale(' + SCALES[d] + ')';
+    var g = gridMeters(d);
+    var co = fixed(DEF_LAT, d) + ', ' + fixed(DEF_LON, d);
+    var tail = d === 0 ? '比一整個郡還大。'
+             : d === 1 ? '一座小鎮。'
+             : d === 2 ? '幾條街。'
+             : d === 3 ? '一個街廓。'
+             : '一棟房子的大小。';
+    preclab.innerHTML = '<b>' + co + '</b><br>這串數字宣稱的解析度：<b>' + humanMeters(g) + '</b> 見方——' + tail;
+    $('hudco').textContent = co;
+  }
+  slider.addEventListener('input', renderPrec);
+  renderPrec();
+
+  /* ---------------- 第三幕：地圖 ---------------- */
+  var act3 = $('act3'), cvs = $('map'), ctx = cvs.getContext('2d');
+  var cw = 0, ch = 0;
+  var DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  function fit(){
+    var r = cvs.getBoundingClientRect();
+    if (!r.width) return false;
+    cw = r.width; ch = r.height || r.width * 0.625;
+    var w = Math.round(cw * DPR), h = Math.round(ch * DPR);
+    /* 先比較再指定：否則 ResizeObserver 會每幀翻倍，整張圖消失 */
+    if (cvs.width !== w || cvs.height !== h){ cvs.width = w; cvs.height = h; }
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    return true;
+  }
+
+  /* 世界座標：100 × 62.5（與 16:10 對齊） */
+  var FARM = { x: 63.5, y: 25 };
+  var LAKE = { x: 25, y: 45, rx: 12, ry: 6.6 };
+  var cam = { x: 50, y: 31.25, z: 1 };
+  function K(){ return cw / 100; }
+  function SX(x){ return (x - cam.x) * K() * cam.z + cw / 2; }
+  function SY(y){ return (y - cam.y) * K() * cam.z + ch / 2; }
+
+  /* 田地：固定亂數，畫面每次都一樣 */
+  var seed = 20260810;
+  function rnd(){ seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+  var fields = [];
+  for (var fy = 0; fy < 5; fy++){
+    for (var fx = 0; fx < 8; fx++){
+      fields.push({ x: fx * 12.5, y: fy * 12.5, w: 12.5, h: 12.5, t: rnd() });
+    }
+  }
+  var circles = [];
+  for (var ci = 0; ci < 7; ci++){
+    circles.push({ x: 6 + rnd() * 88, y: 5 + rnd() * 52, r: 3 + rnd() * 2.2 });
+  }
+
+  var pins = [];        // {x,y,ox,oy,tx,ty,born}
+  var MAXPINS = 780;
+  var state = 'idle';   // idle | storm | done | moving | moved
+  var t0 = 0, mt0 = 0, shown = 0;
+  var STORM = 7000, MOVE = 1900;
+
+  function gauss(){ return (rnd() + rnd() + rnd() - 1.5) * 0.9; }
+
+  function addPin(now){
+    var far = rnd() < .06;
+    var s = far ? 3.2 : 1.05;
+    var x = FARM.x + gauss() * s;
+    var y = FARM.y + gauss() * s * .8;
+    pins.push({ x:x, y:y, ox:x, oy:y, tx:x, ty:y, born:now });
+  }
+
+  function draw(){
+    if (!cw) return;
+    ctx.clearRect(0, 0, cw, ch);
+    var k = K() * cam.z;
+
+    /* 底 */
+    ctx.fillStyle = '#0b0e12';
+    ctx.fillRect(0, 0, cw, ch);
+
+    /* 田 */
+    for (var i = 0; i < fields.length; i++){
+      var f = fields[i];
+      var g = 22 + Math.round(f.t * 20);
+      ctx.fillStyle = 'rgb(' + (g + 12) + ',' + (g + 10) + ',' + (g - 4) + ')';
+      ctx.fillRect(SX(f.x), SY(f.y), f.w * k + 1, f.h * k + 1);
+    }
+    /* 圓形灌溉田 */
+    ctx.fillStyle = 'rgba(120,110,72,.16)';
+    for (var c = 0; c < circles.length; c++){
+      ctx.beginPath();
+      ctx.arc(SX(circles[c].x), SY(circles[c].y), circles[c].r * k, 0, 6.2832);
+      ctx.fill();
+    }
+    /* 湖 */
+    ctx.fillStyle = '#1d4258';
+    ctx.beginPath();
+    ctx.ellipse(SX(LAKE.x), SY(LAKE.y), LAKE.rx * k, LAKE.ry * k, 0, 0, 6.2832);
+    ctx.fill();
+
+    /* 路（正交線：不用漸層描邊，避免整條不繪製） */
+    ctx.strokeStyle = 'rgba(150,150,140,.16)';
+    ctx.lineWidth = Math.max(1, .35 * k);
+    ctx.beginPath();
+    for (var gx = 0; gx <= 100; gx += 12.5){
+      ctx.moveTo(SX(gx), SY(0)); ctx.lineTo(SX(gx), SY(62.5));
+    }
+    for (var gy = 0; gy <= 62.5; gy += 12.5){
+      ctx.moveTo(SX(0), SY(gy)); ctx.lineTo(SX(100), SY(gy));
+    }
+    ctx.stroke();
+
+    /* 農舍 */
+    var hs = Math.max(3, 1.5 * k);
+    ctx.fillStyle = '#e8e3d8';
+    ctx.fillRect(SX(FARM.x) - hs / 2, SY(FARM.y) - hs / 2, hs, hs);
+    ctx.fillStyle = 'rgba(201,164,94,.85)';
+    ctx.fillRect(SX(FARM.x) + hs * .75, SY(FARM.y) - hs * .3, hs * .8, hs * .7);
+
+    /* 圖釘 */
+    var now = performance.now();
+    var r = Math.max(1.6, Math.min(3.4, 1.1 * cam.z + .9));
+    for (var p = 0; p < pins.length; p++){
+      var pn = pins[p];
+      var dy = 0, al = .72;
+      if (!reduced){
+        var age = now - pn.born;
+        if (age < 420){
+          var q = age / 420;
+          dy = -(1 - q) * (1 - q) * 34;
+          al = .25 + .5 * q;
+        }
+      }
+      ctx.globalAlpha = al;
+      ctx.fillStyle = '#e0463c';
+      ctx.beginPath();
+      ctx.arc(SX(pn.x), SY(pn.y) + dy, r, 0, 6.2832);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    /* 標記線 */
+    var lx = SX(state === 'moved' || state === 'moving' ? LAKE.x : FARM.x);
+    var ly = SY(state === 'moved' || state === 'moving' ? LAKE.y : FARM.y);
+    ctx.strokeStyle = 'rgba(99,211,224,.5)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(lx, ly, Math.max(14, 4 * k), 0, 6.2832);
+    ctx.stroke();
+  }
+
+  function ease(p){ return p < .5 ? 4*p*p*p : 1 - Math.pow(-2*p + 2, 3) / 2; }
+
+  var raf = 0;
+  function loop(now){
+    raf = 0;
+    if (state === 'storm'){
+      if (!t0) t0 = now;
+      var p = Math.min(1, (now - t0) / STORM);
+      var n = rampCount(p, TARGET);
+      $('hudn').textContent = commas(n);
+      var want = Math.round(Math.pow(p, .78) * MAXPINS);
+      var guard = 0;
+      while (pins.length < want && guard++ < 60) addPin(now);
+      cam.z = 1 + ease(p) * 1.9;
+      cam.x = 50 + (FARM.x - 50) * ease(p);
+      cam.y = 31.25 + (FARM.y - 31.25) * ease(p);
+      draw();
+      if (p >= 1){ state = 'done'; $('hudn').textContent = commas(TARGET); }
+    } else if (state === 'moving'){
+      var q = Math.min(1, (now - mt0) / MOVE);
+      var e = ease(q);
+      for (var i = 0; i < pins.length; i++){
+        var pn = pins[i];
+        pn.x = pn.ox + (pn.tx - pn.ox) * e;
+        pn.y = pn.oy + (pn.ty - pn.oy) * e;
+      }
+      cam.z = 2.9 - 1.5 * e;
+      cam.x = FARM.x + (44 - FARM.x) * e;
+      cam.y = FARM.y + (36 - FARM.y) * e;
+      draw();
+      if (q >= 1) state = 'moved';
+    }
+    if (state === 'storm' || state === 'moving') schedule();
+  }
+  function schedule(){
+    if (!raf && !document.hidden && visible) raf = requestAnimationFrame(loop);
+  }
+
+  /* 離屏／分頁隱藏就暫停（把時間軸往後推，不會快轉） */
+  var visible = false, pausedAt = 0;
+  function pause(){
+    if (raf){ cancelAnimationFrame(raf); raf = 0; }
+    if ((state === 'storm' || state === 'moving') && !pausedAt) pausedAt = performance.now();
+  }
+  function resume(){
+    if (pausedAt){
+      var d = performance.now() - pausedAt;
+      if (t0) t0 += d;
+      if (mt0) mt0 += d;
+      pausedAt = 0;
+    }
+    schedule();
+  }
+  document.addEventListener('visibilitychange', function(){ document.hidden ? pause() : resume(); });
+  new IntersectionObserver(function(es){
+    visible = es[0].isIntersecting;
+    visible ? resume() : pause();
+  }, { threshold:.02 }).observe(cvs);
+
+  if (window.ResizeObserver){
+    new ResizeObserver(function(){ if (fit()) draw(); }).observe(cvs);
+  } else {
+    window.addEventListener('resize', function(){ if (fit()) draw(); });
+  }
+
+  /* ---------------- 部署 ---------------- */
+  var deployed = false;
+  $('deploy').addEventListener('click', function(){
+    if (deployed) return;
+    deployed = true;
+    this.disabled = true;
+    this.textContent = '已部署';
+    act3.classList.add('show');
+    requestAnimationFrame(function(){
+      fit();
+      if (reduced){
+        var now = performance.now();
+        for (var i = 0; i < MAXPINS; i++) addPin(now - 9999);
+        cam.z = 2.6; cam.x = FARM.x; cam.y = FARM.y;
+        $('hudn').textContent = commas(TARGET);
+        state = 'done';
+        draw();
+      } else {
+        state = 'storm'; t0 = 0; visible = true;
+        draw();
+        schedule();
+      }
+      act3.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block:'start' });
+    });
+  });
+
+  /* ---------------- 搬走 ---------------- */
+  var moved = false;
+  $('move').addEventListener('click', function(){
+    if (moved) return;
+    moved = true;
+    this.disabled = true;
+    this.textContent = '已搬到水庫中央';
+    $('hudco').textContent = '契尼水庫 · 水面中央';
+    for (var i = 0; i < pins.length; i++){
+      var pn = pins[i];
+      pn.ox = pn.x; pn.oy = pn.y;
+      var a = rnd() * 6.2832, rr = Math.sqrt(rnd());
+      pn.tx = LAKE.x + Math.cos(a) * LAKE.rx * .72 * rr;
+      pn.ty = LAKE.y + Math.sin(a) * LAKE.ry * .72 * rr;
+    }
+    $('afterTxt').classList.add('show');
+    if (reduced){
+      for (var j = 0; j < pins.length; j++){ pins[j].x = pins[j].tx; pins[j].y = pins[j].ty; }
+      cam.z = 1.4; cam.x = 44; cam.y = 36;
+      state = 'moved';
+      draw();
+    } else {
+      state = 'moving'; mt0 = performance.now();
+      schedule();
+    }
+    document.querySelector('.stage').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block:'start' });
+  });
+
+  /* ---------------- reduced-motion 即時切換 ---------------- */
+  var onRM = function(e){
+    reduced = e.matches;
+    if (reduced && (state === 'storm' || state === 'moving')){
+      if (state === 'storm'){
+        var now = performance.now();
+        while (pins.length < MAXPINS) addPin(now - 9999);
+        cam.z = 2.6; cam.x = FARM.x; cam.y = FARM.y;
+        $('hudn').textContent = commas(TARGET);
+        state = 'done';
+      } else {
+        for (var i = 0; i < pins.length; i++){ pins[i].x = pins[i].tx; pins[i].y = pins[i].ty; }
+        cam.z = 1.4; cam.x = 44; cam.y = 36;
+        state = 'moved';
+      }
+      pause();
+      draw();
+    }
+  };
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  fit();
+})();
+</script>
+</body>
+</html>

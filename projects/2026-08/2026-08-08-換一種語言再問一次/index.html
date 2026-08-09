@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>換一種語言再問一次</title>
+<meta name="description" content="一份會問你兩次的問卷。同樣四個情境，第二次換一種語言。你改了幾題？">
+<style>
+  :root{
+    --ink:#0f1216; --ink2:#161a20; --ink3:#1e232b;
+    --line:#262c35; --line2:#333b46;
+    --pale:#e9edf2; --dim:#8e99a7; --dim2:#5e6875;
+    --paper:#f5f2ea; --paper2:#edf1f3;
+    --text:#1b1f25; --text2:#575e68; --rule:rgba(20,24,30,.13);
+    --calc:#e08a2e;      /* 算數字的那一邊 */
+    --gut:#3f9d94;       /* 直覺的那一邊 */
+    --chg:#e2537a;       /* 改了 */
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,"PingFang TC",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--ink); color:var(--pale);
+    font-family:var(--serif); font-size:17px; line-height:1.9;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--chg); outline-offset:3px; border-radius:4px}
+  p{margin:0 0 1.1em}
+  strong{font-weight:600}
+
+  .home{
+    position:fixed; top:12px; left:13px; z-index:90;
+    font-family:var(--sans); font-size:12px; letter-spacing:.1em;
+    color:var(--dim); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(15,18,22,.78); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.09); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--pale); border-color:rgba(255,255,255,.28)}
+
+  .wrap{max-width:706px; margin:0 auto; padding:0 20px 0}
+
+  /* ══════════ 問卷抬頭 ══════════ */
+  .masthead{padding:19svh 0 34px}
+  .masthead h1{
+    font-family:var(--sans); font-size:clamp(1.42rem,4.4vw,1.86rem); font-weight:600;
+    letter-spacing:.02em; margin:0 0 12px; line-height:1.4;
+  }
+  .meta{
+    font-family:var(--mono); font-size:11.5px; letter-spacing:.13em; color:var(--dim2);
+    margin:0 0 20px; text-transform:uppercase;
+  }
+  .lede{color:var(--dim); font-size:15.5px; line-height:1.85; max-width:30em; margin:0}
+  .lede b{color:var(--pale); font-weight:500}
+
+  /* ══════════ 紙 ══════════ */
+  .sheet{
+    background:var(--paper); color:var(--text);
+    border-radius:3px; padding:30px 30px 26px; margin:0 0 26px;
+    box-shadow:0 20px 54px rgba(0,0,0,.5), 0 2px 0 rgba(255,255,255,.04);
+    position:relative;
+  }
+  .sheet::before{
+    content:""; position:absolute; inset:0 auto 0 0; width:3px; border-radius:3px 0 0 3px;
+    background:var(--dim2);
+  }
+  .sheet.two{background:var(--paper2)}
+  .sheet.two::before{background:var(--calc)}
+  .sheethead{
+    font-family:var(--sans); border-bottom:1px solid var(--rule); padding-bottom:16px; margin-bottom:8px;
+  }
+  .sheethead .part{
+    font-size:11px; letter-spacing:.3em; text-transform:uppercase; color:#7a828d; margin:0 0 7px;
+  }
+  .sheethead h2{font-size:1.06rem; font-weight:600; margin:0 0 6px; letter-spacing:.01em; color:var(--text)}
+  .sheethead p{font-size:13.5px; line-height:1.75; color:var(--text2); margin:0; max-width:34em}
+
+  fieldset.q{border:0; margin:0; padding:26px 0 0}
+  fieldset.q + fieldset.q{border-top:1px solid var(--rule); margin-top:26px}
+  fieldset.q legend{
+    display:block; width:100%; padding:0; font-family:var(--sans);
+    font-size:10.5px; letter-spacing:.28em; text-transform:uppercase; color:#7a828d;
+  }
+  .stem{margin-top:13px}
+  .stem p{margin:0 0 .75em; font-size:16.5px; line-height:1.86; color:var(--text)}
+  .stem p:last-child{margin-bottom:0}
+  .ask{
+    font-family:var(--sans); font-weight:600; font-size:15px; line-height:1.6;
+    margin:17px 0 0; color:var(--text); letter-spacing:.01em;
+  }
+  .opts{display:grid; gap:9px; margin-top:13px}
+  .opt{
+    display:flex; align-items:flex-start; gap:12px;
+    padding:12px 15px; border:1px solid rgba(20,24,30,.16); border-radius:8px;
+    font-family:var(--sans); font-size:14.5px; line-height:1.55; color:var(--text);
+    cursor:pointer; background:rgba(255,255,255,.35);
+    transition:background .18s, border-color .18s, transform .12s, box-shadow .18s;
+  }
+  .opt:hover{background:rgba(255,255,255,.85); border-color:rgba(20,24,30,.4)}
+  .opt:active{transform:translateY(1px)}
+  .opt input{margin:3px 0 0; accent-color:#2a3038; width:16px; height:16px; flex:none}
+  .opt.on{
+    border-color:#2a3038; background:#fff;
+    box-shadow:inset 0 0 0 1px #2a3038, 0 1px 0 rgba(0,0,0,.05);
+  }
+  .opt:focus-within{outline:2px solid var(--chg); outline-offset:2px}
+
+  details.gloss{margin-top:22px; font-family:var(--sans); font-size:13px; color:var(--text2)}
+  details.gloss summary{
+    cursor:pointer; letter-spacing:.04em; color:#5b636e;
+    padding:6px 0; list-style:none; display:flex; align-items:center; gap:8px;
+  }
+  details.gloss summary::-webkit-details-marker{display:none}
+  details.gloss summary::before{content:"＋"; font-size:11px; color:#98a0aa}
+  details.gloss[open] summary::before{content:"−"}
+  details.gloss dl{
+    margin:6px 0 0; display:grid; grid-template-columns:auto 1fr; gap:4px 16px;
+    font-size:13px; line-height:1.7; border-left:2px solid var(--rule); padding-left:14px;
+  }
+  details.gloss dt{color:var(--text); font-family:var(--mono); font-size:12.5px}
+  details.gloss dd{margin:0; color:var(--text2)}
+
+  .submitrow{
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    margin-top:28px; padding-top:20px; border-top:1px solid var(--rule);
+  }
+  .btn{
+    font-family:var(--sans); font-size:14px; font-weight:500; letter-spacing:.03em;
+    color:#f6f7f9; background:#232931; border:1px solid #232931; border-radius:8px;
+    padding:12px 22px; cursor:pointer;
+    transition:background .18s, transform .12s, box-shadow .18s;
+  }
+  .btn:hover{background:#111519; box-shadow:0 6px 18px rgba(0,0,0,.22)}
+  .btn:active{transform:translateY(1px)}
+  .btn.ghost{
+    background:transparent; color:var(--dim); border-color:var(--line2);
+    font-size:12.5px; padding:9px 15px;
+  }
+  .btn.ghost:hover{background:rgba(255,255,255,.05); color:var(--pale); box-shadow:none}
+  .nag{font-family:var(--sans); font-size:13px; color:#a4553f; min-height:1.4em; margin:0}
+
+  .receipt{
+    display:flex; align-items:center; gap:11px; flex-wrap:wrap;
+    font-family:var(--sans); font-size:13px; letter-spacing:.04em; color:var(--dim);
+    border:1px dashed var(--line2); border-radius:8px; padding:13px 17px; margin:0 0 26px;
+  }
+  .receipt .tick{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:19px; height:19px; border-radius:50%; background:var(--gut); color:#0f1216;
+    font-size:12px; font-weight:700; flex:none;
+  }
+
+  /* ══════════ 揭曉 ══════════ */
+  .reveal{padding:8px 0 0}
+  .bignum{
+    font-family:var(--sans); font-weight:600; letter-spacing:-.015em;
+    font-size:clamp(1.65rem,5.6vw,2.5rem); line-height:1.34; margin:0 0 .5em; color:#fff;
+  }
+  .bignum em{font-style:normal; color:var(--chg); font-variant-numeric:tabular-nums}
+  .sub{color:var(--dim); font-size:14.5px; line-height:1.8; margin:0 0 30px; max-width:33em}
+
+  .ledger{margin:0 0 14px; border-top:1px solid var(--line)}
+  .row{
+    display:grid; grid-template-columns:minmax(0,1fr) 108px minmax(0,1fr);
+    align-items:center; gap:0 12px;
+    padding:15px 0 14px; border-bottom:1px solid var(--line);
+  }
+  .row .rlab{
+    grid-column:1 / -1; font-family:var(--sans); font-size:10.5px; letter-spacing:.26em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:10px;
+    display:flex; align-items:center; gap:10px;
+  }
+  .row .chip{
+    font-family:var(--sans); font-size:14px; line-height:1.4; padding:9px 13px;
+    border:1px solid var(--line2); border-radius:7px; color:var(--pale);
+    background:var(--ink2); text-align:center; min-width:0; overflow-wrap:break-word;
+  }
+  .row .chip.r{text-align:center}
+  .row .chip.calc{border-color:rgba(224,138,46,.5); color:#f0b874; background:rgba(224,138,46,.09)}
+  .row .chip.gut{border-color:rgba(63,157,148,.5); color:#7fd0c7; background:rgba(63,157,148,.09)}
+  .row .tag{
+    font-family:var(--sans); font-size:10px; letter-spacing:.2em; padding:2px 8px; border-radius:999px;
+    border:1px solid var(--line2); color:var(--dim2); text-transform:uppercase;
+  }
+  .row.chg .tag{border-color:var(--chg); color:var(--chg)}
+  svg.conn{display:block; width:100%; height:52px; overflow:visible}
+  svg.conn .lane{stroke:#2a313a; stroke-width:1; stroke-dasharray:2 4}
+  svg.conn .link{fill:none; stroke:#3d4855; stroke-width:2; stroke-linecap:round}
+  svg.conn .link.on{stroke:var(--chg); stroke-width:2.6}
+  svg.conn .node{stroke:none}
+
+  .legendbar{
+    display:flex; flex-wrap:wrap; gap:8px 22px; font-family:var(--sans); font-size:12px;
+    color:var(--dim2); margin:0 0 34px;
+  }
+  .legendbar span{display:flex; align-items:center; gap:8px}
+  .legendbar i{width:22px; height:0; border-top:2px solid currentColor; display:block; flex:none}
+  .legendbar .l-calc{color:#c8853b}
+  .legendbar .l-gut{color:#4b9d95}
+  .legendbar .l-chg{color:var(--chg)}
+
+  .chapter{max-width:33em; margin:0 0 40px}
+  .chapter h3{
+    font-family:var(--sans); font-size:11px; letter-spacing:.32em; text-transform:uppercase;
+    color:var(--dim2); font-weight:600; margin:0 0 18px;
+    display:flex; align-items:center; gap:11px;
+  }
+  .chapter h3::after{content:""; height:1px; flex:1; background:var(--line)}
+  .chapter p{font-size:16.5px; line-height:1.92; color:#dbe2ea}
+  .chapter p.q{color:var(--dim)}
+  .chapter b{color:#fff; font-weight:600}
+  .chapter .hi{color:var(--calc)}
+
+  .stat{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(148px,1fr)); gap:1px;
+    background:var(--line); border:1px solid var(--line); border-radius:9px; overflow:hidden;
+    margin:22px 0 26px;
+  }
+  .stat div{background:var(--ink2); padding:15px 16px}
+  .stat .n{
+    font-family:var(--sans); font-size:1.75rem; font-weight:600; letter-spacing:-.02em;
+    color:#fff; line-height:1.1; font-variant-numeric:tabular-nums;
+  }
+  .stat .n.up{color:var(--calc)}
+  .stat .k{font-family:var(--sans); font-size:11.5px; line-height:1.6; color:var(--dim); margin-top:7px}
+
+  .kicker{
+    font-family:var(--sans); font-size:15px; line-height:1.85; color:var(--pale);
+    border-left:2px solid var(--chg); padding:2px 0 2px 18px; margin:26px 0;
+  }
+  .last{
+    font-family:var(--sans); font-size:clamp(1.12rem,3.4vw,1.34rem); line-height:1.68;
+    font-weight:500; color:#fff; max-width:22em; margin:46px 0 8px; letter-spacing:.005em;
+  }
+  .last + p{color:var(--dim); font-size:15px; max-width:31em}
+
+  .restart{margin:38px 0 0}
+
+  footer{
+    max-width:706px; margin:64px auto 0; padding:24px 20px 40px;
+    border-top:1px solid var(--line); font-family:var(--sans);
+    font-size:12px; line-height:1.9; color:#7a828d;
+  }
+  footer p{margin:0}
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--pale)}
+
+  .sr{position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0}
+
+  /* ── 進場 ── */
+  .rv{opacity:0; transform:translateY(13px); transition:opacity .72s ease, transform .72s cubic-bezier(.2,.7,.3,1)}
+  .rv.in{opacity:1; transform:none}
+
+  @media (max-width:560px){
+    body{font-size:16px}
+    .wrap{padding:0 15px}
+    .masthead{padding:13svh 0 26px}
+    .sheet{padding:24px 19px 22px; border-radius:2px}
+    .stem p{font-size:15.5px}
+    .row{grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr); gap:0 7px}
+    .row .chip{font-size:12.5px; padding:8px 7px}
+    svg.conn{height:46px}
+    .chapter p{font-size:15.5px}
+    .stat{grid-template-columns:1fr 1fr}
+  }
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rv{opacity:1; transform:none; transition:none}
+    .opt,.btn{transition:none}
+  }
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="meta">情境判斷問卷 · FL-02</p>
+    <h1>四個情境，兩個部分，大約三分鐘。</h1>
+    <p class="lede">沒有正確答案，也不會有分數。<b>憑第一個念頭作答就好</b>——想太久反而不準。</p>
+  </header>
+
+  <p class="sr" id="say" role="status" aria-live="polite"></p>
+
+  <form class="sheet" id="fA" novalidate>
+    <div class="sheethead">
+      <p class="part">第一部分</p>
+      <h2>共 4 題</h2>
+      <p>以下每個情境都請你做一個選擇。情境是虛構的，選項沒有對錯。</p>
+    </div>
+    <div id="qA"></div>
+    <div class="submitrow">
+      <button type="submit" class="btn" id="sA">送出第一部分</button>
+      <p class="nag" id="nA"></p>
+    </div>
+  </form>
+
+  <div class="receipt" id="rec" hidden>
+    <span class="tick" aria-hidden="true">✓</span>
+    <span>第一部分 · 已送出，4 題答案已記錄</span>
+  </div>
+
+  <form class="sheet two" id="fB" lang="en" novalidate hidden>
+    <div class="sheethead">
+      <p class="part">Section 2</p>
+      <h2>4 questions</h2>
+      <p>Please choose one option for each situation. The situations are hypothetical. There is no right answer.</p>
+    </div>
+    <div id="qB"></div>
+    <details class="gloss" lang="zh-Hant-TW">
+      <summary>生字對照（不影響作答）</summary>
+      <dl>
+        <dt>runaway trolley</dt><dd>失控的電車</dd>
+        <dt>footbridge</dt><dd>跨越軌道的天橋</dd>
+        <dt>lever</dt><dd>控制桿</dd>
+        <dt>divert</dt><dd>使轉向</dd>
+        <dt>side track</dt><dd>支線軌道</dd>
+        <dt>lay off</dt><dd>資遣</dd>
+        <dt>a fair coin</dt><dd>公正的硬幣</dd>
+        <dt>decline</dt><dd>拒絕、不參加</dd>
+      </dl>
+    </details>
+    <div class="submitrow">
+      <button type="submit" class="btn" id="sB">Submit</button>
+      <p class="nag" id="nB"></p>
+    </div>
+  </form>
+
+  <section class="reveal" id="res" hidden aria-label="兩輪答案對照與說明">
+
+    <h2 class="bignum" id="verdictLine">—</h2>
+    <p class="sub" id="verdictSub"></p>
+
+    <div class="ledger" id="ledger"></div>
+    <div class="legendbar">
+      <span class="l-calc"><i></i>上排：把數字算完的那一邊</span>
+      <span class="l-gut"><i></i>下排：直覺會擋住你的那一邊</span>
+      <span class="l-chg"><i></i>兩排之間有斜線＝你改了</span>
+    </div>
+
+    <div class="chapter rv">
+      <h3>這份問卷沒有先告訴你的事</h3>
+      <p>兩個部分的四個情境，是同樣的四件事。人數一樣、機率一樣、金額一樣、選項的順序一樣。中間唯一被換掉的東西是<b>語言</b>。</p>
+      <p>沒有人給你新的資訊，沒有人跟你辯論，你也沒有改變任何信念。你只是讀了另一套字。</p>
+    </div>
+
+    <div class="chapter rv">
+      <h3>2014 年，有人把這件事寫成論文</h3>
+      <p>Costa 和 Keysar 那群人找了 725 個雙語者，把天橋難題發給他們——一半用母語，一半用外語。同一個難題，只有語言不同。</p>
+      <div class="stat">
+        <div><div class="n">18<span style="font-size:.55em">%</span></div><div class="k">母語版本裡，願意推的人</div></div>
+        <div><div class="n up">44<span style="font-size:.55em">%</span></div><div class="k">外語版本裡，願意推的人</div></div>
+      </div>
+      <p class="q">（Costa et al., 2014, <i lang="en">PLOS ONE</i>，實驗一。受試者來自美國、西班牙、韓國、法國、以色列，母語與外語配對各異，方向一致。）</p>
+      <p>然後他們做了第二個實驗，換成岔道那一題——不用推人，只要扳一根桿子。結果<b>八成以上的人都願意扳，而且母語版和外語版沒有差別</b>。</p>
+      <p>這一題的落空，比第一題的成功更有意思。</p>
+    </div>
+
+    <div class="chapter rv">
+      <h3>為什麼會這樣？兩種說法</h3>
+      <p><b>一、情緒被隔了一層。</b>母語是你哭著學會的，外語多半是在教室裡學的。「把他推下去」這幾個字，在母語裡會踢你一腳，在外語裡只是一句句子。情緒的音量被調小，直覺的否決權就跟著變弱。</p>
+      <p><b>二、你被迫想得更慢。</b>讀外語比較費力，你會放慢、會重讀、會動用那個負責算數的系統。慢下來，數字就有機會贏過直覺。</p>
+      <p>Costa 等人偏向第一種，理由就是岔道那一題：如果外語只是讓人「想得更仔細」，那扳桿子那題也該跟著動。它沒有動。<b>會被外語推動的，剛好只有那些會踢你一腳的題目。</b></p>
+      <p>更早兩年，Keysar、Hayakawa 與 An 在 <i lang="en">Psychological Science</i> 上已經測過非道德的版本：同一組選項，母語問你的時候框架效應清清楚楚，換成外語就消失了；他們也發現外語會降低損失趨避，讓人更願意接受期望值為正的賭局。你剛剛答的第 3、第 4 題，就是照那兩個實驗改寫的。</p>
+    </div>
+
+    <div class="chapter rv">
+      <h3>但是——這件事沒有那麼硬</h3>
+      <p>2022 年有人把所有做過這個實驗的研究收攏起來重算。結論是：效應在「要動手」的那類難題上站得住，但它<b>被外語的熟練度調節</b>——外語讀得越流利的人，越不容易被外語改變。外語一旦不再陌生，那層情緒隔音也就跟著薄了。</p>
+      <p>另一份 2021 年的統合分析找得到整體效應，卻沒能驗出任何一個調節變項；也有預先註冊的研究整個複製不出來。所以請不要把它記成一條定律。<b>它是一個會隨語言配對、熟練度、題型而漲落的傾向，不是一個開關。</b></p>
+      <p class="q">還有一件事得說在前面：原始研究裡，每個人只被問一次。你被問了兩次，而且第二次你還記得自己第一次答了什麼——人非常不喜歡自相矛盾。這一頁在方法上比原研究難改變得多。</p>
+    </div>
+
+    <div class="chapter rv" id="routeBox">
+      <h3>回到你的那四條線</h3>
+      <div id="rNone" hidden>
+        <p>你四題都沒改。這既不是反例，也不代表你「不受影響」。</p>
+        <p>那 26 個百分點從來不是在說每個人都會變。看清楚實驗一那個數字：外語版本裡，<b>仍然有 56% 的人不推</b>。會動的是比例，不是每一個人。而你剛好還握有兩個他們沒有的東西——你記得自己第一次的答案，而且你的英文可能好到那層隔音根本沒裝上去。</p>
+        <p>結論不是「你比較穩」。是這個實驗在你身上這一次，什麼都沒量到。一個人一次，本來就不是資料。</p>
+      </div>
+      <div id="rSome" hidden>
+        <p>你改的那幾題，都不是因為你想通了什麼。中間沒有新的證據出現，你也沒有多知道任何一件事。</p>
+        <p>而且注意哪幾題改了、哪幾題沒改——原始研究裡會動的，剛好是那些下手比較髒的題目；越乾淨、越像算數的題目，語言越推不動它。你自己那幾條斜線落在哪裡，值得看一眼。</p>
+        <p>但也別把它讀成證據。<b>一個人答一次，不是資料。</b>你只是剛好站在那個比例裡面。</p>
+      </div>
+      <div id="rAll" hidden>
+        <p>四題全改。這在群體資料裡是罕見的一端——原始研究裡的差距是 18% 對 44%，也就是說，多數人在兩種語言下的答案其實一樣。</p>
+        <p>所以要嘛你對語言特別敏感，要嘛你這次答得比較隨手。<b>一個人答一次，不是資料</b>，兩者都分不出來。</p>
+      </div>
+      <div id="rPart" hidden>
+        <p>你有題目沒作答，所以下面這段就當作旁白聽。</p>
+      </div>
+    </div>
+
+    <div class="chapter rv">
+      <p class="last">同一個你，換一種語言，就是另一個答案——而你不會察覺自己被切換過。</p>
+      <p>你剛剛做的每一個選擇，你現在都能替它說出理由。等一下如果有人問，你也會替它辯護。你不會說「因為那一題是英文的」。</p>
+      <div class="kicker">下次你用外語簽一份合約、寫一封辭職信、在一個不是母語的會議室裡投一票——那個當下比較冷靜的，也許不是你，是那個語言。</div>
+      <p>而它也可能什麼都沒做。這正是麻煩的地方：<b>你分不出來這一次是哪一種。</b></p>
+      <div class="restart">
+        <button type="button" class="btn ghost" id="again">清掉答案，重做一次</button>
+      </div>
+    </div>
+
+  </section>
+</div>
+
+<footer>
+  <p>資料來源：Costa et al., PLOS ONE (2014)；Keysar et al., Psychological Science (2012)；Stankovic et al., Brain and Language (2022)</p>
+  <p><a href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a></p>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var LS = 'flexmoral26.';
+
+  /* ══════════════════════════════════════════════════════════
+     題庫：中英兩版必須實質等價（同人數、同機率、同金額、同選項順序）
+     pred = 文獻預測「外語組較多」的那個選項（＝算數字的那一邊）
+     ══════════════════════════════════════════════════════════ */
+  var Q = [
+    {
+      id: 'footbridge', pred: 'a',
+      zh: {
+        legend: '第 1 題',
+        stem: [
+          '一列電車的煞車失靈，正衝向軌道上的五個人。他們背對著電車，來不及離開。',
+          '你站在跨越軌道的天橋上。你旁邊有一個陌生人，體型大到足以讓電車停下來。',
+          '把他推下天橋，電車會停住：五個人活下來，他死。你什麼都不做：五個人死。'
+        ],
+        ask: '你會把他推下去嗎？',
+        opts: [
+          { v: 'a', label: '會，我會把他推下去', short: '推' },
+          { v: 'b', label: '不會，我不會推他', short: '不推' }
+        ]
+      },
+      en: {
+        legend: 'Question 1',
+        stem: [
+          'A runaway trolley has lost its brakes and is heading toward five people on the track. Their backs are turned. They cannot get away in time.',
+          'You are standing on a footbridge above the track. Next to you is a stranger, large enough to stop the trolley.',
+          'If you push him off the bridge, the trolley stops: the five people live, he dies. If you do nothing: the five people die.'
+        ],
+        ask: 'Would you push him off the bridge?',
+        opts: [
+          { v: 'a', label: 'Yes, I would push him off.', short: 'Push' },
+          { v: 'b', label: 'No, I would not push him.', short: "Don't push" }
+        ]
+      }
+    },
+    {
+      id: 'switch', pred: 'a',
+      zh: {
+        legend: '第 2 題',
+        stem: [
+          '同一列電車，同樣衝向軌道上的五個人。',
+          '這次你站在軌道旁的控制桿前。扳下控制桿，電車會轉進旁邊的支線。支線上站著一個人。',
+          '扳下去：五個人活下來，那一個人死。你什麼都不做：五個人死。'
+        ],
+        ask: '你會扳下控制桿嗎？',
+        opts: [
+          { v: 'a', label: '會，我會扳下控制桿', short: '扳' },
+          { v: 'b', label: '不會，我不會扳', short: '不扳' }
+        ]
+      },
+      en: {
+        legend: 'Question 2',
+        stem: [
+          'The same trolley, heading toward the same five people on the track.',
+          'This time you are standing beside a lever. Pulling the lever diverts the trolley onto a side track. One person is standing on that side track.',
+          'If you pull it: the five people live, that one person dies. If you do nothing: the five people die.'
+        ],
+        ask: 'Would you pull the lever?',
+        opts: [
+          { v: 'a', label: 'Yes, I would pull the lever.', short: 'Pull' },
+          { v: 'b', label: 'No, I would not pull it.', short: "Don't pull" }
+        ]
+      }
+    },
+    {
+      id: 'frame', pred: 'b',
+      zh: {
+        legend: '第 3 題',
+        stem: [
+          '一間工廠即將關閉，600 名員工全部會被資遣。公司提出兩個方案，只能擇一。',
+          '方案 A：確定保住其中 200 個工作。',
+          '方案 B：有三分之一的機率保住全部 600 個工作，三分之二的機率一個都保不住。'
+        ],
+        ask: '你會選哪一個方案？',
+        opts: [
+          { v: 'a', label: '方案 A', short: '方案 A' },
+          { v: 'b', label: '方案 B', short: '方案 B' }
+        ]
+      },
+      en: {
+        legend: 'Question 3',
+        stem: [
+          'A factory is closing down and all 600 employees will be laid off. Management proposes two plans. Only one can be chosen.',
+          'Plan A: exactly 200 of the jobs will be saved.',
+          'Plan B: there is a one-third chance that all 600 jobs will be saved, and a two-thirds chance that no job will be saved.'
+        ],
+        ask: 'Which plan would you choose?',
+        opts: [
+          { v: 'a', label: 'Plan A', short: 'Plan A' },
+          { v: 'b', label: 'Plan B', short: 'Plan B' }
+        ]
+      }
+    },
+    {
+      id: 'bet', pred: 'a',
+      zh: {
+        legend: '第 4 題',
+        stem: [
+          '有人邀請你玩一個賭局，可以玩 15 次。',
+          '每一次都擲一枚公正的硬幣：正面你拿到 15 元，反面你損失 10 元。',
+          '你也可以整局都不玩，那就什麼都不會發生。'
+        ],
+        ask: '你要玩嗎？',
+        opts: [
+          { v: 'a', label: '玩', short: '玩' },
+          { v: 'b', label: '不玩', short: '不玩' }
+        ]
+      },
+      en: {
+        legend: 'Question 4',
+        stem: [
+          'You are offered a bet that you may play 15 times.',
+          'On each round a fair coin is tossed: heads, you gain 15 dollars; tails, you lose 10 dollars.',
+          'You may also decline to play at all, in which case nothing happens.'
+        ],
+        ask: 'Would you take the bet?',
+        opts: [
+          { v: 'a', label: 'Take the bet', short: 'Take it' },
+          { v: 'b', label: 'Pass', short: 'Pass' }
+        ]
+      }
+    }
+  ];
+
+  /* ══════════ 純函式（可獨立驗證） ══════════ */
+
+  /* 中英一一對應：題數、順序、選項數、選項代碼、pred 是否合法 */
+  function equivalenceReport(qs) {
+    var problems = [];
+    var seen = {};
+    for (var i = 0; i < qs.length; i++) {
+      var q = qs[i], tag = q && q.id ? q.id : ('#' + i);
+      if (!q || !q.zh || !q.en) { problems.push(tag + ' 缺少中文或英文版'); continue; }
+      if (seen[q.id]) problems.push(tag + ' id 重複');
+      seen[q.id] = 1;
+      var a = q.zh.opts || [], b = q.en.opts || [];
+      if (a.length !== b.length) problems.push(tag + ' 中英選項數量不同');
+      var n = Math.min(a.length, b.length);
+      for (var j = 0; j < n; j++) {
+        if (a[j].v !== b[j].v) problems.push(tag + ' 第 ' + (j + 1) + ' 個選項代碼不一致');
+        if (!a[j].label || !b[j].label) problems.push(tag + ' 第 ' + (j + 1) + ' 個選項缺標籤');
+        if (!a[j].short || !b[j].short) problems.push(tag + ' 第 ' + (j + 1) + ' 個選項缺短標');
+      }
+      if ((q.zh.stem || []).length !== (q.en.stem || []).length) problems.push(tag + ' 中英題幹段數不同');
+      var codes = a.map(function (o) { return o.v; });
+      if (codes.indexOf(q.pred) < 0) problems.push(tag + ' 的 pred 不在選項裡');
+      if (!q.zh.ask || !q.en.ask) problems.push(tag + ' 缺提問句');
+    }
+    return { ok: problems.length === 0, problems: problems };
+  }
+
+  function unanswered(qs, ans) {
+    var out = [];
+    for (var i = 0; i < qs.length; i++) if (!ans || !ans[qs[i].id]) out.push(qs[i].id);
+    return out;
+  }
+
+  /* 兩輪比對：每題產出 answered / changed / dir */
+  function compareRounds(qs, a1, a2) {
+    a1 = a1 || {}; a2 = a2 || {};
+    var rows = [];
+    for (var i = 0; i < qs.length; i++) {
+      var q = qs[i];
+      var r1 = a1[q.id] || null, r2 = a2[q.id] || null;
+      var answered = !!(r1 && r2);
+      var changed = answered && r1 !== r2;
+      rows.push({
+        id: q.id,
+        r1: r1,
+        r2: r2,
+        answered: answered,
+        changed: changed,
+        dir: changed ? (r2 === q.pred ? 'toward' : 'away') : null,
+        lane1: r1 ? (r1 === q.pred ? 'calc' : 'gut') : null,
+        lane2: r2 ? (r2 === q.pred ? 'calc' : 'gut') : null
+      });
+    }
+    return rows;
+  }
+
+  function countChanged(rows) {
+    var n = 0;
+    for (var i = 0; i < rows.length; i++) if (rows[i].changed) n++;
+    return n;
+  }
+
+  /* 分類：incomplete / none / some / all */
+  function classify(rows) {
+    if (!rows || !rows.length) return 'incomplete';
+    var done = 0, chg = 0;
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].answered) done++;
+      if (rows[i].changed) chg++;
+    }
+    if (done < rows.length) return 'incomplete';
+    if (chg === 0) return 'none';
+    if (chg === rows.length) return 'all';
+    return 'some';
+  }
+
+  function verdictText(rows) {
+    var k = classify(rows), n = countChanged(rows), t = rows.length;
+    if (k === 'incomplete') {
+      return {
+        line: '有題目沒有作答。',
+        lineN: null,
+        sub: '下面照樣把兩輪並排給你看，有作答的那幾題可以比對。'
+      };
+    }
+    if (k === 'none') {
+      return {
+        line: '你兩輪的答案一模一樣。',
+        lineN: null,
+        sub: t + ' 題全部沒動。這是多數人的情況——先看完下面，再決定要怎麼想這件事。'
+      };
+    }
+    return {
+      line: '你在第二部分改了 ' + n + ' 題。',
+      lineN: n,
+      sub: n + ' / ' + t + ' 題的答案跟第一部分不同。中間沒有人給你新的資訊。'
+    };
+  }
+
+  /* ══════════ 對外（供測試使用） ══════════ */
+  window.FLX = {
+    Q: Q,
+    LS: LS,
+    equivalenceReport: equivalenceReport,
+    unanswered: unanswered,
+    compareRounds: compareRounds,
+    countChanged: countChanged,
+    classify: classify,
+    verdictText: verdictText
+  };
+
+  /* ══════════ 行為鷹架 ══════════ */
+  var mReduced = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null;
+  function reduced() { return !!(mReduced && mReduced.matches); }
+  function onReducedChange(fn) {
+    if (!mReduced) return;
+    if (mReduced.addEventListener) mReduced.addEventListener('change', fn);
+    else if (mReduced.addListener) mReduced.addListener(fn);
+  }
+
+  var io = null;
+  function observe(root) {
+    var list = root.querySelectorAll('.rv');
+    var i;
+    if (reduced() || !('IntersectionObserver' in window)) {
+      for (i = 0; i < list.length; i++) list[i].classList.add('in');
+      return;
+    }
+    if (!io) {
+      io = new IntersectionObserver(function (es, obs) {
+        for (var k = 0; k < es.length; k++) {
+          if (es[k].isIntersecting) { es[k].target.classList.add('in'); obs.unobserve(es[k].target); }
+        }
+      }, { rootMargin: '60px 0px' });
+    }
+    for (i = 0; i < list.length; i++) io.observe(list[i]);
+  }
+  onReducedChange(function () {
+    if (!reduced()) return;
+    var all = document.querySelectorAll('.rv');
+    for (var i = 0; i < all.length; i++) all[i].classList.add('in');
+  });
+
+  function store(k, v) { try { localStorage.setItem(LS + k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(LS + k); } catch (e) { return null; } }
+  function drop(k) { try { localStorage.removeItem(LS + k); } catch (e) {} }
+  function loadAns(k) {
+    var raw = load(k);
+    if (!raw) return {};
+    try {
+      var o = JSON.parse(raw);
+      return (o && typeof o === 'object') ? o : {};
+    } catch (e) { return {}; }
+  }
+
+  var say = document.getElementById('say');
+  function announce(msg) { if (say) say.textContent = msg; }
+
+  /* ══════════ 表單渲染 ══════════ */
+  var A = {}, B = {};
+
+  function renderForm(host, lang, bag) {
+    var side = lang === 'en' ? 'en' : 'zh';
+    for (var i = 0; i < Q.length; i++) {
+      (function (q) {
+        var d = q[side];
+        var fs = document.createElement('fieldset');
+        fs.className = 'q rv';
+
+        var lg = document.createElement('legend');
+        lg.textContent = d.legend;
+        fs.appendChild(lg);
+
+        var stem = document.createElement('div');
+        stem.className = 'stem';
+        for (var s = 0; s < d.stem.length; s++) {
+          var p = document.createElement('p');
+          p.textContent = d.stem[s];
+          stem.appendChild(p);
+        }
+        fs.appendChild(stem);
+
+        var ask = document.createElement('p');
+        ask.className = 'ask';
+        ask.textContent = d.ask;
+        fs.appendChild(ask);
+
+        var box = document.createElement('div');
+        box.className = 'opts';
+        var name = side + '-' + q.id;
+        for (var o = 0; o < d.opts.length; o++) {
+          (function (opt) {
+            var lab = document.createElement('label');
+            lab.className = 'opt';
+            var inp = document.createElement('input');
+            inp.type = 'radio';
+            inp.name = name;
+            inp.value = opt.v;
+            var txt = document.createElement('span');
+            txt.textContent = opt.label;
+            lab.appendChild(inp);
+            lab.appendChild(txt);
+            inp.addEventListener('change', function () {
+              bag[q.id] = opt.v;
+              var sibs = box.querySelectorAll('.opt');
+              for (var z = 0; z < sibs.length; z++) sibs[z].classList.remove('on');
+              lab.classList.add('on');
+              store(side === 'zh' ? 'a1' : 'a2', JSON.stringify(bag));
+            });
+            box.appendChild(lab);
+          })(d.opts[o]);
+        }
+        fs.appendChild(box);
+        host.appendChild(fs);
+      })(Q[i]);
+    }
+  }
+
+  var fA = document.getElementById('fA');
+  var fB = document.getElementById('fB');
+  var rec = document.getElementById('rec');
+  var res = document.getElementById('res');
+
+  renderForm(document.getElementById('qA'), 'zh', A);
+  renderForm(document.getElementById('qB'), 'en', B);
+  observe(document);
+
+  function restore(form, side, bag) {
+    var saved = loadAns(side === 'zh' ? 'a1' : 'a2');
+    var any = false;
+    for (var i = 0; i < Q.length; i++) {
+      var q = Q[i], v = saved[q.id];
+      if (!v) continue;
+      var inputs = form.querySelectorAll('input[name="' + side + '-' + q.id + '"]');
+      for (var j = 0; j < inputs.length; j++) {
+        if (inputs[j].value === v) {
+          inputs[j].checked = true;
+          bag[q.id] = v;
+          any = true;
+          var lab = inputs[j].parentNode;
+          if (lab && lab.classList) lab.classList.add('on');
+        }
+      }
+    }
+    return any;
+  }
+
+  /* ══════════ 送出 ══════════ */
+  var nA = document.getElementById('nA');
+  var nB = document.getElementById('nB');
+
+  function scrollTo(el) {
+    if (!el || !el.scrollIntoView) return;
+    try { el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' }); }
+    catch (e) { el.scrollIntoView(); }
+  }
+
+  fA.addEventListener('submit', function (ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    var miss = unanswered(Q, A);
+    if (miss.length) {
+      nA.textContent = '還有 ' + miss.length + ' 題沒有作答。';
+      announce('第一部分還有 ' + miss.length + ' 題沒有作答。');
+      return;
+    }
+    nA.textContent = '';
+    store('a1', JSON.stringify(A));
+    store('stage', 'b');
+    fA.hidden = true;
+    rec.hidden = false;
+    fB.hidden = false;
+    observe(fB);
+    announce('第一部分已送出。第二部分共 4 題。');
+    scrollTo(fB);
+  });
+
+  fB.addEventListener('submit', function (ev) {
+    if (ev && ev.preventDefault) ev.preventDefault();
+    var miss = unanswered(Q, B);
+    if (miss.length) {
+      nB.textContent = miss.length + ' question(s) still unanswered.';
+      announce('第二部分還有 ' + miss.length + ' 題沒有作答。');
+      return;
+    }
+    nB.textContent = '';
+    store('a2', JSON.stringify(B));
+    store('stage', 'done');
+    showResult();
+  });
+
+  /* ══════════ 揭曉 ══════════ */
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var LANE_TOP = 13, LANE_BOT = 39;
+  var X1 = 8, X2 = 92;   /* 端點 */
+  var XA = 3, XB = 97;   /* 車道虛線 */
+
+  function el(tag, cls) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    return n;
+  }
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  /* 連接線：起點在第一輪的車道，終點在第二輪的車道；換車道就斜過去 */
+  function connector(row) {
+    var svg = svgEl('svg', {
+      viewBox: '0 0 100 52',
+      preserveAspectRatio: 'xMidYMid meet',
+      'aria-hidden': 'true',
+      focusable: 'false'
+    });
+    svg.setAttribute('class', 'conn');
+
+    svg.appendChild(svgEl('line', { x1: XA, x2: XB, y1: LANE_TOP, y2: LANE_TOP, 'class': 'lane' }));
+    svg.appendChild(svgEl('line', { x1: XA, x2: XB, y1: LANE_BOT, y2: LANE_BOT, 'class': 'lane' }));
+
+    if (!row.answered) return { svg: svg, path: null };
+
+    var y1 = row.lane1 === 'calc' ? LANE_TOP : LANE_BOT;
+    var y2 = row.lane2 === 'calc' ? LANE_TOP : LANE_BOT;
+    var d = (y1 === y2)
+      ? ('M' + X1 + ',' + y1 + ' L' + X2 + ',' + y1)
+      : ('M' + X1 + ',' + y1 + ' C38,' + y1 + ' 62,' + y2 + ' ' + X2 + ',' + y2);
+
+    var p = svgEl('path', { d: d });
+    p.setAttribute('class', 'link' + (row.changed ? ' on' : ''));
+    p.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.appendChild(p);
+
+    var c1 = svgEl('circle', { cx: X1, cy: y1, r: 4.2, fill: row.lane1 === 'calc' ? '#e08a2e' : '#3f9d94' });
+    c1.setAttribute('class', 'node');
+    var c2 = svgEl('circle', { cx: X2, cy: y2, r: 4.2, fill: row.lane2 === 'calc' ? '#e08a2e' : '#3f9d94' });
+    c2.setAttribute('class', 'node');
+    svg.appendChild(c1);
+    svg.appendChild(c2);
+
+    return { svg: svg, path: p };
+  }
+
+  /* dasharray 可靠重播：transition:none → 隱藏 → 強制 reflow → 下一個 rAF 才開 transition */
+  function drawPath(p, delay) {
+    if (!p || !p.style) return;
+    var L = 210;
+    try { if (typeof p.getTotalLength === 'function') { var v = p.getTotalLength(); if (v && isFinite(v) && v > 0) L = v; } }
+    catch (e) {}
+    p.style.transition = 'none';
+    p.style.strokeDasharray = L + ' ' + L;
+    p.style.strokeDashoffset = String(L);
+    if (p.getBoundingClientRect) p.getBoundingClientRect();
+    if (reduced() || typeof requestAnimationFrame !== 'function') {
+      p.style.strokeDashoffset = '0';
+      return;
+    }
+    requestAnimationFrame(function () {
+      p.style.transition = 'stroke-dashoffset .78s cubic-bezier(.25,.85,.3,1) ' + delay + 'ms';
+      p.style.strokeDashoffset = '0';
+    });
+  }
+
+  /* 標題數字滾動：單一 rAF、分頁隱藏或減動態即不跑 */
+  var tickId = 0;
+  function countUp(node, target) {
+    if (!node) return;
+    if (reduced() || document.hidden || typeof requestAnimationFrame !== 'function' || target <= 0) {
+      node.textContent = String(target);
+      return;
+    }
+    var t0 = 0;
+    if (tickId && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(tickId);
+    function step(ts) {
+      if (document.hidden) { node.textContent = String(target); tickId = 0; return; }
+      if (!t0) t0 = ts;
+      var k = Math.min(1, (ts - t0) / 520);
+      node.textContent = String(Math.round(target * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) tickId = requestAnimationFrame(step);
+      else { node.textContent = String(target); tickId = 0; }
+    }
+    tickId = requestAnimationFrame(step);
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && tickId && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(tickId);
+      tickId = 0;
+    }
+  });
+
+  function shortOf(q, side, v) {
+    if (!v) return side === 'en' ? '(no answer)' : '未作答';
+    var opts = q[side].opts;
+    for (var i = 0; i < opts.length; i++) if (opts[i].v === v) return opts[i].short;
+    return '—';
+  }
+
+  function showResult() {
+    var rows = compareRounds(Q, A, B);
+    var kind = classify(rows);
+    var v = verdictText(rows);
+
+    fA.hidden = true;
+    fB.hidden = true;
+    rec.hidden = true;
+    res.hidden = false;
+
+    /* 標題 */
+    var line = document.getElementById('verdictLine');
+    line.textContent = '';
+    if (v.lineN === null) {
+      line.textContent = v.line;
+    } else {
+      line.appendChild(document.createTextNode('你在第二部分改了 '));
+      var em = document.createElement('em');
+      em.textContent = '0';
+      line.appendChild(em);
+      line.appendChild(document.createTextNode(' 題。'));
+      countUp(em, v.lineN);
+    }
+    document.getElementById('verdictSub').textContent = v.sub;
+
+    /* 帳本 */
+    var ledger = document.getElementById('ledger');
+    ledger.textContent = '';
+    var paths = [];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i], q = Q[i];
+
+      var r = el('div', 'row rv' + (row.changed ? ' chg' : ''));
+      r.style.transitionDelay = (reduced() ? 0 : i * 90) + 'ms';
+
+      var lab = el('div', 'rlab');
+      var num = el('span');
+      num.textContent = '第 ' + (i + 1) + ' 題';
+      lab.appendChild(num);
+      var tag = el('span', 'tag');
+      tag.textContent = !row.answered ? '未完成'
+        : row.changed ? (row.dir === 'toward' ? '改了 → 算數字那邊' : '改了 → 直覺那邊')
+        : '沒改';
+      lab.appendChild(tag);
+      r.appendChild(lab);
+
+      var c1 = el('div', 'chip ' + (row.lane1 || ''));
+      c1.textContent = shortOf(q, 'zh', row.r1);
+      r.appendChild(c1);
+
+      var made = connector(row);
+      r.appendChild(made.svg);
+      if (made.path) paths.push(made.path);
+
+      var c2 = el('div', 'chip r ' + (row.lane2 || ''));
+      c2.setAttribute('lang', 'en');
+      c2.textContent = shortOf(q, 'en', row.r2);
+      r.appendChild(c2);
+
+      ledger.appendChild(r);
+    }
+
+    /* 路線分支：四種收束各自有結局 */
+    var boxes = { none: 'rNone', some: 'rSome', all: 'rAll', incomplete: 'rPart' };
+    for (var k in boxes) {
+      if (!Object.prototype.hasOwnProperty.call(boxes, k)) continue;
+      var node = document.getElementById(boxes[k]);
+      if (node) node.hidden = (k !== kind);
+    }
+
+    observe(res);
+    for (var pi = 0; pi < paths.length; pi++) drawPath(paths[pi], pi * 110 + 240);
+
+    announce(v.line + ' ' + v.sub);
+    scrollTo(res);
+  }
+
+  /* ══════════ 重做 ══════════ */
+  document.getElementById('again').addEventListener('click', function () {
+    drop('a1'); drop('a2'); drop('stage');
+    for (var k in A) if (Object.prototype.hasOwnProperty.call(A, k)) delete A[k];
+    for (var k2 in B) if (Object.prototype.hasOwnProperty.call(B, k2)) delete B[k2];
+    var ins = document.querySelectorAll('input[type=radio]');
+    for (var i = 0; i < ins.length; i++) {
+      ins[i].checked = false;
+      if (ins[i].parentNode && ins[i].parentNode.classList) ins[i].parentNode.classList.remove('on');
+    }
+    res.hidden = true;
+    rec.hidden = true;
+    fB.hidden = true;
+    fA.hidden = false;
+    nA.textContent = '';
+    nB.textContent = '';
+    announce('答案已清除，從第一部分重新開始。');
+    scrollTo(fA);
+  });
+
+  /* ══════════ 回訪：把上次的進度接回來 ══════════ */
+  (function boot() {
+    var stage = load('stage');
+    restore(fA, 'zh', A);
+    restore(fB, 'en', B);
+    if (stage === 'done' && unanswered(Q, A).length === 0 && unanswered(Q, B).length === 0) {
+      showResult();
+    } else if (stage === 'b' && unanswered(Q, A).length === 0) {
+      fA.hidden = true;
+      rec.hidden = false;
+      fB.hidden = false;
+      observe(fB);
+    }
+  })();
+
+})();
+</script>
+</body>
+</html>

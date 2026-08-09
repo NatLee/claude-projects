@@ -401,11 +401,13 @@ if (fs.existsSync(rosterPath)) {
     const roster = JSON.parse(fs.readFileSync(rosterPath, 'utf8'));
     const done = roster.filter((r) => r.lastMaintained);
     const missing = PROJECTS.filter((p) => !roster.some((r) => r.dir === p.dir)).length;
+    /* 排序鍵：先比上次保養日，同日（含「從未」）再比建立日——名冊是新→舊排列，
+       只比 lastMaintained 的話一堆 null 會平手，永遠傳回檔案最上面那筆（最新的作品）。 */
+    const mkey = (r) => (r.lastMaintained || '0000-00-00') + '|' + (r.created || '9999-99-99');
     let oldest = null;
     for (const r of roster) {
       if (!seenDir.has(r.dir)) continue;
-      const k = r.lastMaintained || '0000-00-00';
-      if (!oldest || k < (oldest.lastMaintained || '0000-00-00')) oldest = r;
+      if (!oldest || mkey(r) < mkey(oldest)) oldest = r;
     }
     console.log(`  保養覆蓋      ${done.length}/${roster.length}${missing ? `（名冊未收錄 ${missing} 筆，請補）` : ''}｜最久未保養：${oldest ? `${oldest.dir.split('/').pop()}（${oldest.lastMaintained || '從未'}）` : '—'}`);
   } catch (e) {

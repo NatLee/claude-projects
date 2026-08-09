@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>他們在地圖上種了一個謊 · 每日小專案</title>
+<style>
+:root{
+  --paper:#efe4cd; --paper-d:#e4d5b6; --paper-l:#f6eeda;
+  --ink:#211c17; --ink2:#4c4136; --ink3:#7b6c58;
+  --road:#c0442a; --road2:#cf8a37; --water:#7ba0b6;
+  --line:#b7a382; --gold:#9c7726; --dark:#0c0b0a;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--serif); line-height:1.95;
+  font-size:clamp(16px,1.05rem + .2vw,18px);
+  overflow-x:hidden;
+}
+.home{
+  position:absolute; top:18px; left:20px; z-index:9;
+  color:#8c806e; text-decoration:none; font-size:13px; letter-spacing:.08em;
+  padding:4px 8px; border-radius:4px; transition:color .25s, background .25s;
+}
+.home:hover,.home:focus-visible{color:#e8dcc4; background:rgba(255,255,255,.07)}
+:focus-visible{outline:2px solid var(--road); outline-offset:3px}
+
+/* ---------------- 第一屏 ---------------- */
+#open{
+  position:relative; min-height:100vh; min-height:100svh;
+  background:var(--dark); color:#d9cfba;
+  display:flex; align-items:center; justify-content:center;
+  padding:96px 22px 120px; overflow:hidden; isolation:isolate;
+}
+#open::after{
+  content:""; position:absolute; inset:0; z-index:2; pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 45%,rgba(12,11,10,0) 30%,rgba(12,11,10,.92) 100%);
+}
+.open-art{position:absolute; inset:0; width:100%; height:100%; z-index:1; opacity:.5}
+.open-art path{fill:none; stroke:#5d5344; stroke-width:1.1; vector-effect:non-scaling-stroke}
+.open-art .draw{opacity:0; animation:inkin 1.8s ease forwards}
+.open-art .pulse{fill:var(--road); opacity:0; animation:blip 3.4s 2.2s ease-out infinite}
+@keyframes inkin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes blip{0%{opacity:0;transform:scale(.6)}12%{opacity:1;transform:scale(1)}60%{opacity:.55}100%{opacity:0;transform:scale(2.6)}}
+.open-inner{position:relative; z-index:3; max-width:640px; text-align:center}
+.kicker{
+  font-size:12px; letter-spacing:.34em; text-transform:uppercase;
+  color:#8d8067; margin:0 0 26px; animation:fadeUp .9s .2s both;
+}
+#open h1{
+  font-size:clamp(2.1rem,7.6vw,3.5rem); line-height:1.32; margin:0 0 30px;
+  font-weight:600; letter-spacing:.01em; color:#f0e6d1;
+  animation:fadeUp 1s .45s both;
+}
+.lede{color:#a3977f; margin:0; font-size:clamp(15px,3.6vw,17px); animation:fadeUp 1s .95s both}
+.scrolldown{
+  position:absolute; left:0; right:0; bottom:38px; z-index:3; text-align:center;
+  color:#6b6152; font-size:12px; letter-spacing:.3em; margin:0;
+  animation:fadeUp 1s 2s both, bob 2.6s 3s ease-in-out infinite;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+
+/* ---------------- 紙上的章節 ---------------- */
+main{
+  position:relative;
+  background:
+    radial-gradient(90% 60% at 12% 0%,rgba(255,255,255,.5),transparent 60%),
+    radial-gradient(70% 50% at 92% 30%,rgba(180,152,104,.16),transparent 60%),
+    var(--paper);
+  box-shadow:0 -40px 60px -30px rgba(0,0,0,.55);
+  padding:0 0 40px;
+}
+.act{max-width:660px; margin:0 auto; padding:78px 22px 0}
+.act.wide{max-width:900px}
+h2{
+  font-size:clamp(1.4rem,5vw,2rem); line-height:1.4; margin:0 0 8px; font-weight:600;
+  letter-spacing:.01em;
+}
+.no{
+  display:block; font-size:11px; letter-spacing:.34em; color:var(--gold);
+  text-transform:uppercase; margin-bottom:14px;
+}
+p{margin:0 0 1.15em}
+.act p{color:var(--ink2)}
+.act p.big{color:var(--ink); font-size:clamp(18px,4.4vw,22px); line-height:1.75}
+em{font-style:normal; color:var(--ink); box-shadow:inset 0 -.45em 0 rgba(192,68,42,.16)}
+.quiet{color:var(--ink3); font-size:14.5px; line-height:1.85}
+blockquote{
+  margin:26px 0; padding:16px 0 16px 22px; border-left:2px solid var(--road);
+  font-size:clamp(18px,4.6vw,23px); color:var(--ink); line-height:1.6;
+}
+.reveal{opacity:0; transform:translateY(22px); transition:opacity .8s ease, transform .8s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1; transform:none}
+
+/* ---------------- 地圖 ---------------- */
+.mapwrap{margin:26px 0 10px; position:relative}
+#map{
+  display:block; width:100%; height:auto; touch-action:none; cursor:none;
+  border:1px solid var(--line); border-radius:2px;
+  box-shadow:0 18px 34px -26px rgba(60,44,20,.9);
+  background:var(--paper-l);
+}
+#map:focus-visible{outline:2px solid var(--road); outline-offset:3px}
+.lbl{font-family:var(--serif); font-size:8px; letter-spacing:.06em; fill:var(--ink2)}
+.lbl.tiny{font-size:7px; fill:var(--ink3)}
+.dot{fill:var(--ink2)}
+.rd{fill:none; stroke:var(--road); stroke-linecap:round; stroke-linejoin:round}
+.rd.major{stroke-width:3.4}
+.rd.mid{stroke-width:2.2}
+.rd.minor{stroke:#a08a63; stroke-width:1; stroke-dasharray:5 3.5}
+.rd.thin{stroke:#b49c74; stroke-width:.8}
+.riv{fill:none; stroke:var(--water); stroke-width:1.5; stroke-linecap:round; opacity:.85}
+.cont{fill:none; stroke:var(--line); stroke-width:.6; opacity:.5}
+.shield{fill:var(--paper-l); stroke:var(--road); stroke-width:1}
+.shield-t{font-size:7px; fill:var(--road); letter-spacing:.02em}
+.lensring{fill:none; stroke-width:2.4; pointer-events:none}
+.lenshalo{fill:none; stroke:rgba(255,255,255,.55); stroke-width:5; pointer-events:none}
+#trapHalo{fill:none; stroke:var(--road); stroke-width:1.6; opacity:0}
+#trapHalo.on{opacity:1; animation:ping 1.6s ease-out infinite}
+@keyframes ping{0%{transform:scale(.5);opacity:1}100%{transform:scale(1.5);opacity:0}}
+figcaption{font-size:12px; color:var(--ink3); letter-spacing:.06em; margin-top:10px}
+.searchbar{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  margin:4px 0 6px; min-height:34px;
+}
+#hint{
+  font-size:13px; letter-spacing:.22em; color:var(--ink3); margin:0;
+  padding:5px 12px; border:1px solid var(--line); border-radius:99px;
+  transition:color .3s, border-color .3s, background .3s;
+}
+#hint.hot{color:#fff; background:var(--road); border-color:var(--road)}
+.btn{
+  font-family:var(--serif); font-size:14px; letter-spacing:.06em;
+  color:var(--ink2); background:transparent; border:1px solid var(--line);
+  padding:7px 16px; border-radius:99px; cursor:pointer;
+  transition:transform .18s, background .22s, color .22s, border-color .22s;
+}
+.btn:hover{background:rgba(192,68,42,.08); color:var(--ink); border-color:var(--road)}
+.btn:active{transform:translateY(1px) scale(.985)}
+.btn.solid{
+  background:var(--ink); color:var(--paper-l); border-color:var(--ink);
+  font-size:clamp(15px,4vw,17px); padding:13px 30px; letter-spacing:.1em;
+}
+.btn.solid:hover{background:var(--road); border-color:var(--road); color:#fff}
+.btn[hidden]{display:none}
+
+/* ---------------- 字母重排 ---------------- */
+.anagram{margin:34px 0 8px}
+.anarow{font-size:13px; color:var(--ink3); letter-spacing:.1em; margin-bottom:12px}
+.chips{
+  position:relative; height:var(--cw); width:calc(var(--cw) * 5.9);
+  max-width:100%; --cw:clamp(38px,10.5vw,54px);
+}
+.chip{
+  position:absolute; top:0; left:0;
+  width:var(--cw); height:var(--cw); line-height:calc(var(--cw) - 2px);
+  text-align:center; font-size:calc(var(--cw) * .48); color:var(--ink);
+  background:var(--paper-l); border:1px solid var(--line); border-radius:3px;
+  transform:translateX(calc(var(--i) * var(--cw) * 1.06));
+  transition:transform 1s cubic-bezier(.55,-0.2,.25,1.3), background .5s, border-color .5s;
+  box-shadow:0 2px 0 rgba(120,98,60,.18);
+}
+.chips.done .chip{background:#fbf5e6; border-color:var(--road); color:var(--road)}
+
+/* ---------------- 兩張地圖碎片 ---------------- */
+.frags{display:flex; align-items:center; gap:16px; flex-wrap:wrap; margin:30px 0 6px}
+.frag{flex:1 1 200px; min-width:180px}
+.frag svg{display:block; width:100%; height:auto; border:1px solid var(--line)}
+.frag figcaption{text-align:center}
+.eq{font-size:26px; color:var(--road); text-align:center; flex:0 0 auto}
+
+/* ---------------- 高潮：路口 ---------------- */
+#scene{display:block; width:100%; height:auto; margin:24px 0 6px}
+#car{transform:translateX(-980px); transition:transform 1.6s cubic-bezier(.32,.72,.2,1)}
+#store{opacity:0; transform:scaleY(.03); transform-origin:50% 100%; transform-box:fill-box;
+       transition:opacity .4s 1.35s ease, transform .9s 1.35s cubic-bezier(.2,1.2,.35,1)}
+#signText,#glow{opacity:0; transition:opacity .8s 2.15s ease}
+.drove #car{transform:translateX(0)}
+.drove #store{opacity:1; transform:none}
+.drove #signText{opacity:1}
+.drove #glow{opacity:.75}
+
+/* ---------------- 尾聲：你的陷阱 ---------------- */
+.coda{
+  margin:30px 0 4px; padding:26px 22px; border:1px solid var(--line);
+  background:linear-gradient(180deg,var(--paper-l),rgba(255,255,255,0));
+  border-radius:3px;
+}
+.field{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+#seed{
+  flex:1 1 200px; min-width:0; font-family:var(--serif); font-size:16px; color:var(--ink);
+  background:rgba(255,255,255,.6); border:1px solid var(--line); border-radius:3px; padding:10px 13px;
+}
+#stampWrap{margin-top:22px}
+#stampWrap svg{display:block; width:100%; height:auto; border:1px solid var(--line); background:var(--paper-l)}
+#yourLabel{opacity:0; transition:opacity .6s .35s ease}
+#stampWrap.on #yourLabel{opacity:1}
+#codaLine{margin-top:16px; min-height:1.6em; color:var(--ink)}
+
+footer{
+  max-width:660px; margin:66px auto 0; padding:22px 22px 44px;
+  border-top:1px solid var(--line);
+  color:var(--ink3); font-size:12.5px; letter-spacing:.04em; line-height:1.8;
+}
+footer p{margin:0}
+.end{
+  text-align:center; font-size:clamp(19px,5vw,25px); color:var(--ink);
+  line-height:1.6; margin:52px auto 0; max-width:560px;
+}
+@media (max-width:560px){
+  .act{padding-top:60px}
+  .frags{gap:10px}
+  .eq{width:100%; transform:rotate(90deg)}
+}
+@media (prefers-reduced-motion:reduce){
+  .open-art .draw{animation:none; stroke-dashoffset:0}
+  .open-art .pulse{animation:none; opacity:.9}
+  .kicker,#open h1,.lede,.scrolldown{animation:none !important; opacity:1; transform:none}
+  .reveal{opacity:1; transform:none; transition:none}
+  .chip{transition:none}
+  #car,#store,#signText,#glow,#yourLabel{transition:none}
+  #trapHalo.on{animation:none; opacity:1}
+  .btn{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<!-- ============ 第一屏 ============ -->
+<section id="open">
+  <svg class="open-art" viewBox="0 0 1000 640" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+    <path class="draw" style="animation-delay:.25s" d="M 140 620 C 260 470, 380 330, 500 300 C 620 270, 760 180, 880 40"/>
+    <path class="draw" style="animation-delay:.75s" d="M 60 372 C 200 340, 360 322, 500 300 C 660 274, 820 250, 980 244"/>
+    <path class="draw" style="animation-delay:1.25s;stroke:#3f3a32" d="M 0 470 C 180 452, 320 500, 470 486 C 640 470, 800 430, 1000 424"/>
+    <path class="draw" style="animation-delay:1.5s;stroke:#38414a" d="M 980 120 C 840 168, 700 196, 560 210 C 420 224, 300 268, 210 340"/>
+    <circle class="pulse" cx="500" cy="300" r="5"/>
+  </svg>
+  <div class="open-inner">
+    <p class="kicker">紐約州 · 德拉瓦郡 · 1920 年代</p>
+    <h1>這個十字路口上，<br>有一個鎮。</h1>
+    <p class="lede">沒有房子。沒有郵局。沒有一個人。<br>它在地圖上活了將近一百年——因為有人故意把它放上去。</p>
+  </div>
+  <p class="scrolldown" aria-hidden="true">往下</p>
+</section>
+
+<main>
+
+<!-- ============ 一 ============ -->
+<section class="act reveal">
+  <h2><span class="no">一</span>事實不能被擁有</h2>
+  <p class="big">你畫一張地圖，我照著描一張。你能告我嗎？</p>
+  <p>河在哪裡是事實。山有多高是事實。事實不屬於任何人。抄的人只要把線條挪一挪、字體換一換，你手上就沒有任何一條證據。整個二十世紀，製圖公司都被同一件事折磨：<em>我知道你抄了，但我證明不了。</em></p>
+  <p>於是他們想了一個很壞的辦法。</p>
+  <p class="big">在自己的地圖上，放一個假的東西。</p>
+  <p>一條不存在的巷子。一個不存在的彎。或者，一個不存在的鎮。它不指向任何地方，也不服務任何人。它只是躺在那裡等——等有一天，它出現在別人的地圖上。</p>
+</section>
+
+<!-- ============ 二：找 ============ -->
+<section class="act wide reveal">
+  <h2><span class="no">二</span>找出那顆種子</h2>
+  <p>1920 年代，一家叫 General Drafting 的公司，替 Esso 畫加油站免費送的公路圖。在卡茨基爾山區這一角，他們埋了一個。</p>
+  <p class="quiet">它只有五個字母，字級跟旁邊每一個小村莊一模一樣。<strong>拿放大鏡去找它。</strong>（滑鼠或手指拖曳；鍵盤使用者按方向鍵移動。）</p>
+  <figure class="mapwrap">
+    <svg id="map" viewBox="0 0 900 560" xmlns:xlink="http://www.w3.org/1999/xlink"
+         tabindex="0" role="application"
+         aria-label="卡茨基爾山區地圖，用方向鍵移動放大鏡，找出一個不存在的地名">
+      <defs>
+        <clipPath id="lensClip"><circle id="lensClipC" cx="450" cy="280" r="86"/></clipPath>
+        <g id="mapArt" font-family="Georgia, 'Times New Roman', serif" font-size="7" fill="#7b6c58">
+          <rect x="0" y="0" width="900" height="560" fill="#f6eeda"/>
+          <!-- 等高線意象 -->
+          <g fill="none" stroke="#b7a382" stroke-width=".6" opacity=".5">
+            <path d="M 150 120 C 250 90, 340 130, 380 190 C 420 250, 350 300, 250 288 C 160 276, 110 200, 150 120 Z"/>
+            <path d="M 180 145 C 255 125, 320 155, 350 200 C 378 246, 328 280, 258 268 C 190 256, 150 190, 180 145 Z"/>
+            <path d="M 600 90 C 690 70, 780 110, 800 170 C 820 230, 740 262, 660 240 C 590 220, 560 130, 600 90 Z"/>
+            <path d="M 520 430 C 610 408, 700 442, 716 486 C 730 526, 650 546, 580 532 C 520 518, 490 452, 520 430 Z"/>
+          </g>
+          <!-- 河 -->
+          <g fill="none" stroke="#7ba0b6" stroke-width="1.5" stroke-linecap="round" opacity=".85">
+            <path d="M 96 96 C 220 170, 250 250, 360 288 C 470 326, 560 330, 640 400 C 700 452, 730 476, 806 502"/>
+            <path d="M 862 168 C 740 204, 620 250, 520 268 C 420 286, 340 312, 250 372"/>
+            <path d="M 700 528 C 640 476, 590 442, 520 424 C 452 406, 410 388, 372 356"/>
+          </g>
+          <!-- 路 -->
+          <path fill="none" stroke="#c0442a" stroke-width="3.4" stroke-linecap="round" d="M 24 440 C 180 404, 300 456, 430 434 C 600 406, 700 350, 876 330"/>
+          <path fill="none" stroke="#c0442a" stroke-width="2.2" stroke-linecap="round" d="M 428 546 C 452 456, 476 340, 498 244 C 516 166, 534 110, 562 56"/>
+          <path fill="none" stroke="#a08a63" stroke-width="1" stroke-dasharray="5 3.5" d="M 322 314 C 390 288, 452 262, 498 244 C 566 218, 628 206, 704 200"/>
+          <g fill="none" stroke="#b49c74" stroke-width=".8">
+            <path d="M 120 250 C 190 268, 240 300, 262 344"/>
+            <path d="M 640 316 C 668 366, 690 400, 730 428"/>
+            <path d="M 560 60 C 618 96, 668 118, 720 128"/>
+            <path d="M 250 372 C 300 396, 340 414, 396 420"/>
+            <path d="M 786 430 C 812 464, 820 480, 826 500"/>
+          </g>
+          <!-- 公路盾牌 -->
+          <g fill="#f6eeda" stroke="#c0442a" stroke-width="1">
+            <rect x="192" y="404" width="19" height="14" rx="2"/>
+            <rect x="462" y="392" width="24" height="14" rx="2"/>
+          </g>
+          <g fill="#c0442a" stroke="none" font-size="7" text-anchor="middle">
+            <text x="201.5" y="414">17</text><text x="474" y="402">206</text>
+          </g>
+          <!-- 地名 -->
+          <g fill="#4c4136" stroke="none">
+            <circle cx="470" cy="392" r="1.9"/><circle cx="330" cy="148" r="1.9"/>
+            <circle cx="826" cy="500" r="1.9"/>
+            <circle cx="392" cy="352" r="1.6"/><circle cx="286" cy="424" r="1.6"/>
+            <circle cx="250" cy="330" r="1.6"/><circle cx="176" cy="286" r="1.6"/>
+            <circle cx="556" cy="356" r="1.6"/><circle cx="614" cy="388" r="1.6"/>
+            <circle cx="392" cy="214" r="1.6"/><circle cx="652" cy="316" r="1.6"/>
+            <circle cx="716" cy="372" r="1.6"/><circle cx="788" cy="430" r="1.6"/>
+            <circle cx="600" cy="252" r="1.6"/><circle cx="300" cy="236" r="1.6"/>
+            <circle cx="240" cy="176" r="1.6"/><circle cx="620" cy="130" r="1.6"/>
+            <circle cx="760" cy="262" r="1.6"/><circle cx="452" cy="110" r="1.6"/>
+            <circle cx="100" cy="486" r="1.6"/><circle cx="140" cy="210" r="1.6"/>
+            <circle cx="176" cy="400" r="1.6"/><circle cx="700" cy="86" r="1.6"/>
+            <circle cx="530" cy="472" r="1.6"/><circle cx="836" cy="228" r="1.6"/>
+            <circle cx="498" cy="244" r="1.6"/>
+          </g>
+          <g stroke="none" letter-spacing=".4">
+            <text x="476" y="395" font-size="8" fill="#4c4136">Roscoe</text>
+            <text x="336" y="151" font-size="8" fill="#4c4136">Downsville</text>
+            <text x="762" y="503" font-size="8" fill="#4c4136">Hancock</text>
+            <text x="398" y="355">Rockland</text>
+            <text x="292" y="427">Livingston Manor</text>
+            <text x="256" y="333">Beaverkill</text>
+            <text x="182" y="289">Lew Beach</text>
+            <text x="562" y="359">Cooks Falls</text>
+            <text x="620" y="391">Horton</text>
+            <text x="398" y="217">Shinhopple</text>
+            <text x="658" y="319">East Branch</text>
+            <text x="722" y="375">Fish's Eddy</text>
+            <text x="794" y="433">Cadosia</text>
+            <text x="606" y="255">Harvard</text>
+            <text x="306" y="239">Peakville</text>
+            <text x="246" y="179">Corbett</text>
+            <text x="626" y="133">Trout Brook</text>
+            <text x="766" y="265">Butternut Grove</text>
+            <text x="458" y="113">Colchester</text>
+            <text x="106" y="489">Callicoon</text>
+            <text x="146" y="213">Union Grove</text>
+            <text x="182" y="403">Cat Hollow</text>
+            <text x="706" y="89">Apex</text>
+            <text x="536" y="475">Gulf Summit</text>
+            <text x="782" y="231">Reynolds</text>
+            <!-- 陷阱 -->
+            <text x="504" y="240">AGLOE</text>
+          </g>
+          <!-- 圖廓 -->
+          <text x="18" y="26" stroke="none" letter-spacing="1.6" fill="#9b8b73">DELAWARE &amp; SULLIVAN CO., N.Y.</text>
+          <g stroke="#8d7c5e" stroke-width="1" fill="none">
+            <path d="M 18 536 h 70"/><path d="M 18 532 v 8"/><path d="M 53 533 v 6"/><path d="M 88 532 v 8"/>
+          </g>
+          <text x="94" y="539" stroke="none" fill="#9b8b73">5 mi</text>
+          <g transform="translate(858,54)" stroke="#8d7c5e" fill="none">
+            <circle r="12" stroke-width=".8"/><path d="M 0 -16 L 0 16 M -16 0 L 16 0" stroke-width=".6"/>
+            <path d="M 0 -20 L 3.4 -12 L -3.4 -12 Z" fill="#c0442a" stroke="none"/>
+          </g>
+        </g>
+      </defs>
+
+      <use href="#mapArt" xlink:href="#mapArt"/>
+      <circle id="trapHalo" cx="498" cy="244" r="14" style="transform-origin:498px 244px; transform-box:view-box"/>
+      <g clip-path="url(#lensClip)">
+        <g id="lensLayer"><use href="#mapArt" xlink:href="#mapArt"/></g>
+      </g>
+      <circle id="lensHalo" class="lenshalo" cx="450" cy="280" r="86"/>
+      <circle id="lensRing" class="lensring" cx="450" cy="280" r="86" stroke="#8a7d68"/>
+    </svg>
+    <figcaption>卡茨基爾山區一角，示意重繪。</figcaption>
+  </figure>
+  <div class="searchbar">
+    <p id="hint" aria-live="polite">很遠</p>
+    <button class="btn" id="giveup" type="button">找不到？直接指給我看</button>
+  </div>
+</section>
+
+<!-- ============ 找到之後 ============ -->
+<div id="afterFind" hidden>
+
+<section class="act reveal">
+  <p class="big">那五個字母不是隨便取的。</p>
+  <p>General Drafting 的創辦人叫 <em>Otto G. Lindberg</em>。他的助理叫 <em>Ernest Alpers</em>。兩個人的名字縮寫，攤開來是 O、G、L、E、A。</p>
+  <div class="anagram">
+    <p class="anarow">O.G.L. ＋ E.A. ——重新排一次</p>
+    <div class="chips" id="chips" aria-label="字母重新排列成 AGLOE">
+      <span class="chip" data-k="3" style="--i:0">O</span>
+      <span class="chip" data-k="1" style="--i:1">G</span>
+      <span class="chip" data-k="2" style="--i:2">L</span>
+      <span class="chip" data-k="4" style="--i:3.35">E</span>
+      <span class="chip" data-k="0" style="--i:4.35">A</span>
+    </div>
+  </div>
+  <p style="margin-top:26px">一個用兩個人的姓名縮寫拼出來的鎮，被放在紐約州 206 號公路和 Morton Hill Road 交叉的那個土路口上。</p>
+  <p>然後他們就等。</p>
+</section>
+
+<section class="act reveal">
+  <h2><span class="no">三</span>抓到了</h2>
+  <p>後來，有人翻開 Rand McNally——當時美國數一數二的地圖出版商——印的地圖。同一個十字路口。同樣五個字母。</p>
+  <div class="frags">
+    <figure class="frag">
+      <svg viewBox="0 0 300 170" aria-label="Esso 地圖碎片，路口標著 AGLOE">
+        <rect width="300" height="170" fill="#f6eeda"/>
+        <path d="M 40 168 C 78 120, 118 92, 150 78 C 186 62, 220 30, 236 2" fill="none" stroke="#c0442a" stroke-width="3"/>
+        <path d="M 12 118 C 70 102, 118 88, 150 78 C 200 62, 250 56, 292 58" fill="none" stroke="#a08a63" stroke-width="1.1" stroke-dasharray="5 3.5"/>
+        <circle cx="150" cy="78" r="2.6" fill="#4c4136"/>
+        <text x="158" y="73" font-size="12" letter-spacing="1" fill="#211c17" font-family="Georgia,serif">AGLOE</text>
+      </svg>
+      <figcaption>General Drafting／Esso</figcaption>
+    </figure>
+    <div class="eq" aria-hidden="true">＝</div>
+    <figure class="frag">
+      <svg viewBox="0 0 300 170" aria-label="Rand McNally 地圖碎片，同一個路口也標著 AGLOE">
+        <rect width="300" height="170" fill="#f3f1ea"/>
+        <path d="M 40 168 C 78 120, 118 92, 150 78 C 186 62, 220 30, 236 2" fill="none" stroke="#3f6f92" stroke-width="3"/>
+        <path d="M 12 118 C 70 102, 118 88, 150 78 C 200 62, 250 56, 292 58" fill="none" stroke="#9aa39a" stroke-width="1.1" stroke-dasharray="5 3.5"/>
+        <circle cx="150" cy="78" r="2.6" fill="#333"/>
+        <text x="158" y="73" font-size="12" letter-spacing="1" fill="#1b1b1b" font-family="Georgia,serif">AGLOE</text>
+      </svg>
+      <figcaption>Rand McNally</figcaption>
+    </figure>
+  </div>
+  <p style="margin-top:22px">這五個字母，全世界只有兩個人知道它是假的。而它現在印在對手的紙上。</p>
+  <p class="big">種子發芽了。他們找上門去。</p>
+</section>
+
+<section class="act reveal">
+  <h2><span class="no">四</span>你們自己去那個路口看看</h2>
+  <blockquote>那個地名，我們是從德拉瓦郡的紀錄裡拿到的。</blockquote>
+  <p class="quiet" style="margin-top:-14px">——Rand McNally 的回應，大意如此。</p>
+  <p>對方沒有道歉，也沒有辯解。他們只說：郡政府的檔案裡有這個地方，因為那裡有一家掛著這個名字的商號。</p>
+  <p class="quiet">要證明他們說謊，只需要開車去看一眼。</p>
+  <p style="text-align:center;margin:30px 0 0">
+    <button class="btn solid" id="drive" type="button">開車去那個路口</button>
+  </p>
+  <svg id="scene" viewBox="0 0 900 400" aria-hidden="true" focusable="false">
+    <rect width="900" height="400" fill="#f6eeda"/>
+    <path d="M 0 250 C 160 236, 320 244, 460 240 C 620 236, 760 244, 900 238" fill="none" stroke="#cbb894" stroke-width="1"/>
+    <path d="M 0 330 C 200 316, 380 322, 900 306" fill="none" stroke="#c0442a" stroke-width="16" stroke-linecap="round" opacity=".9"/>
+    <path d="M 470 400 C 476 350, 480 300, 486 262 C 490 236, 494 220, 498 208" fill="none" stroke="#a08a63" stroke-width="7" stroke-linecap="round" opacity=".8"/>
+    <g fill="#6f7f5c" opacity=".75">
+      <path d="M 90 250 l 16 -46 l 16 46 Z"/><path d="M 132 254 l 13 -36 l 13 36 Z"/>
+      <path d="M 700 246 l 18 -50 l 18 50 Z"/><path d="M 746 252 l 12 -34 l 12 34 Z"/>
+      <path d="M 806 250 l 15 -42 l 15 42 Z"/>
+    </g>
+    <ellipse id="glow" cx="330" cy="286" rx="180" ry="46" fill="#e8b45c" opacity="0"/>
+    <g id="store">
+      <rect x="228" y="186" width="204" height="102" fill="#8d6a48"/>
+      <rect x="228" y="186" width="204" height="102" fill="none" stroke="#5d4630" stroke-width="2"/>
+      <path d="M 214 188 L 330 136 L 446 188 Z" fill="#6b4f36"/>
+      <rect x="268" y="228" width="40" height="60" fill="#f0dcb4"/>
+      <rect x="344" y="228" width="52" height="40" fill="#cfe0e4"/>
+      <rect x="240" y="196" width="180" height="26" fill="#f3e6c8" stroke="#5d4630" stroke-width="1.5"/>
+      <text id="signText" x="330" y="215" text-anchor="middle" font-size="15" letter-spacing="1.4"
+            font-family="Georgia,serif" fill="#4a3520">AGLOE GENERAL STORE</text>
+    </g>
+    <g id="car">
+      <rect x="560" y="296" width="76" height="24" rx="7" fill="#2f3a40"/>
+      <path d="M 578 296 L 588 282 L 618 282 L 626 296 Z" fill="#2f3a40"/>
+      <circle cx="578" cy="322" r="8" fill="#1b1b1b"/><circle cx="620" cy="322" r="8" fill="#1b1b1b"/>
+    </g>
+  </svg>
+</section>
+
+<div id="afterDrive" hidden>
+<section class="act reveal">
+  <p class="big">路口上站著一棟房子。</p>
+  <p>有人買了 Esso 的地圖，照著開到這裡，以為這個地方叫 Agloe——於是把自己的生意也取名叫 Agloe。郡政府把它登記進紀錄。Rand McNally 從郡政府拿到這個地名。</p>
+  <p>官司就此結束。你不能告別人抄了一個真實存在的地方。</p>
+  <p class="big">那個謊沒有被拆穿。它被兌現了。</p>
+</section>
+
+<section class="act reveal">
+  <h2><span class="no">五</span>不過，等一下</h2>
+  <p>這個故事流傳了幾十年，每個版本都說那是一家雜貨店。2016 年，《Times Herald-Record》去問了當地的老住戶——他們說，那個路口上<em>從來沒有過雜貨店</em>。</p>
+  <p>有的是一間釣魚旅館。1930 年 5 月，一家叫「Agloe Lodge Farms」的公司完成登記，買下附近的地，把旅館改名叫 Agloe Lodge。</p>
+  <p>賣地的 Nead 家族說，那塊地的成交價是<em>一美元</em>。他們一直懷疑，買家背後其實就是 Rand McNally。</p>
+  <p class="big">如果是真的，那就不是謊言自己長成了真的。</p>
+  <p>而是被告花了一塊錢，把原告的謊蓋成真的，再讓它站在那裡當自己的不在場證明。</p>
+</section>
+
+<section class="act reveal">
+  <h2><span class="no">六</span>一個謊是怎麼死的</h2>
+  <p>Agloe 在地圖上一直活到 1990 年代。後來房子沒了，名字也一張一張被刪掉。它甚至短暫出現在 Google 地圖上，然後在某一次資料整理裡消失。</p>
+  <p>2014 年 2 月 25 日，美國地質調查局在全國地名資料庫裡建了一筆新紀錄，名稱欄寫著：</p>
+  <blockquote>Agloe (Not Official)</blockquote>
+  <p class="quiet">它不是唯一的。1978 年那版密西根州官方公路圖上，俄亥俄州境內莫名多出兩個鎮：Goblu 和 Beatosu。念快一點——Go Blue、Beat OSU。放它們上去的是當時的密西根州公路委員會主席，一位密大校友。地圖後來重印了。</p>
+</section>
+
+<section class="act reveal">
+  <h2><span class="no">尾聲</span>換你埋一顆</h2>
+  <p>你桌上那張地圖、你手機裡那個 app，也許都有一個這樣的東西，安安靜靜地躺在某個沒人會去的路口上等。</p>
+  <div class="coda">
+    <label for="seed" style="font-size:14px;color:var(--ink3);letter-spacing:.1em">輸入你的名字，或任何幾個字</label>
+    <div class="field">
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Otto G. Lindberg">
+      <button class="btn" id="coin" type="button">埋下去</button>
+    </div>
+    <div id="stampWrap" aria-live="polite">
+      <svg viewBox="0 0 600 200" aria-label="你的假地名被蓋在地圖上">
+        <rect width="600" height="200" fill="#f6eeda"/>
+        <path d="M 0 150 C 120 138, 240 152, 360 140 C 470 130, 540 134, 600 128" fill="none" stroke="#b7a382" stroke-width=".8"/>
+        <path d="M 100 200 C 140 150, 190 110, 250 92 C 320 70, 400 58, 470 20" fill="none" stroke="#c0442a" stroke-width="2.4"/>
+        <path d="M 30 130 C 120 112, 200 98, 250 92 C 340 80, 430 84, 580 76" fill="none" stroke="#a08a63" stroke-width="1" stroke-dasharray="5 3.5"/>
+        <circle cx="250" cy="92" r="2.4" fill="#4c4136"/>
+        <text id="yourLabel" x="260" y="87" font-size="13" letter-spacing="1.6" font-family="Georgia,serif" fill="#211c17">—</text>
+      </svg>
+    </div>
+    <p id="codaLine"></p>
+  </div>
+  <p class="end">它現在跟 1920 年代的 Agloe 一樣真實——<br>也就是，完全不真實。<br><span style="color:var(--ink3)">剩下的，只差有人開車過去，在那裡蓋一間店。</span></p>
+</section>
+</div><!-- /afterDrive -->
+</div><!-- /afterFind -->
+
+<footer>
+  <p>資料來源：Wikipedia「Agloe, New York」、NPR、The New York Times、Times Herald-Record。地圖與路口為示意重繪，非原圖複製。</p>
+</footer>
+</main>
+
+<script src="pure.js"></script>
+<script>
+(function () {
+  'use strict';
+  var LS = 'agloe.';
+
+  /* ---------- 減動態 ---------- */
+  var mReduced = matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = function () { return mReduced.matches; };
+  var onReducedChange = function (fn) {
+    if (mReduced.addEventListener) mReduced.addEventListener('change', fn);
+    else if (mReduced.addListener) mReduced.addListener(fn);
+  };
+
+  /* ---------- 捲動進場 ---------- */
+  var io = null;
+  function observeReveals() {
+    var els = document.querySelectorAll('.reveal:not(.in)');
+    if (reduced() || !('IntersectionObserver' in window)) {
+      for (var i = 0; i < els.length; i++) els[i].classList.add('in');
+      return;
+    }
+    if (!io) {
+      io = new IntersectionObserver(function (es, obs) {
+        for (var j = 0; j < es.length; j++) {
+          if (es[j].isIntersecting) { es[j].target.classList.add('in'); obs.unobserve(es[j].target); }
+        }
+      }, { rootMargin: '0px 0px -8% 0px' });
+    }
+    for (var k = 0; k < els.length; k++) io.observe(els[k]);
+  }
+  observeReveals();
+  onReducedChange(observeReveals);
+
+  /* ---------- 二、放大鏡 ---------- */
+  var VB_W = 900, VB_H = 560, LENS_R = 86, MAG = 3.1;
+  var TRAP = { x: 498, y: 244 };
+  var map = document.getElementById('map');
+  var clipC = document.getElementById('lensClipC');
+  var ring = document.getElementById('lensRing');
+  var halo = document.getElementById('lensHalo');
+  var layer = document.getElementById('lensLayer');
+  var hint = document.getElementById('hint');
+  var trapHalo = document.getElementById('trapHalo');
+  var giveup = document.getElementById('giveup');
+  var afterFind = document.getElementById('afterFind');
+
+  var lx = 300, ly = 430, found = false, pending = false, lastLabel = '';
+
+  function paint() {
+    pending = false;
+    clipC.setAttribute('cx', lx); clipC.setAttribute('cy', ly);
+    ring.setAttribute('cx', lx); ring.setAttribute('cy', ly);
+    halo.setAttribute('cx', lx); halo.setAttribute('cy', ly);
+    layer.setAttribute('transform',
+      'translate(' + lx + ',' + ly + ') scale(' + MAG + ') translate(' + (-lx) + ',' + (-ly) + ')');
+    var d = distance(lx, ly, TRAP.x, TRAP.y);
+    var t = heat(d);
+    var r = Math.round(138 + (192 - 138) * t);
+    var g = Math.round(125 + (68 - 125) * t);
+    var b = Math.round(104 + (42 - 104) * t);
+    ring.setAttribute('stroke', 'rgb(' + r + ',' + g + ',' + b + ')');
+    ring.setAttribute('stroke-width', (2.2 + t * 1.6).toFixed(2));
+    if (!found) {
+      var label = proximityLabel(d);
+      if (label !== lastLabel) {
+        lastLabel = label;
+        hint.textContent = label;
+        hint.classList.toggle('hot', label === '非常近');
+      }
+      if (d <= 30) reveal(false);
+    }
+  }
+  function schedule() { if (!pending) { pending = true; requestAnimationFrame(paint); } }
+
+  function moveTo(x, y) {
+    lx = clamp(x, LENS_R * 0.4, VB_W - LENS_R * 0.4);
+    ly = clamp(y, LENS_R * 0.4, VB_H - LENS_R * 0.4);
+    schedule();
+  }
+
+  map.addEventListener('pointermove', function (e) {
+    if (found) return;
+    var p = toViewBox(e.clientX, e.clientY, map.getBoundingClientRect(), VB_W, VB_H);
+    moveTo(p.x, p.y);
+  });
+  map.addEventListener('pointerdown', function (e) {
+    if (found) return;
+    e.preventDefault();
+    map.focus();
+    var p = toViewBox(e.clientX, e.clientY, map.getBoundingClientRect(), VB_W, VB_H);
+    moveTo(p.x, p.y);
+  });
+  map.addEventListener('keydown', function (e) {
+    if (found) return;
+    var step = e.shiftKey ? 34 : 13, dx = 0, dy = 0;
+    if (e.key === 'ArrowLeft') dx = -step;
+    else if (e.key === 'ArrowRight') dx = step;
+    else if (e.key === 'ArrowUp') dy = -step;
+    else if (e.key === 'ArrowDown') dy = step;
+    else return;
+    e.preventDefault();
+    moveTo(lx + dx, ly + dy);
+  });
+
+  function reveal(bySurrender) {
+    if (found) return;
+    found = true;
+    lx = TRAP.x; ly = TRAP.y;
+    map.style.cursor = 'default';
+    schedule();
+    trapHalo.classList.add('on');
+    hint.textContent = bySurrender ? '就是它' : '找到了';
+    hint.classList.add('hot');
+    giveup.hidden = true;
+    afterFind.hidden = false;
+    observeReveals();
+    if (!reduced()) {
+      var target = afterFind.querySelector('.act');
+      if (target && target.scrollIntoView) {
+        setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 620);
+      }
+    }
+    setTimeout(runAnagram, reduced() ? 0 : 1200);
+  }
+  giveup.addEventListener('click', function () { reveal(true); });
+
+  var anagramDone = false;
+  function runAnagram() {
+    if (anagramDone) return;
+    var chips = document.getElementById('chips');
+    if (!chips) return;
+    anagramDone = true;
+    var kids = chips.children;
+    for (var i = 0; i < kids.length; i++) {
+      kids[i].style.transitionDelay = reduced() ? '0s' : (i * 0.09).toFixed(2) + 's';
+      kids[i].style.setProperty('--i', kids[i].getAttribute('data-k'));
+    }
+    chips.classList.add('done');
+  }
+
+  paint();
+
+  /* ---------- 四、開車去那個路口 ---------- */
+  var drive = document.getElementById('drive');
+  var scene = document.getElementById('scene');
+  var afterDrive = document.getElementById('afterDrive');
+  drive.addEventListener('click', function () {
+    if (scene.classList.contains('drove')) return;
+    scene.classList.add('drove');
+    drive.disabled = true;
+    drive.textContent = '……';
+    var wait = reduced() ? 0 : 2600;
+    setTimeout(function () {
+      drive.hidden = true;
+      afterDrive.hidden = false;
+      observeReveals();
+      var first = afterDrive.querySelector('.act');
+      if (first && first.scrollIntoView && !reduced()) {
+        first.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, wait);
+  });
+
+  /* ---------- 尾聲、你的陷阱 ---------- */
+  var seed = document.getElementById('seed');
+  var coin = document.getElementById('coin');
+  var stampWrap = document.getElementById('stampWrap');
+  var yourLabel = document.getElementById('yourLabel');
+  var codaLine = document.getElementById('codaLine');
+
+  function stamp(raw, restored) {
+    var out = coinName(raw);
+    yourLabel.textContent = out.name;
+    stampWrap.classList.add('on');
+    codaLine.textContent = restored
+      ? '你上次埋的那顆還在：' + out.name + '。'
+      : out.name + ' 已經在圖上了。它沒有地址、沒有居民，只有五個字母和一個路口。';
+    try { localStorage.setItem(LS + 'seed', String(raw)); } catch (e) {}
+  }
+  coin.addEventListener('click', function () {
+    var raw = seed.value.trim();
+    if (!raw) { seed.focus(); codaLine.textContent = '隨便打幾個字都行——Agloe 也只是兩個人的姓名縮寫。'; return; }
+    stamp(raw, false);
+  });
+  seed.addEventListener('keydown', function (e) { if (e.key === 'Enter') coin.click(); });
+  try {
+    var saved = localStorage.getItem(LS + 'seed');
+    if (saved) { seed.value = saved; stamp(saved, true); }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

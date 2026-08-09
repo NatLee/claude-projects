@@ -1,0 +1,1892 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>兩分鐘就學會切詞</title>
+<meta name="description" content="一段沒有停頓、沒有語調的音節流。唯一的線索是機率。聽兩分鐘，然後看看你自己學會了多少——你會答對，而且說不出為什麼。">
+<style>
+  :root{
+    --bg:#05070c; --bg2:#080d15; --panel:#0a111a; --line:#16222f; --line2:#22354a;
+    --fg:#e7eef5; --dim:#7c92a6; --dim2:#516779;
+    --hi:#ffc061;          /* 轉移機率 1.0 */
+    --lo:#6fd4ff;          /* 跨詞界 0.33 */
+    --ok:#4ade9b; --bad:#ff6b7d; --gold:#f0c05a;
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,"Roboto Mono",monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:var(--serif); font-size:18px; line-height:1.85;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--lo); outline-offset:3px; border-radius:4px}
+
+  .home{
+    position:fixed; top:14px; left:16px; z-index:90;
+    font-family:var(--sans); font-size:12.5px; letter-spacing:.08em;
+    color:var(--dim); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(5,7,12,.7); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.07); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--fg); border-color:rgba(255,255,255,.24)}
+
+  /* ── 音訊控制列 ── */
+  .ctl{
+    position:fixed; top:12px; right:14px; z-index:90;
+    display:flex; align-items:center; gap:8px;
+    font-family:var(--sans); font-size:12px;
+    background:rgba(5,7,12,.74); backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.08); border-radius:999px; padding:5px 8px 5px 10px;
+  }
+  .ctl input[type=range]{width:64px; accent-color:var(--hi); background:transparent; cursor:pointer}
+  .ctl button{
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.04em; color:var(--dim);
+    background:transparent; border:1px solid var(--line2); border-radius:999px;
+    padding:4px 9px; cursor:pointer; transition:color .18s, border-color .18s, background .18s;
+  }
+  .ctl button:hover{color:var(--fg); border-color:#3a5a76}
+  .ctl button[aria-pressed=true]{color:var(--lo); border-color:var(--lo); background:rgba(111,212,255,.12)}
+  @media(max-width:560px){
+    .ctl{top:auto; bottom:12px; right:10px; left:10px; justify-content:center}
+    .ctl input[type=range]{width:84px}
+    body{padding-bottom:58px}   /* 別讓固定在底部的音訊列蓋住內容 */
+  }
+
+  .wrap{max-width:690px; margin:0 auto; padding:0 22px}
+  p{margin:0 0 1.15em}
+  .dim{color:var(--dim)}
+  em{font-style:normal; color:var(--hi)}
+  strong{font-weight:600; color:#fff}
+  .tiny{font-family:var(--sans); font-size:12.5px; letter-spacing:.03em; color:var(--dim2); line-height:1.7}
+  .sans{font-family:var(--sans)}
+  .syl{font-family:var(--mono); letter-spacing:.06em}
+
+  /* ── 第一屏 ── */
+  .hero{position:relative; min-height:100svh; display:flex; align-items:center; overflow:hidden; padding:86px 0 40px}
+  #cvHero{position:absolute; inset:0; width:100%; height:100%; display:block; opacity:.5}
+  .hero::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(120% 80% at 50% 10%, transparent 20%, rgba(5,7,12,.8) 68%, var(--bg) 100%);
+  }
+  .hero-copy{position:relative; z-index:2; width:100%}
+  .kicker{
+    font-family:var(--sans); font-size:11px; letter-spacing:.38em; text-transform:uppercase;
+    color:var(--hi); margin:0 0 1.4em;
+  }
+  h1{font-size:clamp(2.1rem,7.2vw,3.5rem); line-height:1.18; margin:0 0 .6em; font-weight:500; letter-spacing:-.01em}
+  .lead{font-size:clamp(1rem,3.4vw,1.12rem); color:#c6d4e0; max-width:30em}
+  .scroll-hint{
+    font-family:var(--sans); font-size:11px; letter-spacing:.3em; color:var(--dim2);
+    display:flex; align-items:center; gap:10px; margin:2.4em 0 0;
+  }
+  .scroll-hint i{display:block; width:32px; height:1px; background:linear-gradient(90deg,var(--dim2),transparent)}
+
+  /* ── 章節 ── */
+  .chapter{padding:12vh 0 2vh; position:relative}
+  .chnum{
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.42em; color:var(--hi);
+    margin:0 0 1.2em; display:flex; align-items:center; gap:12px;
+  }
+  .chnum::before{content:""; width:24px; height:1px; background:var(--line2)}
+  h2{font-size:clamp(1.5rem,4.6vw,2.1rem); line-height:1.36; font-weight:500; margin:0 0 .95em; letter-spacing:-.005em}
+  h3{font-family:var(--sans); font-size:11.5px; letter-spacing:.22em; color:var(--dim); font-weight:600; margin:0 0 .9em}
+
+  .rise{opacity:0; transform:translateY(16px); transition:opacity .75s ease, transform .75s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  .pull{
+    font-size:clamp(1.15rem,3.7vw,1.55rem); line-height:1.62; color:#fff; margin:2em 0;
+    padding-left:20px; border-left:2px solid var(--hi);
+  }
+  .pull.cool{border-left-color:var(--lo)}
+
+  /* ── 面板 ── */
+  .panel{
+    margin:2.2em -22px; padding:16px 14px 18px;
+    background:linear-gradient(180deg,var(--panel),#060b12);
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  }
+  @media(min-width:640px){ .panel{margin:2.4em 0; border:1px solid var(--line); border-radius:14px; padding:18px} }
+  .panel canvas{display:block; width:100%; background:#060b12; border-radius:9px}
+  /* tape 也可能出現在 panel 之外（第一屏）——寬高一定要自己帶，canvas 沒有 CSS 高度會踩 dpr 回饋迴圈 */
+  canvas.tape{display:block; width:100%; height:112px; background:#060b12; border-radius:9px; border:1px solid var(--line)}
+  #cvReveal{height:230px}
+  #cvTP{height:250px}
+  #cvBars{height:210px}
+  @media(max-width:560px){ #cvReveal{height:300px} #cvTP{height:230px} #cvBars{height:200px} }
+
+  button,.btn{
+    font-family:var(--sans); font-size:13.5px; letter-spacing:.05em; color:var(--fg);
+    background:rgba(255,255,255,.045); border:1px solid var(--line2); border-radius:9px;
+    padding:10px 15px; cursor:pointer;
+    transition:background .18s, border-color .18s, color .18s, transform .1s;
+  }
+  button:hover:not(:disabled){background:rgba(255,255,255,.1); border-color:#33556f}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.32; cursor:default}
+  .big{padding:13px 22px; font-size:15px}
+  .prim{border-color:var(--hi); color:var(--hi); background:rgba(255,192,97,.09)}
+  .prim:hover:not(:disabled){background:rgba(255,192,97,.17); border-color:var(--hi)}
+  .row{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:0 0 14px}
+
+  .status{
+    font-family:var(--sans); font-size:12.5px; color:var(--dim); min-height:1.6em;
+    letter-spacing:.03em; margin:10px 0 0;
+  }
+
+  /* 詞卡 */
+  .words{display:flex; flex-wrap:wrap; gap:10px; margin:1.6em 0 1.8em}
+  .word{
+    font-family:var(--mono); font-size:clamp(15px,4.4vw,19px); letter-spacing:.1em;
+    border:1px solid var(--line2); border-radius:10px; padding:9px 13px;
+    background:rgba(255,192,97,.06); color:var(--hi);
+  }
+  .word i{font-style:normal; opacity:.45}
+
+  /* 機率晶片 */
+  .chips{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 10px}
+  .chips button{
+    font-family:var(--mono); font-size:12px; letter-spacing:.04em;
+    padding:5px 9px; border-radius:7px; color:var(--dim);
+  }
+  .chips button[aria-pressed=true]{color:#06111a; background:var(--hi); border-color:var(--hi)}
+  .chips button.b[aria-pressed=true]{background:var(--lo); border-color:var(--lo)}
+  .readout{
+    font-family:var(--sans); font-size:13px; color:var(--fg); min-height:3.2em;
+    border-left:2px solid var(--line2); padding-left:14px; margin-top:6px; line-height:1.7;
+  }
+  .readout b{font-family:var(--mono); font-size:15px}
+
+  /* 進度條 */
+  .bar{height:5px; border-radius:99px; background:rgba(255,255,255,.07); overflow:hidden; margin:14px 0 8px}
+  .bar i{display:block; height:100%; width:100%; background:linear-gradient(90deg,var(--hi),#ff9b45); transform:scaleX(0); transform-origin:0 50%; transition:transform .18s linear}
+  .meta{display:flex; justify-content:space-between; font-family:var(--mono); font-size:12px; color:var(--dim2); letter-spacing:.04em}
+
+  /* 測驗 */
+  .quiz{text-align:center}
+  .qcount{font-family:var(--sans); font-size:11px; letter-spacing:.3em; color:var(--dim2); margin:0 0 12px}
+  .dots{display:flex; gap:5px; justify-content:center; margin:0 0 16px; flex-wrap:wrap}
+  .dots i{width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.14); transition:background .25s, transform .25s}
+  .dots i.done{background:var(--dim)}
+  .dots i.now{background:var(--hi); transform:scale(1.5)}
+  .abrow{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:8px 0 0}
+  .abrow button{min-width:132px; padding:14px 18px; font-size:14.5px}
+  .abrow button.live{border-color:var(--lo); color:var(--lo); background:rgba(111,212,255,.12)}
+
+  /* 分數 */
+  .score{text-align:center; padding:8px 0 4px}
+  .scorenum{font-family:var(--mono); font-size:clamp(3rem,15vw,5.2rem); line-height:1; color:var(--hi); letter-spacing:-.02em}
+  .scorenum small{font-size:.32em; color:var(--dim); letter-spacing:.04em}
+  .split{display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin:20px 0 0}
+  .sbox{border:1px solid var(--line); border-radius:10px; padding:12px 16px; min-width:150px; background:rgba(255,255,255,.02)}
+  .sbox b{display:block; font-family:var(--mono); font-size:22px; color:var(--fg); line-height:1.3}
+  .sbox span{font-family:var(--sans); font-size:11px; letter-spacing:.14em; color:var(--dim2)}
+
+  /* 對照表 */
+  .cmp{width:100%; border-collapse:collapse; font-family:var(--sans); font-size:13px; margin:1.6em 0}
+  .cmp th,.cmp td{padding:9px 8px; text-align:left; border-bottom:1px solid var(--line)}
+  .cmp th{font-size:10.5px; letter-spacing:.16em; color:var(--dim2); font-weight:600}
+  .cmp td:first-child{font-family:var(--mono); letter-spacing:.05em}
+  .cmp .v{font-family:var(--mono); color:var(--hi)}
+  .cmp .v.b{color:var(--lo)}
+  .cmp .v.z{color:var(--dim2)}
+
+  footer{
+    margin-top:14vh; padding:30px 0 46px; border-top:1px solid var(--line);
+    font-family:var(--sans); font-size:12px; color:var(--dim2); letter-spacing:.03em; line-height:2;
+  }
+  footer a{color:var(--dim); text-decoration:none}
+  footer a:hover{color:var(--fg)}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{transition:none}
+    .bar i{transition:none}
+    *{animation:none !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<div class="ctl" role="group" aria-label="音訊控制">
+  <button id="btnSilent" aria-pressed="false" aria-label="切換無聲模式（改用視覺音節流）">無聲模式</button>
+  <button id="btnMute" aria-pressed="false" aria-label="靜音">🔊</button>
+  <input id="vol" type="range" min="0" max="100" value="30" aria-label="音量">
+</div>
+
+<main>
+
+<!-- ══════════ 第一屏 ══════════ -->
+<section class="hero">
+  <canvas id="cvHero" aria-hidden="true"></canvas>
+  <div class="hero-copy wrap">
+    <p class="kicker">兩分鐘就學會切詞</p>
+    <h1>哪裡是<br>一個詞的結尾？</h1>
+    <p class="lead">下面這段聲音是一種語言。它有詞。<br>你的工作只有一件：每次覺得「一個詞剛結束」，就切一刀。</p>
+    <p class="tiny" style="margin:-.4em 0 1.4em">建議戴耳機。</p>
+
+    <div class="row">
+      <button id="btnHero" class="big prim">開始播放 · 12 秒</button>
+      <button id="btnCut" class="big" disabled aria-label="在這裡切一刀（也可以按空白鍵）">切一刀</button>
+    </div>
+    <canvas id="cvTapeHero" class="tape" role="img" aria-label="音節流：一個接一個播出的音節"></canvas>
+    <p class="status" id="heroStatus" role="status" aria-live="polite">按下播放。播的時候，空白鍵也可以切。</p>
+
+    <div class="scroll-hint" aria-hidden="true"><i></i>往下</div>
+  </div>
+</section>
+
+<!-- ══════════ 01 揭曉 ══════════ -->
+<section class="chapter wrap" id="ch1">
+  <p class="chnum rise">01 · 那段聲音是什麼</p>
+  <h2 class="rise">你剛剛聽的，是一種只有四個詞的語言。</h2>
+  <p class="rise">它是實驗室裡造出來的。四個詞，每個詞三個音節，十二個音節湊成一個很小的世界：</p>
+
+  <div class="words rise" id="wordList" aria-label="這個語言的四個詞"></div>
+
+  <p class="rise">那段聲音就是這四個詞隨機接起來的，一個接一個，中間<strong>沒有停頓、沒有換氣、沒有語調</strong>。每個音節都是 222 毫秒——一秒四個半，一路到底。</p>
+  <p class="rise">現在把真正的詞界畫上去。你的刀也一起。</p>
+
+  <div class="panel rise">
+    <canvas id="cvReveal" role="img" aria-label="剛才那段音節流，標出真正的詞界與你切下的位置"></canvas>
+    <div class="row" style="margin:14px 0 0">
+      <button id="btnReplay1">再播一次，這次看得到詞界</button>
+    </div>
+    <p class="status" id="revealStatus" role="status" aria-live="polite"></p>
+  </div>
+
+  <p class="pull rise" id="verdict">你不是不夠專心。那段聲音裡，真的沒有東西可以聽。</p>
+</section>
+
+<!-- ══════════ 02 機率 ══════════ -->
+<section class="chapter wrap" id="ch2">
+  <p class="chnum rise">02 · 唯一的線索</p>
+  <h2 class="rise">唯一會變的東西，是「下一個音節有多好猜」。</h2>
+  <p class="rise">每個音節只屬於一個詞，而且永遠待在同一個位置。所以你一聽到 <span class="syl">tu</span>，下一個<strong>一定</strong>是 <span class="syl">pi</span>；聽到 <span class="syl">pi</span>，下一個<strong>一定</strong>是 <span class="syl">ro</span>。機率 1.0，沒有例外。</p>
+  <p class="rise">那 <span class="syl">ro</span> 之後呢？<span class="syl">ro</span> 是 <span class="syl">tupiro</span> 的尾巴。它後面接的是<em>下一個詞的開頭</em>——而下一個詞是另外三個裡的任何一個。各三分之一。</p>
+
+  <div class="panel rise">
+    <canvas id="cvTP" role="img" aria-label="轉移機率地形圖：詞內為 1.0，跨詞界降到 0.33"></canvas>
+    <div class="chips" id="tpChips" role="group" aria-label="選一個音節接縫，看它的轉移機率"></div>
+    <p class="readout" id="tpRead" role="status" aria-live="polite"></p>
+  </div>
+
+  <p class="pull cool rise">詞內 1.0，跨界 0.33。<br>那一道一道的低谷，就是詞與詞之間的縫。</p>
+  <p class="rise">你的耳朵沒有辦法「聽見」機率。但如果腦子裡有東西在偷偷數這些次數，那道低谷就會浮出來——而低谷的位置，剛好就是詞界。</p>
+  <p class="rise tiny">順帶一提：你聽到的機械感不是我偷懶。1996 年那個實驗用的就是語音合成器——單調、無語調、每個音節等長。那是<strong>刻意的</strong>：只要留下一絲重音或停頓，實驗就不成立了。所以這一頁的聲音也照做，連 4.5 音節／秒的速率都一樣。</p>
+</section>
+
+<!-- ══════════ 03 換你 ══════════ -->
+<section class="chapter wrap" id="ch3">
+  <p class="chnum rise">03 · 現在換你</p>
+  <h2 class="rise">聽兩分鐘。然後我考你。</h2>
+  <p class="rise">不用專心。原始實驗裡的受試者連坐都坐不穩——他們一邊聽，旁邊還有人晃燈逗他們玩。你也可以切到別的分頁去做事，讓它自己跑（分頁一離開就會暫停，回來再繼續）。</p>
+  <p class="rise">兩分鐘 = 180 個詞 = 540 個音節。四個詞會反覆出現，順序隨機，同一個詞不會連著出現兩次。</p>
+
+  <div class="panel rise" id="exposeBox">
+    <div class="row">
+      <button id="btnRun2" class="big prim">聽完整 2 分鐘</button>
+      <button id="btnRun40" class="big">只聽 40 秒</button>
+      <button id="btnStop" hidden>停下來</button>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="expBar"></i></div>
+    <div class="meta"><span id="expTime">00:00 / 02:00</span><span id="expCount">0 個音節</span></div>
+    <canvas id="cvTapeRun" class="tape" role="img" aria-label="正在播放的音節流" style="margin-top:12px"></canvas>
+    <p class="status" id="expStatus" role="status" aria-live="polite">選一個長度。中途想跳過測驗也可以。</p>
+    <div class="row" style="margin:10px 0 0"><button id="btnToQuiz" hidden>夠了，直接考我</button></div>
+  </div>
+
+  <div id="quizBox" hidden>
+    <h3 class="rise">十二題</h3>
+    <p class="rise">每題出現兩串三音節的聲音。其中一串是這個語言裡的<strong>詞</strong>，另一串不是。選你覺得比較像的那一個。</p>
+    <p class="rise tiny">不會告訴你對不對——全部選完再一次公布。這也是原始實驗的做法：中途給回饋，測的就不是「你學到什麼」了。</p>
+
+    <div class="panel quiz rise">
+      <p class="qcount" id="qCount">第 1 / 12 題</p>
+      <div class="dots" id="qDots" aria-hidden="true"></div>
+      <canvas id="cvTapeQuiz" class="tape" role="img" aria-label="測驗題目的音節"></canvas>
+      <div class="row" style="justify-content:center; margin:14px 0 0">
+        <button id="btnPlayTrial" class="prim">播放這一題</button>
+        <button id="btnAgain">再播一次</button>
+      </div>
+      <div class="abrow">
+        <button id="btnA" disabled aria-label="選第一個">第一個</button>
+        <button id="btnB" disabled aria-label="選第二個">第二個</button>
+      </div>
+      <p class="status" id="qStatus" role="status" aria-live="polite" style="text-align:center">按「播放這一題」開始。鍵盤 1 / 2 也可以選。</p>
+    </div>
+  </div>
+
+  <div id="scoreBox" hidden>
+    <div class="panel score rise">
+      <div class="scorenum"><span id="scoreN">0</span><small> / 12</small></div>
+      <p class="status" id="scoreLine" role="status" aria-live="polite" style="text-align:center"></p>
+      <div class="split">
+        <div class="sbox"><b id="sNon">0 / 6</b><span>詞 vs 非詞</span></div>
+        <div class="sbox"><b id="sPart">0 / 6</b><span>詞 vs 跨界串</span></div>
+      </div>
+      <p class="tiny" id="bestLine" style="text-align:center; margin:18px 0 0"></p>
+      <div class="row" style="justify-content:center; margin:14px 0 0"><button id="btnRetest">再測一次（換一組題目）</button></div>
+    </div>
+    <p class="pull rise" id="afterScore">說得出你剛剛是怎麼判斷的嗎？</p>
+  </div>
+</section>
+
+<!-- ══════════ 04 轉折 ══════════ -->
+<section class="chapter wrap" id="ch4">
+  <p class="chnum rise">04 · 轉折</p>
+  <h2 class="rise">1996 年，做到同一件事的，是一群八個月大的嬰兒。</h2>
+  <p class="rise">他們不會說話，不會按鈕，連坐都要人扶。所以 Saffran、Aslin 與 Newport 量的是<strong>頭轉過去之後，還願意聽多久</strong>——嬰兒對陌生的東西會多聽一下下。</p>
+  <p class="rise">先讓嬰兒聽兩分鐘那段連續音節流。然後放單獨的三音節串給他們聽：有些是語言裡的詞，有些不是。</p>
+
+  <div class="panel rise">
+    <canvas id="cvBars" role="img" aria-label="嬰兒聆聽時間長條圖：對非詞與跨界串的聆聽時間都比詞長"></canvas>
+    <p class="tiny" style="margin:12px 0 0">兩個實驗都是同一個方向：<strong>非詞比詞多聽了將近一秒</strong>。差距不大，但穩定到統計上站得住（實驗二：t(28)=2.3，p&lt;0.05）。誤差線是標準誤。</p>
+  </div>
+
+  <p class="pull rise">兩分鐘。<br>他們甚至沒被要求要注意聽。</p>
+  <p class="rise">這是 1996 年 12 月的《Science》。標題只有五個字：〈八個月大嬰兒的統計學習〉。</p>
+</section>
+
+<!-- ══════════ 05 對照 ══════════ -->
+<section class="chapter wrap" id="ch5">
+  <p class="chnum rise">05 · 一個很兇的反駁</p>
+  <h2 class="rise">「他們只是記得哪一串聽得比較多次而已吧？」</h2>
+  <p class="rise">這個質疑很合理。詞在音節流裡出現得多，非詞根本沒出現過——那嬰兒也許只是在數次數，跟「機率」一點關係都沒有。</p>
+  <p class="rise">所以他們設計了 <strong>part-word</strong>：<em>跨過詞界剪下來的三個音節</em>。它在音節流裡真的出現過，跟詞一樣真實，差別只在——它中間有一道 0.33 的縫。</p>
+
+  <table class="cmp rise">
+    <thead><tr><th>三音節串</th><th>是什麼</th><th>兩段轉移機率</th><th>在流裡出現過？</th></tr></thead>
+    <tbody>
+      <tr><td>tupiro</td><td class="dim">詞</td><td><span class="v">1.0</span> · <span class="v">1.0</span></td><td class="dim">是</td></tr>
+      <tr><td>pirogo</td><td class="dim">跨界串 part-word</td><td><span class="v">1.0</span> · <span class="v b">0.33</span></td><td class="dim">是</td></tr>
+      <tr><td>ropitu</td><td class="dim">非詞 nonword</td><td><span class="v z">0</span> · <span class="v z">0</span></td><td class="dim">否</td></tr>
+    </tbody>
+  </table>
+
+  <p class="rise">1998 年，Aslin、Saffran 與 Newport 把這件事做到底：他們讓兩個詞出現的次數變成另外兩個的兩倍，<strong>使得 part-word 與詞在音節流裡出現的次數完全一樣（各 45 次）</strong>。頻率被綁死了，只剩下轉移機率不同。八個月大的嬰兒，還是分得出來。</p>
+  <p class="rise">算的不是次數。算的是<strong>條件機率</strong>。</p>
+
+  <p class="rise" id="yourSplit" hidden></p>
+
+  <p class="pull cool rise">但別把話說得太滿。</p>
+  <p class="rise">1998 那篇論文自己就寫了：這些研究「是為了指出分布式分析對序列學習有多強大，<strong>而不是要證明統計學習機制能解釋語言習得的全部</strong>」。真實的語言裡，一個音節會出現在很多詞裡，詞內機率遠低於 1.0；韻律、停頓、音位排列規則、已經認得的詞……每一樣都在幫忙。統計學習到底佔多少比重，到現在還在吵。</p>
+  <p class="rise">這一頁證明的東西比較小，但也比較硬：<strong>那台機器存在，而且開機得很早。</strong></p>
+</section>
+
+<!-- ══════════ 06 記憶點 ══════════ -->
+<section class="chapter wrap" id="ch6">
+  <p class="chnum rise">06 · 回到第一屏</p>
+  <h2 class="rise">再聽一次最開始那段。</h2>
+  <p class="rise">一模一樣的音節流，一個位元都沒有變。這次不要看畫面，閉上眼睛。</p>
+
+  <div class="panel rise">
+    <div class="row">
+      <button id="btnFinal" class="big prim">再播一次那 12 秒</button>
+      <button id="btnFinalMark" aria-pressed="false">顯示詞界</button>
+    </div>
+    <canvas id="cvTapeEnd" class="tape" role="img" aria-label="第一屏那段音節流，重播"></canvas>
+    <p class="status" id="finalStatus" role="status" aria-live="polite"></p>
+  </div>
+
+  <p class="rise">如果現在它聽起來被切開了——那不是聲音變了。是你變了。</p>
+  <p class="pull rise">你花了兩分鐘，學會一種你不知道自己在學的語言的詞，<br>然後用一個你說不出名字的理由，答對了十二題裡的大部分。</p>
+  <p class="rise">你腦裡有一台一直在跑的統計機器。它從你八個月大就開機了，到現在沒關過。它現在也在跑：跑你聽到的每一句話、你滑過的每一個介面、你走同一條路時經過的每一個轉角。它從來不通知你。</p>
+  <p class="rise">而且順帶一提——你正在讀的這串字，中間的空白是別人幫你切好的。<strong>你小時候聽到的那些話，可沒有。</strong></p>
+</section>
+
+</main>
+
+<footer class="wrap">
+  資料來源：Saffran, Aslin &amp; Newport, <i>Science</i> (1996)；Aslin, Saffran &amp; Newport, <i>Psychological Science</i> (1998)<br>
+  <a href="../../../index.html">← 回首頁</a>
+</footer>
+
+<script>
+/*<core>*/
+/* ══════════════════════════════════════════════════════════════
+   核心：人造語言、轉移機率、測驗、共振峰合成
+   —— 純函式，可在 node 裡直接 require 做斷言
+   ══════════════════════════════════════════════════════════════ */
+var SL = (function () {
+  'use strict';
+
+  /* ---------- 人造語言（Saffran, Aslin & Newport 1996 的語言 A） ---------- */
+  var WORDS = ['tupiro', 'golabu', 'bidaku', 'padoti'];
+  var WORD_SYL = [];
+  var SYLLABLES = [];
+  var INFO = {};            /* 音節 → { w: 詞編號, p: 位置 0~2 } */
+  (function () {
+    for (var w = 0; w < WORDS.length; w++) {
+      var t = [WORDS[w].slice(0, 2), WORDS[w].slice(2, 4), WORDS[w].slice(4, 6)];
+      WORD_SYL.push(t);
+      for (var p = 0; p < 3; p++) { SYLLABLES.push(t[p]); INFO[t[p]] = { w: w, p: p }; }
+    }
+  })();
+
+  var RATE = 4.5;                 /* 音節／秒——原研究的速率 */
+  var SYL_DUR = 1 / RATE;         /* 0.2222 秒 */
+
+  /* ---------- 亂數（xorshift，可重現） ---------- */
+  function rng(seed) {
+    var s = (seed >>> 0) || 0x9e3779b9;
+    return function () {
+      s ^= s << 13; s >>>= 0;
+      s ^= s >>> 17;
+      s ^= s << 5; s >>>= 0;
+      return s / 4294967296;
+    };
+  }
+  function shuffle(arr, rnd) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(rnd() * (i + 1)) % (i + 1);
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+
+  /* ---------- 音節流：四個詞隨機串接，同一個詞不連續重複 ----------
+     這個「不連續重複」的限制正是 0.33 的來源：
+     詞尾之後只剩另外三個詞的開頭可選，各 1/3。 */
+  function makeWordSeq(nWords, rnd) {
+    var out = [], prev = -1, i, k;
+    for (i = 0; i < nWords; i++) {
+      do { k = Math.floor(rnd() * 4) % 4; } while (k === prev);
+      out.push(k); prev = k;
+    }
+    return out;
+  }
+  function seqToSyllables(seq) {
+    var out = [], i, j;
+    for (i = 0; i < seq.length; i++) for (j = 0; j < 3; j++) out.push(WORD_SYL[seq[i]][j]);
+    return out;
+  }
+  function makeStream(nWords, rnd) {
+    var seq = makeWordSeq(nWords, rnd);
+    return { words: seq, syl: seqToSyllables(seq) };
+  }
+
+  /* ---------- 從實際產出的音節流「量」轉移機率 ----------
+     TP(Y|X) = 出現次數(XY) / 出現次數(X)（X 只算有後繼的位置） */
+  function transitionProbs(syl) {
+    var uni = {}, bi = {}, i, a, b, key;
+    for (i = 0; i < syl.length - 1; i++) {
+      a = syl[i]; b = syl[i + 1]; key = a + '>' + b;
+      uni[a] = (uni[a] || 0) + 1;
+      bi[key] = (bi[key] || 0) + 1;
+    }
+    var tp = {};
+    for (key in bi) if (Object.prototype.hasOwnProperty.call(bi, key)) {
+      tp[key] = bi[key] / uni[key.split('>')[0]];
+    }
+    return { tp: tp, bigram: bi, unigram: uni };
+  }
+  /* 一個 bigram 是否跨過詞界：前一個音節位在詞尾就是 */
+  function crossesBoundary(a) { return INFO[a] ? INFO[a].p === 2 : false; }
+  /* gap g 位於 syl[g] 與 syl[g+1] 之間；詞長固定為 3，所以 (g+1)%3===0 就是詞界 */
+  function isBoundaryGap(g) { return (g + 1) % 3 === 0; }
+
+  /* ---------- 測驗素材 ---------- */
+  /* 非詞：詞內音節倒序重排（Saffran 1996 實驗一的做法，例：ropitu、bulago）
+     倒序後每一組 bigram 都不可能在流裡出現，因為中間音節永遠只接詞尾音節。 */
+  function nonWords() {
+    var out = [], w;
+    for (w = 0; w < 4; w++) {
+      out.push({ syl: [WORD_SYL[w][2], WORD_SYL[w][1], WORD_SYL[w][0]], kind: 'nonword', from: [w] });
+    }
+    return out;
+  }
+  /* 跨界串 part-word：跨過一個詞界剪下來的三個音節（Saffran 1996 實驗二，例：pirogo、bubida）
+     split=1：A 的詞尾 + B 的前兩個；split=2：A 的後兩個 + B 的詞首 */
+  function partWords() {
+    var out = [], a, b;
+    for (a = 0; a < 4; a++) for (b = 0; b < 4; b++) {
+      if (a === b) continue;
+      out.push({ syl: [WORD_SYL[a][2], WORD_SYL[b][0], WORD_SYL[b][1]], kind: 'partword', split: 1, from: [a, b] });
+      out.push({ syl: [WORD_SYL[a][1], WORD_SYL[a][2], WORD_SYL[b][0]], kind: 'partword', split: 2, from: [a, b] });
+    }
+    return out;
+  }
+  function isWord(tri) { return WORDS.indexOf(tri.join('')) >= 0; }
+  function occursIn(syl, tri) {
+    for (var i = 0; i + 2 < syl.length; i++) {
+      if (syl[i] === tri[0] && syl[i + 1] === tri[1] && syl[i + 2] === tri[2]) return true;
+    }
+    return false;
+  }
+  function tpOfTriple(tri) {
+    /* 回傳這個三音節串的兩段轉移機率（依語言結構推得） */
+    function step(x, y) {
+      var ix = INFO[x], iy = INFO[y];
+      if (!ix || !iy) return 0;
+      if (ix.p < 2) return (iy.w === ix.w && iy.p === ix.p + 1) ? 1 : 0;
+      return (iy.p === 0 && iy.w !== ix.w) ? 1 / 3 : 0;
+    }
+    return [step(tri[0], tri[1]), step(tri[1], tri[2])];
+  }
+
+  /* ---------- 出題：詞 × 對照物 兩邊都平衡 ----------
+     n 必須是 4 的倍數。每個詞出現 n/4 次；一半配非詞、一半配跨界串；
+     詞排第一或第二各占一半，而且在兩種對照裡各自也對半。 */
+  function makeTrials(n, rnd) {
+    if (n % 4 !== 0 || n < 8) n = 12;
+    var per = n / 4;                       /* 每個詞幾題 */
+    var nw = nonWords(), pw = partWords(), i, w;
+
+    /* 每個詞先各配一題非詞、一題跨界串，剩下的名額平均分掉 */
+    var pairs = [];
+    for (w = 0; w < 4; w++) { pairs.push({ w: w, kind: 'nonword' }); pairs.push({ w: w, kind: 'partword' }); }
+    var extra = n - 8;                     /* 剩下的題數，必為 4 的倍數 */
+    var rounds = extra / 4;
+    for (var r = 0; r < rounds; r++) {
+      var order = shuffle([0, 1, 2, 3], rnd);
+      for (i = 0; i < 4; i++) pairs.push({ w: order[i], kind: (i < 2) ? 'nonword' : 'partword' });
+    }
+
+    /* 詞在前／在後：兩種對照各自對半 */
+    var firstBy = { nonword: [], partword: [] };
+    var cnt = { nonword: 0, partword: 0 };
+    for (i = 0; i < pairs.length; i++) cnt[pairs[i].kind]++;
+    ['nonword', 'partword'].forEach(function (k) {
+      var arr = [];
+      for (var j = 0; j < cnt[k]; j++) arr.push(j < cnt[k] / 2 ? 1 : 0);
+      firstBy[k] = shuffle(arr, rnd);
+    });
+    var used = { nonword: 0, partword: 0 };
+
+    var trials = [];
+    for (i = 0; i < pairs.length; i++) {
+      var P = pairs[i], foil;
+      if (P.kind === 'nonword') {
+        foil = nw[P.w];                    /* 同一個詞的倒序：音節完全相同，只有順序不同 */
+      } else {
+        /* 挑一個「貼著這個詞」的跨界串：不是它自己，而且共用它的音節 */
+        var cand = [];
+        for (var q = 0; q < pw.length; q++) {
+          var c = pw[q];
+          if (c.split === 2 && c.from[0] === P.w) cand.push(c);
+          if (c.split === 1 && c.from[1] === P.w) cand.push(c);
+        }
+        foil = cand[Math.floor(rnd() * cand.length) % cand.length];
+      }
+      trials.push({
+        word: WORD_SYL[P.w].slice(0),
+        wordIdx: P.w,
+        foil: foil.syl.slice(0),
+        foilKind: P.kind,
+        wordFirst: firstBy[P.kind][used[P.kind]++] === 1
+      });
+    }
+    return shuffle(trials, rnd);
+  }
+  function trialItems(t) { return t.wordFirst ? [t.word, t.foil] : [t.foil, t.word]; }
+  function correctIndex(t) { return t.wordFirst ? 0 : 1; }
+
+  function scoreTrials(trials, answers) {
+    var res = { n: 0, correct: 0, nonword: { n: 0, correct: 0 }, partword: { n: 0, correct: 0 } };
+    for (var i = 0; i < trials.length; i++) {
+      var a = answers[i];
+      if (a !== 0 && a !== 1) continue;
+      var ok = (a === correctIndex(trials[i]));
+      res.n++; if (ok) res.correct++;
+      var b = res[trials[i].foilKind];
+      b.n++; if (ok) b.correct++;
+    }
+    return res;
+  }
+
+  /* ---------- 第一屏「切一刀」的成績 ---------- */
+  function scoreCuts(cuts, nSyl) {
+    var seen = {}, list = [], i, g;
+    for (i = 0; i < cuts.length; i++) {
+      g = cuts[i];
+      if (!(g >= 0 && g < nSyl - 1)) continue;
+      if (seen[g]) continue;
+      seen[g] = 1;
+      list.push({ gap: g, hit: isBoundaryGap(g) });
+    }
+    list.sort(function (x, y) { return x.gap - y.gap; });
+    var hits = 0;
+    for (i = 0; i < list.length; i++) if (list[i].hit) hits++;
+    return { total: list.length, hits: hits, chance: list.length / 3, list: list };
+  }
+
+  /* ══════════ 共振峰合成 ══════════ */
+  /* 母音目標（成年男性基準，取 Peterson & Barney 的典型值，Hz）
+     四個母音在 F1/F2 平面上兩兩至少相距 250 Hz，否則後母音會擠在一起分不出來 */
+  var VOWELS = {
+    a: [730, 1090, 2440, 3350],   /* ɑ */
+    i: [270, 2290, 3010, 3600],   /* i */
+    o: [570, 840, 2410, 3300],    /* ɔ */
+    u: [300, 870, 2240, 3200]     /* u */
+  };
+  var PLACE = { p: 'lab', b: 'lab', t: 'alv', d: 'alv', k: 'vel', g: 'vel' };
+  var VOICED = { p: false, b: true, t: false, d: true, k: false, g: true };
+  var BW = [70, 100, 145, 230];
+  var F0 = 120;                       /* 單調：整段固定，沒有任何語調 */
+  var VOICEBAR = 0.12;                /* 濁音棒相對穩定母音段的 RMS（約 −18 dB） */
+  var ASPIRATION = 0.20;              /* 送氣噪音相對穩定母音段的 RMS（約 −14 dB） */
+
+  function isBack(v) { return v === 'u' || v === 'o'; }
+  /* 子音釋放瞬間的四個共振峰起始位置（locus） */
+  function locusOf(c, v) {
+    if (c === 'r') return [330, 1100, 1600, 3300];   /* /r/ 的招牌：F3 很低 */
+    if (c === 'l') return [350, 1150, 2800, 3400];   /* /l/：F3 很高 */
+    var pl = PLACE[c];
+    if (pl === 'lab') return [250, 750, 2100, 3200];
+    if (pl === 'alv') return [250, 1750, 2600, 3300];
+    return isBack(v) ? [250, 1150, 2000, 3200] : [250, 1950, 2350, 3300]; /* 軟顎：F2/F3 靠攏 */
+  }
+  /* 爆破噪音的頻譜重心 */
+  function burstOf(c, v) {
+    var pl = PLACE[c];
+    if (pl === 'lab') return { f: 750, bw: 950, amp: 1.5 };
+    if (pl === 'alv') return { f: 3900, bw: 1500, amp: 2.6 };
+    return { f: isBack(v) ? 1500 : 2050, bw: 430, amp: 2.8 };
+  }
+  function smooth(u) { return u <= 0 ? 0 : u >= 1 ? 1 : (0.5 - 0.5 * Math.cos(Math.PI * u)); }
+
+  /* 每個音節的時間結構——十二個音節完全一致，只有子音種類會改閉塞與 VOT */
+  function plan(syl) {
+    var c = syl.charAt(0), v = syl.charAt(1);
+    var approx = (c === 'r' || c === 'l');
+    var voiced = approx ? true : VOICED[c];
+    var closure = approx ? 0 : 0.045;
+    var burst = approx ? 0 : 0.008;
+    var vot = approx ? 0 : (voiced ? 0.012 : 0.040);
+    var glide = approx ? 0.075 : 0.055;
+    var taper = 0.020;
+    return {
+      syl: syl, c: c, v: v, approx: approx, voiced: voiced,
+      dur: SYL_DUR, closure: closure, release: closure, burst: burst,
+      voiceAt: closure + vot, glideEnd: closure + glide,
+      taperAt: SYL_DUR - taper, taper: taper,
+      locus: locusOf(c, v), target: VOWELS[v],
+      burstSpec: approx ? null : burstOf(c, v)
+    };
+  }
+
+  /* 二階共振器（Klatt 型），直流增益 1 */
+  function resonator(freq, bw, fs) {
+    var r = Math.exp(-Math.PI * bw / fs);
+    var b = 2 * r * Math.cos(2 * Math.PI * freq / fs);
+    var c = -r * r;
+    return { a: 1 - b - c, b: b, c: c };
+  }
+
+  /* 合成一個 CV 音節：脈衝聲源 → 頻譜傾斜 → 四段共振器級聯 → 唇輻射 → 包絡
+     兩段式增益：先把穩定母音段正規化成 RMS=1，再依相對比例疊上爆破噪音，
+     這樣十二個音節的響度完全一致（響度差＝額外的聲學線索，必須消掉）。 */
+  function renderSyl(syl, fs) {
+    fs = fs || 22050;
+    var P = plan(syl);
+    var n = Math.max(1, Math.round(P.dur * fs));
+    var out = new Float32Array(n);
+    var y1 = [0, 0, 0, 0], y2 = [0, 0, 0, 0], co = [null, null, null, null];
+    var lp1 = 0, lp2 = 0, phase = 0, rad = 0;
+    var tiltA = Math.exp(-2 * Math.PI * 240 / fs);
+    var nz = rng(7919 + syl.charCodeAt(0) * 131 + syl.charCodeAt(1) * 17);
+    var i, k;
+
+    for (i = 0; i < n; i++) {
+      var t = i / fs;
+      var u = t <= P.release ? 0 : (t >= P.glideEnd ? 1 : smooth((t - P.release) / (P.glideEnd - P.release)));
+      if (i % 32 === 0) {
+        for (k = 0; k < 4; k++) co[k] = resonator(P.locus[k] + (P.target[k] - P.locus[k]) * u, BW[k], fs);
+      }
+      /* 聲源：脈衝串（濁音）＋送氣噪音（清音的 VOT 期間） */
+      var voicedNow = P.approx ? true : (t >= P.voiceAt || (P.voiced && t < P.release));
+      var x = 0;
+      if (voicedNow) { phase += F0 / fs; if (phase >= 1) { phase -= 1; x = 1; } }
+      lp1 = lp1 * tiltA + x * (1 - tiltA);
+      lp2 = lp2 * tiltA + lp1 * (1 - tiltA);
+      var s = lp2 * 900;
+      if (!P.approx && !P.voiced && t > P.release + P.burst && t < P.voiceAt) s += (nz() * 2 - 1) * 7;
+      for (k = 0; k < 4; k++) {
+        var c2 = co[k];
+        var y = c2.a * s + c2.b * y1[k] + c2.c * y2[k];
+        y2[k] = y1[k]; y1[k] = y; s = y;
+      }
+      var d = s - rad; rad = s;
+      var val, env;
+      if (!P.approx && t < P.release) {
+        /* 閉塞期：嘴唇還閉著，不套唇輻射——這就是濁音棒只剩低頻的原因 */
+        val = s * 2.2;
+        env = P.voiced ? 0.075 : 0;
+      } else {
+        val = d * 6;                       /* 唇輻射 = 一階差分 = +6 dB/oct */
+        if (P.approx) env = smooth(Math.min(1, t / 0.022));
+        else if (t < P.voiceAt) env = 0.45;
+        else env = 0.35 + 0.65 * smooth(Math.min(1, (t - P.voiceAt) / 0.014));
+      }
+      if (t > P.taperAt) env *= smooth(Math.max(0, (P.dur - t) / P.taper));
+      out[i] = val * env;
+    }
+
+    /* 正規化：以穩定母音段的 RMS 為基準（十二個音節等響＝不給額外的聲學線索） */
+    function segRms(from, to) {
+      var a2 = 0, c3 = 0;
+      for (var q = Math.max(0, from); q < to && q < n; q++) { a2 += out[q] * out[q]; c3++; }
+      return c3 ? Math.sqrt(a2 / c3) : 0;
+    }
+    function segScale(from, to, k) {
+      for (var q = Math.max(0, from); q < to && q < n; q++) out[q] *= k;
+    }
+    var rms = segRms(Math.round(P.glideEnd * fs), Math.round(P.taperAt * fs));
+    if (rms > 0) for (i = 0; i < n; i++) out[i] /= rms;
+
+    /* 濁音棒與送氣噪音也各自正規化：不同母音的能量分布不同，
+       不校正的話 bi 的濁音棒會比 da 大四倍——那就是一條額外的線索。 */
+    if (!P.approx && P.voiced) {
+      var cA = 0, cB = Math.round(P.release * fs);
+      var cr = segRms(cA, cB);
+      if (cr > 0) segScale(cA, cB, VOICEBAR / cr);
+    }
+    if (!P.approx && !P.voiced) {
+      var aA = Math.round((P.release + P.burst) * fs), aB = Math.round(P.voiceAt * fs);
+      var ar = segRms(aA, aB);
+      if (ar > 0) segScale(aA, aB, ASPIRATION / ar);
+    }
+
+    /* 爆破：釋放後 8 毫秒的短噪音，經 place-specific 共振器塑形 */
+    if (P.burstSpec) {
+      var bco = resonator(P.burstSpec.f, P.burstSpec.bw, fs);
+      var b1 = 0, b2 = 0, peak = 0;
+      var bStart = Math.round(P.release * fs), bEnd = Math.round((P.release + P.burst) * fs);
+      var tmp = new Float32Array(Math.max(1, bEnd - bStart));
+      for (i = bStart; i < bEnd && i < n; i++) {
+        var frac = (i - bStart) / Math.max(1, bEnd - bStart);
+        var ns = (nz() * 2 - 1) * (1 - frac);
+        var by = bco.a * ns + bco.b * b1 + bco.c * b2;
+        b2 = b1; b1 = by;
+        tmp[i - bStart] = by;
+        if (Math.abs(by) > peak) peak = Math.abs(by);
+      }
+      if (peak > 0) {
+        var bg = P.burstSpec.amp / peak;
+        for (i = bStart; i < bEnd && i < n; i++) out[i] += tmp[i - bStart] * bg;
+      }
+    }
+    return { syl: syl, buf: out, plan: P, steadyRms: 1 };
+  }
+
+  /* 一次算好十二個音節，再用同一個係數壓到安全峰值（保持彼此等響） */
+  function renderAll(fs, target) {
+    target = target || 0.82;
+    var bank = {}, peak = 0, i, k;
+    for (k = 0; k < SYLLABLES.length; k++) {
+      var r = renderSyl(SYLLABLES[k], fs);
+      bank[SYLLABLES[k]] = r.buf;
+      for (i = 0; i < r.buf.length; i++) { var m = Math.abs(r.buf[i]); if (m > peak) peak = m; }
+    }
+    var g = peak > 0 ? target / peak : 1;
+    for (k = 0; k < SYLLABLES.length; k++) {
+      var b = bank[SYLLABLES[k]];
+      for (i = 0; i < b.length; i++) b[i] *= g;
+    }
+    return { bank: bank, gain: g, peak: peak * g };
+  }
+
+  function rmsOf(buf, from, to) {
+    var acc = 0, c = 0;
+    for (var i = from; i < to && i < buf.length; i++) { acc += buf[i] * buf[i]; c++; }
+    return c ? Math.sqrt(acc / c) : 0;
+  }
+  function envelope(buf, bins) {
+    bins = bins || 120;
+    var out = new Float32Array(bins);
+    var per = buf.length / bins;
+    for (var b = 0; b < bins; b++) {
+      var i0 = Math.floor(b * per), i1 = Math.min(buf.length, Math.floor((b + 1) * per)), m = 0;
+      for (var i = i0; i < i1; i++) { var v = buf[i] < 0 ? -buf[i] : buf[i]; if (v > m) m = v; }
+      out[b] = m;
+    }
+    return out;
+  }
+
+  /* ---------- 進度存檔 ---------- */
+  function emptyState() { return { v: 1, best: null, runs: [], heroCuts: null, exposed: 0 }; }
+  function normalize(raw) {
+    var s = emptyState();
+    if (!raw || typeof raw !== 'object') return s;
+    if (raw.best && typeof raw.best.correct === 'number' && typeof raw.best.n === 'number' &&
+        raw.best.n > 0 && raw.best.correct >= 0 && raw.best.correct <= raw.best.n) {
+      s.best = { correct: raw.best.correct, n: raw.best.n };
+    }
+    s.runs = Array.isArray(raw.runs) ? raw.runs.filter(function (r) {
+      return r && typeof r.correct === 'number' && typeof r.n === 'number' && r.n > 0 && r.correct <= r.n;
+    }).slice(-10) : [];
+    s.exposed = (typeof raw.exposed === 'number' && isFinite(raw.exposed) && raw.exposed >= 0) ? raw.exposed : 0;
+    return s;
+  }
+  function recordRun(state, res, seconds) {
+    var s = normalize(JSON.parse(JSON.stringify(state)));
+    s.runs.push({ correct: res.correct, n: res.n, nonword: res.nonword.correct, partword: res.partword.correct, sec: Math.round(seconds || 0) });
+    if (s.runs.length > 10) s.runs = s.runs.slice(-10);
+    if (!s.best || (res.correct / res.n) > (s.best.correct / s.best.n)) s.best = { correct: res.correct, n: res.n };
+    return s;
+  }
+  function loadState(storage, key) {
+    try {
+      if (!storage) return emptyState();
+      var raw = storage.getItem(key);
+      return raw ? normalize(JSON.parse(raw)) : emptyState();
+    } catch (e) { return emptyState(); }
+  }
+  function saveState(storage, key, state) {
+    try { if (!storage) return false; storage.setItem(key, JSON.stringify(state)); return true; }
+    catch (e) { return false; }
+  }
+
+  return {
+    WORDS: WORDS, WORD_SYL: WORD_SYL, SYLLABLES: SYLLABLES, INFO: INFO,
+    RATE: RATE, SYL_DUR: SYL_DUR,
+    rng: rng, shuffle: shuffle,
+    makeWordSeq: makeWordSeq, seqToSyllables: seqToSyllables, makeStream: makeStream,
+    transitionProbs: transitionProbs, crossesBoundary: crossesBoundary, isBoundaryGap: isBoundaryGap,
+    nonWords: nonWords, partWords: partWords, isWord: isWord, occursIn: occursIn, tpOfTriple: tpOfTriple,
+    makeTrials: makeTrials, trialItems: trialItems, correctIndex: correctIndex,
+    scoreTrials: scoreTrials, scoreCuts: scoreCuts,
+    VOWELS: VOWELS, PLACE: PLACE, VOICED: VOICED, BW: BW, F0: F0,
+    VOICEBAR: VOICEBAR, ASPIRATION: ASPIRATION,
+    locusOf: locusOf, burstOf: burstOf, plan: plan, resonator: resonator,
+    renderSyl: renderSyl, renderAll: renderAll, rmsOf: rmsOf, envelope: envelope,
+    emptyState: emptyState, normalize: normalize, recordRun: recordRun,
+    loadState: loadState, saveState: saveState
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = SL;
+/*</core>*/
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  var LS = 'statlearn26.';
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+  var C = {
+    bg: '#060b12', line: '#16222f', line2: '#22354a', dim: '#7c92a6', dim2: '#516779',
+    fg: '#e7eef5', hi: '#ffc061', lo: '#6fd4ff', ok: '#4ade9b', bad: '#ff6b7d'
+  };
+  function $(id) { return document.getElementById(id); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  /* ══════════ 畫布引擎：一個 rAF、多個畫布，離屏／分頁隱藏即停 ══════════ */
+  var stages = [];
+  function addStage(id, draw, opts) {
+    var cv = $(id);
+    if (!cv) return null;
+    var st = {
+      cv: cv, ctx: cv.getContext('2d'), draw: draw, w: 0, h: 0, dpr: 1,
+      visible: false, dirty: true, animated: !!(opts && opts.animated), state: (opts && opts.state) || {}
+    };
+    function measure() {
+      var r = st.cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：不比較的話 ResizeObserver 會每幀翻倍，整張圖消失 */
+      if (st.cv.width !== nw || st.cv.height !== nh) { st.cv.width = nw; st.cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    st.measure = measure;
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(cv);
+    else window.addEventListener('resize', measure);
+    if (window.IntersectionObserver) {
+      new IntersectionObserver(function (es) {
+        for (var i = 0; i < es.length; i++) {
+          st.visible = es[i].isIntersecting;
+          if (es[i].isIntersecting) st.dirty = true;
+        }
+      }, { rootMargin: '120px' }).observe(cv);
+    } else st.visible = true;
+    stages.push(st);
+    return st;
+  }
+  var lastT = 0;
+  var tapeStages = [];          /* 音節帶只在真的有東西在播的時候才逐幀重畫 */
+  function frame(now) {
+    var dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 0;
+    lastT = now;
+    for (var ti = 0; ti < tapeStages.length; ti++) {
+      var ts = tapeStages[ti];
+      var want = P.on && P.tag === ts.tag;
+      if (ts.st.animated !== want) { ts.st.animated = want; ts.st.dirty = true; }
+    }
+    if (!document.hidden) {
+      for (var i = 0; i < stages.length; i++) {
+        var s = stages[i];
+        if (!s.visible || !s.w) continue;
+        if (!(s.dirty || s.force || (s.animated && !reduced))) continue;
+        s.dirty = false;
+        var ctx = s.ctx;
+        ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+        ctx.clearRect(0, 0, s.w, s.h);
+        s.draw(ctx, s.w, s.h, reduced ? 0 : now / 1000, dt, s.state);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  /* ══════════ 捲動進場 ══════════ */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll() { for (var i = 0; i < risers.length; i++) risers[i].classList.add('in'); }
+  var io = null;
+  if (reduced || !window.IntersectionObserver) revealAll();
+  else {
+    io = new IntersectionObserver(function (es) {
+      for (var i = 0; i < es.length; i++) {
+        if (es[i].isIntersecting) { es[i].target.classList.add('in'); io.unobserve(es[i].target); }
+      }
+    }, { rootMargin: '0px 0px -8% 0px' });
+    for (var ri = 0; ri < risers.length; ri++) io.observe(risers[ri]);
+  }
+  function refreshRisers() {
+    var fresh = [].slice.call(document.querySelectorAll('.rise:not(.in)'));
+    if (reduced || !io) { for (var i = 0; i < fresh.length; i++) fresh[i].classList.add('in'); return; }
+    for (var j = 0; j < fresh.length; j++) io.observe(fresh[j]);
+  }
+
+  function onRM() {
+    reduced = RM.matches;
+    for (var i = 0; i < stages.length; i++) stages[i].dirty = true;
+    if (reduced) { revealAll(); tpState.prog = 1; barState.prog = 1; }
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  /* ══════════ 音訊：只在使用者手勢後建立 ══════════ */
+  var actx = null, master = null, bank = null, live = [];
+  var volume = 0.30, muted = false, silentMode = false, audioFailed = false;
+
+  function ensureAudio() {
+    if (silentMode || audioFailed) return null;
+    if (actx) {
+      if (actx.state === 'suspended' && actx.resume) { try { actx.resume(); } catch (e) {} }
+      return actx;
+    }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { audioFailed = true; forceSilent('這個瀏覽器不給合成音訊，已自動切到無聲模式。'); return null; }
+    try {
+      actx = new AC();
+      master = actx.createGain();
+      master.gain.value = muted ? 0 : volume;
+      master.connect(actx.destination);
+    } catch (e) {
+      audioFailed = true; actx = null;
+      forceSilent('音訊啟動失敗，已自動切到無聲模式。');
+      return null;
+    }
+    try { bank = SL.renderAll(actx.sampleRate); }
+    catch (e2) { audioFailed = true; forceSilent('音節合成失敗，已自動切到無聲模式。'); return null; }
+    return actx;
+  }
+  function audioReady() { return !!(actx && master && bank && !silentMode && !audioFailed); }
+  function stopAllSources() {
+    for (var i = 0; i < live.length; i++) { try { live[i].stop(); } catch (e) {} }
+    live = [];
+  }
+  function scheduleSyl(syl, at) {
+    if (!audioReady()) return;
+    var f32 = bank.bank[syl];
+    if (!f32) return;
+    var b = actx.createBuffer(1, f32.length, actx.sampleRate);
+    if (b.copyToChannel) b.copyToChannel(f32, 0); else b.getChannelData(0).set(f32);
+    var src = actx.createBufferSource();
+    src.buffer = b;
+    src.connect(master);
+    src.onended = function () { var k = live.indexOf(src); if (k >= 0) live.splice(k, 1); };
+    try { src.start(at); } catch (e) { return; }
+    live.push(src);
+  }
+  function applyGain() { if (master) master.gain.value = muted ? 0 : volume; }
+
+  /* ══════════ 播放器：音訊與無聲共用同一條時間軸 ══════════ */
+  var P = {
+    on: false, list: [], useAudio: false, t0: 0, timer: 0, next: 0, i: 0,
+    onEnd: null, tag: '', paused: false
+  };
+  function clockNow() { return P.useAudio && actx ? actx.currentTime : performance.now() / 1000; }
+  function playerIndex() {
+    if (!P.on) return -1;
+    return Math.floor((clockNow() - P.t0) / SL.SYL_DUR);
+  }
+  function playerPos() {
+    if (!P.on) return 0;
+    return (clockNow() - P.t0) / SL.SYL_DUR;
+  }
+  function tick() {
+    if (!P.on) return;
+    var horizon = clockNow() + 0.4;
+    while (P.i < P.list.length && P.t0 + P.i * SL.SYL_DUR < horizon) {
+      var s = P.list[P.i];
+      if (s) scheduleSyl(s, P.t0 + P.i * SL.SYL_DUR);
+      P.i++;
+    }
+    if (clockNow() - P.t0 > P.list.length * SL.SYL_DUR) {
+      var cb = P.onEnd;
+      stopPlayer();
+      if (cb) cb();
+    }
+  }
+  function startPlayer(list, opts) {
+    stopPlayer();
+    opts = opts || {};
+    var c = ensureAudio();
+    P.useAudio = !!(c && audioReady());
+    P.on = true; P.list = list; P.i = 0;
+    P.t0 = clockNow() + (P.useAudio ? 0.12 : 0.03);
+    P.onEnd = opts.onEnd || null;
+    P.tag = opts.tag || '';
+    tick();
+    P.timer = setInterval(tick, 70);
+    markDirty();
+    return P.useAudio;
+  }
+  function stopPlayer() {
+    if (P.timer) { clearInterval(P.timer); P.timer = 0; }
+    P.on = false; P.list = []; P.onEnd = null; P.tag = '';
+    stopAllSources();
+    markDirty();
+  }
+  function markDirty() { for (var i = 0; i < stages.length; i++) stages[i].dirty = true; }
+
+  document.addEventListener('visibilitychange', function () {
+    lastT = 0;
+    markDirty();
+    if (document.hidden && P.on) {
+      if (P.tag === 'expose') pauseExposure();
+      else { stopPlayer(); onInterrupted(); }
+    }
+  });
+
+  /* ══════════ 語言素材 ══════════ */
+  var HERO_WORDS = 18;                                   /* 12 秒 ≈ 54 個音節 */
+  var heroStream = SL.makeStream(HERO_WORDS, SL.rng(20260808));
+  var heroSyl = heroStream.syl;
+
+  (function fillWords() {
+    var box = $('wordList');
+    for (var i = 0; i < SL.WORD_SYL.length; i++) {
+      var t = SL.WORD_SYL[i];
+      var d = document.createElement('div');
+      d.className = 'word';
+      d.innerHTML = t[0] + '<i>·</i>' + t[1] + '<i>·</i>' + t[2];
+      box.appendChild(d);
+    }
+  })();
+
+  /* ══════════ 第一屏背景 ══════════ */
+  addStage('cvHero', function (ctx, w, h, t) {
+    var g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#09131e'); g.addColorStop(1, '#04070c');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    var cols = Math.max(24, Math.round(w / 26));
+    for (var i = 0; i < cols; i++) {
+      var x = (i + 0.5) / cols * w;
+      var k = i / cols;
+      var a = 0.5 + 0.5 * Math.sin(k * 22 + t * 0.55);
+      var amp = 0.10 + 0.30 * a * a;
+      var hh = h * amp;
+      ctx.strokeStyle = 'rgba(111,212,255,' + (0.035 + 0.075 * a) + ')';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, h * 0.5 - hh * 0.5);
+      ctx.lineTo(x, h * 0.5 + hh * 0.5);
+      ctx.stroke();
+    }
+  }, { animated: true });
+
+  /* ══════════ 音節帶（tape） ══════════ */
+  function tapeDraw(ctx, w, h, t, dt, st) {
+    ctx.fillStyle = '#060b12';
+    ctx.fillRect(0, 0, w, h);
+    var list = st.list || [];
+    var cell = w < 420 ? 40 : 48;
+    var head = w * 0.68;
+    var midY = h * 0.5;
+    var active = st.activeGetter ? st.activeGetter() : -1;
+    var pos = st.posGetter ? st.posGetter() : 0;
+    if (reduced) pos = Math.floor(pos);
+    /* 靜止時把音節帶攤滿整條，從最左邊開始——空著一大半看起來像壞掉 */
+    if (active < 0) pos = head / cell - 0.5;
+
+    /* 每個音節一格的刻度（間距完全一致，不帶任何詞界訊息） */
+    ctx.strokeStyle = 'rgba(255,255,255,.05)';
+    ctx.lineWidth = 1;
+    var tickY = midY + 26;
+    ctx.beginPath();
+    ctx.moveTo(0, tickY + 0.5); ctx.lineTo(w, tickY + 0.5);
+    ctx.stroke();
+    var t0 = Math.floor(pos - head / cell) - 1;
+    for (var tk = t0; tk < t0 + w / cell + 3; tk++) {
+      var tx = head + (tk - pos) * cell - cell / 2;
+      if (tx < 0 || tx > w) continue;
+      ctx.beginPath(); ctx.moveTo(tx + 0.5, tickY - 4); ctx.lineTo(tx + 0.5, tickY); ctx.stroke();
+    }
+
+    /* 播放頭 */
+    ctx.strokeStyle = 'rgba(255,192,97,' + (active >= 0 ? 0.55 : 0.18) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(head, 8); ctx.lineTo(head, h - 8); ctx.stroke();
+
+    var first = Math.max(0, Math.floor(pos - head / cell) - 1);
+    var last = Math.min(list.length - 1, Math.ceil(pos + (w - head) / cell) + 1);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+    for (var i = first; i <= last; i++) {
+      var x = head + (i - pos) * cell;
+      if (x < -cell || x > w + cell) continue;
+      var ahead = (active >= 0) ? (i > active) : false;
+      var isNow = (i === active);
+      var alpha = ahead ? 0.07 : (isNow ? 1 : 0.42);
+      /* 詞界 */
+      if (st.showBounds && i % 3 === 0 && i > 0) {
+        ctx.strokeStyle = 'rgba(111,212,255,' + (ahead ? 0.08 : 0.55) + ')';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x - cell / 2, midY - 26); ctx.lineTo(x - cell / 2, midY + 26);
+        ctx.stroke();
+      }
+      /* 使用者切的刀 */
+      if (st.cuts && st.cutSet && st.cutSet[i - 1]) {
+        ctx.fillStyle = 'rgba(255,192,97,' + (ahead ? 0.1 : 0.85) + ')';
+        ctx.beginPath();
+        ctx.moveTo(x - cell / 2, midY + 30);
+        ctx.lineTo(x - cell / 2 - 5, midY + 39);
+        ctx.lineTo(x - cell / 2 + 5, midY + 39);
+        ctx.closePath(); ctx.fill();
+      }
+      if (isNow) {
+        ctx.fillStyle = 'rgba(255,192,97,.14)';
+        roundRect(ctx, x - cell / 2 + 2, midY - 19, cell - 4, 38, 8);
+        ctx.fill();
+      }
+      ctx.fillStyle = isNow ? C.hi : 'rgba(231,238,245,' + alpha + ')';
+      ctx.font = (isNow ? '600 ' : '400 ') + (w < 420 ? 15 : 17) + 'px ' + '"SF Mono",ui-monospace,Menlo,Consolas,monospace';
+      ctx.fillText(list[i] || '', x, midY);
+    }
+
+    if (st.label) {
+      ctx.fillStyle = 'rgba(124,146,166,.85)';
+      ctx.font = '11px -apple-system,"PingFang TC","Noto Sans CJK TC",sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(st.label, 12, 16);
+    }
+    /* 上下漸隱 */
+    var gl = ctx.createLinearGradient(0, 0, w, 0);
+    gl.addColorStop(0, 'rgba(6,11,18,1)'); gl.addColorStop(0.08, 'rgba(6,11,18,0)');
+    gl.addColorStop(0.94, 'rgba(6,11,18,0)'); gl.addColorStop(1, 'rgba(6,11,18,1)');
+    ctx.fillStyle = gl; ctx.fillRect(0, 0, w, h);
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  /* ---- 各處的 tape 狀態 ---- */
+  var heroTapeState = {
+    list: heroSyl, showBounds: false, cuts: true, cutSet: {}, idlePos: 1.2,
+    activeGetter: function () { return P.tag === 'hero' ? clamp(playerIndex(), -1, heroSyl.length - 1) : -1; },
+    posGetter: function () { return P.tag === 'hero' ? playerPos() : 1.2; },
+    label: ''
+  };
+  var stHeroTape = addStage('cvTapeHero', tapeDraw, { state: heroTapeState });
+  if (stHeroTape) tapeStages.push({ st: stHeroTape, tag: 'hero' });
+
+  var runTapeState = {
+    list: [], showBounds: false, cuts: false, cutSet: {}, idlePos: 1.2,
+    activeGetter: function () { return P.tag === 'expose' ? clamp(playerIndex(), -1, P.list.length - 1) : -1; },
+    posGetter: function () { return P.tag === 'expose' ? playerPos() : 1.2; },
+    label: ''
+  };
+  var stRunTape = addStage('cvTapeRun', tapeDraw, { state: runTapeState });
+  if (stRunTape) tapeStages.push({ st: stRunTape, tag: 'expose' });
+
+  var quizTapeState = {
+    list: [], showBounds: false, cuts: false, cutSet: {}, idlePos: 1.2,
+    activeGetter: function () { return P.tag === 'quiz' ? clamp(playerIndex(), -1, P.list.length - 1) : -1; },
+    posGetter: function () { return P.tag === 'quiz' ? playerPos() : 1.2; },
+    label: ''
+  };
+  var stQuizTape = addStage('cvTapeQuiz', tapeDraw, { state: quizTapeState });
+  if (stQuizTape) tapeStages.push({ st: stQuizTape, tag: 'quiz' });
+
+  var endTapeState = {
+    list: heroSyl, showBounds: false, cuts: false, cutSet: {}, idlePos: 1.2,
+    activeGetter: function () { return P.tag === 'final' ? clamp(playerIndex(), -1, heroSyl.length - 1) : -1; },
+    posGetter: function () { return P.tag === 'final' ? playerPos() : 1.2; },
+    label: ''
+  };
+  var stEndTape = addStage('cvTapeEnd', tapeDraw, { state: endTapeState });
+  if (stEndTape) tapeStages.push({ st: stEndTape, tag: 'final' });
+
+  /* ══════════ 第一屏：切一刀 ══════════ */
+  var heroCuts = [], heroPlayed = false;
+  function heroSay(msg) { $('heroStatus').textContent = msg; }
+
+  function startHero() {
+    heroCuts = []; heroTapeState.cutSet = {}; heroTapeState.showBounds = false;
+    $('btnCut').disabled = false;
+    $('btnHero').disabled = true;
+    var ok = startPlayer(heroSyl, {
+      tag: 'hero',
+      onEnd: function () {
+        $('btnCut').disabled = true;
+        $('btnHero').disabled = false;
+        $('btnHero').textContent = '再聽一次';
+        heroPlayed = true;
+        drawRevealNow();
+        var n = heroCuts.length;
+        heroSay(n === 0
+          ? '你一刀都沒切。合理。往下捲，我告訴你那是什麼。'
+          : '你切了 ' + n + ' 刀。先別想，往下捲。');
+      }
+    });
+    P.tag = 'hero';
+    heroSay(ok ? '播放中。覺得一個詞結束了，就按「切一刀」或空白鍵。'
+               : '無聲模式：音節一個一個閃過。覺得一個詞結束了，就切一刀。');
+  }
+  function doCut() {
+    if (!P.on || P.tag !== 'hero') return;
+    /* 反應時間補償 250 毫秒：人聽到詞界之後才會按下去 */
+    var g = Math.floor((clockNow() - P.t0 - 0.25) / SL.SYL_DUR);
+    if (g < 0 || g >= heroSyl.length - 1) return;
+    if (heroTapeState.cutSet[g]) return;
+    heroTapeState.cutSet[g] = 1;
+    heroCuts.push(g);
+    markDirty();
+    heroSay('切了 ' + heroCuts.length + ' 刀。');
+  }
+  $('btnHero').addEventListener('click', startHero);
+  $('btnCut').addEventListener('click', doCut);
+  document.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && P.on && P.tag === 'hero') { e.preventDefault(); doCut(); }
+    if (quizOn && (e.key === '1' || e.key === '2')) { pickAnswer(e.key === '1' ? 0 : 1); }
+  });
+
+  /* ══════════ 01 揭曉：靜態網格 ══════════ */
+  var revealCuts = {};
+  var revealState = { prog: 0, run: false };
+  var stReveal = addStage('cvReveal', function (ctx, w, h, t, dt, st) {
+    ctx.fillStyle = '#060b12'; ctx.fillRect(0, 0, w, h);
+    var n = heroSyl.length;
+    var cols = 9;
+    if (w < 400) cols = 6;
+    else if (w > 620) cols = 12;
+    var padX = 14, padB = 28;
+    var cw = (w - padX * 2) / cols;
+    var rows = Math.ceil(n / cols);
+    var ch = Math.min(34, (h - padB - 12) / rows);
+    /* 垂直置中：列數會隨欄寬變，留白全部丟到上下兩邊 */
+    var padY = Math.max(12, (h - padB - rows * ch) / 2);
+    if (!reduced && st.run) {
+      st.prog = Math.min(1, st.prog + dt / 1.1);
+      if (st.prog >= 1) st.run = false;
+    }
+    var shown = reduced ? n : Math.round(n * st.prog);
+
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (var i = 0; i < n; i++) {
+      var r = Math.floor(i / cols), c = i % cols;
+      var x = padX + c * cw + cw / 2;
+      var y = padY + r * ch + ch / 2;
+      var on = i < shown;
+      /* 詞底線（三個一組） */
+      if (i % 3 === 0 && on) {
+        var x0 = padX + c * cw + 3;
+        var span = Math.min(3, cols - c);
+        ctx.strokeStyle = 'rgba(255,192,97,.34)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x0, y + ch * 0.38);
+        ctx.lineTo(x0 + cw * span - 6, y + ch * 0.38);
+        ctx.stroke();
+      }
+      /* 詞界 */
+      if (i % 3 === 0 && i > 0 && c !== 0 && on) {
+        ctx.strokeStyle = 'rgba(111,212,255,.6)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(padX + c * cw, y - ch * 0.42);
+        ctx.lineTo(padX + c * cw, y + ch * 0.30);
+        ctx.stroke();
+      }
+      ctx.fillStyle = on ? 'rgba(231,238,245,.9)' : 'rgba(231,238,245,.08)';
+      ctx.font = '400 ' + (cols > 9 ? 13 : 14) + 'px "SF Mono",ui-monospace,Menlo,Consolas,monospace';
+      ctx.fillText(heroSyl[i], x, y);
+      /* 使用者的刀（畫在 i 與 i+1 之間，也就是 gap i） */
+      if (revealCuts[i] && on) {
+        var gx = padX + (c + 1) * cw;
+        var hit = SL.isBoundaryGap(i);
+        ctx.fillStyle = hit ? C.ok : C.hi;
+        ctx.beginPath();
+        ctx.moveTo(gx, y - ch * 0.46);
+        ctx.lineTo(gx - 4.5, y - ch * 0.46 - 8);
+        ctx.lineTo(gx + 4.5, y - ch * 0.46 - 8);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    /* 圖例（放最下面，才不會被第一列的三角形撞到） */
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.font = '10.5px -apple-system,"PingFang TC","Noto Sans CJK TC",sans-serif';
+    ctx.fillStyle = 'rgba(111,212,255,.85)';
+    ctx.fillText('｜真正的詞界', padX, h - 10);
+    ctx.fillStyle = 'rgba(255,192,97,.85)';
+    ctx.fillText('▲ 你切的刀', padX + 98, h - 10);
+    ctx.fillStyle = 'rgba(74,222,155,.9)';
+    ctx.fillText('▲ 切中了', padX + 186, h - 10);
+    if (!reduced && st.prog < 1) stReveal.dirty = true;
+  }, { state: revealState });
+
+  function drawRevealNow() {
+    revealCuts = {};
+    for (var i = 0; i < heroCuts.length; i++) revealCuts[heroCuts[i]] = 1;
+    revealState.prog = 0; revealState.run = true;
+    markDirty();
+    var sc = SL.scoreCuts(heroCuts, heroSyl.length);
+    var v = $('verdict');
+    if (sc.total === 0) {
+      v.textContent = '你一刀都沒切——那才是誠實的反應。那段聲音裡真的沒有東西可以聽。';
+    } else {
+      var txt = '你切了 ' + sc.total + ' 刀，其中 ' + sc.hits + ' 刀落在真正的詞界上。閉著眼睛亂切的期望值是 ' + sc.chance.toFixed(1) + ' 刀。';
+      if (sc.hits > sc.chance + 1.5) txt += ' 你比亂猜好一點——但這是十二秒，還不夠。';
+      else txt += ' 你不是不夠專心。那段聲音裡，真的沒有東西可以聽。';
+      v.textContent = txt;
+    }
+    $('revealStatus').textContent = '藍線是真正的詞界，每三個音節一道。三角形是你切的位置。';
+  }
+
+  $('btnReplay1').addEventListener('click', function () {
+    heroTapeState.showBounds = true;
+    startPlayer(heroSyl, { tag: 'hero', onEnd: function () { $('revealStatus').textContent = '這次每三個音節有一道縫。聲音沒變，只是你看得到了。'; } });
+    P.tag = 'hero';
+    $('revealStatus').textContent = '重播中，這次畫出詞界。';
+    var el = $('cvTapeHero');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+  });
+
+  /* ══════════ 02 轉移機率地形 ══════════ */
+  var TP_SYL = SL.WORD_SYL[0].concat(SL.WORD_SYL[1]).concat(SL.WORD_SYL[2]);   /* 9 個音節 */
+  var tpState = { prog: 0, run: false, sel: -1 };
+  var stTP = addStage('cvTP', function (ctx, w, h, t, dt, st) {
+    ctx.fillStyle = '#060b12'; ctx.fillRect(0, 0, w, h);
+    if (!reduced && st.run) { st.prog = Math.min(1, st.prog + dt / 1.4); if (st.prog >= 1) st.run = false; }
+    var p = reduced ? 1 : st.prog;
+
+    var padL = 34, padR = 14, padT = 22, padB = 56;
+    var n = TP_SYL.length;
+    var innerW = w - padL - padR;
+    var step = innerW / n;
+    var yTop = padT + 8, yBot = h - padB;
+    function yOf(v) { return yBot - (v - 0.15) / (1.05 - 0.15) * (yBot - yTop); }
+
+    /* 底線與刻度 */
+    ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 1;
+    ctx.setLineDash([2, 4]);
+    [1, 1 / 3].forEach(function (v) {
+      ctx.beginPath(); ctx.moveTo(padL, yOf(v)); ctx.lineTo(w - padR, yOf(v)); ctx.stroke();
+    });
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(124,146,166,.8)';
+    ctx.font = '10.5px "SF Mono",ui-monospace,Menlo,Consolas,monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('1.0', padL - 6, yOf(1));
+    ctx.fillText('.33', padL - 6, yOf(1 / 3));
+
+    /* 詞的底色 */
+    for (var wI = 0; wI < 3; wI++) {
+      var x0 = padL + wI * 3 * step, x1 = x0 + 3 * step;
+      ctx.fillStyle = 'rgba(255,192,97,.045)';
+      ctx.fillRect(x0 + 2, yTop - 6, x1 - x0 - 4, yBot - yTop + 34);
+    }
+
+    /* 機率地形（折線＋填色） */
+    var gaps = n - 1;
+    var shown = Math.round(gaps * p);
+    var pts = [];
+    for (var g = 0; g < gaps; g++) {
+      var v = SL.isBoundaryGap(g) ? 1 / 3 : 1;
+      pts.push({ x: padL + (g + 1) * step, y: yOf(v), v: v, g: g });
+    }
+    if (shown > 0) {
+      var xL = padL, xR = padL + Math.min(n, shown + 1) * step;
+      ctx.beginPath();
+      ctx.moveTo(xL, yBot + 30);
+      ctx.lineTo(xL, pts[0].y);
+      for (var i2 = 0; i2 < shown; i2++) {
+        if (i2 > 0) ctx.lineTo(pts[i2].x - step * 0.35, pts[i2 - 1].y);
+        ctx.lineTo(pts[i2].x - step * 0.12, pts[i2].y);
+        ctx.lineTo(pts[i2].x + step * 0.12, pts[i2].y);
+      }
+      ctx.lineTo(xR, pts[shown - 1].y);
+      ctx.lineTo(xR, yBot + 30);
+      ctx.closePath();
+      var fg = ctx.createLinearGradient(0, yTop, 0, yBot + 30);
+      fg.addColorStop(0, 'rgba(255,192,97,.20)');
+      fg.addColorStop(1, 'rgba(255,192,97,.02)');
+      ctx.fillStyle = fg; ctx.fill();
+    }
+    for (var j = 0; j < shown; j++) {
+      var q = pts[j];
+      var sel = (st.sel === q.g);
+      ctx.strokeStyle = q.v < 0.5 ? C.lo : C.hi;
+      ctx.lineWidth = sel ? 4 : 2.5;
+      ctx.beginPath();
+      ctx.moveTo(q.x - step * 0.2, q.y); ctx.lineTo(q.x + step * 0.2, q.y);
+      ctx.stroke();
+      if (q.v < 0.5) {
+        /* 詞界的縫 */
+        ctx.strokeStyle = 'rgba(111,212,255,' + (sel ? 0.95 : 0.4) + ')';
+        ctx.lineWidth = sel ? 2 : 1.2;
+        ctx.setLineDash([3, 4]);
+        ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x, yBot + 30); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.fillStyle = q.v < 0.5 ? C.lo : C.hi;
+      ctx.font = (sel ? '600 ' : '400 ') + '10.5px "SF Mono",ui-monospace,Menlo,Consolas,monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(q.v < 0.5 ? '.33' : '1.0', q.x, q.y - 6);
+    }
+
+    /* 音節 */
+    ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+    for (var k = 0; k < n; k++) {
+      var x = padL + k * step + step / 2;
+      ctx.fillStyle = 'rgba(231,238,245,.92)';
+      ctx.font = '400 ' + (step < 34 ? 13 : 15) + 'px "SF Mono",ui-monospace,Menlo,Consolas,monospace';
+      ctx.fillText(TP_SYL[k], x, yBot + 16);
+    }
+    /* 詞名 */
+    for (var wj = 0; wj < 3; wj++) {
+      var cx = padL + (wj * 3 + 1.5) * step;
+      ctx.fillStyle = 'rgba(124,146,166,.75)';
+      ctx.font = '10.5px -apple-system,"PingFang TC","Noto Sans CJK TC",sans-serif';
+      ctx.fillText(SL.WORDS[wj], cx, yBot + 38);
+    }
+    if (!reduced && st.prog < 1) stTP.dirty = true;
+  }, { state: tpState });
+
+  (function buildChips() {
+    var box = $('tpChips');
+    for (var g = 0; g < TP_SYL.length - 1; g++) {
+      (function (gi) {
+        var b = document.createElement('button');
+        var bnd = SL.isBoundaryGap(gi);
+        b.className = bnd ? 'b' : '';
+        b.type = 'button';
+        b.textContent = TP_SYL[gi] + '→' + TP_SYL[gi + 1];
+        b.setAttribute('aria-pressed', 'false');
+        b.setAttribute('aria-label', '聽完 ' + TP_SYL[gi] + ' 之後接 ' + TP_SYL[gi + 1] + ' 的機率');
+        b.addEventListener('click', function () { selectGap(gi); });
+        box.appendChild(b);
+      })(g);
+    }
+  })();
+  function selectGap(g) {
+    tpState.sel = g;
+    var chips = $('tpChips').children;
+    for (var i = 0; i < chips.length; i++) chips[i].setAttribute('aria-pressed', i === g ? 'true' : 'false');
+    var a = TP_SYL[g], b = TP_SYL[g + 1];
+    var bnd = SL.isBoundaryGap(g);
+    var msg;
+    if (bnd) {
+      var others = [];
+      for (var k = 0; k < 4; k++) if (SL.WORD_SYL[k][0] !== b) others.push(SL.WORD_SYL[k][0]);
+      msg = '<b>' + a + ' → ' + b + '：0.33</b><br>' + a + ' 是一個詞的最後一個音節。它後面可以接 ' +
+            b + '、' + others.join('、') + '——四個詞裡的另外三個開頭，各三分之一。<strong>這裡就是詞界。</strong>';
+    } else {
+      msg = '<b>' + a + ' → ' + b + '：1.0</b><br>' + a + ' 只出現在一個詞裡，而且永遠在同一個位置。聽到 ' +
+            a + '，下一個必定是 ' + b + '。沒有例外，也沒有懸念。';
+    }
+    $('tpRead').innerHTML = msg;
+    markDirty();
+  }
+  selectGap(0);
+
+  /* ══════════ 03 曝光 ══════════ */
+  /* expBase = 這一段播放開始前已經聽掉的秒數（一律對齊到整數個音節，避免累積漂移） */
+  var expTotalSec = 120, expStream = null, expBase = 0, expRunning = false, expTimer = 0, expDone = 0;
+  var quizOn = false, trials = [], answers = [], qi = 0, trialPlayed = false;
+
+  function safeStorage() { try { return window.localStorage; } catch (e) { return null; } }
+  var state = SL.loadState(safeStorage(), LS + 'state');
+
+  function fmt(s) {
+    s = Math.max(0, Math.round(s));
+    var m = Math.floor(s / 60), r = s % 60;
+    return (m < 10 ? '0' : '') + m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  function expElapsed() {
+    var el = (expRunning && P.on && P.tag === 'expose') ? expBase + (clockNow() - P.t0) : expBase;
+    return clamp(el, 0, expTotalSec);
+  }
+  function expTick() {
+    var el = expElapsed();
+    $('expBar').style.transform = 'scaleX(' + (expTotalSec ? el / expTotalSec : 0) + ')';
+    $('expTime').textContent = fmt(el) + ' / ' + fmt(expTotalSec);
+    $('expCount').textContent = Math.floor(el * SL.RATE) + ' 個音節';
+  }
+  function expClock(on) {
+    if (expTimer) { clearInterval(expTimer); expTimer = 0; }
+    if (on) expTimer = setInterval(expTick, 120);
+  }
+
+  function startExposure(sec) {
+    var nWords = Math.max(1, Math.round(sec * SL.RATE / 3));
+    expStream = SL.makeStream(nWords, SL.rng(((Date.now() & 0x7fffffff) ^ 0x2545f491) >>> 0));
+    expTotalSec = expStream.syl.length * SL.SYL_DUR;   /* 540 個音節剛好 120.0 秒 */
+    expBase = 0;
+    $('btnRun2').hidden = true; $('btnRun40').hidden = true;
+    $('btnStop').hidden = false; $('btnToQuiz').hidden = false;
+    playExposure();
+  }
+  function playExposure() {
+    if (!expStream) return;
+    var startIdx = Math.floor(expBase / SL.SYL_DUR + 1e-6);
+    expBase = startIdx * SL.SYL_DUR;
+    var rest = expStream.syl.slice(startIdx);
+    runTapeState.list = rest;
+    expRunning = true;
+    var ok = startPlayer(rest, { tag: 'expose', onEnd: finishExposure });
+    $('btnStop').textContent = '停下來';
+    $('expStatus').textContent = ok
+      ? '播放中。可以切到別的分頁去做事，回來按「繼續」接著跑。'
+      : '無聲模式：音節一個一個閃過。看著它，或不看也行。';
+    expClock(true);
+    expTick();
+  }
+  function pauseExposure() {
+    if (!expRunning) return;
+    expBase = expElapsed();
+    expRunning = false;
+    stopPlayer();
+    expClock(false);
+    expTick();
+    $('btnStop').textContent = '繼續';
+    $('btnStop').hidden = false;
+    $('expStatus').textContent = '暫停了。按「繼續」接著聽——' + fmt(expTotalSec - expBase) + ' 還沒聽。';
+  }
+  function finishExposure() {
+    if (!expStream) return;
+    expBase = expTotalSec;
+    expRunning = false;
+    stopPlayer();
+    expClock(false);
+    expTick();
+    $('btnStop').hidden = true;
+    $('btnToQuiz').hidden = true;
+    /* 聽完之後把長度選項放回來——想多灌一點再測的人不用重整頁面 */
+    $('btnRun2').hidden = false; $('btnRun2').textContent = '再灌 2 分鐘';
+    $('btnRun40').hidden = false; $('btnRun40').textContent = '再灌 40 秒';
+    expDone = expBase;
+    $('expStatus').textContent = '聽完了：' + Math.round(expDone * SL.RATE) + ' 個音節、' +
+      Math.round(expDone * SL.RATE / 3) + ' 個詞。現在考你。';
+    openQuiz();
+  }
+  function onInterrupted() { /* 非曝光的播放被中斷時不需要額外處理 */ }
+
+  $('btnRun2').addEventListener('click', function () { startExposure(120); });
+  $('btnRun40').addEventListener('click', function () { startExposure(40); });
+  $('btnStop').addEventListener('click', function () {
+    if (expRunning) pauseExposure(); else playExposure();
+  });
+  $('btnToQuiz').addEventListener('click', function () {
+    if (!expStream) return;
+    var el = expElapsed();
+    expRunning = false;
+    stopPlayer();
+    expClock(false);
+    expTotalSec = Math.max(SL.SYL_DUR, el);
+    expBase = expTotalSec;
+    finishExposure();
+  });
+
+  /* ══════════ 測驗 ══════════ */
+  function openQuiz() {
+    trials = SL.makeTrials(12, SL.rng((Date.now() ^ 0x5bf03635) >>> 0));
+    answers = [];
+    for (var i = 0; i < trials.length; i++) answers.push(null);
+    qi = 0; quizOn = true; trialPlayed = false;
+    $('quizBox').hidden = false;
+    $('scoreBox').hidden = true;
+    buildDots();
+    updateQuizUI();
+    refreshRisers();
+    var el = $('quizBox');
+    if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+  }
+  function buildDots() {
+    var d = $('qDots');
+    d.innerHTML = '';
+    for (var i = 0; i < trials.length; i++) d.appendChild(document.createElement('i'));
+  }
+  function updateQuizUI() {
+    $('qCount').textContent = '第 ' + (qi + 1) + ' / ' + trials.length + ' 題';
+    var d = $('qDots').children;
+    for (var i = 0; i < d.length; i++) {
+      d[i].className = (answers[i] !== null) ? 'done' : (i === qi ? 'now' : '');
+    }
+    $('btnA').disabled = !trialPlayed;
+    $('btnB').disabled = !trialPlayed;
+    $('btnA').classList.remove('live'); $('btnB').classList.remove('live');
+    quizTapeState.list = [];
+    markDirty();
+  }
+  function trialSequence(t) {
+    var it = SL.trialItems(t);
+    return it[0].concat([null, null, null]).concat(it[1]);
+  }
+  function playTrial() {
+    var t = trials[qi];
+    var seq = trialSequence(t);
+    quizTapeState.list = seq.map(function (s) { return s || '·'; });
+    var ok = startPlayer(seq, {
+      tag: 'quiz',
+      onEnd: function () {
+        trialPlayed = true;
+        $('btnA').disabled = false; $('btnB').disabled = false;
+        $('btnA').classList.remove('live'); $('btnB').classList.remove('live');
+        $('qStatus').textContent = '哪一個比較像這個語言裡的東西？（鍵盤 1 / 2）';
+      }
+    });
+    P.tag = 'quiz';
+    $('qStatus').textContent = ok ? '播放中……' : '無聲模式：看著音節一個一個閃過。';
+    if (quizHl) clearInterval(quizHl);
+    quizHl = setInterval(function () {
+      if (!P.on || P.tag !== 'quiz') { clearInterval(quizHl); quizHl = 0; return; }
+      var i = playerIndex();
+      $('btnA').classList.toggle('live', i >= 0 && i < 3);
+      $('btnB').classList.toggle('live', i >= 6);
+    }, 60);
+  }
+  var quizHl = 0;
+  function pickAnswer(k) {
+    if (!quizOn || !trialPlayed) return;
+    answers[qi] = k;
+    stopPlayer();
+    trialPlayed = false;
+    if (qi < trials.length - 1) {
+      qi++;
+      updateQuizUI();
+      $('qStatus').textContent = '記下來了。按「播放這一題」聽下一組。';
+    } else {
+      updateQuizUI();
+      quizOn = false;
+      showScore();
+    }
+  }
+  $('btnPlayTrial').addEventListener('click', playTrial);
+  $('btnAgain').addEventListener('click', playTrial);
+  $('btnA').addEventListener('click', function () { pickAnswer(0); });
+  $('btnB').addEventListener('click', function () { pickAnswer(1); });
+
+  function showScore() {
+    var res = SL.scoreTrials(trials, answers);
+    $('quizBox').hidden = true;
+    $('scoreBox').hidden = false;
+    refreshRisers();
+    var target = res.correct, cur = 0;
+    $('scoreN').textContent = '0';
+    if (reduced) $('scoreN').textContent = String(target);
+    else {
+      var iv = setInterval(function () {
+        cur++;
+        $('scoreN').textContent = String(Math.min(cur, target));
+        if (cur >= target) clearInterval(iv);
+      }, Math.max(40, 700 / Math.max(1, target)));
+    }
+    $('sNon').textContent = res.nonword.correct + ' / ' + res.nonword.n;
+    $('sPart').textContent = res.partword.correct + ' / ' + res.partword.n;
+
+    var pct = Math.round(res.correct / res.n * 100);
+    var line;
+    if (res.correct >= 10) line = '亂猜的期望值是 6。你 ' + res.correct + ' 題，' + pct + '%。你學會了。';
+    else if (res.correct >= 8) line = '亂猜的期望值是 6。你 ' + res.correct + ' 題——高於機率，而且你大概說不出理由。';
+    else if (res.correct >= 7) line = '亂猜的期望值是 6。你只比它高一點點——真實實驗裡的成人也常常只有這樣。';
+    else line = '亂猜的期望值是 6。這次沒贏過它——這種測驗本來就吵，聽久一點再測一次會不一樣。';
+    $('scoreLine').textContent = line;
+
+    var st2 = SL.recordRun(state, res, expDone);
+    state = st2;
+    SL.saveState(safeStorage(), LS + 'state', state);
+    if (state.best && state.runs.length > 1) {
+      $('bestLine').textContent = '你測過 ' + state.runs.length + ' 次，最好的一次是 ' + state.best.correct + ' / ' + state.best.n + '。';
+    } else {
+      $('bestLine').textContent = '';
+    }
+
+    var ys = $('yourSplit');
+    ys.hidden = false;
+    ys.innerHTML = '你自己的成績也剛好說了同一件事：詞 vs 非詞你對了 <strong>' + res.nonword.correct + ' / ' + res.nonword.n +
+      '</strong>，詞 vs 跨界串你對了 <strong>' + res.partword.correct + ' / ' + res.partword.n +
+      '</strong>。跨界串通常比較難——因為它有一半是真的。';
+    refreshRisers();
+
+    $('afterScore').textContent = res.correct >= 8
+      ? '說得出你剛剛是怎麼判斷的嗎？多數人答不出來。'
+      : '就算沒贏過機率，你也已經在做那件事了——只是十二題不夠看出來。';
+  }
+  $('btnRetest').addEventListener('click', function () { openQuiz(); });
+
+  /* ══════════ 04 嬰兒聆聽時間 ══════════ */
+  var barState = { prog: 0, run: false };
+  var BARS = [
+    { g: '實驗一 · 詞 vs 非詞', a: { n: '詞', v: 7.97, se: 0.41 }, b: { n: '非詞', v: 8.85, se: 0.45 } },
+    { g: '實驗二 · 詞 vs 跨界串', a: { n: '詞', v: 6.77, se: 0.44 }, b: { n: '跨界串', v: 7.60, se: 0.42 } }
+  ];
+  var stBars = addStage('cvBars', function (ctx, w, h, t, dt, st) {
+    ctx.fillStyle = '#060b12'; ctx.fillRect(0, 0, w, h);
+    if (!reduced && st.run) { st.prog = Math.min(1, st.prog + dt / 1.0); if (st.prog >= 1) st.run = false; }
+    var p = reduced ? 1 : st.prog;
+    var padT = 26, padB = 42, padL = 30, padR = 14;
+    var maxV = 10;
+    var yBot = h - padB, yTop = padT;
+    function yOf(v) { return yBot - (v / maxV) * (yBot - yTop); }
+    /* 刻度 */
+    ctx.strokeStyle = 'rgba(255,255,255,.07)'; ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(81,103,121,.9)';
+    ctx.font = '10px "SF Mono",ui-monospace,Menlo,Consolas,monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (var v = 0; v <= 10; v += 2) {
+      ctx.beginPath(); ctx.moveTo(padL, yOf(v)); ctx.lineTo(w - padR, yOf(v)); ctx.stroke();
+      ctx.fillText(String(v), padL - 5, yOf(v));
+    }
+    var groupW = (w - padL - padR) / BARS.length;
+    ctx.textAlign = 'center';
+    for (var gI = 0; gI < BARS.length; gI++) {
+      var G = BARS[gI];
+      var gx = padL + gI * groupW;
+      var bw = Math.min(52, groupW * 0.26);
+      var items = [G.a, G.b];
+      for (var k = 0; k < 2; k++) {
+        var it = items[k];
+        var cx = gx + groupW * (k === 0 ? 0.3 : 0.68);
+        var vv = it.v * p;
+        var col = k === 0 ? C.hi : C.lo;
+        ctx.fillStyle = k === 0 ? 'rgba(255,192,97,.75)' : 'rgba(111,212,255,.75)';
+        ctx.fillRect(cx - bw / 2, yOf(vv), bw, yBot - yOf(vv));
+        /* 誤差線（掛在群組層級的簡單線段，不加 filter） */
+        if (p > 0.98) {
+          ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(cx, yOf(it.v - it.se)); ctx.lineTo(cx, yOf(it.v + it.se));
+          ctx.moveTo(cx - 6, yOf(it.v - it.se)); ctx.lineTo(cx + 6, yOf(it.v - it.se));
+          ctx.moveTo(cx - 6, yOf(it.v + it.se)); ctx.lineTo(cx + 6, yOf(it.v + it.se));
+          ctx.stroke();
+        }
+        ctx.fillStyle = col;
+        ctx.font = '600 12px "SF Mono",ui-monospace,Menlo,Consolas,monospace';
+        ctx.textBaseline = 'bottom';
+        ctx.fillText(it.v.toFixed(2), cx, yOf(it.v) - 12);
+        ctx.fillStyle = 'rgba(231,238,245,.8)';
+        ctx.font = '11px -apple-system,"PingFang TC","Noto Sans CJK TC",sans-serif';
+        ctx.textBaseline = 'top';
+        ctx.fillText(it.n, cx, yBot + 6);
+      }
+      ctx.fillStyle = 'rgba(124,146,166,.9)';
+      ctx.font = '10.5px -apple-system,"PingFang TC","Noto Sans CJK TC",sans-serif';
+      ctx.textBaseline = 'top';
+      ctx.fillText(G.g, gx + groupW / 2, yBot + 22);
+    }
+    ctx.fillStyle = 'rgba(81,103,121,.95)';
+    ctx.font = '10.5px -apple-system,"PingFang TC","Noto Sans CJK TC",sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('平均聆聽時間（秒）', padL - 24, 6);
+    if (!reduced && st.prog < 1) stBars.dirty = true;
+  }, { state: barState });
+
+  /* 進場時才開始畫入 */
+  if (window.IntersectionObserver) {
+    var kick = new IntersectionObserver(function (es) {
+      for (var i = 0; i < es.length; i++) {
+        if (!es[i].isIntersecting) continue;
+        var id = es[i].target.id;
+        if (id === 'cvTP' && stTP) { tpState.run = true; stTP.dirty = true; }
+        if (id === 'cvBars' && stBars) { barState.run = true; stBars.dirty = true; }
+        kick.unobserve(es[i].target);
+      }
+    }, { rootMargin: '0px 0px -12% 0px' });
+    [$('cvTP'), $('cvBars')].forEach(function (el) { if (el) kick.observe(el); });
+  } else { tpState.prog = 1; barState.prog = 1; }
+
+  /* ══════════ 06 回馬槍 ══════════ */
+  $('btnFinal').addEventListener('click', function () {
+    startPlayer(heroSyl, {
+      tag: 'final',
+      onEnd: function () { $('finalStatus').textContent = '同一段。第一屏那一段，一個位元都沒有變。'; }
+    });
+    P.tag = 'final';
+    $('finalStatus').textContent = endTapeState.showBounds ? '重播中，詞界畫出來了。' : '重播中。閉上眼睛。';
+  });
+  $('btnFinalMark').addEventListener('click', function () {
+    endTapeState.showBounds = !endTapeState.showBounds;
+    this.setAttribute('aria-pressed', endTapeState.showBounds ? 'true' : 'false');
+    this.textContent = endTapeState.showBounds ? '隱藏詞界' : '顯示詞界';
+    markDirty();
+  });
+
+  /* ══════════ 音訊控制 ══════════ */
+  function forceSilent(msg) {
+    silentMode = true;
+    $('btnSilent').setAttribute('aria-pressed', 'true');
+    $('btnMute').disabled = true;
+    $('vol').disabled = true;
+    if (msg) {
+      $('heroStatus').textContent = msg + ' 整頁的內容與測驗都照樣玩得到。';
+    }
+  }
+  $('btnSilent').addEventListener('click', function () {
+    if (audioFailed) return;
+    silentMode = !silentMode;
+    this.setAttribute('aria-pressed', silentMode ? 'true' : 'false');
+    $('btnMute').disabled = silentMode;
+    $('vol').disabled = silentMode;
+    if (silentMode) stopAllSources();
+    $('heroStatus').textContent = silentMode
+      ? '無聲模式：音節會一個一個閃過畫面，整頁照樣玩得到。'
+      : '聲音開了。按下播放。';
+  });
+  $('btnMute').addEventListener('click', function () {
+    muted = !muted;
+    this.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    this.textContent = muted ? '🔇' : '🔊';
+    this.setAttribute('aria-label', muted ? '取消靜音' : '靜音');
+    applyGain();
+  });
+  $('vol').addEventListener('input', function () {
+    volume = clamp(parseFloat(this.value) / 100, 0, 1);
+    applyGain();
+  });
+
+  /* 若瀏覽器根本沒有 AudioContext，一開始就切到無聲 */
+  if (!(window.AudioContext || window.webkitAudioContext)) {
+    audioFailed = true;
+    forceSilent('這個瀏覽器不給合成音訊，已自動切到無聲模式。');
+  }
+
+  /* 初始 readout */
+  if (state.best) {
+    $('bestLine').textContent = '';
+  }
+})();
+</script>
+</body>
+</html>

@@ -394,6 +394,7 @@
   var THRESHOLD   = 0.60;  /* 「你已經在攝影機那裡」的門檻 */
 
   function clamp01(v){ return v < 0 ? 0 : v > 1 ? 1 : v; }
+  function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
   /* 時間差 → 同步程度（0…1）。0 ms 給 1；500 ms 幾乎給 0 */
   function syncGain(offsetMs){
     var d = (offsetMs || 0) / SYNC_TAU_MS;
@@ -507,6 +508,22 @@
     g.addColorStop(0, '#080e15'); g.addColorStop(0.46, '#0a1119'); g.addColorStop(1, '#04070b');
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
 
+    /* 實面：地板、兩側牆、對面的牆。有面才有房間，只有線框像藍圖。 */
+    poly3([[-HW, FLOOR, 0.45], [HW, FLOOR, 0.45], [HW, FLOOR, ZF], [-HW, FLOOR, ZF]]);
+    var fh = proj([0, FLOOR, ZF]).y, fn = proj([0, FLOOR, 0.6]).y;
+    var fg = ctx.createLinearGradient(0, fh, 0, fn);
+    fg.addColorStop(0, '#0d1720'); fg.addColorStop(1, '#070d13');
+    ctx.fillStyle = fg; ctx.fill();
+
+    var wg = ctx.createLinearGradient(0, 0, W, 0);
+    wg.addColorStop(0, '#0c141d'); wg.addColorStop(0.5, '#080f16'); wg.addColorStop(1, '#0c141d');
+    poly3([[-HW, FLOOR, 0.45], [-HW, CEIL, 0.75], [-HW, CEIL, ZF], [-HW, FLOOR, ZF]]);
+    ctx.fillStyle = wg; ctx.fill();
+    poly3([[HW, FLOOR, 0.45], [HW, CEIL, 0.75], [HW, CEIL, ZF], [HW, FLOOR, ZF]]);
+    ctx.fill();
+    poly3([[-HW, FLOOR, ZF], [HW, FLOOR, ZF], [HW, CEIL, ZF], [-HW, CEIL, ZF]]);
+    ctx.fillStyle = '#0a121a'; ctx.fill();
+
     /* 地板上的一圈燈光 */
     var lp = proj([0, FLOOR, 2.0]);
     if (isFinite(lp.x) && isFinite(lp.y)){
@@ -577,6 +594,23 @@
     ctx.stroke();
   }
 
+  /* 腳下的接地陰影：沒有它，人看起來就是浮在格線上 */
+  function contactShadow(x, z, rx, rz, a){
+    var c = proj([x, FLOOR + 0.004, z]);
+    if (!isFinite(c.x) || !isFinite(c.y)) return;
+    var w0 = rx * c.s, h0 = rz * c.s * 0.34;
+    if (!(w0 > 0.4) || !(h0 > 0.2)) return;
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    var sg = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w0, 1));
+    sg.addColorStop(0, 'rgba(0,0,0,' + a.toFixed(3) + ')');
+    sg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.scale(1, h0 / Math.max(w0, 1));
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(0, 0, Math.max(w0, 1), 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+
   /* ════════════════ 椅子上的那個人 ════════════════ */
   var BZ = 2.00;
   var CHEST = [0, -0.32, 1.90];         /* 身體的胸口（從背後看的位置） */
@@ -594,6 +628,8 @@
     var shY = -0.15 + br, hdY = 0.045 + br * 1.2;
     var P = function(x, y, z){ return proj([x + sw, y, z]); };
 
+    contactShadow(0, BZ + 0.06, 0.40, 0.34, 0.55);
+
     /* 椅腳與椅面 */
     ctx.strokeStyle = 'rgba(148,176,196,.26)'; ctx.lineWidth = 1.3;
     ctx.beginPath();
@@ -609,22 +645,29 @@
     var shL = P(-0.225, shY, BZ),   shR = P(0.225, shY, BZ);
     var wsL = P(-0.172, -0.56, BZ), wsR = P(0.172, -0.56, BZ);
     var hpL = P(-0.198, -0.76, BZ), hpR = P(0.198, -0.76, BZ);
-    var nkL = P(-0.050, shY + 0.022, BZ), nkR = P(0.050, shY + 0.022, BZ);
+    /* 脖子比原本粗、比原本短：頸圍約 0.13 公尺 */
+    var nkL = P(-0.065, shY + 0.058, BZ), nkR = P(0.065, shY + 0.058, BZ);
 
-    /* 手臂：垂在身體兩側，被軀幹壓住內側 */
+    /* 手臂：垂在身體兩側，且要露在軀幹輪廓外面才看得出來是手 */
     ctx.save();
     ctx.lineCap = 'round';
-    ctx.strokeStyle = '#152230';
-    ctx.lineWidth = Math.max(4, (shR.x - shL.x) * 0.15);
-    var aL1 = P(-0.205, shY - 0.035, BZ + 0.03), aL2 = P(-0.238, -0.57, BZ + 0.04);
-    var aR1 = P( 0.205, shY - 0.035, BZ + 0.03), aR2 = P( 0.238, -0.57, BZ + 0.04);
+    var armW = Math.max(5, (shR.x - shL.x) * 0.19);
+    var aL1 = P(-0.208, shY - 0.03, BZ + 0.05), aL2 = P(-0.262, -0.58, BZ + 0.06);
+    var aR1 = P( 0.208, shY - 0.03, BZ + 0.05), aR2 = P( 0.262, -0.58, BZ + 0.06);
+    ctx.strokeStyle = '#0c151d'; ctx.lineWidth = armW + 2.5;
+    ctx.beginPath();
+    ctx.moveTo(aL1.x, aL1.y); ctx.lineTo(aL2.x, aL2.y);
+    ctx.moveTo(aR1.x, aR1.y); ctx.lineTo(aR2.x, aR2.y);
+    ctx.stroke();
+    ctx.strokeStyle = '#1d2c38'; ctx.lineWidth = armW;
     ctx.beginPath();
     ctx.moveTo(aL1.x, aL1.y); ctx.lineTo(aL2.x, aL2.y);
     ctx.moveTo(aR1.x, aR1.y); ctx.lineTo(aR2.x, aR2.y);
     ctx.stroke();
     ctx.restore();
 
-    /* 軀幹（背面） */
+    /* 軀幹（背面）：肩膀要斜下去，不能是一條平的橫線 */
+    var slL = P(-0.145, shY + 0.052, BZ), slR = P(0.145, shY + 0.052, BZ);
     ctx.beginPath();
     ctx.moveTo(shL.x, shL.y);
     ctx.quadraticCurveTo(shL.x - 3, (shL.y + wsL.y) * 0.5, wsL.x, wsL.y);
@@ -632,9 +675,10 @@
     ctx.lineTo(hpR.x, hpR.y);
     ctx.quadraticCurveTo(wsR.x + 2, (wsR.y + hpR.y) * 0.5, wsR.x, wsR.y);
     ctx.quadraticCurveTo(shR.x + 3, (shR.y + wsR.y) * 0.5, shR.x, shR.y);
-    ctx.quadraticCurveTo((shR.x + nkR.x) * 0.5, nkR.y + (shR.y - nkR.y) * 0.15, nkR.x, nkR.y);
+    /* 右肩 → 斜方肌 → 脖子 */
+    ctx.quadraticCurveTo(slR.x, slR.y, nkR.x, nkR.y);
     ctx.lineTo(nkL.x, nkL.y);
-    ctx.quadraticCurveTo((shL.x + nkL.x) * 0.5, nkL.y + (shL.y - nkL.y) * 0.15, shL.x, shL.y);
+    ctx.quadraticCurveTo(slL.x, slL.y, shL.x, shL.y);
     ctx.closePath();
     var tg = ctx.createLinearGradient(0, nkL.y, 0, hpL.y);
     tg.addColorStop(0, '#31434f'); tg.addColorStop(0.55, '#24333f'); tg.addColorStop(1, '#141f29');
@@ -661,13 +705,13 @@
     ctx.strokeStyle = 'rgba(148,176,196,.30)'; ctx.lineWidth = 1.3; ctx.stroke();
 
     /* 脖子 */
-    poly3([[-0.050 + sw, shY + 0.015, BZ + 0.01], [0.050 + sw, shY + 0.015, BZ + 0.01],
-           [0.044 + sw, hdY - 0.082, BZ + 0.01], [-0.044 + sw, hdY - 0.082, BZ + 0.01]]);
-    ctx.fillStyle = '#394a56'; ctx.fill();
+    poly3([[-0.065 + sw, shY + 0.050, BZ + 0.01], [0.065 + sw, shY + 0.050, BZ + 0.01],
+           [0.058 + sw, hdY - 0.086, BZ + 0.01], [-0.058 + sw, hdY - 0.086, BZ + 0.01]]);
+    ctx.fillStyle = '#2f3f4a'; ctx.fill();
 
     /* 後腦 */
     var hd = P(0, hdY, BZ + 0.02);
-    var rx = 0.093 * hd.s, ry = 0.112 * hd.s;
+    var rx = 0.098 * hd.s, ry = 0.118 * hd.s;
     var hg = ctx.createRadialGradient(hd.x - rx * 0.32, hd.y - ry * 0.5, rx * 0.1, hd.x, hd.y, ry * 1.2);
     hg.addColorStop(0, '#43555f'); hg.addColorStop(1, '#1a2530');
     ctx.beginPath(); ctx.ellipse(hd.x, hd.y, rx, ry, 0, 0, TAU); ctx.fillStyle = hg; ctx.fill();
@@ -711,6 +755,7 @@
   var SHOULDER = [EX - 0.18, 0.29, EZ - 0.06];
 
   function drawExperimenter(rod){
+    contactShadow(EX, EZ, 0.34, 0.30, 0.5);
     var head = proj([EX, 0.46, EZ]);
     var rx = 0.086 * head.s, ry = 0.102 * head.s;
     ctx.fillStyle = '#101a24';
@@ -719,10 +764,10 @@
     ctx.fill();
     poly3([[EX + 0.015, -0.22, EZ], [EX + 0.145, -0.22, EZ], [EX + 0.135, FLOOR, EZ], [EX + 0.035, FLOOR, EZ]]);
     ctx.fill();
-    /* 軀幹：肩寬、腰窄 */
-    var s1 = proj([EX - 0.19, 0.30, EZ]), s2 = proj([EX + 0.19, 0.30, EZ]);
-    var w1 = proj([EX - 0.135, -0.08, EZ]), w2 = proj([EX + 0.135, -0.08, EZ]);
-    var p1 = proj([EX - 0.155, -0.24, EZ]), p2 = proj([EX + 0.155, -0.24, EZ]);
+    /* 軀幹：站姿成人的肩寬約 0.45 公尺 */
+    var s1 = proj([EX - 0.225, 0.30, EZ]), s2 = proj([EX + 0.225, 0.30, EZ]);
+    var w1 = proj([EX - 0.150, -0.08, EZ]), w2 = proj([EX + 0.150, -0.08, EZ]);
+    var p1 = proj([EX - 0.170, -0.24, EZ]), p2 = proj([EX + 0.170, -0.24, EZ]);
     var nk = proj([EX, 0.33, EZ]);
     ctx.beginPath();
     ctx.moveTo(s1.x, s1.y);
@@ -730,30 +775,75 @@
     ctx.lineTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y);
     ctx.quadraticCurveTo(w2.x + 2, (s2.y + w2.y) * 0.5, s2.x, s2.y);
     ctx.quadraticCurveTo(nk.x, nk.y - (s2.y - nk.y) * 0.3, s1.x, s1.y);
-    ctx.closePath(); ctx.fill();
+    ctx.closePath();
+    /* 立體感：左側受房間的光，右側沉進暗處 */
+    var eg = ctx.createLinearGradient(s1.x, 0, s2.x, 0);
+    eg.addColorStop(0, '#1d2c39'); eg.addColorStop(0.55, '#131e28'); eg.addColorStop(1, '#0b131b');
+    ctx.fillStyle = eg; ctx.fill();
+    ctx.strokeStyle = 'rgba(130,188,214,.13)'; ctx.lineWidth = 1.2; ctx.stroke();
     /* 脖子與頭 */
-    poly3([[EX - 0.045, 0.31, EZ], [EX + 0.045, 0.31, EZ], [EX + 0.04, 0.38, EZ], [EX - 0.04, 0.38, EZ]]);
+    ctx.fillStyle = '#101a24';
+    poly3([[EX - 0.052, 0.31, EZ], [EX + 0.052, 0.31, EZ], [EX + 0.046, 0.38, EZ], [EX - 0.046, 0.38, EZ]]);
     ctx.fill();
-    ctx.beginPath(); ctx.ellipse(head.x, head.y, rx, ry, 0, 0, TAU); ctx.fill();
-    ctx.strokeStyle = 'rgba(130,188,214,.24)'; ctx.lineWidth = 1.3;
-    ctx.beginPath(); ctx.ellipse(head.x, head.y, rx, ry, 0, Math.PI * 1.12, Math.PI * 1.88); ctx.stroke();
+    var hgE = ctx.createRadialGradient(head.x - rx * 0.35, head.y - ry * 0.4, rx * 0.1, head.x, head.y, ry * 1.25);
+    hgE.addColorStop(0, '#26363f'); hgE.addColorStop(1, '#0e1720');
+    ctx.beginPath(); ctx.ellipse(head.x, head.y, rx, ry, 0, 0, TAU);
+    ctx.fillStyle = hgE; ctx.fill();
+    /* 左肩與頭頂的緣光：把剪影從背景裡拉出來 */
+    ctx.strokeStyle = 'rgba(150,200,224,.34)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(head.x, head.y, rx, ry, 0, Math.PI * 1.06, Math.PI * 1.72); ctx.stroke();
+    ctx.strokeStyle = 'rgba(150,200,224,.22)'; ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(s1.x, s1.y); ctx.quadraticCurveTo(s1.x - 2, (s1.y + w1.y) * 0.5, w1.x, w1.y);
+    ctx.stroke();
 
-    /* 看得見的那隻手臂：伸向鏡頭，然後在畫面下緣消失 */
+    /* 遠端那隻手臂與遠端那根棒子：正在戳椅子上那個真的身體。
+       棒尖之後會被軀幹蓋住（drawSitter 在這之後才畫），剛好就是「你看不到」的那一下。 */
     if (rod){
-      var fade = 1 - smooth(0.42, 0.82, rod.u);
-      if (fade > 0.02){
-        var sh = proj(SHOULDER);
-        var hand = proj(rod.back);
-        ctx.save();
-        ctx.globalAlpha = fade;
-        ctx.strokeStyle = '#243646'; ctx.lineCap = 'round';
-        ctx.lineWidth = Math.max(4, 0.055 * sh.s);
-        ctx.beginPath(); ctx.moveTo(sh.x, sh.y); ctx.lineTo(hand.x, hand.y); ctx.stroke();
-        ctx.fillStyle = '#2e4354';
-        ctx.beginPath(); ctx.arc(hand.x, hand.y, Math.max(3, 0.035 * hand.s), 0, TAU); ctx.fill();
-        ctx.restore();
-      }
+      var fp = farPose(rod.u);
+      var fsh = proj([EX - 0.20, 0.26, EZ - 0.04]);
+      var fhand = proj(fp.back);
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#1b2b3a';
+      ctx.lineWidth = clamp(0.058 * fsh.s, 3, 14);
+      ctx.beginPath(); ctx.moveTo(fsh.x, fsh.y); ctx.lineTo(fhand.x, fhand.y); ctx.stroke();
+      ctx.fillStyle = '#25384a';
+      ctx.beginPath(); ctx.arc(fhand.x, fhand.y, clamp(0.038 * fhand.s, 2, 9), 0, TAU); ctx.fill();
+      ctx.restore();
+      drawRod(fp, 'rgba(196,204,208,.72)', 0.012);
     }
+  }
+
+  /* 近端那隻手臂：從畫面右下角入鏡，握著鏡頭旁那根棒子。
+     它不從遠處那個人身上長出來——不然手臂會被拉成兩公尺長。 */
+  function drawNearArm(rod){
+    if (!rod) return;
+    var fade = 1 - smooth(0.62, 0.95, rod.u);
+    if (fade <= 0.02) return;
+    var hand = proj(rod.back);
+    if (!isFinite(hand.x)) return;
+    /* 從畫面右緣入鏡，不是從角落拉一條大對角線 */
+    var ex = W * 1.08, ey = H * 0.86;
+    var wArm = clamp(0.070 * hand.s, 9, 22);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#0b1219';
+    ctx.lineWidth = wArm + 3;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+    var ag = ctx.createLinearGradient(ex, ey, hand.x, hand.y);
+    ag.addColorStop(0, '#1a2833'); ag.addColorStop(1, '#2a3d4c');
+    ctx.strokeStyle = ag;
+    ctx.lineWidth = wArm;
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(hand.x, hand.y); ctx.stroke();
+    /* 拳頭 */
+    var hr = clamp(0.042 * hand.s, 5, 15);
+    var hg2 = ctx.createRadialGradient(hand.x - hr * 0.4, hand.y - hr * 0.4, hr * 0.1, hand.x, hand.y, hr);
+    hg2.addColorStop(0, '#3d5566'); hg2.addColorStop(1, '#1d2c37');
+    ctx.fillStyle = hg2;
+    ctx.beginPath(); ctx.arc(hand.x, hand.y, hr, 0, TAU); ctx.fill();
+    ctx.restore();
   }
   function smooth(a, b, x){
     var t = clamp01((x - a) / (b - a));
@@ -761,29 +851,73 @@
   }
 
   /* ════════════════ 棒子 ════════════════ */
-  var ROD_A = [0.70, 0.08, 2.05];   /* 從實驗者手上出發 */
-  var ROD_B = [0.03, -0.42, 0.31];  /* 鏡頭正下方那個看不見的「胸口」 */
+  /* 近棒：實驗者在鏡頭旁邊操作的那一根，只在鏡頭附近的一小段路上移動。
+     原本讓它從兩公尺外一路飛到離鏡頭 31 公分，投影放大倍率跟著暴衝，
+     末端會變成一根橫過畫面的粗棍——那就是比例壞掉的原因。 */
+  var ROD_LEN = 0.30;               /* 露在手外面的那一段 */
+  var ROD_A = [0.52, -0.14, 1.02];  /* 從畫面右方入鏡 */
+  var ROD_B = [0.07, -0.30, 0.56];  /* 鏡頭正下方那個看不見的「胸口」 */
 
-  function rodPose(u){
+  /* 遠棒：同一時間，另一根棒子正戳著椅子上那個真的身體。
+     兩根棒子同步移動——這正是 Ehrsson 那個實驗的全部裝置。 */
+  var FAR_LEN = 0.34;
+  var FAR_A = [0.62, 0.02, 2.24];
+  var FAR_B = [0.13, -0.30, 1.96];
+
+  function poseBetween(A, B, u, len){
     var e = easeInOut(u);
-    var tip = [ROD_A[0] + (ROD_B[0] - ROD_A[0]) * e,
-               ROD_A[1] + (ROD_B[1] - ROD_A[1]) * e,
-               ROD_A[2] + (ROD_B[2] - ROD_A[2]) * e];
-    var dx = ROD_B[0] - ROD_A[0], dy = ROD_B[1] - ROD_A[1], dz = ROD_B[2] - ROD_A[2];
+    var tip = [A[0] + (B[0] - A[0]) * e, A[1] + (B[1] - A[1]) * e, A[2] + (B[2] - A[2]) * e];
+    var dx = B[0] - A[0], dy = B[1] - A[1], dz = B[2] - A[2];
     var L = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
-    var back = [tip[0] - dx / L * 0.20, tip[1] - dy / L * 0.20, tip[2] - dz / L * 0.20];
-    return { u: u, tip: tip, back: back };
+    return { u: u, tip: tip, back: [tip[0] - dx / L * len, tip[1] - dy / L * len, tip[2] - dz / L * len] };
   }
+  function rodPose(u){ return poseBetween(ROD_A, ROD_B, u, ROD_LEN); }
+  function farPose(u){ return poseBetween(FAR_A, FAR_B, u, FAR_LEN); }
+
+  /* 投影出來的線寬要夾住：離鏡頭 40 公分時 F/z 已經是 1500 以上，不夾就爆掉 */
+  function rodWidth(thick, s){ return clamp(thick * s, 2, 16); }
+
   function drawRod(rod, color, thick){
     var a = toCam(rod.tip), b = toCam(rod.back);
     var seg = clipSeg(a, b);
     if (!seg) return;
     var p1 = px(seg[0]), p2 = px(seg[1]);
+    var s = Math.max(p1.s, p2.s);
     ctx.save();
     ctx.lineCap = 'round';
-    ctx.strokeStyle = color || C.bone;
-    ctx.lineWidth = Math.max(2, (thick || 0.011) * Math.max(p1.s, p2.s));
+    /* 一點點厚度感：深色底 ＋ 亮面高光 */
+    ctx.strokeStyle = 'rgba(8,13,19,.7)';
+    ctx.lineWidth = rodWidth(thick || 0.013, s) + 2;
     ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    ctx.strokeStyle = color || C.bone;
+    ctx.lineWidth = rodWidth(thick || 0.013, s);
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 鎚子：一根柄加一顆頭，不是一根比較粗的棒子 */
+  function drawHammer(rod){
+    var a = toCam(rod.tip), b = toCam(rod.back);
+    var seg = clipSeg(a, b);
+    if (!seg) return;
+    var p1 = px(seg[0]), p2 = px(seg[1]);
+    var s = Math.max(p1.s, p2.s);
+    var dx = p1.x - p2.x, dy = p1.y - p2.y, L = Math.hypot(dx, dy) || 1;
+    var ux = dx / L, uy = dy / L, nx = -uy, ny = ux;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = '#6b4a35';
+    ctx.lineWidth = rodWidth(0.020, s);
+    ctx.beginPath(); ctx.moveTo(p2.x, p2.y); ctx.lineTo(p1.x - ux * 4, p1.y - uy * 4); ctx.stroke();
+    /* 鎚頭：橫在柄的前端 */
+    var hw = clamp(0.052 * s, 6, 26), hh = clamp(0.030 * s, 4, 15);
+    ctx.translate(p1.x, p1.y);
+    ctx.transform(nx, ny, ux, uy, 0, 0);
+    ctx.fillStyle = '#8d5c46';
+    if (ctx.roundRect){ ctx.beginPath(); ctx.roundRect(-hw, -hh * 0.5, hw * 2, hh, 2); ctx.fill(); }
+    else ctx.fillRect(-hw, -hh * 0.5, hw * 2, hh);
+    ctx.fillStyle = 'rgba(255,214,190,.28)';
+    ctx.fillRect(-hw, -hh * 0.5, hw * 2, Math.max(1, hh * 0.28));
     ctx.restore();
   }
 
@@ -938,8 +1072,9 @@
     drawExperimenter(rod);
     var fig = drawSitter(t, s);
     drawTrackBox(fig, s);
+    drawNearArm(rod || (hammers.length ? hammers[hammers.length - 1] : null));
     for (var i = 0; i < rods.length; i++) drawRod(rods[i], C.bone);
-    for (var j = 0; j < hammers.length; j++) drawRod(hammers[j], '#c9705a', 0.030);
+    for (var j = 0; j < hammers.length; j++) drawHammer(hammers[j]);
     drawMarker(s, t);
     drawFelt(performance.now());
     drawSignal(t, s);

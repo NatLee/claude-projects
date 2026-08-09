@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>十七點四歲</title>
+<meta name="description" content="六十七萬個點攤在同一張圖上。一條曲線在十七點四歲落下懸崖；換一組模型假設，懸崖就不見了。">
+<style>
+  :root{
+    --bg:#090b0f; --bg2:#0d1117; --panel:#0f141b;
+    --line:#1d242f; --line2:#2a3442;
+    --ink:#edf1f6; --dim:#8c99a8; --dim2:#5f6b7a;
+    --kink:#ffab4a;      /* 斷崖模型 */
+    --smooth:#4fd6c9;    /* 平滑模型 */
+    --you:#ff5f8d;       /* 你 */
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,"PingFang TC",serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--serif); font-size:17.5px; line-height:1.9;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--you); outline-offset:3px; border-radius:4px}
+
+  .home{
+    position:fixed; top:13px; left:14px; z-index:80;
+    font-family:var(--sans); font-size:12px; letter-spacing:.1em;
+    color:var(--dim); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(9,11,15,.72); backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.08); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--ink); border-color:rgba(255,255,255,.26)}
+
+  p{margin:0 0 1.15em}
+  strong{font-weight:600; color:#fff}
+  em{font-style:normal; color:var(--kink)}
+  .dim{color:var(--dim)}
+  .kicker{
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.34em;
+    text-transform:uppercase; color:var(--dim2); margin:0 0 1.4em;
+  }
+
+  /* ══════════ 第一屏 ══════════ */
+  .hook{
+    min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+    max-width:640px; margin:0 auto; padding:0 24px;
+  }
+  .hook h1{
+    font-size:clamp(2.1rem,7.6vw,3.6rem); line-height:1.18; font-weight:500;
+    letter-spacing:-.015em; margin:0 0 .7em;
+  }
+  .askrow{display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; margin:1.2em 0 0}
+  .askrow label{
+    display:block; font-family:var(--sans); font-size:11.5px; letter-spacing:.18em;
+    color:var(--dim); margin-bottom:9px;
+  }
+  input[type=number]{
+    font-family:var(--mono); font-size:30px; font-weight:500; color:var(--ink);
+    background:transparent; border:none; border-bottom:1.5px solid var(--line2);
+    width:118px; padding:2px 4px 6px; text-align:center; -moz-appearance:textfield;
+    transition:border-color .2s;
+  }
+  input[type=number]:focus{border-bottom-color:var(--you); outline:none}
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none; margin:0}
+  .btn{
+    font-family:var(--sans); font-size:13px; letter-spacing:.06em; color:var(--ink);
+    background:rgba(255,255,255,.045); border:1px solid var(--line2); border-radius:9px;
+    padding:11px 18px; cursor:pointer;
+    transition:background .18s, border-color .18s, color .18s, transform .12s;
+  }
+  .btn:hover:not(:disabled){background:rgba(255,255,255,.1); border-color:#3a4757}
+  .btn:active:not(:disabled){transform:translateY(1px)}
+  .btn:disabled{opacity:.4; cursor:default}
+  .btn.go{border-color:var(--you); color:var(--you); background:rgba(255,95,141,.09)}
+  .btn.go:hover:not(:disabled){background:rgba(255,95,141,.17)}
+  .btn[aria-pressed=true]{background:rgba(255,255,255,.13); border-color:#4a5867; color:#fff}
+
+  .afterask{
+    margin-top:2.6em; max-width:30em;
+    opacity:0; transform:translateY(10px);
+    transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.3,1);
+  }
+  .afterask.on{opacity:1; transform:none}
+  .down{
+    font-family:var(--sans); font-size:11px; letter-spacing:.28em; color:var(--dim2);
+    display:flex; align-items:center; gap:10px; margin-top:2.4em;
+  }
+  .down i{display:block; width:30px; height:1px; background:linear-gradient(90deg,var(--dim2),transparent)}
+
+  /* ══════════ 捲動敘事 ══════════ */
+  .scrolly{
+    max-width:1200px; margin:0 auto; padding:0 26px;
+    display:grid; gap:0 60px;
+    grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);
+  }
+  .figwrap{
+    grid-column:2; grid-row:1;
+    position:sticky; top:5svh; align-self:start;
+    padding:14px 0 8px;
+  }
+  .steps{grid-column:1; grid-row:1; padding:22vh 0 0}
+
+  .figbox{position:relative}
+  canvas#cv{
+    display:block; width:100%; height:62svh; min-height:280px; max-height:620px;
+    background:var(--bg2); border:1px solid var(--line); border-radius:12px;
+  }
+  .counter{
+    position:absolute; top:14px; right:18px; pointer-events:none; text-align:right;
+    font-family:var(--mono); font-variant-numeric:tabular-nums;
+    font-size:clamp(1.4rem,3vw,2.1rem); font-weight:300; letter-spacing:-.02em;
+    color:rgba(237,241,246,.3); line-height:1;
+    opacity:0; transition:opacity .5s;
+  }
+  .counter.on{opacity:1}
+  .counter small{display:block; font-family:var(--sans); font-size:10.5px; letter-spacing:.24em; color:var(--dim2); margin-top:7px}
+  .cap{
+    font-family:var(--sans); font-size:11px; line-height:1.65; color:var(--dim2);
+    margin:9px 2px 0;
+  }
+
+  /* ── 控制台 ── */
+  .panel{
+    margin-top:12px; min-height:126px;
+    border:1px solid var(--line); border-radius:12px; background:var(--panel);
+    padding:13px 15px; font-family:var(--sans);
+  }
+  .legend{display:flex; flex-wrap:wrap; gap:7px 18px; font-size:11.5px; color:var(--dim)}
+  .legend span{display:flex; align-items:center; gap:7px}
+  .swatch{width:15px; height:0; border-top-width:2.5px; border-top-style:solid; display:inline-block}
+  .sw-you{border-top-color:var(--you); border-top-style:dashed}
+  .sw-dot{width:9px; height:9px; border-radius:50%; border:none; background:rgba(150,175,205,.55)}
+  .hintline{font-size:12.5px; color:var(--dim); margin-top:11px; line-height:1.7}
+
+  .ctlrow{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+  .ctlrow .btn{padding:9px 13px; font-size:12.5px}
+  .modes{display:flex; gap:6px; flex-wrap:wrap}
+  .modes .btn{padding:8px 12px; font-size:12.5px}
+  .modes .btn.k[aria-pressed=true]{border-color:var(--kink); color:var(--kink); background:rgba(255,171,74,.12)}
+  .modes .btn.s[aria-pressed=true]{border-color:var(--smooth); color:var(--smooth); background:rgba(79,214,201,.12)}
+  .modes .btn.b[aria-pressed=true]{border-color:#7f8ea0; color:#fff; background:rgba(255,255,255,.1)}
+
+  .slid{margin-top:11px}
+  .slid label{display:block; font-size:11px; letter-spacing:.16em; color:var(--dim2); margin-bottom:5px}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:100%; height:22px;
+    background:transparent; cursor:pointer; display:block;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:3px; background:var(--line2); border-radius:2px}
+  input[type=range]::-moz-range-track{height:3px; background:var(--line2); border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:17px; height:17px; margin-top:-7px; border-radius:50%;
+    background:var(--you); border:none; box-shadow:0 0 0 4px rgba(255,95,141,.16);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:17px; height:17px; border-radius:50%; background:var(--you); border:none;
+    box-shadow:0 0 0 4px rgba(255,95,141,.16);
+  }
+
+  table.fit{
+    width:100%; border-collapse:collapse; margin-top:11px;
+    font-size:12px; font-variant-numeric:tabular-nums;
+  }
+  table.fit th{
+    text-align:left; font-weight:500; color:var(--dim2); font-size:10.5px;
+    letter-spacing:.13em; padding:0 0 5px; border-bottom:1px solid var(--line);
+  }
+  table.fit td{padding:6px 0 0; color:var(--dim); font-family:var(--mono)}
+  table.fit td:first-child{font-family:var(--sans); color:var(--ink)}
+  table.fit tr.k td:first-child{color:var(--kink)}
+  table.fit tr.s td:first-child{color:var(--smooth)}
+  table.fit td.big{color:#fff}
+  .verdict{
+    font-size:12.5px; line-height:1.7; color:var(--ink); margin-top:10px; min-height:1.7em;
+  }
+  .verdict b{color:var(--you)}
+
+  /* ── 步驟 ── */
+  .step{min-height:96svh; display:flex; flex-direction:column; justify-content:center; padding:4vh 0}
+  .step:last-child{min-height:82svh}
+  .step .num{
+    font-family:var(--sans); font-size:10.5px; letter-spacing:.4em; color:var(--dim2);
+    margin:0 0 1.5em; display:flex; align-items:center; gap:11px;
+  }
+  .step .num::before{content:""; width:22px; height:1px; background:var(--line2)}
+  .step h2{
+    font-size:clamp(1.45rem,3.6vw,2.05rem); line-height:1.38; font-weight:500;
+    margin:0 0 .85em; letter-spacing:-.008em;
+  }
+  .step p{max-width:31em}
+  .fade{opacity:0; transform:translateY(14px); transition:opacity .75s ease, transform .75s cubic-bezier(.2,.7,.3,1)}
+  .fade.in{opacity:1; transform:none}
+  .pull{
+    font-size:clamp(1.15rem,2.9vw,1.5rem); line-height:1.6; color:#fff;
+    margin:1.8em 0; padding-left:18px; border-left:2px solid var(--kink);
+  }
+  .aside{
+    font-size:14.5px; line-height:1.85; color:var(--dim);
+    border-left:1px solid var(--line2); padding-left:16px; margin:1.8em 0;
+  }
+  .aside b{color:var(--ink); font-weight:600}
+
+  /* ══════════ 收尾 ══════════ */
+  .coda{max-width:640px; margin:0 auto; padding:16vh 26px 0}
+  .coda .big{
+    font-size:clamp(1.35rem,4vw,1.9rem); line-height:1.55; color:#fff;
+    font-weight:500; margin:1.4em 0;
+  }
+  .rule{height:1px; background:var(--line); margin:3.2em 0; border:none}
+  footer{
+    max-width:640px; margin:9vh auto 0; padding:22px 26px 44px;
+    border-top:1px solid var(--line);
+    font-family:var(--sans); font-size:11px; line-height:1.9; letter-spacing:.03em; color:var(--dim2);
+    display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  }
+  footer a{color:var(--dim2); text-decoration:none; border-bottom:1px solid var(--line2)}
+  footer a:hover{color:var(--dim)}
+
+  @media (max-width:900px){
+    .scrolly{display:block; padding:0 20px}
+    .figwrap{position:sticky; top:0; z-index:20; background:var(--bg); padding:8px 0 10px; margin:0 -20px; padding-left:20px; padding-right:20px; border-bottom:1px solid var(--line)}
+    .steps{padding:6vh 0 0}
+    canvas#cv{height:36svh; min-height:220px}
+    .panel{min-height:0}
+    .step{min-height:88svh}
+  }
+  @media (max-width:560px){
+    body{font-size:16.5px}
+    .step p{max-width:none}
+    .counter{font-size:1.35rem}
+    .legend{font-size:10.5px; gap:5px 12px}
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .fade{opacity:1; transform:none; transition:none}
+    .afterask{transition:none}
+    .counter{transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<!-- ══════════════ 第一屏：先問你一個問題 ══════════════ -->
+<header class="hook">
+  <p class="kicker">先回答，不要想太久</p>
+  <h1>你幾歲，第一次碰到英文？</h1>
+  <p class="dim">不用精確。你只要記得那個班、那本課本、那個第一次覺得字母排起來很怪的年紀。</p>
+
+  <div class="askrow">
+    <div>
+      <label for="aoa">開始學英文的年齡</label>
+      <input id="aoa" type="number" min="0" max="60" step="1" inputmode="numeric"
+             placeholder="—" aria-describedby="askNote">
+    </div>
+    <button class="btn go" id="askBtn">記下來</button>
+  </div>
+  <p id="askNote" class="dim" style="font-family:var(--sans);font-size:12px;margin-top:14px">填 0 到 60 之間的整數。</p>
+
+  <div class="afterask" id="afterAsk">
+    <p>記住這個數字。</p>
+    <p>等一下有 <strong>669,498</strong> 個人要跟你站在同一張圖上。他們全都被問過一模一樣的問題。</p>
+    <p class="down"><i></i>往下捲</p>
+  </div>
+</header>
+
+<!-- ══════════════ 主體：一張六十七萬人的散布圖 ══════════════ -->
+<div class="scrolly">
+
+  <!-- ── 圖（sticky） ── -->
+  <div class="figwrap">
+    <div class="figbox">
+      <canvas id="cv" role="img"
+        aria-label="散布圖：橫軸是初次接觸英文的年齡，縱軸是文法測驗表現。故事推進時圖上會依序出現資料點、擬合曲線與你自己的位置。"></canvas>
+      <div class="counter" id="counter" aria-hidden="true">0<small>人</small></div>
+    </div>
+    <p class="cap">圖上是 16,000 個<strong>示意</strong>點，依 2018 年那篇論文的結論生成，不是原始的 669,498 筆。</p>
+
+    <div class="panel">
+      <!-- 前半段：圖例 -->
+      <div id="pnlLegend">
+        <div class="legend">
+          <span><i class="swatch sw-dot"></i>一個人</span>
+          <span id="lgYears" hidden><i class="swatch" style="border-top-color:#9b6bd6"></i>學不到幾年</span>
+          <span id="lgYears2" hidden><i class="swatch" style="border-top-color:#6fb4ff"></i>學了很久</span>
+        </div>
+        <p class="hintline" id="figHint">橫軸：初次接觸英文的年齡。縱軸：文法測驗表現。</p>
+      </div>
+
+      <!-- 後半段：擬合控制台 -->
+      <div id="pnlFit" hidden>
+        <div class="ctlrow">
+          <button class="btn go" id="fitBtn">把我標上去，讓線落下來</button>
+        </div>
+        <div class="modes" id="modes" role="group" aria-label="選擇擬合模型" hidden>
+          <button class="btn k" id="mK" aria-pressed="true">斷崖模型</button>
+          <button class="btn s" id="mS" aria-pressed="false">平滑模型</button>
+          <button class="btn b" id="mB" aria-pressed="false">兩條都看</button>
+        </div>
+        <div class="slid">
+          <label for="mine">你的起始年齡：<span id="mineOut">—</span></label>
+          <input id="mine" type="range" min="0" max="40" step="1" value="10"
+                 aria-label="你的起始年齡，單位歲">
+        </div>
+        <table class="fit" id="fitTable" hidden>
+          <thead><tr><th>模型</th><th>R²</th><th>殘差平方和</th><th>轉折點</th></tr></thead>
+          <tbody>
+            <tr class="k"><td>斷崖</td><td id="r2k">—</td><td id="rsk">—</td><td id="tauk" class="big">—</td></tr>
+            <tr class="s"><td>平滑</td><td id="r2s">—</td><td id="rss">—</td><td id="taus">沒有</td></tr>
+          </tbody>
+        </table>
+        <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 故事（捲動） ── -->
+  <div class="steps">
+
+    <section class="step" data-step="1">
+      <p class="num fade">一</p>
+      <h2 class="fade">這是六十七萬個人</h2>
+      <p class="fade">每一個點，是一個真的坐下來做完一份英文文法測驗的人。橫軸是他幾歲第一次碰到英文，縱軸是他考得怎麼樣。</p>
+      <p class="fade">讓它們慢慢落下來。你可以邊看邊想：這片雲裡有一個位置是你的。</p>
+      <p class="fade dim">六十六萬九千四百九十八。在語言學裡，這個樣本大到有點不像話——過去這個題目的研究，動不動就是幾十個人。</p>
+    </section>
+
+    <section class="step" data-step="2">
+      <p class="num fade">二</p>
+      <h2 class="fade">先說這份資料是怎麼來的，因為它有點荒謬</h2>
+      <p class="fade">沒有人被招募。沒有實驗室，沒有受試者費，沒有招募海報。</p>
+      <p class="fade">研究者把一份小測驗丟上網——就是那種在你動態牆上滑過的「我們猜猜看你的母語是什麼」。它瘋傳了。</p>
+      <p class="fade">然後三分之二百萬人，自己走了進來。</p>
+      <p class="fade dim">這也是它最脆弱的地方：會點進那種測驗的人，本來就對語言有興趣。這不是一份被誰挑選過的樣本，而是一份<strong>自己挑了自己</strong>的樣本。後來的批評者反覆指著這一點。</p>
+    </section>
+
+    <section class="step" data-step="3">
+      <p class="num fade">三</p>
+      <h2 class="fade">現在，一個誰也繞不過去的麻煩</h2>
+      <p class="fade">這片雲往右邊沉下去。晚開始的人，分數比較低。你大概已經想好結論了：起步晚，就學不好。</p>
+      <p class="fade">慢著。把同一批點，按「他已經學了幾年」重新上色。</p>
+      <p class="fade">晚開始的人，幾乎清一色是<strong>還沒學很久</strong>的人。這不是巧合，是算術：填問卷的多半是年輕人，你三十歲才開始，你就不可能已經學了二十年。</p>
+      <p class="pull fade">他學得差，是因為起步晚，<br>還是因為學得還不夠久？</p>
+      <p class="fade dim">這兩件事在資料裡黏成一團。這就是為什麼這個問題吵了一百年還沒有答案——不是沒人想算，是樣本不夠大，拆不開。</p>
+    </section>
+
+    <section class="step" data-step="4">
+      <p class="num fade">四</p>
+      <h2 class="fade">六十七萬筆，才夠把它們撕開</h2>
+      <p class="fade">2018 年那篇論文真正的貢獻不是那個數字，是這一步：用一個計算模型，把三個平常糾纏在一起的變項拆開——<strong>你現在幾歲</strong>、<strong>你幾歲開始</strong>、<strong>你學了幾年</strong>。</p>
+      <p class="fade">任兩個決定第三個。要把它們分開，需要多到不可思議的人，在每一種組合上都站著幾百個。</p>
+      <p class="fade">把年資的效果扣掉，看剩下什麼。</p>
+      <p class="fade dim">雲往上抬了一點，也乾淨了一點。現在它只剩一個問題可以回答：幾歲開始，到底有沒有差？</p>
+    </section>
+
+    <section class="step" data-step="5">
+      <p class="num fade">五</p>
+      <h2 class="fade">有。而且答案帶一個小數點</h2>
+      <p class="fade">右邊那顆鈕，會做兩件事：把你自己標到圖上，然後讓那條擬合出來的曲線落下來。</p>
+      <p class="fade">按下去之前先深呼吸一口。按下去之後，你會知道自己站在哪一邊。</p>
+      <p class="fade dim">（如果你在手機上，圖固定在畫面上方。）</p>
+      <div class="aside fade">
+        <p style="margin:0">在你往下捲之前，先把幾件事釘住，免得等一下心裡那個聲音太大：</p>
+        <p style="margin:.7em 0 0">這條曲線量的是<b>文法學習的速率</b>，不是你的天花板，不是發音，不是詞彙，也不是你能不能把一件事講清楚。而且在最初的幾個月，成人和青少年學得<b>比幼童快</b>——1978 年 Snow 與 Hoefnagel-Höhle 追蹤一群學荷蘭語的英語母語者，前幾個月領先的是 12 到 15 歲那組和大人，三到五歲那組在每一項測驗上都墊底。</p>
+      </div>
+    </section>
+
+    <section class="step" data-step="6">
+      <p class="num fade">六</p>
+      <h2 class="fade">四年後，同一批點，另一批人</h2>
+      <p class="fade">2022 年，四位研究者拿到一模一樣的資料。一個點都沒有加，一個點都沒有刪。</p>
+      <p class="fade">他們只是問了一個問題：<strong>如果不准這條曲線在中途折彎，會怎麼樣？</strong></p>
+      <p class="fade">按「平滑模型」。然後按回「斷崖模型」。來回幾次，看那道懸崖出現、消失、再出現。</p>
+      <p class="fade">兩條線穿過同一片雲。看一下表格裡那兩個 R²——它們解釋掉的變異量，差距小到你要盯著小數點第三位才找得到。</p>
+      <div class="aside fade">
+        <p style="margin:0">他們的結論比「沒有斷崖」更細，也更麻煩：對<b>單語者、雙語者、以及早期沉浸的學習者</b>，連續模型擬合得比較好；只有<b>非沉浸</b>與<b>晚期沉浸</b>的學習者，帶轉折的模型才勝出，而轉折點分別落在 <b>18.6</b> 歲與 <b>19.0</b> 歲。</p>
+        <p style="margin:.7em 0 0">他們說，那個位置更像<b>離開學校</b>的痕跡，不是大腦裡有一扇門在那一年關上。</p>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ══════════════ 收尾 ══════════════ -->
+<section class="coda">
+  <p class="fade">故事到這裡還沒完。2024 年，Hartshorne 本人回了一篇，說對方的重新分析從概念到數學都錯了：那組模型檢定的根本不是「陡降還是緩降」，而是「下降是不是不對稱」。他修正之後重跑，每一類學習者身上的急轉彎又都回來了。</p>
+  <p class="fade">於是這件事現在的狀態是：<strong>還在吵。</strong></p>
+
+  <p class="big fade">所以你該記住的不是 17.4。</p>
+
+  <p class="fade">你該記住的是——那個轉折點是<strong>模型裡的一個假設</strong>，不是資料裡的一個事實。是你先決定要不要讓曲線折彎，它才折給你看。</p>
+
+  <hr class="rule">
+
+  <p class="fade">還有一件事，我欠你一個坦白。</p>
+  <p class="fade">這一頁的每一個點，是我照 2018 年那篇的結論放進去的：高原一路撐到 17.4 歲，然後掉下來。<strong>我親手把那道懸崖埋在資料裡。</strong></p>
+  <p class="fade">即使如此——那條沒有懸崖的曲線，還是解釋得幾乎一樣好。</p>
+  <p class="fade dim">（順帶一提，我也試過反過來：拿一份完全沒有斷崖、從頭平滑下滑的資料丟給同一個分段模型。它照樣交出一個轉折點，8.5 歲，斬釘截鐵。它永遠有答案。）</p>
+
+  <p class="big fade">你的那個點還在圖上。</p>
+  <p class="fade">它從頭到尾沒有動過。動的一直是別人畫在它上面的線。</p>
+
+  <footer>
+    <span>資料來源：Hartshorne et al., <i>Cognition</i>（2018）；van der Slik et al., <i>Language Learning</i>（2022）；Hartshorne, <i>Language Development Research</i>（2024）。</span>
+    <a href="../../../index.html">← 回首頁</a>
+  </footer>
+</section>
+
+<!-- ══════════════ 純函式核心：生成、擬合、擬合優度 ══════════════ -->
+<script>
+var CP174 = (function () {
+  'use strict';
+
+  /* 可重現的偽亂數（mulberry32）：同一顆種子永遠得到同一批點 */
+  function rng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      var t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gauss(r) {
+    var u = 1 - r(), v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  var DEF = {
+    plateau: 92,   /* 轉折前的水準 */
+    tau: 17.4,     /* 真值轉折點 */
+    slope: 1.55,   /* 轉折後每晚一年掉幾分 */
+    floor: 42,     /* 地板 */
+    satAmp: 0.45,  /* 年資不足時的折扣幅度 */
+    satTau: 6,     /* 年資飽和的時間常數（年） */
+    sigma: 6.0     /* 個體雜訊 */
+  };
+
+  /* 真值 A：高原 → 轉折 → 直線下滑（2018 年那篇的形狀） */
+  function abilityKink(a, p) {
+    p = p || DEF;
+    return Math.max(p.floor, a <= p.tau ? p.plateau : p.plateau - p.slope * (a - p.tau));
+  }
+  /* 真值 B：從頭到尾平滑下滑、沒有任何轉折（只給 node 斷言當對照組） */
+  function abilitySmooth(a, p) {
+    p = p || DEF;
+    var lo = p.floor + 4, hi = p.plateau;
+    return lo + (hi - lo) / (1 + Math.exp((a - 21) / 6.2));
+  }
+  /* 年資飽和：學得越久，越接近自己那條上限 */
+  function sat(years, p) {
+    p = p || DEF;
+    return 1 - (p || DEF).satAmp * Math.exp(-Math.max(0, years) / (p || DEF).satTau);
+  }
+
+  /* 生成一批示意受試者 */
+  function generate(n, seed, opts) {
+    opts = opts || {};
+    var p = {}, k;
+    for (k in DEF) if (Object.prototype.hasOwnProperty.call(DEF, k)) p[k] = DEF[k];
+    for (k in opts) if (Object.prototype.hasOwnProperty.call(opts, k) && typeof opts[k] === 'number') p[k] = opts[k];
+    var ability = opts.ability === 'smooth' ? abilitySmooth : abilityKink;
+    var r = rng(seed >>> 0);
+    var A = new Float32Array(n), Y = new Float32Array(n), AGE = new Float32Array(n),
+        RAW = new Float32Array(n), ADJ = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      /* 目前年齡：線上測驗的填答者明顯年輕偏斜 */
+      var age = 13 + Math.floor(-Math.log(1 - r()) * 12);
+      if (age > 70) age = 70;
+      /* 初次接觸年齡：多數落在學齡，尾巴拖到四十歲；且必然小於目前年齡 */
+      var a = 0, ok = false;
+      for (var t = 0; t < 8 && !ok; t++) {
+        var u = r();
+        a = u < 0.55 ? 5 + Math.floor(r() * 9)
+          : u < 0.80 ? 14 + Math.floor(r() * 8)
+          : 22 + Math.floor(r() * 19);
+        if (a <= age - 1) ok = true;
+      }
+      if (!ok) a = Math.max(0, age - 1);
+      var years = age - a;
+      var s = sat(years, p);
+      var raw = clamp(ability(a, p) * s + gauss(r) * p.sigma, 12, 100);
+      A[i] = a; Y[i] = years; AGE[i] = age;
+      RAW[i] = raw;
+      ADJ[i] = clamp(raw / s, 12, 108);   /* 「扣掉年資之後」的估計能力 */
+    }
+    return { n: n, a: A, years: Y, age: AGE, raw: RAW, adj: ADJ };
+  }
+
+  /* 依整數起始年齡分組的充分統計量。起始年齡本來就是整數年，分組不損失任何資訊。 */
+  function group(a, y, maxA) {
+    maxA = maxA || 45;
+    var N = maxA + 1;
+    var cnt = new Float64Array(N), s1 = new Float64Array(N), s2 = new Float64Array(N);
+    for (var i = 0; i < a.length; i++) {
+      var k = Math.round(a[i]);
+      if (k < 0 || k > maxA) continue;
+      cnt[k]++; s1[k] += y[i]; s2[k] += y[i] * y[i];
+    }
+    var xs = [], n = [], sy = [], syy = [];
+    for (var j = 0; j < N; j++) if (cnt[j] > 0) { xs.push(j); n.push(cnt[j]); sy.push(s1[j]); syy.push(s2[j]); }
+    var S0 = 0, T0 = 0, Q = 0;
+    for (var m = 0; m < xs.length; m++) { S0 += n[m]; T0 += sy[m]; Q += syy[m]; }
+    return { xs: xs, n: n, sy: sy, syy: syy, N: S0, sumY: T0, sumYY: Q, tss: Q - T0 * T0 / S0 };
+  }
+
+  /* y = c0 + c1·basis(x)：用充分統計量解正規方程，直接回傳整批資料的殘差平方和。
+     sign 用來鎖單調方向（-1：c1 必須 ≤0；+1：c1 必須 ≥0）。 */
+  function olsBasis(g, basis, sign) {
+    var S0 = 0, S1 = 0, S2 = 0, T0 = 0, T1 = 0, i, b;
+    for (i = 0; i < g.xs.length; i++) {
+      b = basis(g.xs[i]);
+      S0 += g.n[i]; S1 += g.n[i] * b; S2 += g.n[i] * b * b;
+      T0 += g.sy[i]; T1 += b * g.sy[i];
+    }
+    var det = S0 * S2 - S1 * S1, c0, c1;
+    if (Math.abs(det) < 1e-9) { c0 = T0 / S0; c1 = 0; }
+    else { c0 = (T0 * S2 - T1 * S1) / det; c1 = (S0 * T1 - S1 * T0) / det; }
+    if ((sign > 0 && c1 < 0) || (sign < 0 && c1 > 0)) { c1 = 0; c0 = T0 / S0; }
+    var rss = g.sumYY - 2 * c0 * T0 - 2 * c1 * T1 + c0 * c0 * S0 + 2 * c0 * c1 * S1 + c1 * c1 * S2;
+    return { c0: c0, c1: c1, rss: rss };
+  }
+
+  /* 模型一 · 斷崖：y = level（x ≤ τ）／level − slope·(x − τ)（x > τ）
+     τ 用網格搜尋，其餘參數在每個 τ 上閉式最小平方。 */
+  function fitPiecewise(g, lo, hi, step) {
+    lo = lo == null ? 4 : lo; hi = hi == null ? 32 : hi; step = step || 0.05;
+    var best = null;
+    for (var t = lo; t <= hi + 1e-9; t += step) {
+      (function (tau) {
+        var f = olsBasis(g, function (x) { return x > tau ? x - tau : 0; }, -1);
+        if (!best || f.rss < best.rss - 1e-9) best = { tau: tau, level: f.c0, slope: -f.c1, rss: f.rss };
+      })(t);
+    }
+    best.r2 = 1 - best.rss / g.tss;
+    best.name = 'piecewise';
+    best.predict = function (x) { return x <= best.tau ? best.level : best.level - best.slope * (x - best.tau); };
+    return best;
+  }
+
+  /* 模型二 · 平滑：y = low + drop / (1 + exp((x − mid)/scale))
+     處處可微、單調下降，模型裡根本沒有「轉折點」這個參數。 */
+  function fitSmooth(g, opt) {
+    opt = opt || {};
+    var mLo = opt.mLo == null ? 0 : opt.mLo, mHi = opt.mHi == null ? 48 : opt.mHi, mSt = opt.mStep || 0.25;
+    var sLo = opt.sLo == null ? 1 : opt.sLo, sHi = opt.sHi == null ? 36 : opt.sHi, sSt = opt.sStep || 0.25;
+    var best = null;
+    for (var m = mLo; m <= mHi + 1e-9; m += mSt) {
+      for (var s = sLo; s <= sHi + 1e-9; s += sSt) {
+        (function (mm, ss) {
+          var f = olsBasis(g, function (x) { return 1 / (1 + Math.exp((x - mm) / ss)); }, 1);
+          if (!best || f.rss < best.rss - 1e-9) best = { mid: mm, scale: ss, low: f.c0, drop: f.c1, rss: f.rss };
+        })(m, s);
+      }
+    }
+    best.r2 = 1 - best.rss / g.tss;
+    best.name = 'smooth';
+    best.predict = function (x) { return best.low + best.drop / (1 + Math.exp((x - best.mid) / best.scale)); };
+    return best;
+  }
+
+  /* 逐點殘差平方和：用來驗證上面那套充分統計量沒有偷工減料 */
+  function rssPointwise(a, y, predict) {
+    var s = 0;
+    for (var i = 0; i < a.length; i++) { var d = y[i] - predict(a[i]); s += d * d; }
+    return s;
+  }
+  function r2From(rss, tss) { return 1 - rss / tss; }
+
+  var API = {
+    rng: rng, gauss: gauss, DEF: DEF,
+    abilityKink: abilityKink, abilitySmooth: abilitySmooth, sat: sat,
+    generate: generate, group: group, olsBasis: olsBasis,
+    fitPiecewise: fitPiecewise, fitSmooth: fitSmooth,
+    rssPointwise: rssPointwise, r2From: r2From
+  };
+  if (typeof module === 'object' && module.exports) module.exports = API;
+  return API;
+})();
+</script>
+
+<!-- ══════════════ 頁面接線 ══════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  var LS = 'cp174x26.';
+  var N_POINTS = 16000;
+  var SEED = 7;              /* 這顆種子擬合出來的轉折點剛好落在 17.4，與論文一致 */
+  var TOTAL = 669498;
+  var C = {
+    grid: 'rgba(255,255,255,.055)', axis: '#3a4552', tick: '#6a7686',
+    pt: 'rgba(150,178,210,.24)',
+    yShort: 'rgba(155,107,214,.30)', yLong: 'rgba(111,180,255,.30)',
+    kink: '#ffab4a', smooth: '#4fd6c9', you: '#ff5f8d', ink: '#edf1f6', dim: '#8c99a8'
+  };
+  var FONT = '-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+
+  var mReduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function reduced() { return mReduced.matches; }
+
+  /* ---------- 資料與擬合（一次算完，之後只是在畫） ---------- */
+  var D = CP174.generate(N_POINTS, SEED);
+  var G = CP174.group(D.a, D.adj);
+  var FK = CP174.fitPiecewise(G);
+  var FS = CP174.fitSmooth(G);
+
+  /* 畫圖用的水平抖動：起始年齡是整數，不抖會變成一排排柵欄 */
+  var JIT = new Float32Array(N_POINTS);
+  (function () {
+    var r = CP174.rng(SEED ^ 0x5bf03635);
+    for (var i = 0; i < N_POINTS; i++) JIT[i] = (r() - 0.5) * 0.86;
+  })();
+  /* 依年資分桶（上色時一桶一桶畫，才不用每個點換一次 fillStyle） */
+  var BUCKETS = [[], [], [], [], [], []];
+  (function () {
+    for (var i = 0; i < N_POINTS; i++) {
+      var y = D.years[i];
+      var b = y < 3 ? 0 : y < 6 ? 1 : y < 10 ? 2 : y < 16 ? 3 : y < 25 ? 4 : 5;
+      BUCKETS[b].push(i);
+    }
+  })();
+  var BCOL = ['rgba(168,104,231,.34)', 'rgba(150,116,236,.32)', 'rgba(128,133,240,.30)',
+              'rgba(112,151,244,.29)', 'rgba(100,168,248,.28)', 'rgba(96,186,255,.28)'];
+
+  /* ---------- 狀態 ---------- */
+  var S = {
+    reveal: 0, revealT: 0,
+    color: 0, colorT: 0,       /* 0 = 單色，1 = 依年資上色 */
+    morph: 0, morphT: 0,       /* 0 = 原始分數，1 = 扣掉年資 */
+    curve: 'none',             /* none / kink / smooth / both */
+    curveP: 0,
+    mine: null, mineOn: false
+  };
+
+  /* ---------- canvas ---------- */
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  var W = 0, H = 0, DPR = 1;
+  function fitCanvas(force) {
+    var w = cv.clientWidth, h = cv.clientHeight, d = Math.min(2, window.devicePixelRatio || 1);
+    if (!force && w === W && h === H && d === DPR) return false;   /* 尺寸沒變就不要重設，否則畫布會被清掉 */
+    W = w; H = h; DPR = d;
+    cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    return true;
+  }
+
+  var XMIN = 0, XMAX = 40, YMIN = 18, YMAX = 106;
+  var pad = { l: 46, r: 16, t: 16, b: 34 };
+  function px(x) { return pad.l + (x - XMIN) / (XMAX - XMIN) * (W - pad.l - pad.r); }
+  function py(y) { return pad.t + (1 - (y - YMIN) / (YMAX - YMIN)) * (H - pad.t - pad.b); }
+
+  function drawFrame() {
+    if (!W || !H) return;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    pad.l = W < 420 ? 36 : 46;
+
+    var x0 = px(XMIN), x1 = px(XMAX), y0 = py(YMIN), y1 = py(YMAX);
+    var i, k;
+
+    /* 網格 */
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = C.grid;
+    ctx.font = '10.5px ' + FONT;
+    ctx.fillStyle = C.tick;
+    ctx.textBaseline = 'middle';
+    for (k = 20; k <= 100; k += 20) {
+      var gy = Math.round(py(k)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x1, gy); ctx.stroke();
+      ctx.textAlign = 'right';
+      ctx.fillText(String(k), x0 - 8, gy);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (k = 0; k <= 40; k += 10) {
+      var gx = Math.round(px(k)) + 0.5;
+      ctx.strokeStyle = C.grid;
+      ctx.beginPath(); ctx.moveTo(gx, y1); ctx.lineTo(gx, y0); ctx.stroke();
+      ctx.fillStyle = C.tick;
+      ctx.fillText(k === 40 ? '40+' : String(k), gx, y0 + 8);
+    }
+    /* 軸 */
+    ctx.strokeStyle = C.axis;
+    ctx.beginPath();
+    ctx.moveTo(Math.round(x0) + 0.5, y1); ctx.lineTo(Math.round(x0) + 0.5, y0);
+    ctx.lineTo(x1, y0);
+    ctx.stroke();
+    ctx.fillStyle = C.dim; ctx.font = '10.5px ' + FONT;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+    ctx.fillText('初次接觸英文的年齡 →', x1, y0 + 26);
+    ctx.save();
+    ctx.translate(11, pad.t + 4);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText('← 文法測驗表現', -(H - pad.t - pad.b), 0);
+    ctx.restore();
+
+    /* 點 */
+    var count = Math.floor(S.reveal * N_POINTS);
+    if (count > 0) {
+      var sz = W < 480 ? 1.5 : 1.8;
+      var mo = S.morph;
+      if (S.color < 0.02) {
+        ctx.fillStyle = C.pt;
+        for (i = 0; i < count; i++) {
+          ctx.fillRect(px(D.a[i] + JIT[i]), py(D.raw[i] + (D.adj[i] - D.raw[i]) * mo), sz, sz);
+        }
+      } else {
+        /* 過渡期間兩層疊畫：單色淡出、年資色淡入 */
+        var aPlain = 1 - S.color, aCol = S.color;
+        if (aPlain > 0.02) {
+          ctx.globalAlpha = aPlain; ctx.fillStyle = C.pt;
+          for (i = 0; i < count; i++) {
+            ctx.fillRect(px(D.a[i] + JIT[i]), py(D.raw[i] + (D.adj[i] - D.raw[i]) * mo), sz, sz);
+          }
+          ctx.globalAlpha = 1;
+        }
+        ctx.globalAlpha = aCol;
+        for (var b = 0; b < BUCKETS.length; b++) {
+          ctx.fillStyle = BCOL[b];
+          var arr = BUCKETS[b];
+          for (var j = 0; j < arr.length; j++) {
+            i = arr[j];
+            if (i >= count) continue;
+            ctx.fillRect(px(D.a[i] + JIT[i]), py(D.raw[i] + (D.adj[i] - D.raw[i]) * mo), sz, sz);
+          }
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    /* 曲線 */
+    var showK = S.curve === 'kink' || S.curve === 'both';
+    var showS = S.curve === 'smooth' || S.curve === 'both';
+    if (showK) drawCurve(FK.predict, C.kink, false, '斷崖模型', S.curveP);
+    if (showS) drawCurve(FS.predict, C.smooth, true, '平滑模型', S.curveP);
+
+    /* 斷崖的那條垂直線 */
+    if (showK && S.curveP > 0.75) {
+      var tx = Math.round(px(FK.tau)) + 0.5;
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (S.curveP - 0.75) / 0.25);
+      ctx.strokeStyle = 'rgba(255,171,74,.5)';
+      ctx.setLineDash([3, 5]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(tx, y0); ctx.lineTo(tx, py(FK.level) - 4); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = C.kink;
+      ctx.font = '600 15px ' + FONT;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      ctx.fillText(FK.tau.toFixed(1), tx, py(FK.level) - 9);
+      ctx.font = '10px ' + FONT;
+      ctx.fillStyle = 'rgba(255,171,74,.75)';
+      ctx.fillText('歲', tx, py(FK.level) - 26);
+      ctx.restore();
+    }
+
+    /* 你 */
+    if (S.mineOn && S.mine != null) {
+      var mx = Math.round(px(Math.min(XMAX, S.mine))) + 0.5;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,95,141,.62)';
+      ctx.setLineDash([4, 4]); ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(mx, y0); ctx.lineTo(mx, y1 + 12); ctx.stroke();
+      ctx.setLineDash([]);
+      var pf = S.curve === 'smooth' ? FS.predict : FK.predict;
+      var myv = (S.curve === 'none') ? null : pf(Math.min(XMAX, S.mine));
+      if (myv != null && S.curveP > 0.6) {
+        ctx.fillStyle = C.you;
+        ctx.beginPath(); ctx.arc(mx, py(myv), 4.6, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(9,11,15,.9)'; ctx.lineWidth = 1.6; ctx.stroke();
+      }
+      ctx.fillStyle = C.you;
+      ctx.font = '600 11px ' + FONT;
+      ctx.textAlign = mx > (x0 + x1) / 2 ? 'right' : 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('你 · ' + S.mine + ' 歲', mx + (mx > (x0 + x1) / 2 ? -7 : 7), y1 + 14);
+      ctx.restore();
+    }
+  }
+
+  function drawCurve(fn, color, dashed, label, prog) {
+    var steps = 240, i, drawn = Math.max(2, Math.floor(steps * Math.min(1, prog)));
+    ctx.save();
+    ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.strokeStyle = color;
+    if (dashed) ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    for (i = 0; i <= drawn; i++) {
+      var x = XMIN + (XMAX - XMIN) * i / steps;
+      var y = fn(x);
+      if (i === 0) ctx.moveTo(px(x), py(y)); else ctx.lineTo(px(x), py(y));
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (prog > 0.96) {
+      var ex = XMIN + (XMAX - XMIN) * drawn / steps, ey = fn(ex);
+      ctx.fillStyle = color;
+      if (dashed) { ctx.beginPath(); ctx.arc(px(ex) - 3, py(ey), 3.6, 0, Math.PI * 2); ctx.fill(); }
+      else { ctx.fillRect(px(ex) - 8, py(ey) - 3.4, 6.8, 6.8); }
+      ctx.font = '600 10.5px ' + FONT;
+      ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+      ctx.fillText(label, px(ex) - 2, py(ey) - 9);
+    }
+    ctx.restore();
+  }
+
+  /* ---------- 動畫迴圈：只在需要時跑；分頁隱藏或圖離屏就停 ---------- */
+  var running = false, rafId = 0, last = 0, figIn = true;
+  var EPS = 0.0015;
+  function settle(cur, target, dt, dur) {
+    if (Math.abs(target - cur) < EPS) return target;
+    var stepv = dt / dur;
+    return cur < target ? Math.min(target, cur + stepv) : Math.max(target, cur - stepv);
+  }
+  function pending() {
+    return Math.abs(S.reveal - S.revealT) > EPS ||
+           Math.abs(S.color - S.colorT) > EPS ||
+           Math.abs(S.morph - S.morphT) > EPS ||
+           (S.curve !== 'none' && S.curveP < 1);
+  }
+  function snap() {
+    S.reveal = S.revealT; S.color = S.colorT; S.morph = S.morphT;
+    if (S.curve !== 'none') S.curveP = 1;
+  }
+  function frame(now) {
+    if (!running) return;
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
+    last = now;
+    S.reveal = settle(S.reveal, S.revealT, dt, 1.7);
+    S.color = settle(S.color, S.colorT, dt, 0.7);
+    S.morph = settle(S.morph, S.morphT, dt, 1.0);
+    if (S.curve !== 'none' && S.curveP < 1) S.curveP = Math.min(1, S.curveP + dt / 0.85);
+    drawFrame();
+    if (!pending()) { running = false; return; }
+    rafId = requestAnimationFrame(frame);
+  }
+  function kick() {
+    if (reduced() || !figIn || document.hidden) { snap(); drawFrame(); return; }
+    if (!running) { running = true; last = 0; rafId = requestAnimationFrame(frame); }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { running = false; cancelAnimationFrame(rafId); }
+    else { last = 0; if (pending()) kick(); else drawFrame(); }
+  });
+  function onReducedChange() { if (reduced()) { running = false; cancelAnimationFrame(rafId); snap(); revealAll(); } drawFrame(); }
+  if (mReduced.addEventListener) mReduced.addEventListener('change', onReducedChange);
+  else if (mReduced.addListener) mReduced.addListener(onReducedChange);
+
+  /* resize：先比對尺寸，沒變就不重設畫布 */
+  var rzT = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(rzT);
+    rzT = setTimeout(function () { if (fitCanvas()) drawFrame(); }, 120);
+  });
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () { if (fitCanvas()) drawFrame(); }).observe(cv);
+  }
+  fitCanvas(true);
+  drawFrame();
+
+  /* ---------- 進場 ---------- */
+  var faders = [].slice.call(document.querySelectorAll('.fade'));
+  function revealAll() { faders.forEach(function (el) { el.classList.add('in'); }); }
+  if (reduced() || !('IntersectionObserver' in window)) revealAll();
+  else {
+    var io = new IntersectionObserver(function (es, obs) {
+      es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); obs.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    faders.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ---------- 第一屏：收下那個數字 ---------- */
+  var aoa = document.getElementById('aoa');
+  var askBtn = document.getElementById('askBtn');
+  var afterAsk = document.getElementById('afterAsk');
+  var mine = document.getElementById('mine');
+  var mineOut = document.getElementById('mineOut');
+
+  var saved = null;
+  try { saved = localStorage.getItem(LS + 'aoa'); } catch (e) { saved = null; }
+  if (saved !== null && saved !== '' && isFinite(+saved)) { aoa.value = String(Math.round(+saved)); }
+
+  function setMine(v, fromSlider) {
+    v = Math.max(0, Math.min(60, Math.round(v)));
+    S.mine = v;
+    mine.value = String(Math.min(40, v));
+    mineOut.textContent = v + ' 歲' + (v > 40 ? '（圖只畫到 40）' : '');
+    if (!fromSlider) aoa.value = String(v);
+    try { localStorage.setItem(LS + 'aoa', String(v)); } catch (e) { /* 無痕模式：忽略 */ }
+    if (S.mineOn) { drawFrame(); sayVerdict(); }
+  }
+  function acceptAsk() {
+    var v = parseInt(aoa.value, 10);
+    if (!isFinite(v)) { aoa.focus(); return; }
+    setMine(v, false);
+    afterAsk.classList.add('on');
+  }
+  askBtn.addEventListener('click', acceptAsk);
+  aoa.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); acceptAsk(); } });
+  aoa.addEventListener('change', function () { if (isFinite(parseInt(aoa.value, 10))) setMine(parseInt(aoa.value, 10), false); });
+  mine.addEventListener('input', function () { setMine(+mine.value, true); });
+  if (saved !== null && isFinite(+saved)) { setMine(+saved, false); afterAsk.classList.add('on'); }
+
+  /* ---------- 捲動步驟 ---------- */
+  var counter = document.getElementById('counter');
+  var figHint = document.getElementById('figHint');
+  var lgY = document.getElementById('lgYears'), lgY2 = document.getElementById('lgYears2');
+  var pnlLegend = document.getElementById('pnlLegend'), pnlFit = document.getElementById('pnlFit');
+  var curStep = 0;
+
+  function setStep(n) {
+    if (n === curStep) return;
+    curStep = n;
+    if (n >= 1) { S.revealT = 1; counter.classList.add('on'); }
+    S.colorT = (n === 3) ? 1 : 0;
+    S.morphT = (n >= 4) ? 1 : 0;
+    var showYearsLegend = (n === 3);
+    lgY.hidden = !showYearsLegend; lgY2.hidden = !showYearsLegend;
+    figHint.textContent =
+      n <= 1 ? '橫軸：初次接觸英文的年齡。縱軸：文法測驗表現。' :
+      n === 2 ? '同一片雲。它從哪裡來，決定了它能回答什麼問題。' :
+      n === 3 ? '同一批點，改用「已經學了幾年」上色。' :
+      n === 4 ? '扣掉年資之後，剩下的是起始年齡自己的效果。' :
+      '把你標上去，然後換模型試試看。';
+    var fitPhase = n >= 5;
+    pnlLegend.hidden = fitPhase; pnlFit.hidden = !fitPhase;
+    /* 走到第六步卻還沒按過擬合鈕：先幫他把第一條線放下來，轉折才有得比 */
+    if (n >= 6 && S.curve === 'none') runFit(true);
+    kick();
+  }
+
+  var steps = [].slice.call(document.querySelectorAll('.step'));
+  if ('IntersectionObserver' in window) {
+    var so = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) setStep(+e.target.getAttribute('data-step'));
+      });
+    }, { rootMargin: '-45% 0px -45% 0px' });
+    steps.forEach(function (el) { so.observe(el); });
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { figIn = e.isIntersecting; if (figIn && pending()) kick(); });
+    }, { rootMargin: '40px' }).observe(cv);
+  } else {
+    setStep(6); snap(); drawFrame();
+  }
+
+  /* 計數器：跟著 reveal 走 */
+  (function tickCounter() {
+    var shown = -1;
+    setInterval(function () {
+      if (document.hidden) return;
+      var v = Math.floor(S.reveal * TOTAL);
+      if (v === shown) return;
+      shown = v;
+      counter.firstChild.nodeValue = v.toLocaleString('en-US');
+    }, 80);
+  })();
+
+  /* ---------- 擬合控制台 ---------- */
+  var fitBtn = document.getElementById('fitBtn');
+  var modes = document.getElementById('modes');
+  var mK = document.getElementById('mK'), mS = document.getElementById('mS'), mB = document.getElementById('mB');
+  var fitTable = document.getElementById('fitTable');
+  var verdict = document.getElementById('verdict');
+
+  function fmtInt(v) { return Math.round(v).toLocaleString('en-US'); }
+  function fillTable() {
+    document.getElementById('r2k').textContent = FK.r2.toFixed(4);
+    document.getElementById('rsk').textContent = fmtInt(FK.rss);
+    document.getElementById('tauk').textContent = FK.tau.toFixed(1) + ' 歲';
+    document.getElementById('r2s').textContent = FS.r2.toFixed(4);
+    document.getElementById('rss').textContent = fmtInt(FS.rss);
+    fitTable.hidden = false;
+  }
+  function sayVerdict() {
+    var side = (S.mine == null) ? null : (S.mine < FK.tau ? 'L' : 'R');
+    var t;
+    if (S.curve === 'kink') {
+      t = '斷崖模型：能力撐到 ' + FK.tau.toFixed(1) + ' 歲，之後每晚一年掉 ' + FK.slope.toFixed(2) + ' 分。';
+      if (side === 'L') t += ' 你在<b>轉折點左邊</b>。';
+      else if (side === 'R') t += ' 你在<b>轉折點右邊</b>。';
+    } else if (S.curve === 'smooth') {
+      t = '平滑模型：沒有轉折點。它從你很小的時候就開始下降，只是慢到看不出來。';
+      t += ' 兩個模型的 R² 只差 ' + (FK.r2 - FS.r2).toFixed(4) + '。';
+    } else {
+      t = '兩條線穿過同一片雲。差別只在：一條允許自己折彎，一條不准。';
+    }
+    verdict.innerHTML = t;
+  }
+  function setCurve(kind) {
+    S.curve = kind; S.curveP = 0;
+    mK.setAttribute('aria-pressed', kind === 'kink' ? 'true' : 'false');
+    mS.setAttribute('aria-pressed', kind === 'smooth' ? 'true' : 'false');
+    mB.setAttribute('aria-pressed', kind === 'both' ? 'true' : 'false');
+    sayVerdict();
+    kick();
+  }
+  function runFit(silent) {
+    if (S.mine == null) {
+      var v = parseInt(aoa.value, 10);
+      setMine(isFinite(v) ? v : 10, false);
+    }
+    S.mineOn = true;
+    S.morphT = 1;
+    modes.hidden = false;
+    fitBtn.disabled = true;
+    fitBtn.textContent = '已經標上去了';
+    fillTable();
+    setCurve('kink');
+    if (!silent) { /* 使用者親手按的，讓它慢慢畫 */ }
+  }
+  fitBtn.addEventListener('click', function () { runFit(false); });
+  mK.addEventListener('click', function () { setCurve('kink'); });
+  mS.addEventListener('click', function () { setCurve('smooth'); });
+  mB.addEventListener('click', function () { setCurve('both'); });
+
+  /* 開了「減少動態」就不要有任何過場 */
+  if (reduced()) { snap(); drawFrame(); }
+})();
+</script>
+</body>
+</html>

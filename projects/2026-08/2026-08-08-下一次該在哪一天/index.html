@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>下一次該在哪一天</title>
+<meta name="description" content="你知道要間隔複習。沒有人告訴你間隔多久。填一個目標日期，這裡把你該打開它的那幾天排出來。">
+<style>
+  :root{
+    --paper:#f7f3ea; --paper2:#fffdf7; --card:#fffdf7;
+    --ink:#1e1b16; --ink2:#544c40; --dim:#8f8677;
+    --rule:#e3dbcb; --rule2:#cdc2ad;
+    --mark:#b8402a;   /* 目標日 · 朱 */
+    --plan:#1f6b5b;   /* 照排程 · 青 */
+    --cram:#c1872b;   /* 集中一天 · 赭 */
+    --none:#a79d8d;   /* 不複習 · 灰 */
+    --serif:"Iowan Old Style","Songti TC","Noto Serif CJK TC","Source Han Serif TC",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans CJK TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none !important}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; color:var(--ink); background:var(--paper);
+    font-family:var(--serif); font-size:18px; line-height:1.9;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    background-image:repeating-linear-gradient(to bottom, transparent 0 33px, rgba(30,27,22,.028) 33px 34px);
+  }
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--mark); outline-offset:3px}
+
+  .home{
+    position:fixed; top:14px; left:16px; z-index:60;
+    font-family:var(--sans); font-size:12.5px; letter-spacing:.08em;
+    color:var(--dim); text-decoration:none; padding:6px 11px; border-radius:999px;
+    background:rgba(255,253,247,.78); backdrop-filter:blur(6px);
+    border:1px solid var(--rule); transition:color .2s, border-color .2s;
+  }
+  .home:hover,.home:focus-visible{color:var(--ink); border-color:var(--rule2)}
+
+  .wrap{max-width:680px; margin:0 auto; padding:0 22px}
+  p{margin:0 0 1.15em}
+  .dim{color:var(--ink2)}
+  em{font-style:normal; color:var(--mark)}
+  strong{font-weight:600}
+
+  /* ── 第一屏 ── */
+  .hero{position:relative; min-height:100svh; display:flex; align-items:flex-end; overflow:hidden}
+  .hero canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
+  .hero::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg, rgba(247,243,234,.15) 0%, rgba(247,243,234,.55) 48%, var(--paper) 92%);
+  }
+  .hero-copy{position:relative; z-index:2; width:100%; padding:0 0 11vh}
+  .kicker{
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.32em;
+    color:var(--mark); margin:0 0 1.1em;
+  }
+  h1{
+    font-size:clamp(2.3rem,8.4vw,4rem); line-height:1.12; margin:0 0 .55em;
+    font-weight:500; letter-spacing:-.01em;
+  }
+  h1 b{display:block; font-weight:500; color:var(--mark)}
+  h1 span{
+    display:block; color:var(--ink2); font-size:.34em; font-weight:400;
+    letter-spacing:.01em; margin-top:1em; line-height:1.85;
+  }
+  .scroll-hint{
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.26em; color:var(--dim);
+    display:flex; align-items:center; gap:10px; margin:2.4em 0 0;
+  }
+  .scroll-hint i{display:block; width:34px; height:1px; background:linear-gradient(90deg,var(--rule2),transparent)}
+
+  /* ── 章節 ── */
+  .chapter{padding:13vh 0 3vh; position:relative}
+  .chnum{
+    font-family:var(--sans); font-size:11px; letter-spacing:.34em; color:var(--mark);
+    margin:0 0 1.2em; display:flex; align-items:center; gap:12px;
+  }
+  .chnum::before{content:""; width:24px; height:1px; background:var(--rule2)}
+  h2{font-size:clamp(1.5rem,4.4vw,2.1rem); line-height:1.38; font-weight:500; margin:0 0 1em; letter-spacing:-.005em}
+  .quote{
+    margin:2em 0; padding:2px 0 2px 20px; border-left:2px solid var(--mark);
+    font-size:1.05em; line-height:1.75;
+  }
+  .quote small{display:block; font-family:var(--sans); font-size:11.5px; letter-spacing:.06em; color:var(--dim); margin-top:.9em}
+  .rise{opacity:0; transform:translateY(15px); transition:opacity .75s ease, transform .75s cubic-bezier(.2,.7,.3,1)}
+  .rise.in{opacity:1; transform:none}
+
+  /* ── 比例小圖 ── */
+  .ratiobox{
+    margin:2.4em 0; padding:16px 16px 12px; background:var(--card);
+    border:1px solid var(--rule); border-radius:12px;
+  }
+  .ratiobox canvas{display:block; width:100%; height:190px}
+  .ratiobox p{margin:.7em 0 0; font-family:var(--sans); font-size:12.5px; line-height:1.7; color:var(--dim)}
+
+  /* ── 工具 ── */
+  .tool{
+    margin:2.4em -22px; padding:20px 18px 22px; background:var(--card);
+    border-top:1px solid var(--rule); border-bottom:1px solid var(--rule);
+    font-family:var(--sans);
+  }
+  @media(min-width:640px){ .tool{margin:2.6em 0; border:1px solid var(--rule); border-radius:16px; padding:24px} }
+  .tool h3{
+    font-size:11.5px; letter-spacing:.24em; color:var(--dim); font-weight:600;
+    margin:0 0 16px; text-transform:uppercase;
+  }
+  .grid{display:grid; gap:16px 20px; grid-template-columns:1fr}
+  @media(min-width:640px){ .grid{grid-template-columns:1fr 1fr} }
+  .field label,.field legend{
+    display:block; font-size:11.5px; letter-spacing:.14em; color:var(--dim); margin:0 0 7px; padding:0;
+  }
+  .field input[type=date],.field input[type=number]{
+    width:100%; font:inherit; font-size:16px; color:var(--ink);
+    background:var(--paper2); border:1px solid var(--rule2); border-radius:9px;
+    padding:10px 12px; font-variant-numeric:tabular-nums;
+  }
+  .field input:focus-visible{border-color:var(--mark)}
+  fieldset{border:0; margin:0; padding:0; min-width:0}
+  .seg{display:flex; gap:8px}
+  .seg label{
+    flex:1; margin:0; display:flex; align-items:center; justify-content:center; gap:7px;
+    font-size:13.5px; letter-spacing:.02em; color:var(--ink2);
+    border:1px solid var(--rule2); border-radius:9px; padding:9px 6px; cursor:pointer;
+    transition:border-color .18s, color .18s, background .18s;
+  }
+  .seg input{accent-color:var(--plan); margin:0}
+  .seg label:hover{border-color:var(--dim)}
+  .seg label.on{border-color:var(--plan); color:var(--plan); background:rgba(31,107,91,.06)}
+  .rangerow{display:flex; align-items:center; gap:12px}
+  .rangerow input[type=range]{flex:1; accent-color:var(--plan); height:24px}
+  .rangerow b{font-size:14px; font-variant-numeric:tabular-nums; min-width:2.6em; text-align:right}
+  .rangerow.off{opacity:.4}
+  .hintline{font-size:12px; line-height:1.7; color:var(--dim); margin:10px 0 0}
+  .hintline button{
+    font:inherit; font-size:12px; background:none; border:0; padding:0; margin:0;
+    color:var(--plan); border-bottom:1px solid currentColor; cursor:pointer;
+  }
+  .actions{display:flex; flex-wrap:wrap; gap:10px; margin-top:18px}
+  button.btn{
+    font-family:var(--sans); font-size:13.5px; letter-spacing:.04em; color:var(--ink);
+    background:var(--paper2); border:1px solid var(--rule2); border-radius:10px;
+    padding:11px 18px; cursor:pointer; transition:background .18s, border-color .18s, transform .12s, color .18s;
+  }
+  button.btn:hover{border-color:var(--dim); background:#fff}
+  button.btn:active{transform:translateY(1px)}
+  button.btn.go{background:var(--plan); border-color:var(--plan); color:#fdfcf8}
+  button.btn.go:hover{background:#17594b; border-color:#17594b}
+
+  /* ── 結果 ── */
+  .summary{
+    margin:20px 0 0; padding:14px 16px; border-radius:11px;
+    background:rgba(31,107,91,.07); border:1px solid rgba(31,107,91,.2);
+    font-size:14.5px; line-height:1.8; color:#14483d;
+  }
+  .summary b{font-variant-numeric:tabular-nums}
+  .summary.warn{background:rgba(184,64,42,.07); border-color:rgba(184,64,42,.24); color:#8d2f1e}
+  .plan{list-style:none; margin:18px 0 0; padding:0; position:relative}
+  .plan::before{content:""; position:absolute; left:7px; top:10px; bottom:10px; width:1px; background:var(--rule2)}
+  .plan li{
+    position:relative; padding:9px 0 9px 30px; display:flex; flex-wrap:wrap;
+    align-items:baseline; gap:4px 12px; border-bottom:1px dashed var(--rule);
+    opacity:0; transform:translateY(8px);
+    transition:opacity .5s ease, transform .5s cubic-bezier(.2,.7,.3,1);
+  }
+  .plan li.in{opacity:1; transform:none}
+  .plan li:last-child{border-bottom:0}
+  .plan li::before{
+    content:""; position:absolute; left:3px; top:19px; width:9px; height:9px; border-radius:50%;
+    background:var(--card); border:2px solid var(--plan);
+  }
+  .plan .d{font-size:16.5px; color:var(--ink); font-weight:600; letter-spacing:.01em; font-variant-numeric:tabular-nums}
+  .plan .w{font-size:12.5px; color:var(--dim)}
+  .plan .meta{font-size:12.5px; color:var(--ink2); margin-left:auto; font-variant-numeric:tabular-nums}
+  .plan .meta i{font-style:normal; color:var(--dim)}
+  .plan li.exam::before{background:var(--mark); border-color:var(--mark)}
+  .plan li.exam .d{color:var(--mark)}
+
+  .chartbox{margin:22px 0 0}
+  .chartbox canvas{display:block; width:100%; height:250px}
+  @media(max-width:560px){ .chartbox canvas{height:220px} }
+  .legend{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px; font-size:12.5px; color:var(--ink2)}
+  .legend span{display:flex; align-items:center; gap:7px}
+  .legend i{display:block; width:16px; height:3px; border-radius:2px}
+  .caveat{font-size:12px; line-height:1.75; color:var(--dim); margin:14px 0 0}
+  .copybox{width:100%; margin-top:12px; font:13px/1.7 var(--sans); color:var(--ink2);
+    background:var(--paper2); border:1px solid var(--rule2); border-radius:9px; padding:10px; resize:vertical}
+  .placeholder{
+    margin:22px 0 0; padding:26px 18px; text-align:center; border:1px dashed var(--rule2);
+    border-radius:12px; color:var(--dim); font-size:13.5px; line-height:1.9;
+  }
+
+  /* ── 收尾 ── */
+  .finale{padding:14vh 0 4vh}
+  .rule-of-thumb{
+    margin:1.6em 0; padding:22px; border:1px solid var(--rule2); border-radius:14px;
+    background:var(--card); text-align:center;
+  }
+  .rule-of-thumb .big{
+    font-family:var(--sans); font-size:clamp(2rem,8vw,3.1rem); font-weight:300;
+    letter-spacing:-.02em; color:var(--mark); line-height:1.2; margin:0;
+  }
+  .rule-of-thumb .sub{font-family:var(--sans); font-size:13px; color:var(--dim); margin:.9em 0 0; line-height:1.8}
+  footer{
+    border-top:1px solid var(--rule); margin-top:11vh; padding:22px 0 44px;
+    font-family:var(--sans); font-size:11.5px; letter-spacing:.04em; color:var(--dim);
+    display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  }
+  footer a{color:var(--dim); text-decoration:none; border-bottom:1px solid var(--rule2)}
+  footer a:hover{color:var(--ink)}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .rise{opacity:1; transform:none; transition:none}
+    .plan li{opacity:1; transform:none; transition:none}
+    *{animation-duration:.001ms !important; animation-iteration-count:1 !important}
+  }
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<!-- ══════ 第一屏 ══════ -->
+<header class="hero">
+  <canvas id="cvHero" aria-hidden="true"></canvas>
+  <div class="hero-copy">
+    <div class="wrap">
+      <p class="kicker">五十個字 · 第二天早上</p>
+      <h1>你昨天背完了。<b>今天一半不見了。</b>
+        <span>你知道要「間隔複習」。<br>從來沒有人告訴過你，間隔多久。</span>
+      </h1>
+      <p class="scroll-hint"><i></i>往下捲</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════ 一 ══════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第一章</p>
+    <h2 class="rise">「有空再複習」是一個永遠不會到的日期</h2>
+    <p class="rise">你不是不努力。你的問題比那個小得多，也難得多：<strong>行事曆上沒有那一格。</strong></p>
+    <p class="rise">於是複習這件事就交給感覺去辦。而感覺的判斷方式是這樣的——什麼時候想起來，什麼時候就複習；通常是忘光了才想起來，更常見的是根本沒想起來。</p>
+    <p class="rise dim">奇怪的是，這件事並不是無法回答。有人量過，而且量得很仔細。</p>
+  </div>
+</section>
+
+<!-- ══════ 二 ══════ -->
+<section class="chapter">
+  <div class="wrap">
+    <p class="chnum rise">第二章 · 轉折</p>
+    <h2 class="rise">他們找來 1354 個人，然後反問了一個你沒被問過的問題</h2>
+    <p class="rise">2008 年，Cepeda、Vul、Rohrer、Wixted 與 Pashler 教了 1354 個人 32 條冷知識，隔一段時間（0 到 105 天不等）讓他們複習一次，再分別在 7 天、35 天、70 天、350 天之後考回來。</p>
+    <p class="rise">結果每一條考試日期上都長出同一個形狀：間隔拉長，成績先升、後降。<strong>中間有一個最佳點。</strong>而且它很大——最好的間隔比「馬上複習」多拿了六成以上的分數。</p>
+    <p class="rise">但最佳點不是一個固定天數。它跟著一樣東西走，而那樣東西不在課本裡，在你自己身上：</p>
+    <p class="quote rise">如果你想知道時間該怎麼分配，你得先決定<em>你想記住多久</em>。<small>—— Cepeda et al., Psychological Science, 2008</small></p>
+    <p class="rise">保留期只有幾週時，最佳間隔大約是它的 <strong>20%</strong>；保留期拉到一年，這個比例掉到 <strong>5%</strong> 左右。同一批人在 2006 年整理過 184 篇文章、317 個實驗、839 次評估，結論一致：學習間隔與保留期是<strong>一起</strong>決定成績的，不能只問其中一個。</p>
+  </div>
+
+  <div class="wrap">
+    <div class="ratiobox rise">
+      <canvas id="cvRatio" aria-label="圖：最佳間隔佔保留期的比例，隨保留期拉長而下降，從短期的三成左右降到一年後的百分之五"></canvas>
+      <p>橫軸是你想記多久，縱軸是最佳間隔佔它的比例。想記一個月，間隔約兩成；想記一年，剩百分之五。</p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <p class="rise">還有一個細節值得你記一輩子：這條曲線<strong>左邊很陡，右邊很緩</strong>。間隔太短，成績掉得很兇；間隔太長，只是慢慢滑下來。</p>
+    <p class="rise dim">換句話說，如果你一定要猜錯——<em>寧可晚一點，不要早一點。</em></p>
+  </div>
+</section>
+
+<!-- ══════ 三 · 高潮 ══════ -->
+<section class="chapter" id="toolSec">
+  <div class="wrap">
+    <p class="chnum rise">第三章 · 換你</p>
+    <h2 class="rise">那，你的那一天是哪一天？</h2>
+    <p class="rise">考試、面試、出國、上台——挑那個你必須「還記得」的日子填進去。剩下的它幫你排。</p>
+  </div>
+
+  <div class="wrap">
+  <div class="tool rise">
+    <h3>複習排程</h3>
+    <div class="grid">
+      <div class="field">
+        <label for="target">目標日期（那天你必須記得）</label>
+        <input id="target" type="date" aria-describedby="sumBox">
+      </div>
+      <div class="field">
+        <label for="from">從哪天開始算</label>
+        <input id="from" type="date" aria-label="開始日期，預設今天">
+      </div>
+      <div class="field">
+        <label for="count">這批東西有多少（選填）</label>
+        <input id="count" type="number" min="1" max="9999" step="1" inputmode="numeric" placeholder="例如 50" aria-label="項目數量，選填">
+      </div>
+      <div class="field">
+        <label for="reviews">你打算複習幾次</label>
+        <input id="reviews" type="number" min="1" max="12" step="1" inputmode="numeric" aria-label="複習次數，1 到 12">
+        <p class="hintline">建議 <b id="sugN">—</b> 次。<button type="button" id="useSug">用建議值</button></p>
+      </div>
+      <div class="field">
+        <fieldset>
+          <legend>排法</legend>
+          <div class="seg">
+            <label id="lbEqual" class="on"><input type="radio" name="mode" value="equal" checked>等間隔</label>
+            <label id="lbExpand"><input type="radio" name="mode" value="expand">擴張間隔</label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="field">
+        <label for="factor">擴張倍率（每次間隔乘上）</label>
+        <div class="rangerow off" id="facRow">
+          <input id="factor" type="range" min="1.1" max="2" step="0.05" value="1.4" aria-label="擴張倍率">
+          <b id="facOut">1.40×</b>
+        </div>
+      </div>
+    </div>
+    <p class="hintline">Anki 那類軟體走的是擴張間隔。Cepeda 的資料其實沒能斷定擴張一定贏過等間隔——所以兩種都給你，自己看差別。</p>
+
+    <div class="actions">
+      <button type="button" class="btn go" id="btnGo">排給我看</button>
+      <button type="button" class="btn" id="btnCopy" hidden>複製這份排程</button>
+      <button type="button" class="btn" id="btnReset" hidden>重設</button>
+    </div>
+
+    <p class="summary" id="sumBox" role="status" aria-live="polite" hidden></p>
+    <div class="placeholder" id="ph">先填一個目標日期。<br>它會告訴你，你該在哪幾天把它打開。</div>
+    <ol class="plan" id="planList" aria-label="複習日期清單" hidden></ol>
+    <textarea class="copybox" id="copyBox" rows="6" readonly hidden aria-label="排程純文字，可自行複製"></textarea>
+
+    <div class="chartbox" id="chartBox" hidden>
+      <canvas id="cvCurve" aria-label="圖：三條記憶強度曲線對照，分別是不複習、集中一天複習完、照這份排程複習"></canvas>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:var(--plan)"></i>照這份排程</span>
+        <span><i style="background:var(--cram)"></i>集中一天複習完</span>
+        <span><i style="background:var(--none)"></i>不複習</span>
+      </div>
+      <p class="caveat">三條曲線是示意模型，用來比較形狀，不是預測你的分數。5–20% 這條比例來自實驗室的詞彙與事實記憶，是經驗法則，不同材料、不同人差很多。</p>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ══════ 收尾 ══════ -->
+<section class="finale">
+  <div class="wrap">
+    <p class="rise">最後給你一個離線也能用的版本。哪天你手邊只有一張紙、一支筆和一個日期：</p>
+    <div class="rule-of-thumb rise">
+      <p class="big">剩下的天數 ÷ 5</p>
+      <p class="sub">那大約就是你第一次該回來的間隔。<br>目標在一年以後，改成 ÷ 20。中間幾次，照同一個間隔往前排。</p>
+    </div>
+    <p class="rise">你不需要算得準。這件事情上，準確度的價值遠低於<strong>存在</strong>——一個寫下來的日期，勝過一個很精確但你從來沒排進去的計畫。</p>
+    <p class="rise">今天是第 0 天。上面那一格，已經有日期了。</p>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <span>資料來源：Cepeda et al., Psychological Bulletin (2006)、Psychological Science (2008)。</span>
+      <a href="../../../index.html">← 回首頁</a>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script>
+/* ════════ 純函式核心（可在 node 中單獨載入驗證） ════════ */
+var SC = (function(){
+  'use strict';
+  var MS = 86400000;
+  var WD = ['日','一','二','三','四','五','六'];
+
+  function pad2(n){ return (n < 10 ? '0' : '') + n; }
+
+  /* 'YYYY-MM-DD' → 自 1970-01-01 起算的整數天（全程 UTC，沒有時區與日光節約問題） */
+  function toNum(s){
+    if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return NaN;
+    var y = +s.slice(0, 4), m = +s.slice(5, 7), d = +s.slice(8, 10);
+    if (m < 1 || m > 12 || d < 1 || d > 31) return NaN;
+    var t = Date.UTC(y, m - 1, d), dt = new Date(t);
+    /* 2 月 30 日這種會被 Date 溢位吸收，要抓回來 */
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return NaN;
+    return Math.round(t / MS);
+  }
+  function toStr(n){
+    var dt = new Date(n * MS);
+    return dt.getUTCFullYear() + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate());
+  }
+  function addDays(s, n){ var b = toNum(s); return isNaN(b) ? null : toStr(b + n); }
+  function diffDays(a, b){
+    var x = toNum(a), y = toNum(b);
+    return (isNaN(x) || isNaN(y)) ? NaN : y - x;
+  }
+  function weekday(s){ var n = toNum(s); return isNaN(n) ? '' : WD[new Date(n * MS).getUTCDay()]; }
+  function mdText(s){
+    var n = toNum(s); if (isNaN(n)) return '';
+    var dt = new Date(n * MS);
+    return (dt.getUTCMonth() + 1) + '月' + dt.getUTCDate() + '日';
+  }
+
+  /* ── Cepeda 比例規則 ──
+     兩個錨點取自 Cepeda et al. (2008) 摘要：保留期數週 → 最佳間隔約 20%；
+     保留期一年 → 約 5%。中間用對數內插，兩端夾在 5%–35%。         */
+  var A_D1 = 28, A_V1 = 0.20, A_D2 = 365, A_V2 = 0.05;
+  var K = Math.log(A_V2 / A_V1) / Math.log(A_D2 / A_D1);   /* ≈ -0.5399 */
+  function optimalRatio(D){
+    if (!(D > 0)) return NaN;
+    var r = A_V1 * Math.pow(D / A_D1, K);
+    return r < 0.05 ? 0.05 : (r > 0.35 ? 0.35 : r);
+  }
+  function optimalGap(D){
+    var g = optimalRatio(D) * D;
+    return g < 1 ? 1 : g;
+  }
+  function suggestReviews(D){
+    if (!(D > 1)) return 0;
+    var n = Math.round(D / optimalGap(D)) - 1;
+    if (n < 1) n = 1;
+    if (n > 12) n = 12;
+    if (n > D - 1) n = D - 1;
+    return n;
+  }
+
+  /* ── 排程 ──
+     N 次複習把「今天 → 目標日」切成 N+1 段（最後一段是最後一次複習 → 目標日）。
+     等間隔：每段都是 D/(N+1)。擴張：每段乘上 factor，總和仍等於 D。       */
+  function schedule(o){
+    o = o || {};
+    var D = diffDays(o.from, o.target);
+    if (isNaN(D)) return { ok: false, reason: 'bad' };
+    if (D <= 0) return { ok: false, reason: 'past', D: D };
+    var ratio = optimalRatio(D), gap = optimalGap(D);
+    if (D < 2) return { ok: false, reason: 'tooSoon', D: D, ratio: ratio, gap: gap };
+
+    var N = Math.round(o.reviews > 0 ? o.reviews : suggestReviews(D));
+    if (!(N >= 1)) N = 1;
+    if (N > 12) N = 12;
+    if (N > D - 1) N = D - 1;
+
+    var mode = o.mode === 'expand' ? 'expand' : 'equal';
+    var f = +o.factor; if (!(f > 1.001)) f = 1.4;
+    var steps = N + 1, raw = [], i;
+    if (mode === 'equal'){
+      for (i = 1; i <= N; i++) raw.push(D * i / steps);
+    } else {
+      var s1 = D * (f - 1) / (Math.pow(f, steps) - 1), acc = 0;
+      for (i = 1; i <= N; i++){ acc += s1 * Math.pow(f, i - 1); raw.push(acc); }
+    }
+    /* 取整：先往前推保證嚴格遞增，再往回壓保證全部落在目標日之前 */
+    var offs = [], prev = 0, v;
+    for (i = 0; i < N; i++){
+      v = Math.round(raw[i]);
+      if (v <= prev) v = prev + 1;
+      offs.push(v); prev = v;
+    }
+    for (i = N - 1; i >= 0; i--){
+      var mx = D - 1 - (N - 1 - i);
+      if (offs[i] > mx) offs[i] = mx;
+    }
+    var items = [], last = 0;
+    for (i = 0; i < N; i++){
+      var g = offs[i] - last;
+      items.push({
+        n: i + 1, offset: offs[i], date: addDays(o.from, offs[i]),
+        gap: g, pct: g / D, left: D - offs[i]
+      });
+      last = offs[i];
+    }
+    return {
+      ok: true, D: D, N: N, mode: mode, factor: f, ratio: ratio, gap: gap,
+      items: items, finalGap: D - last, from: o.from, target: o.target
+    };
+  }
+
+  /* ── 記憶模型（示意）──
+     可提取度 R(t) = exp(-(t - t_last) / S)，S 為「穩定度」。
+     每次成功複習後 S ← S × (1 + G·exp(−(ln(g/S))² / 2σ²))：
+     間隔 g 與當下的 S 相當時收穫最大，太短（還沒忘）或太晚（忘光了）都變少。 */
+  var MEM = { S0: 2.5, G: 1.2, sigma: 1.5, minGap: 0.05 };
+  function curve(reviews, tEnd, n){
+    n = n || 260;
+    var rs = (reviews || []).slice().sort(function(a, b){ return a - b; })
+      .filter(function(x){ return x > 0 && x <= tEnd; });
+    var times = [], j;
+    for (j = 0; j <= n; j++) times.push(tEnd * j / n);
+    for (j = 0; j < rs.length; j++) times.push(rs[j]);
+    times.sort(function(a, b){ return a - b; });
+
+    var S = MEM.S0, last = 0, ri = 0, out = [], two = 2 * MEM.sigma * MEM.sigma;
+    for (j = 0; j < times.length; j++){
+      var t = times[j];
+      while (ri < rs.length && rs[ri] <= t + 1e-9){
+        var tr = rs[ri];
+        out.push({ t: tr, R: Math.exp(-(tr - last) / S), rev: false });
+        var g = Math.max(MEM.minGap, tr - last);
+        var L = Math.log(g / S);
+        S = S * (1 + MEM.G * Math.exp(-L * L / two));
+        last = tr; ri++;
+        out.push({ t: tr, R: 1, rev: true });
+      }
+      if (!out.length || out[out.length - 1].t < t - 1e-9)
+        out.push({ t: t, R: Math.exp(-(t - last) / S), rev: false });
+    }
+    return out;
+  }
+  function endR(c){ return c.length ? c[c.length - 1].R : 0; }
+  /* 集中複習：同一天連做 n 次 */
+  function massed(n){
+    var a = [], i;
+    for (i = 1; i <= n; i++) a.push(i * 0.05);
+    return a;
+  }
+
+  return {
+    toNum: toNum, toStr: toStr, addDays: addDays, diffDays: diffDays,
+    weekday: weekday, mdText: mdText,
+    optimalRatio: optimalRatio, optimalGap: optimalGap, suggestReviews: suggestReviews,
+    schedule: schedule, curve: curve, endR: endR, massed: massed, MEM: MEM
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = SC;
+</script>
+
+<script>
+(function(){
+  'use strict';
+
+  var LS = 'spacecal26.';
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+  var C = {
+    ink:'#1e1b16', ink2:'#544c40', dim:'#8f8677', rule:'#e3dbcb', rule2:'#cdc2ad',
+    mark:'#b8402a', plan:'#1f6b5b', cram:'#c1872b', none:'#a79d8d', card:'#fffdf7'
+  };
+  var FONT = '-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif';
+  var TAU = Math.PI * 2;
+  function clamp(v, a, b){ return v < a ? a : (v > b ? b : v); }
+
+  /* ── 畫布引擎：一個 rAF、多個畫布，離屏與分頁隱藏都停 ── */
+  var stages = [];
+  function addStage(id, draw, opts){
+    var cv = document.getElementById(id);
+    if (!cv) return null;
+    var st = {
+      cv: cv, ctx: cv.getContext('2d'), draw: draw,
+      w: 0, h: 0, dpr: 1, visible: false, dirty: true,
+      animated: !!(opts && opts.animated), state: (opts && opts.state) || {}
+    };
+    function measure(){
+      var r = st.cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      var d = Math.min(window.devicePixelRatio || 1, 2);
+      var nw = Math.round(r.width * d), nh = Math.round(r.height * d);
+      /* 先比較再指派：否則 ResizeObserver 會每幀把畫布尺寸翻倍，整張圖消失 */
+      if (st.cv.width !== nw || st.cv.height !== nh){ st.cv.width = nw; st.cv.height = nh; }
+      st.w = r.width; st.h = r.height; st.dpr = d; st.dirty = true;
+    }
+    st.measure = measure;
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(cv);
+    else window.addEventListener('resize', measure);
+    if (window.IntersectionObserver){
+      new IntersectionObserver(function(es){
+        es.forEach(function(e){ st.visible = e.isIntersecting; if (e.isIntersecting) st.dirty = true; });
+      }, { rootMargin: '90px' }).observe(cv);
+    } else st.visible = true;
+    stages.push(st);
+    return st;
+  }
+  var lastT = 0;
+  function frame(now){
+    var dt = lastT ? Math.min(0.05, (now - lastT) / 1000) : 0;
+    lastT = now;
+    if (!document.hidden){
+      for (var i = 0; i < stages.length; i++){
+        var s = stages[i];
+        if (!s.visible || !s.w) continue;
+        if (!(s.dirty || (s.animated && !reduced))) continue;
+        s.dirty = false;
+        var ctx = s.ctx;
+        ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+        ctx.clearRect(0, 0, s.w, s.h);
+        s.draw(ctx, s.w, s.h, reduced ? 0 : now / 1000, dt, s.state, s);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  document.addEventListener('visibilitychange', function(){
+    lastT = 0;
+    stages.forEach(function(s){ s.dirty = true; });
+  });
+
+  /* ── 捲動進場 ── */
+  var risers = [].slice.call(document.querySelectorAll('.rise'));
+  function revealAll(){ risers.forEach(function(el){ el.classList.add('in'); }); }
+  var io = null;
+  if (reduced || !window.IntersectionObserver) revealAll();
+  else {
+    io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -10% 0px' });
+    risers.forEach(function(el){ io.observe(el); });
+  }
+  function onRM(){
+    reduced = RM.matches;
+    stages.forEach(function(s){ s.dirty = true; });
+    if (reduced){
+      revealAll();
+      [].slice.call(document.querySelectorAll('.plan li')).forEach(function(li){ li.classList.add('in'); });
+    }
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+
+  function txt(ctx, x, y, s, color, align, size, weight){
+    ctx.fillStyle = color;
+    ctx.font = (weight ? weight + ' ' : '') + (size || 11) + 'px ' + FONT;
+    ctx.textAlign = align || 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(s, x, y);
+    ctx.textAlign = 'left';
+  }
+
+  /* ════════ 第一屏：一面正在褪色的月曆 ════════ */
+  addStage('cvHero', function(ctx, w, h, t){
+    var cols = w < 520 ? 7 : 10, rows = w < 520 ? 8 : 6;
+    var pad = Math.min(w, h) * 0.06;
+    var cw = (w - pad * 2) / cols, ch = Math.min(cw * 0.82, (h - pad * 2) / rows);
+    var oy = h * 0.5 - rows * ch / 2, ox = pad;
+    for (var r = 0; r < rows; r++){
+      for (var c = 0; c < cols; c++){
+        var i = r * cols + c;
+        var x = ox + c * cw, y = oy + r * ch;
+        /* 每一格代表一天：時間往前走，墨水慢慢退掉；偶爾有一格重新被寫上 */
+        var phase = (t * 0.16 + i * 0.041) % 1;
+        var fade = Math.pow(1 - phase, 2.2);
+        var alpha = 0.06 + 0.42 * fade;
+        ctx.strokeStyle = 'rgba(30,27,22,' + (0.05 + 0.1 * fade).toFixed(3) + ')';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(Math.round(x) + 0.5, Math.round(y) + 0.5, Math.round(cw - 6), Math.round(ch - 6));
+        /* 格子裡的「字」：兩三條短線 */
+        var lines = 2 + (i % 2);
+        for (var k = 0; k < lines; k++){
+          var lw = (cw - 20) * (0.45 + ((i * 7 + k * 13) % 10) / 18);
+          ctx.strokeStyle = 'rgba(30,27,22,' + (alpha * (1 - k * 0.18)).toFixed(3) + ')';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + 8, y + 12 + k * 7);
+          ctx.lineTo(x + 8 + lw, y + 12 + k * 7);
+          ctx.stroke();
+        }
+        /* 少數幾格被重新標記：那就是排程 */
+        if ((i * 37) % 23 === 0 && phase > 0.72){
+          ctx.strokeStyle = 'rgba(184,64,42,' + (0.55 * (phase - 0.72) / 0.28).toFixed(3) + ')';
+          ctx.lineWidth = 1.6;
+          ctx.beginPath();
+          ctx.arc(x + (cw - 6) / 2, y + (ch - 6) / 2, Math.min(cw, ch) * 0.31, 0, TAU);
+          ctx.stroke();
+        }
+      }
+    }
+  }, { animated: true });
+
+  /* ════════ 比例曲線：最佳間隔佔保留期多少 ════════ */
+  var ratioSt = { D: 0, prog: 0, t0: 0 };
+  var stRatio = addStage('cvRatio', function(ctx, w, h, t, dt, S, self){
+    var L = 44, Rr = 16, T = 14, B = 26;
+    var pw = w - L - Rr, ph = h - T - B;
+    var d0 = 7, d1 = 730, ymax = 0.36;
+    var X = function(d){ return L + pw * (Math.log(d / d0) / Math.log(d1 / d0)); };
+    var Y = function(v){ return T + ph * (1 - v / ymax); };
+
+    if (!S.t0) S.t0 = t;
+    S.prog = reduced ? 1 : clamp((t - S.t0) / 1.1, 0, 1);
+    if (S.prog < 1) self.dirty = true;
+
+    /* 網格 */
+    ctx.strokeStyle = C.rule; ctx.lineWidth = 1;
+    var yl = [0, 0.1, 0.2, 0.3], i;
+    for (i = 0; i < yl.length; i++){
+      var y = Math.round(Y(yl[i])) + 0.5;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(w - Rr, y); ctx.stroke();
+      txt(ctx, L - 8, y, Math.round(yl[i] * 100) + '%', C.dim, 'right', 10.5);
+    }
+    var marks = [[7, '一週'], [30, '一個月'], [90, '三個月'], [365, '一年'], [730, '兩年']];
+    for (i = 0; i < marks.length; i++){
+      var mx = X(marks[i][0]);
+      if (mx > w - Rr - 2) mx = w - Rr - 2;
+      txt(ctx, mx, h - B / 2 - 1, marks[i][1], C.dim, i === 0 ? 'left' : (i === marks.length - 1 ? 'right' : 'center'), 10.5);
+    }
+
+    /* 曲線（由左往右畫，方向與時間一致） */
+    ctx.strokeStyle = C.plan; ctx.lineWidth = 2.4; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.beginPath();
+    var N = 160, drawn = Math.max(1, Math.round(N * S.prog));
+    for (i = 0; i <= drawn; i++){
+      var d = d0 * Math.pow(d1 / d0, i / N);
+      var px = X(d), py = Y(SC.optimalRatio(d));
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+
+    /* 論文的兩個錨點 */
+    if (S.prog > 0.85){
+      var pts = [[28, 0.20, '幾週 → 20%'], [365, 0.05, '一年 → 5%']];
+      for (i = 0; i < pts.length; i++){
+        ctx.fillStyle = C.plan;
+        ctx.beginPath(); ctx.arc(X(pts[i][0]), Y(pts[i][1]), 3.4, 0, TAU); ctx.fill();
+        txt(ctx, X(pts[i][0]) + (i ? -8 : 8), Y(pts[i][1]) - 12, pts[i][2], C.ink2, i ? 'right' : 'left', 11);
+      }
+    }
+    /* 使用者的保留期 */
+    if (S.D >= 2){
+      var dd = clamp(S.D, d0, d1), ux = X(dd), uy = Y(SC.optimalRatio(S.D));
+      ctx.strokeStyle = 'rgba(184,64,42,.55)'; ctx.lineWidth = 1.2; ctx.setLineDash([3, 4]);
+      ctx.beginPath(); ctx.moveTo(ux, uy); ctx.lineTo(ux, h - B); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = C.mark;
+      ctx.beginPath(); ctx.arc(ux, uy, 4.6, 0, TAU); ctx.fill();
+      txt(ctx, ux, uy - 14, '你：' + Math.round(SC.optimalRatio(S.D) * 100) + '%',
+          C.mark, ux > w * 0.72 ? 'right' : 'center', 11.5, '600');
+    }
+    /* 座標軸 */
+    ctx.strokeStyle = C.rule2; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(L, T - 2); ctx.lineTo(L, h - B); ctx.lineTo(w - Rr, h - B);
+    ctx.stroke();
+  }, { state: ratioSt });
+
+  /* ════════ 遺忘曲線對照 ════════ */
+  var curveSt = { data: null, prog: 0, t0: 0 };
+  var stCurve = addStage('cvCurve', function(ctx, w, h, t, dt, S, self){
+    if (!S.data) return;
+    var L = 34, Rr = w < 460 ? 46 : 62, T = 16, B = 28;
+    var pw = w - L - Rr, ph = h - T - B;
+    var D = S.data.D;
+    var X = function(x){ return L + pw * clamp(x / D, 0, 1); };
+    var Y = function(v){ return T + ph * (1 - clamp(v, 0, 1)); };
+
+    if (!S.t0) S.t0 = t;
+    S.prog = reduced ? 1 : clamp((t - S.t0) / 1.0, 0, 1);
+    if (S.prog < 1) self.dirty = true;
+
+    /* 網格 */
+    ctx.strokeStyle = C.rule; ctx.lineWidth = 1;
+    var i, y;
+    for (i = 0; i <= 4; i++){
+      y = Math.round(Y(i / 4)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(w - Rr, y); ctx.stroke();
+    }
+    txt(ctx, L - 6, Y(1), '100%', C.dim, 'right', 10);
+    txt(ctx, L - 6, Y(0.5), '50%', C.dim, 'right', 10);
+    txt(ctx, L - 6, Y(0) - 1, '0', C.dim, 'right', 10);
+    txt(ctx, L, h - B / 2, '今天', C.dim, 'left', 10.5);
+
+    function line(pts, color, width, dash){
+      if (!pts.length) return;
+      var lim = D * S.prog;
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      var started = false;
+      for (var k = 0; k < pts.length; k++){
+        if (pts[k].t > lim + 1e-9) break;
+        var px = X(pts[k].t), py = Y(pts[k].R);
+        if (!started){ ctx.moveTo(px, py); started = true; } else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    line(S.data.none, C.none, 1.6, [4, 4]);
+    line(S.data.cram, C.cram, 2);
+    line(S.data.plan, C.plan, 2.8);
+
+    /* 複習日的小記號 */
+    ctx.fillStyle = C.plan;
+    for (i = 0; i < S.data.marks.length; i++){
+      if (S.data.marks[i] > D * S.prog + 1e-9) break;
+      ctx.beginPath(); ctx.arc(X(S.data.marks[i]), h - B + 4, 2.4, 0, TAU); ctx.fill();
+    }
+
+    /* 目標日 */
+    ctx.strokeStyle = 'rgba(184,64,42,.65)'; ctx.lineWidth = 1.4; ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(X(D), T - 4); ctx.lineTo(X(D), h - B); ctx.stroke();
+    ctx.setLineDash([]);
+    txt(ctx, X(D), T - 7, '目標日', C.mark, 'right', 11, '600');
+
+    /* 終點讀數：讓那條被撐住的曲線自己說話 */
+    if (S.prog > 0.98){
+      var ends = [
+        { v: S.data.endPlan, c: C.plan, w: '600' },
+        { v: S.data.endCram, c: C.cram, w: '' },
+        { v: S.data.endNone, c: C.none, w: '' }
+      ].sort(function(a, b){ return b.v - a.v; });
+      var used = [];
+      for (i = 0; i < ends.length; i++){
+        var yy = Y(ends[i].v);
+        for (var q = 0; q < used.length; q++) if (Math.abs(yy - used[q]) < 15) yy = used[q] + 15;
+        yy = clamp(yy, T + 6, h - B - 6);
+        used.push(yy);
+        txt(ctx, X(D) + 6, yy, Math.round(ends[i].v * 100) + '%', ends[i].c, 'left', 12.5, ends[i].w);
+      }
+    }
+
+    /* 座標軸 */
+    ctx.strokeStyle = C.rule2; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(L, T - 4); ctx.lineTo(L, h - B); ctx.lineTo(w - Rr, h - B);
+    ctx.stroke();
+  }, { state: curveSt });
+
+  /* ════════ 工具 ════════ */
+  var elTarget = document.getElementById('target'),
+      elFrom = document.getElementById('from'),
+      elCount = document.getElementById('count'),
+      elReviews = document.getElementById('reviews'),
+      elFactor = document.getElementById('factor'),
+      elFacOut = document.getElementById('facOut'),
+      elFacRow = document.getElementById('facRow'),
+      elSugN = document.getElementById('sugN'),
+      elSum = document.getElementById('sumBox'),
+      elList = document.getElementById('planList'),
+      elPh = document.getElementById('ph'),
+      elChart = document.getElementById('chartBox'),
+      elCopyBox = document.getElementById('copyBox'),
+      btnGo = document.getElementById('btnGo'),
+      btnCopy = document.getElementById('btnCopy'),
+      btnReset = document.getElementById('btnReset'),
+      btnSug = document.getElementById('useSug');
+  var modes = [].slice.call(document.querySelectorAll('input[name=mode]'));
+
+  function todayStr(){
+    var d = new Date();  /* 本地日期，不用 toISOString（會被時區推走一天） */
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+  function curMode(){
+    for (var i = 0; i < modes.length; i++) if (modes[i].checked) return modes[i].value;
+    return 'equal';
+  }
+  function syncSeg(){
+    document.getElementById('lbEqual').classList.toggle('on', curMode() === 'equal');
+    document.getElementById('lbExpand').classList.toggle('on', curMode() === 'expand');
+    var ex = curMode() === 'expand';
+    elFacRow.classList.toggle('off', !ex);
+    elFactor.disabled = !ex;
+  }
+
+  var shown = false;
+  var lastPlan = null;
+
+  function save(){
+    try {
+      localStorage.setItem(LS + 'state', JSON.stringify({
+        target: elTarget.value, count: elCount.value,
+        reviews: elReviews.value, mode: curMode(), factor: elFactor.value
+      }));
+    } catch (e){ /* 無痕模式等情況忽略 */ }
+  }
+  function load(){
+    var s = null;
+    try { s = JSON.parse(localStorage.getItem(LS + 'state') || 'null'); } catch (e){ s = null; }
+    if (!s) return false;
+    /* 目標日已經過去就不還原，免得一開頁就是一份過期的排程 */
+    if (s.target && SC.diffDays(todayStr(), s.target) > 0) elTarget.value = s.target;
+    if (s.count) elCount.value = s.count;
+    if (s.reviews) elReviews.value = s.reviews;
+    if (s.factor) elFactor.value = s.factor;
+    if (s.mode) modes.forEach(function(m){ m.checked = (m.value === s.mode); });
+    return !!elTarget.value;
+  }
+
+  function updateSuggest(){
+    var D = SC.diffDays(elFrom.value || todayStr(), elTarget.value);
+    if (!(D > 1)){ elSugN.textContent = '—'; ratioSt.D = 0; if (stRatio) stRatio.dirty = true; return; }
+    elSugN.textContent = SC.suggestReviews(D);
+    ratioSt.D = D;
+    if (stRatio) stRatio.dirty = true;
+  }
+
+  function planText(res){
+    var lines = [];
+    var cnt = parseInt(elCount.value, 10);
+    lines.push('複習排程　目標：' + res.target + '（' + SC.weekday(res.target) + '）' +
+      (cnt > 0 ? '　共 ' + cnt + ' 個項目' : ''));
+    lines.push('保留期 ' + res.D + ' 天，' + (res.mode === 'equal' ? '等間隔' : '擴張間隔 ' + res.factor.toFixed(2) + '×') +
+      '，' + res.N + ' 次複習');
+    lines.push('');
+    for (var i = 0; i < res.items.length; i++){
+      var it = res.items[i];
+      lines.push('第 ' + it.n + ' 次　' + it.date + '（' + SC.weekday(it.date) + '）' +
+        '　間隔 ' + it.gap + ' 天（保留期的 ' + Math.round(it.pct * 100) + '%）　距目標 ' + it.left + ' 天');
+    }
+    lines.push('目標日　' + res.target + '（' + SC.weekday(res.target) + '）　距上一次複習 ' + res.finalGap + ' 天');
+    lines.push('');
+    lines.push('依據：Cepeda et al. (2008)，最佳間隔約為保留期的 ' + Math.round(res.ratio * 100) + '%。');
+    return lines.join('\n');
+  }
+
+  function render(animate){
+    var from = elFrom.value || todayStr();
+    var target = elTarget.value;
+    updateSuggest();
+    if (!target){
+      elSum.hidden = true; elList.hidden = true; elChart.hidden = true;
+      elPh.hidden = false; btnCopy.hidden = true; btnReset.hidden = true;
+      elCopyBox.hidden = true;
+      return;
+    }
+    var nRev = parseInt(elReviews.value, 10);
+    var res = SC.schedule({
+      from: from, target: target,
+      reviews: nRev > 0 ? nRev : 0,
+      mode: curMode(), factor: parseFloat(elFactor.value)
+    });
+    lastPlan = res;
+    elPh.hidden = true;
+    elSum.hidden = false;
+
+    if (!res.ok){
+      elList.hidden = true; elChart.hidden = true; elCopyBox.hidden = true;
+      btnCopy.hidden = true; btnReset.hidden = false;
+      elSum.className = 'summary warn';
+      elSum.textContent =
+        res.reason === 'past' ? '這個日期已經過去了（或就是今天）。挑一個還沒到的日子。' :
+        res.reason === 'tooSoon' ? '只剩一天，間隔複習救不了你——今天讀完，明天上場。等你過了那一關，如果這些東西之後還要用，回來設一個新的目標日期。' :
+        '日期格式怪怪的，重新選一次。';
+      return;
+    }
+
+    /* 摘要 */
+    var cnt = parseInt(elCount.value, 10);
+    elSum.className = 'summary';
+    elSum.innerHTML =
+      '保留期 <b>' + res.D + '</b> 天。最佳間隔約 <b>' + Math.round(res.gap) + '</b> 天' +
+      '（保留期的 <b>' + Math.round(res.ratio * 100) + '%</b>）。' +
+      '接下來要打開它 <b>' + res.N + '</b> 次，第一次在 <b>' + SC.mdText(res.items[0].date) + '</b>。' +
+      (cnt > 0 ? '<br>每次 ' + cnt + ' 個項目，粗估一輪 ' + Math.max(1, Math.round(cnt * 8 / 60)) + ' 分鐘。' : '');
+
+    /* 日期清單 */
+    elList.hidden = false;
+    elList.innerHTML = '';
+    var i, li;
+    for (i = 0; i < res.items.length; i++){
+      var it = res.items[i];
+      li = document.createElement('li');
+      li.innerHTML =
+        '<span class="d">' + SC.mdText(it.date) + '</span>' +
+        '<span class="w">週' + SC.weekday(it.date) + '　第 ' + it.n + ' 次</span>' +
+        '<span class="meta">間隔 ' + it.gap + ' 天 <i>（' + Math.round(it.pct * 100) + '%）</i>　距目標 ' + it.left + ' 天</span>';
+      elList.appendChild(li);
+    }
+    li = document.createElement('li');
+    li.className = 'exam';
+    li.innerHTML =
+      '<span class="d">' + SC.mdText(res.target) + '</span>' +
+      '<span class="w">週' + SC.weekday(res.target) + '　目標日</span>' +
+      '<span class="meta">距上一次 ' + res.finalGap + ' 天 <i>（' + Math.round(res.finalGap / res.D * 100) + '%）</i></span>';
+    elList.appendChild(li);
+
+    var lis = [].slice.call(elList.children);
+    if (reduced || !animate){
+      lis.forEach(function(el){ el.classList.add('in'); });
+    } else {
+      lis.forEach(function(el, k){
+        el.style.transitionDelay = Math.min(k * 45, 500) + 'ms';
+        requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.classList.add('in'); }); });
+      });
+    }
+
+    /* 曲線 */
+    var offs = res.items.map(function(x){ return x.offset; });
+    curveSt.data = {
+      D: res.D,
+      marks: offs,
+      none: SC.curve([], res.D),
+      cram: SC.curve(SC.massed(res.N), res.D),
+      plan: SC.curve(offs, res.D)
+    };
+    curveSt.data.endNone = SC.endR(curveSt.data.none);
+    curveSt.data.endCram = SC.endR(curveSt.data.cram);
+    curveSt.data.endPlan = SC.endR(curveSt.data.plan);
+    elChart.hidden = false;
+    /* 只有排程真的變了才重播畫線動畫（改「項目數量」不該讓圖重畫） */
+    var sig = res.D + '|' + res.mode + '|' + offs.join(',');
+    if (stCurve){
+      stCurve.measure();
+      if (sig !== curveSt.sig){ curveSt.sig = sig; curveSt.t0 = 0; curveSt.prog = 0; }
+      stCurve.dirty = true;
+    }
+
+    elCopyBox.value = planText(res);
+    btnCopy.hidden = false; btnReset.hidden = false;
+    save();
+  }
+
+  function update(animate){ render(animate); }
+
+  /* 首次揭曉：由使用者按下 */
+  btnGo.addEventListener('click', function(){
+    if (!elTarget.value){
+      elTarget.focus();
+      if (elTarget.showPicker){ try { elTarget.showPicker(); } catch (e){} }
+      return;
+    }
+    shown = true;
+    update(true);
+    if (!reduced && elSum.scrollIntoView) elSum.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+
+  [elTarget, elFrom, elCount, elReviews].forEach(function(el){
+    el.addEventListener('change', function(){ updateSuggest(); if (shown) update(false); save(); });
+    el.addEventListener('input', function(){ updateSuggest(); if (shown) update(false); });
+  });
+  modes.forEach(function(m){
+    m.addEventListener('change', function(){ syncSeg(); if (shown) update(true); save(); });
+  });
+  elFactor.addEventListener('input', function(){
+    elFacOut.textContent = (+elFactor.value).toFixed(2) + '×';
+    if (shown && curMode() === 'expand') update(false);
+  });
+  elFactor.addEventListener('change', save);
+  btnSug.addEventListener('click', function(){
+    var D = SC.diffDays(elFrom.value || todayStr(), elTarget.value);
+    if (!(D > 1)) return;
+    elReviews.value = SC.suggestReviews(D);
+    if (shown) update(true); else { shown = true; update(true); }
+    save();
+  });
+
+  btnCopy.addEventListener('click', function(){
+    var text = elCopyBox.value;
+    function fallback(){
+      elCopyBox.hidden = false;
+      elCopyBox.focus(); elCopyBox.select();
+      var ok = false;
+      try { ok = document.execCommand('copy'); } catch (e){ ok = false; }
+      btnCopy.textContent = ok ? '已複製 ✓' : '請按 Ctrl/⌘+C 複製';
+      setTimeout(function(){ btnCopy.textContent = '複製這份排程'; }, 2400);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(function(){
+        btnCopy.textContent = '已複製 ✓';
+        setTimeout(function(){ btnCopy.textContent = '複製這份排程'; }, 2000);
+      })['catch'](fallback);
+    } else fallback();
+  });
+
+  btnReset.addEventListener('click', function(){
+    elTarget.value = ''; elCount.value = ''; elReviews.value = '';
+    elFactor.value = '1.4'; elFacOut.textContent = '1.40×';
+    modes.forEach(function(m){ m.checked = (m.value === 'equal'); });
+    elFrom.value = todayStr();
+    syncSeg(); shown = false;
+    elCopyBox.hidden = true;
+    try { localStorage.removeItem(LS + 'state'); } catch (e){}
+    render(false);
+    elTarget.focus();
+  });
+
+  /* 初始化 */
+  elFrom.value = todayStr();
+  elFacOut.textContent = (+elFactor.value).toFixed(2) + '×';
+  syncSeg();
+  var restored = load();
+  syncSeg();
+  elFacOut.textContent = (+elFactor.value).toFixed(2) + '×';
+  updateSuggest();
+  if (restored){ shown = true; render(false); }
+})();
+</script>
+</body>
+</html>

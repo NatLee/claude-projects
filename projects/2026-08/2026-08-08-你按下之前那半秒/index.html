@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>你按下之前那半秒</title>
-<meta name="description" content="坐進那張椅子，按二十次。然後把你自己的資料疊起來——那條被印了四十年的曲線，會在你眼前長出來。">
+<meta name="description" content="坐進那張椅子，按八次。然後把你自己的資料疊起來——那條被印了四十年的曲線，會在你眼前長出來。">
 <style>
   :root{
     --ink:#06090d; --panel:#0c1319; --panel2:#101a22; --line:#1d2b35;
@@ -244,7 +244,7 @@
       <div class="cell">
         <canvas id="cvRoll" role="img" aria-label="記錄紙：每按一次就多印出一條當次的模擬腦電波形"></canvas>
         <div class="stat" aria-hidden="true">
-          <span>試次 <b id="oN">0</b> / 20</span>
+          <span>試次 <b id="oN">0</b> / 8</span>
           <span>你的 W <b id="oW">—</b></span>
         </div>
       </div>
@@ -267,7 +267,7 @@
       <button class="ghost" id="btnAuto" aria-pressed="false">我標夠了，接下來只按</button>
       <button class="ghost" id="btnEnough" disabled>按夠了，去看結果</button>
     </div>
-    <p class="tiny">按鈕可以用滑鼠、也可以用鍵盤的空白鍵或 Enter。整段實驗大約兩到三分鐘。</p>
+    <p class="tiny">八次就好，只有前三次會問你 W。滑鼠、空白鍵或 Enter 都可以按。大約一分鐘。</p>
   </div>
 
   <div class="wrap">
@@ -295,6 +295,7 @@
     </div>
     <div class="moderow">
       <button class="ghost" id="btnAlignOnset" aria-pressed="false">疊起來（以按下的瞬間對齊）</button>
+      <button class="ghost" id="btnFill" hidden>用你的節奏補到 40 次</button>
       <button class="ghost" id="btnAlignRand" hidden aria-pressed="false">以「隨機時刻」對齊</button>
       <button class="ghost" id="btnReshuffle" hidden>再抽一次</button>
     </div>
@@ -341,7 +342,7 @@
     <p class="rise"><strong>把幾十段這樣的尾巴疊起來平均，你必然得到一條緩慢上升的曲線。</strong>即使底下什麼準備都沒有。</p>
     <p class="rise">2012 年，Aaron Schurger、Jacobo Sitt 與 Stanislas Dehaene 在 <em>PNAS</em> 上把這件事寫成一篇論文。他們沒有推翻資料，他們動的是那個零點。</p>
 
-    <p class="bignum" id="bignum">0<small>你剛剛親手畫出來的那條曲線</small></p>
+    <p class="bignum" id="bignum">0<small>條線疊出來的那道斜坡</small></p>
 
     <p class="rise">你不是在看一顆腦怎麼下決定。你是在看「越過門檻」這件事，長什麼形狀。</p>
 
@@ -531,7 +532,10 @@
   var reduced = RM.matches;
   var TAU = Math.PI * 2;
   var CLOCK_MS = 2560;                 /* Libet 的鐘：一圈 2.56 秒 */
-  var TARGET = 20, MIN_ANALYZE = 12;
+  /* 流程：只要按 8 次，而且只有前 3 次需要標記 W。
+     資料量不夠的問題交給第二章的「補到 40 次」——用你自己的節奏抽樣，
+     不是要你坐在那裡按四十遍。 */
+  var TARGET = 8, MIN_ANALYZE = 5, MARK_LIMIT = 3, FILL_TO = 40;
   var C = {
     fg: '#e9eef2', dim: '#82949f', dim2: '#5d6d78', line: '#1d2b35',
     amber: '#f0b040', red: '#e2543f', blue: '#6fb6e8', green: '#5fd0a0',
@@ -704,7 +708,7 @@
     phase: 'wait',           /* wait ｜ mark ｜ done */
     waitStart: performance.now(),
     pressAt: 0, pressAng: 0, lastWaited: 0,
-    trials: [], epochsCache: [], wList: [], autoW: false,
+    trials: [], epochsCache: [], wList: [], autoW: false, filled: false, fillNote: '',
     seedSalt: (Date.now() ^ 0x9e3779b9) >>> 0
   };
   var elLed = $('led'), elLedTxt = $('ledTxt'), elTick = $('oTick'), elWait = $('oWait');
@@ -775,11 +779,15 @@
     for (var x2 = g * 5; x2 < w; x2 += g * 5) { ctx.moveTo(x2 + .5, 0); ctx.lineTo(x2 + .5, h); }
     ctx.stroke();
 
-    var rows = Math.max(TARGET, S.trials.length) + 1;
+    /* 紙只捲得下這麼多條：補到 40 次之後只印最後 TARGET 條，免得擠成一團黑 */
+    var total = S.trials.length;
+    var first = Math.max(0, total - TARGET);
+    var shown = total - first;
+    var rows = TARGET + 1;
     var rowH = h / rows, padL = 30, padR = 8;
-    var n = S.trials.length;
+    var n = shown;
     for (var i = 0; i < n; i++) {
-      var ep = S.epochsCache[i];
+      var ep = S.epochsCache[first + i];
       var y0 = rowH * (i + 1);
       var amp = rowH * 0.62;
       ctx.strokeStyle = 'rgba(43,35,32,.8)';
@@ -791,7 +799,7 @@
         if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
       }
       ctx.stroke();
-      label(ctx, 6, y0, ('0' + (i + 1)).slice(-2), 'rgba(43,35,32,.42)', 'left', Math.min(9, rowH * 0.6));
+      label(ctx, 6, y0, ('0' + (first + i + 1)).slice(-2), 'rgba(43,35,32,.42)', 'left', Math.min(9, rowH * 0.6));
     }
     /* 按下的那一刻：紙上的紅線 */
     var zx = padL + (w - padL - padR) * (P.pre / (P.pre + P.post));
@@ -818,11 +826,10 @@
 
   var RHYTHM = {
     1: '第一條印出來了。歪的。沒關係，本來就該是歪的。',
-    3: '不要想「這次要不要按」——想了就不算隨意了。',
-    6: '你已經抓到節奏了。',
-    10: '一半。到目前為止，紙上沒有任何一條看起來像有計畫。',
-    15: '再五次。',
-    18: '快好了。'
+    2: '不要想「這次要不要按」——想了就不算隨意了。',
+    4: '一半。到目前為止，紙上沒有任何一條看起來像有計畫。',
+    6: '剩兩次。',
+    7: '最後一次。'
   };
 
   function doPress() {
@@ -866,7 +873,15 @@
     var n = S.trials.length;
     if (n >= MIN_ANALYZE) btnEnough.disabled = false;
     if (n >= TARGET) { finishRun(); return; }
+    /* 標到第 MARK_LIMIT 次就自動改成「只按」——標記的重點是體會那個判斷有多難，
+       體會過三次就夠了，剩下的不該變成苦工。 */
     var msg = RHYTHM[n];
+    if (!S.autoW && S.wList.length >= MARK_LIMIT) {
+      S.autoW = true;
+      btnAuto.setAttribute('aria-pressed', 'true');
+      btnAuto.textContent = '再開始標記';
+      msg = '標了 ' + S.wList.length + ' 次就夠了——你已經知道那個判斷有多難。剩下的只要按。';
+    }
     resetWait(msg || null);
   }
 
@@ -1077,9 +1092,13 @@
     if (avgSt.mode === 'onset') {
       var onsetMs = M.rampOnsetMs(avgSt.avg);
       var peak = avgSt.avg[M.idxOfMs(0)];
-      msg.textContent = '你的 ' + S.trials.length + ' 次疊起來了。這條線大約在按下之前 '
+      msg.textContent = (S.fillNote ? S.fillNote + ' ' : '')
+        + '你的 ' + S.trials.length + ' 次疊起來了。這條線大約在按下之前 '
         + Math.abs(Math.round(onsetMs / 10) * 10) + ' 毫秒開始往上爬'
-        + (S.wList.length ? ('，而你說你在 ' + Math.round(meanW()) + ' 毫秒前才意識到。') : '。');
+        + (S.wList.length ? ('，而你說你在 ' + Math.round(meanW()) + ' 毫秒前才意識到。') : '。')
+        + (S.filled || S.trials.length >= 20 ? ''
+           : ' 只有 ' + S.trials.length + ' 次，還很毛躁——Libet 的每個受試者做了四十次上下。');
+      if (!S.filled && S.trials.length < FILL_TO) $('btnFill').hidden = false;
       $('afterAvg').hidden = false;
       observeRisers();
       $('btnAlignRand').hidden = false;
@@ -1105,6 +1124,30 @@
     setPressed(this, true); setPressed($('btnAlignRand'), false);
     buildAvg('onset');
   });
+  /* 用你自己的等待節奏，再抽 FILL_TO−n 次。
+     這些不是你親手按的，但每一次的等待時間都是從你按出來的分布裡抽的——
+     所以曲線還是你的節奏長出來的，只是不用坐在那裡按四十遍。 */
+  $('btnFill').addEventListener('click', function () {
+    if (S.filled || !S.trials.length) return;
+    var waits = S.trials.map(function (t) { return t.wait; });
+    var rnd = M.mulberry32((S.seedSalt ^ 0x9e3779b9) >>> 0);
+    var want = FILL_TO - S.trials.length, added = 0;
+    for (var i = 0; i < want * 3 && added < want; i++) {
+      var base = waits[Math.floor(rnd() * waits.length)];
+      var jitter = (rnd() - 0.5) * 1.6;          /* ±0.8 秒，維持你的節奏但不是複製 */
+      var tr = M.matchTrial(base + jitter, (rnd() * 4294967295) >>> 0);
+      if (!tr) continue;
+      S.trials.push(tr);
+      S.epochsCache.push(M.epochAt(tr, tr.onset));
+      added++;
+    }
+    S.filled = true;
+    S.fillNote = '補上 ' + added + ' 次（等待時間是從你自己按出來的節奏裡抽的）。';
+    this.hidden = true;
+    setPressed($('btnAlignOnset'), true); setPressed($('btnAlignRand'), false);
+    buildAvg('onset');
+  });
+
   $('btnAlignRand').addEventListener('click', function () {
     if (!S.trials.length) return;
     setPressed(this, true); setPressed($('btnAlignOnset'), false);

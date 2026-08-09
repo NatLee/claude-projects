@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>那個優勢後來不見了 · 抽屜裡的另外一半研究</title>
+<style>
+:root{
+  --bg:#100e0b; --bg2:#191512; --panel:#201b16;
+  --ink:#f2ebdd; --dim:#a2937d; --faint:#6d6355;
+  --manila:#e3cf9f; --amber:#e8a34a; --teal:#6fb6a8;
+  --line:rgba(242,235,221,.13);
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Songti TC","Noto Serif TC","Source Han Serif TC",serif;
+  --sans:system-ui,-apple-system,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+  font-size:17px;line-height:1.85;letter-spacing:.01em;
+  -webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(120% 70% at 50% -10%, rgba(232,163,74,.10), transparent 60%),
+    radial-gradient(90% 60% at 50% 108%, rgba(111,182,168,.07), transparent 60%);
+  background-attachment:fixed;
+}
+img,canvas{max-width:100%}
+.home{
+  position:fixed;top:14px;left:14px;z-index:40;
+  font-size:13px;letter-spacing:.06em;color:var(--dim);text-decoration:none;
+  padding:7px 12px;border:1px solid var(--line);border-radius:999px;
+  background:rgba(16,14,11,.72);backdrop-filter:blur(6px);
+}
+.home:hover{color:var(--ink);border-color:rgba(232,163,74,.5)}
+main{max-width:880px;margin:0 auto;padding:0 22px 10px}
+section{padding:clamp(56px,9vw,110px) 0}
+h1,h2,h3{font-family:var(--serif);font-weight:600;letter-spacing:.01em;line-height:1.32;margin:0}
+p{margin:0 0 1.05em}
+p:last-child{margin-bottom:0}
+.lede{font-size:clamp(19px,2.5vw,23px);line-height:1.75}
+.kicker{font-size:12px;letter-spacing:.28em;color:var(--faint);text-transform:uppercase;margin:0 0 18px}
+.big{font-size:clamp(30px,6.4vw,54px);margin:0 0 26px}
+.h2{font-size:clamp(24px,4.4vw,36px);margin:0 0 22px}
+.dimtext{color:var(--dim)}
+em.hl{font-style:normal;color:var(--amber);font-weight:600}
+em.hl2{font-style:normal;color:var(--teal);font-weight:600}
+strong{color:#fff;font-weight:650}
+
+/* ── 第一屏 ─────────────────────────── */
+.hero{min-height:640px;min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding-top:70px}
+.cab-mini{width:min(230px,58vw);margin:0 0 34px}
+.claims{list-style:none;padding:0;margin:0 0 30px;display:flex;flex-direction:column;gap:11px}
+.claims li{
+  font-family:var(--serif);font-size:clamp(16px,2.6vw,21px);
+  padding:13px 17px;border-left:2px solid rgba(232,163,74,.55);
+  background:linear-gradient(90deg,rgba(232,163,74,.10),transparent 78%);
+  border-radius:0 8px 8px 0;color:#f6f0e4;
+}
+.ask{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:8px}
+button{font-family:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+.vote{
+  background:transparent;border:1px solid rgba(242,235,221,.28);border-radius:999px;
+  padding:11px 24px;transition:background .25s,border-color .25s,transform .25s;
+}
+.vote:hover{background:rgba(242,235,221,.07);border-color:rgba(232,163,74,.6)}
+.vote[aria-pressed="true"]{background:rgba(232,163,74,.17);border-color:var(--amber);color:#fff}
+.afterask{
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height .7s ease,opacity .7s ease;
+}
+.afterask.open{max-height:480px;opacity:1;margin-top:26px}
+.down{display:inline-block;margin-top:6px;color:var(--faint);font-size:13px;letter-spacing:.18em}
+
+/* ── 舞台（檔案櫃） ──────────────────── */
+.stage{position:relative;margin:6px 0 0}
+#desk{display:block;width:100%;height:560px;height:min(74svh,660px);min-height:470px}
+#pull{
+  position:absolute;left:50%;top:75.1%;height:12.9%;
+  width:min(232px,46%);transform:translateX(-50%);
+  display:flex;align-items:center;justify-content:center;gap:9px;
+  background:linear-gradient(180deg,rgba(255,247,231,.16),rgba(255,247,231,.05));
+  border:1px solid rgba(255,240,214,.34);border-radius:7px;
+  color:#f7eeda;font-size:clamp(12px,2.5vw,15px);letter-spacing:.14em;
+  box-shadow:0 2px 0 rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.16);
+  transition:background .2s,border-color .2s;
+}
+#pull:hover{background:linear-gradient(180deg,rgba(255,247,231,.26),rgba(255,247,231,.09));border-color:rgba(232,163,74,.75)}
+#pull .grip{width:26px;height:5px;border-radius:3px;background:rgba(255,240,214,.5);flex:none}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.tally{
+  margin:16px 0 0;font-size:14.5px;color:var(--dim);
+  display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;
+}
+.tally b{color:var(--ink);font-weight:600}
+
+/* ── 表格 ───────────────────────────── */
+table{width:100%;border-collapse:collapse;margin:26px 0 10px;font-size:14.5px}
+caption{text-align:left;color:var(--faint);font-size:12.5px;letter-spacing:.14em;padding-bottom:10px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--faint);font-weight:500;font-size:12.5px;letter-spacing:.08em}
+tbody tr:last-child td{border-bottom:none;color:var(--ink);font-weight:600}
+td.pos{color:var(--amber)}
+td.neg{color:var(--teal)}
+.note{font-size:13px;color:var(--faint);line-height:1.7;margin-top:4px}
+
+/* ── 誠實邊界 ───────────────────────── */
+.boundary{
+  border:1px solid rgba(111,182,168,.34);border-radius:16px;
+  padding:clamp(24px,4.4vw,40px);background:rgba(111,182,168,.055);
+}
+.boundary h2{color:#cdeee6}
+
+/* ── 模擬器 ─────────────────────────── */
+.sim{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:clamp(16px,3vw,26px);margin-top:26px}
+#hist{display:block;width:100%;height:232px;margin-bottom:6px}
+.ctrls{display:flex;flex-wrap:wrap;gap:14px 18px;align-items:center;margin:14px 0 0}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.seg button{
+  background:transparent;border:0;padding:8px 12px;font-size:13.5px;color:var(--dim);
+  border-right:1px solid var(--line);transition:background .2s,color .2s;
+}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:rgba(232,163,74,.2);color:#fff}
+.seg button:hover{background:rgba(242,235,221,.06)}
+.chk{display:inline-flex;align-items:center;gap:9px;font-size:14px;color:var(--dim);cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:#e8a34a}
+.act{background:transparent;border:1px solid rgba(242,235,221,.28);border-radius:9px;padding:9px 16px;font-size:14px;transition:background .2s,border-color .2s}
+.act:hover{background:rgba(242,235,221,.07);border-color:rgba(232,163,74,.6)}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.rcard{border:1px solid var(--line);border-radius:12px;padding:14px 15px}
+.rcard.lit{border-color:rgba(232,163,74,.45);background:rgba(232,163,74,.06)}
+.rcard .lbl{font-size:12px;letter-spacing:.12em;color:var(--faint);display:block;margin-bottom:8px}
+.rcard .num{font-family:var(--serif);font-size:clamp(24px,5vw,34px);line-height:1.1;display:block}
+.rcard .sub{font-size:12.5px;color:var(--dim);display:block;margin-top:6px}
+.verdict{margin-top:16px;font-size:15px;line-height:1.8;color:var(--ink)}
+
+/* ── 收尾 ───────────────────────────── */
+.kicker-end{font-family:var(--serif);font-size:clamp(23px,4.6vw,36px);line-height:1.5}
+.rule{height:1px;background:var(--line);border:0;margin:0}
+footer{max-width:880px;margin:0 auto;padding:34px 22px 56px;color:var(--faint);font-size:12.5px;line-height:2}
+footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--line)}
+footer a:hover{color:var(--ink)}
+
+/* ── 捲動進場 ───────────────────────── */
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+.d1{transition-delay:.10s}.d2{transition-delay:.20s}.d3{transition-delay:.30s}
+.heroin{opacity:0;transform:translateY(14px);animation:rise .8s ease forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.hd1{animation-delay:.10s}.hd2{animation-delay:.34s}.hd3{animation-delay:.56s}.hd4{animation-delay:.80s}.hd5{animation-delay:1.00s}
+
+@media (max-width:560px){
+  body{font-size:16px}
+  main{padding:0 17px 10px}
+  #desk{height:500px;height:min(70svh,560px);min-height:430px}
+  #hist{height:198px}
+  .readout{grid-template-columns:1fr}
+  .home{top:10px;left:10px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none;transition:none}
+  .heroin{opacity:1;transform:none;animation:none}
+  .afterask{transition:none}
+  #pull{transition:none}
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<main>
+
+<!-- ══ 第一屏 ══ -->
+<section class="hero" id="top">
+  <svg class="cab-mini heroin hd1" viewBox="0 0 200 150" aria-hidden="true">
+    <defs>
+      <linearGradient id="cabg" x1="0" y1="0" x2="0" y2="150" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#3a3129"/><stop offset="1" stop-color="#241e18"/>
+      </linearGradient>
+    </defs>
+    <rect x="18" y="8" width="164" height="134" rx="7" fill="url(#cabg)" stroke="rgba(242,235,221,.18)"/>
+    <g fill="none" stroke="rgba(242,235,221,.16)">
+      <rect x="27" y="18" width="146" height="36" rx="4"/>
+      <rect x="27" y="59" width="146" height="36" rx="4"/>
+      <rect x="27" y="100" width="146" height="34" rx="4"/>
+    </g>
+    <g fill="rgba(242,235,221,.34)">
+      <rect x="85" y="33" width="30" height="5" rx="2.5"/>
+      <rect x="85" y="74" width="30" height="5" rx="2.5"/>
+      <rect x="85" y="114" width="30" height="5" rx="2.5"/>
+    </g>
+  </svg>
+
+  <p class="kicker heroin hd2">網路趣聞 · 冷知識</p>
+  <h1 class="big heroin hd2">那個優勢後來不見了</h1>
+
+  <p class="lede heroin hd3" style="color:var(--dim)">你大概看過這種句子。可能在新聞裡，可能在育兒書裡，可能是某位親戚在飯桌上說的。</p>
+
+  <ul class="claims heroin hd4">
+    <li>「雙語的孩子比較擅長忽略干擾。」</li>
+    <li>「會兩種語言的人，切換任務比較快。」</li>
+    <li>「大腦一直在兩套語言之間切換，等於天天在做認知重訓。」</li>
+  </ul>
+
+  <div class="heroin hd5">
+    <p class="lede" style="margin-bottom:18px">這個說法傳了二十年，上過無數頭條，寫進了教育政策的引文。<br><strong>你信嗎？</strong></p>
+    <div class="ask">
+      <button class="vote" id="vYes" aria-pressed="false">我信</button>
+      <button class="vote" id="vNo" aria-pressed="false">我不信</button>
+    </div>
+    <div class="afterask" id="afterask">
+      <p class="lede" id="askEcho" style="margin-top:22px"></p>
+      <p class="dimtext" style="margin-bottom:0">在你決定之前，我們先把所有相關的研究攤到桌上。</p>
+      <span class="down">↓ 往下</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 鋪陳 + 高潮 ══ -->
+<section>
+  <p class="kicker reveal">桌面</p>
+  <h2 class="h2 reveal">先看看已經發表的研究</h2>
+  <p class="lede reveal d1" style="color:var(--dim)">
+    這是 1999 到 2012 年間，關於「雙語與執行控制」而且真的變成期刊論文的研究。
+    每一張紙片是一份研究。左邊那一堆說「有優勢」，右邊那一堆說「沒找到」。
+  </p>
+
+  <div class="stage reveal d2">
+    <canvas id="desk" role="img" aria-label="桌面上的研究紙片堆，左邊是支持雙語優勢的研究，右邊是沒有找到優勢的研究；桌子底下有一個標著「未發表」的抽屜"></canvas>
+    <button id="pull" aria-expanded="false" aria-label="拉開標著「未發表」的抽屜"><span class="grip" aria-hidden="true"></span><span id="pullTxt">拉開抽屜</span></button>
+  </div>
+  <p class="tally" id="tally" role="status" aria-live="polite"></p>
+
+  <p class="reveal" style="margin-top:34px">
+    看起來沒什麼好爭的：<em class="hl">三分之二</em>的研究站在同一邊。
+    要是你只讀期刊——每一個記者、每一個政策幕僚、每一個寫育兒書的人都只讀期刊——你會得到一個非常乾淨的結論。
+  </p>
+  <p class="reveal d1">
+    但桌子底下有一個抽屜。上面貼著兩個字：<strong>未發表</strong>。
+    裡面躺著同一批年份、同一個題目、真的被做出來也真的在研討會上報告過，然後就沒有下文的研究。
+  </p>
+  <p class="reveal d2" style="font-family:var(--serif);font-size:clamp(19px,3.4vw,26px);color:#fff;line-height:1.55">
+    去拉開它。
+  </p>
+</section>
+
+<!-- ══ 轉折 ══ -->
+<section>
+  <p class="kicker reveal">2015 年，愛丁堡</p>
+  <h2 class="h2 reveal">他們沒有做新實驗，他們去讀了摘要</h2>
+  <p class="reveal d1">
+    de Bruin、Treccani 與 Della Sala 想到一個繞過去的辦法：不要看期刊，看<strong>研討會摘要</strong>。
+    摘要是研究被「發不發表」這道篩子篩過<em class="hl">之前</em>的樣子——人做了、報告了、留下了紀錄，
+    但還沒有任何編輯、任何審稿人、任何作者本人決定它值不值得寫成論文。
+  </p>
+  <p class="reveal d1">
+    他們收集了 1999–2012 年間 <strong>104 份</strong>這樣的摘要，然後一份一份去追：到 2014 年 2 月為止，
+    哪些變成了國際期刊論文？答案是 <strong>52 份</strong>，剛好一半。
+    而哪一半上了岸，跟結論的方向密切相關——跟樣本數無關、跟用了什麼作業無關、跟統計檢定力也無關。
+  </p>
+
+  <table class="reveal d2">
+    <caption>104 份研討會摘要的下落</caption>
+    <thead><tr><th>摘要報告的結果</th><th>份數</th><th>後來發表</th><th>發表率</th></tr></thead>
+    <tbody>
+      <tr><td>完全支持雙語優勢</td><td>40</td><td>27</td><td class="pos">68%</td></tr>
+      <tr><td>混合，偏向支持</td><td>14</td><td>7</td><td class="pos">50%</td></tr>
+      <tr><td>混合，偏向挑戰</td><td>33</td><td>13</td><td class="neg">39%</td></tr>
+      <tr><td>完全沒有找到優勢</td><td>17</td><td>5</td><td class="neg">29%</td></tr>
+      <tr><td>合計</td><td>104</td><td>52</td><td>50%</td></tr>
+    </tbody>
+  </table>
+  <p class="note reveal d2">
+    四大類的佔比（38%／13%／32%／16%）、總數 104 與 52、兩端的 68% 與 29%、以及合併後的 63%／36%
+    都出自論文與期刊發行方的公告；中間兩列的份數由總數反推，四捨五入後與公告數字完全相符。
+  </p>
+
+  <p class="reveal d3" style="margin-top:30px">
+    論文另外做了漏斗圖不對稱檢定，結果同樣指向發表偏誤。
+    這篇東西 2015 年 1 月刊在《Psychological Science》；半年後的六月號，同一份期刊登了一批資深研究者的公開反駁，
+    以及原作者的回覆——當年這是一場擺在檯面上的架。
+  </p>
+  <p class="reveal d3">
+    <span class="dimtext">而且這場架還沒打完。</span>2023 年 Leivada 重新檢視了同一份資料，指出兩個問題：
+    原始資料把博士論文、專書章節、會議論文集這些「其實也發表了」的形式排除在外；
+    以及把「沒找到差異」和「發現反向差異」併成同一個大類。她認為這兩件事一起把偏誤估大了，
+    真正穩健的差距其實只落在「正面 vs 空結果」之間。<strong>這一頁不替任何一邊宣布勝利。</strong>
+  </p>
+</section>
+
+<!-- ══ 那個優勢本身 ══ -->
+<section>
+  <p class="kicker reveal">與此同時</p>
+  <h2 class="h2 reveal">有人去把那個優勢本身量了一遍</h2>
+  <p class="reveal d1">
+    <strong>Paap 與 Greenberg（2013）</strong>用三個研究、<em class="hl">15 個</em>執行處理指標比較雙語者與單語者。
+    決定性的那個交互作用只在一個指標上顯著——而且方向是雙語者比較<em class="hl2">差</em>。
+    更麻煩的是：同一個「抑制控制」在 flanker 作業上的指標，預測不了同一個人在 Simon 作業上的指標。
+    連指標彼此都不相關，就很難說它們在量同一種一般性能力。
+  </p>
+  <p class="reveal d2">
+    兩年後 <strong>Paap、Johnson 與 Sawi（2015）</strong>把結論直接寫進了標題：
+    執行功能上的雙語優勢「<em class="hl2">若非不存在，就是侷限於非常特定且尚未確定的情境</em>」。
+  </p>
+  <p class="reveal d2">
+    <strong>Lehtonen 等人（2018）</strong>把 152 個成人研究的 891 個效果量做成統合分析。
+    校正發表偏誤<em class="hl">之前</em>，抑制、切換、工作記憶上各有一個非常小的優勢；
+    校正<em class="hl">之後</em>，什麼都不剩。（語詞流暢度上反而是個小劣勢。）
+  </p>
+  <p class="reveal d3">
+    <strong>Dick 等人（2019）</strong>用 ABCD 世代研究裡具全美代表性的 <strong>4,524 位</strong> 9 到 10 歲兒童重跑一次：
+    抑制控制、注意力、任務切換、認知彈性，都幾乎找不到雙語優勢的證據。
+  </p>
+</section>
+
+<!-- ══ 誠實邊界 ══ -->
+<section>
+  <div class="boundary reveal">
+    <p class="kicker" style="color:rgba(205,238,230,.55)">先把話講清楚</p>
+    <h2 class="h2" style="margin-bottom:20px">被質疑的不是雙語，是一句很窄的話</h2>
+    <p class="lede">
+      上面所有的爭議，都只針對一個非常具體的主張：<strong>雙語者在執行功能（抑制、切換、監控）這類實驗室作業上，表現優於單語者。</strong>
+    </p>
+    <p>
+      不在爭議之中的東西多得多，而且重要得多：能跟兩群人說話、能讀懂祖父母的信、能在另一個國家工作、
+      能同時待在兩種文化裡而不必二選一——雙語的價值從來不需要靠一個 Simon 作業的反應時間來背書。
+    </p>
+    <p style="margin-bottom:0">
+      所以請不要把這一頁讀成「學第二語言沒有用」。它說的是：<em class="hl2">那句特定的認知宣稱，證據比你以為的薄</em>。
+      這兩件事差很遠。
+    </p>
+  </div>
+</section>
+
+<!-- ══ 模擬器 ══ -->
+<section>
+  <p class="kicker reveal">現在換你當編輯</p>
+  <h2 class="h2 reveal">一道門檻，可以無中生有</h2>
+  <p class="reveal d1">
+    下面每一個研究都是真的算出來的：兩組各十幾到六十個人，資料從<strong>同一個母體</strong>抽出來——
+    也就是說，真實差異<em class="hl">嚴格等於零</em>。程式跑雙樣本 t 檢定、算出 p 值與效果量 Cohen's d。
+  </p>
+  <p class="reveal d1">
+    然後你來決定哪些「發表得出去」。改改門檻，看文獻裡長出什麼。
+  </p>
+
+  <div class="sim reveal d2">
+    <canvas id="hist" role="img" aria-label="上下兩排的效果量分布圖：上排空心長條是所有跑過的研究，分布對稱地圍著零；下排實心長條是通過發表門檻、進入文獻的研究，整批偏向正的一側"></canvas>
+
+    <div class="ctrls">
+      <div class="seg" role="group" aria-label="發表門檻的 p 值">
+        <button data-p="0.01" aria-pressed="false">p &lt; .01</button>
+        <button data-p="0.05" aria-pressed="true">p &lt; .05</button>
+        <button data-p="0.10" aria-pressed="false">p &lt; .10</button>
+        <button data-p="1" aria-pressed="false">全部發表</button>
+      </div>
+      <label class="chk"><input type="checkbox" id="dirOnly" checked> 只發表「雙語比較好」的方向</label>
+      <button class="act" id="runMore">再跑 600 個研究</button>
+      <button class="act" id="reset">清空重來</button>
+    </div>
+
+    <div class="readout">
+      <div class="rcard">
+        <span class="lbl">全部跑過的研究</span>
+        <span class="num" id="allMean">—</span>
+        <span class="sub" id="allSub">平均效果量</span>
+      </div>
+      <div class="rcard lit">
+        <span class="lbl">進得了文獻的研究</span>
+        <span class="num" id="pubMean">—</span>
+        <span class="sub" id="pubSub">平均效果量</span>
+      </div>
+    </div>
+    <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
+  </div>
+
+  <p class="reveal d3" style="margin-top:30px">
+    底下那批研究從頭到尾沒有變過，真實效果一直是零。改變的只有那道門。
+    而在真實世界裡，那道門不會在論文的方法章節裡出現——因為<strong>沒能通過的研究，本來就不會有論文</strong>。
+  </p>
+</section>
+
+<!-- ══ 記憶點 ══ -->
+<section>
+  <hr class="rule">
+  <p class="kicker reveal" style="margin-top:44px">最後</p>
+  <p class="kicker-end reveal d1" style="margin:0 0 26px">
+    你看到的文獻，是被篩選過的文獻。<br>
+    而篩選的那道門，<em class="hl">不在資料裡</em>。
+  </p>
+  <p class="reveal d2">
+    這一頁講的是雙語。但那個抽屜不姓雙語——它在每一個學門的每一張桌子底下。
+    只要「有發現」比「沒發現」容易被寫出來、被投出去、被接受，桌上那一半就會慢慢往同一個方向偏，
+    而且偏得非常安靜：每一篇論文都是誠實的，每一個數字都算對了，錯的只是<em class="hl">哪些論文存在</em>。
+  </p>
+  <p class="reveal d2" id="closer"></p>
+  <p class="reveal d3" style="color:var(--dim);margin-top:26px">
+    下次看到「研究顯示……」，值得多問一句：<strong>那些沒有顯示的研究，現在在哪裡？</strong>
+  </p>
+</section>
+
+</main>
+
+<footer>
+  資料來源：de Bruin, Treccani &amp; Della Sala, <i>Psychological Science</i> (2015)；Paap &amp; Greenberg, <i>Cognitive Psychology</i> (2013)；Lehtonen et al., <i>Psychological Bulletin</i> (2018)；Dick et al., <i>Nature Human Behaviour</i> (2019)<br>
+  <a href="../../../index.html">← 回到每日小專案</a>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var LS = 'bilingadv26.';
+
+/* ────────── (a) reduced motion ────────── */
+var mReduced = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches:false };
+function reduced(){ return !!mReduced.matches; }
+function onReducedChange(fn){
+  if (mReduced.addEventListener) mReduced.addEventListener('change', fn);
+  else if (mReduced.addListener) mReduced.addListener(fn);
+}
+
+/* ────────── (c) 捲動進場 ────────── */
+var toReveal = document.querySelectorAll('.reveal');
+function revealAll(){ for (var i=0;i<toReveal.length;i++) toReveal[i].classList.add('in'); }
+if (reduced() || !('IntersectionObserver' in window)) {
+  revealAll();
+} else {
+  var io = new IntersectionObserver(function(es, obs){
+    for (var i=0;i<es.length;i++){
+      if (es[i].isIntersecting){ es[i].target.classList.add('in'); obs.unobserve(es[i].target); }
+    }
+  }, { rootMargin:'0px 0px -8% 0px' });
+  for (var j=0;j<toReveal.length;j++) io.observe(toReveal[j]);
+}
+
+/* ────────── 第一屏投票 ────────── */
+var vYes = document.getElementById('vYes'),
+    vNo  = document.getElementById('vNo'),
+    afterask = document.getElementById('afterask'),
+    askEcho = document.getElementById('askEcho'),
+    closer  = document.getElementById('closer');
+var hunch = null;
+
+function readHunch(){
+  try { var v = localStorage.getItem(LS + 'hunch'); return (v === 'yes' || v === 'no') ? v : null; }
+  catch(e){ return null; }
+}
+function writeHunch(v){ try { localStorage.setItem(LS + 'hunch', v); } catch(e){} }
+
+function setHunch(v, save){
+  hunch = v;
+  vYes.setAttribute('aria-pressed', v === 'yes' ? 'true' : 'false');
+  vNo.setAttribute('aria-pressed',  v === 'no'  ? 'true' : 'false');
+  askEcho.textContent = (v === 'yes')
+    ? '你信。多數人都信——包括很長一段時間裡的多數研究者。'
+    : '你不信。那你可能會喜歡接下來這件事：懷疑的人手上的證據，比他們自己知道的還多。';
+  afterask.classList.add('open');
+  closer.innerHTML = (v === 'yes')
+    ? '你在最上面按的是<strong>「我信」</strong>。這不是你的錯——當時桌上只有那 52 份。'
+    : '你在最上面按的是<strong>「我不信」</strong>。不過老實說，當時桌上只有那 52 份，你也沒有更多東西可以看。';
+  if (save) writeHunch(v);
+}
+vYes.addEventListener('click', function(){ setHunch('yes', true); });
+vNo.addEventListener('click',  function(){ setHunch('no',  true); });
+var saved = readHunch();
+if (saved) setHunch(saved, false);
+else closer.innerHTML = '至於最上面那個問題——你當時能看到的，只有桌上那 52 份。';
+
+/* ════════════════════════════════════════
+   桌面 + 抽屜
+   ════════════════════════════════════════ */
+/* 已查證的分類（de Bruin et al. 2015；中間兩列由總數反推） */
+var CAT = [
+  { key:'full+',  side:0, pub:27, unp:13 },  /* 完全支持 40 */
+  { key:'mix+',   side:0, pub:7,  unp:7  },  /* 混合偏支持 14 */
+  { key:'mix-',   side:1, pub:13, unp:20 },  /* 混合偏挑戰 33 */
+  { key:'full-',  side:1, pub:5,  unp:12 }   /* 完全沒找到 17 */
+];
+var PUB_SUP = 27 + 7,   PUB_CHA = 13 + 5;    /* 34 / 18 */
+var ALL_SUP = 40 + 14,  ALL_CHA = 33 + 17;   /* 54 / 50 */
+
+/* 建立紙片：同一堆內，已發表的先排（靠底），未發表的疊在上面 */
+var slips = [];
+(function buildSlips(){
+  var s;
+  for (var side=0; side<2; side++){
+    var idx = 0;
+    /* 先放已發表 */
+    for (var c=0;c<CAT.length;c++){
+      if (CAT[c].side !== side) continue;
+      for (var i=0;i<CAT[c].pub;i++){
+        slips.push({ side:side, cat:CAT[c].key, pub:true, slot:idx++, on:1, t:0, delay:0, seedR:(slips.length*2654435761 % 1000)/1000 });
+      }
+    }
+    for (var c2=0;c2<CAT.length;c2++){
+      if (CAT[c2].side !== side) continue;
+      for (var k=0;k<CAT[c2].unp;k++){
+        slips.push({ side:side, cat:CAT[c2].key, pub:false, slot:idx++, on:0, t:0, delay:0, seedR:(slips.length*2654435761 % 1000)/1000 });
+      }
+    }
+  }
+  /* 未發表紙片的飛出順序：兩堆按各自進度交錯，兩邊會一起長高 */
+  var unp = [];
+  for (var q=0;q<slips.length;q++) if (!slips[q].pub) unp.push(slips[q]);
+  var seen = [0, 0], total = [0, 0];
+  for (var q2=0;q2<unp.length;q2++) total[unp[q2].side]++;
+  unp.sort(function(a,b){ return (a.side - b.side) || (a.slot - b.slot); });
+  for (var q3=0;q3<unp.length;q3++){
+    var sd = unp[q3].side;
+    unp[q3].frac = (seen[sd] + 0.5) / total[sd];
+    seen[sd]++;
+  }
+  unp.sort(function(a,b){ return (a.frac - b.frac) || (a.side - b.side); });
+  for (var r=0;r<unp.length;r++){ unp[r].order = r; unp[r].delay = r * 34; }
+  return s;
+})();
+
+var cv = document.getElementById('desk');
+var ctx = cv.getContext('2d');
+var pullBtn = document.getElementById('pull');
+var pullTxt = document.getElementById('pullTxt');
+var tallyEl = document.getElementById('tally');
+
+var W = 0, H = 0, DPR = 1;
+function fitCanvas(c, force){
+  var w = c.clientWidth, h = c.clientHeight, d = Math.min(2, window.devicePixelRatio || 1);
+  if (!w || !h) return false;
+  if (!force && w === W && h === H && d === DPR) return false;
+  W = w; H = h; DPR = d;
+  c.width = Math.round(w * d); c.height = Math.round(h * d);
+  c.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+  return true;
+}
+
+var L = {};
+function layout(){
+  var pad = Math.max(12, W * 0.045);
+  var cols = 9;
+  var pileW = (W - pad * 3) / 2;
+  var gap = Math.max(2.5, pileW * 0.016);
+  var sw = Math.min(26, (pileW - (cols - 1) * gap) / cols);
+  var sh = sw * 1.2;
+  var step = sh + Math.max(3, sh * 0.16);
+  var gridW = cols * sw + (cols - 1) * gap;
+  L = {
+    pad: pad, cols: cols, sw: sw, sh: sh, step: step, gap: gap,
+    pileX: [pad + (pileW - gridW) / 2, pad * 2 + pileW + (pileW - gridW) / 2],
+    pileCx: [pad + pileW / 2, pad * 2 + pileW * 1.5],
+    pileW: pileW,
+    baseY: H * 0.545,
+    bandY: H * 0.085,
+    cabTop: H * 0.645, cabBot: H * 0.985
+  };
+  L.cabW = Math.min(W - pad * 2, W * 0.88);
+  L.cabX = (W - L.cabW) / 2;
+  L.cabH = L.cabBot - L.cabTop;
+  L.frontH = L.cabH * 0.56;
+  L.frontTop0 = L.cabTop + L.cabH * 0.20;
+  L.maxOpen = L.cabH * 0.17;
+  L.mouthY = L.cabTop + L.cabH * 0.10;
+}
+
+function slotXY(side, slot){
+  var row = Math.floor(slot / L.cols), col = slot % L.cols;
+  return {
+    x: L.pileX[side] + col * (L.sw + L.gap),
+    y: L.baseY - (row + 1) * L.step
+  };
+}
+
+/* 狀態 */
+var open = 0, openTarget = 0;   /* 抽屜開合 0..1 */
+var flyStart = -1;              /* 飛出動畫的起始時間 */
+var flying = false;
+var released = false;           /* 是否已把未發表的放上桌 */
+var barVal = PUB_SUP / (PUB_SUP + PUB_CHA);
+var barTarget = barVal;
+
+var COLORS = {
+  supFull: '#e8a34a', supMix: '#c98f4a',
+  chaMix:  '#5e9e97', chaFull: '#6fb6a8'
+};
+function catColor(k){
+  return k === 'full+' ? COLORS.supFull : k === 'mix+' ? COLORS.supMix
+       : k === 'mix-'  ? COLORS.chaMix  : COLORS.chaFull;
+}
+
+function easeOut(t){ return 1 - Math.pow(1 - t, 3); }
+function easeInOut(t){ return t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2; }
+
+function drawSlip(x, y, w, h, s, alpha, rot){
+  var col = catColor(s.cat);
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (rot){ ctx.translate(x + w/2, y + h/2); ctx.rotate(rot); ctx.translate(-w/2, -h/2); }
+  else ctx.translate(x, y);
+
+  if (s.pub){
+    ctx.fillStyle = col;
+    ctx.globalAlpha = alpha * 0.92;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = 'rgba(255,246,230,.55)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    /* 已發表：底部一條實心「刊出」條 */
+    ctx.fillStyle = 'rgba(24,20,16,.72)';
+    ctx.fillRect(w * 0.18, h - Math.max(2, h * 0.17), w * 0.64, Math.max(1.6, h * 0.09));
+  } else {
+    ctx.fillStyle = col;
+    ctx.globalAlpha = alpha * 0.20;
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalAlpha = alpha * 0.95;
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 1;
+    if (ctx.setLineDash) ctx.setLineDash([2.5, 2]);
+    ctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    if (ctx.setLineDash) ctx.setLineDash([]);
+  }
+  /* 方向記號：＋ 或 −（不只靠顏色） */
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = s.pub ? 'rgba(24,20,16,.80)' : col;
+  ctx.lineWidth = Math.max(1, w * 0.075);
+  ctx.lineCap = 'round';
+  var cx = w / 2, cy = h * 0.40, r = w * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(cx - r, cy); ctx.lineTo(cx + r, cy);
+  if (s.side === 0){ ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+function roundRect(c, x, y, w, h, r){
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y); c.quadraticCurveTo(x + w, y, x + w, y + r);
+  c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r);
+  c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y);
+  c.closePath();
+}
+
+function drawBand(){
+  var pct = Math.round(barVal * 1000) / 10;
+  var barY = L.bandY + 30;
+  var barW = W - L.pad * 2;
+  var barH = Math.max(8, H * 0.017);
+  var fs = Math.min(46, Math.max(24, W * 0.062));
+
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 ' + fs + 'px "Iowan Old Style",Georgia,serif';
+  ctx.fillStyle = '#f2ebdd';
+  ctx.textAlign = 'left';
+  ctx.fillText(pct.toFixed(0) + '%', L.pad, barY - 12);
+
+  ctx.font = '500 ' + Math.max(11, Math.min(14, W * 0.021)) + 'px system-ui,sans-serif';
+  ctx.fillStyle = '#a2937d';
+  ctx.textAlign = 'right';
+  ctx.fillText(W < 430 ? '支持雙語優勢的比例' : '桌上的研究裡，支持雙語優勢的比例', W - L.pad, barY - 12);
+
+  ctx.fillStyle = 'rgba(111,182,168,.30)';
+  roundRect(ctx, L.pad, barY, barW, barH, barH / 2); ctx.fill();
+  ctx.fillStyle = COLORS.supFull;
+  roundRect(ctx, L.pad, barY, Math.max(barH, barW * barVal), barH, barH / 2); ctx.fill();
+}
+
+function drawPileLabels(sup, cha){
+  var fs = Math.max(11, Math.min(15, W * 0.023));
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  ctx.font = '600 ' + fs + 'px system-ui,sans-serif';
+  ctx.fillStyle = COLORS.supFull;
+  ctx.fillText('＋ 有優勢', L.pileCx[0], L.baseY + 12);
+  ctx.fillStyle = COLORS.chaFull;
+  ctx.fillText('－ 沒找到', L.pileCx[1], L.baseY + 12);
+  ctx.font = '500 ' + (fs - 1.5) + 'px system-ui,sans-serif';
+  ctx.fillStyle = '#a2937d';
+  ctx.fillText(sup + ' 份', L.pileCx[0], L.baseY + 14 + fs * 1.55);
+  ctx.fillText(cha + ' 份', L.pileCx[1], L.baseY + 14 + fs * 1.55);
+  /* 桌面線 */
+  ctx.strokeStyle = 'rgba(242,235,221,.16)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(L.pad * 0.6, L.baseY + 4.5);
+  ctx.lineTo(W - L.pad * 0.6, L.baseY + 4.5);
+  ctx.stroke();
+}
+
+function drawCabinet(nLeft){
+  var o = open;
+  var frontTop = L.frontTop0 + o * L.maxOpen;
+  var grow = 1 + o * 0.05;
+  var fw = L.cabW * 0.86 * grow;
+  var fx = (W - fw) / 2;
+
+  /* 櫃體 */
+  var g = ctx.createLinearGradient(0, L.cabTop, 0, L.cabBot);
+  g.addColorStop(0, '#3a3129'); g.addColorStop(1, '#221c17');
+  ctx.fillStyle = g;
+  roundRect(ctx, L.cabX, L.cabTop, L.cabW, L.cabH, Math.min(12, L.cabH * 0.08)); ctx.fill();
+  ctx.strokeStyle = 'rgba(242,235,221,.14)'; ctx.lineWidth = 1; ctx.stroke();
+
+  /* 抽屜開口（暗腔） */
+  ctx.fillStyle = '#0b0908';
+  roundRect(ctx, fx, L.cabTop + L.cabH * 0.07, fw, Math.max(6, frontTop - (L.cabTop + L.cabH * 0.07) + 6), 5);
+  ctx.fill();
+
+  /* 腔內的紙疊：剩下越少，疊得越薄 */
+  if (o > 0.05 && nLeft > 0){
+    var mouthTop = L.cabTop + L.cabH * 0.10;
+    var depth = Math.max(6, frontTop - mouthTop);
+    var rows = Math.min(6, Math.max(1, Math.ceil(nLeft / 10)));
+    var th = Math.max(1.8, L.cabH * 0.02);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, (o - 0.05) / 0.35);
+    for (var i = 0; i < rows; i++){
+      var yy = frontTop - 3 - (i + 1) * (depth - 4) / (rows + 0.6);
+      if (yy < mouthTop + 1) break;
+      var jitter = ((i * 37) % 11 - 5) / 5;          /* 固定的小偏移，紙疊才不會像百葉窗 */
+      var inset = fw * (0.09 + 0.018 * i) + jitter * fw * 0.012;
+      ctx.fillStyle = i % 2 ? 'rgba(232,214,171,.62)' : 'rgba(210,190,148,.42)';
+      roundRect(ctx, fx + inset, yy, Math.max(10, fw - inset * 2 - jitter * fw * 0.02), th, th / 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  /* 抽屜面板 */
+  var fg = ctx.createLinearGradient(0, frontTop, 0, frontTop + L.frontH);
+  fg.addColorStop(0, '#4a3f34'); fg.addColorStop(0.5, '#3b322a'); fg.addColorStop(1, '#2a231d');
+  ctx.fillStyle = fg;
+  roundRect(ctx, fx, frontTop, fw, L.frontH, 6); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,246,230,.22)'; ctx.lineWidth = 1; ctx.stroke();
+
+  /* 面板上方高光 + 下方陰影 */
+  ctx.fillStyle = 'rgba(255,246,230,.10)';
+  ctx.fillRect(fx + 5, frontTop + 1.5, fw - 10, 1.5);
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.22 + o * 0.22) + ')';
+  ctx.fillRect(fx + fw * 0.04, frontTop + L.frontH + 1, fw * 0.92, Math.max(2, L.cabH * 0.03));
+
+  /* 「未發表」小標籤（左上角） */
+  var ts = Math.max(9.5, Math.min(12.5, W * 0.019));
+  ctx.font = '500 ' + ts + 'px system-ui,sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(227,207,159,.62)';
+  ctx.fillText('未發表', fx + fw * 0.055, frontTop + L.frontH * 0.30);
+  ctx.fillStyle = 'rgba(162,147,125,.75)';
+  ctx.textAlign = 'right';
+  ctx.fillText(nLeft + ' 份', fx + fw * 0.945, frontTop + L.frontH * 0.30);
+}
+
+function draw(now){
+  if (!W || !H) return;
+  ctx.clearRect(0, 0, W, H);
+
+  var sup = 0, cha = 0, inDrawer = 0;
+  var flyList = [];
+
+  for (var i = 0; i < slips.length; i++){
+    var s = slips[i];
+    if (s.pub){ s.on = 1; }
+    else if (released){
+      if (reduced()) s.on = 1;
+      else {
+        var el = now - flyStart - s.delay;
+        s.on = el <= 0 ? 0 : Math.min(1, el / 620);
+      }
+    } else s.on = 0;
+
+    if (s.on >= 1){ if (s.side === 0) sup++; else cha++; }
+    else if (s.on > 0) flyList.push(s);
+    else if (!s.pub) inDrawer++;
+  }
+
+  drawBand();
+  drawCabinet(inDrawer);   /* 已經離開抽屜的（飛行中）就不算在裡面，數字才會跟著往下掉 */
+
+  /* 已就位的紙片 */
+  for (var k = 0; k < slips.length; k++){
+    var t = slips[k];
+    if (t.on < 1) continue;
+    var p = slotXY(t.side, t.slot);
+    drawSlip(p.x, p.y, L.sw, L.sh, t, 1, 0);
+  }
+
+  /* 飛行中的紙片 */
+  for (var f = 0; f < flyList.length; f++){
+    var fs2 = flyList[f];
+    var e = easeOut(fs2.on);
+    var dest = slotXY(fs2.side, fs2.slot);
+    var sx = W / 2 + (fs2.seedR - 0.5) * L.cabW * 0.5;
+    var sy = L.mouthY;
+    var x = sx + (dest.x - sx) * e;
+    var y = sy + (dest.y - sy) * e - Math.sin(Math.PI * fs2.on) * H * 0.06;
+    var sc = 0.7 + 0.3 * e;
+    drawSlip(x, y, L.sw * sc, L.sh * sc, fs2, Math.min(1, fs2.on * 2.2), (1 - e) * (fs2.seedR - 0.5) * 1.4);
+  }
+
+  drawPileLabels(sup, cha);
+}
+
+/* 動畫迴圈 */
+var running = false, rafId = 0, inView = true;
+function pending(){
+  if (Math.abs(open - openTarget) > 0.002) return true;
+  if (flying) return true;
+  if (Math.abs(barVal - barTarget) > 0.0005) return true;
+  return false;
+}
+function frame(now){
+  if (!running) return;
+  open += (openTarget - open) * 0.13;
+  if (Math.abs(open - openTarget) <= 0.002) open = openTarget;
+  barVal += (barTarget - barVal) * 0.07;
+  if (Math.abs(barVal - barTarget) <= 0.0005) barVal = barTarget;
+  if (flying && flyStart >= 0 && now - flyStart > 34 * 52 + 700) flying = false;
+  syncPull();
+  draw(now);
+  if (!pending()){ running = false; draw(now); return; }
+  rafId = requestAnimationFrame(frame);
+}
+function setRunning(){
+  var want = !document.hidden && inView && !reduced() && pending();
+  if (want && !running){ running = true; rafId = requestAnimationFrame(frame); }
+  else if (!want && running){ running = false; cancelAnimationFrame(rafId); }
+}
+document.addEventListener('visibilitychange', setRunning);
+
+function snapNow(){
+  open = openTarget; barVal = barTarget; flying = false;
+  syncPull(); draw(performance.now());
+}
+function syncPull(){
+  pullBtn.style.transform = 'translateX(-50%) translateY(' + (open * L.maxOpen).toFixed(2) + 'px)';
+}
+
+function updateTally(){
+  var sup = released ? ALL_SUP : PUB_SUP;
+  var cha = released ? ALL_CHA : PUB_CHA;
+  var tot = sup + cha;
+  tallyEl.innerHTML = '桌上 <b>' + tot + '</b> 份研究　·　支持雙語優勢 <b>' + sup + '</b> 份（'
+    + (sup / tot * 100).toFixed(0) + '%）　·　沒有找到優勢 <b>' + cha + '</b> 份（'
+    + (cha / tot * 100).toFixed(0) + '%）'
+    + (released ? '　·　抽屜已清空' : '　·　抽屜裡還有 52 份');
+  cv.setAttribute('aria-label', released
+    ? '桌面上現在有 104 份研究：支持雙語優勢 54 份、沒有找到優勢 50 份，比例接近一半一半；抽屜已經拉開並清空'
+    : '桌面上有 52 份已發表的研究：支持雙語優勢 34 份、沒有找到優勢 18 份；桌子底下的抽屜還關著，裡面有 52 份未發表的研究');
+}
+
+function toggleDrawer(){
+  if (!released){
+    released = true;
+    openTarget = 1;
+    barTarget = ALL_SUP / (ALL_SUP + ALL_CHA);
+    flyStart = performance.now();
+    flying = true;
+    pullTxt.textContent = '關回去';
+    pullBtn.setAttribute('aria-expanded', 'true');
+    pullBtn.setAttribute('aria-label', '把抽屜關回去，只留下已發表的研究');
+  } else {
+    released = false;
+    openTarget = 0;
+    barTarget = PUB_SUP / (PUB_SUP + PUB_CHA);
+    flying = false;
+    flyStart = -1;
+    pullTxt.textContent = '拉開抽屜';
+    pullBtn.setAttribute('aria-expanded', 'false');
+    pullBtn.setAttribute('aria-label', '拉開標著「未發表」的抽屜');
+  }
+  updateTally();
+  if (reduced()) snapNow(); else setRunning();
+}
+pullBtn.addEventListener('click', toggleDrawer);
+
+/* 尺寸 */
+var rzT = null;
+function relayout(force){
+  if (fitCanvas(cv, force)){ layout(); syncPull(); draw(performance.now()); }
+}
+window.addEventListener('resize', function(){
+  clearTimeout(rzT);
+  rzT = setTimeout(function(){ relayout(false); }, 120);
+});
+if ('ResizeObserver' in window){
+  var ro = new ResizeObserver(function(){ relayout(false); });
+  ro.observe(cv);
+}
+fitCanvas(cv, true); layout(); syncPull(); updateTally(); draw(performance.now());
+
+if ('IntersectionObserver' in window){
+  var io2 = new IntersectionObserver(function(es){
+    inView = es[0].isIntersecting;
+    setRunning();
+  }, { rootMargin:'80px 0px' });
+  io2.observe(cv);
+}
+
+/* ════════════════════════════════════════
+   發表門檻模擬器（真的在跑）
+   ════════════════════════════════════════ */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function gammaln(x){
+  var c = [76.18009172947146, -86.50532032941677, 24.01409824083091,
+           -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+  var y = x, tmp = x + 5.5;
+  tmp -= (x + 0.5) * Math.log(tmp);
+  var ser = 1.000000000190015;
+  for (var j = 0; j < 6; j++){ y += 1; ser += c[j] / y; }
+  return -tmp + Math.log(2.5066282746310005 * ser / x);
+}
+function betacf(a, b, x){
+  var MAXIT = 300, EPS = 3e-14, FPMIN = 1e-300;
+  var qab = a + b, qap = a + 1, qam = a - 1;
+  var c = 1, d = 1 - qab * x / qap;
+  if (Math.abs(d) < FPMIN) d = FPMIN;
+  d = 1 / d;
+  var h = d, m, m2, aa, del;
+  for (m = 1; m <= MAXIT; m++){
+    m2 = 2 * m;
+    aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d; h *= d * c;
+    aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+    d = 1 + aa * d; if (Math.abs(d) < FPMIN) d = FPMIN;
+    c = 1 + aa / c; if (Math.abs(c) < FPMIN) c = FPMIN;
+    d = 1 / d; del = d * c; h *= del;
+    if (Math.abs(del - 1) < EPS) break;
+  }
+  return h;
+}
+function betai(a, b, x){
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
+  var bt = Math.exp(gammaln(a + b) - gammaln(a) - gammaln(b) + a * Math.log(x) + b * Math.log(1 - x));
+  return (x < (a + 1) / (a + b + 2)) ? bt * betacf(a, b, x) / a
+                                     : 1 - bt * betacf(b, a, 1 - x) / b;
+}
+/* 雙尾 p 值 */
+function tPvalue(t, df){
+  if (!isFinite(t)) return 0;
+  return betai(df / 2, 0.5, df / (df + t * t));
+}
+/* 雙樣本（等變異）t 檢定 + Cohen's d */
+function tTest(a, b){
+  var n1 = a.length, n2 = b.length, i;
+  var m1 = 0, m2 = 0;
+  for (i = 0; i < n1; i++) m1 += a[i];
+  for (i = 0; i < n2; i++) m2 += b[i];
+  m1 /= n1; m2 /= n2;
+  var s1 = 0, s2 = 0;
+  for (i = 0; i < n1; i++) s1 += (a[i] - m1) * (a[i] - m1);
+  for (i = 0; i < n2; i++) s2 += (b[i] - m2) * (b[i] - m2);
+  var df = n1 + n2 - 2;
+  var sp2 = (s1 + s2) / df;
+  var sp = Math.sqrt(sp2);
+  var t = (m1 - m2) / (sp * Math.sqrt(1 / n1 + 1 / n2));
+  return { t: t, df: df, p: tPvalue(t, df), d: (m1 - m2) / sp, n: n1 };
+}
+/* 亂數常態（Box–Muller），母體完全相同 → 真實效果 = 0 */
+function makeNormal(rng){
+  var spare = null;
+  return function(){
+    if (spare !== null){ var v = spare; spare = null; return v; }
+    var u = 0, v2 = 0, s = 0;
+    do {
+      u = rng() * 2 - 1; v2 = rng() * 2 - 1; s = u * u + v2 * v2;
+    } while (s === 0 || s >= 1);
+    var mul = Math.sqrt(-2 * Math.log(s) / s);
+    spare = v2 * mul;
+    return u * mul;
+  };
+}
+/* 跑一批研究：兩組都來自 N(0,1) */
+function runBatch(rng, norm, count){
+  var out = [], i, j;
+  for (i = 0; i < count; i++){
+    var n = 15 + Math.floor(rng() * 46);   /* 每組 15–60 人 */
+    var A = [], B = [];
+    for (j = 0; j < n; j++){ A.push(norm()); B.push(norm()); }
+    out.push(tTest(A, B));
+  }
+  return out;
+}
+
+var SIM = { seed: 20150104, rng: null, norm: null, studies: [], pmax: 0.05, dirOnly: true };
+function simReset(){
+  SIM.rng = mulberry32(SIM.seed);
+  SIM.norm = makeNormal(SIM.rng);
+  SIM.studies = [];
+}
+simReset();
+
+function passes(s){
+  if (SIM.dirOnly && !(s.d > 0)) return false;
+  return s.p < SIM.pmax || SIM.pmax >= 1;
+}
+function stats(){
+  var all = SIM.studies, n = all.length, i;
+  var sa = 0, sp = 0, np = 0;
+  for (i = 0; i < n; i++){
+    sa += all[i].d;
+    if (passes(all[i])){ sp += all[i].d; np++; }
+  }
+  return { n: n, allMean: n ? sa / n : 0, pubN: np, pubMean: np ? sp / np : 0 };
+}
+
+/* 直方圖 */
+var hc = document.getElementById('hist');
+var hx = hc.getContext('2d');
+var HW = 0, HH = 0, HDPR = 1;
+function fitHist(force){
+  var w = hc.clientWidth, h = hc.clientHeight, d = Math.min(2, window.devicePixelRatio || 1);
+  if (!w || !h) return false;
+  if (!force && w === HW && h === HH && d === HDPR) return false;
+  HW = w; HH = h; HDPR = d;
+  hc.width = Math.round(w * d); hc.height = Math.round(h * d);
+  hc.getContext('2d').setTransform(d, 0, 0, d, 0, 0);
+  return true;
+}
+var XMIN = -1.6, XMAX = 1.6, NBIN = 40;
+function binCounts(){
+  var binsAll = new Array(NBIN), binsPub = new Array(NBIN), i;
+  for (i = 0; i < NBIN; i++){ binsAll[i] = 0; binsPub[i] = 0; }
+  var all = SIM.studies;
+  for (i = 0; i < all.length; i++){
+    var b = Math.floor((all[i].d - XMIN) / (XMAX - XMIN) * NBIN);
+    if (b < 0) b = 0;
+    if (b >= NBIN) b = NBIN - 1;
+    binsAll[b]++;
+    if (passes(all[i])) binsPub[b]++;
+  }
+  return { all: binsAll, pub: binsPub };
+}
+/* 上下兩排、各自縮放的鏡像直方圖：上排是所有跑過的研究，下排是進得了文獻的 */
+function drawHist(){
+  if (!HW || !HH) return;
+  hx.clearRect(0, 0, HW, HH);
+  var padL = 12, padR = 12, padT = 22, padB = 26;
+  var pw = HW - padL - padR;
+  var inner = HH - padT - padB;
+  var midY = padT + inner * 0.52;
+  var labelGap = 15;
+  var topH = Math.max(10, midY - padT - labelGap);
+  var botH = Math.max(10, (HH - padB) - midY - labelGap);
+  var X = function(d){ return padL + (Math.max(XMIN, Math.min(XMAX, d)) - XMIN) / (XMAX - XMIN) * pw; };
+
+  var bins = binCounts(), i;
+  var mxA = 1, mxP = 1;
+  for (i = 0; i < NBIN; i++){
+    if (bins.all[i] > mxA) mxA = bins.all[i];
+    if (bins.pub[i] > mxP) mxP = bins.pub[i];
+  }
+  var bw = pw / NBIN;
+  var st = stats();
+
+  /* 上排：全部研究（空心長條） */
+  hx.strokeStyle = 'rgba(242,235,221,.50)';
+  hx.lineWidth = 1;
+  for (i = 0; i < NBIN; i++){
+    if (!bins.all[i]) continue;
+    var h1 = Math.max(1.5, bins.all[i] / mxA * topH);
+    hx.strokeRect(padL + i * bw + 0.5, midY - 2 - h1 + 0.5, Math.max(1, bw - 1), h1);
+  }
+  /* 下排：進了文獻的（實心長條） */
+  hx.fillStyle = 'rgba(232,163,74,.88)';
+  for (i = 0; i < NBIN; i++){
+    if (!bins.pub[i]) continue;
+    var h2 = Math.max(2, bins.pub[i] / mxP * botH);
+    hx.fillRect(padL + i * bw + 1, midY + 2, Math.max(1.5, bw - 2), h2);
+  }
+
+  /* 中線 */
+  hx.strokeStyle = 'rgba(242,235,221,.26)';
+  hx.lineWidth = 1;
+  hx.beginPath(); hx.moveTo(padL, midY + 0.5); hx.lineTo(padL + pw, midY + 0.5); hx.stroke();
+
+  /* 真實效果 = 0 */
+  hx.save();
+  hx.strokeStyle = 'rgba(111,182,168,.9)';
+  hx.lineWidth = 1.5;
+  if (hx.setLineDash) hx.setLineDash([4, 3]);
+  hx.beginPath(); hx.moveTo(X(0), padT - 6); hx.lineTo(X(0), HH - padB); hx.stroke();
+  hx.restore();
+
+  /* 平均數：上排虛線、下排實線，各自帶數字（位置、線型、文字都不同，不只靠顏色） */
+  function meanMark(val, yTop, yBot, color, textColor, label, above, dash){
+    var x = X(val);
+    hx.save();
+    hx.strokeStyle = color;
+    hx.lineWidth = dash ? 2 : 2.5;
+    if (dash && hx.setLineDash) hx.setLineDash([5, 3]);
+    hx.beginPath(); hx.moveTo(x, yTop); hx.lineTo(x, yBot); hx.stroke();
+    hx.restore();
+    hx.font = '600 11.5px system-ui,sans-serif';
+    hx.fillStyle = textColor;
+    hx.textAlign = x > padL + pw - 76 ? 'right' : 'left';
+    hx.textBaseline = above ? 'bottom' : 'top';
+    var dx = hx.textAlign === 'right' ? -6 : 6;
+    hx.fillText(label, x + dx, above ? yTop - 1 : yBot + 2);
+  }
+  if (st.n) meanMark(st.allMean, midY - 2 - topH, midY - 2,
+    'rgba(242,235,221,.75)', 'rgba(242,235,221,.95)', '平均 ' + fmt(st.allMean), true, true);
+  if (st.pubN) meanMark(st.pubMean, midY + 2, midY + 2 + botH,
+    '#fff3dd', '#f3b869', '平均 ' + fmt(st.pubMean), false, false);
+
+  /* 文字 */
+  hx.font = '500 11.5px system-ui,sans-serif';
+  hx.textAlign = 'left';
+  hx.textBaseline = 'top';
+  hx.fillStyle = 'rgba(162,147,125,.95)';
+  hx.fillText('全部跑過的研究 · ' + st.n + ' 個', padL, 2);
+  hx.textBaseline = 'bottom';
+  hx.fillStyle = 'rgba(232,163,74,.95)';
+  hx.fillText('進得了文獻的 · ' + st.pubN + ' 個', padL, HH - 12);
+
+  hx.textBaseline = 'top';
+  hx.textAlign = 'center';
+  hx.fillStyle = 'rgba(111,182,168,.95)';
+  hx.fillText('真實效果 = 0', X(0), HH - padB + 8);
+  hx.textAlign = 'right';
+  hx.fillStyle = 'rgba(162,147,125,.8)';
+  hx.fillText('雙語比較好 →', padL + pw, HH - padB + 8);
+}
+
+var allMeanEl = document.getElementById('allMean'),
+    allSubEl  = document.getElementById('allSub'),
+    pubMeanEl = document.getElementById('pubMean'),
+    pubSubEl  = document.getElementById('pubSub'),
+    verdictEl = document.getElementById('verdict');
+
+function fmt(x){ return (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(3); }
+function pct(x){ return x < 10 ? x.toFixed(1) + '%' : x.toFixed(0) + '%'; }
+
+function simRender(){
+  var st = stats();
+  allMeanEl.textContent = st.n ? fmt(st.allMean) : '—';
+  allSubEl.textContent = st.n ? (st.n + ' 個研究的平均 Cohen’s d') : '平均效果量';
+  pubMeanEl.textContent = st.pubN ? fmt(st.pubMean) : '—';
+  pubSubEl.textContent = st.pubN
+    ? (st.pubN + ' 個通過門檻（發表率 ' + pct(st.pubN / st.n * 100) + '）')
+    : (st.n ? '一個都沒通過' : '平均效果量');
+
+  var msg;
+  if (!st.n) msg = '';
+  else if (SIM.pmax >= 1 && !SIM.dirOnly){
+    msg = '門檻整個拿掉時，文獻就等於全部研究：平均 ' + fmt(st.pubMean) + '，貼著零。這才是這批研究的真相。';
+  } else if (!st.pubN){
+    msg = '這道門太窄，一個研究都沒通過。文獻是空的。';
+  } else if (st.pubMean - st.allMean > 0.15){
+    msg = '底層的真實差異是零，全部研究的平均是 ' + fmt(st.allMean) + '。但通過這道門的那些，平均卻是 '
+        + fmt(st.pubMean) + '——只讀文獻的人會看到一個看起來很紮實的效應，而它整個是門檻造出來的。';
+  } else {
+    msg = '這道門比較寬鬆，文獻的平均（' + fmt(st.pubMean) + '）還沒偏離全部研究的平均（' + fmt(st.allMean) + '）太多。把門收緊看看。';
+  }
+  verdictEl.textContent = msg;
+  drawHist();
+}
+
+var BATCH = 600, CAP = 9000;
+var moreBtn = document.getElementById('runMore');
+function addBatch(k){
+  var b = runBatch(SIM.rng, SIM.norm, k);
+  for (var i = 0; i < b.length; i++) SIM.studies.push(b[i]);
+  if (SIM.studies.length >= CAP){
+    moreBtn.disabled = true;
+    moreBtn.textContent = '已經跑了 ' + SIM.studies.length + ' 個';
+  }
+}
+moreBtn.addEventListener('click', function(){
+  if (SIM.studies.length >= CAP) return;
+  addBatch(BATCH);
+  simRender();
+});
+document.getElementById('reset').addEventListener('click', function(){
+  simReset();
+  moreBtn.disabled = false;
+  moreBtn.textContent = '再跑 ' + BATCH + ' 個研究';
+  addBatch(BATCH * 2);
+  simRender();
+});
+var segBtns = document.querySelectorAll('.seg button');
+for (var sb = 0; sb < segBtns.length; sb++){
+  (function(btn){
+    btn.addEventListener('click', function(){
+      for (var q = 0; q < segBtns.length; q++) segBtns[q].setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-pressed', 'true');
+      SIM.pmax = parseFloat(btn.getAttribute('data-p'));
+      simRender();
+    });
+  })(segBtns[sb]);
+}
+document.getElementById('dirOnly').addEventListener('change', function(e){
+  SIM.dirOnly = !!e.target.checked;
+  simRender();
+});
+
+var histRz = null;
+window.addEventListener('resize', function(){
+  clearTimeout(histRz);
+  histRz = setTimeout(function(){ if (fitHist(false)) drawHist(); }, 120);
+});
+if ('ResizeObserver' in window){
+  var ro2 = new ResizeObserver(function(){ if (fitHist(false)) drawHist(); });
+  ro2.observe(hc);
+}
+fitHist(true);
+
+/* 第一次捲到模擬器就先跑一批 */
+var simStarted = false;
+function startSim(){
+  if (simStarted) return;
+  simStarted = true;
+  addBatch(BATCH * 2);
+  simRender();
+}
+if ('IntersectionObserver' in window){
+  var io3 = new IntersectionObserver(function(es, obs){
+    if (es[0].isIntersecting){ startSim(); obs.disconnect(); }
+  }, { rootMargin:'120px 0px' });
+  io3.observe(hc);
+} else {
+  startSim();
+}
+
+/* reduced-motion 動態切換 */
+onReducedChange(function(){
+  if (reduced()){ revealAll(); snapNow(); }
+  else setRunning();
+});
+
+/* 對外暴露給測試用 */
+window.BILINGADV = {
+  mulberry32: mulberry32, gammaln: gammaln, betai: betai,
+  tPvalue: tPvalue, tTest: tTest, makeNormal: makeNormal, runBatch: runBatch,
+  SIM: SIM, stats: stats, passes: passes, simRender: simRender,
+  addBatch: addBatch, binCounts: binCounts, BATCH: BATCH,
+  toggleDrawer: toggleDrawer, slips: slips, layout: layout, draw: draw,
+  fitCanvas: fitCanvas, relayout: relayout, drawHist: drawHist,
+  counts: { PUB_SUP: PUB_SUP, PUB_CHA: PUB_CHA, ALL_SUP: ALL_SUP, ALL_CHA: ALL_CHA }
+};
+})();
+</script>
+</body>
+</html>

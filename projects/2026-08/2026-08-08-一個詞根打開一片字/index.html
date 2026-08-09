@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一個詞根打開一片字</title>
+<meta name="description" content="inspect、respect、spectator、prospect、suspect —— 同一把鑰匙。把任何英文字丟進來，看它裂成字首、詞根、字尾。">
+<style>
+:root{
+  --bg:#070b11; --bg2:#0b1119; --panel:#0e1621; --ink:#e9f0f7; --dim:#8ba0b5; --dim2:#63798e;
+  --line:#1a2836; --line2:#243444;
+  --pre:#ffb547; --root:#3ee0a4; --suf:#a68cff; --mute:#5d7085; --warn:#ff7a7a;
+  --sp:clamp(56px,9vw,104px);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:
+    radial-gradient(1200px 700px at 80% -10%,rgba(62,224,164,.09),transparent 60%),
+    radial-gradient(900px 600px at 5% 15%,rgba(166,140,255,.07),transparent 60%),
+    var(--bg);
+  color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:17px;line-height:1.85;-webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+a{color:inherit}
+.wrap{width:min(920px,92vw);margin:0 auto}
+
+/* 回首頁 */
+.home{
+  position:fixed;top:14px;left:14px;z-index:60;font-size:.78rem;letter-spacing:.06em;
+  color:var(--dim);text-decoration:none;padding:7px 13px;border:1px solid var(--line);
+  border-radius:999px;background:rgba(7,11,17,.72);backdrop-filter:blur(8px);
+  transition:color .25s,border-color .25s,transform .25s;
+}
+.home:hover,.home:focus-visible{color:var(--root);border-color:rgba(62,224,164,.5);transform:translateX(-2px)}
+
+:focus-visible{outline:2px solid var(--root);outline-offset:3px;border-radius:6px}
+
+/* ---------- 第一屏 ---------- */
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:96px 0 64px;position:relative}
+.kicker{font-size:.74rem;letter-spacing:.34em;color:var(--dim2);margin:0 0 20px;text-transform:uppercase}
+h1{
+  font-size:clamp(2rem,6.6vw,3.9rem);line-height:1.14;margin:0 0 10px;font-weight:900;letter-spacing:-.02em;
+}
+h1 em{font-style:normal;color:var(--root)}
+.sub{color:var(--dim);margin:0 0 40px;max-width:34em;font-size:clamp(.95rem,2.5vw,1.06rem)}
+
+.five{position:relative;margin:0 0 34px;padding:6px 0}
+.fw{
+  display:flex;font-size:clamp(1.45rem,6.4vw,2.5rem);font-weight:700;letter-spacing:.02em;
+  padding:3px 0;will-change:transform;transition:transform .85s cubic-bezier(.16,.9,.24,1);
+}
+.fw span{display:inline-block;transition:opacity .5s ease,color .5s ease,transform .5s ease}
+.aligned .fw span.off{opacity:.16}
+.aligned .fw span.on{color:var(--root);text-shadow:0 0 22px rgba(62,224,164,.55)}
+.hint .fw span.on{color:var(--root)}
+.beam{
+  position:absolute;top:0;bottom:0;width:2px;left:0;
+  background:linear-gradient(180deg,transparent,rgba(62,224,164,.85),transparent);
+  opacity:0;transform:scaleY(.2);transform-origin:50% 50%;
+  transition:opacity .5s ease,transform .7s cubic-bezier(.16,.9,.24,1);pointer-events:none;
+}
+.beam.on{opacity:1;transform:scaleY(1)}
+
+.btnrow{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+button{font:inherit;cursor:pointer}
+.btn{
+  background:var(--root);color:#04120c;border:0;padding:12px 24px;border-radius:999px;
+  font-weight:800;font-size:.95rem;letter-spacing:.02em;
+  transition:transform .2s,box-shadow .3s,opacity .2s;box-shadow:0 8px 30px rgba(62,224,164,.22);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 38px rgba(62,224,164,.34)}
+.btn:active{transform:translateY(0)}
+.btn[disabled]{opacity:.35;cursor:default;transform:none;box-shadow:none}
+.ghost{background:transparent;color:var(--dim);border:1px solid var(--line2);padding:11px 20px;border-radius:999px;font-size:.9rem;transition:color .2s,border-color .2s}
+.ghost:hover{color:var(--ink);border-color:var(--dim)}
+
+.revealbox{
+  margin-top:34px;border-left:2px solid var(--root);padding:4px 0 4px 20px;
+  opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s cubic-bezier(.16,.9,.24,1);
+}
+.revealbox.in{opacity:1;transform:none}
+.revealbox p{margin:0 0 8px}
+.revealbox .big{font-size:clamp(1.2rem,3.6vw,1.6rem);font-weight:800;line-height:1.5}
+.revealbox .big b{color:var(--root)}
+.scrollcue{margin-top:26px;font-size:.8rem;color:var(--dim2);letter-spacing:.14em}
+
+/* ---------- 章節 ---------- */
+section{padding:var(--sp) 0;position:relative}
+.tag{font-size:.72rem;letter-spacing:.3em;color:var(--dim2);margin:0 0 14px}
+h2{font-size:clamp(1.5rem,4.4vw,2.3rem);line-height:1.3;margin:0 0 18px;font-weight:850;letter-spacing:-.01em}
+h3{font-size:clamp(1.05rem,2.8vw,1.25rem);margin:0 0 12px;font-weight:800}
+p{margin:0 0 18px}
+.lead{font-size:clamp(1.02rem,2.7vw,1.16rem)}
+.dim{color:var(--dim)}
+.small{font-size:.88rem;line-height:1.75}
+hr.sep{border:0;border-top:1px solid var(--line);margin:44px 0}
+
+.rv{opacity:0;transform:translateY(22px);transition:opacity .8s ease,transform .8s cubic-bezier(.16,.9,.24,1)}
+.rv.in{opacity:1;transform:none}
+
+.numline{display:flex;flex-wrap:wrap;gap:clamp(20px,5vw,52px);margin:26px 0 10px}
+.num{flex:1 1 190px}
+.num b{display:block;font-size:clamp(1.9rem,6vw,2.9rem);font-weight:900;line-height:1.05;color:var(--root);letter-spacing:-.02em}
+.num > span{display:block;color:var(--dim);font-size:.88rem;line-height:1.6;margin-top:6px}
+
+/* 效果量 */
+.evid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(18px,3vw,30px);margin-top:8px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));border:1px solid var(--line);border-radius:16px;padding:22px}
+.card h3{margin-bottom:4px}
+.card .cite{font-size:.76rem;color:var(--dim2);margin:0 0 16px;line-height:1.6}
+.bars{margin:0}
+.bar{margin:0 0 13px}
+.bar .bl{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:.83rem;color:var(--dim);margin-bottom:6px}
+.bar .bl b{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:700}
+.track{display:block;height:7px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden}
+.fill{display:block;height:100%;border-radius:99px;background:var(--root);transform:scaleX(0);transform-origin:0 50%;transition:transform 1.1s cubic-bezier(.16,.9,.24,1)}
+.in .fill{transform:scaleX(var(--v))}
+.fill.v2{background:var(--suf)}
+.fill.ns{background:var(--mute)}
+.legend{font-size:.76rem;color:var(--dim2);margin:10px 0 0}
+
+/* ---------- 實驗室 ---------- */
+.lab{background:linear-gradient(180deg,transparent,rgba(255,255,255,.018) 12%,rgba(255,255,255,.018) 88%,transparent)}
+.tabs{display:flex;gap:8px;margin:0 0 18px}
+.tab{
+  background:transparent;border:1px solid var(--line2);color:var(--dim);border-radius:999px;
+  padding:9px 18px;font-size:.88rem;font-weight:700;transition:.2s;
+}
+.tab[aria-selected="true"]{background:rgba(62,224,164,.13);border-color:rgba(62,224,164,.5);color:var(--root)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:clamp(18px,3.4vw,30px)}
+label.fl{display:block;font-size:.82rem;color:var(--dim);margin:0 0 10px;letter-spacing:.04em}
+.inrow{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{
+  flex:1 1 240px;min-width:0;background:#060a10;border:1px solid var(--line2);color:var(--ink);
+  border-radius:12px;padding:14px 16px;font-size:1.05rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  letter-spacing:.03em;transition:border-color .2s,box-shadow .2s;
+}
+input[type=text]:focus{border-color:rgba(62,224,164,.6);box-shadow:0 0 0 3px rgba(62,224,164,.12);outline:none}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0 0}
+.chip{
+  background:rgba(255,255,255,.05);border:1px solid var(--line2);color:var(--dim);border-radius:999px;
+  padding:6px 13px;font-size:.83rem;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  transition:.18s;
+}
+.chip:hover{color:var(--root);border-color:rgba(62,224,164,.45);background:rgba(62,224,164,.08)}
+
+/* 拆解積木 */
+.stage{margin-top:26px}
+.blocks{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin:0 0 4px}
+.blk{
+  border-radius:14px;padding:12px 16px 11px;border:1px solid;min-width:64px;text-align:center;
+  will-change:transform,opacity;
+}
+.blk .bw{font-size:clamp(1.3rem,4.6vw,2rem);font-weight:800;letter-spacing:.03em;line-height:1.25;display:block}
+.blk .bk{display:block;font-size:.66rem;letter-spacing:.2em;margin-bottom:5px;opacity:.85}
+.blk .bm{display:block;font-size:.82rem;line-height:1.5;margin-top:7px;color:var(--ink);opacity:0;transform:translateY(6px);transition:opacity .5s ease,transform .5s ease}
+.blk.show .bm{opacity:.92;transform:none}
+.blk.k-prefix{border-color:rgba(255,181,71,.5);background:rgba(255,181,71,.09);border-style:dashed}
+.blk.k-prefix .bw,.blk.k-prefix .bk{color:var(--pre)}
+.blk.k-root{border-color:rgba(62,224,164,.55);background:rgba(62,224,164,.1);border-style:solid;border-width:2px}
+.blk.k-root .bw,.blk.k-root .bk{color:var(--root)}
+.blk.k-suffix{border-color:rgba(166,140,255,.5);background:rgba(166,140,255,.09);border-style:dotted;border-width:2px}
+.blk.k-suffix .bw,.blk.k-suffix .bk{color:var(--suf)}
+.blk.k-mute,.blk.k-link{border-color:var(--line2);background:rgba(255,255,255,.03);border-style:solid}
+.blk.k-mute .bw,.blk.k-link .bw,.blk.k-mute .bk,.blk.k-link .bk{color:var(--mute)}
+
+.gloss{
+  margin:22px 0 0;font-size:clamp(1.05rem,3vw,1.3rem);line-height:1.65;font-weight:700;
+  opacity:0;transform:translateY(10px);transition:opacity .6s ease .1s,transform .6s ease .1s;
+}
+.gloss.show{opacity:1;transform:none}
+.gloss .ar{color:var(--dim2);margin:0 8px;font-weight:400}
+.gloss .fin{color:var(--root)}
+
+.flagline{margin:16px 0 0;display:flex;gap:10px;align-items:flex-start;font-size:.9rem;line-height:1.7;
+  border-radius:12px;padding:11px 14px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
+.flagline .ic{font-weight:900;flex:0 0 auto;font-size:1rem;line-height:1.6}
+.flagline.t2{border-color:rgba(62,224,164,.32)} .flagline.t2 .ic{color:var(--root)}
+.flagline.t1{border-color:rgba(255,181,71,.32)} .flagline.t1 .ic{color:var(--pre)}
+.flagline.t0{border-color:rgba(255,122,122,.38);background:rgba(255,122,122,.06)} .flagline.t0 .ic{color:var(--warn)}
+.flagline.guess{border-color:var(--line2)} .flagline.guess .ic{color:var(--dim)}
+
+.fan{margin-top:30px}
+.fan h4{margin:0 0 4px;font-size:1rem;font-weight:800}
+.fan .fh{color:var(--dim);font-size:.86rem;margin:0 0 14px}
+.fanlist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:2px 22px}
+.fanlist li{
+  display:flex;gap:10px;align-items:baseline;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);
+  font-size:.92rem;opacity:0;transform:translateY(8px);transition:opacity .45s ease,transform .45s ease;
+}
+.fanlist li.in{opacity:1;transform:none}
+.fanlist .w{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.02em}
+.fanlist .w .r{color:var(--root)}
+.fanlist .m{color:var(--dim);font-size:.85rem;margin-left:auto;text-align:right;white-space:nowrap}
+.fanlist .t{flex:0 0 auto;font-size:.72rem;font-weight:900;width:1.1em;text-align:center}
+.fanlist .t.t2{color:var(--root)} .fanlist .t.t1{color:var(--pre)} .fanlist .t.t0{color:var(--warn)}
+.fanfoot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:16px}
+.copystat{font-size:.83rem;color:var(--dim)}
+
+.empty{color:var(--dim);font-size:.95rem;padding:16px 0 4px;line-height:1.8}
+.empty b{color:var(--ink)}
+
+/* 測驗 */
+.qword{font-size:clamp(2rem,8vw,3.4rem);font-weight:900;letter-spacing:.01em;margin:6px 0 4px;line-height:1.1}
+.qhint{color:var(--dim);font-size:.9rem;margin:0 0 22px}
+.opts{display:grid;gap:10px;margin:0 0 6px}
+.opt{
+  text-align:left;background:rgba(255,255,255,.035);border:1px solid var(--line2);color:var(--ink);
+  border-radius:12px;padding:13px 16px;font-size:.96rem;transition:.18s;line-height:1.6;
+}
+.opt:hover:not([disabled]){border-color:rgba(62,224,164,.5);background:rgba(62,224,164,.07)}
+.opt[disabled]{cursor:default}
+.opt.right{border-color:var(--root);background:rgba(62,224,164,.14)}
+.opt.wrong{border-color:rgba(255,122,122,.6);background:rgba(255,122,122,.1)}
+.qafter{margin-top:18px;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
+.qafter.in{opacity:1;transform:none}
+.score{font-size:.85rem;color:var(--dim);margin:0 0 14px;font-variant-numeric:tabular-nums}
+
+/* 陷阱牆 */
+.trapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:8px}
+.trap{
+  background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:15px 16px;
+  text-align:left;color:var(--ink);transition:.22s;position:relative;
+}
+.trap:hover{border-color:var(--line2);transform:translateY(-2px)}
+.trap .tw{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:1.12rem;font-weight:800;display:block}
+.trap .tp{font-size:.82rem;color:var(--dim);display:block;margin-top:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.trap .tr{display:block;margin-top:10px;font-size:.86rem;line-height:1.6;color:var(--dim);
+  max-height:0;overflow:hidden;opacity:0;transition:max-height .45s ease,opacity .35s ease}
+.trap.open .tr{max-height:220px;opacity:1}
+.trap.open{border-color:rgba(255,122,122,.45);background:rgba(255,122,122,.05)}
+.trap .tr b{color:var(--warn)}
+
+/* 法則 */
+.rules{list-style:none;margin:0;padding:0;counter-reset:r}
+.rules li{counter-increment:r;position:relative;padding:16px 0 16px 54px;border-bottom:1px solid var(--line)}
+.rules li::before{
+  content:counter(r);position:absolute;left:0;top:14px;width:34px;height:34px;border-radius:50%;
+  border:1px solid rgba(62,224,164,.4);color:var(--root);display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;font-weight:800;
+}
+.rules b{color:var(--ink)}
+.rules .ex{color:var(--dim2);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem}
+
+.closing{font-size:clamp(1.2rem,4vw,1.8rem);font-weight:850;line-height:1.5;margin:6px 0 22px}
+.closing em{font-style:normal;color:var(--root)}
+
+footer{padding:44px 0 60px;border-top:1px solid var(--line);color:var(--dim2);font-size:.8rem;line-height:2}
+footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid transparent;transition:.2s}
+footer a:hover{color:var(--root);border-color:rgba(62,224,164,.5)}
+.fr{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:560px){
+  body{font-size:16px}
+  .evid{grid-template-columns:1fr}
+  .fanlist{grid-template-columns:1fr}
+  .home{top:10px;left:10px;font-size:.72rem;padding:6px 11px}
+  .hero{padding-top:76px}
+  .blocks{gap:10px}
+  .blk{padding:10px 12px 9px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition-duration:.001ms !important;animation-duration:.001ms !important;animation-iteration-count:1 !important}
+  .rv{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">先別急著往下捲</p>
+    <h1>這五個字<br>有一個共同點</h1>
+    <p class="sub">它們看起來各管各的：檢查、尊敬、觀眾、前景、懷疑。可是有一段東西藏在每個字裡面，只是位置不一樣。找找看。</p>
+
+    <div class="five" id="five" aria-label="五個英文字：inspect、respect、spectator、prospect、suspect">
+      <span class="beam" id="beam" aria-hidden="true"></span>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="btnAlign">我看出來了，對齊給我看</button>
+      <button class="ghost" id="btnHint">給我一點提示</button>
+    </div>
+
+    <div class="revealbox" id="revealbox" hidden aria-live="polite">
+      <p class="big"><b>spect</b>＝「看」。五個字，一把鑰匙。</p>
+      <p class="dim">in-spect 往裡面看。re-spect 一再回頭看。spect-ator 看的人。pro-spect 往前看。su-spect 從下面偷看。</p>
+      <p class="scrollcue">往下 ↓ 這把鑰匙後面還有九十九把</p>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section class="wrap rv" id="c1">
+  <p class="tag">第一幕・帳單</p>
+  <h2>你剛剛不是背了五個字</h2>
+  <p class="lead">你拿到了一把鑰匙。而英文的學術詞彙，有一大半是用這種鑰匙組出來的——有限的詞根，配上有限的字首字尾，長出看似無限的字。</p>
+  <div class="numline">
+    <div class="num"><b>88,500</b><span>Nagy 與 Anderson（1984）估計的「學童讀物英語」詞族總量。一個一個背，這是分母。</span></div>
+    <div class="num"><b>約 60%</b><span>同一份研究估計：讀者遇到的生字裡，這個比例的意思可以從組成的詞素推出來。</span></div>
+    <div class="num"><b id="sRoots">100</b><span>這一頁內建的詞根數量。它們一共牽著 <span id="sMembers">632</span> 個字——等一下你可以親自打開任何一扇。</span></div>
+  </div>
+</section>
+
+<section class="wrap rv" id="c2">
+  <p class="tag">第二幕・證據</p>
+  <h2>那，這招真的有用嗎</h2>
+  <p>有人把這件事量過。兩次，隔了十四年，結論不完全一樣——這比只講其中一次誠實。</p>
+
+  <div class="evid">
+    <div class="card rv" id="ev1">
+      <h3>2010 年：有用，弱讀者更有用</h3>
+      <p class="cite">Bowers、Kirby 與 Deacon 在 <i>Review of Educational Research</i> 統整 22 篇同儕審查研究（學前到八年級），以 Cohen's <i>d</i> 平均。以下為「對照組沒有額外介入」時的平均效果量。</p>
+      <div class="bars">
+        <div class="bar"><span class="bl">構詞能力本身<b>0.65</b></span><span class="track"><span class="fill" style="--v:.65"></span></span></div>
+        <div class="bar"><span class="bl">單字層次的詞彙<b>0.41</b></span><span class="track"><span class="fill" style="--v:.41"></span></span></div>
+        <div class="bar"><span class="bl">拼字、解碼等其他字內能力<b>0.34</b></span><span class="track"><span class="fill" style="--v:.34"></span></span></div>
+        <div class="bar"><span class="bl">句段層次的閱讀理解<b>0.28</b></span><span class="track"><span class="fill" style="--v:.28"></span></span></div>
+      </div>
+      <p class="legend">分技能看：閱讀 0.41、拼字 0.49、詞彙 0.35。閱讀能力較弱的樣本受益更明顯——構詞能力 <b>0.99</b> 對上一般樣本的 0.65。</p>
+    </div>
+
+    <div class="card rv" id="ev2">
+      <h3>2024 年：有用，但只在你教過的字上</h3>
+      <p class="cite">Colenbrander 等九人在 <i>Educational Psychology Review</i> 做了預先註冊的統合分析：28 篇研究、177 個效果量，用穩健變異估計處理相依。以下為立即後測。</p>
+      <div class="bars">
+        <div class="bar"><span class="bl">教過的那些字・拼字<b>0.85</b></span><span class="track"><span class="fill v2" style="--v:.85"></span></span></div>
+        <div class="bar"><span class="bl">教過的那些字・閱讀<b>0.83</b></span><span class="track"><span class="fill v2" style="--v:.83"></span></span></div>
+        <div class="bar"><span class="bl">整體拼字<b>0.38</b></span><span class="track"><span class="fill v2" style="--v:.38"></span></span></div>
+        <div class="bar"><span class="bl">整體閱讀<b>0.27</b></span><span class="track"><span class="fill v2" style="--v:.27"></span></span></div>
+        <div class="bar"><span class="bl">閱讀理解（未達顯著）<b>0.13</b></span><span class="track"><span class="fill ns" style="--v:.13"></span></span></div>
+      </div>
+      <p class="legend">灰色那條的 95% 信賴區間跨過零。這一份也沒有複製出「閱讀弱勢受益更多」；遷移到沒教過的字，只有拼字看得到一點證據（0.55），閱讀沒有。</p>
+    </div>
+  </div>
+
+  <p class="small dim" style="margin-top:26px">兩份加起來要怎麼讀？拆字有效，但它不是自動翻譯機。<b style="color:var(--ink)">最紮實的效果來自「你親手拆過的那些字」</b>——所以下面那台機器的正確用法，是把你正在學的字丟進去，不是指望它替你讀懂沒學過的文章。</p>
+</section>
+
+<hr class="sep wrap">
+
+<section class="lab" id="lab">
+ <div class="wrap">
+  <p class="tag rv">第三幕・你的手</p>
+  <h2 class="rv">把字丟進去，看它裂開</h2>
+  <p class="rv dim" style="max-width:36em">內建 <span id="sRoots2">100</span> 個詞根、<span id="sPre">64</span> 組字首、<span id="sSuf">43</span> 組字尾，還有英文最麻煩的那部分——同化：in- 碰到 p 變 im、碰到 l 變 il、碰到 r 變 ir；ad- 幾乎跟著下一個子音整個變形。所以 impossible、illegal、irregular、accept、affect 它都拆得動。</p>
+
+  <div class="tabs rv" role="tablist" aria-label="工具模式">
+    <button class="tab" id="tabSplit" role="tab" aria-selected="true" aria-controls="panSplit">拆解</button>
+    <button class="tab" id="tabQuiz" role="tab" aria-selected="false" aria-controls="panQuiz">猜字測驗</button>
+  </div>
+
+  <div class="panel rv" id="panSplit" role="tabpanel" aria-labelledby="tabSplit">
+    <label class="fl" for="wordIn">丟一個英文字進來（單字，不含空白）</label>
+    <div class="inrow">
+      <input type="text" id="wordIn" placeholder="inspect" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="要拆解的英文字">
+      <button class="btn" id="btnGo">拆開它</button>
+    </div>
+    <div class="chips" id="samples" aria-label="範例字"></div>
+
+    <div class="stage" id="stage" role="status" aria-live="polite">
+      <p class="empty" id="emptyMsg">試試上面任何一顆範例字，或直接輸入你正在背的字。<b>拆不動的字它會直說</b>——猜錯比拆不開更糟。</p>
+    </div>
+  </div>
+
+  <div class="panel rv" id="panQuiz" role="tabpanel" aria-labelledby="tabQuiz" hidden>
+    <p class="score" id="qscore"></p>
+    <p class="qhint" id="qlead">下面這個字你大概沒看過。但它是用你剛剛學到的零件組的——先猜，再揭曉。</p>
+    <p class="qword mono" id="qword">—</p>
+    <div class="opts" id="qopts"></div>
+    <div class="qafter" id="qafter" hidden aria-live="polite"></div>
+    <div class="btnrow" style="margin-top:18px">
+      <button class="btn" id="qnext">下一題</button>
+      <button class="ghost" id="qreset">歸零成績</button>
+    </div>
+  </div>
+ </div>
+</section>
+
+<section class="wrap rv" id="c4">
+  <p class="tag">第四幕・拆了會被騙的字</p>
+  <h2>誠實一點：這招有一半的時候會騙你</h2>
+  <p class="lead">下面每一個字都拆得開，零件也都對。可是拆完得到的意思，跟它今天的意思差了十萬八千里。點開看它們怎麼跑掉的。</p>
+  <div class="trapgrid" id="traps"></div>
+  <p class="small dim" style="margin-top:22px">還有更兇的一類：長得像可拆、其實整個不是這棟樓的字。<span class="mono">understand</span> 不是「站在下面」、<span class="mono">sister</span> 沒有 sist（站）、<span class="mono">man</span> 跟拉丁文的「手」毫無關係。這些字來自日耳曼語那一支，詞根樂高蓋不到它們身上——所以這台機器內建了一份 <span id="sBlocked">234</span> 個字的拒拆名單，寧可說「我拆不動」。</p>
+</section>
+
+<section class="wrap rv" id="c5">
+  <p class="tag">帶得走的</p>
+  <h2>什麼時候該拆，什麼時候別拆</h2>
+  <ol class="rules">
+    <li><b>拆完能講出一句你自己聽得懂的白話，就拆。</b><br><span class="ex">inspect ＝ 往裡面看。這種字拆一次記一輩子。</span></li>
+    <li><b>要用力凹才接得上現代意思，那就記那個「凹」的故事，別把它當定義。</b><br><span class="ex">respect ＝ 一再回頭看 → 看重。故事比定義好記，但別拿去考試。</span></li>
+    <li><b>拆出來的意思跟現代意思打架，立刻丟掉拆解，直接背。</b><br><span class="ex">object、pretend、decide、very——零件對，答案錯。</span></li>
+    <li><b>短的、天天在用的、看起來很英文的字，通常拆不動。</b><br><span class="ex">詞根樂高只蓋在拉丁與希臘那半棟樓上。man、path、ever 住在另一棟。</span></li>
+  </ol>
+
+  <p class="closing" style="margin-top:40px">背單字之所以那麼累，是因為你把一個<em>系統</em>當成一份<em>清單</em>在背。</p>
+  <p class="dim">清單有八萬八千筆。系統只有幾百個零件。<a href="#lab" style="color:var(--root);text-decoration:none;border-bottom:1px solid rgba(62,224,164,.4)">機器還開著</a>，把你今天卡住的那個字丟進去。</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap fr">
+    <span>資料來源：Review of Educational Research (2010)、Educational Psychology Review (2024)、Reading Research Quarterly (1984)</span>
+    <a href="../../../index.html">← 回首頁</a>
+  </div>
+</footer>
+
+<script src="morphemes.js"></script>
+<script id="engine">
+/* ================= 拆解引擎（純函式，可獨立測試） ================= */
+function makeEngine(DB) {
+  var PRE = [], SUF = [], ROOT = [];
+  DB.prefixes.forEach(function (g) { g.f.forEach(function (f) { PRE.push({ s: f, g: g }); }); });
+  DB.suffixes.forEach(function (g) { g.f.forEach(function (f) { SUF.push({ s: f, g: g }); }); });
+  DB.roots.forEach(function (r) { r.f.forEach(function (f) { ROOT.push({ s: f, r: r }); }); });
+  PRE.sort(function (a, b) { return b.s.length - a.s.length; });
+  SUF.sort(function (a, b) { return b.s.length - a.s.length; });
+  ROOT.sort(function (a, b) { return b.s.length - a.s.length; });
+
+  var BLOCK = {};
+  (DB.blocked || []).forEach(function (w) { BLOCK[w] = 1; });
+  var MEM = {};
+  DB.roots.forEach(function (r) {
+    r.members.forEach(function (m) { (MEM[m[0]] = MEM[m[0]] || []).push(r.id); });
+  });
+
+  var VOWEL = "aeiou";
+  function isVowel(c) { return VOWEL.indexOf(c) >= 0; }
+
+  function sufSeqs(w, i, depth, out, acc) {
+    if (i === w.length) { out.push(acc.slice()); return; }
+    if (depth >= 4) return;
+    if (i === w.length - 1 && w[i] === "e") { out.push(acc.slice()); return; }
+    if (depth === 0 && w[i] === "e" && i + 1 < w.length) sufSeqs(w, i + 1, depth, out, acc);
+    if (i > 0 && depth === 0 && w[i] === w[i - 1] && !isVowel(w[i]) && i + 1 < w.length) sufSeqs(w, i + 1, depth, out, acc);
+    for (var k = 0; k < SUF.length; k++) {
+      var s = SUF[k].s;
+      if (w.startsWith(s, i)) { acc.push(SUF[k]); sufSeqs(w, i + s.length, depth + 1, out, acc); acc.pop(); }
+    }
+  }
+
+  function preSeqs(w, i, depth, out, acc) {
+    out.push({ i: i, pre: acc.slice() });
+    if (depth >= 3) return;
+    for (var k = 0; k < PRE.length; k++) {
+      var p = PRE[k].s;
+      if (w.startsWith(p, i) && i + p.length < w.length) {
+        acc.push(PRE[k]); preSeqs(w, i + p.length, depth + 1, out, acc); acc.pop();
+      }
+    }
+  }
+
+  function rootsAt(w, i) {
+    var r = [];
+    for (var k = 0; k < ROOT.length; k++) if (w.startsWith(ROOT[k].s, i)) r.push(ROOT[k]);
+    return r;
+  }
+
+  function finish(w, j, pre, rts, links, cands) {
+    var seqs = [];
+    sufSeqs(w, j, 0, seqs, []);
+    for (var t = 0; t < seqs.length; t++) cands.push({ pre: pre.slice(), roots: rts.slice(), links: links.slice(), suf: seqs[t] });
+  }
+
+  function candidates(w) {
+    var starts = [], cands = [];
+    preSeqs(w, 0, 0, starts, []);
+    for (var a = 0; a < starts.length; a++) {
+      var st = starts[a], r1s = rootsAt(w, st.i);
+      for (var b = 0; b < r1s.length; b++) {
+        var r1 = r1s[b], j = st.i + r1.s.length;
+        finish(w, j, st.pre, [r1], [], cands);
+        for (var d = 0; d <= 1; d++) {
+          var p = j + d;
+          if (d === 1 && (p > w.length || DB.links.indexOf(w[j]) < 0)) continue;
+          var r2s = rootsAt(w, p);
+          for (var c = 0; c < r2s.length; c++) {
+            var r2 = r2s[c];
+            if (r2.r.id === r1.r.id) continue;
+            finish(w, p + r2.s.length, st.pre, [r1, r2], d ? [w[j]] : [], cands);
+          }
+        }
+      }
+    }
+    return cands;
+  }
+
+  function score(c) {
+    var rl = 0, i;
+    for (i = 0; i < c.roots.length; i++) rl += c.roots[i].s.length;
+    return rl * 100 - (c.roots.length - 1) * 400 - (c.pre.length + c.suf.length) * 30 - c.links.length * 20;
+  }
+
+  function normalize(raw) {
+    if (raw === null || raw === undefined) return "";
+    return String(raw).trim().toLowerCase().replace(/[’']/g, "");
+  }
+
+  function analyze(raw) {
+    var n = normalize(raw);
+    if (!n) return { ok: false, reason: "empty", input: "" };
+    if (!/^[a-z]+(?:-[a-z]+)*$/.test(n)) return { ok: false, reason: "notword", input: n };
+    var w = n.replace(/-/g, "");
+    if (w.length < 2) return { ok: false, reason: "short", input: n };
+    var inDB = !!MEM[w];
+    if (!inDB && BLOCK[w]) return { ok: false, reason: "blocked", input: w };
+    var cs = candidates(w);
+    if (!cs.length) return { ok: false, reason: "nomatch", input: w };
+    cs.sort(function (a, b) { return score(b) - score(a); });
+    var best = cs[0];
+    if (!inDB) {
+      var nMorph = best.pre.length + best.roots.length + best.suf.length;
+      if (w.length < 6 || nMorph < 2) return { ok: false, reason: "unsure", input: w };
+    }
+    var parts = [], pos = 0, i;
+    for (i = 0; i < best.pre.length; i++) {
+      parts.push({ kind: "prefix", text: best.pre[i].s, mean: best.pre[i].g.m, group: best.pre[i].g });
+      pos += best.pre[i].s.length;
+    }
+    for (i = 0; i < best.roots.length; i++) {
+      if (i > 0 && best.links.length) { parts.push({ kind: "link", text: best.links[0], mean: "連接母音" }); pos += 1; }
+      parts.push({ kind: "root", text: best.roots[i].s, mean: best.roots[i].r.m, root: best.roots[i].r });
+      pos += best.roots[i].s.length;
+    }
+    if (pos < w.length && w.slice(pos) === "e" && !best.suf.length) { parts.push({ kind: "mute", text: "e", mean: "不發音的尾巴" }); pos = w.length; }
+    for (i = 0; i < best.suf.length; i++) {
+      if (pos < w.length && w[pos] !== best.suf[i].s[0]) { parts.push({ kind: "mute", text: w[pos], mean: "接縫用的字母" }); pos += 1; }
+      parts.push({ kind: "suffix", text: best.suf[i].s, mean: best.suf[i].g.m, group: best.suf[i].g });
+      pos += best.suf[i].s.length;
+    }
+    if (pos < w.length) { parts.push({ kind: "mute", text: w.slice(pos), mean: "接縫用的字母" }); pos = w.length; }
+    return {
+      ok: true, word: w, input: n, parts: parts,
+      roots: best.roots.map(function (x) { return x.r; }),
+      known: inDB, claimed: MEM[w] || null
+    };
+  }
+
+  function rootById(id) {
+    for (var i = 0; i < DB.roots.length; i++) if (DB.roots[i].id === id) return DB.roots[i];
+    return null;
+  }
+  function memberInfo(word) {
+    var ids = MEM[word];
+    if (!ids) return null;
+    var r = rootById(ids[0]);
+    for (var j = 0; j < r.members.length; j++) if (r.members[j][0] === word) return r.members[j];
+    return null;
+  }
+  function stats() {
+    var uniq = {}, n = 0;
+    DB.roots.forEach(function (r) { r.members.forEach(function (m) { if (!uniq[m[0]]) { uniq[m[0]] = 1; n++; } }); });
+    return { roots: DB.roots.length, prefixes: DB.prefixes.length, suffixes: DB.suffixes.length,
+             members: n, blocked: (DB.blocked || []).length };
+  }
+  return { analyze: analyze, normalize: normalize, rootById: rootById, memberInfo: memberInfo,
+           stats: stats, DB: DB, MEM: MEM };
+}
+if (typeof MORPH_DB !== "undefined") { var ROOTLAB = makeEngine(MORPH_DB); }
+if (typeof window !== "undefined") { window.makeEngine = makeEngine; window.ROOTLAB = ROOTLAB; }
+if (typeof module !== "undefined" && module.exports) module.exports = makeEngine;
+</script>
+
+<script id="ui">
+(function () {
+  "use strict";
+  var LS = "rootlab26.";
+  var E = window.ROOTLAB;
+  var $ = function (s) { return document.querySelector(s); };
+
+  /* --- reduced motion --- */
+  var mReduced = matchMedia("(prefers-reduced-motion: reduce)");
+  var reduced = function () { return mReduced.matches; };
+  function onReducedChange(fn) {
+    if (mReduced.addEventListener) mReduced.addEventListener("change", fn);
+    else if (mReduced.addListener) mReduced.addListener(fn);
+  }
+
+  /* --- localStorage（靜默失敗） --- */
+  function lsGet(k, dflt) {
+    try { var v = localStorage.getItem(LS + k); return v === null ? dflt : JSON.parse(v); }
+    catch (e) { return dflt; }
+  }
+  function lsSet(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) {} }
+
+  /* --- 捲動進場 --- */
+  var toReveal = [].slice.call(document.querySelectorAll(".rv"));
+  function revealAll() { toReveal.forEach(function (el) { el.classList.add("in"); }); }
+  var io = null;
+  function setupReveal() {
+    if (io) { io.disconnect(); io = null; }
+    if (reduced() || !("IntersectionObserver" in window)) { revealAll(); return; }
+    io = new IntersectionObserver(function (es, obs) {
+      for (var i = 0; i < es.length; i++) if (es[i].isIntersecting) { es[i].target.classList.add("in"); obs.unobserve(es[i].target); }
+    }, { rootMargin: "0px 0px -8% 0px", threshold: .12 });
+    toReveal.forEach(function (el) { if (!el.classList.contains("in")) io.observe(el); });
+  }
+  setupReveal();
+  onReducedChange(function () { setupReveal(); });
+
+  /* ================= 第一屏：五個字對齊 ================= */
+  var FIVE = [
+    ["inspect", 2], ["respect", 2], ["spectator", 0], ["prospect", 3], ["suspect", 2]
+  ];
+  var fiveBox = $("#five"), beam = $("#beam");
+  var rows = FIVE.map(function (pair) {
+    var row = document.createElement("div");
+    row.className = "fw mono";
+    var w = pair[0], at = pair[1];
+    for (var i = 0; i < w.length; i++) {
+      var s = document.createElement("span");
+      s.textContent = w[i];
+      s.className = (i >= at && i < at + 5) ? "on" : "off";
+      row.appendChild(s);
+    }
+    fiveBox.appendChild(row);
+    return { el: row, at: at };
+  });
+
+  var aligned = false;
+  function doAlign() {
+    if (aligned) return;
+    aligned = true;
+    var offs = rows.map(function (r) { return r.el.children[r.at].offsetLeft; });
+    var max = Math.max.apply(null, offs);
+    rows.forEach(function (r, i) { r.el.style.transform = "translateX(" + (max - offs[i]) + "px)"; });
+    fiveBox.classList.add("aligned");
+    fiveBox.classList.remove("hint");
+    var colLeft = max + rows[0].el.children[rows[0].at].offsetLeft * 0;
+    beam.style.transform = "translateX(" + (max - 8) + "px) scaleY(.2)";
+    requestAnimationFrame(function () {
+      beam.style.transform = "translateX(" + (max - 8) + "px)";
+      beam.classList.add("on");
+    });
+    var rb = $("#revealbox");
+    rb.hidden = false;
+    if (reduced()) rb.classList.add("in");
+    else requestAnimationFrame(function () { requestAnimationFrame(function () { rb.classList.add("in"); }); });
+    $("#btnAlign").disabled = true;
+    $("#btnHint").disabled = true;
+    setTimeout(function () {
+      try { rb.scrollIntoView({ behavior: reduced() ? "auto" : "smooth", block: "end" }); } catch (e) { rb.scrollIntoView(false); }
+    }, reduced() ? 0 : 700);
+    fiveBox.setAttribute("aria-label", "五個字已對齊：它們共用詞根 spect，意思是「看」");
+  }
+  $("#btnAlign").addEventListener("click", doAlign);
+  $("#btnHint").addEventListener("click", function () {
+    fiveBox.classList.add("hint");
+    this.textContent = "還是給我答案";
+    this.onclick = doAlign;
+  });
+
+  /* ================= 把資料庫的真實規模寫進文案 ================= */
+  var STAT = E.stats();
+  (function () {
+    var st = STAT;
+    var put = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = String(v); };
+    put("sRoots", st.roots); put("sRoots2", st.roots); put("sMembers", st.members);
+    put("sPre", st.prefixes); put("sSuf", st.suffixes); put("sBlocked", st.blocked);
+  })();
+
+  /* ================= 效果量長條：進場才長 ================= */
+  /* .rv 的 in class 會觸發 CSS 的 .in .fill 規則，無須額外程式 */
+
+  /* ================= 實驗室：拆解 ================= */
+  var SAMPLES = ["inspect", "impossible", "illegal", "irregular", "accept", "affect", "aggression",
+                 "telescope", "biography", "manuscript", "circumspect", "understand"];
+  var chips = $("#samples");
+  SAMPLES.forEach(function (w) {
+    var b = document.createElement("button");
+    b.className = "chip mono"; b.type = "button"; b.textContent = w;
+    b.setAttribute("aria-label", "拆解範例字 " + w);
+    b.addEventListener("click", function () { $("#wordIn").value = w; run(w); });
+    chips.appendChild(b);
+  });
+
+  var stage = $("#stage");
+  var TIER = {
+    2: { ic: "✓", cls: "t2", txt: "拆開就懂：字面意思跟現在的意思基本吻合。" },
+    1: { ic: "~", cls: "t1", txt: "要轉個彎：字面到現代意思中間有一段故事。" },
+    0: { ic: "✕", cls: "t0", txt: "拆得出來，但意思跑掉了：零件都對，答案不對。別靠拆解記這個字。" }
+  };
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+
+  var lastList = "";
+
+  function fail(res, raw) {
+    var msg;
+    if (res.reason === "empty") msg = "先輸入一個英文字。";
+    else if (res.reason === "notword") msg = "<b>我只認得英文字母。</b>數字、中文、標點都不行。";
+    else if (res.reason === "short") msg = "太短了，至少兩個字母。";
+    else if (res.reason === "blocked") msg = "<b>我拆不動 “" + esc(res.input) + "”。</b>它長得像可以拆，但它不是拉丁／希臘那一支的字——硬拆會給你一個好聽的謊。";
+    else msg = "<b>我拆不動 “" + esc(res.input) + "”。</b>我的清單裡沒有能對上的詞根，寧可承認也不亂猜——誤拆比拆不動糟糕得多。";
+    stage.innerHTML = '<p class="empty">' + msg + '<br><span style="opacity:.75">試試 ' +
+      '<span class="mono">retrospective</span>、<span class="mono">transmission</span>、<span class="mono">omnipotent</span>。</span></p>';
+  }
+
+  function run(raw) {
+    var res = E.analyze(raw);
+    if (!res.ok) { fail(res, raw); return; }
+
+    var parts = res.parts;
+    var html = '<div class="blocks" id="blocks">';
+    parts.forEach(function (p, i) {
+      var kname = p.kind === "prefix" ? "字首" : p.kind === "root" ? "詞根" : p.kind === "suffix" ? "字尾" : p.kind === "link" ? "連接" : "接縫";
+      html += '<div class="blk k-' + p.kind + '" data-i="' + i + '">' +
+                '<span class="bk">' + kname + '</span>' +
+                '<span class="bw mono">' + esc(p.text) + '</span>' +
+                '<span class="bm">' + esc(p.mean) + '</span>' +
+              '</div>';
+    });
+    html += '</div>';
+
+    /* 白話串接 */
+    var pieces = parts.filter(function (p) { return p.kind === "prefix" || p.kind === "root" || p.kind === "suffix"; });
+    var gl = pieces.map(function (p) { return '<span>' + esc(p.text) + ' <span style="opacity:.6">' + esc(p.mean.split("（")[0]) + '</span></span>'; }).join('<span class="ar">＋</span>');
+    var mi = res.known ? E.memberInfo(res.word) : null;
+    var finalMean = mi ? mi[2] : null;
+    html += '<p class="gloss" id="gloss">' + gl + (finalMean ? '<span class="ar">→</span><span class="fin">' + esc(finalMean) + '</span>' : '') + '</p>';
+
+    /* 誠實標記 */
+    if (mi) {
+      var t = TIER[mi[1]] || TIER[2];
+      html += '<p class="flagline ' + t.cls + '"><span class="ic">' + t.ic + '</span><span>' + t.txt +
+              (mi[3] ? ' <span style="color:var(--dim)">' + esc(mi[3]) + '</span>' : '') + '</span></p>';
+    } else {
+      html += '<p class="flagline guess"><span class="ic">?</span><span>這個字不在我整理的 ' + STAT.members + ' 個字裡，上面是規則推出來的<b>推測</b>。零件通常對，但「拆完＝現在的意思」不保證。</span></p>';
+    }
+
+    /* 打開的那一片 */
+    var mainRoot = res.roots[0];
+    var sibs = mainRoot.members.filter(function (m) { return m[0] !== res.word; });
+    if (sibs.length) {
+      html += '<div class="fan"><h4>這把鑰匙還開了 ' + sibs.length + ' 扇門</h4>' +
+              '<p class="fh"><span class="mono" style="color:var(--root)">' + esc(mainRoot.f[0]) + '</span>（' + esc(mainRoot.m) + '）・' + esc(mainRoot.src) + '</p><ul class="fanlist" id="fanlist">';
+      sibs.forEach(function (m) {
+        var a = E.analyze(m[0]);
+        var seg = a.ok ? a.parts.map(function (p) {
+          return p.kind === "root" ? '<span class="r">' + esc(p.text) + '</span>' : esc(p.text);
+        }).join("·") : esc(m[0]);
+        var tt = m[1];
+        html += '<li><span class="t t' + tt + '" title="' + (tt === 2 ? '拆開就懂' : tt === 1 ? '要轉個彎' : '意思跑掉了') + '">' +
+                (tt === 2 ? "✓" : tt === 1 ? "~" : "✕") + '</span><span class="w mono">' + seg + '</span><span class="m">' + esc(m[2]) + '</span></li>';
+      });
+      html += '</ul><div class="fanfoot"><button class="ghost" id="btnCopy">複製成學習清單</button><span class="copystat" id="copystat"></span></div></div>';
+      lastList = buildList(mainRoot, res.word);
+    } else { lastList = ""; }
+
+    stage.innerHTML = html;
+
+    /* 動畫：積木先合著，再裂開 */
+    var blocks = [].slice.call(stage.querySelectorAll(".blk"));
+    var gloss = $("#gloss");
+    var items = [].slice.call(stage.querySelectorAll(".fanlist li"));
+    if (reduced()) {
+      blocks.forEach(function (b) { b.classList.add("show"); });
+      if (gloss) gloss.classList.add("show");
+      items.forEach(function (li) { li.classList.add("in"); });
+    } else {
+      var GAP = 14;
+      blocks.forEach(function (b, i) {
+        b.style.transition = "none";
+        b.style.transform = "translateX(" + (-i * GAP) + "px) scale(.96)";
+        b.style.opacity = ".55";
+      });
+      stage.getBoundingClientRect();
+      requestAnimationFrame(function () {
+        blocks.forEach(function (b, i) {
+          b.style.transition = "transform .62s cubic-bezier(.16,.9,.24,1) " + (i * 55) + "ms, opacity .45s ease " + (i * 55) + "ms";
+          b.style.transform = "none";
+          b.style.opacity = "1";
+          setTimeout(function () { b.classList.add("show"); }, 240 + i * 55);
+        });
+        setTimeout(function () { if (gloss) gloss.classList.add("show"); }, 260 + blocks.length * 55);
+        items.forEach(function (li, i) { setTimeout(function () { li.classList.add("in"); }, 380 + i * 34); });
+      });
+    }
+
+    var cp = $("#btnCopy");
+    if (cp) cp.addEventListener("click", copyList);
+
+    /* 記住查過的字 */
+    var hist = lsGet("history", []);
+    if (!Array.isArray(hist)) hist = [];
+    hist = hist.filter(function (x) { return x !== res.word; });
+    hist.unshift(res.word);
+    lsSet("history", hist.slice(0, 40));
+  }
+
+  function buildList(root, focus) {
+    var lines = ["詞根 " + root.f[0] + "（" + root.m + "）— " + root.src, ""];
+    root.members.forEach(function (m) {
+      var a = E.analyze(m[0]);
+      var seg = a.ok ? a.parts.map(function (p) { return p.text; }).join(" + ") : m[0];
+      var mark = m[1] === 2 ? "[透明]" : m[1] === 1 ? "[要轉個彎]" : "[意思跑掉了]";
+      lines.push((m[0] === focus ? "★ " : "  ") + m[0] + " = " + seg + " → " + m[2] + " " + mark + (m[3] ? "（" + m[3] + "）" : ""));
+    });
+    return lines.join("\n");
+  }
+
+  function copyList() {
+    var st = $("#copystat");
+    if (!lastList) return;
+    var done = function () { st.textContent = "已複製 ✓"; setTimeout(function () { st.textContent = ""; }, 2600); };
+    var failMsg = function () { st.textContent = "瀏覽器擋住了剪貼簿——請手動選取複製。"; };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(lastList).then(done, function () { legacy(); });
+      } else legacy();
+    } catch (e) { legacy(); }
+    function legacy() {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = lastList; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand && document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (ok) done(); else failMsg();
+      } catch (e2) { failMsg(); }
+    }
+  }
+
+  $("#btnGo").addEventListener("click", function () { run($("#wordIn").value); });
+  $("#wordIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); run(this.value); } });
+
+  /* ================= 測驗 ================= */
+  var QUIZ = [
+    ["perspicacious", ["洞察力強的", "汗流浹背的", "堅持不懈的", "拐彎抹角的"], 0, "per（徹底）＋spic（看）＋acious（充滿……的）＝「看得很透」。"],
+    ["magnanimous", ["寬宏大量的", "體型巨大的", "心思縝密的", "極度自私的"], 0, "magn（大）＋anim（心）＝「心很大」。"],
+    ["voracious", ["貪吃的、狼吞虎嚥的", "音量很大的", "旋轉的", "有毒的"], 0, "vor（吃）＋acious（充滿……的）。"],
+    ["diffident", ["缺乏自信的", "意見不同的", "冷漠的", "難以理解的"], 0, "dif（不）＋fid（信任）＝「不太信自己」。"],
+    ["anachronism", ["時代錯置的東西", "無政府狀態", "失憶症", "類比訊號"], 0, "ana（回頭）＋chron（時間）＋ism＝「時間放錯地方」。"],
+    ["misanthrope", ["厭惡人類的人", "被誤解的人", "傳教士", "人類學家"], 0, "mis（討厭、錯）＋anthrop（人）。"],
+    ["translucent", ["半透明的", "跨國的", "會發熱的", "翻譯過的"], 0, "trans（穿過）＋luc（光）＋ent＝「光穿得過去」。"],
+    ["despondent", ["沮喪的", "反應遲鈍的", "揮霍無度的", "獨立自主的"], 0, "de（往下）＋spond（承諾）＝「放棄了承諾」。"],
+    ["veracity", ["真實性", "貪婪", "速度", "多樣性"], 0, "ver（真）＋acity（性質）。"],
+    ["conjugal", ["婚姻的", "共同經營的", "動詞變化的", "先天的"], 0, "con（一起）＋jug（軛、綁）＝「被綁在一起」。"],
+    ["subjugate", ["征服、使屈服", "偷偷評判", "從下方支撐", "分成小組"], 0, "sub（在下面）＋jug（軛）＋ate＝「套上軛壓在下面」。"],
+    ["dissonance", ["不協調、刺耳", "距離感", "解散", "溶解度"], 0, "dis（分開）＋son（聲音）＋ance＝「聲音不合」。"],
+    ["elucidate", ["闡明、說清楚", "逃避責任", "使人困惑", "潤飾文字"], 0, "e（向外）＋luc（光）＋id＋ate＝「把它照亮」。"],
+    ["omnipotent", ["全能的", "無所不在的", "無能為力的", "全知的"], 0, "omni（全部）＋pot（能力）＋ent。注意：全知是 omniscient。"],
+    ["polymorphic", ["有多種形態的", "多語言的", "聚合物的", "多音節的"], 0, "poly（多）＋morph（形狀）＋ic。"],
+    ["perfidy", ["背信棄義", "完美主義", "香水業", "堅定的信仰"], 0, "per（穿透、破壞）＋fid（信任）＋y＝「把信任打穿」。"],
+    ["circumspect", ["謹慎小心的", "四四方方的", "巡迴演出的", "眼界狹隘的"], 0, "circum（繞一圈）＋spect（看）＝「先環顧四周才動」。"],
+    ["tenacious", ["頑強不放的", "十倍的", "緊張的", "薄如紙的"], 0, "ten（握住）＋acious＝「抓住就不放」。"],
+    ["spheroid", ["近似球體的東西", "螺旋狀物", "球形細菌", "半徑"], 0, "spher（球）＋oid（像……的）。"],
+    ["philanthropist", ["慈善家", "集郵家", "厭世者", "哲學家"], 0, "phil（愛）＋anthrop（人）＋ist＝「愛人的人」。"]
+  ];
+
+  var qOrder = [], qIdx = -1, qLocked = false;
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function newRound() { qOrder = shuffle(QUIZ.map(function (_, i) { return i; })); qIdx = -1; }
+  newRound();
+
+  function drawScore() {
+    var s = lsGet("quiz", { right: 0, total: 0 });
+    if (!s || typeof s !== "object") s = { right: 0, total: 0 };
+    $("#qscore").textContent = s.total ? ("你的紀錄：猜對 " + s.right + " / " + s.total + "（" + Math.round(s.right / s.total * 100) + "%）") : "還沒作答過。";
+  }
+
+  function nextQ() {
+    qIdx++;
+    if (qIdx >= qOrder.length) newRound(), qIdx = 0;
+    var q = QUIZ[qOrder[qIdx]];
+    qLocked = false;
+    $("#qword").textContent = q[0];
+    $("#qafter").hidden = true;
+    $("#qafter").classList.remove("in");
+    var box = $("#qopts");
+    box.innerHTML = "";
+    var idx = shuffle([0, 1, 2, 3]);
+    idx.forEach(function (k) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "opt"; b.textContent = q[1][k];
+      b.addEventListener("click", function () { answer(q, k, b); });
+      box.appendChild(b);
+    });
+    drawScore();
+  }
+
+  function answer(q, k, btn) {
+    if (qLocked) return;
+    qLocked = true;
+    var right = (k === q[2]);
+    var all = [].slice.call($("#qopts").children);
+    all.forEach(function (b) {
+      b.disabled = true;
+      if (b.textContent === q[1][q[2]]) b.classList.add("right");
+    });
+    if (!right) btn.classList.add("wrong");
+
+    var s = lsGet("quiz", { right: 0, total: 0 });
+    if (!s || typeof s !== "object") s = { right: 0, total: 0 };
+    s.total = (s.total | 0) + 1; s.right = (s.right | 0) + (right ? 1 : 0);
+    lsSet("quiz", s);
+    drawScore();
+
+    var a = E.analyze(q[0]);
+    var seg = a.ok ? a.parts.map(function (p) {
+      var cls = p.kind === "root" ? "color:var(--root)" : p.kind === "prefix" ? "color:var(--pre)" : p.kind === "suffix" ? "color:var(--suf)" : "color:var(--mute)";
+      return '<span style="' + cls + '">' + esc(p.text) + '</span>';
+    }).join('<span style="color:var(--dim2)">·</span>') : esc(q[0]);
+
+    var af = $("#qafter");
+    af.innerHTML = '<p style="font-weight:800;margin-bottom:8px">' + (right ? '猜對了。' : '這次沒中。') +
+      '<span style="color:var(--dim);font-weight:400">' + (right ? '你剛剛是靠零件推出來的——這就是這一頁想證明的事。' : '看一下零件，下次同一組出現你就有把握了。') + '</span></p>' +
+      '<p class="mono" style="font-size:1.15rem;margin-bottom:8px">' + seg + '</p>' +
+      '<p class="dim" style="margin:0">' + esc(q[3]) + '</p>';
+    af.hidden = false;
+    if (reduced()) af.classList.add("in");
+    else requestAnimationFrame(function () { requestAnimationFrame(function () { af.classList.add("in"); }); });
+  }
+
+  $("#qnext").addEventListener("click", nextQ);
+  $("#qreset").addEventListener("click", function () { lsSet("quiz", { right: 0, total: 0 }); drawScore(); });
+
+  /* 分頁切換 */
+  function selectTab(which) {
+    var isSplit = which === "split";
+    $("#tabSplit").setAttribute("aria-selected", isSplit ? "true" : "false");
+    $("#tabQuiz").setAttribute("aria-selected", isSplit ? "false" : "true");
+    $("#panSplit").hidden = !isSplit;
+    $("#panQuiz").hidden = isSplit;
+    if (!isSplit && qIdx < 0) nextQ();
+  }
+  $("#tabSplit").addEventListener("click", function () { selectTab("split"); });
+  $("#tabQuiz").addEventListener("click", function () { selectTab("quiz"); });
+  drawScore();
+
+  /* ================= 陷阱牆 ================= */
+  var TRAPS = [];
+  MORPH_DB.roots.forEach(function (r) {
+    r.members.forEach(function (m) { if (m[1] === 0) TRAPS.push({ w: m[0], root: r, mean: m[2], why: m[3] }); });
+  });
+  var trapBox = $("#traps");
+  TRAPS.slice(0, 12).forEach(function (t) {
+    var a = E.analyze(t.w);
+    var seg = a.ok ? a.parts.map(function (p) { return p.text; }).join(" + ") : t.w;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "trap";
+    b.setAttribute("aria-expanded", "false");
+    b.innerHTML = '<span class="tw">' + esc(t.w) + '</span><span class="tp">' + esc(seg) + '</span>' +
+                  '<span class="tr">現在的意思是<b>「' + esc(t.mean) + '」</b>。' + esc(t.why || "") + '</span>';
+    b.addEventListener("click", function () {
+      var open = b.classList.toggle("open");
+      b.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+    trapBox.appendChild(b);
+  });
+
+  /* 開場先跑一次，讓舞台不是空的 */
+  var hist = lsGet("history", []);
+  var first = (Array.isArray(hist) && hist.length && E.analyze(hist[0]).ok) ? hist[0] : "";
+  if (first) { $("#wordIn").value = first; run(first); }
+})();
+</script>
+</body>
+</html>

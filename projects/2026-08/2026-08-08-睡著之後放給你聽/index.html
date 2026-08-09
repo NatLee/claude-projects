@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>睡著之後放給你聽</title>
+<meta name="description" content="睡覺時放外語錄音真的能學會嗎？一個從躺下到天亮的夜晚，由你決定線索該在哪一個睡眠階段響起。">
+<style>
+:root{
+  --bg:#04060b;
+  --ink:#dfe7f3;
+  --ink2:#a9b7cb;
+  --dim:#6f7f95;
+  --line:rgba(255,255,255,.085);
+  --panel:rgba(255,255,255,.028);
+  --cue:#e8a95f;
+  --n3:#4d7fd6;
+  --rem:#a884d8;
+  --ok:#79c9a4;
+  --bad:#d97a7a;
+  --serif:"Noto Serif TC","Songti TC","STSong","PingFang TC","Microsoft JhengHei",serif;
+  --sans:system-ui,-apple-system,"Segoe UI","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:16.5px;line-height:1.85;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+.sky,.dawn{position:fixed;inset:0;pointer-events:none;z-index:0}
+.sky{
+  background:
+    radial-gradient(1200px 780px at 78% -8%, rgba(60,86,140,.30), transparent 62%),
+    radial-gradient(980px 700px at 12% 22%, rgba(38,54,94,.26), transparent 60%),
+    radial-gradient(1400px 900px at 50% 120%, rgba(24,34,60,.55), transparent 65%),
+    linear-gradient(180deg,#04060b 0%,#060a13 45%,#04070d 100%);
+}
+.dawn{
+  opacity:0;transition:opacity 2.4s ease;
+  background:
+    radial-gradient(1100px 620px at 84% 104%, rgba(226,150,92,.20), transparent 60%),
+    radial-gradient(900px 520px at 20% 100%, rgba(150,120,190,.14), transparent 62%);
+}
+body.dawned .dawn{opacity:1}
+main{position:relative;z-index:1}
+
+.home{
+  position:absolute;top:20px;left:22px;z-index:5;
+  color:var(--dim);text-decoration:none;font-size:13px;letter-spacing:.06em;
+  padding:6px 10px;border-radius:999px;transition:color .3s,transform .3s;
+}
+.home:hover{color:var(--ink2);transform:translateX(-3px)}
+.home:focus-visible{outline:2px solid var(--cue);outline-offset:3px;color:var(--ink)}
+
+.act{max-width:720px;margin:0 auto;padding:15vh 26px}
+.act.wide{max-width:1000px}
+.kicker{
+  font-size:12px;letter-spacing:.26em;color:var(--dim);
+  text-transform:uppercase;margin:0 0 20px;
+}
+h1{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(30px,6.2vw,54px);line-height:1.34;letter-spacing:.01em;
+  margin:0 0 28px;
+}
+h2{
+  font-family:var(--serif);font-weight:500;
+  font-size:clamp(23px,3.6vw,32px);line-height:1.5;margin:0 0 20px;
+}
+h3{font-size:15px;letter-spacing:.14em;color:var(--dim);font-weight:600;margin:0 0 14px}
+p{margin:0 0 20px;color:var(--ink2)}
+p.lede{font-size:clamp(17px,2.2vw,20px);color:var(--ink);line-height:1.9}
+p.micro{font-size:12.5px;color:var(--dim);letter-spacing:.04em}
+em{font-style:normal;color:var(--ink);border-bottom:1px solid rgba(232,169,95,.5);padding-bottom:1px}
+strong{color:#fff;font-weight:600}
+.quiet{color:var(--dim);font-size:14px;line-height:1.8}
+
+/* ---------- 第一屏 ---------- */
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding-top:12vh}
+.hero h1{font-size:clamp(31px,7vw,58px)}
+.buds{
+  width:82px;height:82px;margin:0 0 34px;position:relative;
+}
+.buds i{
+  position:absolute;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, rgba(232,169,95,.85), rgba(232,169,95,.10) 70%);
+}
+.buds i:nth-child(1){left:2px;top:14px;width:26px;height:26px}
+.buds i:nth-child(2){right:2px;top:14px;width:26px;height:26px}
+.buds b{
+  position:absolute;left:50%;top:50%;width:150px;height:150px;margin:-75px 0 0 -75px;
+  border-radius:50%;border:1px solid rgba(232,169,95,.22);
+  animation:pulse 5.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:scale(.62);opacity:.62}50%{transform:scale(1);opacity:.10}}
+.scrollcue{
+  margin-top:auto;color:var(--dim);font-size:18px;
+  animation:bob 2.8s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(7px);opacity:.9}}
+
+/* ---------- 捲動進場 ---------- */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .85s ease,transform .85s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1;transform:none}
+.rv .stg{opacity:0;transform:translateY(12px);transition:opacity .7s ease,transform .7s ease}
+.rv.in .stg{opacity:1;transform:none}
+.rv.in .stg:nth-child(1){transition-delay:.06s}
+.rv.in .stg:nth-child(2){transition-delay:.16s}
+.rv.in .stg:nth-child(3){transition-delay:.26s}
+.rv.in .stg:nth-child(4){transition-delay:.36s}
+.rv.in .stg:nth-child(5){transition-delay:.46s}
+.rv.in .stg:nth-child(n+6){transition-delay:.56s}
+
+/* ---------- 面板 ---------- */
+.panel{
+  border:1px solid var(--line);border-radius:16px;background:var(--panel);
+  padding:26px 24px;position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+.gate{
+  color:var(--dim);font-size:14px;text-align:center;padding:26px 6px;letter-spacing:.02em;
+}
+.pending .body{display:none}
+.pending .gate{display:block}
+.gate{display:none}
+
+/* ---------- 按鈕與表單 ---------- */
+button,input[type="text"],select{font-family:inherit;font-size:15px}
+.btn{
+  appearance:none;border:1px solid rgba(232,169,95,.44);
+  background:rgba(232,169,95,.10);color:#f2dcc0;
+  padding:11px 22px;border-radius:999px;cursor:pointer;
+  letter-spacing:.05em;transition:transform .18s,background .25s,border-color .25s,opacity .25s;
+}
+.btn:hover:not(:disabled){background:rgba(232,169,95,.20);transform:translateY(-2px)}
+.btn:active:not(:disabled){transform:translateY(0) scale(.98)}
+.btn:disabled{opacity:.34;cursor:not-allowed}
+.btn:focus-visible{outline:2px solid var(--cue);outline-offset:3px}
+.btn.ghost{border-color:var(--line);background:transparent;color:var(--ink2)}
+.btn.ghost:hover:not(:disabled){background:rgba(255,255,255,.06)}
+.btn.big{padding:15px 34px;font-size:16px}
+input[type="text"]{
+  background:rgba(255,255,255,.045);border:1px solid var(--line);
+  color:var(--ink);padding:11px 14px;border-radius:10px;width:100%;
+  transition:border-color .25s,background .25s;
+}
+input[type="text"]:focus{outline:none;border-color:rgba(232,169,95,.6);background:rgba(255,255,255,.07)}
+input[type="text"]:focus-visible{outline:2px solid var(--cue);outline-offset:2px}
+input[type="range"]{width:100%;accent-color:var(--cue)}
+input[type="range"]:focus-visible{outline:2px solid var(--cue);outline-offset:3px}
+input[type="checkbox"]{accent-color:var(--cue);width:16px;height:16px}
+input[type="checkbox"]:focus-visible{outline:2px solid var(--cue);outline-offset:2px}
+label{color:var(--ink2);font-size:13.5px}
+
+/* ---------- 學習卡 ---------- */
+.wordcard{text-align:center;padding:16px 0 6px;min-height:186px;display:flex;flex-direction:column;justify-content:center}
+.nl{font-family:var(--serif);font-size:clamp(34px,7vw,50px);letter-spacing:.03em;color:#fff;margin:0 0 6px}
+.zh{font-size:clamp(19px,3.4vw,24px);color:var(--cue);margin:0}
+.prog{display:flex;gap:5px;justify-content:center;margin:20px 0 4px}
+.prog i{width:20px;height:3px;border-radius:2px;background:rgba(255,255,255,.13);transition:background .35s}
+.prog i.on{background:var(--cue)}
+.prog i.now{background:#fff}
+.qrow{display:flex;gap:10px;align-items:center;margin-top:6px}
+.qrow input{flex:1}
+.fb{min-height:26px;font-size:14px;margin:12px 0 0;text-align:center}
+.fb.ok{color:var(--ok)}
+.fb.no{color:var(--bad)}
+.center{text-align:center}
+.mt{margin-top:22px}
+
+/* ---------- 夜晚 ---------- */
+.nightgrid{display:grid;grid-template-columns:1fr 268px;gap:22px;align-items:start}
+.clockrow{display:flex;align-items:baseline;gap:14px;margin:0 0 14px;flex-wrap:wrap}
+.clock{font-family:var(--serif);font-size:30px;color:#fff;letter-spacing:.05em;font-variant-numeric:tabular-nums}
+.stagepill{
+  font-size:12.5px;letter-spacing:.1em;padding:4px 12px;border-radius:999px;
+  border:1px solid var(--line);color:var(--ink2);
+}
+canvas{display:block;width:100%}
+#hypno{height:236px;border-radius:12px;background:rgba(255,255,255,.018)}
+#eeg{height:88px;margin-top:10px;border-radius:10px;background:rgba(255,255,255,.014)}
+.ctrls{display:flex;flex-direction:column;gap:15px}
+.ctrl{border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:rgba(255,255,255,.02)}
+.ctrl .lab{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--dim);letter-spacing:.08em;margin-bottom:8px}
+.seg{display:flex;gap:6px}
+.seg button{
+  flex:1;appearance:none;border:1px solid var(--line);background:transparent;
+  color:var(--ink2);padding:7px 0;border-radius:8px;cursor:pointer;font-size:13px;
+  transition:background .22s,border-color .22s,color .22s;
+}
+.seg button[aria-pressed="true"]{background:rgba(232,169,95,.16);border-color:rgba(232,169,95,.45);color:#f2dcc0}
+.seg button:focus-visible{outline:2px solid var(--cue);outline-offset:2px}
+.meter{height:6px;border-radius:3px;background:rgba(255,255,255,.09);overflow:hidden}
+.meter i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#5f93bd,var(--cue));transform:scaleX(0);transform-origin:left;transition:transform .4s ease}
+.cuebtn{width:100%;padding:15px 0;font-size:16px}
+.cuelog{list-style:none;margin:14px 0 0;padding:0;font-size:13px}
+.cuelog li{
+  display:flex;gap:9px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line);
+  color:var(--ink2);
+}
+.cuelog li:first-child{border-top:none}
+.cuelog .tm{color:var(--dim);font-variant-numeric:tabular-nums;min-width:46px}
+.cuelog .wd{color:#fff;font-family:var(--serif);letter-spacing:.02em}
+.cuelog .vd{margin-left:auto;font-variant-numeric:tabular-nums}
+.cuelog .vd.pos{color:var(--ok)}
+.cuelog .vd.neg{color:var(--bad)}
+.whisper{
+  min-height:30px;text-align:center;font-family:var(--serif);font-size:20px;
+  color:var(--cue);letter-spacing:.05em;opacity:0;transition:opacity .5s;margin-top:6px;
+}
+.whisper.show{opacity:1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:12px;color:var(--dim)}
+.legend span{display:flex;align-items:center;gap:6px}
+.legend b{width:16px;height:0;border-top:2px solid;display:inline-block}
+.legend .l-n3{border-color:var(--n3)}
+.legend .l-rem{border-color:var(--rem);border-top-style:dashed}
+.legend .l-w{border-color:#d8b26a}
+
+/* ---------- 成績 ---------- */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.col{border:1px solid var(--line);border-radius:14px;padding:20px 18px;background:rgba(255,255,255,.02)}
+.col.real{border-color:rgba(121,201,164,.28)}
+.col.sim{border-color:rgba(168,132,216,.28);border-style:dashed}
+.col h3{margin-bottom:4px}
+.tag{font-size:11.5px;letter-spacing:.12em;padding:3px 9px;border-radius:999px;display:inline-block;margin-bottom:14px}
+.tag.real{background:rgba(121,201,164,.14);color:#9adcbd}
+.tag.sim{background:rgba(168,132,216,.14);color:#c6aae8}
+.bars{margin:6px 0 4px}
+.bar{margin:0 0 14px}
+.bar .bl{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);margin-bottom:6px}
+.bar .bl b{color:#fff;font-variant-numeric:tabular-nums}
+.bar .tr{height:9px;border-radius:5px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar .tr i{display:block;height:100%;transform:scaleX(0);transform-origin:left;transition:transform 1s cubic-bezier(.2,.8,.3,1)}
+.bar.cued .tr i{background:linear-gradient(90deg,rgba(232,169,95,.55),var(--cue))}
+.bar.unc .tr i{background:linear-gradient(90deg,rgba(140,160,190,.4),#8fa3bd)}
+.bar.simd .tr i{background:linear-gradient(90deg,rgba(168,132,216,.45),var(--rem))}
+.big{font-family:var(--serif);font-size:40px;color:#fff;line-height:1.2;font-variant-numeric:tabular-nums}
+.note{font-size:13px;color:var(--dim);line-height:1.75;margin:14px 0 0}
+.honest{
+  border-left:2px solid rgba(232,169,95,.5);padding:2px 0 2px 18px;margin:30px 0 0;
+}
+.honest p{margin-bottom:14px}
+.honest p:last-child{margin-bottom:0}
+table.wl{width:100%;border-collapse:collapse;margin-top:18px;font-size:13.5px}
+table.wl th,table.wl td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+table.wl th{color:var(--dim);font-weight:500;font-size:12px;letter-spacing:.1em}
+table.wl td.nlc{font-family:var(--serif);color:#fff;letter-spacing:.02em}
+table.wl .mk{font-size:15px}
+table.wl .mk.y{color:var(--ok)}
+table.wl .mk.n{color:var(--bad)}
+table.wl td.grp{color:var(--cue)}
+table.wl td.grp.no{color:var(--dim)}
+
+footer{
+  position:relative;z-index:1;max-width:720px;margin:0 auto;
+  padding:70px 26px 60px;border-top:1px solid var(--line);margin-top:14vh;
+  font-size:12.5px;color:var(--dim);line-height:2;
+}
+footer a{color:var(--dim);text-decoration:none;border-bottom:1px solid var(--line)}
+footer a:hover{color:var(--ink2)}
+footer a:focus-visible{outline:2px solid var(--cue);outline-offset:3px}
+
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+@media (max-width:860px){
+  .nightgrid{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  .act{padding:11vh 20px}
+  #hypno{height:190px}
+  #eeg{height:74px}
+  .home{top:14px;left:14px}
+  .big{font-size:34px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none !important;transition:none !important}
+  .rv,.rv .stg{opacity:1 !important;transform:none !important}
+  .bar .tr i,.meter i{transition:none !important}
+  .whisper{opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"></div>
+<div class="dawn" aria-hidden="true"></div>
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<p class="sr" id="live" role="status" aria-live="polite"></p>
+
+<main>
+
+<!-- ══════════ 幕一 · 鉤子 ══════════ -->
+<section class="act hero" id="s-hook">
+  <div class="buds" aria-hidden="true"><i></i><i></i><b></b></div>
+  <p class="kicker">22:40</p>
+  <h1>今晚戴著耳機睡。<br>早上起來，你會說荷蘭文。</h1>
+  <p class="lede">枕頭邊放一台小音響，整夜低聲念著單字。你什麼都不用做——你只要睡著。八個小時後，那些字就在你腦子裡了。</p>
+  <p>這個畫面太好了，好到一百年來沒有人捨得放棄它。1920 年代有人賣過枕頭底下的留聲機，1950 年代的科幻小說把它寫成義務教育，現在的 App 商店裡還有一整櫃。</p>
+  <p class="micro">這一頁可以開聲音，預設是關的。</p>
+  <div class="scrollcue" aria-hidden="true">↓</div>
+</section>
+
+<!-- ══════════ 幕二 · 破梗 ══════════ -->
+<section class="act rv" id="s-myth">
+  <p class="kicker stg">22:58</p>
+  <h2 class="stg">然後有人把電極貼上去了。</h2>
+  <p class="stg">1956 年，Charles Simon 和 William Emmons 做了一件在那之前沒人做過的事：他們一邊放錄音，一邊盯著腦波。以前的「睡眠學習」實驗只憑實驗者從門縫看一眼，覺得受試者躺著不動就算睡著了。</p>
+  <p class="stg">腦波說了實話。<strong>凡是受試者事後答得出來的題目，播放的那一刻他的腦波都還是清醒的。</strong>一旦真的睡著，什麼都進不去。</p>
+  <p class="stg lede">結論到今天沒有變過：<em>你沒辦法在睡覺的時候學會你不會的東西。</em></p>
+  <p class="stg">睡著的大腦不是一台待機的錄音機。它正忙著做一件更重要的事——整理你白天塞進去的東西。它沒空收新的。</p>
+  <p class="stg quiet">（要嚴謹一點：2019 年有人在慢波的波峰上做出過睡眠中的<strong>內隱</strong>聯結學習——受試者事後猜得比亂猜準一點點，但說不出來自己學過什麼。那是一種摸不到的痕跡，不是你早上能講出口的單字。這一頁講的是後者。）</p>
+</section>
+
+<!-- ══════════ 幕三 · 轉折 ══════════ -->
+<section class="act rv" id="s-turn">
+  <p class="kicker stg">23:06</p>
+  <h2 class="stg">可是——如果你白天已經學過了呢？</h2>
+  <p class="stg">2015 年，蘇黎世的 Thomas Schreiner 和 Björn Rasch 在《Cerebral Cortex》上發表了一個實驗。他們沒有想教會誰任何新東西。他們做的事只有一件：<strong>在你睡著之後，把你白天學過的字，再念一次給你聽。</strong></p>
+  <p class="stg">受試者是說德文的人，睡前學一批荷蘭文—德文的單字對。然後躺下，接上腦電圖，睡。在<strong>非快速動眼睡眠（NonREM）</strong>期間，喇叭裡開始低聲播放那些荷蘭文——只播其中一半。另一半一個字都不播，當作對照。</p>
+  <p class="stg lede">早上測驗：<em>被播過的那一半，記得比較牢。</em></p>
+  <p class="stg">同一批人另外做了兩組清醒的對照：一組專心聽、一組放著當背景音。<strong>清醒時重播，完全沒有效果。</strong>這才是整個實驗最要命的地方——它不是「多聽幾次就記得比較好」。多聽幾次在清醒時什麼都沒發生。發生的地方在睡眠裡。</p>
+  <p class="stg">腦波上看得到那一瞬間：成功的線索伴隨額區明顯的事件相關電位<strong>負波</strong>、額區慢波變密、以及右額與左頂的 <strong>theta 振盪功率上升</strong>。有東西被叫醒了，但你沒有醒。</p>
+  <p class="stg">這件事有一個名字，叫<strong>目標記憶再活化</strong>（targeted memory reactivation，TMR）。名字裡沒有「學習」兩個字，是刻意的。</p>
+  <p class="stg quiet">條件苛刻到近乎刁難：必須先學過、只能在特定的睡眠階段、而且不能吵醒你。三個條件，缺一個就沒了。</p>
+  <p class="stg lede">所以——要不要試試看你放不放得準？</p>
+</section>
+
+<!-- ══════════ 幕四 · 先學 ══════════ -->
+<section class="act rv" id="s-learn">
+  <p class="kicker stg">23:18 · 睡前</p>
+  <h2 class="stg">第一個條件：先學過。</h2>
+  <p class="stg">十組荷蘭文。花兩分鐘，真的記一下——等一下的一切都建立在這十個字上。沒學過的字，喇叭念一整夜也不會長出來。</p>
+  <div class="panel stg" id="learnPanel">
+    <div class="body" id="learnBody"></div>
+  </div>
+</section>
+
+<!-- ══════════ 幕五 · 夜 ══════════ -->
+<section class="act wide rv pending" id="s-night">
+  <p class="kicker stg">23:30 → 07:30</p>
+  <h2 class="stg">第二個與第三個條件：時機，以及不要吵醒你。</h2>
+  <p class="stg">燈關了。接下來的八個小時會在一分多鐘之內走完。你的睡眠階段會一段一段變化——深的、淺的、做夢的。</p>
+  <p class="stg">你手上有 <strong>5 次點名</strong>。系統已經隨機挑好哪 5 個字要被點名（哪 5 個不點），你唯一能決定的是：<strong>在哪一刻按下去。</strong></p>
+  <div class="gate">先把上面那十個字學完，才有東西可以被點名。</div>
+  <div class="body stg">
+    <div class="panel">
+      <div class="clockrow">
+        <span class="clock" id="clock">23:30</span>
+        <span class="stagepill" id="stagePill">還沒睡著</span>
+        <span class="stagepill" id="cueLeft">剩 5 次點名</span>
+      </div>
+      <div class="nightgrid">
+        <div>
+          <canvas id="hypno" role="img" aria-label="睡眠階段時間軸圖：由上而下依序為清醒、REM、N1、N2、N3 慢波睡眠，橫軸是整夜八小時"></canvas>
+          <div class="legend" aria-hidden="true">
+            <span><b class="l-n3"></b>N3 慢波（畫成往下的實心區塊）</span>
+            <span><b class="l-rem"></b>REM（虛線）</span>
+            <span><b class="l-w"></b>清醒</span>
+          </div>
+          <canvas id="eeg" role="img" aria-label="即時腦波示意圖，波形隨睡眠階段改變"></canvas>
+          <p class="whisper" id="whisper" aria-hidden="true"></p>
+        </div>
+        <div class="ctrls">
+          <div class="ctrl">
+            <div class="lab"><span>夜晚</span><span id="speedLab">中速</span></div>
+            <div class="seg" role="group" aria-label="播放速度">
+              <button type="button" data-sp="0" aria-pressed="false">慢</button>
+              <button type="button" data-sp="1" aria-pressed="true">中</button>
+              <button type="button" data-sp="2" aria-pressed="false">快</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:9px">
+              <button class="btn ghost" id="playBtn" style="flex:1;padding:8px 0" type="button">閉上眼睛</button>
+            </div>
+            <p class="quiet" id="reduceHint" hidden style="margin:9px 0 0;font-size:12px">你的系統偏好減少動態，所以夜晚不會自己走。用下面的時間軸把它推到天亮。</p>
+            <div style="margin-top:11px">
+              <label for="tSlider">手動撥動時間（暫停時可用）</label>
+              <input type="range" id="tSlider" min="0" max="480" step="1" value="0" disabled aria-label="夜晚時間，單位分鐘">
+            </div>
+          </div>
+          <div class="ctrl">
+            <div class="lab"><span>線索音量</span><span id="volLab">50%</span></div>
+            <input type="range" id="vol" min="0" max="100" step="1" value="50" aria-label="線索音量，同時決定模型裡的吵醒風險與實際播放音量">
+            <p class="quiet" style="margin:9px 0 0;font-size:12px">越大聲越容易吵醒你，尤其在淺睡與 REM。</p>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:11px">
+              <input type="checkbox" id="sound"><label for="sound">播放聲音</label>
+            </div>
+            <div style="display:flex;align-items:center;gap:9px;margin-top:7px">
+              <input type="checkbox" id="fb"><label for="fb">線索後面立刻補上答案</label>
+            </div>
+          </div>
+          <div class="ctrl">
+            <div class="lab"><span>淺眠風險</span><span id="arLab">低</span></div>
+            <div class="meter"><i id="arBar"></i></div>
+            <button class="btn cuebtn" id="cueBtn" type="button" disabled aria-label="現在播放線索，點名下一個單字">點名</button>
+            <ul class="cuelog" id="cueLog"></ul>
+          </div>
+        </div>
+      </div>
+      <div class="center mt" id="wakeWrap" hidden>
+        <button class="btn big" id="wakeBtn" type="button">天亮了，起床 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 幕六 · 早上的測驗 ══════════ -->
+<section class="act rv pending" id="s-morning">
+  <p class="kicker stg">07:30</p>
+  <h2 class="stg">早上。現在真的考你。</h2>
+  <p class="stg">十個荷蘭文，一個一個回來。這一次沒有提示、沒有回饋，答完才知道結果。</p>
+  <div class="gate">先走完那個夜晚。</div>
+  <div class="panel body stg" id="morningPanel">
+    <div id="morningBody"></div>
+  </div>
+</section>
+
+<!-- ══════════ 幕七 · 成績 ══════════ -->
+<section class="act wide rv pending" id="s-result">
+  <p class="kicker stg">08:12</p>
+  <h2 class="stg">兩欄數字。它們不是同一種東西。</h2>
+  <div class="gate">考完再看。</div>
+  <div class="body stg" id="resultBody"></div>
+</section>
+
+<!-- ══════════ 幕八 · 記憶點 ══════════ -->
+<section class="act rv pending" id="s-end">
+  <div class="gate">　</div>
+  <div class="body">
+    <p class="kicker stg">隔天中午</p>
+    <h2 class="stg">那台放音機從頭到尾都不是老師。</h2>
+    <p class="stg">它做的事，其實很小。它沒有教你任何東西，也沒有把資訊塞進你的腦子。它只是在一個很短的時間窗裡，喊了幾個名字。</p>
+    <p class="stg lede">而那些名字，是你白天自己寫上去的。</p>
+    <p class="stg">這裡有一個容易被漏掉的部分：<strong>沒被點名的那五個字，那一夜也在被複習。</strong>睡眠中的記憶鞏固不需要任何人按播放鍵，它每晚都在跑。TMR 只是插隊——在一整晚的自動複習裡，把幾個名字往前挪了一點點。</p>
+    <p class="stg">2020 年一份統合分析把 91 個實驗、2004 個人放在一起算，TMR 的整體效果量是 <strong>Hedges' g = 0.29</strong>。NonREM 有效，REM 沒有，清醒沒有——跟 2015 年那個實驗說的一樣。但 0.29 是一個小到中等的效果。它是真的，而且它很小。</p>
+    <p class="stg">小到後來連原班人馬都撞牆。Rasch 的實驗室 2018 年在老年人身上沒做出效果，2020 年在青少年身上沒做出效果，2023 年拿同一套荷蘭文單字、更大的樣本、同一間睡眠實驗室，<strong>連自己 2015 年的結果都沒複製出來</strong>。他們在論文裡寫下這句話：需要更多複製研究，最好是多間實驗室、更大的樣本。</p>
+    <p class="stg">所以那個都市傳說唯一講對的部分是這個：<strong>你確實可以在睡覺的時候變強。</strong></p>
+    <p class="stg lede">你只是不能在睡覺的時候變新。</p>
+    <p class="stg quiet" style="margin-top:34px">把耳機拿下來吧。真正有用的，是白天戴著它的那幾個小時。</p>
+    <div class="center mt stg"><button class="btn ghost" id="againBtn" type="button">再過一次那個晚上</button></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>資料來源：Schreiner &amp; Rasch, Cerebral Cortex (2015)；Hu et al., Psychological Bulletin (2020)；Wick &amp; Rasch, Learning &amp; Memory (2023)</p>
+  <p><a href="../../../index.html">← 回首頁</a></p>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  var LS = 'sleepcue26.';
+
+  /* ═══════════════ 0. 小工具 ═══════════════ */
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+
+  function mulberry32(a) {
+    a = a >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function shuffled(arr, rnd) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(rnd() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function clamp(v, lo, hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+  var mReduced = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)')) || { matches: false };
+  function reduced() { return !!mReduced.matches; }
+  function onReducedChange(fn) {
+    if (mReduced.addEventListener) mReduced.addEventListener('change', fn);
+    else if (mReduced.addListener) mReduced.addListener(fn);
+  }
+
+  function store(k, v) { try { localStorage.setItem(LS + k, v); } catch (e) {} }
+  function load(k) { try { return localStorage.getItem(LS + k); } catch (e) { return null; } }
+  function drop(k) { try { localStorage.removeItem(LS + k); } catch (e) {} }
+
+  function say(msg) { var el = $('#live'); if (el) el.textContent = msg; }
+
+  function goTo(el) {
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    try { el.scrollIntoView({ behavior: reduced() ? 'auto' : 'smooth', block: 'start' }); }
+    catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+  }
+
+  /* ═══════════════ 1. 單字 ═══════════════ */
+  var WORDS = [
+    { nl: 'maan',    zh: '月亮', alt: ['月', '月球', 'moon'] },
+    { nl: 'droom',   zh: '夢',   alt: ['夢境', '做夢', '夢想', 'dream'] },
+    { nl: 'sleutel', zh: '鑰匙', alt: ['鎖匙', '钥匙', 'key'] },
+    { nl: 'brood',   zh: '麵包', alt: ['面包', 'bread'] },
+    { nl: 'vlinder', zh: '蝴蝶', alt: ['蝶', '胡蝶', 'butterfly'] },
+    { nl: 'lepel',   zh: '湯匙', alt: ['匙', '調羹', '湯杓', '勺子', '汤匙', 'spoon'] },
+    { nl: 'raam',    zh: '窗戶', alt: ['窗', '窗子', '窗口', '窗户', 'window'] },
+    { nl: 'sneeuw',  zh: '雪',   alt: ['下雪', '雪花', 'snow'] },
+    { nl: 'hond',    zh: '狗',   alt: ['狗狗', '犬', '小狗', 'dog'] },
+    { nl: 'kaas',    zh: '起司', alt: ['乳酪', '起士', '乾酪', '芝士', '奶酪', 'cheese'] }
+  ];
+
+  /* ═══════════════ 2. 純函式 · 睡眠結構 ═══════════════ */
+  /* 依標準成人睡眠週期結構：約 90 分鐘一個週期；慢波睡眠（N3）集中在前半夜、
+     每個週期遞減；REM 每個週期加長、集中在後半夜。整夜 480 分鐘（23:30 起算的
+     入睡到 07:30，頁面上以 01:00 為圖表原點）。 */
+  var TOTAL = 480;
+  var CYCLES = [
+    { n1: 8, n3: 48, rem: 8,  wakeAfter: 0 },
+    { n1: 4, n3: 36, rem: 16, wakeAfter: 0 },
+    { n1: 4, n3: 16, rem: 24, wakeAfter: 3 },
+    { n1: 4, n3: 6,  rem: 30, wakeAfter: 3 },
+    { n1: 4, n3: 0,  rem: 34, wakeAfter: 0 }
+  ];
+  var CYCLE_LEN = 90;
+
+  function buildHypnogram(seed) {
+    var rnd = mulberry32((seed === undefined ? 7 : seed) >>> 0);
+    function jit(v, amp) {
+      if (v <= 0) return 0;
+      return Math.max(1, Math.round(v + (rnd() * 2 - 1) * amp));
+    }
+    var segs = [];
+    var t = 0;
+    function push(stage, dur) {
+      if (dur <= 0) return;
+      if (t + dur > TOTAL) dur = TOTAL - t;
+      if (dur <= 0) return;
+      segs.push({ stage: stage, start: t, end: t + dur });
+      t += dur;
+    }
+    push('W', 6);                                     /* 躺著還沒睡著 */
+    for (var c = 0; c < CYCLES.length; c++) {
+      var C = CYCLES[c];
+      var n1 = jit(C.n1, 1.5);
+      var n3 = jit(C.n3, 3);
+      var rem = jit(C.rem, 3);
+      var n2t = CYCLE_LEN - n1 - n3 - rem;
+      if (n2t < 8) { n3 = Math.max(0, n3 - (8 - n2t)); n2t = CYCLE_LEN - n1 - n3 - rem; }
+      var a = Math.round(n2t * 0.45), b = n2t - a;
+      push('N1', n1);
+      if (n3 > 0) { push('N2', a); push('N3', n3); push('N2', b); }
+      else push('N2', n2t);
+      push('REM', rem);
+      if (C.wakeAfter) push('W', C.wakeAfter);
+      if (t >= TOTAL) break;
+    }
+    /* 收尾：早上淺眠一段，最後醒著幾分鐘。總長強制對齊 TOTAL。 */
+    var left = TOTAL - t;
+    if (left > 0) {
+      var wakeTail = Math.min(6, Math.max(0, left - 4));
+      push('N2', left - wakeTail);
+      push('W', TOTAL - t);
+    }
+    return segs;
+  }
+
+  function stageAt(segs, t) {
+    if (t < 0) return segs.length ? segs[0].stage : 'W';
+    for (var i = 0; i < segs.length; i++) {
+      if (t >= segs[i].start && t < segs[i].end) return segs[i].stage;
+    }
+    return segs.length ? segs[segs.length - 1].stage : 'W';
+  }
+
+  function stageMinutes(segs) {
+    var m = { W: 0, N1: 0, N2: 0, N3: 0, REM: 0 };
+    for (var i = 0; i < segs.length; i++) m[segs[i].stage] += segs[i].end - segs[i].start;
+    return m;
+  }
+
+  function stageMinutesIn(segs, from, to) {
+    var m = { W: 0, N1: 0, N2: 0, N3: 0, REM: 0 };
+    for (var i = 0; i < segs.length; i++) {
+      var s = Math.max(from, segs[i].start), e = Math.min(to, segs[i].end);
+      if (e > s) m[segs[i].stage] += e - s;
+    }
+    return m;
+  }
+
+  /* ═══════════════ 3. 純函式 · 線索效果 ═══════════════ */
+  /* BASE：Hu, Cheng, Chiu & Paller (2020) 統合分析的分階段效果量（Hedges' g）。
+     AROUSE：吵醒成本，依「從該階段被喚醒的難易」排序（N3 最難吵醒，N1／REM 最易）。
+     淨效果 = 效果量 − 吵醒成本 × 音量因子。錯的階段一定回傳 ≤ 0。 */
+  var BASE   = { N3: 0.27, N2: 0.32, N1: 0.05, REM: 0.00, W: 0.00 };
+  var AROUSE = { N3: 0.06, N2: 0.12, N1: 0.35, REM: 0.30, W: 0.20 };
+  var SD_PP = 12;          /* 把 g 換算成保留率百分點所用的組內標準差（假設值） */
+
+  function volFactor(v) { return 0.4 + 1.6 * clamp(v, 0, 1); }
+
+  function arousalCost(stage, vol) {
+    return (AROUSE[stage] === undefined ? 0.2 : AROUSE[stage]) * volFactor(vol) * 0.5;
+  }
+
+  function cueGain(stage, vol, feedback) {
+    if (feedback) return 0;                  /* Schreiner, Lehmann & Rasch (2015)：線索後接回饋音，效果全滅 */
+    var base = BASE[stage] === undefined ? 0 : BASE[stage];
+    return base - arousalCost(stage, vol);
+  }
+
+  function nightEffect(cues, wakeCount) {
+    if (!cues || !cues.length) return { g: 0, pp: 0, penalty: 0 };
+    var sum = 0;
+    for (var i = 0; i < cues.length; i++) sum += cues[i].gain;
+    var penalty = 0.06 * (wakeCount || 0);
+    var g = sum / cues.length - penalty;
+    return { g: g, pp: g * SD_PP, penalty: penalty };
+  }
+
+  /* ═══════════════ 4. 純函式 · 評分 ═══════════════ */
+  function normAns(s) {
+    s = String(s === null || s === undefined ? '' : s);
+    s = s.replace(/[！-～]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+    s = s.replace(/　/g, ' ');
+    s = s.toLowerCase();
+    s = s.replace(/\s+/g, '');
+    s = s.replace(/[.,!?;:'"`~()\[\]{}\-_\/\\|+*=<>@#$%^&]/g, '');
+    s = s.replace(/[、。，！？；：「」『』（）〈〉《》·…－—～]/g, '');
+    return s;
+  }
+
+  function isCorrect(word, ans) {
+    var n = normAns(ans);
+    if (!n) return false;
+    if (n === normAns(word.zh)) return true;
+    for (var i = 0; i < word.alt.length; i++) if (n === normAns(word.alt[i])) return true;
+    return false;
+  }
+
+  function groupStats(words, cuedFlags, correctFlags) {
+    var out = {
+      cued:   { n: 0, correct: 0, rate: 0 },
+      uncued: { n: 0, correct: 0, rate: 0 }
+    };
+    for (var i = 0; i < words.length; i++) {
+      var k = cuedFlags[i] ? 'cued' : 'uncued';
+      out[k].n++;
+      if (correctFlags[i]) out[k].correct++;
+    }
+    out.cued.rate = out.cued.n ? out.cued.correct / out.cued.n : 0;
+    out.uncued.rate = out.uncued.n ? out.uncued.correct / out.uncued.n : 0;
+    out.diff = out.cued.rate - out.uncued.rate;
+    return out;
+  }
+
+  /* ═══════════════ 5. 對外（測試用） ═══════════════ */
+  window.SLEEPCUE = {
+    mulberry32: mulberry32, shuffled: shuffled,
+    TOTAL: TOTAL, SD_PP: SD_PP, BASE: BASE, AROUSE: AROUSE,
+    buildHypnogram: buildHypnogram, stageAt: stageAt,
+    stageMinutes: stageMinutes, stageMinutesIn: stageMinutesIn,
+    cueGain: cueGain, arousalCost: arousalCost, volFactor: volFactor,
+    nightEffect: nightEffect,
+    normAns: normAns, isCorrect: isCorrect, groupStats: groupStats,
+    WORDS: WORDS
+  };
+
+  /* ═══════════════ 6. 狀態 ═══════════════ */
+  var RUN_SEED = 7;
+  var hyp = buildHypnogram(RUN_SEED);
+  var wakes = [];               /* 被線索吵醒而插入的清醒段 */
+  var st = {
+    phase: 'learn',             /* learn → evening → night → morning → done */
+    li: 0,                      /* 學習進度 */
+    order: null,                /* 睡前測驗順序 */
+    mOrder: null,               /* 早上測驗順序 */
+    ei: 0, mi: 0,
+    evening: [],                /* 睡前每個字答對與否（依 WORDS 原順序） */
+    morning: [],
+    cuedFlags: [],              /* 哪些字被分派到「點名組」 */
+    cueQueue: [],               /* 尚未播出的點名字（index） */
+    cues: [],                   /* {t, stage, word, gain} */
+    wakeCount: 0,
+    arousal: 0,
+    t: 0,
+    playing: false,
+    lastCueT: -99,
+    ended: false
+  };
+
+  var CUE_N = 5;
+  var COOLDOWN = 6;             /* 兩次線索至少間隔幾個「夜晚分鐘」 */
+  var SPEEDS = [4, 480 / 72, 480 / 36];
+  var SPEED_LAB = ['慢速', '中速', '快速'];
+  var speedIdx = 1;
+
+  function assignGroups(seed) {
+    var rnd = mulberry32(seed >>> 0);
+    var idx = shuffled([0,1,2,3,4,5,6,7,8,9], rnd);
+    var cued = idx.slice(0, CUE_N);
+    var flags = [];
+    for (var i = 0; i < WORDS.length; i++) flags.push(cued.indexOf(i) >= 0);
+    return { flags: flags, queue: shuffled(cued, rnd) };
+  }
+
+  /* ═══════════════ 7. 聲音（完全可選；視覺為主要通道） ═══════════════ */
+  var ac = null, master = null, soundOn = false, vol = 0.5;
+
+  function ensureAudio() {
+    if (ac) return ac;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      ac = new AC();
+      master = ac.createGain();
+      master.gain.value = 0;
+      master.connect(ac.destination);
+      applyVol();
+    } catch (e) { ac = null; }
+    return ac;
+  }
+  function applyVol() {
+    if (!master) return;
+    try { master.gain.value = soundOn ? (0.06 + vol * 0.30) : 0; } catch (e) {}
+  }
+  function tone(freqs, dur, type) {
+    if (!soundOn) return;
+    var c = ensureAudio(); if (!c || !master) return;
+    try {
+      if (c.state === 'suspended' && c.resume) c.resume();
+      var t0 = c.currentTime;
+      var g = c.createGain();
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(1, t0 + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      var lp = c.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 1400;
+      g.connect(lp); lp.connect(master);
+      for (var i = 0; i < freqs.length; i++) {
+        var o = c.createOscillator();
+        o.type = type || 'sine';
+        o.frequency.value = freqs[i];
+        o.connect(g);
+        o.start(t0); o.stop(t0 + dur + 0.05);
+      }
+    } catch (e) {}
+  }
+  function cueSound() { tone([176, 264], 0.9); }
+  function wakeSound() { tone([392, 523], 0.55, 'triangle'); }
+
+  /* ═══════════════ 8. Canvas ═══════════════ */
+  var szMap = (typeof WeakMap === 'function') ? new WeakMap() : null;
+  var szFallback = [];
+  function getSz(cv) {
+    if (szMap) return szMap.get(cv);
+    for (var i = 0; i < szFallback.length; i++) if (szFallback[i].cv === cv) return szFallback[i].v;
+    return undefined;
+  }
+  function setSz(cv, v) {
+    if (szMap) { szMap.set(cv, v); return; }
+    for (var i = 0; i < szFallback.length; i++) if (szFallback[i].cv === cv) { szFallback[i].v = v; return; }
+    szFallback.push({ cv: cv, v: v });
+  }
+  function fitCanvas(cv, force) {
+    if (!cv) return false;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    var d = Math.min(2, window.devicePixelRatio || 1);
+    if (!w || !h) return false;
+    var s = getSz(cv);
+    if (!force && s && w === s.w && h === s.h && d === s.d) return false;   /* 尺寸未變：絕不重設 */
+    setSz(cv, { w: w, h: h, d: d });
+    cv.width = Math.round(w * d);
+    cv.height = Math.round(h * d);
+    var ctx = cv.getContext('2d');
+    if (ctx && ctx.setTransform) ctx.setTransform(d, 0, 0, d, 0, 0);
+    return true;
+  }
+
+  var STAGE_ROW = { W: 0, REM: 1, N1: 2, N2: 3, N3: 4 };
+  var ROW_LAB = ['清醒', 'REM', 'N1', 'N2', 'N3'];
+  var STAGE_COL = { W: '#d8b26a', REM: '#a884d8', N1: '#8494ab', N2: '#5f93bd', N3: '#4d7fd6' };
+  var STAGE_NAME = { W: '清醒', REM: 'REM · 做夢', N1: 'N1 · 剛睡著', N2: 'N2 · 淺睡（NonREM）', N3: 'N3 · 慢波深睡（NonREM）' };
+
+  function stageLive(t) {
+    for (var i = 0; i < wakes.length; i++) if (t >= wakes[i].s && t < wakes[i].e) return 'W';
+    return stageAt(hyp, t);
+  }
+
+  var CLOCK0 = 23 * 60 + 30;                        /* 圖表原點 = 23:30；+480 分 = 07:30 */
+  function fmtClock(t) {
+    var m = (CLOCK0 + Math.floor(t)) % 1440;
+    var hh = Math.floor(m / 60), mm = m % 60;
+    return (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+  }
+
+  function drawHypno() {
+    var cv = $('#hypno'); if (!cv) return;
+    var ctx = cv.getContext('2d'); if (!ctx) return;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    ctx.clearRect(0, 0, w, h);
+
+    var padL = w < 430 ? 38 : 52, padR = 14, padT = 14, padB = 22;
+    var iw = w - padL - padR, ih = h - padT - padB;
+    if (iw <= 10 || ih <= 10) return;
+    var rowY = function (i) { return padT + (i + 0.5) * ih / 5; };
+    var X = function (t) { return padL + (clamp(t, 0, TOTAL) / TOTAL) * iw; };
+
+    /* 底線與列標籤 */
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (var r = 0; r < 5; r++) {
+      var y = Math.round(rowY(r)) + 0.5;
+      ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + iw, y); ctx.stroke();
+      ctx.fillStyle = 'rgba(185,200,220,0.6)';
+      ctx.fillText(ROW_LAB[r], padL - 8, rowY(r));
+    }
+
+    /* 逐分鐘走出目前為止的段落（含被吵醒插入的清醒段） */
+    var tEnd = clamp(Math.floor(st.t), 0, TOTAL);
+    var runs = [], cur = null;
+    for (var t = 0; t <= tEnd; t++) {
+      var s = stageLive(t);
+      if (!cur || cur.s !== s) { cur = { s: s, b: t, e: t }; runs.push(cur); }
+      else cur.e = t;
+    }
+    if (cur) cur.e = Math.max(cur.e, Math.min(TOTAL, st.t));
+
+    /* N3 用「往下的實心區塊」表示深度（不只靠顏色） */
+    var bottom = padT + ih;
+    for (var i = 0; i < runs.length; i++) {
+      if (runs[i].s !== 'N3') continue;
+      ctx.fillStyle = 'rgba(77,127,214,0.17)';
+      ctx.fillRect(X(runs[i].b), rowY(4), Math.max(1, X(runs[i].e) - X(runs[i].b)), bottom - rowY(4));
+    }
+    /* REM 加斜線網底（不只靠顏色） */
+    ctx.save();
+    ctx.strokeStyle = 'rgba(168,132,216,0.30)';
+    ctx.lineWidth = 1;
+    for (var i2 = 0; i2 < runs.length; i2++) {
+      if (runs[i2].s !== 'REM') continue;
+      var x0 = X(runs[i2].b), x1 = X(runs[i2].e), yc = rowY(1);
+      for (var xx = x0; xx < x1; xx += 5) {
+        ctx.beginPath();
+        ctx.moveTo(xx, yc + 8); ctx.lineTo(Math.min(x1, xx + 6), yc - 8);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+
+    /* 階梯線 */
+    ctx.lineJoin = 'round'; ctx.lineCap = 'butt';
+    for (var k = 0; k < runs.length; k++) {
+      var R = runs[k];
+      var yy = rowY(STAGE_ROW[R.s]);
+      ctx.strokeStyle = STAGE_COL[R.s] || '#8494ab';
+      ctx.lineWidth = R.s === 'N3' ? 3 : 2;
+      ctx.setLineDash(R.s === 'REM' ? [6, 4] : []);
+      ctx.beginPath(); ctx.moveTo(X(R.b), yy); ctx.lineTo(X(R.e), yy); ctx.stroke();
+      ctx.setLineDash([]);
+      if (k + 1 < runs.length) {
+        var N = runs[k + 1];
+        ctx.strokeStyle = 'rgba(180,198,222,0.35)';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(X(N.b), yy); ctx.lineTo(X(N.b), rowY(STAGE_ROW[N.s]));
+        ctx.stroke();
+      }
+    }
+
+    /* 線索標記 */
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    for (var c2 = 0; c2 < st.cues.length; c2++) {
+      var C = st.cues[c2];
+      var cx = X(C.t), cy = rowY(STAGE_ROW[C.stage]);
+      ctx.strokeStyle = 'rgba(232,169,95,0.30)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.beginPath(); ctx.moveTo(cx, padT); ctx.lineTo(cx, cy); ctx.stroke();
+      ctx.setLineDash([]);
+      if (C.gain > 0) {
+        ctx.fillStyle = '#e8a95f';
+        ctx.beginPath(); ctx.arc(cx, cy, 4.2, 0, Math.PI * 2); ctx.fill();
+      } else {
+        ctx.strokeStyle = '#d97a7a';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(cx - 3.6, cy - 3.6); ctx.lineTo(cx + 3.6, cy + 3.6);
+        ctx.moveTo(cx + 3.6, cy - 3.6); ctx.lineTo(cx - 3.6, cy + 3.6);
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(232,169,95,0.85)';
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.fillText(String(c2 + 1), cx, padT - 3);
+    }
+
+    /* 目前時間游標 */
+    if (st.t > 0 && st.t < TOTAL) {
+      var gx = X(st.t);
+      ctx.strokeStyle = 'rgba(255,255,255,0.42)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(gx, padT); ctx.lineTo(gx, bottom); ctx.stroke();
+      ctx.save();
+      ctx.shadowColor = 'rgba(255,255,255,0.6)'; ctx.shadowBlur = 8;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(gx, rowY(STAGE_ROW[stageLive(st.t)]), 3, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    /* 時間軸 */
+    ctx.fillStyle = 'rgba(150,168,190,0.55)';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    for (var tick = 30; tick < TOTAL; tick += 60) {          /* 每個整點 */
+      var lx = X(tick);
+      ctx.beginPath(); ctx.moveTo(lx, bottom); ctx.lineTo(lx, bottom + 4); ctx.stroke();
+      if (tick >= 150 && ((tick - 30) / 60) % 2 === 0) {     /* 每兩小時標一次 */
+        ctx.textAlign = 'center';
+        ctx.fillText(fmtClock(tick), lx, bottom + 6);
+      }
+    }
+    ctx.textAlign = 'left';  ctx.fillText(fmtClock(0), X(0), bottom + 6);
+    ctx.textAlign = 'right'; ctx.fillText(fmtClock(TOTAL), X(TOTAL), bottom + 6);
+  }
+
+  /* --- 腦波示意 --- */
+  var eegBuf = [];
+  var eegPh = 0;
+  var evoke = 0;
+  function eegSample(stage, ph, rnd) {
+    var n = (rnd() * 2 - 1);
+    switch (stage) {
+      case 'W':   return 0.16 * Math.sin(ph * 13.0) + 0.11 * n;
+      case 'N1':  return 0.30 * Math.sin(ph * 5.5) + 0.09 * n;
+      case 'N2': {
+        var v = 0.20 * Math.sin(ph * 2.6) + 0.06 * n;
+        var win = Math.max(0, Math.sin(ph * 0.42));
+        v += 0.30 * Math.pow(win, 6) * Math.sin(ph * 13.5);
+        return v;
+      }
+      case 'N3':  return 0.78 * Math.sin(ph * 0.9) + 0.05 * n;
+      case 'REM': return 0.17 * Math.sin(ph * 9.5) + 0.10 * Math.sin(ph * 2.1) + 0.08 * n;
+      default:    return 0.1 * n;
+    }
+  }
+  var eegRnd = mulberry32(99);
+
+  function pushEeg(stage, steps) {
+    for (var i = 0; i < steps; i++) {
+      eegPh += 0.09;
+      var v = eegSample(stage, eegPh, eegRnd);
+      if (evoke > 0) {
+        /* 成功線索之後的額區負波 + 紡錘波（示意） */
+        var k = evoke / 60;
+        v -= 0.55 * Math.exp(-Math.pow((1 - k) * 3.2 - 0.9, 2));
+        v += 0.22 * Math.exp(-Math.pow((1 - k) * 3.2 - 2.0, 2)) * Math.sin(eegPh * 13);
+        evoke--;
+      }
+      eegBuf.push(v);
+      if (eegBuf.length > 900) eegBuf.shift();
+    }
+  }
+
+  function drawEeg() {
+    var cv = $('#eeg'); if (!cv) return;
+    var ctx = cv.getContext('2d'); if (!ctx) return;
+    var w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    ctx.clearRect(0, 0, w, h);
+    var mid = h / 2, amp = h * 0.40;
+    var n = Math.min(eegBuf.length, Math.floor(w));
+    if (n < 2) return;
+    var stage = stageLive(st.t);
+    ctx.strokeStyle = STAGE_COL[stage] || '#8494ab';
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    var off = eegBuf.length - n;
+    for (var i = 0; i < n; i++) {
+      var x = (i / (n - 1)) * w;
+      var y = mid - clamp(eegBuf[off + i], -1.2, 1.2) * amp;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(150,168,190,0.5)';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(STAGE_NAME[stage] || stage, 8, 6);
+  }
+
+  function fillEegStatic() {
+    eegBuf = [];
+    var r = mulberry32(5), ph = 0, stage = stageLive(st.t);
+    for (var i = 0; i < 620; i++) { ph += 0.09; eegBuf.push(eegSample(stage, ph, r)); }
+  }
+
+  /* ═══════════════ 9. rAF 迴圈 ═══════════════ */
+  var running = false, rafId = 0, lastTs = 0, inView = true;
+
+  function frame(ts) {
+    if (!running) return;
+    var dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
+    lastTs = ts;
+    if (st.playing && !st.ended) {
+      st.t += dt * SPEEDS[speedIdx];
+      /* 淺眠風險隨時間自然消退 */
+      st.arousal = Math.max(0, st.arousal - dt * 0.05);
+      if (st.t >= TOTAL) { st.t = TOTAL; endNight(); }
+      syncClock();
+    }
+    pushEeg(stageLive(st.t), 3);
+    drawHypno();
+    drawEeg();
+    rafId = window.requestAnimationFrame(frame);
+  }
+
+  function setRunning() {
+    var want = !document.hidden && !reduced() && inView && st.phase === 'night' && !st.ended;
+    if (want && !running) { running = true; lastTs = 0; rafId = window.requestAnimationFrame(frame); }
+    else if (!want && running) { running = false; if (rafId) window.cancelAnimationFrame(rafId); rafId = 0; }
+    if (!want) { fitAll(); if (reduced()) fillEegStatic(); drawHypno(); drawEeg(); }
+    if (ac) { try { (document.hidden || !soundOn) ? ac.suspend && ac.suspend() : ac.resume && ac.resume(); } catch (e) {} }
+  }
+
+  /* 減動態：夜晚不自動走動，改由時間軸完全手動控制（功能一模一樣） */
+  function applyReducedUI() {
+    var pb = $('#playBtn'), hint = $('#reduceHint');
+    if (!pb) return;
+    if (reduced()) {
+      st.playing = false;
+      pb.disabled = true;
+      pb.textContent = '（減動態：改用時間軸）';
+      if (hint) hint.hidden = false;
+    } else if (!st.ended) {
+      pb.disabled = false;
+      pb.textContent = st.t > 0 ? '繼續' : '閉上眼睛';
+      if (hint) hint.hidden = true;
+    }
+    syncClock();
+  }
+
+  function fitAll() {
+    var a = fitCanvas($('#hypno'));
+    var b = fitCanvas($('#eeg'));
+    return a || b;
+  }
+
+  /* ═══════════════ 10. 幕四：學習與睡前測驗 ═══════════════ */
+  function renderLearn() {
+    var box = $('#learnBody'); if (!box) return;
+    var W = WORDS[st.li];
+    var dots = '';
+    for (var i = 0; i < WORDS.length; i++) {
+      dots += '<i class="' + (i < st.li ? 'on' : (i === st.li ? 'now' : '')) + '"></i>';
+    }
+    box.innerHTML =
+      '<div class="wordcard"><p class="nl">' + W.nl + '</p><p class="zh">' + W.zh + '</p></div>' +
+      '<div class="prog" aria-hidden="true">' + dots + '</div>' +
+      '<p class="center quiet" style="margin:14px 0 18px">第 ' + (st.li + 1) + ' / ' + WORDS.length + ' 個</p>' +
+      '<div class="center"><button class="btn" id="nextWord" type="button">' +
+      (st.li === WORDS.length - 1 ? '學完了，考我 →' : '記住了 →') + '</button></div>';
+    var b = $('#nextWord');
+    if (b) b.addEventListener('click', function () {
+      st.li++;
+      if (st.li >= WORDS.length) startEvening();
+      else renderLearn();
+    });
+  }
+
+  function startEvening() {
+    st.phase = 'evening';
+    st.ei = 0;
+    st.evening = [];
+    for (var i = 0; i < WORDS.length; i++) st.evening.push(false);
+    var rnd = mulberry32(RUN_SEED * 31 + 5);
+    st.order = shuffled([0,1,2,3,4,5,6,7,8,9], rnd);
+    renderEvening('');
+    say('睡前測驗開始');
+  }
+
+  function renderEvening(fb, fbClass) {
+    var box = $('#learnBody'); if (!box) return;
+    if (st.ei >= WORDS.length) return finishEvening();
+    var W = WORDS[st.order[st.ei]];
+    box.innerHTML =
+      '<h3>睡前測驗 · ' + (st.ei + 1) + ' / ' + WORDS.length + '</h3>' +
+      '<div class="wordcard" style="min-height:120px"><p class="nl">' + W.nl + '</p>' +
+      '<p class="quiet" style="margin:8px 0 0">它是什麼意思？</p></div>' +
+      '<div class="qrow"><input type="text" id="ansE" autocomplete="off" autocapitalize="off" ' +
+      'spellcheck="false" aria-label="' + W.nl + ' 的意思"><button class="btn" id="okE" type="button">送出</button></div>' +
+      '<p class="fb ' + (fbClass || '') + '" id="fbE">' + (fb || '') + '</p>';
+    var inp = $('#ansE'), ok = $('#okE');
+    function submit() {
+      var good = isCorrect(W, inp.value);
+      st.evening[st.order[st.ei]] = good;
+      st.ei++;
+      renderEvening(good ? '對了' : ('正解：' + W.zh), good ? 'ok' : 'no');
+      say(good ? '答對' : ('答錯，正解是 ' + W.zh));
+    }
+    if (ok) ok.addEventListener('click', submit);
+    if (inp) {
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+      try { inp.focus(); } catch (e) {}
+    }
+  }
+
+  function finishEvening() {
+    var n = 0;
+    for (var i = 0; i < st.evening.length; i++) if (st.evening[i]) n++;
+    var g = assignGroups(RUN_SEED * 7 + 13);
+    st.cuedFlags = g.flags; st.cueQueue = g.queue;
+    var names = [];
+    for (var j = 0; j < WORDS.length; j++) if (st.cuedFlags[j]) names.push(WORDS[j].nl);
+
+    $('#learnBody').innerHTML =
+      '<div class="center">' +
+      '<h3>睡前成績</h3>' +
+      '<p class="big" style="margin:6px 0 2px">' + n + ' / ' + WORDS.length + '</p>' +
+      '<p class="quiet" style="margin:0 0 20px">這是你的基準線。等一下早上會再考一次同樣的十個字。</p>' +
+      '<p class="quiet" style="margin:0 0 6px">隨機分派完成，今晚會被點名的是這五個：</p>' +
+      '<p style="color:var(--cue);font-family:var(--serif);letter-spacing:.06em;margin:0 0 22px">' + names.join(' · ') + '</p>' +
+      '<button class="btn big" id="lieDown" type="button">關燈，躺下 →</button>' +
+      '</div>';
+    $('#lieDown').addEventListener('click', unlockNight);
+    say('睡前測驗結束，答對 ' + n + ' 題');
+  }
+
+  /* ═══════════════ 11. 幕五：夜 ═══════════════ */
+  function unlockNight() {
+    st.phase = 'night';
+    var sec = $('#s-night');
+    sec.classList.remove('pending');
+    sec.classList.add('in');
+    updateCueBtn();
+    fitAll(); fillEegStatic(); drawHypno(); drawEeg();
+    applyReducedUI();
+    setRunning();
+    goTo(sec);
+    say('夜晚開始，按「閉上眼睛」讓時間走動');
+  }
+
+  function syncClock() {
+    var c = $('#clock'); if (c) c.textContent = fmtClock(st.t);
+    var p = $('#stagePill');
+    if (p) p.textContent = st.t <= 0 ? '還沒睡著' : (STAGE_NAME[stageLive(st.t)] || '');
+    var sl = $('#tSlider');
+    if (sl) {
+      if (!st.playing) sl.value = String(Math.round(st.t));
+      sl.disabled = st.playing || st.ended || st.phase !== 'night';
+    }
+    var ab = $('#arBar'); if (ab) ab.style.transform = 'scaleX(' + clamp(st.arousal, 0, 1).toFixed(3) + ')';
+    var al = $('#arLab');
+    if (al) al.textContent = st.arousal < 0.34 ? '低' : (st.arousal < 0.68 ? '中' : '高');
+    updateCueBtn();
+  }
+
+  function updateCueBtn() {
+    var b = $('#cueBtn'); if (!b) return;
+    var left = st.cueQueue.length;
+    var cd = st.t - st.lastCueT;
+    var can = st.phase === 'night' && !st.ended && st.t > 0 && left > 0 && cd >= COOLDOWN;
+    b.disabled = !can;
+    b.textContent = left === 0 ? '五次都用完了' : (cd < COOLDOWN && st.lastCueT > -50 ? '（等一下再放）' : '點名');
+    var cl = $('#cueLeft'); if (cl) cl.textContent = '剩 ' + left + ' 次點名';
+  }
+
+  function fireCue() {
+    if (!st.cueQueue.length || st.ended) return;
+    var wi = st.cueQueue.shift();
+    var W = WORDS[wi];
+    var stage = stageLive(st.t);
+    var g = cueGain(stage, vol, $('#fb') && $('#fb').checked);
+    st.cues.push({ t: st.t, stage: stage, wi: wi, word: W.nl, gain: g });
+    st.lastCueT = st.t;
+
+    st.arousal += arousalCost(stage, vol) * 1.9;
+    if (g > 0) evoke = 60;
+    cueSound();
+
+    var wh = $('#whisper');
+    if (wh) {
+      wh.textContent = W.nl;
+      wh.classList.add('show');
+      window.setTimeout(function () { wh.classList.remove('show'); }, 1400);
+    }
+
+    var li = document.createElement('li');
+    li.innerHTML = '<span class="tm">' + fmtClock(st.t) + '</span>' +
+      '<span class="wd">' + W.nl + '</span>' +
+      '<span style="color:var(--dim)">' + (STAGE_NAME[stage] || stage).split(' · ')[0] + '</span>' +
+      '<span class="vd ' + (g > 0 ? 'pos' : 'neg') + '">' + (g > 0 ? '+' : '') + g.toFixed(2) + '</span>';
+    var log = $('#cueLog'); if (log) log.appendChild(li);
+
+    say('在 ' + fmtClock(st.t) + ' 於 ' + (STAGE_NAME[stage] || stage) + ' 播放線索「' + W.nl +
+        '」，模型淨效果 ' + g.toFixed(2));
+
+    if (st.arousal >= 1) {
+      st.arousal = 0.25;
+      st.wakeCount++;
+      wakes.push({ s: st.t, e: st.t + 7 });
+      wakeSound();
+      say('太吵了——你醒了。整夜的鞏固會被打折。');
+      var pill = $('#stagePill'); if (pill) pill.textContent = '你醒了';
+    }
+    updateCueBtn();
+    if (!running) { drawHypno(); drawEeg(); }
+  }
+
+  function endNight() {
+    if (st.ended) return;
+    st.ended = true;
+    st.playing = false;
+    st.t = TOTAL;
+    document.body.classList.add('dawned');
+    var pb = $('#playBtn'); if (pb) { pb.disabled = true; pb.textContent = '天亮了'; }
+    var sl = $('#tSlider'); if (sl) sl.disabled = true;
+    var ww = $('#wakeWrap'); if (ww) ww.hidden = false;
+    updateCueBtn();
+    setRunning();
+    drawHypno(); drawEeg();
+    say('天亮了，可以起床做測驗');
+  }
+
+  /* ═══════════════ 12. 幕六：早上的測驗 ═══════════════ */
+  function startMorning() {
+    st.phase = 'morning';
+    st.mi = 0;
+    st.morning = [];
+    for (var i = 0; i < WORDS.length; i++) st.morning.push(false);
+    var rnd = mulberry32(RUN_SEED * 91 + 41);
+    st.mOrder = shuffled([0,1,2,3,4,5,6,7,8,9], rnd);
+    var sec = $('#s-morning');
+    sec.classList.remove('pending'); sec.classList.add('in');
+    renderMorning();
+    goTo(sec);
+    say('早上的測驗開始');
+  }
+
+  function renderMorning() {
+    var box = $('#morningBody'); if (!box) return;
+    if (st.mi >= WORDS.length) return finishMorning();
+    var W = WORDS[st.mOrder[st.mi]];
+    box.innerHTML =
+      '<h3>早上的測驗 · ' + (st.mi + 1) + ' / ' + WORDS.length + '</h3>' +
+      '<div class="wordcard" style="min-height:120px"><p class="nl">' + W.nl + '</p>' +
+      '<p class="quiet" style="margin:8px 0 0">昨晚那個字。想不起來就跳過。</p></div>' +
+      '<div class="qrow"><input type="text" id="ansM" autocomplete="off" autocapitalize="off" ' +
+      'spellcheck="false" aria-label="' + W.nl + ' 的意思"><button class="btn" id="okM" type="button">送出</button></div>' +
+      '<p class="center" style="margin:14px 0 0"><button class="btn ghost" id="skipM" type="button" ' +
+      'style="padding:7px 18px;font-size:13px">想不起來，跳過</button></p>';
+    var inp = $('#ansM');
+    function submit(v) {
+      st.morning[st.mOrder[st.mi]] = isCorrect(W, v);
+      st.mi++;
+      renderMorning();
+    }
+    $('#okM').addEventListener('click', function () { submit(inp.value); });
+    $('#skipM').addEventListener('click', function () { submit(''); });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); submit(inp.value); } });
+    try { inp.focus(); } catch (e) {}
+  }
+
+  /* ═══════════════ 13. 幕七：成績 ═══════════════ */
+  function finishMorning() {
+    st.phase = 'done';
+    var gs = groupStats(WORDS, st.cuedFlags, st.morning);
+    var ge = groupStats(WORDS, st.cuedFlags, st.evening);
+    var eff = nightEffect(st.cues, st.wakeCount);
+
+    var base = gs.uncued.rate;                       /* 用讀者真實的未點名保留率當基線 */
+    var proj = clamp(base + eff.pp / 100, 0, 1);
+    var wordsPerGroup = 60;                          /* 論文規模：120 個字，一半被點名 */
+    var projWords = (proj - base) * wordsPerGroup;
+
+    var rows = '';
+    for (var i = 0; i < WORDS.length; i++) {
+      rows += '<tr>' +
+        '<td class="nlc">' + WORDS[i].nl + '</td>' +
+        '<td>' + WORDS[i].zh + '</td>' +
+        '<td class="grp' + (st.cuedFlags[i] ? '' : ' no') + '">' + (st.cuedFlags[i] ? '被點名' : '沒點名') + '</td>' +
+        '<td class="mk ' + (st.evening[i] ? 'y' : 'n') + '">' + (st.evening[i] ? '✓' : '✗') + '</td>' +
+        '<td class="mk ' + (st.morning[i] ? 'y' : 'n') + '">' + (st.morning[i] ? '✓' : '✗') + '</td>' +
+        '</tr>';
+    }
+
+    var cueRows = '';
+    if (st.cues.length) {
+      for (var c = 0; c < st.cues.length; c++) {
+        var C = st.cues[c];
+        cueRows += '<tr><td class="nlc">' + C.word + '</td><td>' + fmtClock(C.t) + '</td>' +
+          '<td>' + (STAGE_NAME[C.stage] || C.stage) + '</td>' +
+          '<td class="mk ' + (C.gain > 0 ? 'y' : 'n') + '">' + (C.gain > 0 ? '+' : '') + C.gain.toFixed(2) + '</td></tr>';
+      }
+    } else {
+      cueRows = '<tr><td colspan="4" style="color:var(--dim)">你一次都沒按。那就是純粹的自然睡眠——也是最誠實的對照組。</td></tr>';
+    }
+
+    var wakeLine = st.wakeCount
+      ? '<p class="note">你被自己的線索吵醒了 <strong>' + st.wakeCount + '</strong> 次，整晚的鞏固另外扣掉 ' +
+        (eff.penalty).toFixed(2) + ' 的效果量。這一項不只影響被點名的字，是整夜的事。</p>'
+      : '<p class="note">整夜沒有被吵醒。這在真實實驗裡是最難的部分——音量要大到腦子聽得見，又要小到你不會醒。</p>';
+
+    var fbLine = ($('#fb') && $('#fb').checked)
+      ? '<p class="note">你把「線索後面立刻補上答案」打開了，所以每一次的效果都是 0。這不是我亂設的：Schreiner、Lehmann 與 Rasch 在 2015 年發現，只要線索後面緊接著任何聲音——正確答案、錯誤答案、甚至只是一個純音——記憶好處會完全消失，theta 與紡錘波的反應也不見了。那個時間窗只容得下線索本身。</p>'
+      : '';
+
+    $('#resultBody').innerHTML =
+      '<div class="cols">' +
+
+      '<div class="col real">' +
+      '<span class="tag real">你的真實表現</span>' +
+      '<h3>早上你真的答對了幾個</h3>' +
+      '<div class="bars">' +
+      '<div class="bar cued"><div class="bl"><span>被點名的 ' + gs.cued.n + ' 個字</span><b>' +
+        gs.cued.correct + ' / ' + gs.cued.n + '</b></div><div class="tr"><i data-w="' + gs.cued.rate + '"></i></div></div>' +
+      '<div class="bar unc"><div class="bl"><span>沒被點名的 ' + gs.uncued.n + ' 個字</span><b>' +
+        gs.uncued.correct + ' / ' + gs.uncued.n + '</b></div><div class="tr"><i data-w="' + gs.uncued.rate + '"></i></div></div>' +
+      '</div>' +
+      '<p class="note">睡前基準：被點名組 ' + ge.cued.correct + '/' + ge.cued.n +
+        '、沒點名組 ' + ge.uncued.correct + '/' + ge.uncued.n + '。</p>' +
+      '<p class="note"><strong>這一欄沒有任何模擬成分，也沒有任何 TMR。</strong>你沒有睡著，沒有人在你耳邊念荷蘭文。兩組的差距（' +
+        (gs.cued.correct - gs.uncued.correct >= 0 ? '+' : '') + (gs.cued.correct - gs.uncued.correct) +
+        ' 個字）純粹是你自己的記憶加上隨機分派的運氣。</p>' +
+      '</div>' +
+
+      '<div class="col sim">' +
+      '<span class="tag sim">以下全部是模擬</span>' +
+      '<h3>如果這是實驗室裡的一晚</h3>' +
+      '<p class="big" style="margin:2px 0 0">' + (eff.g >= 0 ? '+' : '') + eff.g.toFixed(2) + '</p>' +
+      '<p class="quiet" style="margin:2px 0 16px">五次線索的平均淨效果量（Hedges\' g 尺度）</p>' +
+      '<div class="bars">' +
+      '<div class="bar unc"><div class="bl"><span>基線（你真實的未點名保留率）</span><b>' +
+        Math.round(base * 100) + '%</b></div><div class="tr"><i data-w="' + base + '"></i></div></div>' +
+      '<div class="bar simd"><div class="bl"><span>模型推估的「被點名」保留率</span><b>' +
+        Math.round(proj * 100) + '%</b></div><div class="tr"><i data-w="' + proj + '"></i></div></div>' +
+      '</div>' +
+      '<p class="note">換算成保留率是 <strong>' + (eff.pp >= 0 ? '+' : '') + eff.pp.toFixed(1) +
+        ' 個百分點</strong>。放大到那篇論文的規模（120 個字、一半被點名），大約是 <strong>' +
+        (projWords >= 0 ? '+' : '') + projWords.toFixed(1) + ' 個字</strong>的差別。</p>' +
+      wakeLine + fbLine +
+      '</div>' +
+
+      '</div>' +
+
+      '<div class="honest">' +
+      '<p><strong>把這兩欄接起來是錯的。</strong>左邊是你剛剛真的記住的東西；右邊是把你按下線索的那幾個時間點餵給一個公式算出來的數字，公式的參數來自 91 個實驗、2004 個人的統合分析。這一頁不能、也沒有在你身上做實驗。</p>' +
+      '<p>而且就算全部是真的：<strong>g = 0.29 的效果在 10 個字上大約是 0.3 個字。</strong>你不可能感覺得到。這就是為什麼那篇論文用了 120 個字、整間睡眠實驗室和一整夜的腦電圖——不是為了壯觀，是因為效果小到非這樣不可。</p>' +
+      '</div>' +
+
+      '<h3 style="margin:36px 0 0">你按下的五次</h3>' +
+      '<table class="wl"><thead><tr><th>線索</th><th>時間</th><th>當時的階段</th><th>淨效果</th></tr></thead><tbody>' +
+      cueRows + '</tbody></table>' +
+
+      '<h3 style="margin:34px 0 0">十個字，逐字對帳</h3>' +
+      '<table class="wl"><thead><tr><th>荷蘭文</th><th>意思</th><th>分組</th><th>睡前</th><th>早上</th></tr></thead><tbody>' +
+      rows + '</tbody></table>';
+
+    var sec = $('#s-result');
+    sec.classList.remove('pending'); sec.classList.add('in');
+    var endSec = $('#s-end');
+    endSec.classList.remove('pending'); endSec.classList.add('in');
+
+    /* 進度條：transform 動畫 */
+    window.setTimeout(function () {
+      $$('#resultBody .bar .tr i').forEach(function (el) {
+        var w = parseFloat(el.getAttribute('data-w')) || 0;
+        el.style.transform = 'scaleX(' + clamp(w, 0, 1).toFixed(4) + ')';
+      });
+    }, reduced() ? 0 : 90);
+
+    store('last', JSON.stringify({
+      cued: gs.cued.correct, uncued: gs.uncued.correct,
+      g: Number(eff.g.toFixed(3)), woke: st.wakeCount,
+      stages: st.cues.map(function (c) { return c.stage; })
+    }));
+
+    goTo(sec);
+    say('成績出來了：被點名組 ' + gs.cued.correct + ' 題、沒點名組 ' + gs.uncued.correct + ' 題');
+  }
+
+  /* ═══════════════ 14. 接線 ═══════════════ */
+  function bind() {
+    /* 速度 */
+    $$('.seg [data-sp]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        speedIdx = parseInt(b.getAttribute('data-sp'), 10);
+        $$('.seg [data-sp]').forEach(function (o) {
+          o.setAttribute('aria-pressed', o === b ? 'true' : 'false');
+        });
+        var sl = $('#speedLab'); if (sl) sl.textContent = SPEED_LAB[speedIdx];
+      });
+    });
+
+    /* 播放／暫停 */
+    var pb = $('#playBtn');
+    if (pb) pb.addEventListener('click', function () {
+      if (st.ended) return;
+      st.playing = !st.playing;
+      pb.textContent = st.playing ? '暫停' : (st.t > 0 ? '繼續' : '閉上眼睛');
+      var sl = $('#tSlider'); if (sl) sl.disabled = st.playing;
+      if (st.playing && soundOn) ensureAudio();
+      setRunning();
+      if (!running) { syncClock(); drawHypno(); drawEeg(); }
+      say(st.playing ? '夜晚開始走動' : '已暫停，可以手動撥動時間');
+    });
+
+    /* 手動撥時間 */
+    var sl = $('#tSlider');
+    if (sl) sl.addEventListener('input', function () {
+      if (st.playing || st.ended) return;
+      st.t = clamp(parseFloat(sl.value) || 0, 0, TOTAL);
+      st.lastCueT = -99;
+      syncClock();
+      fillEegStatic();
+      drawHypno(); drawEeg();
+      if (st.t >= TOTAL) endNight();
+    });
+
+    /* 音量 */
+    var vr = $('#vol');
+    if (vr) vr.addEventListener('input', function () {
+      vol = clamp((parseFloat(vr.value) || 0) / 100, 0, 1);
+      var vl = $('#volLab'); if (vl) vl.textContent = Math.round(vol * 100) + '%';
+      applyVol();
+    });
+
+    /* 聲音開關（使用者手勢才建立 AudioContext） */
+    var sc = $('#sound');
+    if (sc) {
+      if (load('sound') === '1') { sc.checked = true; soundOn = true; }
+      sc.addEventListener('change', function () {
+        soundOn = !!sc.checked;
+        store('sound', soundOn ? '1' : '0');
+        if (soundOn) { ensureAudio(); applyVol(); tone([220], 0.35); }
+        else applyVol();
+      });
+    }
+
+    /* 點名 */
+    var cb = $('#cueBtn');
+    if (cb) cb.addEventListener('click', fireCue);
+
+    /* 起床 */
+    var wb = $('#wakeBtn');
+    if (wb) wb.addEventListener('click', startMorning);
+
+    /* 再來一次 */
+    var ab = $('#againBtn');
+    if (ab) ab.addEventListener('click', function () {
+      drop('last');
+      window.location.reload();
+    });
+
+    /* 尺寸 */
+    var rzT = null;
+    window.addEventListener('resize', function () {
+      window.clearTimeout(rzT);
+      rzT = window.setTimeout(function () {
+        if (fitAll()) { drawHypno(); drawEeg(); }
+      }, 120);
+    });
+    if (window.ResizeObserver) {
+      var ro = new window.ResizeObserver(function () {
+        if (fitAll()) { drawHypno(); drawEeg(); }
+      });
+      var h = $('#hypno'), e = $('#eeg');
+      if (h) ro.observe(h);
+      if (e) ro.observe(e);
+    }
+
+    /* 夜晚離屏就停 */
+    if (window.IntersectionObserver) {
+      var io2 = new window.IntersectionObserver(function (es) {
+        for (var i = 0; i < es.length; i++) inView = es[i].isIntersecting;
+        setRunning();
+      }, { rootMargin: '80px 0px' });
+      var ns = $('#s-night');
+      if (ns) io2.observe(ns);
+    }
+
+    document.addEventListener('visibilitychange', setRunning);
+    onReducedChange(function () {
+      applyReducedUI();
+      setRunning();
+      $$('.rv').forEach(function (el) { if (reduced()) el.classList.add('in'); });
+      fillEegStatic(); drawHypno(); drawEeg();
+    });
+  }
+
+  /* 捲動進場 */
+  function reveal() {
+    var els = $$('.rv');
+    if (reduced() || !('IntersectionObserver' in window)) {
+      els.forEach(function (el) { el.classList.add('in'); });
+      return;
+    }
+    var io = new window.IntersectionObserver(function (es, obs) {
+      for (var i = 0; i < es.length; i++) {
+        if (es[i].isIntersecting) { es[i].target.classList.add('in'); obs.unobserve(es[i].target); }
+      }
+    }, { rootMargin: '0px 0px -8% 0px' });
+    els.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ═══════════════ 15. 啟動 ═══════════════ */
+  function init() {
+    renderLearn();
+    bind();
+    reveal();
+    fitAll();
+    fillEegStatic();
+    syncClock();
+    drawHypno();
+    drawEeg();
+    var lastRun = load('last');
+    if (lastRun) {
+      try {
+        var L = JSON.parse(lastRun);
+        var hint = document.createElement('p');
+        hint.className = 'quiet center';
+        hint.style.margin = '0 0 4px';
+        hint.textContent = '（上一次：被點名 ' + L.cued + '/5、沒點名 ' + L.uncued + '/5）';
+        var lp = $('#learnPanel');
+        if (lp) lp.insertBefore(hint, lp.firstChild);
+      } catch (e) {}
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+})();
+</script>
+</body>
+</html>

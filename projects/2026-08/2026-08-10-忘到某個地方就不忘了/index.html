@@ -1,0 +1,997 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>忘到某個地方就不忘了 · 每日小專案</title>
+<style>
+:root{
+  --bg:#080b10;
+  --bg2:#0c1119;
+  --bg3:#0f1621;
+  --panel:#121a26;
+  --line:#22303f;
+  --line2:#2e4054;
+  --ink:#e9eff6;
+  --ink2:#a7b7c8;
+  --ink3:#6b7d90;
+  --ink4:#4a5a6b;
+  --cyan:#4fd1c5;       /* 還在掉的那一段 */
+  --amber:#f0b429;      /* 平台 · permastore */
+  --amber2:#ffd979;
+  --rose:#ff7d8e;       /* 你押的數字 */
+  --violet:#a78bfa;     /* Ebbinghaus */
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,serif;
+  --sans:"Helvetica Neue","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); line-height:1.95;
+  font-size:clamp(16px,1rem + .2vw,17.5px);
+  overflow-x:hidden;
+}
+p{margin:0 0 1.15em}
+main{display:block}
+section{position:relative; padding:clamp(66px,11vh,120px) 20px}
+.wrap{max-width:760px; margin:0 auto}
+.narrow{max-width:640px; margin:0 auto}
+.home{
+  position:absolute; top:16px; left:18px; z-index:30;
+  color:#5f7185; text-decoration:none; font-size:13px; letter-spacing:.08em;
+  padding:5px 9px; border-radius:5px; transition:color .25s,background .25s;
+}
+.home:hover,.home:focus-visible{color:var(--ink); background:rgba(255,255,255,.07)}
+:focus-visible{outline:2px solid var(--amber); outline-offset:3px; border-radius:3px}
+button{font:inherit; color:inherit; cursor:pointer}
+.mono{font-family:var(--mono); font-variant-numeric:tabular-nums}
+.dim{color:var(--ink3)}
+h1{font-size:clamp(29px,7.2vw,54px); line-height:1.32; margin:0 0 28px; font-weight:600; letter-spacing:.01em}
+h1 em{font-style:normal; color:var(--amber)}
+h2{font-size:clamp(21px,4.3vw,30px); line-height:1.5; margin:0 0 22px; font-weight:600}
+h3{font-size:clamp(17px,2.9vw,20px); margin:0 0 12px; font-weight:600}
+.kicker{font-family:var(--mono); font-size:12px; letter-spacing:.24em; color:var(--amber); margin-bottom:28px}
+.lead{font-size:clamp(16px,1rem + .2vw,18.5px); color:#b9c7d6; max-width:34em}
+.big{font-size:clamp(18px,1.15rem + .3vw,23px); line-height:1.72}
+
+/* ---------- 進場 ---------- */
+.rv{opacity:0; transform:translateY(18px); transition:opacity .8s cubic-bezier(.2,.7,.3,1),transform .8s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+
+/* ---------- 降級 ---------- */
+.nomotion *,.nomotion *::before,.nomotion *::after{
+  animation-duration:.001s !important; animation-delay:0s !important;
+  transition-duration:.001s !important; transition-delay:0s !important;
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1; transform:none; transition:none}
+  *,*::before,*::after{animation-duration:.001s !important; transition-duration:.001s !important; animation-iteration-count:1 !important}
+}
+
+/* ---------- 鉤子 ---------- */
+#hook{
+  min-height:100svh; display:flex; align-items:center;
+  padding:96px 20px 120px; overflow:hidden; isolation:isolate;
+}
+#hook::before{
+  content:""; position:absolute; inset:0; z-index:-2;
+  background:radial-gradient(110% 70% at 22% 0%,rgba(240,180,41,.09),transparent 60%);
+}
+.cue{
+  position:absolute; left:50%; bottom:26px; transform:translateX(-50%);
+  font-size:11.5px; letter-spacing:.2em; color:#556477; font-family:var(--mono);
+  animation:bob 2.6s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);opacity:.5}50%{transform:translateX(-50%) translateY(7px);opacity:1}}
+
+/* ---------- 押注 ---------- */
+.bet{
+  margin-top:38px; border:1px solid var(--line); border-radius:10px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  padding:22px clamp(16px,3.4vw,26px);
+}
+.bet .q{font-size:15.5px; color:var(--ink2); margin:0 0 16px; line-height:1.8}
+.betrow{display:flex; align-items:center; gap:16px; flex-wrap:wrap}
+.betnum{
+  font-family:var(--mono); font-size:clamp(30px,7vw,42px); color:var(--rose);
+  line-height:1; min-width:2.6em; font-variant-numeric:tabular-nums;
+}
+.betnum small{font-size:.42em; color:var(--ink3); margin-left:4px; letter-spacing:.1em}
+.bet .rng{flex:1 1 220px; min-width:180px}
+.betdone{margin:16px 0 0; font-size:14.5px; color:var(--amber2); display:none}
+.betdone.on{display:block}
+
+/* ---------- 滑桿 ---------- */
+input[type=range]{
+  -webkit-appearance:none; appearance:none; width:100%; background:transparent;
+  height:26px; margin:0; cursor:pointer; display:block;
+}
+input[type=range]::-webkit-slider-runnable-track{
+  height:5px; border-radius:99px; background:var(--line2);
+}
+input[type=range]::-moz-range-track{height:5px; border-radius:99px; background:var(--line2)}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none; width:22px; height:22px; margin-top:-8.5px;
+  border-radius:50%; background:var(--ink); border:3px solid var(--bg2);
+  box-shadow:0 0 0 1px var(--line2),0 3px 10px rgba(0,0,0,.55);
+  transition:transform .18s;
+}
+input[type=range]::-moz-range-thumb{
+  width:22px; height:22px; border-radius:50%; background:var(--ink); border:3px solid var(--bg2);
+  box-shadow:0 0 0 1px var(--line2),0 3px 10px rgba(0,0,0,.55);
+}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.1)}
+input[type=range]:focus-visible{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px var(--amber)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 3px var(--amber)}
+#tRange::-webkit-slider-thumb{background:var(--amber); border-color:#241a05}
+#tRange::-moz-range-thumb{background:var(--amber); border-color:#241a05}
+
+/* ---------- 733 人 ---------- */
+#scale{background:var(--bg2); border-top:1px solid var(--line)}
+.dots{
+  display:flex; flex-wrap:wrap; gap:4px; margin:6px 0 18px;
+  max-width:760px;
+}
+.dots i{
+  width:7px; height:7px; border-radius:50%; background:#2b3b4d; display:block;
+  opacity:0; transform:scale(.3); transition:opacity .5s ease,transform .5s cubic-bezier(.2,.8,.3,1);
+}
+.dots.in i{opacity:1; transform:none}
+.dots i.hi{background:var(--amber)}
+.dotcap{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; color:var(--ink3);
+  display:flex; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  border-top:1px solid var(--line); padding-top:12px; margin-bottom:34px;
+}
+.aside{
+  border-left:2px solid var(--line2); padding:2px 0 2px 18px; margin:30px 0;
+  color:var(--ink2); font-size:15.5px;
+}
+
+/* ---------- 圖表區 ---------- */
+#chart{background:var(--bg3); border-top:1px solid var(--line)}
+.chartbox{
+  max-width:900px; margin:0 auto; background:var(--panel);
+  border:1px solid var(--line); border-radius:12px;
+  padding:clamp(14px,2.6vw,22px) clamp(10px,2vw,20px) clamp(16px,2.6vw,22px);
+  box-shadow:0 30px 70px -40px #000;
+}
+.readout{
+  display:flex; align-items:baseline; gap:10px 20px; flex-wrap:wrap;
+  font-family:var(--mono); margin:0 0 6px; padding:0 8px;
+}
+.readout b{font-weight:600; font-size:clamp(19px,4vw,25px); color:var(--amber); font-variant-numeric:tabular-nums}
+.readout .sc{font-size:clamp(19px,4vw,25px); color:var(--cyan); font-variant-numeric:tabular-nums}
+.readout .sc.perma{color:var(--amber)}
+.readout span.lbl{font-size:11.5px; letter-spacing:.16em; color:var(--ink3)}
+svg.plot{width:100%; height:auto; display:block; overflow:visible}
+.gridline{stroke:#1c2735; stroke-width:1}
+.gridline.zero{stroke:#2b3b4d}
+.axtxt{fill:#5f7285; font-family:var(--mono); font-size:11px}
+.axcap{fill:#4a5a6b; font-family:var(--mono); font-size:10.5px; letter-spacing:.14em}
+.curveglow{filter:drop-shadow(0 0 7px rgba(79,209,197,.35))}
+.curveglow.perma{filter:drop-shadow(0 0 8px rgba(240,180,41,.4))}
+path.cdrop{fill:none; stroke:var(--cyan); stroke-width:3; stroke-linecap:round; stroke-linejoin:round}
+path.cflat{fill:none; stroke:var(--amber); stroke-width:3; stroke-linecap:round; stroke-linejoin:round}
+#band{fill:var(--amber); opacity:0; transition:opacity .7s ease}
+#band.lit{opacity:.13}
+#bandEdge{stroke:var(--amber); stroke-width:1; stroke-dasharray:2 4; opacity:0; transition:opacity .7s ease}
+#bandEdge.lit{opacity:.5}
+#permaLabel{opacity:0; transform:translateY(10px); transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.3,1)}
+#permaLabel.lit{opacity:1; transform:none}
+#permaLabel text.big{fill:var(--amber2); font-family:var(--mono); font-size:15px; letter-spacing:.1em}
+#permaLabel text.sm{fill:#9b8859; font-family:var(--mono); font-size:11px; letter-spacing:.06em}
+#guide{stroke:#3c5165; stroke-width:1; stroke-dasharray:3 4}
+#head{fill:#fff; stroke:var(--bg3); stroke-width:2}
+#betLine{stroke:var(--rose); stroke-width:1.5; stroke-dasharray:6 5; opacity:.85}
+#betTxt{fill:var(--rose); font-family:var(--mono); font-size:11.5px; letter-spacing:.06em}
+.ctrls{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:6px; padding:0 8px}
+.ctrls .rngwrap{flex:1 1 240px; min-width:180px}
+.ticks{
+  display:flex; justify-content:space-between; font-family:var(--mono);
+  font-size:10.5px; color:var(--ink4); margin-top:-2px; padding:0 2px;
+}
+.btn{
+  background:transparent; border:1px solid var(--line2); border-radius:99px;
+  padding:7px 15px; font-size:13px; color:var(--ink2); letter-spacing:.04em;
+  transition:border-color .2s,color .2s,background .2s; font-family:var(--sans);
+}
+.btn:hover{border-color:var(--amber); color:var(--amber)}
+.btn[aria-pressed=true],.btn.on{border-color:var(--amber); color:#20180a; background:var(--amber)}
+.stage{
+  margin:16px 8px 0; min-height:3.4em; font-size:clamp(15.5px,2.6vw,17.5px);
+  color:var(--ink); line-height:1.75; border-top:1px solid var(--line); padding-top:14px;
+  transition:color .3s;
+}
+.stage.perma{color:var(--amber2)}
+.verdict{
+  margin:14px 8px 0; font-family:var(--mono); font-size:13px; color:var(--rose);
+  display:none; letter-spacing:.03em;
+}
+.verdict.on{display:block}
+
+/* ---------- 引文卡 ---------- */
+.quote{
+  border:1px solid var(--line); border-left:3px solid var(--amber);
+  border-radius:0 8px 8px 0; background:rgba(240,180,41,.045);
+  padding:20px clamp(16px,3vw,24px); margin:30px 0; font-size:15.5px; color:var(--ink2);
+}
+.quote .src{display:block; margin-top:10px; font-family:var(--mono); font-size:11.5px; color:var(--ink3); letter-spacing:.06em}
+.card{
+  border:1px solid var(--line); border-radius:10px; background:var(--panel);
+  padding:22px clamp(16px,3vw,26px); margin:28px 0;
+}
+.tbl{width:100%; border-collapse:collapse; font-size:14.5px; margin:6px 0 4px}
+.tbl th,.tbl td{padding:9px 8px; border-bottom:1px solid var(--line); text-align:left}
+.tbl th{font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--ink3); font-weight:400}
+.tbl td.n{font-family:var(--mono); text-align:right; color:var(--ink); font-variant-numeric:tabular-nums; white-space:nowrap}
+.tbl tr.mark td{color:var(--amber2)}
+.tbl tr.mark td.n{color:var(--amber)}
+
+/* ---------- 比較區 ---------- */
+#compare{background:var(--bg2); border-top:1px solid var(--line)}
+.segs{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:0 0 6px}
+.segs .lbl{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--ink3); margin-right:2px}
+path.cmp{fill:none; stroke:#33475c; stroke-width:2; transition:stroke .3s,stroke-width .3s,opacity .3s; opacity:.65}
+path.cmp.sel{stroke:var(--amber); stroke-width:3.4; opacity:1}
+text.cmplbl{font-family:var(--mono); font-size:11.5px; fill:#5f7285; transition:fill .3s}
+text.cmplbl.sel{fill:var(--amber)}
+.chk{
+  display:inline-flex; align-items:center; gap:9px; font-size:13.5px;
+  color:var(--ink2); font-family:var(--sans); cursor:pointer; margin-top:12px;
+}
+.chk input{width:16px; height:16px; accent-color:var(--amber); cursor:pointer}
+.punch{
+  margin:34px 0 0; padding:24px clamp(18px,3.4vw,28px);
+  border:1px solid rgba(240,180,41,.35); border-radius:10px;
+  background:linear-gradient(180deg,rgba(240,180,41,.09),rgba(240,180,41,.02));
+  font-size:clamp(17px,1.06rem + .3vw,21px); line-height:1.75; color:var(--ink);
+}
+
+/* ---------- Ebbinghaus ---------- */
+#ebb{background:var(--bg3); border-top:1px solid var(--line)}
+path.ebbline{fill:none; stroke:var(--violet); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round}
+.ebbglow{filter:drop-shadow(0 0 7px rgba(167,139,250,.3))}
+.ebbmark{fill:var(--violet)}
+.ebbtxt{fill:#8b7fb8; font-family:var(--mono); font-size:10.5px}
+.scaleTag{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; color:var(--violet);
+  padding:0 8px; margin:0 0 8px;
+}
+.pxout{
+  font-family:var(--mono); font-size:clamp(26px,6vw,38px); color:var(--violet);
+  margin:18px 8px 0; display:none; line-height:1.2;
+}
+.pxout.on{display:block}
+.pxout small{display:block; font-size:.36em; color:var(--ink3); letter-spacing:.1em; margin-top:8px}
+
+/* ---------- 結尾 ---------- */
+#end{background:var(--bg2); border-top:1px solid var(--line)}
+.final{font-size:clamp(19px,1.2rem + .4vw,25px); line-height:1.7; color:var(--amber2); margin:36px 0 0}
+footer{
+  max-width:760px; margin:clamp(52px,9vh,86px) auto 0; padding-top:22px;
+  border-top:1px solid var(--line); color:var(--ink4);
+  font-size:12.5px; line-height:1.85; font-family:var(--sans);
+}
+footer p{margin:0 0 5px}
+
+@media (max-width:559px){
+  section{padding:60px 16px}
+  .betrow{gap:10px}
+  .bet .rng{flex:1 1 100%}
+  .chartbox{border-radius:9px; padding:12px 8px 14px}
+  .readout,.ctrls,.stage,.verdict{padding-left:2px; padding-right:2px; margin-left:2px; margin-right:2px}
+  .dots{gap:3px}
+  .dots i{width:6px; height:6px}
+  .tbl th,.tbl td{padding:7px 4px; font-size:13.5px}
+}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ============ 1 · 鉤子 ============ -->
+<section id="hook">
+  <a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+  <div class="wrap">
+    <p class="kicker rv">一場橫跨五十年的追蹤</p>
+    <h1 class="rv">你最後一次上西班牙文課，是<em>四十九年前</em></h1>
+    <p class="lead rv">中間你沒有去過西語國家，沒有再翻開課本，沒有跟任何人說過一句西班牙文。連「謝謝」怎麼講，你都得想一下。</p>
+    <p class="lead rv">現在有人請你坐下來，做一份西班牙文考試。閱讀理解、單字、文法，該考的都考。</p>
+
+    <div class="bet rv">
+      <p class="q">交卷之前，先押一個數字。以你當年剛下課的水準當一百分，你覺得現在的自己還剩幾分？</p>
+      <div class="betrow">
+        <div class="betnum"><span id="betVal">30</span><small>分</small></div>
+        <div class="rng">
+          <input type="range" id="betRange" min="0" max="100" step="1" value="30"
+                 aria-label="你猜自己還剩幾分（0 到 100）">
+        </div>
+        <button class="btn" id="betGo" type="button">押下去</button>
+      </div>
+      <p class="betdone" id="betDone" aria-live="polite"></p>
+    </div>
+  </div>
+  <p class="cue">往下</p>
+</section>
+
+<!-- ============ 2 · 承：733 個人 ============ -->
+<section id="scale">
+  <div class="wrap">
+    <h2 class="rv">這份考卷，733 個人做過</h2>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <p class="dotcap rv"><span>733 位受試者</span><span>保留期間 0 – 50 年</span></p>
+    <div class="narrow">
+      <p class="rv">1984 年，俄亥俄衛斯理大學的 Harry P. Bahrick 找來 733 位在學校學過西班牙文的人。從剛考完期末考、教室還沒走出去的大學生，到畢業五十年、頭髮都白了的人，全部做同一份考試：閱讀理解、回憶單字、再認單字、文法。</p>
+      <p class="rv">另外附一份問卷，問三件事——當年修到什麼程度、成績拿幾分、這些年有沒有再讀、再寫、再說、再聽過西班牙文。</p>
+      <div class="aside rv">
+        <p style="margin:0">這裡沒有實驗室、沒有無意義音節、沒有「三天後回來複測」。保留期間就是這些人的人生。最長的那一段，五十年。</p>
+      </div>
+      <p class="rv">問卷結果裡有一件事後來變得很關鍵：絕大多數人這些年真的沒碰過西班牙文，少到整份資料裡看不出任何複習效果。也就是說，他們是實打實地「放著沒動」。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3+4 · 轉與高潮 ============ -->
+<section id="chart">
+  <div class="wrap">
+    <h2 class="rv">現在，把時間拖過去</h2>
+    <p class="lead rv" style="margin-bottom:30px">橫軸是你離開學校之後過了幾年。往右拖，或用鍵盤左右鍵。</p>
+  </div>
+
+  <div class="chartbox rv">
+    <p class="readout" aria-live="polite">
+      <span class="lbl">離開學校後</span><b id="rYear">第 0 年</b>
+      <span class="lbl">保留分數</span><span class="sc" id="rScore">77</span>
+    </p>
+
+    <svg class="plot" id="mainPlot" viewBox="0 0 800 380" role="img" aria-labelledby="mpTitle mpDesc">
+      <title id="mpTitle">五十年保留曲線（示意模型）</title>
+      <desc id="mpDesc">橫軸是離開學校之後經過的年數，0 到 50 年；縱軸是西班牙文測驗的保留分數，0 到 100。曲線在最初三到六年快速下降，接著長達三十年幾乎不再變化，三十五年之後才再度緩慢下降。同樣的數值以文字顯示在圖表上方。</desc>
+      <g id="grid"></g>
+      <rect id="band" x="0" y="0" width="0" height="0"></rect>
+      <line id="bandEdge" x1="0" y1="0" x2="0" y2="0"></line>
+      <g id="betLayer" opacity="0">
+        <line id="betLine" x1="0" y1="0" x2="0" y2="0"></line>
+        <text id="betTxt" x="0" y="0"></text>
+      </g>
+      <line id="guide" x1="0" y1="0" x2="0" y2="0"></line>
+      <g class="curveglow" id="curveWrap">
+        <path class="cdrop" id="cDrop" d=""></path>
+      </g>
+      <g class="curveglow perma" id="curveWrap2">
+        <path class="cflat" id="cFlat" d=""></path>
+      </g>
+      <circle id="head" cx="0" cy="0" r="5.5"></circle>
+      <g id="permaLabel">
+        <text class="big" x="0" y="0" id="pLab1">permastore</text>
+        <text class="sm" x="0" y="0" id="pLab2">第 6 年到第 35 年 · 這條線沒有再掉</text>
+      </g>
+    </svg>
+
+    <div class="ctrls">
+      <div class="rngwrap">
+        <input type="range" id="tRange" min="0" max="50" step="0.5" value="0"
+               aria-label="保留期間（離開學校之後的年數，0 到 50 年）">
+        <div class="ticks" aria-hidden="true"><span>0</span><span>10</span><span>20</span><span>30</span><span>40</span><span>50 年</span></div>
+      </div>
+      <button class="btn" id="autoBtn" type="button">自動跑一次</button>
+    </div>
+
+    <p class="stage" id="stageTxt">剛下課。你的西班牙文正停在這輩子的最高點。</p>
+    <p class="verdict" id="verdict"></p>
+  </div>
+
+  <div class="wrap" style="margin-top:clamp(48px,8vh,80px)">
+    <div class="narrow">
+      <h3 class="rv">它不是慢慢掉到零，它是掉到某個地方就不掉了</h3>
+      <p class="rv">Bahrick 在論文裡的描述是：記憶曲線在保留期間的前 3 到 6 年呈指數下降，之後維持不變長達 30 年，最後才出現一次下降。大量最初習得的內容，在超過五十年後仍然取用得到——即使這段期間完全沒有使用、沒有複習。</p>
+      <div class="quote rv">
+        <p style="margin:0">「一部分習得的知識，壽命超過 25 年，即使在這段長間隔中完全沒有被複習或取用。另一部分則在訓練結束後五年內流失，而在第 5 年到第 25 年之間，幾乎沒有任何知識流失。」</p>
+        <span class="src">Bahrick &amp; Phelps (1987) 回頭描述 Bahrick (1984) 的結果</span>
+      </div>
+      <p class="rv">他替停住的那一層取了一個名字：<strong>permastore</strong>——永存記憶。這不是說你什麼都沒忘。你忘掉了一大塊，而且掉得很快。只是掉完之後，剩下的那一層就不太動了。</p>
+
+      <div class="card rv">
+        <h3>「忘了」其實有兩種</h3>
+        <p style="font-size:15px;color:var(--ink2)">1987 年，Bahrick 和 Phelps 追蹤了 35 位八年前在實驗室裡背過 50 組英—西單字的人。八年之間，凡是去過西語地區、或再上過課的，一律剔除。</p>
+        <table class="tbl">
+          <thead><tr><th>當年的複習間隔</th><th style="text-align:right">回憶：自己寫出來</th><th style="text-align:right">再認：從六個選項挑</th></tr></thead>
+          <tbody>
+            <tr class="mark"><td>每隔 30 天一次</td><td class="n">15%</td><td class="n">83%</td></tr>
+            <tr><td>每隔 1 天一次</td><td class="n">8%</td><td class="n">80%</td></tr>
+            <tr><td>連續不間斷</td><td class="n">6%</td><td class="n">71%</td></tr>
+            <tr><td>從沒學過（對照組）</td><td class="n">1%</td><td class="n">62%</td></tr>
+          </tbody>
+        </table>
+        <p style="font-size:13px;color:var(--ink3);margin:10px 0 0">再認那一欄，算的是「回憶測驗答不出來」的那些字。</p>
+        <p style="margin:16px 0 0">寫不出來，不代表不在。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 · 加碼：平台的高度 ============ -->
+<section id="compare">
+  <div class="wrap">
+    <h2 class="rv">差別不在忘得多快，在停在哪裡</h2>
+    <p class="lead rv" style="margin-bottom:26px">論文裡預測保留量最強的變項是「原始訓練程度」——當年修了幾年、學到多深；其次是當年的成績。切換看看。</p>
+  </div>
+
+  <div class="chartbox rv">
+    <div class="ctrls" style="margin-bottom:10px">
+      <div class="segs" role="group" aria-label="當年的訓練程度">
+        <span class="lbl">訓練程度</span>
+        <button class="btn seg-lv" type="button" data-lv="1" aria-pressed="false">只修過一年</button>
+        <button class="btn seg-lv" type="button" data-lv="2" aria-pressed="true">修過兩到三年</button>
+        <button class="btn seg-lv" type="button" data-lv="3" aria-pressed="false">三年以上或主修</button>
+      </div>
+    </div>
+    <div class="ctrls" style="margin-bottom:12px">
+      <div class="segs" role="group" aria-label="當年的成績">
+        <span class="lbl">當年成績</span>
+        <button class="btn seg-gr" type="button" data-gr="A" aria-pressed="false">A</button>
+        <button class="btn seg-gr" type="button" data-gr="B" aria-pressed="true">B</button>
+        <button class="btn seg-gr" type="button" data-gr="C" aria-pressed="false">C</button>
+      </div>
+    </div>
+
+    <p class="readout" aria-live="polite">
+      <span class="lbl">選中這一條的平台高度</span><b id="cmpPlateau">37</b>
+      <span class="lbl">起點</span><span class="sc" id="cmpInit">77</span>
+    </p>
+
+    <svg class="plot" id="cmpPlot" viewBox="0 0 800 380" role="img" aria-labelledby="cpTitle cpDesc">
+      <title id="cpTitle">三種訓練程度的保留曲線比較</title>
+      <desc id="cpDesc">三條曲線的下降形狀完全相同，差別在於各自停住的高度：只修過一年的最低，三年以上或主修的最高。數值以文字顯示在圖表上方。</desc>
+      <g id="cmpGrid"></g>
+      <g id="cmpCurves"></g>
+      <g id="cmpLabels"></g>
+    </svg>
+
+    <label class="chk" style="margin-left:8px">
+      <input type="checkbox" id="normChk">
+      <span>把三條線的起點對齊成 100</span>
+    </label>
+    <p class="stage" id="cmpNote">三條線在前六年用的是同一個下降速度——衰減的那一段長得一模一樣。不一樣的，是它們各自停下來的高度。</p>
+  </div>
+
+  <div class="wrap">
+    <div class="narrow">
+      <div class="punch rv">你沒辦法讓自己忘得比較慢。<br>你能決定的，是那條線最後停在多高的地方——而那件事，在你還坐在教室裡的時候就決定完了。</div>
+      <p class="rv" style="margin-top:28px">Bahrick 還檢查了另一種常見的解釋：是不是因為後來學了別的東西，把西班牙文擠掉了？資料說不是。這一層知識不受一般的干擾條件影響。它就只是待在那裡。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 · 記憶點：那條你看過的曲線 ============ -->
+<section id="ebb">
+  <div class="wrap">
+    <h2 class="rv">那條你看過的絕望曲線，是另一回事</h2>
+    <p class="lead rv" style="margin-bottom:26px">大部分人對「遺忘」的印象，來自 1885 年的 Hermann Ebbinghaus。那條線一路往下，看起來什麼都留不住。它是這樣量出來的——</p>
+  </div>
+
+  <div class="chartbox rv" id="ebbBox">
+    <p class="scaleTag" id="ebbTag" aria-live="polite">現在的橫軸：1 分鐘 – 31 天，對數刻度（每往右一大段，時間乘十倍）</p>
+    <svg class="plot" id="ebbPlot" viewBox="0 0 800 300" role="img" aria-labelledby="epTitle epDesc">
+      <title id="epTitle">Ebbinghaus 遺忘曲線</title>
+      <desc id="epDesc">依 Ebbinghaus 一八八五年自己配適的公式繪製，縱軸是重學時省下的時間比例。橫軸為對數刻度，從一分鐘到三十一天：曲線由百分之百一路下降，二十分鐘後約剩五成七，第三十一天約剩兩成一。切換到五十年的線性橫軸後，整條曲線會縮成靠近左緣、約一個像素寬的細線。</desc>
+      <g id="ebbGrid"></g>
+      <g class="ebbglow"><path class="ebbline" id="ebbPath" d=""></path></g>
+      <g id="ebbMarks"></g>
+    </svg>
+    <div class="ctrls">
+      <button class="btn" id="ebbScaleBtn" type="button">把它放到 Bahrick 的尺上</button>
+      <button class="btn" id="ebbReplay" type="button">重播</button>
+    </div>
+    <p class="pxout" id="pxOut">1.1 px<small>整條遺忘曲線在五十年軸上的寬度</small></p>
+  </div>
+
+  <div class="wrap" style="margin-top:clamp(44px,7vh,72px)">
+    <div class="narrow">
+      <div class="card rv">
+        <h3>它到底量了什麼</h3>
+        <table class="tbl">
+          <tbody>
+            <tr><td>材料</td><td>無意義音節（WID、ZOL、PAG 這一類），刻意挑成沒有任何意義可以攀附</td></tr>
+            <tr><td>受試者</td><td class="n">1 人</td></tr>
+            <tr><td>那 1 人是誰</td><td>他自己</td></tr>
+            <tr><td>最長保留期間</td><td class="n">31 天</td></tr>
+            <tr><td>測的是什麼</td><td>不是「記得多少」，是「重學省下多少時間」（節省法）</td></tr>
+            <tr><td>他自己配的公式</td><td class="mono" style="font-size:13px">b = 100k ÷ ((log t)<sup>c</sup> + k)，k = 1.84，c = 1.25</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="rv">Bahrick 那邊：733 個人、有意義的語言、五十年。這邊：一個人、刻意抽掉意義的音節、31 天。兩張圖畫的根本不是同一件事。</p>
+      <p class="rv">還有一件事值得注意：上面那張圖的橫軸是<strong>對數刻度</strong>——從左到右，每一大段代表時間乘十倍。這是遺忘曲線幾乎永遠被畫成的樣子，也是它看起來那麼陡、那麼絕望的原因之一。真正等距的時間軸長什麼樣子，你剛剛按下按鈕就看到了。</p>
+      <p class="rv">這不是說 Ebbinghaus 錯了。在他自己的尺上，他量得非常準——他的曲線至今還配得上他自己 1885 年寫下的那條公式。問題出在後來的人把那把尺借去量別的東西：拿一支碼表去量一個人的一生。</p>
+      <p class="rv">還有一件常被略過的事：連他的曲線都沒有掉到零。第 31 天還剩兩成左右，而且已經幾乎不動了。真正一路溜到零的那條線，是後來被重畫出來的。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 結尾 ============ -->
+<section id="end">
+  <div class="wrap">
+    <div class="narrow">
+      <h2 class="rv">你以為都還給老師了</h2>
+      <p class="big rv">這句話有一半是真的。畢業之後那三到六年，你確實還回去了一大塊，而且還得很急——急到你有理由相信，再過幾年就會歸零。</p>
+      <p class="big rv">但還著還著，某一年它就停了。之後的三十年，你沒有再多還一分。</p>
+      <p class="big rv">停在哪一層，跟你這些年多想記得它無關，也跟你後來學了多少別的東西無關。看的是當年你學到多深、學得多紮實。那一層是在你還沒畢業的時候就鋪好的。</p>
+      <p class="final rv">所以那句話的另一半是：你翻不出來的東西，不一定不在。<br>五十年後把那份考卷再發一次給你——你不會考零分。</p>
+    </div>
+
+    <footer>
+      <p>資料來源：Bahrick, H. P. (1984). Semantic memory content in permastore: Fifty years of memory for Spanish learned in school. <em>Journal of Experimental Psychology: General</em>, 113(1), 1–29；Bahrick, H. P. &amp; Phelps, E. (1987). Retention of Spanish vocabulary over 8 years. <em>JEP: Learning, Memory, and Cognition</em>, 13(2), 344–349；Ebbinghaus, H. (1885). <em>Über das Gedächtnis</em>。</p>
+      <p>圖上的保留曲線依論文描述的形狀重建為示意模型，不是原始資料點。</p>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script src="pure.js"></script>
+<script>
+(function () {
+  'use strict';
+  var P = window.PERMASTORE;
+  var $ = function (id) { return document.getElementById(id); };
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var G = P.GEOM;
+
+  /* ---------------- 動效降級 ---------------- */
+  var mq = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : { matches: false };
+  var reduced = !!mq.matches;
+
+  function applyMotion() {
+    document.documentElement.classList.toggle('nomotion', reduced);
+    if (reduced) {
+      stopAuto();
+      var rv = document.querySelectorAll('.rv');
+      for (var i = 0; i < rv.length; i++) rv[i].classList.add('in');
+      var d = $('dots'); if (d) d.classList.add('in');
+      var ep = $('ebbPath');
+      if (ep) { ep.style.transition = 'none'; ep.style.strokeDasharray = 'none'; ep.style.strokeDashoffset = '0'; }
+    }
+  }
+  if (mq.addEventListener) mq.addEventListener('change', function (e) { reduced = e.matches; applyMotion(); });
+  else if (mq.addListener) mq.addListener(function (e) { reduced = e.matches; applyMotion(); });
+
+  /* ---------------- 進場 ---------------- */
+  var io = null;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        en.target.classList.add('in');
+        io.unobserve(en.target);
+        if (en.target.id === 'ebbBox') playEbbDraw();
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    var rvs = document.querySelectorAll('.rv');
+    for (var i = 0; i < rvs.length; i++) io.observe(rvs[i]);
+  } else {
+    var rv2 = document.querySelectorAll('.rv');
+    for (var j = 0; j < rv2.length; j++) rv2[j].classList.add('in');
+  }
+
+  /* ---------------- 733 個人 ---------------- */
+  (function buildDots() {
+    var box = $('dots');
+    if (!box) return;
+    var frag = document.createDocumentFragment();
+    for (var k = 0; k < 733; k++) {
+      var el = document.createElement('i');
+      el.style.transitionDelay = Math.min(k * 0.9, 680) + 'ms';
+      if (k % 61 === 0) el.className = 'hi';
+      frag.appendChild(el);
+    }
+    box.appendChild(frag);
+    if (io) {
+      var dio = new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { box.classList.add('in'); dio.disconnect(); } });
+      }, { threshold: 0.08 });
+      dio.observe(box);
+    } else {
+      box.classList.add('in');
+    }
+  })();
+
+  /* ---------------- 押注 ---------------- */
+  var bet = null;
+  var betRange = $('betRange'), betVal = $('betVal'), betGo = $('betGo'), betDone = $('betDone');
+  betRange.addEventListener('input', function () { betVal.textContent = betRange.value; });
+  betGo.addEventListener('click', function () {
+    bet = Number(betRange.value);
+    betDone.textContent = '押好了：' + bet + ' 分。把它壓著——等一下它會出現在圖上。';
+    betDone.classList.add('on');
+    betGo.textContent = '改押 ' + bet;
+    drawBet();
+    draw(Number(tRange.value));
+  });
+
+  /* ---------------- 共用：格線 ---------------- */
+  function mk(tag, attrs) {
+    var el = document.createElementNS(SVGNS, tag);
+    for (var a in attrs) if (Object.prototype.hasOwnProperty.call(attrs, a)) el.setAttribute(a, attrs[a]);
+    return el;
+  }
+
+  function buildGrid(holder, yCap) {
+    var g = holder;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    var yv = [0, 25, 50, 75, 100], i;
+    for (i = 0; i < yv.length; i++) {
+      var y = P.yOf(yv[i]);
+      g.appendChild(mk('line', { x1: G.x0, y1: y, x2: G.x1, y2: y, 'class': 'gridline' + (yv[i] === 0 ? ' zero' : '') }));
+      var t = mk('text', { x: G.x0 - 10, y: y + 4, 'class': 'axtxt', 'text-anchor': 'end' });
+      t.textContent = yv[i];
+      g.appendChild(t);
+    }
+    var xv = [0, 10, 20, 30, 40, 50];
+    for (i = 0; i < xv.length; i++) {
+      var x = P.xOf(xv[i]);
+      g.appendChild(mk('line', { x1: x, y1: G.y0, x2: x, y2: G.y1, 'class': 'gridline' }));
+      var tx = mk('text', { x: x, y: G.y1 + 22, 'class': 'axtxt', 'text-anchor': 'middle' });
+      tx.textContent = xv[i];
+      g.appendChild(tx);
+    }
+    var cap = mk('text', { x: (G.x0 + G.x1) / 2, y: G.y1 + 46, 'class': 'axcap', 'text-anchor': 'middle' });
+    cap.textContent = '離開學校之後（年）';
+    g.appendChild(cap);
+    var cap2 = mk('text', { x: G.x0 - 40, y: (G.y0 + G.y1) / 2, 'class': 'axcap', 'text-anchor': 'middle',
+      transform: 'rotate(-90 ' + (G.x0 - 40) + ' ' + ((G.y0 + G.y1) / 2) + ')' });
+    cap2.textContent = yCap;
+    g.appendChild(cap2);
+  }
+
+  /* ---------------- 主圖 ---------------- */
+  var MAIN = P.profile(2, 'B');
+  var FLAT_FROM = P.MODEL.flatFrom;         /* 6 */
+  var FLAT_TO = P.MODEL.lateStart;          /* 35 */
+  var LIT_AT = 12;                          /* 拖過這一年，平台亮起 */
+
+  buildGrid($('grid'), '保留分數');
+
+  var band = $('band'), bandEdge = $('bandEdge');
+  var bandY = P.yOf(MAIN.plateau);
+  band.setAttribute('x', P.xOf(FLAT_FROM));
+  band.setAttribute('width', P.xOf(FLAT_TO) - P.xOf(FLAT_FROM));
+  band.setAttribute('y', bandY - 13);
+  band.setAttribute('height', 26);
+  bandEdge.setAttribute('x1', P.xOf(FLAT_FROM));
+  bandEdge.setAttribute('x2', P.xOf(FLAT_TO));
+  bandEdge.setAttribute('y1', bandY);
+  bandEdge.setAttribute('y2', bandY);
+
+  $('pLab1').setAttribute('x', P.xOf(FLAT_FROM) + 8);
+  $('pLab1').setAttribute('y', bandY - 34);
+  $('pLab2').setAttribute('x', P.xOf(FLAT_FROM) + 8);
+  $('pLab2').setAttribute('y', bandY - 18);
+
+  var cDrop = $('cDrop'), cFlat = $('cFlat'), head = $('head'), guide = $('guide');
+  var rYear = $('rYear'), rScore = $('rScore'), stageTxt = $('stageTxt'), verdict = $('verdict');
+  var betLayer = $('betLayer'), betLine = $('betLine'), betTxt = $('betTxt');
+  var tRange = $('tRange');
+  var lit = false;
+
+  function drawBet() {
+    if (bet === null) { betLayer.setAttribute('opacity', '0'); return; }
+    var y = P.yOf(bet);
+    betLine.setAttribute('x1', G.x0); betLine.setAttribute('x2', G.x1);
+    betLine.setAttribute('y1', y); betLine.setAttribute('y2', y);
+    betTxt.setAttribute('x', G.x0 + 6);
+    betTxt.setAttribute('y', y - 8 < G.y0 + 12 ? y + 18 : y - 8);
+    betTxt.textContent = '你押的 ' + bet + ' 分';
+    betLayer.setAttribute('opacity', '1');
+  }
+
+  function draw(year) {
+    var y = P.clamp(year, 0, 50);
+
+    /* 掉的那一段：0 → min(y, 6)，永遠由左往右 */
+    cDrop.setAttribute('d', P.toPath(P.curvePoints(MAIN, 0, Math.min(y, FLAT_FROM), 0.12)));
+    /* 平的那一段：6 → y */
+    cFlat.setAttribute('d', y > FLAT_FROM ? P.toPath(P.curvePoints(MAIN, FLAT_FROM, y, 0.2)) : '');
+
+    var v = P.retentionAt(y, MAIN);
+    var hx = P.xOf(y), hy = P.yOf(v);
+    head.setAttribute('cx', hx); head.setAttribute('cy', hy);
+    guide.setAttribute('x1', hx); guide.setAttribute('x2', hx);
+    guide.setAttribute('y1', hy + 8); guide.setAttribute('y2', G.y1);
+
+    rYear.textContent = '第 ' + (y % 1 === 0 ? y : y.toFixed(1)) + ' 年';
+    rScore.textContent = v.toFixed(1);
+    rScore.classList.toggle('perma', y >= FLAT_FROM);
+
+    var st = P.stageAt(y);
+    if (stageTxt.textContent !== st.text) stageTxt.textContent = st.text;
+    stageTxt.classList.toggle('perma', y >= LIT_AT);
+
+    if (!lit && y >= LIT_AT) {
+      lit = true;
+      band.classList.add('lit');
+      bandEdge.classList.add('lit');
+      $('permaLabel').classList.add('lit');
+    }
+
+    if (bet !== null && y >= 42) {
+      var diff = bet - v;
+      verdict.textContent = '你押 ' + bet + ' 分。第 ' + Math.round(y) + ' 年，這條線落在 ' + v.toFixed(0) + ' 分'
+        + (Math.abs(diff) < 4 ? '——押得很準。' : (diff > 0 ? '，你押高了 ' + Math.round(diff) + ' 分。' : '，你低估了 ' + Math.round(-diff) + ' 分。'));
+      verdict.classList.add('on');
+    } else {
+      verdict.classList.remove('on');
+    }
+  }
+
+  tRange.addEventListener('input', function () { stopAuto(); draw(Number(tRange.value)); });
+
+  /* 自動跑一次 */
+  var autoId = null, autoBtn = $('autoBtn');
+  function stopAuto() {
+    if (autoId !== null) { cancelAnimationFrame(autoId); autoId = null; autoBtn.textContent = '自動跑一次'; }
+  }
+  autoBtn.addEventListener('click', function () {
+    if (autoId !== null) { stopAuto(); return; }
+    if (reduced) { tRange.value = 50; draw(50); return; }
+    var t0 = null, DUR = 8200;
+    autoBtn.textContent = '停';
+    var step = function (ts) {
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / DUR);
+      var yr = k * 50;
+      tRange.value = yr.toFixed(1);
+      draw(yr);
+      if (k < 1) autoId = requestAnimationFrame(step);
+      else stopAuto();
+    };
+    tRange.value = 0;
+    autoId = requestAnimationFrame(step);
+  });
+
+  draw(0);
+
+  /* ---------------- 比較圖 ---------------- */
+  buildGrid($('cmpGrid'), '保留分數');
+  var cmpCurves = $('cmpCurves'), cmpLabels = $('cmpLabels');
+  var selLv = 2, selGr = 'B', normalize = false;
+
+  function drawCompare() {
+    while (cmpCurves.firstChild) cmpCurves.removeChild(cmpCurves.firstChild);
+    while (cmpLabels.firstChild) cmpLabels.removeChild(cmpLabels.firstChild);
+    for (var i = 0; i < P.TRAINING.length; i++) {
+      var lv = P.TRAINING[i].id;
+      var p = P.profile(lv, selGr);
+      var pts = P.curvePoints(p, 0, 50, 0.2, normalize);
+      var path = mk('path', { d: P.toPath(pts), 'class': 'cmp' + (lv === selLv ? ' sel' : '') });
+      cmpCurves.appendChild(path);
+      var last = pts[pts.length - 1];
+      var lab = mk('text', { x: G.x1 + 10, y: P.yOf(last.score) + 4, 'class': 'cmplbl' + (lv === selLv ? ' sel' : '') });
+      lab.textContent = P.TRAINING[i].brief;
+      cmpLabels.appendChild(lab);
+    }
+    var sel = P.profile(selLv, selGr);
+    $('cmpPlateau').textContent = normalize
+      ? (sel.plateau / sel.initial * 100).toFixed(0) + '%'
+      : sel.plateau.toFixed(0);
+    $('cmpInit').textContent = normalize ? '100' : sel.initial.toFixed(0);
+    $('cmpNote').textContent = normalize
+      ? '起點對齊之後：' + [1, 2, 3].map(function (l) {
+          var q = P.profile(l, selGr);
+          return P.TRAINING[l - 1].brief + ' 剩 ' + P.normalizedAt(30, q).toFixed(0) + '%';
+        }).join('、') + '。學得越深，留下來的比例也越高——不是因為掉得比較慢，是因為底比較高。'
+      : '三條線在前六年用的是同一個下降速度——衰減的那一段長得一模一樣。不一樣的，是它們各自停下來的高度。';
+  }
+
+  function bindSeg(cls, attr, setter) {
+    var btns = document.querySelectorAll(cls);
+    for (var i = 0; i < btns.length; i++) {
+      (function (b) {
+        b.addEventListener('click', function () {
+          for (var k = 0; k < btns.length; k++) btns[k].setAttribute('aria-pressed', String(btns[k] === b));
+          setter(b.getAttribute(attr));
+          drawCompare();
+        });
+      })(btns[i]);
+    }
+  }
+  bindSeg('.seg-lv', 'data-lv', function (v) { selLv = Number(v); });
+  bindSeg('.seg-gr', 'data-gr', function (v) { selGr = v; });
+  $('normChk').addEventListener('change', function (e) { normalize = e.target.checked; drawCompare(); });
+  drawCompare();
+
+  /* ---------------- Ebbinghaus ---------------- */
+  var EB = { x0: 58, x1: 700, y0: 30, y1: 240 };
+  var DAY = 1440;                 /* 分鐘 */
+  var MINUTE = 1 / 1440;          /* 天 */
+  var SHORT = 31;                 /* 天 */
+  var LONG = 50 * 365.25;         /* 天 */
+  var LOG_LO = Math.log(MINUTE), LOG_HI = Math.log(SHORT);
+  var ebbK = 0;                   /* 0 = 對數的 31 天尺；1 = 線性的 50 年尺 */
+  var ebbPath = $('ebbPath');
+
+  /* 橫軸在兩把尺之間內插：k=0 對數（1 分鐘～31 天），k=1 線性（0～50 年） */
+  function ebbX(days, k) {
+    var d = Math.max(days, MINUTE);
+    var xl = EB.x0 + P.clamp((Math.log(d) - LOG_LO) / (LOG_HI - LOG_LO), 0, 1) * (EB.x1 - EB.x0);
+    var xn = EB.x0 + P.clamp(days / LONG, 0, 1) * (EB.x1 - EB.x0);
+    return xl + (xn - xl) * k;
+  }
+  function ebbY(pct) {
+    return EB.y1 - P.clamp(pct, 0, 100) / 100 * (EB.y1 - EB.y0);
+  }
+
+  function buildEbbGrid() {
+    var g = $('ebbGrid');
+    while (g.firstChild) g.removeChild(g.firstChild);
+    var yv = [0, 25, 50, 75, 100], i;
+    for (i = 0; i < yv.length; i++) {
+      var y = ebbY(yv[i]);
+      g.appendChild(mk('line', { x1: EB.x0, y1: y, x2: EB.x1, y2: y, 'class': 'gridline' + (yv[i] === 0 ? ' zero' : '') }));
+      var t = mk('text', { x: EB.x0 - 10, y: y + 4, 'class': 'axtxt', 'text-anchor': 'end' });
+      t.textContent = yv[i];
+      g.appendChild(t);
+    }
+    var cap = mk('text', { x: EB.x0 - 40, y: (EB.y0 + EB.y1) / 2, 'class': 'axcap', 'text-anchor': 'middle',
+      transform: 'rotate(-90 ' + (EB.x0 - 40) + ' ' + ((EB.y0 + EB.y1) / 2) + ')' });
+    cap.textContent = '重學省下的時間（%）';
+    g.appendChild(cap);
+  }
+  buildEbbGrid();
+
+  /* 由左往右：時間從 1 分鐘走到 31 天，在對數空間取樣才畫得出前幾小時的陡降 */
+  var EBB_PTS = (function () {
+    var out = [], lo = Math.log(1), hi = Math.log(SHORT * DAY);
+    for (var i = 0; i <= 340; i++) {
+      var m = Math.exp(lo + (hi - lo) * (i / 340));
+      out.push({ d: m / DAY, v: P.ebbinghausSavings(m) });
+    }
+    return out;
+  })();
+
+  var EBB_MARKS = [
+    { d: 20 / 1440, lb: '20 分', pct: true },
+    { d: 1 / 24, lb: '1 小時', pct: false },
+    { d: 9 / 24, lb: '9 小時', pct: false },
+    { d: 1, lb: '1 天', pct: true },
+    { d: 2, lb: '2 天', pct: false },
+    { d: 6, lb: '6 天', pct: false },
+    { d: 31, lb: '31 天', pct: true }
+  ];
+
+  function ebbPathD(k) {
+    var d = '';
+    for (var i = 0; i < EBB_PTS.length; i++) {
+      d += (i === 0 ? 'M' : 'L') + ebbX(EBB_PTS[i].d, k).toFixed(2) + ' ' + ebbY(EBB_PTS[i].v).toFixed(2) + ' ';
+    }
+    return d.trim();
+  }
+
+  function drawEbbAxis(k) {
+    var g = $('ebbMarks'), i, t;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    if (k < 0.2) {
+      /* 對數尺：標出他實際測過的七個間隔 */
+      for (i = 0; i < EBB_MARKS.length; i++) {
+        var v = P.ebbinghausSavings(EBB_MARKS[i].d * DAY);
+        var x = ebbX(EBB_MARKS[i].d, k), y = ebbY(v);
+        g.appendChild(mk('circle', { cx: x, cy: y, r: 3.2, 'class': 'ebbmark' }));
+        t = mk('text', { x: x, y: EB.y1 + 20, 'class': 'ebbtxt', 'text-anchor': 'middle' });
+        t.textContent = EBB_MARKS[i].lb;
+        g.appendChild(t);
+        if (EBB_MARKS[i].pct) {
+          var pv = mk('text', { x: x, y: y - 11, 'class': 'ebbtxt', 'text-anchor': i === 0 ? 'start' : 'middle' });
+          pv.textContent = v.toFixed(0) + '%';
+          g.appendChild(pv);
+        }
+      }
+    } else if (k > 0.8) {
+      /* 線性五十年尺：年份刻度＋指向那道細線的註記 */
+      for (i = 0; i <= 50; i += 10) {
+        var xx = EB.x0 + (i * 365.25 / LONG) * (EB.x1 - EB.x0);
+        g.appendChild(mk('line', { x1: xx, y1: EB.y0, x2: xx, y2: EB.y1, 'class': 'gridline' }));
+        t = mk('text', { x: xx, y: EB.y1 + 20, 'class': 'axtxt', 'text-anchor': 'middle' });
+        t.textContent = i;
+        g.appendChild(t);
+      }
+      t = mk('text', { x: (EB.x0 + EB.x1) / 2, y: EB.y1 + 44, 'class': 'axcap', 'text-anchor': 'middle' });
+      t.textContent = '離開學校之後（年）';
+      g.appendChild(t);
+      g.appendChild(mk('line', { x1: EB.x0 + 3, y1: EB.y0 + 26, x2: EB.x0 + 92, y2: EB.y0 + 6, 'class': 'gridline zero' }));
+      t = mk('text', { x: EB.x0 + 98, y: EB.y0 + 10, 'class': 'ebbtxt' });
+      t.textContent = 'Ebbinghaus 的全部資料在這裡';
+      g.appendChild(t);
+    }
+  }
+
+  function renderEbb(k) {
+    ebbPath.setAttribute('d', ebbPathD(k));
+    drawEbbAxis(k);
+  }
+  renderEbb(0);
+
+  /* dasharray 畫線動畫：transition:none → 藏起來 → 強制 reflow → 下一個 rAF 才開 transition */
+  function playEbbDraw() {
+    var el = $('ebbPath');
+    if (!el) return;
+    if (reduced) {
+      el.style.transition = 'none';
+      el.style.strokeDasharray = 'none';
+      el.style.strokeDashoffset = '0';
+      return;
+    }
+    var len;
+    try { len = el.getTotalLength(); } catch (e) { len = 1200; }
+    if (!len || !isFinite(len)) len = 1200;
+    el.style.transition = 'none';
+    el.style.strokeDasharray = len + ' ' + len;
+    el.style.strokeDashoffset = String(len);
+    el.getBoundingClientRect();                         /* 強制 reflow */
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        el.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(.35,0,.2,1)';
+        el.style.strokeDashoffset = '0';
+      });
+    });
+  }
+  $('ebbReplay').addEventListener('click', function () {
+    if (ebbK > 0.5) setScale(0, true);
+    else playEbbDraw();
+  });
+
+  /* 換尺：橫軸從「對數的 31 天」變成「線性的 50 年」，整條曲線縮成左緣的一道細線 */
+  var scaleId = null;
+  function clearDash() {
+    ebbPath.style.transition = 'none';
+    ebbPath.style.strokeDasharray = 'none';
+    ebbPath.style.strokeDashoffset = '0';
+  }
+  function setScale(target, instant) {
+    if (scaleId !== null) { cancelAnimationFrame(scaleId); scaleId = null; }
+    clearDash();
+    var from = ebbK;
+    var finish = function () {
+      ebbK = target;
+      renderEbb(target);
+      var wide = target > 0.5;
+      $('ebbTag').textContent = wide
+        ? '現在的橫軸：0 – 50 年，線性刻度（跟 Bahrick 那張圖同一把尺）'
+        : '現在的橫軸：1 分鐘 – 31 天，對數刻度（每往右一大段，時間乘十倍）';
+      $('ebbScaleBtn').textContent = wide ? '換回 31 天的尺' : '把它放到 Bahrick 的尺上';
+      $('pxOut').classList.toggle('on', wide);
+      if (!wide && !reduced) playEbbDraw();
+    };
+    if (instant || reduced) { finish(); return; }
+    var t0 = null, DUR = 1500;
+    var step = function (ts) {
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / DUR);
+      var e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      renderEbb(from + (target - from) * e);
+      if (k < 1) scaleId = requestAnimationFrame(step);
+      else { scaleId = null; finish(); }
+    };
+    scaleId = requestAnimationFrame(step);
+  }
+  $('ebbScaleBtn').addEventListener('click', function () {
+    setScale(ebbK > 0.5 ? 0 : 1, false);
+  });
+
+  /* px 讀數先算好，免得第一次點下去才出現空白 */
+  (function () {
+    var px = ebbX(SHORT, 1) - ebbX(0, 1);
+    $('pxOut').firstChild.nodeValue = px.toFixed(1) + ' px';
+  })();
+
+  applyMotion();
+})();
+</script>
+</body>
+</html>

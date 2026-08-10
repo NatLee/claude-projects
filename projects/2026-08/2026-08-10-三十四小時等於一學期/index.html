@@ -1,0 +1,765 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三十四小時等於一學期 · 每日小專案</title>
+<style>
+:root{
+  --bg:#14100c;          /* 桌面 */
+  --bg2:#1b1610;
+  --wood:#241d15;
+  --line:#3a3026;
+  --ink:#ece5d8;
+  --ink2:#b1a693;
+  --ink3:#7d735f;
+  --paper:#f4eee0;
+  --paper2:#eae2d0;
+  --pink:#231f18;        /* 紙上的字 */
+  --pink2:#4d4536;
+  --rule:#cfc4ab;
+  --hl:#ffd83f;          /* 螢光筆 */
+  --hl2:#ffc21f;
+  --red:#c0392b;
+  --teal:#3f9c9c;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,serif;
+  --sans:"Helvetica Neue","PingFang TC","Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); line-height:2;
+  font-size:clamp(16px,1rem + .2vw,18px);
+}
+p{margin:0 0 1.15em}
+main{display:block}
+section{position:relative; padding:clamp(72px,12vh,132px) 20px}
+.wrap{max-width:720px; margin:0 auto}
+.narrow{max-width:620px; margin:0 auto}
+.home{
+  position:absolute; top:16px; left:18px; z-index:30;
+  color:#7c7161; text-decoration:none; font-size:13px; letter-spacing:.08em;
+  padding:5px 9px; border-radius:5px; transition:color .25s,background .25s;
+}
+.home:hover,.home:focus-visible{color:var(--ink); background:rgba(255,255,255,.07)}
+:focus-visible{outline:2px solid var(--hl); outline-offset:3px; border-radius:3px}
+button{font:inherit; color:inherit; cursor:pointer}
+.mono{font-family:var(--mono)}
+.dim{color:var(--ink3)}
+
+/* ---------- 進場 ---------- */
+.rv{opacity:0; transform:translateY(18px); transition:opacity .85s cubic-bezier(.2,.7,.3,1),transform .85s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+
+/* ---------- 第一屏 ---------- */
+#hook{
+  min-height:100svh; display:flex; align-items:center;
+  padding:100px 20px 130px; overflow:hidden; isolation:isolate;
+}
+#hook::before{
+  content:""; position:absolute; inset:0; z-index:-2;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(255,216,63,.10),transparent 62%);
+}
+.kicker{font-family:var(--mono); font-size:12.5px; letter-spacing:.24em; color:var(--hl); margin-bottom:30px}
+h1{
+  font-size:clamp(30px,7.6vw,58px); line-height:1.3; margin:0 0 30px;
+  font-weight:600; letter-spacing:.01em;
+}
+h1 em{font-style:normal; color:var(--hl); }
+.lead{font-size:clamp(16.5px,1.02rem + .2vw,19px); color:#c8bfae; max-width:34em}
+.cue{
+  position:absolute; left:50%; bottom:30px; transform:translateX(-50%);
+  font-size:11.5px; letter-spacing:.2em; color:#6a6152; font-family:var(--mono);
+  animation:bob 2.6s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0);opacity:.55}50%{transform:translateX(-50%) translateY(7px);opacity:1}}
+
+/* ---------- 引子 ---------- */
+#intro{background:var(--bg2)}
+h2{font-size:clamp(22px,4.4vw,30px); line-height:1.5; margin:0 0 22px; font-weight:600}
+h3{font-size:clamp(18px,3vw,21px); margin:0 0 12px; font-weight:600}
+.big{font-size:clamp(19px,1.2rem + .35vw,24px); line-height:1.75; color:var(--ink)}
+
+/* ---------- 書桌 ---------- */
+#desk{
+  background:
+    radial-gradient(140% 90% at 50% 0%,rgba(255,216,63,.05),transparent 60%),
+    linear-gradient(180deg,var(--wood),#191309);
+  padding-top:clamp(56px,9vh,96px);
+}
+.deskbar{
+  max-width:860px; margin:0 auto 16px; display:flex; flex-wrap:wrap;
+  align-items:center; gap:12px; justify-content:space-between;
+  font-family:var(--mono); font-size:12px; letter-spacing:.1em; color:var(--ink3);
+}
+.pen{display:inline-flex; align-items:center; gap:8px}
+.pen i{
+  width:34px; height:9px; border-radius:2px; display:block;
+  background:linear-gradient(90deg,var(--hl),var(--hl2));
+  box-shadow:0 0 14px rgba(255,216,63,.35);
+}
+.counter{color:var(--hl)}
+
+/* 紙 */
+.sheet{
+  max-width:860px; margin:0 auto; position:relative;
+  background:linear-gradient(178deg,var(--paper),var(--paper2));
+  color:var(--pink); font-family:var(--serif);
+  border-radius:3px; padding:clamp(26px,4.4vw,48px) clamp(20px,4vw,46px) clamp(34px,5vw,54px);
+  box-shadow:0 40px 90px -40px #000, 0 2px 0 rgba(255,255,255,.16) inset, 0 0 0 1px rgba(0,0,0,.35);
+  line-height:1.95;
+}
+.sheet::after{
+  content:""; position:absolute; right:0; top:0; width:44px; height:44px;
+  background:linear-gradient(225deg,rgba(0,0,0,.28),rgba(0,0,0,0) 60%);
+  pointer-events:none;
+}
+.redraw{
+  position:absolute; top:12px; right:14px; font-family:var(--mono);
+  font-size:10.5px; letter-spacing:.18em; color:#a3947a;
+  border:1px solid #cbbc9e; border-radius:3px; padding:3px 7px;
+  transform:rotate(2.5deg); background:rgba(255,255,255,.35);
+}
+.ph{
+  font-family:var(--mono); font-size:11px; letter-spacing:.2em; color:#a3947a;
+  border-bottom:1px solid var(--rule); padding-bottom:9px; margin-bottom:26px;
+  display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+.sheet p{color:var(--pink2); font-size:16px; line-height:1.95}
+.sheet p.strong{color:var(--pink)}
+.pg{display:none}
+.pg.on{display:block; animation:pgIn .5s cubic-bezier(.2,.7,.3,1) both}
+@keyframes pgIn{from{opacity:0; transform:translateY(14px)}to{opacity:1; transform:none}}
+.pgbody{display:grid; grid-template-columns:minmax(0,1fr) 250px; gap:clamp(18px,3vw,34px); align-items:start}
+@media (max-width:879px){ .pgbody{grid-template-columns:minmax(0,1fr)} }
+
+.ttl{font-size:clamp(20px,3.6vw,26px); line-height:1.5; margin:0 0 6px; font-weight:600; color:var(--pink)}
+.sub{font-size:13.5px; color:#8b7f66; margin:0 0 22px; font-family:var(--sans); letter-spacing:.02em}
+.sheet h4{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.18em; color:#8b7f66;
+  margin:26px 0 10px; font-weight:600;
+}
+.sheet ul{margin:0 0 18px; padding-left:1.15em; color:var(--pink2); font-size:15.5px; line-height:1.9}
+.sheet li{margin-bottom:8px}
+.rulebox{border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); padding:16px 0; margin:22px 0}
+
+/* 螢光筆標記 */
+.hl{
+  position:relative; isolation:isolate; display:inline-block; vertical-align:baseline;
+  font:inherit; color:inherit; background:none; border:0; padding:0 3px; margin:0;
+  -webkit-appearance:none; appearance:none;
+  border-bottom:1.6px dashed rgba(150,118,42,.5);
+  transition:border-color .2s;
+}
+.hl:hover{border-bottom-color:rgba(150,118,42,.95)}
+.hl::before{
+  content:""; position:absolute; left:-2px; right:-2px; top:8%; bottom:0;
+  background:linear-gradient(180deg,rgba(255,216,63,.92),rgba(255,194,31,.8));
+  border-radius:2px; z-index:-1;
+  transform:scaleX(0); transform-origin:left center;
+  transition:transform .45s cubic-bezier(.2,.8,.25,1);
+}
+.hl.on::before{transform:scaleX(1)}
+.hl.on{border-bottom-color:transparent}
+.hl::after{
+  content:"✎"; font-size:.62em; vertical-align:super; color:#b09a63;
+  margin-left:1px; font-family:var(--sans);
+}
+.hl.on::after{color:#8a7326}
+
+/* 旁白 */
+.notes{
+  border-left:2px solid var(--rule); padding-left:16px; min-height:10px;
+}
+@media (max-width:879px){ .notes{border-left:0; border-top:1px solid var(--rule); padding-left:0; padding-top:14px; margin-top:6px} }
+.notehint{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:#a3947a; margin:0 0 12px}
+.note{display:none}
+.note.on{
+  display:block; animation:noteIn .45s cubic-bezier(.2,.7,.3,1) both;
+  font-family:var(--sans); font-size:14px; line-height:1.85; color:#4a4232;
+  margin:0 0 16px; padding:11px 12px; background:rgba(255,216,63,.16);
+  border-left:3px solid var(--hl2); border-radius:0 4px 4px 0;
+}
+.note b{color:#2c261a}
+@keyframes noteIn{from{opacity:0; transform:translateY(9px)}to{opacity:1; transform:none}}
+
+/* 樣本漏斗 */
+.funnel{margin:6px 0 18px; font-family:var(--sans)}
+.fr{display:grid; grid-template-columns:1fr; gap:4px; margin-bottom:11px}
+.fr .lab{display:flex; justify-content:space-between; font-size:13.5px; color:#5c5340; gap:10px}
+.fr .lab b{font-family:var(--mono); font-size:14px; color:var(--pink)}
+.bar{height:9px; background:#ded4bd; border-radius:2px; overflow:hidden}
+.bar i{
+  display:block; height:100%; background:linear-gradient(90deg,#8b7f66,#5c5340);
+  transform-origin:left center; transform:scaleX(0);
+  transition:transform .9s cubic-bezier(.2,.8,.25,1);
+}
+.pg.on .bar i{transform:scaleX(1)}
+.fr.keep .bar i{background:linear-gradient(90deg,var(--hl2),#c99a12)}
+.fr.gone .bar i{background:linear-gradient(90deg,#c8bda4,#b3a68a)}
+
+/* 結果表 */
+.tbl{width:100%; border-collapse:collapse; font-family:var(--sans); font-size:14px; margin:4px 0 16px}
+.tbl th,.tbl td{border-bottom:1px solid var(--rule); padding:9px 8px; text-align:left; color:#4a4232}
+.tbl th{font-size:11.5px; letter-spacing:.12em; color:#8b7f66; font-weight:600; font-family:var(--mono)}
+.tbl td.n{font-family:var(--mono); text-align:right; font-variant-numeric:tabular-nums}
+.calc{
+  font-family:var(--mono); font-size:13px; color:#6b6048; background:rgba(0,0,0,.045);
+  border-radius:4px; padding:10px 12px; margin:0 0 6px; line-height:1.8;
+}
+
+/* 塗黑段落 + 揭露 */
+.redact{margin:18px 0 6px}
+.bars{display:flex; flex-direction:column; gap:9px; margin-bottom:20px}
+.bars i{display:block; height:15px; border-radius:2px; background:#2a2419; opacity:.9}
+.bars i:nth-child(1){width:100%}
+.bars i:nth-child(2){width:88%}
+.bars i:nth-child(3){width:46%}
+.btn{
+  background:#2a2419; color:var(--paper); border:0; border-radius:7px;
+  padding:14px 24px; font-family:var(--mono); font-size:14px; letter-spacing:.1em;
+  transition:filter .2s,transform .12s,opacity .25s;
+}
+.btn:hover:not(:disabled){filter:brightness(1.35)}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{opacity:.32; cursor:default}
+.btn.gold{background:linear-gradient(90deg,var(--hl),var(--hl2)); color:#2a2008; font-weight:700}
+.disclose{margin:8px 0 0; padding:0; border:0; animation:discIn .9s cubic-bezier(.2,.7,.3,1) both}
+@keyframes discIn{from{opacity:0; transform:translateY(16px)}to{opacity:1; transform:none}}
+.disclose .en{
+  font-family:var(--mono); font-size:14.5px; line-height:1.9; color:var(--pink);
+  background:linear-gradient(180deg,rgba(255,216,63,.9),rgba(255,194,31,.78));
+  display:inline; padding:2px 4px; box-decoration-break:clone; -webkit-box-decoration-break:clone;
+}
+.disclose .zh{margin:20px 0 0; font-size:17px; color:var(--pink); line-height:1.9}
+.disclose .src{font-family:var(--mono); font-size:11.5px; letter-spacing:.1em; color:#8b7f66; margin:14px 0 0}
+.aftermath{display:none; margin-top:26px; border-top:1px solid var(--rule); padding-top:20px}
+.aftermath.on{display:block; animation:noteIn .6s .35s cubic-bezier(.2,.7,.3,1) both}
+
+/* 翻頁列 */
+.nav{
+  max-width:860px; margin:20px auto 0; display:flex; align-items:center;
+  justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+.pills{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; flex:1 1 auto}
+.pill{
+  width:34px; height:34px; border-radius:50%; border:1px solid var(--line);
+  background:transparent; color:var(--ink3); font-family:var(--mono); font-size:12.5px;
+  transition:background .2s,color .2s,border-color .2s,transform .12s;
+}
+.pill:hover{color:var(--ink); border-color:#5a4c3a}
+.pill[aria-current="true"]{background:var(--hl); border-color:var(--hl); color:#2a2008; font-weight:700}
+.pill.seen{color:var(--ink2)}
+.turn{
+  background:transparent; border:1px solid var(--line); color:var(--ink2);
+  border-radius:8px; padding:11px 18px; font-family:var(--mono); font-size:13px;
+  letter-spacing:.06em; transition:background .2s,color .2s,border-color .2s,opacity .25s;
+  white-space:nowrap;
+}
+.turn:hover:not(:disabled){background:rgba(255,255,255,.06); color:var(--ink); border-color:#5a4c3a}
+.turn:disabled{opacity:.28; cursor:default}
+.keyhint{
+  max-width:860px; margin:14px auto 0; text-align:center;
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.14em; color:#645a49;
+}
+
+/* ---------- 記憶點 ---------- */
+#after{background:var(--bg2)}
+.cards{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:28px 0 8px}
+@media (max-width:759px){ .cards{grid-template-columns:1fr} }
+.card{
+  border:1px solid var(--line); border-radius:10px; padding:20px 18px;
+  background:linear-gradient(180deg,#1f1a13,#171209);
+}
+.card .tag{font-family:var(--mono); font-size:11px; letter-spacing:.18em; margin:0 0 12px}
+.card.indep .tag{color:var(--teal)}
+.card.inhouse .tag{color:var(--hl)}
+.card h3{color:var(--ink); font-size:17.5px; line-height:1.6}
+.card p{font-size:14.5px; line-height:1.85; color:var(--ink2); margin:0 0 .9em}
+.card .cite{font-family:var(--mono); font-size:11.5px; line-height:1.8; color:var(--ink3); margin:0}
+.affil{list-style:none; margin:0 0 14px; padding:0; font-family:var(--mono); font-size:12.5px; line-height:1.9}
+.affil li{display:flex; gap:8px; color:var(--ink2)}
+.affil li span{color:var(--ink3)}
+.affil li.co span{color:var(--hl)}
+.quoteline{
+  border-left:3px solid var(--hl2); padding:12px 0 12px 16px; margin:26px 0 0;
+  color:#d9d0bd; font-size:16.5px; line-height:1.85;
+}
+.quoteline .src{display:block; font-family:var(--mono); font-size:11.5px; letter-spacing:.08em; color:var(--ink3); margin-top:10px}
+
+/* ---------- 收尾 ---------- */
+#close .punch{
+  font-size:clamp(21px,1.35rem + .5vw,29px); line-height:1.65; color:var(--ink);
+  margin:34px 0 0;
+}
+#close .punch b{color:var(--hl); font-weight:600}
+
+footer{
+  border-top:1px solid var(--line); padding:30px 20px 46px;
+  text-align:center; color:var(--ink3); font-size:12.5px; line-height:1.9;
+  font-family:var(--sans);
+}
+footer p{margin:0 auto; max-width:760px}
+
+@media (max-width:559px){
+  section{padding-left:16px; padding-right:16px}
+  .sheet{border-radius:2px}
+  .nav{gap:10px}
+  .turn{flex:1 1 auto; text-align:center}
+  .pills{order:3; flex-basis:100%}
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important}
+}
+html.rm *,html.rm *::before,html.rm *::after{
+  animation-duration:.001ms !important; animation-iteration-count:1 !important;
+  transition-duration:.001ms !important;
+}
+html.rm{scroll-behavior:auto}
+html.rm .rv{opacity:1; transform:none}
+html.rm .bar i{transform:scaleX(1)}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<main>
+
+<!-- ══════════ 鉤子 ══════════ -->
+<section id="hook">
+  <div class="wrap">
+    <p class="kicker">廣 告 文 案</p>
+    <h1>只要 <em>34 小時</em>，<br>等於一學期的<br>大學語言課。</h1>
+    <p class="lead">你一定看過這句話。它不是隨口編的——它有出處，出處是一份真的研究，二十多頁，2012 年 12 月完稿。往下翻，我們一起把它讀完。</p>
+  </div>
+  <p class="cue" aria-hidden="true">往 下</p>
+</section>
+
+<!-- ══════════ 承：把報告攤開 ══════════ -->
+<section id="intro">
+  <div class="narrow rv">
+    <h2>報告就攤在桌上。</h2>
+    <p class="big">大部分人只讀過那句廣告詞。廣告詞是報告的第 14 頁的一行結論，前面還有十三頁，後面還有六頁。</p>
+    <p>接下來是這份報告的<strong>示意重繪版</strong>：版面是我重畫的，數字是原文的。你可以用「上一頁／下一頁」翻，也可以直接按頁碼跳。</p>
+    <p>另外，桌上有一支螢光筆。內文裡有虛線底線的地方都可以點——點下去會畫黃，旁邊會多一句我的旁白。<strong>翻到最後一頁之前，先別急著下結論。</strong></p>
+  </div>
+</section>
+
+<!-- ══════════ 書桌 ══════════ -->
+<section id="desk" aria-labelledby="desk-h">
+  <h2 id="desk-h" class="wrap rv" style="text-align:center; margin-bottom:26px">一頁一頁翻</h2>
+
+  <div class="deskbar rv">
+    <span class="pen"><i aria-hidden="true"></i>螢光筆</span>
+    <span class="counter" id="counter" aria-live="polite">已標記 0 / 12 處</span>
+  </div>
+
+  <article class="sheet" id="sheet" aria-live="polite" aria-label="研究報告內容（示意重繪）">
+    <span class="redraw" aria-hidden="true">示意重繪</span>
+
+    <!-- ── 頁 1：封面 ── -->
+    <div class="pg" data-p="0">
+      <p class="ph"><span>REPORT · COVER</span><span>第 1 頁 / 共 6 頁</span></p>
+      <p class="ttl">Duolingo Effectiveness Study<br><button class="hl" data-m="m1">Final Report</button></p>
+      <p class="sub">中譯：Duolingo 效果研究 · 期末報告</p>
+      <div class="pgbody">
+        <div>
+          <h4>RESEARCH TEAM</h4>
+          <ul>
+            <li>Roumen Vesselinov（紐約市立大學 Queens College）</li>
+            <li>John Grego（南卡羅來納大學）</li>
+          </ul>
+          <h4>DATE</h4>
+          <p class="strong"><button class="hl" data-m="m2">December 2012</button></p>
+          <div class="rulebox">
+            <p style="margin:0">一份放在網路上、任何人都能下載的 PDF。十四年來，全世界的行銷文案、新聞稿、部落格、簡報，引用的都是它——通常只引用其中一個數字。</p>
+          </div>
+        </div>
+        <aside class="notes">
+          <p class="notehint">旁 白</p>
+          <p class="note" data-for="m1"><b>「期末報告」，不是「論文」。</b>它沒有經過期刊的同儕審查，也沒有投稿到任何期刊。它是一份交付給委託方的成果報告。這不代表它品質差——只代表它少了一道外部把關。</p>
+          <p class="note" data-for="m2"><b>2012 年。</b>報告測的是那一年那個版本的產品、那一批使用者。今天你手機上的那個 App，跟報告裡的那個東西，中間隔了十四年的改版。</p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ── 頁 2：摘要 ── -->
+    <div class="pg" data-p="1">
+      <p class="ph"><span>EXECUTIVE SUMMARY</span><span>第 2 頁 / 共 6 頁</span></p>
+      <p class="ttl">摘要</p>
+      <p class="sub">原文位置：報告第 2 頁</p>
+      <div class="pgbody">
+        <div>
+          <p class="strong">本研究於 2012 年 9 月至 11 月進行，為期約<button class="hl" data-m="m3">八週</button>。受試者為居住於美國、年滿 18 歲、母語為英語、非西語裔、且非進階西班牙文使用者的該 App 使用者。前後各做一次大學分級測驗，以分數差計算進步幅度。</p>
+          <h4>MAIN RESULTS</h4>
+          <ul>
+            <li>平均進步 <b>91.4 分</b>，統計上顯著。</li>
+            <li>平均每小時進步 <b>8.1 分</b>。</li>
+            <li>效果的 95% 信賴區間：每小時 <b>5.6 至 10.7 分</b>。</li>
+            <li>推估零基礎者需 <b>26 到 49 小時</b>（平均 <button class="hl" data-m="m4">34 小時</button>）以<button class="hl" data-m="m5">覆蓋大學第一學期</button>西班牙文的材料。</li>
+          </ul>
+        </div>
+        <aside class="notes">
+          <p class="notehint">旁 白</p>
+          <p class="note" data-for="m3"><b>八週。</b>美國大學一學期通常是 15 到 16 週。這份研究只跑了八週，然後用「每小時進步幾分」外推出一個學期的等價值。它比較的不是兩段一樣長的時間，是一個換算式。</p>
+          <p class="note" data-for="m4"><b>34 這個數字是區間的中點。</b>報告自己寫的是「26 到 49 小時」。廣告詞留下了 34，丟掉了 26 和 49——也丟掉了「這是一個估計區間」這件事。</p>
+          <p class="note" data-for="m5"><b>「覆蓋第一學期的材料」有一個很具體的定義：</b>在分級測驗上拿到 270 分，也就是「可以被分發到第二學期」。它衡量的是你會被放進哪一班，不是你會不會用西班牙文跟人吵架。</p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ── 頁 3：方法 ── -->
+    <div class="pg" data-p="2">
+      <p class="ph"><span>RESEARCH DESIGN</span><span>第 3 頁 / 共 6 頁</span></p>
+      <p class="ttl">方法</p>
+      <p class="sub">原文位置：報告第 3 至 6 頁（誘因一節見第 21 頁）</p>
+      <div class="pgbody">
+        <div>
+          <h4>招募</h4>
+          <p>研究公告放在該 App 的網站上，<button class="hl" data-m="m6">只有已登入、且正在學西班牙文的使用者看得到那個連結</button>，另外投放一則 Google 廣告。連結上線一週。有興趣者自行點進邀請頁、填完報名問卷。</p>
+          <h4>測驗工具</h4>
+          <p>WebCAPE——一份大學用的電腦適性<button class="hl" data-m="m7">分級測驗</button>，全為選擇題，測字彙、閱讀與文法。前測、後測各一次。</p>
+          <h4>誘因</h4>
+          <p>完成研究者可獲得<button class="hl" data-m="m8">20 美元禮券</button>。研究團隊每週寄兩次提醒信，告知受試者本週累積使用時數。</p>
+        </div>
+        <aside class="notes">
+          <p class="notehint">旁 白</p>
+          <p class="note" data-for="m6"><b>自願自選樣本。</b>能看到招募連結的前提是——你已經在用這個產品了。會點進去報名的，又是其中最積極的那一群。這不是隨機分派，全程也沒有對照組：沒有人被拿去跟真正上大學語言課的學生比。</p>
+          <p class="note" data-for="m7"><b>分級測驗量的是「你該進哪一班」。</b>它不測口說，不測寫作，不測你能不能聽懂一段對話。所以「等於一學期」這句話真正的意思是：在這一種選擇題測驗上，你的分數到得了那條線。</p>
+          <p class="note" data-for="m8"><b>報告自己在「限制」那一節寫了：</b>有受試者覺得 20 美元的誘因太低，若獎勵高一些，也許能少流失一些人。這句話是研究團隊自己寫的——他們知道流失是個問題。</p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ── 頁 4：樣本 ── -->
+    <div class="pg" data-p="3">
+      <p class="ph"><span>SAMPLE</span><span>第 4 頁 / 共 6 頁</span></p>
+      <p class="ttl">樣本：從 727 人到 88 人</p>
+      <p class="sub">原文位置：報告第 5 至 10 頁、附錄圖 A1</p>
+      <div class="pgbody">
+        <div>
+          <div class="funnel">
+            <div class="fr"><div class="lab"><span>看到邀請頁</span><b>727</b></div><div class="bar"><i style="width:100%"></i></div></div>
+            <div class="fr"><div class="lab"><span>完成報名問卷</span><b>556</b></div><div class="bar"><i style="width:76%"></i></div></div>
+            <div class="fr"><div class="lab"><span>被隨機抽中並完成前測</span><b>211</b></div><div class="bar"><i style="width:29%"></i></div></div>
+            <div class="fr gone"><div class="lab"><span>扣掉太進階（8）與拒絕參加（7）</span><b>196</b></div><div class="bar"><i style="width:27%"></i></div></div>
+            <div class="fr gone"><div class="lab"><span>完成後測</span><b>90</b></div><div class="bar"><i style="width:12.4%"></i></div></div>
+            <div class="fr keep"><div class="lab"><span>最終納入分析</span><b>88</b></div><div class="bar"><i style="width:12.1%"></i></div></div>
+          </div>
+          <p class="strong">初始樣本 196 人，最後只剩 <button class="hl" data-m="m9">88 人</button>走完全程。納入分析的門檻很低：八週內累積使用超過 <b>2 小時</b>即可。</p>
+          <p>而研究建議的用量是八週 30 小時。88 人裡真正達標的，是 <button class="hl" data-m="m10">22 人</button>。</p>
+        </div>
+        <aside class="notes">
+          <p class="notehint">旁 白</p>
+          <p class="note" data-for="m9"><b>一半以上的人沒走到終點。</b>而且流失不是隨機的：撐不下去的人先走，撐得下去的人留下。最後那 88 人，是「有辦法連續八週自學一種語言」的那一種人——結論只對這種人成立。</p>
+          <p class="note" data-for="m10"><b>22 人。</b>四分之一。剩下的四分之三，用得比研究自己設定的目標還少。Krashen 依原始資料整理出的平均使用時數是 22 小時、標準差 20.4 小時：有人只用了兩小時，也有人用了 133 小時，然後把他們平均在一起。</p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ── 頁 5：結果 ── -->
+    <div class="pg" data-p="4">
+      <p class="ph"><span>RESULTS</span><span>第 5 頁 / 共 6 頁</span></p>
+      <p class="ttl">結果</p>
+      <p class="sub">原文位置：報告第 14 至 18 頁</p>
+      <div class="pgbody">
+        <div>
+          <table class="tbl">
+            <caption class="sub" style="text-align:left; margin-bottom:8px">每小時進步的 WebCAPE 分數（N = 88）</caption>
+            <tr><th>統計量</th><th style="text-align:right">數值</th></tr>
+            <tr><td>平均數</td><td class="n">8.1</td></tr>
+            <tr><td>標準差</td><td class="n">12.1</td></tr>
+            <tr><td><button class="hl" data-m="m11">中位數</button></td><td class="n">3.9</td></tr>
+            <tr><td>95% 信賴區間</td><td class="n">5.6 – 10.7</td></tr>
+          </table>
+          <h4>依「為什麼學西班牙文」分組</h4>
+          <table class="tbl">
+            <tr><th>動機</th><th style="text-align:right">人數</th><th style="text-align:right">每小時進步</th></tr>
+            <tr><td>為了旅行</td><td class="n">10</td><td class="n">17.6</td></tr>
+            <tr><td>為了工作</td><td class="n">16</td><td class="n">11.4</td></tr>
+            <tr><td><button class="hl" data-m="m12">個人興趣或學校</button></td><td class="n">62</td><td class="n">5.7</td></tr>
+          </table>
+          <p class="calc" id="calcbox">換算式：270 分（第二學期門檻）÷ 每小時進步分數 = 需要的時數</p>
+        </div>
+        <aside class="notes">
+          <p class="notehint">旁 白</p>
+          <p class="note" data-for="m11"><b>同一份資料，換一個一樣正當的平均數。</b>用平均數 8.1 算：<span id="h81">—</span> 小時。用中位數 3.9 算：<span id="h39">—</span> 小時。差了一倍。平均數被少數幾個進步神速的人拉高了（標準差 12.1 比平均數 8.1 還大）。廣告詞選了比較好看的那一個。</p>
+          <p class="note" data-for="m12"><b>最大的一組，也是最慢的一組。</b>62 人是為了興趣或學校而學——他們每小時進步 5.7 分，換算下來要 <span id="h57">—</span> 小時。「34 小時」比較像是那 10 個為了旅行而學的人。而你，多半屬於 62 人那一組。</p>
+        </aside>
+      </div>
+    </div>
+
+    <!-- ── 頁 6：致謝與資金揭露 ── -->
+    <div class="pg" data-p="5">
+      <p class="ph"><span>ACKNOWLEDGEMENT &amp; FUNDING</span><span>第 6 頁 / 共 6 頁</span></p>
+      <p class="ttl">致謝與資金揭露</p>
+      <p class="sub">原文位置：報告第 3 頁，引言最後一句</p>
+      <div class="pgbody">
+        <div>
+          <p>翻到這裡了。這一頁只有一句話。</p>
+          <div class="redact" id="redact">
+            <div class="bars" aria-hidden="true"><i></i><i></i><i></i></div>
+            <button class="btn gold" id="revealBtn" aria-describedby="revealHint">顯示這一段</button>
+            <p id="revealHint" class="sub" style="margin:14px 0 0">整份報告最短、也最少被引用的一段。</p>
+          </div>
+          <blockquote class="disclose" id="disclose" hidden>
+            <p style="margin:0"><span class="en">This study was funded by Duolingo but the data collection and the analysis were done independently by the Research team.</span></p>
+            <p class="zh">本研究由 Duolingo 出資，但資料蒐集與分析由研究團隊獨立完成。</p>
+            <p class="src">— Vesselinov &amp; Grego (2012)，報告第 3 頁，引言最後一句。此句為原文逐字引述。</p>
+          </blockquote>
+          <div class="aftermath" id="aftermath">
+            <p class="strong">它一直都在。它印在報告第 3 頁，沒有被藏起來，任何人下載那份 PDF 都會讀到。</p>
+            <p>只是它沒有跟著那句廣告詞一起被引用。</p>
+            <p>而再往前翻一頁你會看到，同一份報告的摘要第一句寫的是：本效果研究「為獨立進行（independently conducted）」。<strong>一句在第 2 頁，一句在第 3 頁，中間只隔了一頁。</strong>兩句話都是真的，也不互相牴觸——出資與獨立分析本來就能並存——但只有其中一句被印在廣告上。</p>
+          </div>
+        </div>
+        <aside class="notes">
+          <p class="notehint">旁 白</p>
+          <p class="note on" data-for="m0" style="animation:none"><b>這一頁沒有螢光筆。</b>不需要。整份報告的重量都在這一句上，而它從來不需要被畫黃——它需要的只是有人翻到這裡。</p>
+        </aside>
+      </div>
+    </div>
+  </article>
+
+  <div class="nav">
+    <button class="turn" id="prev" aria-label="上一頁">← 上一頁</button>
+    <div class="pills" id="pills" role="group" aria-label="跳到指定頁"></div>
+    <button class="turn" id="next" aria-label="下一頁">下一頁 →</button>
+  </div>
+  <p class="keyhint">也可以用鍵盤 ← → 翻頁</p>
+</section>
+
+<!-- ══════════ 記憶點 ══════════ -->
+<section id="after">
+  <div class="wrap rv">
+    <h2>那，有沒有別人做過？</h2>
+    <p>有。兩份，方向剛好相反。</p>
+
+    <div class="cards">
+      <div class="card indep">
+        <p class="tag">獨立研究 · 沒有商業資金</p>
+        <h3>9 個人，12 週，土耳其語</h3>
+        <p>研究者自己當受試者：1 位教授加 8 位研究生，都是語言學習領域的老手。每週至少用 1 小時，共 12 週。</p>
+        <p>平均累積 <strong>29 小時</strong>之後，9 個人裡<strong>只有 1 位</strong>在該校土耳其文一年級的期末成就測驗上達到 70% 的掌握度。</p>
+        <p>樣本 9 人、非隨機、研究者即受試者——它自己就把標題寫成「case study（個案研究）」。這不是反證，這是另一種很小的證據。</p>
+        <p class="cite">Loewen, Crowther, Isbell, Kim, Maloney, Miller &amp; Rawal (2019).<br>Mobile-assisted language learning: A Duolingo case study.<br>ReCALL, 31(3), 293–311.</p>
+      </div>
+
+      <div class="card inhouse">
+        <p class="tag">2021 · 期刊論文 · 請看隸屬欄</p>
+        <h3>225 人，ACTFL 標準化測驗</h3>
+        <p>結論比 2012 那份更硬：完成初階西班牙文／法文課程的學習者，閱讀達 Intermediate Low、聽力達 Novice High，與大學讀到第四學期的學生相當。</p>
+        <p>它上了同儕審查期刊，測驗是 ACTFL 官方的，用的是真實使用時數。方法上比 2012 那份紮實得多。掛名五位作者：</p>
+        <ul class="affil">
+          <li class="co">Xiangying Jiang<span>Duolingo</span></li>
+          <li class="co">Joseph Rollinson<span>Duolingo</span></li>
+          <li>Luke Plonsky<span>北亞利桑那大學</span></li>
+          <li class="co">Erin Gustafson<span>Duolingo</span></li>
+          <li class="co">Bozena Pajak<span>Duolingo</span></li>
+        </ul>
+        <p>五位裡四位的隸屬欄寫的是這家公司；測驗費用也由這家公司支付。這些都寫在論文上，公開可查。</p>
+        <p class="cite">Jiang, Rollinson, Plonsky, Gustafson &amp; Pajak (2021).<br>Evaluating the reading and listening outcomes of beginning-level Duolingo courses.<br>Foreign Language Annals.</p>
+      </div>
+    </div>
+
+    <blockquote class="quoteline">
+      「更值得信賴的證據，可能得來自完全獨立於商業機構的研究者。」
+      <span class="src">這句話不是批評者說的。是 2021 那篇論文自己寫在文獻回顧裡的。原文：“Even more trustworthy evidence might come from researchers who are completely independent of commercial entities.”</span>
+    </blockquote>
+  </div>
+</section>
+
+<!-- ══════════ 收尾 ══════════ -->
+<section id="close">
+  <div class="narrow rv">
+    <h2>出資，不等於結果不實。</h2>
+    <p>這三份研究的數字全都攤在陽光下。2012 那份寫了信賴區間，寫了流失，寫了「誘因太低」，也寫了誰付錢；2021 那份甚至主動說「最可信的證據應該來自完全獨立的人」。它們沒有一份在騙你。</p>
+    <p>被弄丟的東西發生在後面：從二十頁的 PDF，到新聞稿，到官網文案，到你朋友傳給你的那則貼文——每經過一手，就掉一層。掉到最後，二十頁只剩下一個數字。</p>
+    <p><strong>揭露資金來源是科學界的標準規範，不是指控。</strong>它存在的唯一用途，是讓你在讀結論之前，先知道要用多大的力氣去懷疑它。同一句「研究證實」，在你知道與不知道誰出錢的兩種狀態下，重量本來就不一樣——而你有權處在知道的那一邊。</p>
+    <p class="punch">所以下次看到「研究證實」四個字，別停在標題。<br><b>先翻到最後一頁。</b></p>
+    <p class="punch dim" style="font-size:clamp(17px,1.05rem+.2vw,20px); margin-top:22px">廣告只印得下一個數字。報告印得下二十頁。</p>
+  </div>
+</section>
+
+<footer>
+  <p>資料來源：Vesselinov, R. &amp; Grego, J.《Duolingo Effectiveness Study: Final Report》(2012, City University of New York)；Krashen, S.《Does Duolingo "Trump" University-Level Language Learning?》(International Journal of Foreign Language Teaching, 2014)；Loewen et al. (ReCALL, 2019)；Jiang et al. (Foreign Language Annals, 2021)。</p>
+  <p>頁面中的報告版面為示意重繪，非掃描原件；數字取自原報告，僅版面為重畫。</p>
+</footer>
+
+</main>
+
+<script src="pure.js"></script>
+<script>
+(function(){
+  'use strict';
+  var P = window.ReportPure;
+  if (!P) return;
+
+  var html = document.documentElement;
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function applyRM(){
+    var on = RM.matches;
+    html.classList.toggle('rm', on);
+    if (on) {
+      var i, rv = document.querySelectorAll('.rv');
+      for (i = 0; i < rv.length; i++) rv[i].classList.add('in');
+    }
+  }
+  applyRM();
+  if (RM.addEventListener) RM.addEventListener('change', applyRM);
+  else if (RM.addListener) RM.addListener(applyRM);
+
+  /* ---------- 進場 ---------- */
+  var revealIO = new IntersectionObserver(function(es){
+    for (var i = 0; i < es.length; i++){
+      if (es[i].isIntersecting){ es[i].target.classList.add('in'); revealIO.unobserve(es[i].target); }
+    }
+  }, { threshold: 0.16, rootMargin: '0px 0px -8% 0px' });
+  var rvs = document.querySelectorAll('.rv');
+  for (var r = 0; r < rvs.length; r++) revealIO.observe(rvs[r]);
+
+  /* ---------- 報告翻頁 ---------- */
+  var pages   = document.querySelectorAll('.pg');
+  var TOTAL   = pages.length;
+  var titles  = ['封面','摘要','方法','樣本','結果','致謝與資金揭露'];
+  var state   = P.makeState(TOTAL);
+
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+  var pillBox = document.getElementById('pills');
+  var counter = document.getElementById('counter');
+  var revealBtn = document.getElementById('revealBtn');
+  var redact  = document.getElementById('redact');
+  var disclose = document.getElementById('disclose');
+  var aftermath = document.getElementById('aftermath');
+  var sheet   = document.getElementById('sheet');
+
+  var pillEls = [];
+  for (var p = 0; p < TOTAL; p++){
+    var b = document.createElement('button');
+    b.className = 'pill';
+    b.type = 'button';
+    b.textContent = String(p + 1);
+    b.setAttribute('data-p', String(p));
+    b.setAttribute('aria-label', '跳到第 ' + (p + 1) + ' 頁：' + titles[p]);
+    pillBox.appendChild(b);
+    pillEls.push(b);
+  }
+
+  var marks = document.querySelectorAll('.hl');
+  var TOTAL_MARKS = marks.length;
+
+  function render(){
+    for (var i = 0; i < TOTAL; i++){
+      var on = (i === state.page);
+      pages[i].classList.toggle('on', on);
+      pillEls[i].setAttribute('aria-current', on ? 'true' : 'false');
+      pillEls[i].classList.toggle('seen', state.seen.indexOf(i) !== -1);
+    }
+    prevBtn.disabled = P.atFirst(state);
+    nextBtn.disabled = P.atLast(state);
+    if (revealBtn) revealBtn.disabled = !P.canReveal(state) || state.revealed;
+    counter.textContent = '已標記 ' + P.markCount(state.marks) + ' / ' + TOTAL_MARKS + ' 處';
+  }
+
+  function go(i){
+    var before = state.page;
+    state = P.goTo(state, i);
+    if (state.page !== before){
+      render();
+      var top = sheet.getBoundingClientRect().top;
+      if (top < 0 || top > window.innerHeight * 0.72){
+        sheet.scrollIntoView({ behavior: RM.matches ? 'auto' : 'smooth', block: 'start' });
+      }
+    } else {
+      render();
+    }
+  }
+
+  prevBtn.addEventListener('click', function(){ go(state.page - 1); });
+  nextBtn.addEventListener('click', function(){ go(state.page + 1); });
+  pillBox.addEventListener('click', function(e){
+    var t = e.target.closest ? e.target.closest('.pill') : null;
+    if (t) go(parseInt(t.getAttribute('data-p'), 10));
+  });
+
+  /* 只有報告區在畫面內時才接管左右方向鍵 */
+  var deskInView = false;
+  new IntersectionObserver(function(es){
+    for (var i = 0; i < es.length; i++) deskInView = es[i].isIntersecting;
+  }, { threshold: 0.25 }).observe(document.getElementById('desk'));
+
+  document.addEventListener('keydown', function(e){
+    if (!deskInView) return;
+    var tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    if (e.key === 'ArrowRight'){ e.preventDefault(); go(state.page + 1); }
+    else if (e.key === 'ArrowLeft'){ e.preventDefault(); go(state.page - 1); }
+  });
+
+  /* ---------- 螢光筆 ---------- */
+  var noteMap = {};
+  var notes = document.querySelectorAll('.note');
+  for (var n = 0; n < notes.length; n++){
+    noteMap[notes[n].getAttribute('data-for')] = notes[n];
+  }
+
+  for (var m = 0; m < marks.length; m++){
+    marks[m].type = 'button';
+    (function(btn){
+      var id = btn.getAttribute('data-m');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.setAttribute('aria-label', '用螢光筆標記「' + btn.textContent + '」並顯示旁白');
+      btn.addEventListener('click', function(){
+        state.marks = P.toggleMark(state.marks, id);
+        var on = P.isMarked(state.marks, id);
+        btn.classList.toggle('on', on);
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (noteMap[id]) noteMap[id].classList.toggle('on', on);
+        counter.textContent = '已標記 ' + P.markCount(state.marks) + ' / ' + TOTAL_MARKS + ' 處';
+      });
+    })(marks[m]);
+  }
+
+  /* ---------- 用純函式把換算填進旁白 ---------- */
+  var CUT = 270;
+  function put(id, v){ var el = document.getElementById(id); if (el) el.textContent = v; }
+  put('h81', P.hoursExact(CUT, 8.1));
+  put('h39', P.hoursExact(CUT, 3.9));
+  put('h57', P.hoursExact(CUT, 5.7));
+  var calc = document.getElementById('calcbox');
+  if (calc){
+    calc.textContent =
+      '270 ÷ 8.1 = ' + P.hoursExact(CUT, 8.1) + ' 小時（原文向上取整為 ' + P.hoursCeil(CUT, 8.1) + '）　·　' +
+      '270 ÷ 10.7 = ' + P.hoursExact(CUT, 10.7) + '（取整 ' + P.hoursCeil(CUT, 10.7) + '）　·　' +
+      '270 ÷ 5.6 = ' + P.hoursExact(CUT, 5.6) + '（取整 ' + P.hoursCeil(CUT, 5.6) + '）';
+  }
+
+  /* ---------- 最後一頁：揭露 ---------- */
+  if (revealBtn){
+    revealBtn.addEventListener('click', function(){
+      if (!P.canReveal(state) || state.revealed) return;
+      state = P.reveal(state);
+      redact.hidden = true;
+      redact.style.display = 'none';
+      disclose.hidden = false;
+      aftermath.classList.add('on');
+      render();
+      if (!RM.matches){
+        try { disclose.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (err) {}
+      }
+    });
+  }
+
+  render();
+})();
+</script>
+
+</body>
+</html>

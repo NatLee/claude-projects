@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你不是視覺型的人 · 每日小專案</title>
+<meta name="description" content="先做一份很像樣的學習風格測驗，再親手跑一次 Pashler 說的那種實驗，看看那個交叉點到底在不在。">
+<style>
+:root{
+  --bg:#0a0b0f; --bg2:#0d0f15; --panel:#141824; --line:#242b3d;
+  --ink:#e9e6de; --ink2:#a6adbd; --ink3:#6a7285;
+  --paper:#f7f4ed; --paper2:#ebe5d8; --pink:#1a1e26;
+  --brand:#3f6fe6; --brand2:#6b93ff;
+  --vis:#57cfe0; --aud:#e8a33d; --kin:#8fd06a;
+  --hot:#e0574c;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); line-height:1.95;
+  font-size:clamp(16px,1rem + .2vw,17.5px);
+}
+p{margin:0 0 1.1em}
+main{display:block}
+section{position:relative; padding:clamp(66px,11vh,120px) 20px}
+.wrap{max-width:660px; margin:0 auto}
+.home{
+  position:absolute; top:14px; left:16px; z-index:30;
+  color:#626b80; text-decoration:none; font-size:13px; letter-spacing:.08em;
+  font-family:var(--sans);
+  padding:5px 9px; border-radius:6px; transition:color .25s, background .25s;
+}
+.home:hover,.home:focus-visible{color:var(--ink); background:rgba(255,255,255,.07)}
+:focus-visible{outline:2px solid var(--vis); outline-offset:3px; border-radius:4px}
+button{font:inherit; color:inherit; cursor:pointer}
+.mono{font-family:var(--mono)}
+.sans{font-family:var(--sans)}
+.dim{color:var(--ink3)}
+.kicker{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.22em;
+  color:var(--ink3); margin:0 0 18px; text-transform:uppercase;
+}
+h1{font-size:clamp(32px,8vw,56px); line-height:1.24; margin:0 0 24px; font-weight:600; letter-spacing:.01em}
+h2.sec{font-size:clamp(22px,4.4vw,30px); line-height:1.45; margin:0 0 20px; font-weight:600}
+.lead{font-size:clamp(17px,1.05rem + .2vw,19.5px); color:#d2cdc2}
+.veil{display:none}
+.veil.on{display:block}
+
+/* ---------- 進場 ---------- */
+.rv{opacity:0; transform:translateY(16px); transition:opacity .85s cubic-bezier(.2,.7,.3,1), transform .85s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+
+/* ================= 一、假測驗 ================= */
+#quiz{min-height:100svh; display:flex; align-items:center; padding-top:88px; padding-bottom:76px}
+#quiz .wrap{width:100%}
+.card{
+  background:linear-gradient(180deg,var(--paper),var(--paper2));
+  color:#171b22; border-radius:16px; overflow:hidden; font-family:var(--sans);
+  box-shadow:0 34px 76px -34px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.05);
+}
+.card :focus-visible{outline:2px solid #2b56c4; outline-offset:2px}
+.brandbar{
+  display:flex; align-items:center; gap:10px;
+  padding:13px 18px; background:linear-gradient(90deg,#33569f,#3f6fe6);
+  color:#eef3ff; font-size:12.5px; letter-spacing:.14em; font-family:var(--mono);
+}
+.brandbar .dot{width:9px; height:9px; border-radius:50%; background:#9fc0ff; flex:none}
+.brandbar .ver{margin-left:auto; opacity:.75; font-size:11px; letter-spacing:.1em}
+.prog{height:4px; background:#d9d2c2}
+.prog i{display:block; height:100%; width:0; background:var(--brand); transition:width .45s cubic-bezier(.3,.8,.3,1)}
+.cardbody{padding:26px 20px 24px}
+.qmeta{font-family:var(--mono); font-size:11.5px; letter-spacing:.16em; color:#7d8496; margin:0 0 12px}
+.qtext{font-size:clamp(18px,3.6vw,21px); line-height:1.6; margin:0 0 20px; font-weight:600; color:#141821}
+.opts{display:flex; flex-direction:column; gap:9px}
+.opt{
+  text-align:left; background:#fff; border:1px solid #d7d0c0; color:#20242e;
+  border-radius:11px; padding:14px 15px; font-size:15.5px; line-height:1.55;
+  display:flex; gap:11px; align-items:flex-start;
+  transition:border-color .18s, background .18s, transform .12s, box-shadow .18s;
+}
+.opt .tag{
+  flex:none; width:22px; height:22px; border-radius:6px; background:#eceadf; color:#5c6376;
+  font-family:var(--mono); font-size:12px; display:flex; align-items:center; justify-content:center; margin-top:1px;
+}
+.opt:hover:not(:disabled){border-color:var(--brand); background:#f4f7ff; box-shadow:0 6px 18px -10px rgba(63,111,230,.7)}
+.opt:active:not(:disabled){transform:translateY(1px)}
+.opt.picked{border-color:var(--brand); background:#e9f0ff}
+.opt.picked .tag{background:var(--brand); color:#fff}
+.opt:disabled{cursor:default}
+.cardfoot{
+  padding:14px 20px 18px; font-size:12px; color:#7b8294; font-family:var(--mono);
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+}
+.skip{
+  background:none; border:0; padding:4px 6px; border-radius:6px;
+  color:#5f6b86; font-family:var(--mono); font-size:12px;
+  text-decoration:underline; text-underline-offset:3px; margin-left:auto;
+}
+.skip:hover{color:#2b56c4}
+.hint{margin:16px 2px 0; font-family:var(--mono); font-size:12px; color:var(--ink3); letter-spacing:.04em}
+
+/* ================= 二、結果卡 ================= */
+#result{background:var(--bg2)}
+.badge{
+  display:inline-block; padding:5px 12px; border-radius:99px;
+  background:#e9f0ff; color:#2b56c4; font-family:var(--mono);
+  font-size:11.5px; letter-spacing:.16em; margin-bottom:14px;
+}
+.bigstyle{font-size:clamp(30px,7vw,46px); line-height:1.2; margin:0 0 6px; font-weight:700; color:#141821}
+.bigstyle small{display:block; font-family:var(--mono); font-size:13px; letter-spacing:.2em; color:#8b91a2; font-weight:400; margin-top:8px}
+.bars{list-style:none; margin:26px 0 22px; padding:0; display:flex; flex-direction:column; gap:14px}
+.bars li{display:grid; grid-template-columns:66px 1fr 52px; gap:12px; align-items:center}
+.bars .nm{font-size:14px; color:#3d434f}
+.bars .track{height:10px; border-radius:99px; background:#ddd6c6; overflow:hidden}
+.bars .fill{height:100%; width:0; border-radius:99px; transition:width .9s cubic-bezier(.25,.8,.3,1)}
+.bars .pc{font-family:var(--mono); font-size:14.5px; text-align:right; color:#20242e; font-variant-numeric:tabular-nums}
+.bars li:nth-child(1) .fill{background:linear-gradient(90deg,#2f8fa6,#57cfe0)}
+.bars li:nth-child(2) .fill{background:linear-gradient(90deg,#b4791f,#e8a33d)}
+.bars li:nth-child(3) .fill{background:linear-gradient(90deg,#5e9a3e,#8fd06a)}
+.advice{border-top:1px solid #ddd6c6; margin-top:4px; padding-top:20px}
+.advice h3{margin:0 0 12px; font-size:15.5px; color:#141821}
+.advice ul{margin:0; padding-left:1.15em; color:#3d434f; font-size:15px; line-height:1.85}
+.advice li{margin-bottom:5px}
+.seal{
+  margin-top:20px; padding-top:14px; border-top:1px dashed #cdc5b4;
+  font-family:var(--mono); font-size:11.5px; color:#8b91a2; line-height:1.9;
+}
+
+/* ================= 三、翻臉 ================= */
+#turn{background:linear-gradient(180deg,var(--bg2) 0%,#0a0b0f 60%)}
+.slap{
+  font-size:clamp(20px,4.2vw,26px); line-height:1.72; color:var(--ink);
+  border-left:3px solid var(--hot); padding-left:18px; margin:0 0 30px;
+}
+.slap b{color:#ffb0a6; font-weight:600}
+.nats{list-style:none; margin:28px 0 8px; padding:0; display:flex; flex-direction:column; gap:11px}
+.nats li{display:grid; grid-template-columns:76px 1fr 46px; gap:12px; align-items:center; font-family:var(--sans); font-size:14px}
+.nats .t{height:9px; border-radius:99px; background:#181d2a; overflow:hidden}
+.nats .t i{display:block; height:100%; background:linear-gradient(90deg,#7a3730,#e0574c); transform:scaleX(0); transform-origin:left; transition:transform 1s cubic-bezier(.25,.8,.3,1)}
+.nats.in .t i{transform:scaleX(var(--w))}
+.nats .v{font-family:var(--mono); font-size:13.5px; color:#f0a79d; text-align:right; font-variant-numeric:tabular-nums}
+.cap{font-family:var(--mono); font-size:12px; color:var(--ink3); line-height:1.85; margin-top:14px}
+
+/* ================= 四、實驗室 ================= */
+#lab{background:var(--bg2); border-top:1px solid #12161f}
+.proto{
+  border:1px solid var(--line); border-radius:12px; background:var(--panel);
+  padding:20px 18px; margin:0 0 30px; font-family:var(--sans);
+}
+.proto h3{margin:0 0 14px; font-size:13px; letter-spacing:.14em; font-family:var(--mono); color:var(--ink3)}
+.proto ol{margin:0; padding-left:1.3em; color:var(--ink2); font-size:14.5px; line-height:1.8}
+.proto ol li{margin-bottom:7px}
+.proto ol li b{color:var(--ink); font-weight:600}
+.rig{border:1px solid var(--line); border-radius:12px; background:#10141d; overflow:hidden}
+.rigtop{padding:16px 16px 14px; border-bottom:1px solid var(--line)}
+.chiprow{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; font-family:var(--mono); font-size:11.5px}
+.chip{padding:5px 10px; border-radius:99px; border:1px solid var(--line); color:var(--ink2); background:#141a26}
+.chip.v{border-color:#255c66; color:#93e2ee}
+.chip.a{border-color:#6b4c1c; color:#f0c682}
+.ctrl{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.btn{
+  background:#1c2534; border:1px solid #33405c; color:var(--ink);
+  border-radius:9px; padding:10px 15px; font-family:var(--sans); font-size:14px;
+  transition:background .2s, border-color .2s, transform .12s;
+}
+.btn:hover{background:#243049; border-color:#4a5c82}
+.btn:active{transform:translateY(1px)}
+.btn.go{background:#25405f; border-color:#3d648f}
+.btn.go:hover{background:#2d4f75}
+.seg{display:flex; gap:0; border:1px solid #33405c; border-radius:9px; overflow:hidden}
+.seg button{
+  background:#151b27; border:0; color:var(--ink2); padding:10px 13px;
+  font-family:var(--sans); font-size:13.5px; transition:background .2s, color .2s;
+}
+.seg button + button{border-left:1px solid #33405c}
+.seg button[aria-pressed="true"]{background:#2b3c58; color:#fff}
+.seg button:hover{color:#fff}
+.plotwrap{padding:8px 6px 4px; background:#0c1018}
+svg.plot{display:block; width:100%; height:auto}
+.gl{stroke:#1a2130; stroke-width:1}
+.ax{stroke:#2b3547; stroke-width:1.2}
+.tk{fill:#5d6678; font-family:var(--mono); font-size:11px}
+.xl{fill:#98a1b3; font-family:var(--sans); font-size:13px}
+.yl{fill:#5d6678; font-family:var(--mono); font-size:11px; letter-spacing:.12em}
+.ln{fill:none; stroke-width:3; stroke-linecap:round}
+.ln.v{stroke:var(--vis)}
+.ln.a{stroke:var(--aud)}
+.pt{stroke:#0c1018; stroke-width:2.5}
+.pt.v{fill:var(--vis)}
+.pt.a{fill:var(--aud)}
+.lb{font-family:var(--sans); font-size:12.5px; font-weight:600}
+.lb.v{fill:var(--vis)}
+.lb.a{fill:var(--aud)}
+.sc{font-family:var(--mono); font-size:11.5px; fill:#7e879a}
+.xhair{stroke:var(--hot); stroke-width:1.4; stroke-dasharray:4 4}
+.xdot{fill:var(--hot); stroke:#0c1018; stroke-width:2}
+.xtx{fill:#f2a79c; font-family:var(--mono); font-size:11.5px}
+.fadein{opacity:0; transition:opacity .5s ease .55s}
+.fadein.on{opacity:1}
+.verdict{
+  padding:15px 16px; border-top:1px solid var(--line); background:#10141d;
+  font-family:var(--sans); font-size:14.5px; line-height:1.75; color:var(--ink2); margin:0;
+}
+.verdict b{color:var(--ink)}
+.verdict .yes{color:#8fd06a}
+.verdict .no{color:#f0857a}
+
+/* ================= 五、2024 ================= */
+#meta{background:linear-gradient(180deg,#0a0b0f,#0c0e14)}
+.numrow{display:flex; flex-wrap:wrap; gap:22px 34px; margin:26px 0 30px}
+.numrow div{min-width:96px}
+.numrow .n{font-family:var(--mono); font-size:clamp(26px,6vw,38px); line-height:1.1; color:var(--brand2); font-variant-numeric:tabular-nums}
+.numrow .c{font-size:12.5px; color:var(--ink3); font-family:var(--sans); margin-top:4px; line-height:1.6}
+.pull{
+  font-size:clamp(19px,3.8vw,24px); line-height:1.75; color:var(--ink);
+  margin:34px 0 0; padding-top:26px; border-top:1px solid var(--line);
+}
+.pull b{color:#9dd9e4; font-weight:600}
+
+footer{
+  border-top:1px solid #12161f; padding:28px 20px 44px; text-align:center;
+  color:#585f70; font-size:12.5px; line-height:1.9; font-family:var(--mono);
+}
+footer p{margin:0; max-width:640px; margin-left:auto; margin-right:auto}
+
+@media (max-width:560px){
+  .bars li{grid-template-columns:58px 1fr 44px; gap:9px}
+  .nats li{grid-template-columns:66px 1fr 42px; gap:9px; font-size:13px}
+  .cardbody{padding:22px 15px 20px}
+  .proto,.rigtop{padding-left:14px; padding-right:14px}
+  .numrow{gap:18px 26px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .rv{opacity:1; transform:none; transition:none}
+  .prog i,.bars .fill,.nats .t i,.fadein{transition:none}
+  .opt{transition:none}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<main>
+
+<!-- ============ 一、鉤子：直接是第一題 ============ -->
+<section id="quiz">
+  <div class="wrap">
+    <p class="kicker">learning style inventory</p>
+    <div class="card">
+      <div class="brandbar"><span class="dot" aria-hidden="true"></span>學習風格傾向量表<span class="ver">VAK · v3.2</span></div>
+      <div class="prog"><i id="progbar"></i></div>
+      <div class="cardbody">
+        <p class="qmeta" id="qmeta">第 1 題 ／ 共 7 題</p>
+        <h2 class="qtext" id="qtext">別人跟你講路怎麼走的時候，你會⋯⋯</h2>
+        <div class="opts" id="opts"></div>
+      </div>
+      <div class="cardfoot">
+        <span id="fnote">選一個最接近的就好，沒有標準答案。</span>
+        <button class="skip" id="skip" type="button">沒空做完，直接看結果 →</button>
+      </div>
+    </div>
+    <p class="hint">七題，答完會自動跳下一題。</p>
+  </div>
+</section>
+
+<!-- ============ 二、餵給他：結果卡 ============ -->
+<section id="result" class="veil" aria-labelledby="rhead">
+  <div class="wrap">
+    <p class="kicker rv">your result</p>
+    <div class="card rv">
+      <div class="brandbar"><span class="dot" aria-hidden="true"></span>測驗結果<span class="ver">已完成 7／7</span></div>
+      <div class="cardbody" id="rbody" aria-live="polite">
+        <span class="badge" id="rbadge">主要學習風格</span>
+        <p class="bigstyle" id="rhead">視覺型<small id="rsub">VISUAL LEARNER</small></p>
+        <ul class="bars" id="rbars">
+          <li><span class="nm">視覺型</span><span class="track"><i class="fill" id="fv"></i></span><span class="pc" id="pv">0%</span></li>
+          <li><span class="nm">聽覺型</span><span class="track"><i class="fill" id="fa"></i></span><span class="pc" id="pa">0%</span></li>
+          <li><span class="nm">動覺型</span><span class="track"><i class="fill" id="fk"></i></span><span class="pc" id="pk">0%</span></li>
+        </ul>
+        <div class="advice">
+          <h3 id="advh">給視覺型學習者的四個建議</h3>
+          <ul id="advl"></ul>
+        </div>
+        <p class="seal">計分方式：VAK 三向度加權量表　·　內部一致性 α = .82　·　樣本 N = 4,180<br>本結果僅供學習規劃參考。</p>
+      </div>
+    </div>
+    <p class="hint rv">爽嗎？再往下捲一下。</p>
+  </div>
+</section>
+
+<!-- ============ 三、翻臉 ============ -->
+<section id="turn" class="veil">
+  <div class="wrap">
+    <h1 class="rv">你不是視覺型的人</h1>
+    <p class="slap rv">剛才那張卡片測到的是你<b>喜歡</b>怎麼學。<br>它沒有測過你這樣學是不是真的學得比較好。</p>
+    <p class="rv">順帶一提，卡片下面那行「內部一致性 α = .82、樣本 N = 4,180」是我編的。我敢編，是因為你不會去查——而網路上流通的學習風格測驗，大多也沒留下讓你查的地方。你剛才勾的七題，權重是我自己填進程式裡的三個數字。</p>
+    <p class="rv">你可能會想：那有什麼關係，這東西大家都在用。對，這正是麻煩的地方。Howard-Jones 在 2014 年問了五個國家、九百多位在職教師同一句話——「人在接收符合自己偏好風格的資訊時，會學得比較好」——請他們回答同意或不同意：</p>
+    <ul class="nats rv" id="nats">
+      <li><span>英國</span><span class="t"><i style="--w:.93"></i></span><span class="v">93%</span></li>
+      <li><span>荷蘭</span><span class="t"><i style="--w:.96"></i></span><span class="v">96%</span></li>
+      <li><span>土耳其</span><span class="t"><i style="--w:.97"></i></span><span class="v">97%</span></li>
+      <li><span>希臘</span><span class="t"><i style="--w:.96"></i></span><span class="v">96%</span></li>
+      <li><span>中國</span><span class="t"><i style="--w:.97"></i></span><span class="v">97%</span></li>
+    </ul>
+    <p class="cap rv">同意該敘述的教師比例。Howard-Jones (2014)，<i>Nature Reviews Neuroscience</i>。</p>
+    <p class="rv" style="margin-top:26px">九成以上。這不是某個角落的偏方，這是全球教室的共識。<br>問題是，這個共識背後那個實驗，幾乎沒有人做過。</p>
+  </div>
+</section>
+
+<!-- ============ 四、高潮：親手跑那個實驗 ============ -->
+<section id="lab" class="veil">
+  <div class="wrap">
+    <p class="kicker rv">the experiment nobody ran</p>
+    <h2 class="sec rv">現在換你當研究者</h2>
+    <p class="rv">2008 年，Pashler、McDaniel、Rohrer 與 Bjork 四個人受邀替 <i>Psychological Science in the Public Interest</i> 回顧整片學習風格文獻。他們做的第一件事，是先把「要怎樣才算證明」寫清楚。規格只有四行：</p>
+    <div class="proto rv">
+      <h3>MESHING HYPOTHESIS · 驗證規格</h3>
+      <ol>
+        <li>先用測驗把學習者分成<b>至少兩種風格組</b>。</li>
+        <li>把每一組的人<b>隨機分派</b>到至少兩種教學方式。</li>
+        <li>所有人最後考<b>同一份測驗</b>。</li>
+        <li>結果必須出現<b>交叉交互作用</b>——視覺型在圖像教材下贏，聽覺型在口語教材下贏。兩條線要交叉。</li>
+      </ol>
+    </div>
+    <p class="rv">第四條是關鍵。光是「大家看圖都學得比較好」不算，那只是教材本身比較好。要成立，必須是每一組各自在自己那邊贏。下面這台機器就照這四行跑：</p>
+
+    <div class="rig rv">
+      <div class="rigtop">
+        <div class="chiprow">
+          <span class="chip v">受試者 A 組：測驗判定為視覺型</span>
+          <span class="chip a">受試者 B 組：測驗判定為聽覺型</span>
+          <span class="chip">教材一：圖像式</span>
+          <span class="chip">教材二：口語式</span>
+        </div>
+        <div class="ctrl">
+          <button class="btn go" id="run" type="button">隨機分派並開課</button>
+          <div class="seg" role="group" aria-label="切換資料樣態">
+            <button id="mMesh" type="button" aria-pressed="false">假說成立的話</button>
+            <button id="mReal" type="button" aria-pressed="true">真實研究的樣子</button>
+          </div>
+        </div>
+      </div>
+      <div class="plotwrap">
+        <svg class="plot" viewBox="0 0 640 360" role="img" id="plot" aria-label="兩組受試者在兩種教材下的後測分數折線圖">
+          <g id="grid"></g>
+          <line class="ax" x1="96" y1="292" x2="560" y2="292"></line>
+          <line class="ax" x1="96" y1="44" x2="96" y2="292"></line>
+          <text class="yl" x="96" y="26">後測分數</text>
+          <text class="xl" x="132" y="318" text-anchor="middle">圖像式教材</text>
+          <text class="xl" x="486" y="318" text-anchor="middle">口語式教材</text>
+          <text class="sc" x="132" y="338" text-anchor="middle" id="nlab"></text>
+          <text class="sc" x="486" y="338" text-anchor="middle" id="nlab2"></text>
+          <g id="xgroup" class="fadein">
+            <line class="xhair" id="xh1" x1="0" y1="0" x2="0" y2="292"></line>
+            <circle class="xdot" id="xd" cx="0" cy="0" r="5"></circle>
+            <text class="xtx" id="xt" x="0" y="0" text-anchor="middle">交叉點</text>
+          </g>
+          <path class="ln v" id="lnV" d="M132 200 L486 200"></path>
+          <path class="ln a" id="lnA" d="M132 220 L486 220"></path>
+          <g id="dots" class="fadein">
+            <circle class="pt v" id="dV0" cx="132" cy="200" r="6"></circle>
+            <circle class="pt v" id="dV1" cx="486" cy="200" r="6"></circle>
+            <circle class="pt a" id="dA0" cx="132" cy="220" r="6"></circle>
+            <circle class="pt a" id="dA1" cx="486" cy="220" r="6"></circle>
+            <text class="sc" id="sV0" x="132" y="0" text-anchor="middle"></text>
+            <text class="sc" id="sV1" x="486" y="0" text-anchor="middle"></text>
+            <text class="sc" id="sA0" x="132" y="0" text-anchor="middle"></text>
+            <text class="sc" id="sA1" x="486" y="0" text-anchor="middle"></text>
+            <text class="lb v" id="tV" x="500" y="0">視覺型組</text>
+            <text class="lb a" id="tA" x="500" y="0">聽覺型組</text>
+          </g>
+        </svg>
+      </div>
+      <p class="verdict" id="verdict" aria-live="polite">按下「隨機分派並開課」，把這一輪的資料跑出來。</p>
+    </div>
+
+    <p class="cap rv" style="margin-top:16px">分數為示意值，用來呈現兩種資料樣態的形狀差異；每次開課會加入 ±0.7 分的抽樣誤差。真實效果量請見下一段。</p>
+
+    <p class="rv" style="margin-top:30px">來回切個幾次，看那個交叉點什麼時候出現、什麼時候消失。左邊那種圖，是全世界教師相信的世界。右邊那種圖，是研究者實際拿到的資料：兩條線一起往下掉，圖像式教材對<b>兩組人</b>都比較有用——有主效果，沒有交互作用。Massa 與 Mayer 在 2006 年測了十幾種視覺／語文傾向指標，幾乎沒有一個跑出顯著的交互作用；Rogowsky 三人 2015 年用有聲書對電子書測成人，聽覺傾向與視覺傾向都沒有預測到誰該用哪一種；Husmann 與 O'Loughlin 在 2019 年追蹤解剖學課的大學生，發現照著自己 VARK 結果讀書的人，成績並沒有比較好，那篇論文的標題直接叫〈又一根釘子〉。</p>
+    <p class="rv">Pashler 那份回顧翻遍文獻的結論是：符合上面四行規格的研究少得可憐；而少數幾個真的照規格做的，結果反而站在 meshing 假說的反面。</p>
+  </div>
+</section>
+
+<!-- ============ 五、2024 年那篇「等一下」 ============ -->
+<section id="meta" class="veil">
+  <div class="wrap">
+    <p class="kicker rv">2024</p>
+    <h2 class="sec rv">然後有人舉手說：等一下</h2>
+    <p class="rv">如果這一頁在這裡收尾，它會是一篇很順的文章，而且會漏掉最有意思的部分。2024 年 7 月，Clinton-Lisell 與 Litzinger 在 <i>Frontiers in Psychology</i> 發表〈Is it really a neuromyth?〉——標題就是在問學習風格到底算不算腦神經迷思。他們把符合規格的研究撈出來做後設分析：</p>
+    <div class="numrow rv">
+      <div><div class="n">21</div><div class="c">篇納入分析的研究</div></div>
+      <div><div class="n">101</div><div class="c">個效果量</div></div>
+      <div><div class="n">1,712</div><div class="c">位受試者</div></div>
+      <div><div class="n">0.31</div><div class="c">整體效果量 g<br>95% CI [0.05, 0.57]</div></div>
+    </div>
+    <p class="rv">效果量顯著，方向是正的。也就是說，「教材配合風格有一點用」這件事，在這份資料裡並沒有被歸零。這是二十年來反方陣營第一次被認真戳到。</p>
+    <p class="rv">但同一篇論文接著算了另一個數字，而那個數字才是重點：在 42 個學習成果指標裡，只有 <b>11 個</b>（26%）出現了 Pashler 要求的那種交叉——也就是你剛才在圖上找的那個點。另外 12 篇資料不足以計算效果量的研究，比例也差不多，約四分之一。作者自己的結論寫得很克制：考慮到實施成本與納入研究普遍偏低的品質，配合學習風格的好處「太小、也太不常出現」，不足以支持廣泛採用。</p>
+    <p class="rv">所以現在的狀態是這樣：交叉點偶爾會出現，四次裡大概一次；沒有人知道那一次是真的訊號，還是二十一篇品質參差的研究裡冒出來的雜訊。這個問題沒有結案，它只是被降級了——從「教育的基本原則」降級成「一個效果小到很難用、也還沒被穩定重現的可能性」。</p>
+    <p class="pull rv">你當然可以喜歡看圖。喜歡不需要理由，也不必跟任何人交代。<br>只是下次你在流程圖上多花的那四十分鐘沒有換來更好的成績時，別再往回怪自己「不夠視覺型」——<b>從偏好通到有效的那條線，四十幾年來還沒有人真的接起來過</b>。</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>資料來源：Psychological Science in the Public Interest、Frontiers in Psychology、Nature Reviews Neuroscience、Journal of Educational Psychology、Learning and Individual Differences、Anatomical Sciences Education</p>
+</footer>
+
+<script src="pure.js"></script>
+<script>
+(function(){
+  'use strict';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var RM = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var reduced = RM.matches;
+
+  /* ---------------- 進場（IntersectionObserver，不綁 scroll） ---------------- */
+  var revealIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      e.target.classList.add('in');
+      revealIO.unobserve(e.target);
+    });
+  }, { threshold:.12, rootMargin:'0px 0px -6% 0px' });
+
+  function observeReveals(root){
+    var els = (root || document).querySelectorAll('.rv:not(.in)');
+    Array.prototype.forEach.call(els, function(el, i){
+      el.style.transitionDelay = Math.min(i % 6, 5) * 60 + 'ms';
+      revealIO.observe(el);
+    });
+  }
+  observeReveals();
+
+  var natsIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (e.isIntersecting){ e.target.classList.add('in'); natsIO.unobserve(e.target); }
+    });
+  }, { threshold:.4 });
+  natsIO.observe($('nats'));
+
+  /* ============================================================
+   *  一、假測驗
+   * ============================================================ */
+  var TAGS = ['A','B','C'];
+  var answers = [];
+  var cur = 0;
+  var locked = false;
+
+  var qtext = $('qtext'), qmeta = $('qmeta'), optsEl = $('opts'), prog = $('progbar');
+
+  function renderQuestion(){
+    var item = QUIZ[cur];
+    qmeta.textContent = '第 ' + (cur + 1) + ' 題 ／ 共 ' + QUIZ.length + ' 題';
+    qtext.textContent = item.q;
+    prog.style.width = (cur / QUIZ.length * 100) + '%';
+    optsEl.innerHTML = '';
+    item.opts.forEach(function(o, i){
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'opt';
+      var tag = document.createElement('span');
+      tag.className = 'tag';
+      tag.setAttribute('aria-hidden','true');
+      tag.textContent = TAGS[i];
+      var tx = document.createElement('span');
+      tx.textContent = o.t;
+      b.appendChild(tag); b.appendChild(tx);
+      b.addEventListener('click', function(){ pick(i, b); });
+      optsEl.appendChild(b);
+    });
+    var first = optsEl.querySelector('.opt');
+    if (first && cur > 0) first.focus();
+  }
+
+  function pick(i, btn){
+    if (locked) return;
+    locked = true;
+    answers[cur] = i;
+    btn.classList.add('picked');
+    Array.prototype.forEach.call(optsEl.querySelectorAll('.opt'), function(b){ b.disabled = true; });
+    prog.style.width = ((cur + 1) / QUIZ.length * 100) + '%';
+    var wait = reduced ? 0 : 340;
+    window.setTimeout(function(){
+      locked = false;
+      cur += 1;
+      if (cur >= QUIZ.length) finish();
+      else renderQuestion();
+    }, wait);
+  }
+
+  $('skip').addEventListener('click', function(){
+    if (locked) return;
+    // 幫還沒答的題目補上偏視覺的作答，直接進結果
+    for (var i = 0; i < QUIZ.length; i++){
+      if (answers[i] === undefined) answers[i] = (i === 2 || i === 5) ? 1 : 0;
+    }
+    cur = QUIZ.length;
+    prog.style.width = '100%';
+    finish();
+  });
+
+  renderQuestion();
+
+  /* ============================================================
+   *  二、結果卡
+   * ============================================================ */
+  var ADVICE = {
+    0: ['把課堂筆記改寫成心智圖，讓分支代替條列。',
+        '用三種顏色的螢光筆分類重點，讓版面本身變成索引。',
+        '遇到抽象概念先找圖解或流程圖，再回頭讀文字。',
+        '複習時先看圖回想內容，而不是從頭讀一遍。'],
+    1: ['把重點唸出聲並錄下來，通勤時重播。',
+        '找同學互相講解，用「說得出來」當作理解的門檻。',
+        '優先選有旁白講解的教學影片，而不是純圖表。',
+        '替難記的內容編一段順口的口訣。'],
+    2: ['邊讀邊在紙上動手寫、畫、標記，不要只用眼睛。',
+        '每讀二十分鐘就站起來走一圈，把段落跟位置連起來。',
+        '先做一題再回頭看解說，用操作帶動理解。',
+        '把流程實際演一遍，或用模型、教具走一次。']
+  };
+
+  var counting = null;
+
+  function finish(){
+    var raw = scoreQuiz(answers);
+    var pcs = toPercents(raw);
+    var top = topStyle(raw);
+    var st = STYLES[top];
+
+    $('rhead').firstChild.nodeValue = st.name;
+    $('rsub').textContent = st.en.toUpperCase() + ' LEARNER';
+    $('advh').textContent = '給' + st.name + '學習者的四個建議';
+    var ul = $('advl');
+    ul.innerHTML = '';
+    ADVICE[top].forEach(function(t){
+      var li = document.createElement('li');
+      li.textContent = t;
+      ul.appendChild(li);
+    });
+
+    ['result','turn','lab','meta'].forEach(function(id){ $(id).classList.add('on'); });
+    observeReveals();
+
+    animateBars(pcs);
+    drawGrid();
+    render(true);
+
+    var target = $('result');
+    if (reduced) target.scrollIntoView();
+    else window.setTimeout(function(){ target.scrollIntoView({ behavior:'smooth', block:'start' }); }, 60);
+  }
+
+  function setBars(p){
+    $('fv').style.width = p[0] + '%'; $('pv').textContent = p[0] + '%';
+    $('fa').style.width = p[1] + '%'; $('pa').textContent = p[1] + '%';
+    $('fk').style.width = p[2] + '%'; $('pk').textContent = p[2] + '%';
+  }
+
+  function animateBars(pcs){
+    if (counting) { cancelAnimationFrame(counting); counting = null; }
+    if (reduced || document.hidden){ setBars(pcs); return; }
+    var t0 = 0, DUR = 900;
+    var step = function(now){
+      if (document.hidden){ counting = null; setBars(pcs); return; }
+      if (!t0) t0 = now;
+      var p = Math.min(1, (now - t0) / DUR);
+      var e = 1 - Math.pow(1 - p, 3);
+      setBars([Math.round(pcs[0]*e), Math.round(pcs[1]*e), Math.round(pcs[2]*e)]);
+      if (p < 1) counting = requestAnimationFrame(step);
+      else { counting = null; setBars(pcs); }
+    };
+    counting = requestAnimationFrame(step);
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden && counting){ cancelAnimationFrame(counting); counting = null; }
+  });
+
+  /* ============================================================
+   *  四、交互作用圖
+   * ============================================================ */
+  var mode = 'real';
+  var seed = 20240710;
+  var gridDrawn = false;
+
+  function drawGrid(){
+    if (gridDrawn) return;
+    gridDrawn = true;
+    var g = $('grid');
+    var SVGNS = 'http://www.w3.org/2000/svg';
+    for (var v = 55; v <= 85; v += 5){
+      var y = plotY(v);
+      var ln = document.createElementNS(SVGNS, 'line');
+      ln.setAttribute('class','gl');
+      ln.setAttribute('x1','96'); ln.setAttribute('x2','560');
+      ln.setAttribute('y1', String(y)); ln.setAttribute('y2', String(y));
+      g.appendChild(ln);
+      var tx = document.createElementNS(SVGNS, 'text');
+      tx.setAttribute('class','tk');
+      tx.setAttribute('x','88'); tx.setAttribute('y', String(y + 4));
+      tx.setAttribute('text-anchor','end');
+      tx.textContent = String(v);
+      g.appendChild(tx);
+    }
+  }
+
+  function drawPath(el, animate){
+    var len = el.getTotalLength();
+    el.style.transition = 'none';
+    el.style.strokeDasharray = len + ' ' + len;
+    el.style.strokeDashoffset = String(len);
+    el.getBoundingClientRect();           // 強制 reflow，讓每次重播都從頭開始
+    if (!animate){ el.style.strokeDashoffset = '0'; return; }
+    requestAnimationFrame(function(){
+      el.style.transition = 'stroke-dashoffset .8s cubic-bezier(.3,.75,.3,1)';
+      el.style.strokeDashoffset = '0';
+    });
+  }
+
+  function place(id, x, y){
+    var el = $(id);
+    el.setAttribute('x', String(x));
+    el.setAttribute('y', String(y));
+  }
+
+  function render(animate){
+    var base = labCells(mode);
+    var cells = jitterCells(base, seed, 0.7);
+    var m = plotModel(cells);
+    var n = runN(seed);
+
+    // 折線一律由左往右畫，動畫方向才不會倒放
+    $('lnV').setAttribute('d', pathD(m.V));
+    $('lnA').setAttribute('d', pathD(m.A));
+
+    $('dV0').setAttribute('cy', String(m.V[0].y));
+    $('dV1').setAttribute('cy', String(m.V[1].y));
+    $('dA0').setAttribute('cy', String(m.A[0].y));
+    $('dA1').setAttribute('cy', String(m.A[1].y));
+
+    var above = function(a, b){ return a.y <= b.y ? -14 : 20; };
+    place('sV0', 132, m.V[0].y + above(m.V[0], m.A[0]));
+    place('sA0', 132, m.A[0].y + above(m.A[0], m.V[0]));
+    place('sV1', 486, m.V[1].y + above(m.V[1], m.A[1]));
+    place('sA1', 486, m.A[1].y + above(m.A[1], m.V[1]));
+    $('sV0').textContent = score1(cells.V[0]);
+    $('sV1').textContent = score1(cells.V[1]);
+    $('sA0').textContent = score1(cells.A[0]);
+    $('sA1').textContent = score1(cells.A[1]);
+
+    place('tV', 500, m.V[1].y + 5);
+    place('tA', 500, m.A[1].y + 5);
+
+    var xg = $('xgroup');
+    if (m.cross){
+      $('xh1').setAttribute('x1', String(m.cross.x));
+      $('xh1').setAttribute('x2', String(m.cross.x));
+      $('xh1').setAttribute('y1', String(m.cross.y));
+      $('xd').setAttribute('cx', String(m.cross.x));
+      $('xd').setAttribute('cy', String(m.cross.y));
+      place('xt', m.cross.x, m.cross.y - 14);
+      $('xt').textContent = '交叉點';
+      xg.style.display = '';
+    } else {
+      xg.style.display = 'none';
+    }
+
+    $('nlab').textContent = 'n = ' + n + ' ／組';
+    $('nlab2').textContent = 'n = ' + n + ' ／組';
+
+    var doAnim = animate && !reduced;
+    var dots = $('dots');
+    dots.classList.remove('on');
+    xg.classList.remove('on');
+    if (doAnim){
+      dots.getBoundingClientRect();
+      requestAnimationFrame(function(){ dots.classList.add('on'); xg.classList.add('on'); });
+    } else {
+      dots.classList.add('on'); xg.classList.add('on');
+    }
+    drawPath($('lnV'), doAnim);
+    drawPath($('lnA'), doAnim);
+
+    var gV = Math.round(m.gain.V * 10) / 10;
+    var gA = Math.round(m.gain.A * 10) / 10;
+    var fmt = function(x){ return (x > 0 ? '+' : '') + x.toFixed(1); };
+    var head = m.crossover
+      ? '<b class="yes">出現交叉交互作用。</b>'
+      : '<b class="no">沒有交叉交互作用。</b>';
+    var tail = m.crossover
+      ? '兩組人各自在「自己的」教材下拿到比較高的分數。這就是 Pashler 那四行規格要求的形狀——如果每份研究都長這樣，學習風格早就不必吵了。'
+      : '兩條線幾乎平行：圖像式教材對兩組人都比較有效，而不是各自在自己那邊贏。這叫教材的主效果，跟學習風格沒有關係。';
+    $('verdict').innerHTML = head +
+      ' 視覺型組配對後 ' + fmt(gV) + ' 分，聽覺型組配對後 ' + fmt(gA) + ' 分。' + tail;
+    $('plot').setAttribute('aria-label',
+      '折線圖：' + (m.crossover ? '兩條線交叉' : '兩條線幾乎平行') +
+      '。視覺型組在圖像式教材下 ' + score1(cells.V[0]) + ' 分、口語式教材下 ' + score1(cells.V[1]) +
+      ' 分；聽覺型組在圖像式教材下 ' + score1(cells.A[0]) + ' 分、口語式教材下 ' + score1(cells.A[1]) + ' 分。');
+  }
+
+  function setMode(m){
+    mode = m;
+    $('mMesh').setAttribute('aria-pressed', String(m === 'mesh'));
+    $('mReal').setAttribute('aria-pressed', String(m === 'real'));
+    render(true);
+  }
+
+  $('mMesh').addEventListener('click', function(){ setMode('mesh'); });
+  $('mReal').addEventListener('click', function(){ setMode('real'); });
+  $('run').addEventListener('click', function(){
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    render(true);
+  });
+
+  /* ---------------- reduced motion 即時切換 ---------------- */
+  function onRM(){
+    reduced = RM.matches;
+    if (reduced && counting){ cancelAnimationFrame(counting); counting = null; }
+    if ($('lab').classList.contains('on')) render(false);   // 立刻定格，不是消失
+    Array.prototype.forEach.call(document.querySelectorAll('.rv'), function(el){
+      if (reduced) el.classList.add('in');
+    });
+  }
+  if (RM.addEventListener) RM.addEventListener('change', onRM);
+  else if (RM.addListener) RM.addListener(onRM);
+})();
+</script>
+
+</body>
+</html>

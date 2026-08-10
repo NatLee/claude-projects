@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中文字幕開著就沒救了嗎 · 每日小專案</title>
+<meta name="description" content="先押一注：不開、英文字幕、中文字幕，哪一種會讓你在這一集學到最多單字？開獎之後，拿走一份掛著研究依據的個人化觀看處方。">
+<style>
+:root{
+  --bg:#08090d; --bg2:#0c0e14; --panel:#12151f; --line:#232838;
+  --ink:#eae7df; --ink2:#a8aec0; --ink3:#69708a;
+  --screen:#05060a;
+  --amber:#e8b04a;     /* 中文字幕 */
+  --cyan:#5ad2d8;      /* 英文字幕 */
+  --slate:#8b93ad;     /* 不開 */
+  --hot:#e0574c;
+  --good:#7fc98a;
+  --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+  --serif:"Iowan Old Style","Noto Serif TC","Songti TC","Source Han Serif TC",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%; scroll-behavior:smooth}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--serif); line-height:1.95;
+  font-size:clamp(16px,1rem + .2vw,17.5px);
+}
+p{margin:0 0 1.1em}
+main{display:block}
+section{position:relative; padding:clamp(60px,10vh,110px) 20px}
+.wrap{max-width:680px; margin:0 auto}
+.home{
+  position:absolute; top:14px; left:16px; z-index:30;
+  color:#5f6780; text-decoration:none; font-size:13px; letter-spacing:.08em;
+  font-family:var(--sans);
+  padding:5px 9px; border-radius:6px; transition:color .25s, background .25s;
+}
+.home:hover,.home:focus-visible{color:var(--ink); background:rgba(255,255,255,.07)}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:3px; border-radius:4px}
+button{font:inherit; color:inherit; cursor:pointer}
+.mono{font-family:var(--mono)}
+.sans{font-family:var(--sans)}
+.dim{color:var(--ink3)}
+.kicker{font-family:var(--mono); font-size:11.5px; letter-spacing:.22em; color:var(--ink3); margin:0 0 18px; text-transform:uppercase}
+h1{font-size:clamp(30px,7.6vw,54px); line-height:1.24; margin:0 0 22px; font-weight:600; letter-spacing:.01em}
+h2.sec{font-size:clamp(21px,4.4vw,29px); line-height:1.45; margin:0 0 18px; font-weight:600}
+h3{font-size:clamp(17px,3.4vw,20px); line-height:1.5; margin:0 0 10px; font-weight:600}
+.lead{font-size:clamp(17px,1.05rem + .2vw,19.5px); color:#d3cfc4}
+.veil{display:none}
+.veil.on{display:block}
+.rv{opacity:0; transform:translateY(16px); transition:opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1)}
+.rv.in{opacity:1; transform:none}
+body.rm .rv{transition:none}
+
+/* ================= 播放器 ================= */
+.player{
+  position:relative; border-radius:12px; overflow:hidden; background:#000;
+  box-shadow:0 30px 70px -34px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.06);
+  font-family:var(--sans);
+}
+.stage{position:relative; display:block; width:100%; aspect-ratio:16/9; background:var(--screen)}
+.stage svg{display:block; width:100%; height:100%}
+.subline{
+  position:absolute; left:0; right:0; bottom:14%;
+  text-align:center; padding:0 6%;
+  pointer-events:none;
+}
+.subline span{
+  display:inline-block; max-width:100%;
+  background:rgba(0,0,0,.62); color:#fff;
+  padding:5px 12px; border-radius:5px;
+  font-size:clamp(13px,2.9vw,17px); line-height:1.5; letter-spacing:.01em;
+  text-shadow:0 1px 3px rgba(0,0,0,.9);
+  transition:opacity .3s;
+}
+body.rm .subline span{transition:none}
+.subline.off span{opacity:0}
+.subline.l1 span{font-family:var(--serif)}
+.ctrl{
+  display:flex; align-items:center; gap:11px;
+  padding:10px 12px; background:linear-gradient(180deg,#12141c,#0b0d13);
+  border-top:1px solid #1c2030;
+}
+.pbtn{
+  flex:none; width:30px; height:30px; border-radius:50%;
+  border:1px solid #2b3145; background:#171b27; color:#cdd3e4;
+  display:flex; align-items:center; justify-content:center; padding:0;
+}
+.pbtn svg{width:12px; height:12px; fill:currentColor}
+.bar{flex:1; height:4px; border-radius:99px; background:#242a3b; position:relative; overflow:hidden}
+.bar i{position:absolute; inset:0 auto 0 0; width:34%; background:#59627e; border-radius:99px}
+.tc{font-family:var(--mono); font-size:11px; color:#6f778f; letter-spacing:.04em; flex:none}
+.cc{
+  flex:none; font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  border:1px solid #37405c; background:#161b28; color:#9aa3bd;
+  padding:4px 8px; border-radius:5px;
+}
+.cc.hot{
+  border-color:var(--amber); color:#1b1608; background:var(--amber);
+  animation:pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+body.rm .cc.hot{animation:none}
+@media (prefers-reduced-motion: reduce){ .cc.hot{animation:none} }
+
+.finger{
+  position:absolute; right:14px; bottom:50px; z-index:4;
+  width:26px; height:32px; line-height:0;
+  animation:hover 3s ease-in-out infinite;
+  filter:drop-shadow(0 5px 10px rgba(0,0,0,.85));
+}
+.finger svg{width:100%; height:100%; display:block}
+@keyframes hover{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+body.rm .finger{animation:none}
+@media (prefers-reduced-motion: reduce){ .finger{animation:none} }
+
+/* ================= 一、鉤子 ================= */
+#hook{min-height:100svh; display:flex; align-items:center; padding-top:76px}
+#hook .wrap{width:100%}
+.punch{
+  font-size:clamp(24px,5.6vw,38px); line-height:1.42; margin:30px 0 0;
+  font-weight:600; letter-spacing:.01em;
+}
+.punch em{font-style:normal; color:var(--amber)}
+.after{margin-top:16px; color:var(--ink2); font-size:15.5px; font-family:var(--sans); line-height:1.85}
+
+/* ================= 二、押注 ================= */
+#bet{background:var(--bg2)}
+.betq{
+  font-size:clamp(19px,4vw,25px); font-weight:600; line-height:1.55; margin:0 0 6px;
+}
+.betsub{font-family:var(--sans); font-size:14.5px; color:var(--ink3); margin:0 0 22px}
+.bets{display:flex; flex-direction:column; gap:11px; margin:0 0 18px}
+.betbtn{
+  text-align:left; background:#141824; border:1px solid #262d40; color:var(--ink);
+  border-radius:12px; padding:15px 16px; font-family:var(--sans);
+  display:flex; gap:13px; align-items:flex-start;
+  transition:border-color .18s, background .18s, transform .12s;
+}
+.betbtn .chip{
+  flex:none; width:44px; height:30px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+  border:1px solid currentColor; margin-top:2px;
+}
+.betbtn .t{font-size:16px; font-weight:600; line-height:1.4; display:block}
+.betbtn .s{font-size:13px; color:var(--ink3); line-height:1.6; display:block; margin-top:3px}
+.betbtn[data-m="none"] .chip{color:var(--slate)}
+.betbtn[data-m="l2"]   .chip{color:var(--cyan)}
+.betbtn[data-m="l1"]   .chip{color:var(--amber)}
+.betbtn:hover:not(:disabled){border-color:#48526f; background:#171c2a}
+.betbtn:active:not(:disabled){transform:translateY(1px)}
+.betbtn.picked{border-color:#6f7ba0; background:#1a2031}
+.betbtn:disabled{cursor:default; opacity:.62}
+.betbtn.picked:disabled{opacity:1}
+.skip{
+  background:none; border:0; padding:4px 6px; border-radius:6px;
+  color:#5f6b86; font-family:var(--mono); font-size:12px;
+  text-decoration:underline; text-underline-offset:3px;
+}
+.skip:hover{color:var(--cyan)}
+
+/* ================= 三、開獎 ================= */
+.verdict{
+  border-left:3px solid var(--amber); background:#12151f;
+  padding:16px 18px; border-radius:0 10px 10px 0; margin:0 0 30px;
+  font-family:var(--sans); font-size:15.5px; line-height:1.85;
+}
+.verdict.hit{border-left-color:var(--good)}
+.verdict b{color:var(--amber)}
+.verdict.hit b{color:var(--good)}
+
+.modebar{display:flex; gap:8px; padding:11px 12px; background:#0f121a; border-top:1px solid #1c2030; flex-wrap:wrap}
+.mbtn{
+  flex:1 1 30%; min-width:96px; text-align:center;
+  background:#151a26; border:1px solid #2a3145; color:var(--ink2);
+  border-radius:9px; padding:9px 6px; font-family:var(--sans); font-size:13.5px; line-height:1.35;
+  transition:border-color .18s, background .18s, color .18s;
+}
+.mbtn small{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--ink3); margin-top:3px}
+.mbtn:hover{border-color:#4a5470}
+.mbtn[aria-pressed="true"]{background:#1e2537; color:#fff; border-color:#69759a}
+.mbtn[data-m="none"][aria-pressed="true"]{border-color:var(--slate)}
+.mbtn[data-m="l2"][aria-pressed="true"]{border-color:var(--cyan)}
+.mbtn[data-m="l1"][aria-pressed="true"]{border-color:var(--amber)}
+
+.metrics{list-style:none; margin:26px 0 8px; padding:0; display:flex; flex-direction:column; gap:20px}
+.metrics li{display:block}
+.mhead{display:flex; align-items:baseline; gap:10px; font-family:var(--sans); margin-bottom:8px; flex-wrap:wrap}
+.mhead .nm{font-size:15.5px; font-weight:600}
+.mhead .rk{
+  font-family:var(--mono); font-size:10.5px; letter-spacing:.1em;
+  padding:2px 7px; border-radius:99px; border:1px solid #333b53; color:var(--ink3);
+}
+.mhead .rk.first{border-color:var(--good); color:var(--good)}
+.mhead .val{margin-left:auto; font-family:var(--mono); font-size:14px; color:var(--ink2); font-variant-numeric:tabular-nums}
+.track{position:relative; height:13px; border-radius:99px; background:#1a1f2d; overflow:hidden}
+.track .fill{
+  position:absolute; left:0; top:0; bottom:0; width:0; border-radius:99px;
+  transition:width .85s cubic-bezier(.25,.8,.3,1);
+}
+body.rm .track .fill{transition:none}
+.track .tick{position:absolute; top:0; bottom:0; width:2px; background:rgba(255,255,255,.34)}
+.mnote{
+  font-family:var(--sans); font-size:14px; line-height:1.85; color:var(--ink2);
+  margin:10px 0 0; padding-left:12px; border-left:1px solid #262d40;
+}
+.tier{
+  display:inline-block; font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+  padding:2px 6px; border-radius:4px; margin-right:8px; vertical-align:1px;
+  border:1px solid #333b53; color:var(--ink3);
+}
+.tier.strong{border-color:#3f6b48; color:var(--good)}
+.tier.medium{border-color:#4a5470; color:#98a2c0}
+.tier.mixed{border-color:#6b5a2f; color:var(--amber)}
+.tier.thin{border-color:#6b3a35; color:#e08a80}
+.cite{display:block; font-family:var(--mono); font-size:11.5px; color:var(--ink3); margin-top:6px; line-height:1.7; word-break:break-word}
+
+/* 3×3 表 */
+.grid{margin:34px 0 0; font-family:var(--sans)}
+.grid table{width:100%; border-collapse:collapse; font-size:13px}
+.grid th,.grid td{padding:9px 6px; text-align:center; border-bottom:1px solid #1d2231}
+.grid th{font-weight:600; color:var(--ink2); font-size:12.5px}
+.grid th.rowh,.grid td.rowh{text-align:left; color:var(--ink); font-size:13px; width:34%}
+.grid td.on{background:#171d2c}
+.grid th.on{color:#fff}
+.dots{display:inline-flex; gap:3px}
+.dots i{width:7px; height:7px; border-radius:50%; background:#2b3245; display:block}
+.dots i.f{background:#7b86a8}
+.grid td.on .dots i.f{background:#cfd6ea}
+.crown{color:var(--good); font-family:var(--mono); font-size:10px; letter-spacing:.08em; display:block; margin-top:4px}
+.sweep{
+  margin:22px 0 0; font-family:var(--sans); font-size:15px; line-height:1.9;
+  color:var(--ink2); border-top:1px solid #1d2231; padding-top:18px;
+}
+.sweep strong{color:var(--ink)}
+
+/* ================= 四、時間 ================= */
+#time{background:var(--bg2)}
+.passes{list-style:none; margin:26px 0 0; padding:0; display:flex; flex-direction:column; gap:14px}
+.passes li{
+  background:#12151f; border:1px solid #212739; border-radius:12px;
+  padding:16px 17px; font-family:var(--sans);
+}
+.passes .ph{display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap}
+.passes .no{
+  font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--ink3);
+}
+.tag{
+  font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+  padding:3px 8px; border-radius:5px; border:1px solid currentColor;
+}
+.tag.none{color:var(--slate)}
+.tag.l2{color:var(--cyan)}
+.tag.l1{color:var(--amber)}
+.passes p{margin:0; font-size:14.5px; line-height:1.85; color:var(--ink2)}
+.passes .src{display:block; font-family:var(--mono); font-size:11.5px; color:var(--ink3); margin-top:9px; line-height:1.7}
+
+/* ================= 五、處方 ================= */
+fieldset{border:0; margin:0 0 24px; padding:0}
+legend{
+  padding:0; font-family:var(--sans); font-size:15.5px; font-weight:600;
+  margin:0 0 12px; color:var(--ink);
+}
+.opts{display:flex; flex-direction:column; gap:8px}
+.opt{
+  display:flex; align-items:flex-start; gap:11px;
+  background:#12151f; border:1px solid #212739; border-radius:10px;
+  padding:12px 14px; font-family:var(--sans); font-size:14.5px; line-height:1.6;
+  cursor:pointer; transition:border-color .16s, background .16s;
+}
+.opt:hover{border-color:#3d465f; background:#151a27}
+.opt input{
+  flex:none; margin:5px 0 0; width:15px; height:15px; accent-color:var(--cyan); cursor:pointer;
+}
+.opt span small{display:block; color:var(--ink3); font-size:12.5px; margin-top:2px}
+.opt:has(input:checked){border-color:#69759a; background:#181e2d}
+.go{
+  width:100%; background:linear-gradient(180deg,#2c6f74,#1d5257); border:0;
+  color:#eafcfd; border-radius:11px; padding:14px 18px;
+  font-family:var(--sans); font-size:16px; font-weight:600; letter-spacing:.03em;
+  transition:filter .18s, transform .12s;
+}
+.go:hover{filter:brightness(1.14)}
+.go:active{transform:translateY(1px)}
+
+#rxout{margin-top:30px}
+.rxcard{
+  background:linear-gradient(180deg,#141824,#101320);
+  border:1px solid #242b3d; border-radius:14px; overflow:hidden;
+}
+.rxtop{padding:16px 18px 14px; border-bottom:1px solid #1f2536; background:#161b29}
+.rxtop .lbl{font-family:var(--mono); font-size:10.5px; letter-spacing:.2em; color:var(--ink3)}
+.rxtop h3{margin:6px 0 6px; font-size:clamp(19px,4.2vw,24px)}
+.rxtop p{margin:0; font-family:var(--sans); font-size:13.5px; color:var(--ink2); line-height:1.8}
+.rxbody{padding:6px 18px 18px}
+.rxstep{padding:16px 0; border-bottom:1px solid #1d2231}
+.rxstep:last-child{border-bottom:0}
+.rxstep .ph{display:flex; align-items:center; gap:9px; margin-bottom:9px; flex-wrap:wrap}
+.rxstep .no{font-family:var(--mono); font-size:11px; letter-spacing:.14em; color:var(--ink3)}
+.rxstep .act{font-family:var(--sans); font-size:15.5px; line-height:1.75; margin:0 0 8px; color:var(--ink)}
+.rxstep .why{font-family:var(--sans); font-size:13.5px; line-height:1.85; margin:0; color:var(--ink2)}
+.rxblock{padding:16px 0; border-top:1px solid #1d2231}
+.rxblock h4{margin:0 0 8px; font-family:var(--sans); font-size:14px; font-weight:600; color:var(--ink); letter-spacing:.02em}
+.rxblock p{margin:0; font-family:var(--sans); font-size:14px; line-height:1.85; color:var(--ink2)}
+.warn{
+  font-family:var(--sans); font-size:13.5px; line-height:1.85; color:var(--ink2);
+  border-left:2px solid #6b3a35; padding-left:12px; margin:0 0 12px;
+}
+.warn:last-child{margin-bottom:0}
+.warn.material{border-left-color:var(--amber)}
+.warn.threshold{border-left-color:var(--cyan)}
+.warn.general{border-left-color:#39415a}
+.warn.conflict{border-left-color:var(--hot)}
+.warn.budget{border-left-color:#7a6b3a}
+
+/* ================= 六、收尾 ================= */
+#end{background:var(--bg2)}
+.close{font-size:clamp(18px,3.6vw,22px); line-height:1.75}
+.close strong{color:var(--amber); font-weight:600}
+footer{
+  padding:36px 20px 54px; text-align:center;
+  font-family:var(--mono); font-size:11.5px; color:#4e556c; line-height:2;
+}
+footer p{margin:0; max-width:760px; margin-left:auto; margin-right:auto}
+
+@media (max-width:560px){
+  section{padding-left:16px; padding-right:16px}
+  .metrics{gap:24px}
+  .bets{gap:9px}
+  .betbtn{padding:13px 13px}
+  .mbtn{flex:1 1 100%}
+  .grid table{font-size:12px}
+  .grid th.rowh,.grid td.rowh{width:38%}
+  .subline{bottom:12%}
+  .finger{right:8px; bottom:48px; font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<a class="home" href="../../../index.html" aria-label="回到首頁：每日小專案">← 回首頁</a>
+
+<main>
+
+<!-- ============ 一、鉤子 ============ -->
+<section id="hook">
+  <div class="wrap">
+    <p class="kicker">生活痛點小工具 · 2026-08-10</p>
+
+    <div class="player">
+      <div class="stage" role="img" aria-label="一台暫停中的影片播放器示意圖：昏暗的房間、一道透出光的門，門邊站著一個人影，畫面下方有一行中文字幕。">
+        <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+          <defs>
+            <linearGradient id="room" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#151a24"/>
+              <stop offset="1" stop-color="#07080c"/>
+            </linearGradient>
+            <linearGradient id="glow" x1="0" y1="0" x2="1" y2="0.35">
+              <stop offset="0" stop-color="#ffd89a" stop-opacity=".55"/>
+              <stop offset="1" stop-color="#ffd89a" stop-opacity="0"/>
+            </linearGradient>
+            <radialGradient id="vig" cx="0.5" cy="0.46" r="0.72">
+              <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+              <stop offset="1" stop-color="#000" stop-opacity=".72"/>
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="640" height="360" fill="url(#room)"/>
+          <rect x="0" y="286" width="640" height="74" fill="#0a0c12"/>
+          <!-- 門框 -->
+          <rect x="360" y="52" width="152" height="238" fill="#0d1017"/>
+          <rect x="372" y="64" width="128" height="226" fill="#1a1d26"/>
+          <!-- 門縫的光 -->
+          <rect x="372" y="64" width="34" height="226" fill="#ffd89a" opacity=".16"/>
+          <rect x="372" y="64" width="12" height="226" fill="#ffe6bd" opacity=".30"/>
+          <polygon points="384,64 384,290 250,330 250,120" fill="url(#glow)" opacity=".5"/>
+          <!-- 人影 -->
+          <g fill="#04050a">
+            <ellipse cx="196" cy="146" rx="27" ry="31"/>
+            <path d="M196 174 C160 178 146 208 143 290 L249 290 C246 208 232 178 196 174 Z"/>
+            <path d="M244 196 L282 232 L272 244 L234 214 Z"/>
+          </g>
+          <!-- 前景桌沿 -->
+          <rect x="0" y="316" width="640" height="44" fill="#05060a"/>
+          <rect x="0" y="0" width="640" height="360" fill="url(#vig)"/>
+        </svg>
+        <div class="subline l1" id="hookSub"><span>我叫你別開那扇門。</span></div>
+      </div>
+      <div class="ctrl">
+        <span class="pbtn" aria-hidden="true"><svg viewBox="0 0 12 12"><rect x="1.5" y="1" width="3" height="10" rx="1"/><rect x="7.5" y="1" width="3" height="10" rx="1"/></svg></span>
+        <span class="tc" aria-hidden="true">18:42</span>
+        <span class="bar" aria-hidden="true"><i></i></span>
+        <span class="tc" aria-hidden="true">51:07</span>
+        <span class="cc hot" aria-hidden="true">中文</span>
+      </div>
+      <div class="finger" aria-hidden="true">
+        <svg viewBox="0 0 26 32" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <path d="M10 3.6a2.6 2.6 0 0 1 5.2 0v10.1c1-.9 2.3-1.3 3.5-.9 1.1.3 1.6 1 1.8 1.6.9-.4 2-.4 2.8.2.9.6 1.2 1.5 1.2 2.4v5.4c0 4.3-3.1 8.1-7.6 8.1h-3.2c-2.6 0-4.6-1.1-6.1-3L1.2 20A2.4 2.4 0 0 1 2 16.6c1-.6 2.3-.4 3.1.5l1.6 1.8V6.5a2.6 2.6 0 0 1 3.3-2.5z"
+                fill="#e9edf7" stroke="#0a0c12" stroke-width="1.4" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <h1 class="punch">你按了。<br>然後你<em>有點罪惡感</em>。</h1>
+    <p class="after sans">
+      第三集第十八分鐘，你關掉英文字幕，換成中文。畫面沒有變，你的理解突然變好了，
+      然後心裡有個聲音說：這樣就白看了。<br>
+      那個聲音有沒有道理，是可以查的。而且答案不是「有」或「沒有」。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 二、押注 ============ -->
+<section id="bet">
+  <div class="wrap">
+    <p class="kicker rv">先下注，才開獎</p>
+    <p class="betq rv">同一集、同樣的一小時，哪一種字幕會讓你<strong>學到最多新單字</strong>？</p>
+    <p class="betsub rv">不是「最舒服」，不是「最有紀律」。是這一集看完之後，你腦子裡真的多出來的字最多。選一個。</p>
+
+    <div class="bets rv" id="bets">
+      <button class="betbtn" type="button" data-m="none">
+        <span class="chip">OFF</span>
+        <span><span class="t">不開</span><span class="s">只有聲音跟畫面。硬撐。</span></span>
+      </button>
+      <button class="betbtn" type="button" data-m="l2">
+        <span class="chip">EN</span>
+        <span><span class="t">英文字幕</span><span class="s">captions：字和聲音同一種語言。</span></span>
+      </button>
+      <button class="betbtn" type="button" data-m="l1">
+        <span class="chip">中文</span>
+        <span><span class="t">中文字幕</span><span class="s">subtitles：母語翻譯。你平常按的那個。</span></span>
+      </button>
+    </div>
+    <p class="rv" style="margin:0"><button class="skip" type="button" id="skip">我不想押，直接開獎</button></p>
+  </div>
+</section>
+
+<!-- ============ 三、開獎 ============ -->
+<section id="reveal" class="veil">
+  <div class="wrap">
+    <p class="kicker">開獎</p>
+    <div class="verdict" id="verdict" role="status" aria-live="polite"></div>
+
+    <h2 class="sec">但這題本來就問得很壞——因為根本沒有「最好的字幕」，只有「對哪一件事最好」。</h2>
+    <p>
+      同一台播放器，同樣三顆按鈕。下面這三根條子量的是三件不同的事：
+      <strong>你今晚看不看得懂這一集</strong>、<strong>你這一集學到多少字</strong>、
+      <strong>你的耳朵長期會不會變好</strong>。
+      親手按按看——三根條子會同時重排。
+    </p>
+
+    <div class="player" style="margin-top:26px">
+      <div class="stage" aria-hidden="true">
+        <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" focusable="false">
+          <defs>
+            <linearGradient id="room2" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#151a24"/>
+              <stop offset="1" stop-color="#07080c"/>
+            </linearGradient>
+            <linearGradient id="glow2" x1="0" y1="0" x2="1" y2="0.35">
+              <stop offset="0" stop-color="#ffd89a" stop-opacity=".55"/>
+              <stop offset="1" stop-color="#ffd89a" stop-opacity="0"/>
+            </linearGradient>
+            <radialGradient id="vig2" cx="0.5" cy="0.46" r="0.72">
+              <stop offset="0.55" stop-color="#000" stop-opacity="0"/>
+              <stop offset="1" stop-color="#000" stop-opacity=".72"/>
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="640" height="360" fill="url(#room2)"/>
+          <rect x="0" y="286" width="640" height="74" fill="#0a0c12"/>
+          <rect x="360" y="52" width="152" height="238" fill="#0d1017"/>
+          <rect x="372" y="64" width="128" height="226" fill="#1a1d26"/>
+          <rect x="372" y="64" width="34" height="226" fill="#ffd89a" opacity=".16"/>
+          <rect x="372" y="64" width="12" height="226" fill="#ffe6bd" opacity=".30"/>
+          <polygon points="384,64 384,290 250,330 250,120" fill="url(#glow2)" opacity=".5"/>
+          <g fill="#04050a">
+            <ellipse cx="196" cy="146" rx="27" ry="31"/>
+            <path d="M196 174 C160 178 146 208 143 290 L249 290 C246 208 232 178 196 174 Z"/>
+            <path d="M244 196 L282 232 L272 244 L234 214 Z"/>
+          </g>
+          <rect x="0" y="316" width="640" height="44" fill="#05060a"/>
+          <rect x="0" y="0" width="640" height="360" fill="url(#vig2)"/>
+        </svg>
+        <div class="subline" id="labSub"><span></span></div>
+      </div>
+      <div class="modebar" id="modebar" role="group" aria-label="選擇字幕模式">
+        <button class="mbtn" type="button" data-m="none" aria-pressed="false">不開<small>OFF</small></button>
+        <button class="mbtn" type="button" data-m="l2" aria-pressed="false">英文字幕<small>CAPTIONS</small></button>
+        <button class="mbtn" type="button" data-m="l1" aria-pressed="false">中文字幕<small>SUBTITLES</small></button>
+      </div>
+    </div>
+
+    <ul class="metrics" id="metrics" aria-live="polite"></ul>
+
+    <p class="dim sans" style="font-size:12.5px; line-height:1.85; margin-top:18px">
+      條子上那兩道白色細線，是另外兩種模式在同一項上的位置。
+      刻度是 0 到 100 的<strong>相對排序示意值</strong>，由多份研究的方向與效果量整理而成，
+      不是任何一份研究的原始數字。
+    </p>
+
+    <div class="grid">
+      <table>
+        <caption class="dim sans" style="text-align:left; font-size:12.5px; padding-bottom:10px">
+          九個格子攤在一起看：橫的比，每一列的第一名都不一樣。
+        </caption>
+        <thead><tr id="gh"></tr></thead>
+        <tbody id="gb"></tbody>
+      </table>
+    </div>
+
+    <p class="sweep" id="sweep"></p>
+  </div>
+</section>
+
+<!-- ============ 四、時間 ============ -->
+<section id="time" class="veil">
+  <div class="wrap">
+    <p class="kicker rv">還有一個維度沒進來</p>
+    <h2 class="sec rv">剛才那張表，預設你只看一遍。</h2>
+    <p class="rv">
+      可是你不是只看一遍。你會回頭看那場戲、會重播那句話、會在三個月後又點開同一集。
+      一旦「遍數」進來，最好的答案就會在中途換人——因為第二遍的你，已經不是第一遍的你了。
+      劇情已經在腦子裡，那些原本用來猜「他為什麼生氣」的資源，這時候才空得出來給語言本身。
+    </p>
+
+    <ul class="passes rv">
+      <li>
+        <div class="ph"><span class="no">第一遍</span><span class="tag l1">中文字幕</span><span class="dim sans" style="font-size:13px">或英文字幕，看你聽得懂幾成</span></div>
+        <p>把故事拿到手。這一遍不是在學語言，是在建立一個「我知道這裡在演什麼」的底。Wi 與 Boers 主張的順序就是這樣：先用母語字幕理解內容，再用目標語字幕做語言工作，兩種字幕各做各最擅長的事。Yuan 等人從認知負荷的角度測，也得到同方向的結果。</p>
+        <span class="src">Wi &amp; Boers (2024), TESOL Quarterly · Yuan et al. (2025), British Journal of Educational Psychology</span>
+      </li>
+      <li>
+        <div class="ph"><span class="no">第二遍</span><span class="tag l2">英文字幕</span></div>
+        <p>這一遍才是真的在學字。Kurokawa、Hein 與 Uchihara 的後設分析裡，英文字幕效果最大的一格是「認得出這個字寫成什麼樣子」（g = 0.74），最小的是「說得出它的意思」（g = 0.37）。字幕擅長的是<strong>形式</strong>——而意思，第一遍已經用劇情餵給你了。兩遍合起來才是完整的一個字。</p>
+        <span class="src">Kurokawa, Hein &amp; Uchihara (2025), Language Learning 75(4), 939–987</span>
+      </li>
+      <li>
+        <div class="ph"><span class="no">第三遍</span><span class="tag none">全部關掉</span><span class="dim sans" style="font-size:13px">五分鐘就好</span></div>
+        <p>驗收。你已經認得那些字的樣子了，現在看它們有沒有變成聲音。老實說：「先看熟再關掉，聽力就會接手」這個環節，是整份策略裡證據最薄的一段——目前沒有夠格的長期對照實驗把它測出來。我還是建議你做，因為它的代價只有五分鐘，而它是唯一會告訴你「可以放下了沒」的動作。</p>
+        <span class="src">本頁判定：證據不足 · 相關線索見 Pujadas &amp; Muñoz (2024), SSLLT 14(3)</span>
+      </li>
+    </ul>
+
+    <p class="rv" style="margin-top:26px">
+      而「什麼時候可以不用開了」這件事，有人真的去量過。Pujadas 與 Muñoz 找了 250 位英文程度從 A1 到 C2 的學習者，
+      看同一部影集九集，有字幕跟沒字幕交替。結論是：字幕在幾乎每個程度都幫得上忙——
+      <strong>但到了 C2，那個額外的幫助已經不顯著了</strong>。存在一個門檻。過了它，關掉字幕不會讓你看不懂。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 五、處方 ============ -->
+<section id="rx" class="veil">
+  <div class="wrap">
+    <p class="kicker rv">帶走的東西</p>
+    <h2 class="sec rv">回答三題，換一份今晚就能照做的處方。</h2>
+    <p class="rv">每一條都會掛上它的出處。證據薄的那幾條，會標成證據薄。</p>
+
+    <form id="rxform" class="rv" novalidate>
+      <fieldset>
+        <legend>1. 你今天打開這一集，最想要的是什麼？</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="goal" value="plot" checked><span>看懂這一集<small>我只是想知道後來怎麼了</small></span></label>
+          <label class="opt"><input type="radio" name="goal" value="vocab"><span>學到單字<small>我想把這一集當教材用</small></span></label>
+          <label class="opt"><input type="radio" name="goal" value="ear"><span>把耳朵練起來<small>我想有一天不用看字也聽得懂</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2. 這一集你會看幾遍？</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="passes" value="1" checked><span>一遍<small>看完就換下一集</small></span></label>
+          <label class="opt"><input type="radio" name="passes" value="2"><span>兩遍<small>願意再看一次</small></span></label>
+          <label class="opt"><input type="radio" name="passes" value="3"><span>三遍<small>這集我打算榨乾</small></span></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>3. 不開任何字幕的時候，你大概聽得懂幾成？</legend>
+        <div class="opts">
+          <label class="opt"><input type="radio" name="level" value="low"><span>三成以下<small>抓得到幾個字，抓不到句子</small></span></label>
+          <label class="opt"><input type="radio" name="level" value="mid" checked><span>一半上下<small>大致跟得上，細節會漏</small></span></label>
+          <label class="opt"><input type="radio" name="level" value="high"><span>八成以上<small>只有腔調重或講太快才卡</small></span></label>
+        </div>
+      </fieldset>
+
+      <button class="go" type="submit">開一份處方</button>
+    </form>
+
+    <div id="rxout" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- ============ 六、收尾 ============ -->
+<section id="end" class="veil">
+  <div class="wrap">
+    <p class="close rv">
+      那個罪惡感其實搞錯對象了。字幕不是你偷帶進考場的小抄——
+      它是拐杖，而拐杖唯一的問題從來不是「該不該用」，是<strong>沒有人告訴你哪一天可以放下</strong>。
+    </p>
+    <p class="close rv">
+      研究到今天能給的就是這麼多：中文字幕讓你看完這一集，英文字幕讓你看見那個字，
+      全部關掉讓你知道自己走到哪裡了。三件事，三根不同的拐杖，沒有一根能撐完全程。
+      至於「一直靠中文字幕會不會把耳朵養壞」——目前真的沒有人測出來。
+      這一頁不打算替你補上那個答案，只提醒你：
+      <strong>你今天晚上按下去的那一顆，決定的不是你有沒有作弊，是你今天晚上想拿走什麼。</strong>
+    </p>
+    <p class="rv dim sans" style="font-size:13.5px; line-height:1.9">
+      門後面是什麼，你遲早會知道。差別只在於，是字幕先告訴你，還是你自己聽出來的。
+    </p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <p>資料來源：System · Language Learning · Studies in Second Language Acquisition · Studies in Second Language Learning and Teaching · The Modern Language Journal · TESOL Quarterly · Language Learning &amp; Technology · Foreign Language Annals · British Journal of Educational Psychology</p>
+</footer>
+
+<script src="pure.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+  var RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduced = !!(RM && RM.matches);
+
+  var SUBTEXT = {
+    none: '',
+    l2: 'I told you not to open that door.',
+    l1: '我叫你別開那扇門。'
+  };
+  var MODE_COLOR = { none: 'var(--slate)', l2: 'var(--cyan)', l1: 'var(--amber)' };
+  var MODE_NAME = {};
+  MODES.forEach(function (m) { MODE_NAME[m.key] = m.name; });
+
+  var mode = null;
+  var betPicked = null;
+
+  /* ---------------- 進場 ---------------- */
+  function applyReducedClass() {
+    document.body.classList.toggle('rm', reduced);
+  }
+  applyReducedClass();
+
+  var io = null;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.05 });
+  }
+  function watch(root) {
+    var list = (root || document).querySelectorAll('.rv:not(.in)');
+    Array.prototype.forEach.call(list, function (el) {
+      if (reduced || !io) el.classList.add('in');
+      else io.observe(el);
+    });
+  }
+
+  /* ---------------- 開獎區：指標條 ---------------- */
+  function buildMetrics() {
+    var ul = $('metrics');
+    ul.innerHTML = '';
+    GOALS.forEach(function (g) {
+      var li = document.createElement('li');
+      li.setAttribute('data-g', g.key);
+      li.innerHTML =
+        '<div class="mhead">' +
+          '<span class="nm">' + g.name + '</span>' +
+          '<span class="rk" data-rk></span>' +
+          '<span class="val" data-val></span>' +
+        '</div>' +
+        '<div class="track" data-track>' +
+          '<div class="fill" data-fill></div>' +
+          '<div class="tick" data-tick0></div>' +
+          '<div class="tick" data-tick1></div>' +
+        '</div>' +
+        '<p class="mnote" data-note></p>';
+      ul.appendChild(li);
+    });
+  }
+
+  function paintMetrics(m) {
+    var ul = $('metrics');
+    var rows = ul.querySelectorAll('li');
+    Array.prototype.forEach.call(rows, function (li) {
+      var g = li.getAttribute('data-g');
+      var v = score(m, g);
+      var r = rankOf(m, g);
+      li.style.order = String(goalSlot(m, g));
+
+      li.querySelector('[data-val]').textContent = v + ' / 100';
+      var rk = li.querySelector('[data-rk]');
+      rk.textContent = '這一項排第 ' + r;
+      rk.className = 'rk' + (r === 1 ? ' first' : '');
+
+      var fill = li.querySelector('[data-fill]');
+      fill.style.background = MODE_COLOR[m];
+      fill.style.width = barLen(v, 100) + '%';
+
+      var others = MODE_KEYS.filter(function (k) { return k !== m; });
+      li.querySelector('[data-tick0]').style.left = barLen(score(others[0], g), 100) + '%';
+      li.querySelector('[data-tick1]').style.left = barLen(score(others[1], g), 100) + '%';
+
+      var c = cell(m, g);
+      li.querySelector('[data-note]').innerHTML =
+        '<span class="tier ' + c.tier + '">' + TIER_LABEL[c.tier] + '</span>' + c.line +
+        '<span class="cite">' + c.cite + '</span>';
+    });
+  }
+
+  /* ---------------- 開獎區：3×3 表 ---------------- */
+  function buildGrid() {
+    var hr = $('gh');
+    hr.innerHTML = '<th class="rowh" scope="col">目標＼模式</th>' +
+      MODE_KEYS.map(function (k) {
+        return '<th scope="col" data-m="' + k + '">' + MODE_NAME[k] + '</th>';
+      }).join('');
+
+    var tb = $('gb');
+    tb.innerHTML = GOALS.map(function (g) {
+      return '<tr>' +
+        '<th class="rowh" scope="row">' + g.short + '</th>' +
+        MODE_KEYS.map(function (k) {
+          var filled = Math.round(score(k, g.key) / 20);
+          var dots = '';
+          for (var i = 0; i < 5; i++) dots += '<i class="' + (i < filled ? 'f' : '') + '"></i>';
+          var win = (winnerOf(g.key) === k);
+          return '<td data-m="' + k + '"><span class="dots" role="img" aria-label="' +
+            score(k, g.key) + ' 分（滿分 100）">' + dots + '</span>' +
+            (win ? '<span class="crown">這列第一</span>' : '') + '</td>';
+        }).join('') +
+      '</tr>';
+    }).join('');
+  }
+
+  function paintGrid(m) {
+    Array.prototype.forEach.call(document.querySelectorAll('#gh th[data-m], #gb td[data-m]'), function (el) {
+      el.classList.toggle('on', el.getAttribute('data-m') === m);
+    });
+  }
+
+  /* ---------------- 模式切換 ---------------- */
+  function setMode(m) {
+    mode = m;
+    Array.prototype.forEach.call($('modebar').querySelectorAll('.mbtn'), function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-m') === m));
+    });
+    var sub = $('labSub');
+    sub.className = 'subline' + (m === 'none' ? ' off' : (m === 'l1' ? ' l1' : ''));
+    sub.firstChild.textContent = SUBTEXT[m] || '';
+    paintMetrics(m);
+    paintGrid(m);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('#modebar .mbtn'), function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-m')); });
+  });
+
+  /* ---------------- 押注 ---------------- */
+  function openRest() {
+    ['reveal', 'time', 'rx', 'end'].forEach(function (id) { $(id).classList.add('on'); });
+    watch();
+  }
+
+  function reveal(pick) {
+    if (betPicked) return;
+    betPicked = pick || 'skip';
+
+    Array.prototype.forEach.call($('bets').querySelectorAll('.betbtn'), function (b) {
+      b.disabled = true;
+      if (b.getAttribute('data-m') === pick) b.classList.add('picked');
+    });
+    $('skip').disabled = true;
+    $('skip').style.opacity = '.4';
+
+    var v = $('verdict');
+    if (pick) {
+      var r = betVerdict(pick);
+      v.classList.toggle('hit', r.correct);
+      v.innerHTML = '<b>' + (r.correct ? '押對了。' : '押錯了。') + '</b>' + r.text +
+        '<span class="cite">單字這一項的示意值：英文字幕 ' + r.scores.l2 +
+        '　中文字幕 ' + r.scores.l1 + '　不開 ' + r.scores.none + '</span>';
+    } else {
+      v.classList.remove('hit');
+      v.innerHTML = '<b>沒押就沒押。</b>答案是<strong>英文字幕</strong>——' +
+        '而多數人第一直覺會選中文字幕（因為看得懂）或不開（因為聽起來像在練功）。' +
+        '這兩個直覺各自對一半，等一下你會看到它們各自對在哪裡。' +
+        '<span class="cite">單字這一項的示意值：英文字幕 ' + score('l2', 'vocab') +
+        '　中文字幕 ' + score('l1', 'vocab') + '　不開 ' + score('none', 'vocab') + '</span>';
+    }
+
+    openRest();
+    setMode(pick && pick !== 'skip' ? pick : 'l1');
+
+    var target = $('reveal');
+    if (target.scrollIntoView) {
+      target.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+    }
+  }
+
+  Array.prototype.forEach.call($('bets').querySelectorAll('.betbtn'), function (b) {
+    b.addEventListener('click', function () { reveal(b.getAttribute('data-m')); });
+  });
+  $('skip').addEventListener('click', function () { reveal(null); });
+
+  /* ---------------- 處方 ---------------- */
+  function pickVal(name) {
+    var el = document.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : null;
+  }
+
+  function renderRx(rx) {
+    var stepsHtml = rx.steps.map(function (s) {
+      return '<div class="rxstep">' +
+        '<div class="ph">' +
+          '<span class="no mono">第 ' + s.pass + ' 遍</span>' +
+          '<span class="tag ' + s.mode + '">' + MODE_NAME[s.mode] + '</span>' +
+          '<span class="tier ' + s.tier + '">' + TIER_LABEL[s.tier] + '</span>' +
+        '</div>' +
+        '<p class="act">' + s.action + '</p>' +
+        '<p class="why">' + s.why + '<span class="cite">' + s.cite + '</span></p>' +
+      '</div>';
+    }).join('');
+
+    var warnHtml = rx.warnings.map(function (w) {
+      return '<p class="warn ' + w.kind + '">' + w.text + '</p>';
+    }).join('');
+
+    $('rxout').innerHTML =
+      '<div class="rxcard">' +
+        '<div class="rxtop">' +
+          '<span class="lbl">你的處方</span>' +
+          '<h3>' + rx.headline + '</h3>' +
+          '<p>' + rx.summary + '</p>' +
+        '</div>' +
+        '<div class="rxbody">' +
+          stepsHtml +
+          '<div class="rxblock"><h4>要不要查單字，什麼時候查</h4>' +
+            '<p>' + rx.lookup.text + '<span class="cite">' + rx.lookup.cite + '</span></p></div>' +
+          '<div class="rxblock"><h4>誠實提醒</h4>' + warnHtml + '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  $('rxform').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var rx = prescribe({
+      goal: pickVal('goal'),
+      passes: parseInt(pickVal('passes'), 10),
+      level: pickVal('level')
+    });
+    renderRx(rx);
+    var out = $('rxout');
+    if (out.scrollIntoView) {
+      out.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+    }
+  });
+
+  /* ---------------- 初始化 ---------------- */
+  buildMetrics();
+  buildGrid();
+  $('sweep').innerHTML = anyModeSweeps()
+    ? '<strong>有一種模式三項全勝。</strong>（如果你看到這行字，表示評分表被改壞了。）'
+    : '<strong>沒有任何一種模式三項全勝。</strong>' +
+      '劇情理解的第一名是中文字幕，單字的第一名是英文字幕，長期聽力的第一名是全部關掉——' +
+      '三個第一名，三個不同的按鈕。所以「字幕該開哪一種」這個問題，其實問錯了；' +
+      '該問的是：<strong>今天晚上，我想拿走哪一樣？</strong>';
+  watch();
+
+  /* ---------------- reduced motion 即時切換 ---------------- */
+  function onRM() {
+    reduced = RM.matches;
+    applyReducedClass();
+    if (reduced) {
+      Array.prototype.forEach.call(document.querySelectorAll('.rv'), function (el) {
+        el.classList.add('in');
+      });
+    } else {
+      watch();
+    }
+    if (mode) paintMetrics(mode);   // 立刻定格在正確長度，不是消失
+  }
+  if (RM) {
+    if (RM.addEventListener) RM.addEventListener('change', onRM);
+    else if (RM.addListener) RM.addListener(onRM);
+  }
+})();
+</script>
+
+</body>
+</html>

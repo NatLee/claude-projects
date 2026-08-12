@@ -253,8 +253,13 @@
     W = w;
     H = Math.round(w * (2 * ymax) / (2 * Math.PI));
     DPR = Math.min(window.devicePixelRatio || 1, 2);
-    cv.width = Math.round(W * DPR);
-    cv.height = Math.round(H * DPR);
+    // 只在尺寸真的變了才回寫 width/height 屬性：ResizeObserver 可能因為
+    // canvas 自己的高度變化再次觸發，無條件重設會清空整張圖並白做一次繪製。
+    var bw = Math.round(W * DPR), bh = Math.round(H * DPR);
+    if (cv.width !== bw || cv.height !== bh) {
+      cv.width = bw;
+      cv.height = bh;
+    }
     cv.style.height = H + 'px';
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     draw();

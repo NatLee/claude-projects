@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我們寄不出去五百英里</title>
+<meta name="description" content="統計系主任打電話來說：我們的信寄不出五百英里。你說 email 不是這樣運作的——然後你自己一封一封試。">
+<style>
+  :root{
+    --bg:#06080b; --panel:#0b0f15; --ink:#e7ecf3; --dim:#8b97a8; --faint:#5b6676;
+    --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.18);
+    --amber:#f0a33c; --green:#5fd39a; --red:#ef6a6a; --cyan:#63c9d6;
+    --mono:"SF Mono",SFMono-Regular,ui-monospace,Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.9;letter-spacing:.01em;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  .home{
+    position:fixed;top:0;left:0;z-index:60;padding:12px 16px;
+    font-size:13px;color:var(--faint);text-decoration:none;font-family:var(--mono);
+    background:linear-gradient(180deg,rgba(6,8,11,.92),rgba(6,8,11,0));
+    width:100%;transition:color .25s;
+  }
+  .home:hover,.home:focus-visible{color:var(--amber)}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:3px}
+
+  .wrap{max-width:660px;margin:0 auto;padding:0 22px}
+  section{position:relative}
+  p{margin:0 0 1.25em}
+  .lead{font-size:19px}
+  em.hl{font-style:normal;color:var(--amber)}
+  strong{font-weight:650;color:#fff}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
+  .rule{height:1px;background:var(--line);margin:64px 0;border:0}
+
+  /* ---------- 第一屏 ---------- */
+  #hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:96px 0 64px}
+  #hero .ring{
+    position:absolute;left:50%;top:44%;width:min(120vw,860px);aspect-ratio:1;
+    transform:translate(-50%,-50%);border-radius:50%;
+    border:1px solid rgba(240,163,60,.13);pointer-events:none;
+  }
+  #hero .ring.b{width:min(80vw,560px);border-color:rgba(240,163,60,.09)}
+  #hero .ring.c{width:min(46vw,320px);border-color:rgba(240,163,60,.06)}
+  .quote{
+    font-size:clamp(30px,7.6vw,54px);line-height:1.22;font-weight:700;letter-spacing:-.015em;
+    margin:22px 0 26px;
+  }
+  .quote span{color:var(--amber)}
+  .sub{color:var(--dim);font-size:17px;max-width:30rem}
+  .scrollcue{margin-top:52px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .scrollcue i{display:inline-block;font-style:normal;animation:bob 2.4s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+  /* ---------- 逐句揭露 ---------- */
+  .rev{opacity:0;transform:translateY(16px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.3,1)}
+  .rev.in{opacity:1;transform:none}
+
+  /* ---------- 電話逐字稿 ---------- */
+  .call{border-left:2px solid var(--line2);padding:2px 0 2px 20px;margin:0 0 30px}
+  .call .ln{margin:0 0 12px;font-size:17px}
+  .call .ln.me{color:var(--dim)}
+  .call .ln.him{color:var(--ink)}
+  .call .ln b{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--faint);display:block;font-weight:400}
+
+  /* ---------- 面板 ---------- */
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:0 0 26px}
+  .panel h3{margin:0 0 14px;font-size:13px;font-family:var(--mono);letter-spacing:.14em;color:var(--faint);font-weight:500;text-transform:uppercase}
+
+  /* ---------- 雷達圖 ---------- */
+  .scope{width:100%;max-width:460px;margin:0 auto;display:block}
+  .scope text{font-family:var(--mono);fill:var(--dim)}
+  .ringline{fill:none;stroke:rgba(255,255,255,.09)}
+  .ringlbl{font-size:9.5px;fill:var(--faint)}
+  .spoke{stroke:rgba(255,255,255,.05)}
+  .dot{transition:opacity .45s ease,transform .45s cubic-bezier(.2,.8,.3,1);transform-origin:center;transform-box:fill-box}
+  .dot.hidden{opacity:0;transform:scale(.3)}
+  .dot .core{stroke:var(--bg);stroke-width:1.5}
+  .dot text{font-size:11.5px;paint-order:stroke;stroke:var(--bg);stroke-width:3.5px;stroke-linejoin:round}
+  .reach{fill:rgba(95,211,154,.055);stroke:var(--green);stroke-width:1.5;stroke-dasharray:none}
+  .measured{fill:none;stroke:var(--amber);stroke-width:1.6;stroke-dasharray:5 6;opacity:0;transition:opacity .9s ease}
+  .measured.on{opacity:.95}
+  .miss{fill:none;stroke:var(--red);stroke-width:1.6;opacity:.9}
+
+  /* ---------- 城市按鈕 ---------- */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+  .chip{
+    font-family:var(--mono);font-size:13px;color:var(--ink);background:#111823;
+    border:1px solid var(--line2);border-radius:999px;padding:7px 13px;cursor:pointer;
+    transition:transform .15s ease,border-color .2s,background .2s,color .2s;
+  }
+  .chip:hover:not(:disabled){transform:translateY(-2px);border-color:var(--amber);color:var(--amber)}
+  .chip:active:not(:disabled){transform:translateY(0)}
+  .chip:disabled{cursor:default;opacity:.45}
+  .chip .mi{color:var(--faint);font-size:11px;margin-left:6px}
+  .chip.done-ok{border-color:rgba(95,211,154,.55);color:var(--green);opacity:1}
+  .chip.done-fail{border-color:rgba(239,106,106,.5);color:var(--red);opacity:1}
+
+  /* ---------- 終端機 ---------- */
+  .term{
+    background:#04060a;border:1px solid var(--line);border-radius:10px;
+    font-family:var(--mono);font-size:12.5px;line-height:1.75;color:#b9c6d4;
+    padding:14px;max-height:230px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;
+  }
+  .term .cmd{color:var(--cyan)}
+  .term .ok{color:var(--green)}
+  .term .bad{color:var(--red)}
+  .term .note{color:var(--faint)}
+  .term .big{color:var(--amber)}
+  .caret{display:inline-block;width:7px;height:14px;background:var(--amber);vertical-align:-2px;animation:blink 1.1s steps(1) infinite}
+  body.tabhidden .caret{animation:none}
+  @keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+
+  /* ---------- 旋鈕 ---------- */
+  .dial{display:grid;grid-template-columns:1fr auto;gap:8px 18px;align-items:baseline;margin:4px 0 14px}
+  .dialnum{font-family:var(--mono);font-size:clamp(30px,8vw,44px);color:var(--amber);line-height:1;font-variant-numeric:tabular-nums}
+  .dialnum small{font-size:15px;color:var(--dim);margin-left:6px}
+  .dialsub{font-family:var(--mono);font-size:13px;color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--amber);height:34px;cursor:grab}
+  input[type=range]:active{cursor:grabbing}
+  .meter{height:6px;border-radius:3px;background:#141b25;overflow:hidden;margin:10px 0 8px}
+  .meter i{display:block;height:100%;width:0;background:var(--green);transition:width .3s ease}
+  .matchline{font-family:var(--mono);font-size:13px;color:var(--dim);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .matchline b{color:var(--ink);font-weight:500}
+  .solved .matchline b{color:var(--green)}
+  .ghost{
+    background:none;border:1px solid var(--line2);color:var(--faint);font-family:var(--mono);
+    font-size:12px;border-radius:8px;padding:7px 12px;cursor:pointer;transition:color .2s,border-color .2s;
+  }
+  .ghost:hover{color:var(--amber);border-color:var(--amber)}
+
+  /* ---------- 揭曉 ---------- */
+  .reveal{max-height:0;overflow:hidden;opacity:0;transition:max-height 1.1s ease,opacity .8s ease .2s}
+  .reveal.open{max-height:2400px;opacity:1}
+  .punch{font-size:clamp(24px,5.6vw,36px);line-height:1.35;font-weight:700;margin:34px 0 22px;letter-spacing:-.01em}
+  .punch span{color:var(--amber)}
+
+  /* ---------- 挑錯者信箱 ---------- */
+  .mailrow{border-bottom:1px solid var(--line)}
+  .mailrow:first-child{border-top:1px solid var(--line)}
+  .mailbtn{
+    width:100%;text-align:left;background:none;border:0;color:var(--ink);font-family:var(--sans);
+    font-size:15.5px;line-height:1.6;padding:15px 30px 15px 0;cursor:pointer;position:relative;
+  }
+  .mailbtn:hover{color:var(--amber)}
+  .mailbtn::after{content:"+";position:absolute;right:4px;top:15px;color:var(--faint);font-family:var(--mono);transition:transform .3s}
+  .mailrow.open .mailbtn::after{transform:rotate(45deg);color:var(--amber)}
+  .reply{max-height:0;overflow:hidden;transition:max-height .5s ease}
+  .mailrow.open .reply{max-height:420px}
+  .reply p{color:var(--dim);font-size:15.5px;margin:0 0 16px;padding-left:18px;border-left:2px solid var(--line2)}
+  .reply p b{color:var(--green);font-weight:500}
+
+  footer{
+    margin:88px 0 0;padding:26px 0 44px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--faint);line-height:1.8;
+  }
+  footer a{color:var(--faint)}
+
+  @media (max-width:560px){
+    body{font-size:16px}
+    .wrap{padding:0 18px}
+    .dial{grid-template-columns:1fr}
+    .dialsub{text-align:left}
+    .term{font-size:11.5px;max-height:200px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .rev{opacity:1;transform:none}
+    .reveal{max-height:none;overflow:visible}
+    .reveal:not(.open){display:none}
+    .dot.hidden{opacity:0}
+  }
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ===================== 第一屏 ===================== -->
+<section id="hero">
+  <div class="ring"></div><div class="ring b"></div><div class="ring c"></div>
+  <div class="wrap">
+    <p class="kicker">網路趣聞・冷知識</p>
+    <h1 class="quote">「我們寄不出去<br><span>五百英里</span>以外。」</h1>
+    <p class="sub">電話那頭是統計系主任。<br>你手上那杯拿鐵，已經嗆進氣管了。</p>
+    <p class="scrollcue">往下捲　<i>↓</i></p>
+    <p id="backAgain" style="display:none;margin:14px 0 0"><a class="ghost" style="text-decoration:none;display:inline-block" href="#dial">你來過了 · 直接跳到那顆旋鈕 →</a></p>
+  </div>
+</section>
+
+<!-- ===================== 那通電話 ===================== -->
+<section id="call">
+  <div class="wrap">
+    <div class="call rev">
+      <p class="ln me"><b>你</b>「什麼問題？」</p>
+      <p class="ln him"><b>統計系主任</b>「我們沒辦法把信寄到五百英里以外。」</p>
+      <p class="ln me"><b>你</b>「……你再說一次？」</p>
+      <p class="ln him"><b>統計系主任</b>「寄不到五百英里以外。」他重複，「其實多一點點。算五百二十英里吧。但再遠就不行。」</p>
+      <p class="ln me"><b>你</b>「呃……email 一般來說，不是這樣運作的。」</p>
+      <p class="ln him"><b>統計系主任</b>「這不是我『覺得』。」他有點不高興，「我們幾天前就發現了——」</p>
+      <p class="ln me"><b>你</b>「你們忍了好幾天？」</p>
+      <p class="ln him"><b>統計系主任</b>「我們可以寄信。只是寄不到——」</p>
+      <p class="ln me"><b>你</b>「——五百英里。我知道了。那為什麼不早點打來？」</p>
+      <p class="ln him"><b>統計系主任</b>「因為資料還不夠，不能確定發生了什麼事。」</p>
+    </div>
+    <p class="rev lead">他是<strong>統計系</strong>主任。而且他已經請系上的地理統計學家畫好了一張圖：一個半徑略超過五百英里的圓。圓裡面有些地方也寄不到；但圓外面，<em class="hl">一封都出不去</em>。</p>
+    <p class="rev">你掛掉電話，登入他們系上的伺服器。你不相信他。你打算用十分鐘證明他錯了。</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ===================== 你自己寄 ===================== -->
+<section id="probe">
+  <div class="wrap">
+    <p class="kicker rev">第一件事</p>
+    <p class="rev lead" style="margin-top:10px">一封一封寄出去。點一個目的地，看它回什麼。</p>
+    <div class="panel rev">
+      <h3>測試信 · 出發地：北卡羅來納州教堂山</h3>
+      <div class="chips" id="chips" role="group" aria-label="測試目的地"></div>
+      <div id="scopeA" aria-hidden="true"></div>
+      <p id="probeStatus" class="matchline" aria-live="polite" style="margin:10px 0 14px"><span>已寄出 <b id="sentN">0</b> / 11</span><span id="probeHint">先從近的開始</span></p>
+      <div class="term" id="termA" role="log" aria-label="測試信輸出"><span class="note">// 等待第一封測試信</span><br><span class="cmd">$</span> <span class="caret"></span></div>
+    </div>
+    <div class="reveal" id="probeDone">
+      <p class="lead">不可置信——但它是真的，而且<strong>可以重現</strong>。</p>
+      <p>普林斯頓、紐約，寄得到。普羅維登斯、波士頓、孟菲斯，寄不到。你甚至寄給一個住在北卡、但信箱在西雅圖的朋友——謝天謝地，它也失敗了。要是問題出在「收件人本人住哪」而不是「他的伺服器在哪」，你大概會當場哭出來。</p>
+      <p>只有一個點不聽話：<em class="hl">底特律</em>。它在圈裡面，卻寄不到。先把它記住。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ===================== 設定檔 ===================== -->
+<section id="config">
+  <div class="wrap">
+    <p class="kicker rev">往裡面挖</p>
+    <p class="rev lead" style="margin-top:10px">你打開 <code>sendmail.cf</code>。看起來很正常。<br>事實上——看起來很眼熟。</p>
+    <p class="rev">你把它跟自己家目錄裡那份 diff 了一下。沒有人動過它。<strong>因為那份設定檔就是你寫的。</strong>而你相當確定，自己沒有打開 <code>FAIL_MAIL_OVER_500_MILES</code> 這個選項。</p>
+    <p class="rev">走投無路，你直接 telnet 進 25 埠，看它自報家門。</p>
+    <div class="panel rev">
+      <h3>telnet stat.unc.edu 25</h3>
+      <div class="term" id="termB" role="log" aria-label="telnet 輸出"></div>
+    </div>
+    <p class="rev">等一下。<em class="hl">SunOS 的 sendmail banner？</em></p>
+    <p class="rev">那位「幫忙打修補程式」的顧問，做的事是升級 SunOS。而 Sun 當時隨附的還是 Sendmail 5。所以他不是修好了郵件系統——他把它<strong>降級</strong>了。而升級程式很體貼地保留了原本的 <code>sendmail.cf</code>：一份為 Sendmail 8 寫的設定檔，用的是新版才看得懂的、自我說明的長選項名稱。</p>
+    <p class="rev">Sendmail 5 讀得懂裡面大部分的規則，於是它照做。但那些長名字它不認得，就<strong>跳過</strong>。而這個 binary 對那些選項沒有內建預設值。</p>
+    <p class="rev punch">沒有設定值，<span>就是零</span>。</p>
+    <p class="rev">被設成零的其中一個，是<strong>連線到遠端 SMTP 伺服器的逾時</strong>。</p>
+    <p class="rev">而零逾時的意思，不是「立刻放棄」。是「能多快就得多快」。剩下的問題只有一個：那台機器，到底有多快？</p>
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ===================== 高潮：旋鈕 ===================== -->
+<section id="dial">
+  <div class="wrap">
+    <p class="kicker rev">輪到你</p>
+    <p class="rev lead" style="margin-top:10px">那年校園網路是<strong>全交換式</strong>的。封包出去，一路上不會撞到路由器，直到抵達對外節點。也就是說——連上一台附近、負載又輕的主機要花多久，主要不取決於網路，而取決於<em class="hl">距離</em>。</p>
+    <p class="rev">把逾時轉到那張圖上。轉到它跟你剛剛量到的結果<strong>完全對得起來</strong>為止。<br>（底特律不算。它就是那個怎麼調都對不上的點。）</p>
+    <div class="panel rev" id="dialPanel">
+      <h3>connect() 逾時 · 實驗台</h3>
+      <div class="dial">
+        <div class="dialnum"><span id="msVal">6.0</span><small>毫秒</small></div>
+        <div class="dialsub">光跑得到 <b id="radVal">1118</b> 英里</div>
+      </div>
+      <input type="range" id="msRange" min="0" max="12" step="0.1" value="6"
+             aria-label="連線逾時（毫秒）" aria-describedby="matchTxt">
+      <div class="meter"><i id="meterBar"></i></div>
+      <p class="matchline" id="matchTxt" aria-live="polite"><span>對得上 <b id="matchN">7</b> / 10 個實測結果</span><span id="oddNote" style="color:var(--faint)">底特律不計入</span></p>
+      <div id="scopeB" aria-hidden="true" style="margin-top:8px"></div>
+      <p style="margin:14px 0 0"><button class="ghost" id="giveUp">轉不到？直接看他當年打的那行指令</button></p>
+    </div>
+    <div class="reveal" id="dialDone">
+      <div class="panel">
+        <h3>他的 shell</h3>
+        <div class="term" id="termC" role="log" aria-label="units 輸出"></div>
+      </div>
+      <p class="punch">「五百英里，<span>多一點點</span>。」</p>
+      <p class="lead">你剛剛在地圖上畫出來的那個圈，不是網路的邊界，也不是誰設下的規則。<strong>那是光跑三毫秒的距離。</strong></p>
+      <p>那條虛線是地理統計學家量出來的五百二十英里。你的圈，落在上面。</p>
+      <p>再誠實一點：其實 <span id="bandTxt">2.31 到 3.10</span> 毫秒之間的任何值，都對得起這十個點。你手上的資料不足以指定唯一答案。他寫下的是 3——因為那是他實測那台機器放棄連線的時間。零逾時在那台機器、那個負載下，會在三毫秒多一點的地方斷掉。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="rule">
+
+<!-- ===================== 挑錯者的信箱 ===================== -->
+<section id="inbox">
+  <div class="wrap">
+    <p class="kicker rev">故事寄出去之後</p>
+    <p class="rev lead" style="margin-top:10px">2002 年 11 月 24 日晚上九點零三分，他把這段經歷貼到系統管理員的郵件論壇上，串的主題是「你最喜歡的不可能任務」。</p>
+    <p class="rev">它被轉寄到全世界。而回信裡，最多的不是「好故事」。</p>
+    <div class="panel rev">
+      <h3>收件匣 · 挑錯的人（點開看他怎麼回）</h3>
+      <div id="inboxList"></div>
+    </div>
+    <p class="rev">每一封他都答得出來。因為那些細節他當年真的算過——ping 過、記過、扣掉過。只是無聊，不好笑，所以在寫故事的時候刪掉了。</p>
+    <p class="rev">但整份 FAQ 裡最好看的，是第十三題。</p>
+    <p class="rev">有人問他：等一下——你把三毫秒敲進 <code>units</code> 之前，是不是<strong>其實已經知道答案了</strong>？</p>
+  </div>
+</section>
+
+<!-- ===================== 記憶點 ===================== -->
+<section id="end">
+  <div class="wrap">
+    <p class="rev punch">「對，我知道。<span>但我很固執。</span>」</p>
+    <p class="rev lead">「你有沒有在解謎的時候，把答案先遮起來，逼自己想出來一次？我就是在做那件事。」</p>
+    <p class="rev">所以那個著名的畫面——他敲下 <code>units</code>、看見 558.84719、又嗆到一次拿鐵——是他自己安排給自己的。答案早就在他手上了。他只是不想被自己劇透。</p>
+    <p class="rev">而回頭看那通電話：從頭到尾唯一在用科學方法講話的人，是聽起來最瘋的那一個。他等了好幾天才打來，因為資料還不夠；他請人畫了半徑圖；他連誤差都替你留好了——五百英里，多一點點，算五百二十吧。</p>
+    <p class="rev">說「email 不是這樣運作的」的那個人，是你。</p>
+    <p class="rev punch">而 email 確實不是這樣運作的。<br><span>除非光速跑進了你的設定檔。</span></p>
+    <footer>
+      資料來源：Trey Harris〈The case of the 500-mile email〉（2002）與其 FAQ。<br>
+      圖上距離為以北卡羅來納州教堂山為圓心實算的大圓距離；方位等距投影，所以圈就是真的圈。
+    </footer>
+  </div>
+</section>
+
+<script src="logic.js"></script>
+<script>
+(function(){
+  'use strict';
+  var LS = 'mail500.';
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var lowMotion = reduce.matches;
+  reduce.addEventListener('change', function(e){ lowMotion = e.matches; });
+
+  /* 回訪的人不必再寄一次十一封信 */
+  try {
+    if(localStorage.getItem(LS + 'probed') === '1'){
+      document.getElementById('backAgain').style.display = '';
+    }
+  } catch(e){}
+
+  document.addEventListener('visibilitychange', function(){
+    document.body.classList.toggle('tabhidden', document.hidden);
+  });
+
+  /* ---------- 逐段揭露 ---------- */
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if(en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { rootMargin:'0px 0px -12% 0px', threshold:0.15 });
+  Array.prototype.forEach.call(document.querySelectorAll('.rev'), function(el){ io.observe(el); });
+
+  /* ---------- 雷達圖 ---------- */
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  var VB = 520, C = VB/2, MAXMI = 820, PX = 226/MAXMI;
+  function el(tag, attrs){
+    var n = document.createElementNS(SVGNS, tag);
+    for(var k in attrs){ if(Object.prototype.hasOwnProperty.call(attrs,k)) n.setAttribute(k, attrs[k]); }
+    return n;
+  }
+  function pos(dist, brg){
+    var a = brg * Math.PI/180, r = Math.min(dist, MAXMI) * PX;
+    return { x: C + Math.sin(a)*r, y: C - Math.cos(a)*r };
+  }
+
+  function makeScope(host, mode){
+    var svg = el('svg', { viewBox:'0 0 '+VB+' '+VB, class:'scope' });
+    svg.setAttribute('aria-hidden','true');
+    svg.setAttribute('focusable','false');
+    [200,400,600,800].forEach(function(mi){
+      svg.appendChild(el('circle',{ cx:C, cy:C, r:mi*PX, class:'ringline' }));
+      var t = el('text',{ x:C+3, y:C-mi*PX-4, class:'ringlbl' });
+      t.textContent = mi + ' mi';
+      svg.appendChild(t);
+    });
+    [0,45,90,135,180,225,270,315].forEach(function(d){
+      var p = pos(MAXMI, d);
+      svg.appendChild(el('line',{ x1:C, y1:C, x2:p.x, y2:p.y, class:'spoke' }));
+    });
+
+    var reach = el('circle',{ cx:C, cy:C, r:0, class:'reach' });
+    reach.style.display = 'none';
+    svg.appendChild(reach);
+    var measured = el('circle',{ cx:C, cy:C, r:520*PX, class:'measured' });
+    svg.appendChild(measured);
+
+    var groups = {};
+    CITIES.forEach(function(c){
+      var p = pos(c.dist, c.brg);
+      var g = el('g',{ class:'dot' + (mode === 'probe' ? ' hidden' : '') });
+      var core = el('circle',{ cx:p.x, cy:p.y, r: c.key==='unc' ? 5 : 4.5, class:'core', fill:'#39424f' });
+      g.appendChild(core);
+      var miss = el('circle',{ cx:p.x, cy:p.y, r:9, class:'miss' });
+      miss.style.display='none';
+      g.appendChild(miss);
+      var label = el('text',{ x:p.x + c.lx, y:p.y + c.ly, 'text-anchor':c.anchor, fill:'#98a5b6' });
+      label.textContent = c.offscope ? (c.name + ' ' + c.dist.toLocaleString() + '↗') : c.name;
+      g.appendChild(label);
+      svg.appendChild(g);
+      groups[c.key] = { g:g, core:core, miss:miss, label:label };
+    });
+    var ctr = el('text',{ x:C, y:C+21, 'text-anchor':'middle', fill:'#6d7a8c' });
+    ctr.setAttribute('font-size','10.5');
+    ctr.textContent = '教堂山';
+    svg.appendChild(ctr);
+
+    host.appendChild(svg);
+    return {
+      show: function(key, ok){
+        var d = groups[key]; if(!d) return;
+        d.g.classList.remove('hidden');
+        d.core.setAttribute('fill', ok ? '#5fd39a' : '#ef6a6a');
+      },
+      paintObserved: function(){
+        CITIES.forEach(function(c){
+          var d = groups[c.key];
+          d.core.setAttribute('fill', c.odd ? '#f0a33c' : (c.ok ? '#5fd39a' : '#ef6a6a'));
+        });
+      },
+      setRadius: function(mi){
+        reach.style.display = '';
+        reach.setAttribute('r', Math.min(mi, MAXMI) * PX);
+      },
+      setMiss: function(key, on){
+        var d = groups[key]; if(!d) return;
+        d.miss.style.display = on ? '' : 'none';
+      },
+      showMeasured: function(){ measured.classList.add('on'); }
+    };
+  }
+
+  /* ---------- 終端機 ---------- */
+  function term(node){
+    var queue = [], busy = false;
+    function flush(){
+      if(!queue.length){ busy = false; return; }
+      busy = true;
+      var item = queue.shift();
+      node.insertAdjacentHTML('beforeend', item.html + '<br>');
+      node.scrollTop = node.scrollHeight;
+      if(lowMotion){ flush(); } else { setTimeout(flush, item.delay); }
+    }
+    return {
+      push: function(html, delay){
+        queue.push({ html:html, delay: delay == null ? 190 : delay });
+        if(!busy) flush();
+      },
+      clear: function(){ node.innerHTML = ''; }
+    };
+  }
+
+  /* ---------- 第一幕：寄測試信 ---------- */
+  var scopeA = makeScope(document.getElementById('scopeA'), 'probe');
+  var tA = term(document.getElementById('termA'));
+  var chips = document.getElementById('chips');
+  var sentN = document.getElementById('sentN');
+  var probeHint = document.getElementById('probeHint');
+  var probeDone = document.getElementById('probeDone');
+  var sent = {}, sentCount = 0;
+  var HOSTS = {
+    unc:'isis.unc.edu', rdu:'mail.vcu.edu', dca:'mail.gwu.edu', atl:'mail.gatech.edu',
+    prn:'mail.princeton.edu', nyc:'mail.nyu.edu', det:'mail.wayne.edu', pvd:'mail.brown.edu',
+    bos:'mail.bu.edu', mem:'mail.memphis.edu', sea:'mail.seanet.com'
+  };
+
+  CITIES.forEach(function(c){
+    var b = document.createElement('button');
+    b.className = 'chip';
+    b.type = 'button';
+    b.innerHTML = c.name + '<span class="mi">' + c.dist.toLocaleString() + ' mi</span>';
+    b.setAttribute('aria-label', '寄一封測試信到' + c.name + '，距離 ' + c.dist + ' 英里');
+    b.addEventListener('click', function(){ send(c, b); });
+    chips.appendChild(b);
+  });
+
+  function send(c, btn){
+    if(sent[c.key]) return;
+    sent[c.key] = true; sentCount++;
+    btn.disabled = true;
+    btn.classList.add(c.ok ? 'done-ok' : 'done-fail');
+    if(sentCount === 1) tA.clear();
+    var host = HOSTS[c.key];
+    tA.push('<span class="cmd">$</span> sendmail -v test@' + host, 60);
+    tA.push('<span class="note">Connecting to ' + host + ' [' + c.dist + ' mi] ...</span>', 260);
+    if(c.ok){
+      tA.push('<span class="ok">250 2.0.0 Message accepted for delivery</span>', 120);
+    } else {
+      tA.push('<span class="bad">Deferred: Connection timed out with ' + host + '</span>', 120);
+    }
+    scopeA.show(c.key, c.ok);
+    sentN.textContent = sentCount;
+    if(sentCount < 4) probeHint.textContent = '再遠一點試試';
+    else if(sentCount < 8) probeHint.textContent = '……開始有形狀了';
+    else if(sentCount < 11) probeHint.textContent = '把剩下的寄完';
+    else {
+      probeHint.textContent = '11 / 11 · 他是對的';
+      probeHint.style.color = 'var(--amber)';
+      setTimeout(function(){ probeDone.classList.add('open'); }, lowMotion ? 0 : 700);
+      try { localStorage.setItem(LS + 'probed', '1'); } catch(e){}
+    }
+  }
+
+  /* ---------- 第二幕：telnet ---------- */
+  var tB = term(document.getElementById('termB'));
+  var telnetPlayed = false;
+  var ioB = new IntersectionObserver(function(en){
+    if(en[0].isIntersecting && !telnetPlayed){
+      telnetPlayed = true;
+      tB.push('<span class="cmd">$</span> telnet stat.unc.edu 25', 300);
+      tB.push('<span class="note">Trying 152.2.x.x...</span>', 240);
+      tB.push('<span class="note">Connected to stat.unc.edu.</span>', 240);
+      tB.push('220 stat.unc.edu <span class="big">Sendmail 5.67 (SunOS)</span> ready at Tue, 21:44', 200);
+      tB.push('<span class="note">// 你寫的是 Sendmail 8 的設定檔。</span>', 200);
+      ioB.disconnect();
+    }
+  }, { threshold:0.4 });
+  ioB.observe(document.getElementById('termB'));
+
+  /* ---------- 第三幕：旋鈕（高潮） ---------- */
+  var scopeB = makeScope(document.getElementById('scopeB'), 'dial');
+  scopeB.paintObserved();
+  var range = document.getElementById('msRange');
+  var msVal = document.getElementById('msVal');
+  var radVal = document.getElementById('radVal');
+  var matchN = document.getElementById('matchN');
+  var meterBar = document.getElementById('meterBar');
+  var dialPanel = document.getElementById('dialPanel');
+  var dialDone = document.getElementById('dialDone');
+  var tC = term(document.getElementById('termC'));
+  var TOTAL = scorableCities().length;
+  var solvedOnce = false;
+
+  function update(){
+    var ms = parseFloat(range.value);
+    var r = radiusForMs(ms);
+    msVal.textContent = ms.toFixed(1);
+    radVal.textContent = Math.round(r).toLocaleString();
+    var n = matchCount(ms);
+    matchN.textContent = n;
+    meterBar.style.width = (n / TOTAL * 100) + '%';
+    scopeB.setRadius(r);
+    CITIES.forEach(function(c){
+      scopeB.setMiss(c.key, !c.odd && predictOk(c, r) !== c.ok);
+    });
+    dialPanel.classList.toggle('solved', n === TOTAL);
+    range.setAttribute('aria-valuetext', ms.toFixed(1) + ' 毫秒，半徑 ' + Math.round(r) + ' 英里，對上 ' + n + ' 個');
+    if(n === TOTAL && !solvedOnce) win();
+  }
+
+  function win(){
+    solvedOnce = true;
+    scopeB.showMeasured();
+    try { localStorage.setItem(LS + 'ms', range.value); } catch(e){}
+    tC.push('<span class="cmd">$</span> units', 260);
+    tC.push('<span class="note">1311 units, 63 prefixes</span>', 220);
+    tC.push('', 120);
+    tC.push('You have: <span class="big">3 millilightseconds</span>', 300);
+    tC.push('You want: <span class="big">miles</span>', 300);
+    tC.push('        * <span class="ok">558.84719</span>', 380);
+    tC.push('        / 0.0017893979', 200);
+    setTimeout(function(){ dialDone.classList.add('open'); }, lowMotion ? 0 : 500);
+  }
+
+  range.addEventListener('input', update);
+  document.getElementById('giveUp').addEventListener('click', function(){
+    range.value = '3';
+    update();
+    this.style.display = 'none';
+  });
+  var band = solvedBand();
+  document.getElementById('bandTxt').textContent = band[0].toFixed(2) + ' 到 ' + band[1].toFixed(2);
+  update();
+
+  /* ---------- 第四幕：挑錯者的信箱 ---------- */
+  var MAILS = [
+    ['三毫秒只夠封包單程飛過去。你還得等對方回應——不是應該六毫秒嗎？',
+     '當然。這是我省略掉的細節之一。它看起來無關緊要，而且無聊，所以我刪了。'],
+    ['這故事有個致命瑕疵：訊號在銅線裡跑不到光速。',
+     '沒錯，大約是四分之三光速。但網卡、校園骨幹、還有當年的網際網路骨幹，全都是光纖。'],
+    ['光纖裡也不是光速啊！',
+     '你抓到我了。大概是三分之二光速到略低於光速之間，看情況。但這個因素我算進去了——我 ping 過很多地方，記下距離對 ping 時間，反推出一個「有效速度」。又是一個無聊細節。'],
+    ['路由器延遲的影響，比你承認的大得多。',
+     '你大概是對的。但那是我能扣掉的東西。多經過一台路由器頂多幾百微秒，對近距離的目的地不夠看。'],
+    ['底特律在五百英里裡面。它不該失敗。',
+     '五百二十英里是「絕對寄不到」的最大半徑，不是「裡面全都寄得到」。圈裡本來就有寄不到的地方：可能是防火牆多花了時間，也可能是封包繞的那條路根本不是大圓。'],
+    ['總之這故事不可能是真的。',
+     '那換我問你：一個設定錯誤，有沒有可能讓近的信寄得到、遠的信寄不到？我知道答案是有——因為它發生過。']
+  ];
+  var list = document.getElementById('inboxList');
+  MAILS.forEach(function(m, i){
+    var row = document.createElement('div');
+    row.className = 'mailrow';
+    var id = 'reply-' + i;
+    var btn = document.createElement('button');
+    btn.className = 'mailbtn';
+    btn.type = 'button';
+    btn.textContent = '「' + m[0] + '」';
+    btn.setAttribute('aria-expanded','false');
+    btn.setAttribute('aria-controls', id);
+    var rep = document.createElement('div');
+    rep.className = 'reply';
+    rep.id = id;
+    rep.innerHTML = '<p><b>Trey Harris：</b>' + m[1] + '</p>';
+    btn.addEventListener('click', function(){
+      var open = row.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    row.appendChild(btn); row.appendChild(rep);
+    list.appendChild(row);
+  });
+})();
+</script>
+</body>
+</html>

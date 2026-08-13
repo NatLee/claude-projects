@@ -1077,13 +1077,15 @@
 
   /* ═══════════════════════════════ UI ═════════════════════════════════ */
 
+  // 前綴抽成字面常數，方便全站健檢靜態解析；組出來的 key 與過去完全相同（eliza.lang…）
+  const LS_PREFIX = 'eliza.';
   const LS = {
-    lang: 'eliza.lang',
-    xray: 'eliza.xray',
-    log: 'eliza.log'
+    lang: 'lang',
+    xray: 'xray',
+    log: 'log'
   };
-  const get = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
-  const set = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 隱私模式 */ } };
+  const get = (k, d) => { try { const v = localStorage.getItem(LS_PREFIX + k); return v === null ? d : v; } catch (e) { return d; } };
+  const set = (k, v) => { try { localStorage.setItem(LS_PREFIX + k, v); } catch (e) { /* 隱私模式 */ } };
 
   const $ = (id) => document.getElementById(id);
   // CSS.escape 在舊環境不一定存在，給個備援

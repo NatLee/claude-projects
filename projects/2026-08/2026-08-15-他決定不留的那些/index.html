@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>他決定不留的那些</title>
+<meta name="description" content="1980 年，一個紙箱從羅徹斯特搬出來。裡面大部分的東西被判定不值得留下。留下來的那一疊，教你怎麼看見不在圖上的東西。">
+<style>
+  :root{
+    --bg:#0b0c0a; --bg2:#101210; --ink:#ece7dc; --dim:#9b968a; --faint:#635f57;
+    --line:rgba(236,231,220,.12); --line2:rgba(236,231,220,.22);
+    --kraft:#d8c8a6; --kraftInk:#2b2721;
+    --steel:#7fb1cf; --ember:#e2653c; --red:#b8332c; --olive:#8f9c6a;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    --dur:.6s;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.95;letter-spacing:.012em;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  .home{
+    position:fixed;top:0;left:0;z-index:80;width:100%;padding:12px 18px;
+    font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+    color:var(--faint);text-decoration:none;
+    background:linear-gradient(180deg,rgba(11,12,10,.94),rgba(11,12,10,0));
+    transition:color .25s;
+  }
+  .home:hover,.home:focus-visible{color:var(--kraft)}
+  :focus-visible{outline:2px solid var(--kraft);outline-offset:3px;border-radius:3px}
+
+  .wrap{max-width:680px;margin:0 auto;padding:0 22px}
+  section{position:relative}
+  p{margin:0 0 1.3em}
+  strong{font-weight:650;color:#fff}
+  em{font-style:normal;color:var(--kraft)}
+  .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.24em;color:var(--faint);text-transform:uppercase;margin-bottom:14px}
+  .big{font-size:clamp(27px,6.4vw,44px);line-height:1.3;font-weight:700;letter-spacing:-.02em;margin:0 0 .7em}
+  .mid{font-size:clamp(21px,4.4vw,29px);line-height:1.45;font-weight:650;letter-spacing:-.015em;margin:0 0 .8em}
+  .dim{color:var(--dim)}
+  .note{font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--faint)}
+  hr.rule{border:0;height:1px;background:var(--line);margin:0}
+
+  /* ---------- 進場 ---------- */
+  .rise{opacity:0;transform:translateY(16px);transition:opacity var(--dur) ease,transform var(--dur) cubic-bezier(.22,.9,.3,1)}
+  .rise.in{opacity:1;transform:none}
+  .rise.d1{transition-delay:.10s} .rise.d2{transition-delay:.22s} .rise.d3{transition-delay:.34s} .rise.d4{transition-delay:.46s}
+
+  /* ---------- 第一屏：箱子 ---------- */
+  #hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:110px 0 70px}
+  .boxart{width:132px;height:104px;margin:0 0 34px;display:block;overflow:visible}
+  .boxart .ln{fill:none;stroke:var(--kraft);stroke-width:1.4;opacity:.5}
+  .boxart .fl{fill:none;stroke:var(--kraft);stroke-width:1.4;opacity:.85;transform-origin:66px 34px}
+  .boxart .tape{fill:none;stroke:var(--red);stroke-width:2.6;opacity:.55}
+  .quote{font-size:clamp(26px,6.2vw,43px);line-height:1.34;font-weight:700;letter-spacing:-.022em;margin:0 0 30px}
+  .quote span{color:var(--kraft)}
+  .sub{color:var(--dim);max-width:32rem;font-size:17px}
+  .cue{margin-top:48px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .cue i{display:inline-block;font-style:normal;animation:bob 2.6s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+  /* ---------- 章節 ---------- */
+  .chap{padding:96px 0 12px}
+  .chap .kicker{color:var(--kraft);opacity:.75}
+
+  /* ---------- 飛機台 ---------- */
+  .bench{
+    margin:34px 0 0;padding:22px 16px 18px;border:1px solid var(--line);border-radius:14px;
+    background:radial-gradient(120% 90% at 50% 0%,#141712 0%,var(--bg2) 62%);
+  }
+  .bench.hot{border-color:rgba(226,101,60,.35)}
+  .planewrap{position:relative;width:100%;max-width:430px;margin:0 auto}
+  svg.plane{width:100%;height:auto;display:block;touch-action:manipulation}
+  .skin{fill:#1b1e19;stroke:#4c5245;stroke-width:1.2}
+  .zone{fill:#22261f;stroke:#525a4a;stroke-width:1;cursor:pointer;transition:fill .25s ease}
+  .zone:hover{fill:#2c3128}
+  .zone.picked{fill:#2a3a44}
+  .armor{fill:var(--steel);opacity:0;pointer-events:none;transition:opacity .35s ease}
+  .armor.on{opacity:.42}
+  .rivets{fill:none;stroke:rgba(236,231,220,.16);stroke-width:.8;stroke-dasharray:1 5;pointer-events:none}
+  .hole{fill:#0a0b09;stroke:rgba(236,231,220,.5);stroke-width:.9;opacity:0;transition:opacity .45s ease}
+  .hole.on{opacity:1}
+  .lost{fill:var(--ember);stroke:rgba(226,101,60,.8);stroke-width:1;opacity:0;transition:opacity .5s ease}
+  .lost.on{opacity:.95}
+  .losthalo{fill:none;stroke:var(--ember);stroke-width:1;opacity:0;transition:opacity .6s ease}
+  .losthalo.on{opacity:.28}
+  .faded .hole.on{opacity:.24}
+  .zlabel{font-family:var(--mono);font-size:9.5px;fill:var(--faint);pointer-events:none;letter-spacing:.05em}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0;justify-content:center}
+  .chip{
+    font-family:var(--mono);font-size:12.5px;padding:7px 12px;border-radius:999px;
+    background:transparent;color:var(--dim);border:1px solid var(--line2);cursor:pointer;
+    transition:border-color .2s,color .2s,background .2s;
+  }
+  .chip:hover{color:var(--ink);border-color:var(--kraft)}
+  .chip[aria-pressed="true"]{background:rgba(127,177,207,.16);border-color:var(--steel);color:#cfe6f3}
+  .chip:disabled{opacity:.38;cursor:not-allowed}
+
+  .readout{
+    display:flex;flex-wrap:wrap;gap:8px 26px;justify-content:center;align-items:baseline;
+    margin:20px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--faint);
+  }
+  .readout b{font-size:23px;color:var(--ink);font-weight:600;letter-spacing:-.01em}
+  .readout .u{font-size:12.5px;color:var(--faint);margin-left:3px}
+
+  .act{display:flex;justify-content:center;margin:26px 0 4px}
+  button.go{
+    font-family:var(--mono);font-size:13.5px;letter-spacing:.08em;padding:12px 26px;border-radius:8px;
+    background:var(--kraft);color:var(--kraftInk);border:1px solid var(--kraft);cursor:pointer;font-weight:600;
+    transition:transform .18s ease,box-shadow .18s ease,opacity .2s;
+  }
+  button.go:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(216,200,166,.16)}
+  button.go:active:not(:disabled){transform:translateY(1px)}
+  button.go:disabled{opacity:.3;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--kraft)}
+  button.ember{background:var(--ember);border-color:var(--ember);color:#180d08}
+
+  .stamp{
+    position:absolute;right:2%;top:8%;font-family:var(--mono);font-size:15px;letter-spacing:.14em;
+    color:var(--red);border:2.5px solid var(--red);padding:6px 12px;border-radius:4px;
+    transform:rotate(-11deg) scale(1.5);opacity:0;pointer-events:none;
+    transition:opacity .3s ease,transform .4s cubic-bezier(.2,1.5,.4,1);
+  }
+  .stamp.on{opacity:.9;transform:rotate(-11deg) scale(1)}
+
+  /* ---------- 轉折 ---------- */
+  #turn{background:linear-gradient(180deg,var(--bg) 0%,#120d0b 30%,#120d0b 70%,var(--bg) 100%);padding:20px 0 40px;margin-top:60px}
+  .scoreboard{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px 0 0}
+  .score{border:1px solid var(--line);border-radius:11px;padding:14px 10px;text-align:center;background:rgba(0,0,0,.28);transition:border-color .3s,background .3s}
+  .score.you{border-color:rgba(127,177,207,.45)}
+  .score.him{border-color:rgba(143,156,106,.55);background:rgba(143,156,106,.08)}
+  .score .lbl{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em}
+  .score .num{font-size:30px;font-weight:700;letter-spacing:-.02em;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+  .score .sfx{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .score.him .num{color:var(--olive)}
+  .score.you .num{color:var(--steel)}
+
+  /* ---------- 備忘錄 ---------- */
+  .memo{
+    background:#e6dcc4;color:#241f18;border-radius:3px;padding:24px 22px 20px;margin:30px 0 0;
+    box-shadow:0 18px 46px rgba(0,0,0,.55);transform:rotate(-.5deg);position:relative;
+    font-family:var(--mono);font-size:13.5px;line-height:1.85;
+  }
+  .memo::before{content:"";position:absolute;inset:0;border-radius:3px;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.028) 0 2px,transparent 2px 4px)}
+  .memo h4{margin:0 0 2px;font-size:13.5px;letter-spacing:.1em;font-weight:700}
+  .memo .meta{color:#6b6152;font-size:11.5px;letter-spacing:.06em;margin-bottom:14px}
+  .memo table{border-collapse:collapse;width:100%;margin:6px 0 0;font-variant-numeric:tabular-nums}
+  .memo td{padding:3px 0;border-bottom:1px dotted rgba(36,31,24,.22)}
+  .memo td.n{text-align:right;width:5.5em}
+  .memo tr.tot td{border-bottom:0;border-top:1.5px solid rgba(36,31,24,.45);font-weight:700;padding-top:6px}
+  .memo .dec{position:absolute;right:14px;top:-12px;background:var(--red);color:#fbf3e6;
+    font-size:10.5px;letter-spacing:.16em;padding:4px 9px;border-radius:2px;transform:rotate(2deg)}
+
+  /* ---------- 天平 ---------- */
+  .eqbox{margin:30px 0 0;padding:22px 18px;border:1px solid var(--line);border-radius:14px;background:var(--bg2)}
+  .eq{font-family:var(--mono);font-size:clamp(12px,3.3vw,15px);text-align:center;color:var(--dim);line-height:2.2;overflow-x:auto;white-space:nowrap;padding-bottom:4px}
+  .eq b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .eq .tg{color:var(--olive)}
+  .track{position:relative;height:34px;margin:20px 0 6px;border-bottom:1px solid var(--line2)}
+  .track .mark{position:absolute;bottom:0;width:1px;height:14px;background:var(--olive)}
+  .track .mark::after{content:"0.200";position:absolute;left:50%;transform:translateX(-50%);bottom:16px;
+    font-family:var(--mono);font-size:10.5px;color:var(--olive);white-space:nowrap}
+  .needle{position:absolute;bottom:0;width:2px;height:26px;background:var(--ember);transition:left .18s ease,background .3s}
+  .needle.lock{background:var(--olive)}
+  .needle::after{content:"";position:absolute;left:-4px;top:-6px;width:10px;height:10px;border-radius:50%;background:inherit}
+  input[type=range]{width:100%;margin:16px 0 0;accent-color:var(--kraft);height:26px}
+  .qline{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);font-size:12.5px;color:var(--faint);margin-top:2px}
+  .qline b{font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums;font-weight:600}
+  .lockmsg{font-family:var(--mono);font-size:12.5px;color:var(--olive);text-align:center;margin-top:12px;opacity:0;transition:opacity .4s}
+  .lockmsg.on{opacity:1}
+
+  .ltable{margin:22px 0 0;border-top:1px solid var(--line);opacity:0;transform:translateY(10px);
+    transition:opacity .5s ease,transform .5s ease;pointer-events:none}
+  .ltable.on{opacity:1;transform:none;pointer-events:auto}
+  .lrow{display:flex;align-items:center;gap:12px;padding:9px 2px;border-bottom:1px solid var(--line);font-family:var(--mono);font-size:13px}
+  .lrow .k{color:var(--dim);width:9.5em;flex:none}
+  .lrow .bar{flex:1;height:8px;background:rgba(236,231,220,.07);border-radius:4px;overflow:hidden}
+  .lrow .bar i{display:block;height:100%;width:0;background:var(--ember);border-radius:4px;transition:width .7s cubic-bezier(.2,.8,.3,1)}
+  .lrow .v{width:4.6em;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+  .lrow.tot{border-bottom:0;color:var(--olive)}
+  .lrow.tot .v{color:var(--olive)}
+
+  /* ---------- 尾聲 ---------- */
+  #end{padding:30px 0 0}
+  .kill{font-size:clamp(23px,5.2vw,34px);line-height:1.42;font-weight:700;letter-spacing:-.02em;margin:0 0 .6em}
+  .kill span{color:var(--kraft)}
+  .everyday{margin:26px 0 0;padding-left:16px;border-left:2px solid var(--line2);color:var(--dim)}
+  .everyday p{margin:0 0 .55em}
+
+  footer{margin:88px 0 0;padding:26px 0 46px;border-top:1px solid var(--line)}
+  footer p{margin:0 0 .35em;font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--faint)}
+
+  @media (max-width:560px){
+    body{font-size:16px;line-height:1.9}
+    .bench{padding:16px 8px 14px}
+    .scoreboard{grid-template-columns:1fr;gap:8px}
+    .score{display:flex;align-items:baseline;justify-content:space-between;text-align:left;padding:11px 14px}
+    .score .num{margin:0}
+    .memo{padding:20px 15px 16px;font-size:12.5px}
+    .lrow .k{width:7.6em}
+    .readout{gap:6px 18px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;
+      transition-duration:.001ms !important;transition-delay:0ms !important;scroll-behavior:auto !important}
+    .rise{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- ============================ 第一屏 ============================ -->
+<section id="hero"><div class="wrap">
+  <svg class="boxart" viewBox="0 0 132 104" aria-hidden="true">
+    <path class="fl" id="flapL" d="M12 34 L66 34 L54 16 L2 16 Z"/>
+    <path class="fl" id="flapR" d="M120 34 L66 34 L78 16 L130 16 Z"/>
+    <path class="ln" d="M12 34 L12 96 L120 96 L120 34 Z"/>
+    <path class="ln" d="M12 34 L66 46 L120 34"/>
+    <path class="ln" d="M66 46 L66 96"/>
+    <path class="tape" d="M66 40 L66 92"/>
+  </svg>
+  <p class="kicker">檔案 · 1980</p>
+  <h1 class="quote">「這一箱你讀一讀，<br><span>看有沒有值得留的。」</span></h1>
+  <p class="sub">那年，一個人從紐約州羅徹斯特的自家搬出一個紙箱，抱進同事的辦公室。同事把裡面每一張紙都讀完了，然後決定：<strong>大部分不留。</strong></p>
+  <p class="sub">他留下來的，是一疊三十七年前的備忘錄，八份。寫的人已經死了三十年。</p>
+  <p class="cue">往下捲，把箱子打開　<i>↓</i></p>
+</div></section>
+
+<!-- ============================ 卷一 ============================ -->
+<section class="chap"><div class="wrap">
+  <p class="kicker rise">卷一 · 他們給了他一張圖</p>
+  <p class="mid rise d1">1943 年，紐約，西 118 街 401 號。</p>
+  <p class="rise d2">一棟公寓樓裡塞著一群統計學家，隔壁就是原子彈計畫的哥倫比亞分部。這裡做的東西不是炸藥，是方程式：戰鬥機的彈藥怎麼混裝、火箭推進劑怎麼抽驗、轟炸機該怎麼保護。做完的建議會直接送出去，然後<em>可能有人回得來，可能沒有</em>。</p>
+  <p class="rise d3">軍方帶著一個很實際的問題上門。轟炸機要加裝甲，可是裝甲重；加太多飛不動、耗油，加太少會掉下來。中間有一個最佳點。<strong>那塊鋼板到底該焊在哪裡？</strong></p>
+  <p class="rise">他們同時帶來了證據——從歐洲飛回來的每一架飛機，機身上的彈孔位置都被記了下來。</p>
+</div></section>
+
+<section><div class="wrap">
+  <div class="bench rise" id="bench">
+    <div class="planewrap">
+      <div class="stamp" id="stamp">已呈報</div>
+      <svg class="plane" id="plane" viewBox="0 0 420 300" role="img" aria-label="轟炸機俯視圖，機身、主翼與尾翼上密布彈孔，引擎附近幾乎沒有">
+        <g id="zones"></g>
+        <g id="holes"></g>
+        <g id="lostholes"></g>
+        <g id="labels"></g>
+      </svg>
+    </div>
+    <p class="note" style="text-align:center;margin:14px 0 0">回來的 380 架，機身上的彈孔位置疊在同一張圖上</p>
+  </div>
+  <p class="rise" style="margin-top:34px">一眼就看得出來。機身、主翼、尾翼被打得像蜂窩，<strong>引擎附近幾乎是乾淨的</strong>。</p>
+  <p class="rise">軍官的結論非常合理：把有限的裝甲，集中焊在挨槍最多的地方。</p>
+</div></section>
+
+<!-- ============================ 換你 ============================ -->
+<section><div class="wrap">
+  <p class="mid rise">現在這個決定是你的。</p>
+  <p class="rise d1">你只扛得動<strong>三塊</strong>裝甲的重量。點三個區塊——在圖上點，或用下面的按鈕。</p>
+
+  <div class="rise d2">
+    <div class="chips" id="chips"></div>
+    <div class="readout">
+      <span>已選 <b id="rPicked">0</b><span class="u">／3</span></span>
+      <span>蓋住圖上的彈孔 <b id="rCover">0</b><span class="u">%</span></span>
+    </div>
+    <div class="act"><button class="go" id="submit" disabled>送出建議</button></div>
+  </div>
+</div></section>
+
+<!-- ============================ 轉折 ============================ -->
+<section id="turn" hidden><div class="wrap">
+  <p class="kicker rise" style="color:var(--ember)">但是</p>
+  <p class="big rise d1">這張圖上有 380 架飛機。<br>那天出擊的是 <span style="color:var(--ember)">400 架</span>。</p>
+  <p class="rise d2">Wald 從頭到尾只用了一個假設，而且是有根據的：<em>砲火打在飛機上的位置，大致是均勻的</em>。德軍的高射砲不會挑引擎打。</p>
+  <p class="rise d3">既然是均勻的——那回來的飛機上，<strong>引擎附近那些洞去哪了？</strong></p>
+  <div class="act rise d4"><button class="go ember" id="ghostBtn">把沒回來的那 20 架疊上來</button></div>
+  <p class="note" id="ghostNote" style="text-align:center;margin-top:10px">（下面出現的是推算，不是照片。1943 年的原始數字沒有留下來。）</p>
+
+  <div id="afterGhost" hidden>
+    <p style="margin-top:38px">它們不在圖上。因為身上帶著那些洞的飛機，<strong>沒有回到可以被畫進圖裡的地方</strong>。</p>
+    <p>那一整片洞不是弱點的證據，是<em>強度</em>的證據：中了那麼多發，它還是把十個人帶回來了。真正的弱點，是那些乾乾淨淨、一個洞都沒有的地方。</p>
+    <p class="mid" style="margin-top:26px">裝甲要焊在<em>沒有彈孔</em>的地方。</p>
+    <p>那你剛剛那三塊，差多少？在下面這台推演機裡，四百架出擊，本來會有二十架回不來——</p>
+
+    <div class="scoreboard">
+      <div class="score"><span class="lbl">不加裝甲</span><div class="num" id="sBase">20</div><span class="sfx">架回不來</span></div>
+      <div class="score you"><span class="lbl">你的三塊</span><div class="num" id="sYou">–</div><span class="sfx" id="sYouFx">&nbsp;</span></div>
+      <div class="score him"><span class="lbl">洞最少的三塊</span><div class="num" id="sHim">–</div><span class="sfx" id="sHimFx">&nbsp;</span></div>
+    </div>
+    <p class="note" style="margin-top:14px">推演參數是示意的，數量級不是。一架 B-17 上有十個人。</p>
+    <p id="verdict" style="margin-top:26px"></p>
+  </div>
+</div></section>
+
+<!-- ============================ 卷二 ============================ -->
+<section class="chap" id="ch2" hidden><div class="wrap">
+  <p class="kicker rise">卷二 · 箱子裡真正的東西</p>
+  <p class="rise d1">你剛剛做的那個推理，網路上到處都掛著他的名字，還配一張畫滿紅點的飛機圖。</p>
+  <p class="mid rise d2">那疊備忘錄裡，沒有那句話，也沒有那張圖。</p>
+  <p class="rise d3">裡面是這個。</p>
+
+  <div class="memo rise">
+    <div class="dec">解密 1980</div>
+    <h4>A METHOD OF ESTIMATING PLANE VULNERABILITY</h4>
+    <div class="meta">BASED ON DAMAGE OF SURVIVORS ｜ A. WALD ｜ SRG, COLUMBIA ｜ 1943</div>
+    <table>
+      <tbody>
+        <tr><td>出擊架數</td><td class="n">400</td></tr>
+        <tr><td>回來的</td><td class="n">380</td></tr>
+        <tr><td>沒回來的</td><td class="n">20</td></tr>
+        <tr><td>回來、身上 0 發</td><td class="n">320</td></tr>
+        <tr><td>回來、身上 1 發</td><td class="n">32</td></tr>
+        <tr><td>回來、身上 2 發</td><td class="n">20</td></tr>
+        <tr><td>回來、身上 3 發</td><td class="n">4</td></tr>
+        <tr><td>回來、身上 4 發</td><td class="n">2</td></tr>
+        <tr class="tot"><td>回來、身上 5 發</td><td class="n">2</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="rise" style="margin-top:34px">他問的問題比那句名言狠得多：<strong>只憑回來的那 380 架，能不能算出沒回來的 20 架，各是中了第幾發掉下去的？</strong></p>
+  <p class="rise">聽起來像招魂。你手上沒有任何一筆關於它們的資料——它們的資料就是「沒有資料」。</p>
+  <p class="rise">他的做法是先設一個看不見的量：<em>q</em>，一架飛機在多挨一發之後，仍然飛得回來的機率。然後他寫下一條等式，左邊只用得到你手上有的數字，右邊是 0.200。</p>
+
+  <div class="eqbox rise">
+    <div class="eq" id="eq"></div>
+    <div class="track" id="track">
+      <div class="mark" id="mark"></div>
+      <div class="needle" id="needle"></div>
+    </div>
+    <label class="qline" for="qs"><span>轉動 q，讓左邊等於右邊</span><b id="qv">0.780</b></label>
+    <input type="range" id="qs" min="0.70" max="0.95" step="0.001" value="0.78"
+           aria-label="調整 q：多挨一發之後仍飛得回來的機率" aria-describedby="lockmsg">
+    <div class="lockmsg" id="lockmsg" aria-live="polite"></div>
+
+    <div class="ltable" id="ltable">
+      <div class="lrow"><span class="k">中第 1 發掉下去</span><span class="bar"><i data-i="1"></i></span><span class="v" id="L1">–</span></div>
+      <div class="lrow"><span class="k">中第 2 發</span><span class="bar"><i data-i="2"></i></span><span class="v" id="L2">–</span></div>
+      <div class="lrow"><span class="k">中第 3 發</span><span class="bar"><i data-i="3"></i></span><span class="v" id="L3">–</span></div>
+      <div class="lrow"><span class="k">中第 4 發</span><span class="bar"><i data-i="4"></i></span><span class="v" id="L4">–</span></div>
+      <div class="lrow"><span class="k">中第 5 發</span><span class="bar"><i data-i="5"></i></span><span class="v" id="L5">–</span></div>
+      <div class="lrow tot"><span class="k">合計</span><span class="bar"></span><span class="v" id="Lt">–</span></div>
+    </div>
+  </div>
+
+  <div id="afterQ" hidden>
+    <p style="margin-top:34px">沒回來的二十架裡，將近<strong>十二架，是中了第一發就掉下去的</strong>。它們甚至沒有機會被打第二槍。</p>
+    <p>而你從頭到尾，手上只有活著回來的那 380 架。</p>
+  </div>
+</div></section>
+
+<!-- ============================ 卷三 ============================ -->
+<section class="chap" id="ch3" hidden><div class="wrap">
+  <p class="kicker rise">卷三 · 傳說與紙</p>
+  <p class="rise d1">關於這整件事，一手材料只有兩樣：Wallis 的回憶錄裡兩處連名字都沒提的句子，和箱子裡那八份備忘錄。其餘全部是後人的重建——包括那句被引用了幾十年的台詞。</p>
+  <p class="rise d2">備忘錄裡，Wald <strong>一句建議都沒有給</strong>。SRG 的規矩是只回答被問到的問題，該怎麼做由軍方自己決定。八份文件裡有五份在算「已經中了幾發之後還活得下來的機率」，只有一份談各部位的脆弱度。全部都是式子。</p>
+  <p class="rise d3">真正把他和這個推理綁在一起的一手記述，是 1980 年 Wallis 在期刊上的一段答辯，短短幾行：</p>
+  <blockquote class="rise" style="margin:24px 0;padding:0 0 0 18px;border-left:2px solid var(--kraft);color:var(--dim);font-size:16px">軍方傾向保護回來的飛機上彈孔最多的部位。Wald 假設砲火在飛機上是均勻分布的——這個假設有充分證據。由此可知，打在較脆弱部位的命中，比較不會出現在回來的飛機上……</blockquote>
+  <p class="rise">Wald 沒有機會替自己說。1950 年，他在印度南部山區的一場空難中過世，四十七歲。他沒有寫過自傳。</p>
+</div></section>
+
+<!-- ============================ 尾聲 ============================ -->
+<section id="end" hidden><div class="wrap">
+  <hr class="rule" style="margin:70px 0 60px">
+  <p class="kicker rise">回到那個箱子</p>
+  <p class="rise d1">1980 年那天，箱子裡每一張紙都被讀過一次，然後被判定：大部分不值得留下來。</p>
+  <p class="rise d2">那些是什麼，現在沒有人知道了。留下來的只有 Wald 那一疊——所以我們今天有這一頁。</p>
+  <p class="kill rise d3" style="margin-top:36px">你剛剛學會的事，<br><span>正好就是關於這個。</span></p>
+  <div class="everyday rise">
+    <p>「成功創業家的十個習慣」——那是回來的那些飛機。</p>
+    <p>「這支基金十年平均年化 10.8%」——十年前存在、十年後不在的那些，沒有進到這個平均裡。</p>
+    <p>「這棟老房子撐過那麼多地震，很穩」——撐不過的已經不在那裡讓你看了。</p>
+    <p>「我朋友吃了都說有效」——說沒效的那些，通常不會再跟你提。</p>
+  </div>
+  <p class="rise" style="margin-top:34px">在復健室裡，你會看到腿中槍的人遠多於胸口中槍的人。那不是因為沒有人被打中胸口。</p>
+  <p class="kill rise" style="margin-top:44px">下次有人給你一張很漂亮的圖，<br>你只要問一句：<span>這上面少了誰？</span></p>
+
+  <footer>
+    <p>來源：Wald 1943 年備忘錄（1980 年由 CNA 出版）、Mangel &amp; Samaniego (1984)、Wallis (1980)、AMS Feature Column「The Legend of Abraham Wald」。</p>
+    <p>頁面上的裝甲推演機是示意模型，不是 1943 年的數字——那些沒有留下來。</p>
+  </footer>
+</div></section>
+
+<script src="logic.js"></script>
+<script>
+(function () {
+  'use strict';
+  var W = window.WALD;
+  var LS = 'wald43.';
+  var $ = function (id) { return document.getElementById(id); };
+  var rmq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var reduce = function () { return !!(rmq && rmq.matches); };
+
+  /* ---------------- 進場：IntersectionObserver ---------------- */
+  var io = null;
+  if ('IntersectionObserver' in window) {
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -12% 0px', threshold: 0.08 });
+  }
+  function watch(root) {
+    var list = (root || document).querySelectorAll('.rise:not(.in)');
+    for (var i = 0; i < list.length; i++) {
+      if (io && !reduce()) io.observe(list[i]); else list[i].classList.add('in');
+    }
+  }
+
+  /* ---------------- 飛機圖形 ---------------- */
+  var C = 210; // 機身中線
+  var SHAPES = {
+    nose:   ['M210,26 C224,42 230,70 230,104 L190,104 C190,70 196,42 210,26 Z'],
+    body:   ['M190,104 L230,104 L230,250 C230,262 222,272 210,278 C198,272 190,262 190,250 Z'],
+    wing:   ['M230,120 L392,168 L392,186 L230,168 Z', 'M190,120 L28,168 L28,186 L190,168 Z'],
+    fuel:   ['M232,127 L288,143 L288,170 L232,164 Z', 'M188,127 L132,143 L132,170 L188,164 Z'],
+    engine: ['M250,126 h22 a4,4 0 0 1 4,4 v42 a4,4 0 0 1 -4,4 h-22 a4,4 0 0 1 -4,-4 v-42 a4,4 0 0 1 4,-4 Z',
+             'M300,140 h22 a4,4 0 0 1 4,4 v36 a4,4 0 0 1 -4,4 h-22 a4,4 0 0 1 -4,-4 v-36 a4,4 0 0 1 4,-4 Z',
+             'M148,126 h22 a4,4 0 0 1 4,4 v42 a4,4 0 0 1 -4,4 h-22 a4,4 0 0 1 -4,-4 v-42 a4,4 0 0 1 4,-4 Z',
+             'M98,140 h22 a4,4 0 0 1 4,4 v36 a4,4 0 0 1 -4,4 h-22 a4,4 0 0 1 -4,-4 v-36 a4,4 0 0 1 4,-4 Z'],
+    tail:   ['M230,240 L302,258 L302,270 L230,256 Z', 'M190,240 L118,258 L118,270 L190,256 Z']
+  };
+  var ORDER = ['wing', 'tail', 'body', 'nose', 'fuel', 'engine']; // 疊圖順序：大件在下
+  var LABELS = {
+    nose:   { x: 210, y: 18,  anchor: 'middle' },
+    engine: { x: 311, y: 196, anchor: 'middle' },
+    fuel:   { x: 262, y: 122, anchor: 'middle' },
+    body:   { x: 210, y: 232, anchor: 'middle' },
+    wing:   { x: 388, y: 202, anchor: 'end' },
+    tail:   { x: 210, y: 288, anchor: 'middle' }
+  };
+
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs) {
+    var n = document.createElementNS(SVGNS, tag);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]);
+    return n;
+  }
+
+  var zonesG = $('zones'), holesG = $('holes'), lostG = $('lostholes'), labelsG = $('labels');
+  var zoneNodes = {}, armorNodes = {};
+
+  ORDER.forEach(function (id) {
+    var r = W.region(id);
+    var g = el('g', {});
+    SHAPES[id].forEach(function (d) {
+      var p = el('path', { d: d, 'class': 'zone' });
+      p.addEventListener('click', function () { toggle(id); });
+      g.appendChild(p);
+    });
+    zonesG.appendChild(g);
+    zoneNodes[id] = g;
+
+    var ag = el('g', { 'class': 'armor' });
+    SHAPES[id].forEach(function (d) { ag.appendChild(el('path', { d: d })); });
+    zonesG.appendChild(ag);
+    armorNodes[id] = ag;
+
+    var L = LABELS[id];
+    var t = el('text', { x: L.x, y: L.y, 'class': 'zlabel', 'text-anchor': L.anchor });
+    t.textContent = r.name;
+    labelsG.appendChild(t);
+  });
+  // 鉚釘線（純裝飾，直線不掛 filter）
+  zonesG.appendChild(el('path', { 'class': 'rivets', d: 'M210,40 L210,272' }));
+  zonesG.appendChild(el('path', { 'class': 'rivets', d: 'M32,176 L388,176' }));
+
+  /* ---------------- 彈孔散布（固定亂數種子，每次一樣） ---------------- */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var EXCL = [[246,122,34,58],[296,136,34,52],[144,122,34,58],[94,136,34,52],[230,124,62,50],[128,124,62,50]];
+  function blocked(x, y) {
+    for (var i = 0; i < EXCL.length; i++) {
+      var b = EXCL[i];
+      if (x > b[0] && x < b[0] + b[2] && y > b[1] && y < b[1] + b[3]) return true;
+    }
+    return false;
+  }
+  function trapezoid(r, off0, span, yt0, ytSpan, yb0, ybSpan, pad, avoid) {
+    for (var i = 0; i < 60; i++) {
+      var side = r() < 0.5 ? 1 : -1, t = r();
+      var x = C + side * (off0 + t * span);
+      var yt = yt0 + t * ytSpan, yb = yb0 + t * ybSpan;
+      var h = yb - yt - 2 * pad;
+      if (h <= 0) continue;
+      var y = yt + pad + r() * h;
+      if (avoid && blocked(x, y)) continue;
+      return { x: x, y: y };
+    }
+    return null;
+  }
+  var SAMPLE = {
+    nose:   function (r) { return { x: 196 + r() * 28, y: 48 + r() * 50 }; },
+    body:   function (r) { return { x: 196 + r() * 28, y: 112 + r() * 128 }; },
+    wing:   function (r) { return trapezoid(r, 20, 162, 120, 48, 168, 18, 6, true); },
+    fuel:   function (r) { return trapezoid(r, 24, 52, 129, 14, 162, 7, 3, false); },
+    tail:   function (r) { return trapezoid(r, 20, 72, 240, 18, 256, 14, 2, false); },
+    engine: function (r) {
+      var b = [[250,126,22,50],[300,140,22,44],[148,126,22,50],[98,140,22,44]][Math.floor(r() * 4) % 4];
+      return { x: b[0] + 4 + r() * (b[2] - 8), y: b[1] + 5 + r() * (b[3] - 10) };
+    }
+  };
+  function scatter(shareFn, total, seed) {
+    var share = shareFn(), rnd = mulberry32(seed), out = [];
+    W.REGIONS.forEach(function (reg) {
+      var n = Math.max(1, Math.round(total * share[reg.id]));
+      for (var i = 0; i < n; i++) {
+        var pt = SAMPLE[reg.id](rnd);
+        if (pt) out.push({ id: reg.id, x: pt.x, y: pt.y, r: 1.9 + rnd() * 1.5 });
+      }
+    });
+    return out;
+  }
+
+  var survivorHoles = scatter(W.survivorShare, 64, 20250815);
+  var lostHoles = scatter(W.lostShare, 26, 19430611);
+  var holeNodes = [];
+  survivorHoles.forEach(function (h) {
+    var c = el('circle', { cx: h.x.toFixed(1), cy: h.y.toFixed(1), r: h.r.toFixed(1), 'class': 'hole' });
+    holesG.appendChild(c); holeNodes.push(c);
+  });
+
+  function revealHoles() {
+    holeNodes.forEach(function (n, i) {
+      if (reduce()) { n.classList.add('on'); return; }
+      setTimeout(function () { n.classList.add('on'); }, 120 + i * 26);
+    });
+  }
+  var holesShown = false;
+  if (io && !reduce()) {
+    var hio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting && !holesShown) { holesShown = true; revealHoles(); hio.disconnect(); }
+      });
+    }, { threshold: 0.35 });
+    hio.observe($('bench'));
+  } else { revealHoles(); }
+
+  /* ---------------- 第一幕：選裝甲 ---------------- */
+  var picked = [];
+  var chipsBox = $('chips'), chipNodes = {};
+  W.REGIONS.forEach(function (r) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = r.name;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function () { toggle(r.id); });
+    chipsBox.appendChild(b); chipNodes[r.id] = b;
+  });
+
+  var submitted = false;
+  function toggle(id) {
+    if (submitted) return;
+    var i = picked.indexOf(id);
+    if (i >= 0) picked.splice(i, 1);
+    else if (picked.length < W.BUDGET) picked.push(id);
+    else return;
+    sync();
+    try { localStorage.setItem(LS + 'pick', picked.join(',')); } catch (e) {}
+  }
+  function sync() {
+    W.REGIONS.forEach(function (r) {
+      var on = picked.indexOf(r.id) >= 0;
+      chipNodes[r.id].setAttribute('aria-pressed', on ? 'true' : 'false');
+      chipNodes[r.id].disabled = !on && picked.length >= W.BUDGET && !submitted;
+      armorNodes[r.id].classList.toggle('on', on);
+      var paths = zoneNodes[r.id].childNodes;
+      for (var j = 0; j < paths.length; j++) paths[j].classList.toggle('picked', on);
+    });
+    $('rPicked').textContent = picked.length;
+    $('rCover').textContent = Math.round(W.coverage(picked) * 100);
+    $('submit').disabled = picked.length !== W.BUDGET;
+  }
+  try {
+    var saved = (localStorage.getItem(LS + 'pick') || '').split(',').filter(Boolean);
+    saved.slice(0, W.BUDGET).forEach(function (id) { if (W.region(id)) picked.push(id); });
+  } catch (e) {}
+  sync();
+
+  /* ---------------- 第二幕：轉折 ---------------- */
+  function roll(node, from, to, digits) {
+    if (reduce()) { node.textContent = to.toFixed(digits); return; }
+    var t0 = null, dur = 750;
+    function step(ts) {
+      if (t0 === null) t0 = ts;
+      var k = Math.min(1, (ts - t0) / dur);
+      var e = 1 - Math.pow(1 - k, 3);
+      node.textContent = (from + (to - from) * e).toFixed(digits);
+      if (k < 1 && !document.hidden) requestAnimationFrame(step);
+      else node.textContent = to.toFixed(digits);
+    }
+    requestAnimationFrame(step);
+  }
+
+  $('submit').addEventListener('click', function () {
+    if (submitted) return;
+    submitted = true;
+    $('submit').disabled = true;
+    $('stamp').classList.add('on');
+    W.REGIONS.forEach(function (r) { chipNodes[r.id].disabled = true; });
+    var turn = $('turn');
+    turn.hidden = false;
+    watch(turn);
+    setTimeout(function () {
+      turn.scrollIntoView({ behavior: reduce() ? 'auto' : 'smooth', block: 'start' });
+    }, reduce() ? 0 : 520);
+  });
+
+  var ghosted = false;
+  $('ghostBtn').addEventListener('click', function () {
+    if (ghosted) return;
+    ghosted = true;
+    this.disabled = true;
+    this.textContent = '疊上去了';
+    $('bench').classList.add('hot');
+    $('bench').classList.add('faded');
+    $('plane').setAttribute('aria-label',
+      '同一架飛機，疊上推算的 20 架未返航機的命中位置：全部集中在機鼻、引擎與油箱');
+
+    lostHoles.forEach(function (h, i) {
+      var halo = el('circle', { cx: h.x.toFixed(1), cy: h.y.toFixed(1), r: (h.r + 4).toFixed(1), 'class': 'losthalo' });
+      var c = el('circle', { cx: h.x.toFixed(1), cy: h.y.toFixed(1), r: h.r.toFixed(1), 'class': 'lost' });
+      lostG.appendChild(halo); lostG.appendChild(c);
+      var d = reduce() ? 0 : 90 + i * 55;
+      setTimeout(function () { halo.classList.add('on'); c.classList.add('on'); }, d);
+    });
+
+    var base = W.planesLost([]), you = W.planesLost(picked), him = W.planesLost(W.WALD_PICK);
+    var after = $('afterGhost');
+    var delay = reduce() ? 0 : 90 + lostHoles.length * 55 + 250;
+    setTimeout(function () {
+      after.hidden = false;
+      $('sBase').textContent = base.toFixed(1);
+      roll($('sYou'), base, you, 1);
+      roll($('sHim'), base, him, 1);
+      $('sYouFx').textContent = '救回 ' + (base - you).toFixed(1) + ' 架';
+      $('sHimFx').textContent = '救回 ' + (base - him).toFixed(1) + ' 架';
+      var ratio = (base - him) / Math.max(0.05, (base - you));
+      var sameAsWald = W.WALD_PICK.every(function (id) { return picked.indexOf(id) >= 0; });
+      $('verdict').innerHTML = sameAsWald
+        ? '你選的正是他那三塊。恭喜——不過先別高興太早，他要的其實不是這個答案。'
+        : (ratio >= 3
+            ? '同樣三塊鋼板，同樣的重量。差別只在你相信了那張圖。<strong>那是十個機組，一百個人。</strong>'
+            : '你已經比多數人接近了。差別只在那張圖上最顯眼的東西，往往最不值得保護。');
+      watch(after);
+      var ch2 = $('ch2'); ch2.hidden = false; watch(ch2);
+    }, delay);
+  });
+
+  /* ---------------- 第三幕：轉動 q ---------------- */
+  var qs = $('qs'), needle = $('needle'), track = $('track');
+  var TMIN = 0.16, TMAX = 0.30, TARGET = W.waldTarget(), TOL = 0.0016;
+  var qLocked = false;
+
+  $('mark').style.left = pct(TARGET) + '%';
+  function pct(v) {
+    return Math.max(0, Math.min(100, (v - TMIN) / (TMAX - TMIN) * 100));
+  }
+  function eqHtml(q) {
+    var S = W.MEMO.S, N = W.MEMO.N, sup = ['', '', '²', '³', '⁴', '⁵'], parts = [];
+    for (var m = 1; m < S.length; m++) {
+      parts.push('<b>' + (S[m] / N).toFixed(3) + '</b>/q' + sup[m]);
+    }
+    return parts.join(' + ') + ' &nbsp;=&nbsp; <span class="tg">0.200</span>';
+  }
+  $('eq').innerHTML = eqHtml();
+
+  function updateQ() {
+    var q = parseFloat(qs.value);
+    var f = W.waldBalance(q);
+    $('qv').textContent = q.toFixed(3);
+    needle.style.left = pct(f) + '%';
+    var hit = Math.abs(f - TARGET) < TOL;
+    needle.classList.toggle('lock', hit);
+    $('lockmsg').classList.toggle('on', true);
+    $('lockmsg').textContent = hit
+      ? '平衡了。q = ' + q.toFixed(3) + '　左邊 = ' + f.toFixed(3)
+      : '左邊 = ' + f.toFixed(3) + '　' + (f > TARGET ? '太大了，把 q 調高' : '太小了，把 q 調低');
+    if (hit && !qLocked) lockQ(q);
+  }
+  function lockQ(q) {
+    qLocked = true;
+    var L = W.waldLosses(W.solveQ());
+    var max = Math.max.apply(null, L);
+    $('ltable').classList.add('on');
+    for (var i = 1; i <= 5; i++) {
+      (function (i) {
+        var bar = document.querySelector('.lrow .bar i[data-i="' + i + '"]');
+        setTimeout(function () {
+          bar.style.width = (L[i] / max * 100).toFixed(1) + '%';
+          $('L' + i).textContent = L[i].toFixed(1) + ' 架';
+        }, reduce() ? 0 : 120 + i * 130);
+      })(i);
+    }
+    var tot = L.reduce(function (a, b) { return a + b; }, 0);
+    setTimeout(function () {
+      $('Lt').textContent = tot.toFixed(1) + ' 架';
+      $('afterQ').hidden = false;
+      watch($('afterQ'));
+      var ch3 = $('ch3'); ch3.hidden = false; watch(ch3);
+      var end = $('end'); end.hidden = false; watch(end);
+    }, reduce() ? 0 : 900);
+  }
+  qs.addEventListener('input', updateQ);
+  updateQ();
+
+  /* ---------------- reduced-motion 動態切換 ---------------- */
+  function onRM() {
+    if (reduce()) {
+      var l = document.querySelectorAll('.rise:not(.in)');
+      for (var i = 0; i < l.length; i++) l[i].classList.add('in');
+      holeNodes.forEach(function (n) { n.classList.add('on'); });
+    } else { watch(document); }
+  }
+  if (rmq) {
+    if (rmq.addEventListener) rmq.addEventListener('change', onRM);
+    else if (rmq.addListener) rmq.addListener(onRM);
+  }
+
+  watch(document);
+})();
+</script>
+</body>
+</html>

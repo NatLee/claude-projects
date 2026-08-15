@@ -7,7 +7,10 @@
   /* ────────── 動畫偏好 ────────── */
   const mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
   let REDUCE = mqReduce.matches;
-  mqReduce.addEventListener('change', e => { REDUCE = e.matches; });
+  const onReduce = e => { REDUCE = e.matches; };
+  /* Safari 13 以前的 MediaQueryList 沒有 addEventListener；不擋著會在這裡拋錯、整個 IIFE 停擺 */
+  if (mqReduce.addEventListener) mqReduce.addEventListener('change', onReduce);
+  else if (mqReduce.addListener) mqReduce.addListener(onReduce);
 
   /* ────────── 資料 ────────── */
   const nf = n => n.toLocaleString('en-US');
@@ -246,7 +249,7 @@
     gGuess.appendChild(el('path', { class: 'guess-line' + (revealed ? ' settled' : ''), d: path(pts) }));
     if (!revealed) {
       const last = pts[pts.length - 1];
-      gGuess.appendChild(el('circle', { cx: X(last[0]), cy: Y(last[1]), r: 4, fill: 'var(--guess)' }));
+      gGuess.appendChild(el('circle', { cx: X(last[0]), cy: Y(last[1]), r: 4, class: 'guess-dot' }));
     }
   }
 
@@ -255,7 +258,7 @@
     if (cursorYear == null || revealed || !guess.has(cursorYear)) return;
     const px = X(cursorYear), v = guess.get(cursorYear), py = Y(v);
     gCursor.appendChild(el('line', { class: 'cursor-line', x1: px, x2: px, y1: M.t, y2: M.t + PH }));
-    gCursor.appendChild(el('circle', { cx: px, cy: py, r: 5, fill: 'var(--guess)' }));
+    gCursor.appendChild(el('circle', { cx: px, cy: py, r: 5, class: 'guess-dot' }));
     const t = el('text', {
       class: 'cursor-txt', x: clamp(px, M.l + 30, M.l + PW - 30), y: Math.max(M.t + 14, py - 12),
       'text-anchor': 'middle'
@@ -406,8 +409,9 @@
       dot.setAttribute('opacity', 1);
       gTruth.appendChild(dot);
       const lbl = el('text', {
-        class: 'cursor-txt', x: clamp(X(y1), M.l + 40, M.l + PW - 34), y: Math.max(M.t + 16, Y(endT) - 16),
-        'text-anchor': 'end', fill: 'var(--truth)'
+        /* 真相標籤要用 --truth 紅：靠 class 上色，presentation attribute 會被 .cursor-txt 的 CSS 蓋掉 */
+        class: 'cursor-txt truth-lbl', x: clamp(X(y1), M.l + 40, M.l + PW - 34), y: Math.max(M.t + 16, Y(endT) - 16),
+        'text-anchor': 'end'
       });
       lbl.textContent = D.fmt(endT);
       gTruth.appendChild(lbl);

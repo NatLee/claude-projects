@@ -890,17 +890,24 @@
       elOf.textContent = '／ 共 ' + App.points.length + ' 個點';
     }
 
-    /* 可見性：離屏 / 分頁隱藏時暫停 rAF */
+    /* 可見性：離屏 / 分頁隱藏時暫停 rAF。
+       兩個條件要一起看——只憑 visibilitychange 決定的話，畫布被捲出畫面後
+       只要切走分頁再切回來，迴圈就會在看不見的地方重新跑起來。 */
+    var onScreen = true;
+    function syncAlive() {
+      alive = onScreen && !document.hidden;
+      if (alive) ensureLoop(); else stopLoop();
+    }
     if ('IntersectionObserver' in window) {
       var io = new IntersectionObserver(function (e) {
-        alive = e[0].isIntersecting && !document.hidden;
-        if (alive) ensureLoop(); else stopLoop();
+        onScreen = e[0].isIntersecting;
+        syncAlive();
       }, { threshold: 0 });
       io.observe(stage);
     }
     document.addEventListener('visibilitychange', function () {
-      alive = !document.hidden;
-      if (alive) { fitCanvas(); draw(); ensureLoop(); } else stopLoop();
+      if (!document.hidden && onScreen) { fitCanvas(); draw(); }
+      syncAlive();
     });
     window.addEventListener('resize', function () { debounce(function () { fitCanvas(); draw(); }, 120); });
   }

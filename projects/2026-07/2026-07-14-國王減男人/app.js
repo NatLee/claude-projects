@@ -635,14 +635,25 @@
       var fill = li.querySelector('.nb-fill');
       var target = li._frac;
       if (reduceMotion || !machine.alive) { fill.style.transform = 'scaleX(' + target + ')'; }
-      else { fill.style.transform = 'scaleX(0)'; requestAnimationFrame(function () { fill.style.transform = 'scaleX(' + target + ')'; }); }
+      else {
+        /* 重播長條動畫：關掉 transition → 歸零 → 強制 reflow → 下一個 rAF 才開 transition。
+           少了那次 reflow，瀏覽器會把「歸零」和「設目標」合併成同一次樣式計算，長條就直接跳到底不動畫。 */
+        fill.style.transition = 'none';
+        fill.style.transform = 'scaleX(0)';
+        fill.getBoundingClientRect();
+        requestAnimationFrame(function () {
+          fill.style.transition = '';
+          fill.style.transform = 'scaleX(' + target + ')';
+        });
+      }
       var id = li.getAttribute('data-id');
       if (!reduceMotion && machine.alive && firstPos[id] != null) {
         var last = li.getBoundingClientRect().top;
         var dy = firstPos[id] - last;
         if (Math.abs(dy) > 1) {
-          li.style.transform = 'translateY(' + dy + 'px)';
           li.style.transition = 'none';
+          li.style.transform = 'translateY(' + dy + 'px)';
+          li.getBoundingClientRect();   // 同上：先讓「起點」被記下來，FLIP 才會真的滑
           requestAnimationFrame(function () {
             li.style.transition = 'transform .45s cubic-bezier(.22,1,.36,1)';
             li.style.transform = '';

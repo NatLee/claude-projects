@@ -336,7 +336,7 @@
     var pre = PRESETS[size], p = compliance(n, pre.K, pre.C), pct = p * 100;
     shots.value = n;
     shots.style.setProperty('--fill', (n / AXIS.X_MAX * 100) + '%');
-    shots.setAttribute('aria-valuetext', n + ' 筆假範例');
+    shots.setAttribute('aria-valuetext', n + ' 筆假範例，配合率約 ' + pct.toFixed(1) + '%');
     shotsOut.textContent = n + ' 筆';
     stackCountEl.textContent = n;
     meterFill.style.width = Math.max(2, pct) + '%';

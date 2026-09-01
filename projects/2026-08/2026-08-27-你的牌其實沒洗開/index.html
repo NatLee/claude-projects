@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你的牌其實沒洗開 ♠ 洗七次之前,牌都記得</title>
+<style>
+:root{
+  --felt:#0d3b2b; --felt-d:#07231a; --cream:#f2ead8; --dim:#b8ad93;
+  --gold:#e8c264; --red:#ff6b5e; --green:#6ee7a0; --line:#2c5c48;
+  --card-bg:#123f2f;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; color:var(--cream);
+  background:radial-gradient(1100px 640px at 50% -8%, #16563f 0%, var(--felt) 45%, var(--felt-d) 100%) fixed;
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  line-height:1.85; letter-spacing:.02em;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px}
+a{color:var(--dim)}
+a:focus-visible,button:focus-visible{outline:2px dashed var(--gold);outline-offset:3px;border-radius:4px}
+.back{display:inline-block;margin:14px 0 0;font-size:.82rem;text-decoration:none;opacity:.7}
+.back:hover{opacity:1;color:var(--gold)}
+.kicker{color:var(--gold);font-size:.85rem;letter-spacing:.35em;margin:44px 0 6px}
+h1{font-size:clamp(1.9rem,6vw,3rem);margin:.1em 0 .4em;line-height:1.25}
+h2{font-size:clamp(1.25rem,4vw,1.6rem);color:var(--gold);margin:0 0 .6em}
+p{margin:.9em 0}
+.hook{font-size:1.06rem}
+.hook em{font-style:normal;color:var(--gold)}
+section{margin:72px 0}
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+.table-rim{
+  background:linear-gradient(180deg,#0f4433,#0b3527);
+  border:1px solid var(--line);border-radius:14px;padding:18px 16px 14px;
+  box-shadow:0 12px 40px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.deck-svg{width:100%;height:auto;display:block}
+#deckG{filter:drop-shadow(0 3px 4px rgba(0,0,0,.45))}
+#deckG rect{will-change:transform}
+.deck-status{display:flex;gap:1.4em;flex-wrap:wrap;font-size:.85rem;color:var(--dim);margin-top:10px}
+.deck-status b{color:var(--cream);font-variant-numeric:tabular-nums}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin:18px 0 4px}
+button{
+  font:inherit;cursor:pointer;border-radius:10px;padding:.65em 1.3em;
+  border:1px solid var(--line);background:var(--card-bg);color:var(--cream);
+  transition:transform .15s ease,border-color .15s ease;
+}
+button:hover:not(:disabled){transform:translateY(-2px);border-color:var(--gold)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn-main{background:linear-gradient(180deg,#8c1f1f,#6d1414);border-color:#a94848;font-weight:700}
+.btn-magic{border-color:#5a4a8a;background:#241b3d}
+.memory{font-size:.8rem;color:var(--dim);min-height:1.4em;margin-top:8px}
+.meters{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0}
+.meter{
+  background:rgba(0,0,0,.22);border:1px solid var(--line);border-radius:12px;
+  padding:12px 14px;
+}
+.meter .lbl{font-size:.75rem;color:var(--dim);letter-spacing:.08em}
+.meter .val{font-size:1.7rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.3}
+.meter .sub{font-size:.72rem;color:var(--dim)}
+.rbar{height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-top:8px}
+.rbar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--red),var(--gold),var(--green));
+  transform-origin:left;transform:scaleX(.02);transition:transform .5s ease}
+.chart-svg{width:100%;height:auto;display:block;margin-top:6px}
+.caption{
+  min-height:3.2em;border-left:3px solid var(--gold);padding:.2em 0 .2em 1em;
+  color:var(--cream);font-size:.98rem;margin-top:16px;
+}
+.note{font-size:.86rem;color:var(--dim)}
+.cliff-panel{
+  border:1px solid #7a3b34;background:linear-gradient(180deg,rgba(120,40,32,.25),rgba(0,0,0,.15));
+  border-radius:14px;padding:22px 24px;
+}
+.cliff-panel[hidden]{display:none}
+.bigline{
+  font-size:clamp(1.3rem,4.5vw,1.9rem);font-weight:700;color:var(--gold);
+  text-align:center;margin:1.6em 0;line-height:1.6;
+}
+.magic-status{font-size:.9rem;color:var(--dim);min-height:1.6em;margin-top:10px;font-variant-numeric:tabular-nums}
+.magic-result{color:var(--gold);font-weight:700}
+footer{
+  border-top:1px solid var(--line);margin-top:80px;padding:20px 0 40px;
+  font-size:.78rem;color:var(--dim);
+}
+footer p{margin:.3em 0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (max-width:560px){
+  .meters{grid-template-columns:1fr}
+  .btn-row{flex-direction:column}
+  button{width:100%}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none !important;animation:none !important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../../../index.html">← 回首頁</a>
+
+  <header>
+    <p class="kicker">♠ 牌桌上 · 生活痛點小工具</p>
+    <h1>你的牌其實沒洗開</h1>
+    <div class="hook">
+      <p>綠絨桌上,一副新牌。52 張,從紅到紫,一道被壓平的彩虹——這是它出廠的順序。</p>
+      <p>你上次玩牌,洗了幾次?三次?<em>那副牌根本記得自己原來的樣子。</em></p>
+      <p>不信?桌子讓給你。自己洗。</p>
+    </div>
+  </header>
+
+  <section aria-label="洗牌模擬桌">
+    <div class="table-rim">
+      <svg id="deckSvg" class="deck-svg" viewBox="0 0 780 120" role="img" aria-label="52 張牌的色帶圖,尚未洗牌,彩虹完整">
+        <g id="deckG"></g>
+      </svg>
+      <div class="deck-status">
+        <span>已洗 <b id="kVal">0</b> 次</span>
+        <span>上升序列 <b id="rInline">1</b> 條</span>
+        <span>距離全亂 <b id="tvdInline">1.000</b></span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button id="btnRiffle" class="btn-main" aria-label="鴿尾式洗牌一次">♠ 洗一次(鴿尾式)</button>
+      <button id="btnReset" aria-label="重來一副照順序的新牌">重來一副新牌</button>
+    </div>
+    <p class="memory" id="memory"></p>
+    <div class="caption" id="caption" aria-live="polite">牌背的每一條顏色,代表那張牌在原始順序裡的位置。現在,按下「洗一次」。</div>
+  </section>
+
+  <section class="reveal" aria-label="儀表說明">
+    <h2>儀表在看什麼</h2>
+    <div class="meters">
+      <div class="meter"><div class="lbl">洗牌次數</div><div class="val" id="kBig">0</div><div class="sub">Bayer–Diaconis 說:52 張要七次</div></div>
+      <div class="meter"><div class="lbl">上升序列</div><div class="val"><span id="rBig">1</span> 條</div>
+        <div class="rbar"><i id="rBar"></i></div>
+        <div class="sub">新牌 1 條;真亂平均約 26.5 條</div></div>
+      <div class="meter"><div class="lbl">距離全亂(總變差)</div><div class="val" id="tvdBig">1.000</div><div class="sub">1 = 紋風不動;0 = 徹底隨機</div></div>
+    </div>
+    <p>「上升序列」:把牌攤開,能串出幾條由小到大的斷續連線。魔術師靠它猜你的牌;Bayer 和 Diaconis 靠它,把整個洗牌過程算到見骨。</p>
+    <p>「距離全亂」:你手上這副牌的可能長相,跟完全隨機差多遠。這條線<strong>不是模擬統計出來的,是用他們的公式精確算的</strong>。每洗一次,曲線多描一個點。</p>
+    <div class="table-rim">
+      <svg id="chartSvg" class="chart-svg" viewBox="0 0 360 210" role="img" aria-label="總變差距離對洗牌次數的曲線圖">
+        <defs>
+          <linearGradient id="tvdGrad" gradientUnits="userSpaceOnUse" x1="34" y1="0" x2="344" y2="0">
+            <stop offset="0" stop-color="#ff6b5e"/>
+            <stop offset="0.55" stop-color="#e8c264"/>
+            <stop offset="1" stop-color="#6ee7a0"/>
+          </linearGradient>
+        </defs>
+        <g stroke="#2c5c48" stroke-width="1">
+          <line x1="34" y1="16" x2="344" y2="16"/><line x1="34" y1="98" x2="344" y2="98"/><line x1="34" y1="180" x2="344" y2="180"/>
+        </g>
+        <g fill="#b8ad93" font-size="9">
+          <text x="6" y="19">1.0</text><text x="6" y="101">0.5</text><text x="6" y="183">0.0</text>
+          <text x="31" y="196">0</text><text x="108" y="196">3</text><text x="212" y="196">7</text><text x="340" y="196">12</text>
+          <text x="200" y="207" font-size="8">— 洗牌次數 →</text>
+        </g>
+        <g id="cliffMark" opacity="0" style="transition:opacity .8s ease">
+          <line x1="214.8" y1="16" x2="214.8" y2="180" stroke="#ff6b5e" stroke-width="1" stroke-dasharray="3 4"/>
+          <text x="219" y="30" fill="#ff6b5e" font-size="10">第 7 次:斷崖</text>
+        </g>
+        <path id="ghostPath" d="" fill="none" stroke="#b8ad93" stroke-width="1" stroke-dasharray="2 4" opacity="0" style="transition:opacity .8s ease"/>
+        <g style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">
+          <path id="tvdPath" d="" fill="none" stroke="url(#tvdGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <g id="dots"></g>
+      </svg>
+    </div>
+    <p class="note">洗三次、四次、五次,回頭看看牌背——色帶還一縷一縷的。結構陰魂不散。繼續。</p>
+  </section>
+
+  <section class="reveal">
+    <div class="cliff-panel" id="cliffPanel" hidden>
+      <h2>這就是「斷崖」(cutoff)</h2>
+      <p>你剛剛看到的不是漸層,是斷裂。前四次,距離死死釘在 1.000(第四次其實是 0.99999997——連一根頭髮都沒靠近)。第五次 0.924,第六次 0.614,<strong>第七次 0.334,直接跳崖</strong>,之後 0.167、0.085,一路砍半。</p>
+      <p>數學家叫它 cutoff:亂不是慢慢滲進來的,是某一刻整個灌進來的。這就是「洗七次」的由來——Bayer 與 Diaconis 在 1992 年用鴿尾式洗牌的 GSR 模型,精確證明 52 張牌要過第七次,才算跨過那道崖。</p>
+      <p class="note">順帶一提:算出這件事的 Persi Diaconis,十四歲離家跟著魔術師跑江湖,後來成了史丹佛的數學教授。他洗牌,是兩種意義上的職業級。</p>
+    </div>
+  </section>
+
+  <section class="reveal" aria-label="魔術師模式">
+    <h2>可是——洗得越漂亮越好嗎?</h2>
+    <p>牌桌上最漂亮的洗法叫 faro:整副精準對半,一張隔一張,完美交錯,零誤差。賭場老手練十年,練的就是這一手。</p>
+    <p>按下去,讓它連洗八次。盯著牌背。</p>
+    <div class="btn-row">
+      <button id="btnMagic" class="btn-magic" aria-label="魔術師模式,連續八次完美faro洗牌">🎩 魔術師模式:完美洗牌 ×8</button>
+    </div>
+    <p class="magic-status" id="magicStatus" aria-live="polite"></p>
+  </section>
+
+  <section class="reveal">
+    <p class="bigline">亂不是漸漸來的,<br>亂是突然來的。</p>
+    <p>洗八次「完美」的牌,一張都沒動;洗七次「笨拙」的牌,才真的亂了。真正的隨機,靠的是你手上那點不完美的誤差。</p>
+    <p>這篇論文之後,拉斯維加斯的大賭場把發牌前的洗牌標準改成<strong>七次</strong>,頂級橋牌賽事乾脆放棄人手,改用電腦發牌。</p>
+    <p>那,你家牌局呢?上次那副只洗三次就開打的牌——想想看,全桌記牌記得最熟的,是誰?</p>
+    <p><em>是牌自己。</em></p>
+  </section>
+
+  <footer>
+    <p>♠ 每日小專案 · 2026-08-27</p>
+    <p>模型與數據:Bayer &amp; Diaconis (1992), “Trailing the Dovetail Shuffle to Its Lair”, Ann. Appl. Probab. 2(2): 294–313</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const LS='shuf7.';
+const N=52, SLOT=15, CARD_W=13, MAXK=16, CHART_MAXK=12;
+
+/* ---------- 純函式:核心邏輯 ---------- */
+
+// GSR 鴿尾式洗牌:二項分布切牌 + 依牌疊厚度比例交錯落下
+function gsrShuffle(deck, rng){
+  const n=deck.length;
+  let cut=0;
+  for(let i=0;i<n;i++) if(rng()<0.5) cut++;
+  const L=deck.slice(0,cut), R=deck.slice(cut), out=[];
+  let i=0, j=0;
+  while(i<L.length || j<R.length){
+    const a=L.length-i, b=R.length-j;
+    if(rng()*(a+b)<a) out.push(L[i++]); else out.push(R[j++]);
+  }
+  return {deck:out, cut:cut};
+}
+
+// 上升序列數:r = 1 + #{v : 牌 v 的位置在牌 v-1 之前}
+function risingSeqs(deck){
+  const pos=new Array(deck.length);
+  deck.forEach(function(c,i){ pos[c]=i; });
+  let r=1;
+  for(let v=1;v<deck.length;v++) if(pos[v]<pos[v-1]) r++;
+  return r;
+}
+
+// 歐拉數列(第 n 列):row[r-1] = 恰有 r 條上升序列的排列數
+function eulerianRow(n){
+  let row=[1];
+  for(let m=2;m<=n;m++){
+    const nr=new Array(m).fill(0);
+    for(let r=1;r<=m;r++){
+      nr[r-1]=r*(row[r-1]||0)+(m-r+1)*(row[r-2]||0);
+    }
+    row=nr;
+  }
+  return row;
+}
+
+// C(m, n) 浮點值
+function binomOver(m,n){
+  if(m<n) return 0;
+  let v=1;
+  for(let i=0;i<n;i++) v=v*(m-i)/(i+1);
+  return v;
+}
+
+// Bayer–Diaconis 精確 TVD:‖Q^k − U‖ = ½ Σ_r A(n,r)·|C(2^k+n−r, n)/2^{kn} − 1/n!|
+function tvdExact(n,k,row){
+  const two=Math.pow(2,n*k), m=Math.pow(2,k);
+  let fact=1;
+  for(let i=2;i<=n;i++) fact*=i;
+  const u=1/fact;
+  let s=0;
+  for(let r=1;r<=n;r++) s+=row[r-1]*Math.abs(binomOver(m+n-r,n)/two-u);
+  return s/2;
+}
+
+// 完美 faro(out-shuffle):對半後一張隔一張交錯;52 張洗 8 次復原
+function faroOut(deck){
+  const n=deck.length, h=n>>1, out=new Array(n);
+  for(let i=0;i<h;i++){ out[2*i]=deck[i]; out[2*i+1]=deck[h+i]; }
+  return out;
+}
+
+/* ---------- 環境旗標 ---------- */
+const rmq=matchMedia('(prefers-reduced-motion: reduce)');
+let RM=rmq.matches;
+rmq.addEventListener('change',function(e){ RM=e.matches; });
+
+let deckVisible=true, chartVisible=true;
+
+/* ---------- 預算 TVD 表 ---------- */
+const EROW=eulerianRow(N);
+const TVD=[];
+for(let k=0;k<=MAXK;k++) TVD.push(tvdExact(N,k,EROW));
+
+/* ---------- DOM ---------- */
+const $=function(id){ return document.getElementById(id); };
+const deckSvg=$('deckSvg'), deckG=$('deckG'), tvdPath=$('tvdPath'), dotsG=$('dots');
+const caption=$('caption');
+
+let deck=[], rects=[], kCount=0, busy=false, prevLen=0, pts=[];
+let magicTimer=0, magicState=null;
+
+for(let c=0;c<N;c++){
+  const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  rect.setAttribute('y',8); rect.setAttribute('width',CARD_W);
+  rect.setAttribute('height',104); rect.setAttribute('rx',2);
+  rect.setAttribute('fill','hsl('+(c*280/(N-1))+' 74% 55%)');
+  deckG.appendChild(rect); rects.push(rect);
+}
+
+function renderDeck(){
+  deck.forEach(function(c,i){ rects[c].setAttribute('x', i*SLOT+1); });
+}
+
+// FLIP:先落位,再從舊位置(含上下分疊)滑回來;只動 transform
+function shiftDeck(newDeck, dyOf){
+  const oldX={};
+  deck.forEach(function(c,i){ oldX[c]=i*SLOT+1; });
+  deck=newDeck;
+  renderDeck();
+  if(RM||document.hidden||!deckVisible){
+    deck.forEach(function(c){ rects[c].style.transition='none'; rects[c].style.transform='none'; });
+    return;
+  }
+  deck.forEach(function(c,i){
+    const el=rects[c];
+    el.style.transition='none';
+    el.style.transform='translate('+(oldX[c]-(i*SLOT+1))+'px,'+(dyOf?dyOf(c):0)+'px)';
+  });
+  deckG.getBoundingClientRect(); // 強制 reflow
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    deck.forEach(function(c,i){
+      const el=rects[c];
+      el.style.transition='transform .5s cubic-bezier(.22,.9,.3,1) '+(i*7)+'ms';
+      el.style.transform='translate(0,0)';
+    });
+  });});
+}
+
+/* ---------- 曲線圖 ---------- */
+function cx(k){ return 34+k*310/CHART_MAXK; }
+function cy(t){ return 180-t*164; }
+
+// dasharray 重播:transition none → 藏住新段 → 強制 reflow → 下一 rAF 依繪製方向(左→右)放行
+function drawPath(){
+  const d=pts.map(function(p,i){ return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }).join(' ');
+  tvdPath.setAttribute('d',d);
+  if(pts.length<2){ prevLen=0; return; }
+  const L=tvdPath.getTotalLength();
+  if(RM||document.hidden||!chartVisible){
+    tvdPath.style.transition='none';
+    tvdPath.style.strokeDasharray='none';
+    prevLen=L; return;
+  }
+  tvdPath.style.transition='none';
+  tvdPath.style.strokeDasharray=L+' '+L;
+  tvdPath.style.strokeDashoffset=(L-prevLen);
+  tvdPath.getBoundingClientRect(); // 強制 reflow
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    tvdPath.style.transition='stroke-dashoffset .6s ease-out';
+    tvdPath.style.strokeDashoffset='0';
+  });});
+  prevLen=L;
+}
+
+function addPoint(k){
+  if(k>CHART_MAXK) return;
+  pts.push([cx(k), cy(TVD[k])]);
+  drawPath();
+  const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  dot.setAttribute('cx',cx(k)); dot.setAttribute('cy',cy(TVD[k])); dot.setAttribute('r',3);
+  dot.setAttribute('fill', k>=7?'#6ee7a0':'#e8c264');
+  if(!RM&&!document.hidden){
+    dot.style.opacity='0'; dot.style.transition='opacity .5s ease .3s';
+    requestAnimationFrame(function(){ dot.style.opacity='1'; });
+  }
+  dotsG.appendChild(dot);
+}
+
+function showGhost(){
+  let d='';
+  for(let k=0;k<=CHART_MAXK;k++) d+=(k?'L':'M')+cx(k).toFixed(1)+' '+cy(TVD[k]).toFixed(1)+' ';
+  $('ghostPath').setAttribute('d',d);
+  $('ghostPath').style.opacity='.6';
+  $('cliffMark').style.opacity='1';
+}
+
+/* ---------- 儀表 ---------- */
+function fmtTvd(k){ return k<=MAXK ? TVD[k].toFixed(3) : '<0.001'; }
+
+// rAF 節流補間(約 25fps),分頁隱藏即跳到終值
+function tween(el, from, to, ms){
+  if(RM||document.hidden||Math.abs(to-from)<0.0005){ el.textContent=to.toFixed(3); return; }
+  const t0=performance.now();
+  let last=0;
+  function step(t){
+    if(document.hidden){ el.textContent=to.toFixed(3); return; }
+    const p=Math.min(1,(t-t0)/ms);
+    if(t-last>40||p===1){ last=t; const e=(2-p)*p; el.textContent=(from+(to-from)*e).toFixed(3); }
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+let shownTvd=1;
+function updateMeters(){
+  const r=risingSeqs(deck);
+  $('kVal').textContent=kCount; $('kBig').textContent=kCount;
+  $('rInline').textContent=r; $('rBig').textContent=r;
+  $('rBar').style.transform='scaleX('+(r/N)+')';
+  const t=kCount<=MAXK?TVD[kCount]:0;
+  $('tvdInline').textContent=fmtTvd(kCount);
+  tween($('tvdBig'), shownTvd, t, 600);
+  shownTvd=t;
+  deckSvg.setAttribute('aria-label','52 張牌的色帶圖,已洗 '+kCount+' 次,上升序列 '+r+' 條,距離全亂 '+fmtTvd(kCount));
+}
+
+/* ---------- 敘事 ---------- */
+const LINES={
+  1:'一次。彩虹被切成兩疊、交錯、併攏。瞇眼看——大段色帶原封不動。',
+  2:'兩次。條紋細了一點。也只是細了一點。儀表:還是 1.000。',
+  3:'三次。你上次牌局大概就停在這裡,然後開打。看看它:還是一縷一縷的。',
+  4:'四次。儀表寫 1.000?其實是 0.99999997。洗了四次,距離真亂連一根頭髮都沒靠近。',
+  5:'五次。指針終於動了:0.924。別高興,這只是鬆了一顆螺絲。',
+  6:'六次。0.614。有東西開始崩。再一次。',
+  7:'七次。0.334——跳崖。看牌背:色帶碎成噪點了。你親手洗出了這個斷崖。往下看。',
+  8:'八次。0.167。之後每洗一次,距離大約砍半。戲演完了——主角永遠是第七次。'
+};
+function narrate(k){
+  caption.textContent=LINES[k]||('第 '+k+' 次。'+fmtTvd(k)+'。收益遞減——夠了,它真的亂了。');
+}
+
+/* ---------- localStorage ---------- */
+function lsGet(key){ try{ return localStorage.getItem(LS+key); }catch(e){ return null; } }
+function lsSet(key,v){ try{ localStorage.setItem(LS+key,v); }catch(e){} }
+
+let life=parseInt(lsGet('life'),10)||0;
+function persist(){
+  life++; lsSet('life',String(life));
+  if(kCount>=7) lsSet('cliff','1');
+}
+(function(){
+  if(life>0){
+    $('memory').textContent='(這張桌子記得你:你已經在這裡洗過 '+life+' 次牌'+(lsGet('cliff')?',也親眼看過那道斷崖':'')+'。)';
+  }
+})();
+
+/* ---------- 互動 ---------- */
+$('btnRiffle').addEventListener('click',function(){
+  if(busy) return;
+  busy=true;
+  const wasIdx={};
+  deck.forEach(function(c,i){ wasIdx[c]=i; });
+  const res=gsrShuffle(deck, Math.random);
+  kCount++;
+  shiftDeck(res.deck, function(c){ return wasIdx[c]<res.cut?-46:46; });
+  updateMeters(); addPoint(kCount); narrate(kCount); persist();
+  if(kCount>=7 && $('cliffPanel').hidden){ $('cliffPanel').hidden=false; showGhost(); }
+  setTimeout(function(){ busy=false; }, RM?60:780);
+});
+
+function resetDeck(){
+  deck=[]; for(let c=0;c<N;c++) deck.push(c);
+  kCount=0; pts=[]; prevLen=0; shownTvd=1;
+  tvdPath.setAttribute('d',''); tvdPath.style.strokeDasharray='none';
+  while(dotsG.firstChild) dotsG.removeChild(dotsG.firstChild);
+  renderDeck(); updateMeters(); addPoint(0);
+  $('magicStatus').textContent='';
+}
+
+$('btnReset').addEventListener('click',function(){
+  if(busy) return;
+  resetDeck();
+  caption.textContent='新的一副。彩虹完好如初,順序 1 到 52。再洗一輪?這次數到七。';
+});
+
+/* 魔術師模式:faro ×8 */
+function magicStep(){
+  magicState.step++;
+  shiftDeck(faroOut(deck), function(c){
+    // faro 前的索引:此刻 deck 已更新,用洗前快照判斷分疊
+    return magicState.prev.indexOf(c)<26?-46:46;
+  });
+  magicState.prev=deck.slice();
+  $('magicStatus').textContent='faro 第 '+magicState.step+' / 8 次…(這不是隨機洗牌,儀表暫時罷工)';
+  if(magicState.step<8){
+    magicTimer=setTimeout(magicStep, RM?90:850);
+  }else{
+    finishMagic();
+  }
+}
+function finishMagic(){
+  magicTimer=0;
+  const same=deck.every(function(c,i){ return c===magicState.before[i]; });
+  $('magicStatus').innerHTML='<span class="magic-result">'+(same
+    ?'八次「完美」洗牌。52 張,一張都沒動,和洗之前完全相同。洗得太完美,等於沒洗。'
+    :'咦,牌沒有復原——這不該發生。')+'</span>';
+  caption.textContent='剛剛那八次,不算數。真正的亂,靠的是你手上那點笨拙的誤差。';
+  $('btnRiffle').disabled=false; $('btnReset').disabled=false; $('btnMagic').disabled=false;
+  busy=false; magicState=null;
+}
+$('btnMagic').addEventListener('click',function(){
+  if(busy) return;
+  busy=true;
+  $('btnRiffle').disabled=true; $('btnReset').disabled=true; $('btnMagic').disabled=true;
+  magicState={step:0, before:deck.slice(), prev:deck.slice()};
+  magicStep();
+});
+
+/* 分頁隱藏:快轉魔術序列 */
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden && magicState && magicTimer){
+    clearTimeout(magicTimer); magicTimer=0;
+    while(magicState.step<8){ deck=faroOut(deck); magicState.step++; }
+    renderDeck(); finishMagic();
+  }
+});
+
+/* IntersectionObserver:段落浮現 + 離屏停動畫 */
+const io=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){
+    if(e.target===deckSvg){ deckVisible=e.isIntersecting; return; }
+    if(e.target===$('chartSvg')){ chartVisible=e.isIntersecting; return; }
+    if(e.isIntersecting) e.target.classList.add('in');
+  });
+},{threshold:.08});
+document.querySelectorAll('.reveal').forEach(function(el){ io.observe(el); });
+io.observe(deckSvg); io.observe($('chartSvg'));
+
+/* 鍵盤:在牌桌區按 S 也能洗 */
+document.addEventListener('keydown',function(e){
+  if((e.key==='s'||e.key==='S') && !e.ctrlKey && !e.metaKey && !e.altKey
+     && document.activeElement && document.activeElement.tagName!=='INPUT'){
+    $('btnRiffle').click();
+  }
+});
+
+resetDeck();
+</script>
+</body>
+</html>

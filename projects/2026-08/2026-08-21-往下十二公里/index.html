@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>往下十二公里——科拉超深鑽孔 SG-3</title>
+<style>
+:root{
+  --bg:#0b0a09; --ink:#e8e2d8; --dim:#9a9184; --faint:#5d564c;
+  --rust:#b4552a; --rust2:#7a3a1e; --amber:#e0a33c; --hot:#ff5a36;
+  --steel:#8fa3b0; --card:#161311; --line:#2a2521; --ok:#7fb08a;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scrollbar-color:var(--rust2) var(--bg)}
+@media (prefers-reduced-motion:no-preference){ html{scroll-behavior:smooth} }
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  line-height:1.75; overflow-x:hidden;
+}
+a{color:var(--amber)}
+:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.home{
+  position:fixed;top:14px;left:16px;z-index:50;font-size:.82rem;
+  color:var(--faint);text-decoration:none;padding:4px 8px;
+}
+.home:hover{color:var(--dim)}
+
+/* ---------- 第一屏：井口 ---------- */
+.hero{
+  min-height:100svh;display:flex;flex-direction:column;justify-content:center;
+  align-items:center;text-align:center;padding:9vh 24px 6vh;position:relative;
+}
+.hero .cap{width:min(320px,78vw);height:auto}
+.hero h1{
+  font-size:clamp(1.5rem,4.6vw,2.5rem);font-weight:800;letter-spacing:.04em;
+  margin:34px 0 14px;max-width:22em;
+}
+.hero .sub{color:var(--dim);max-width:32em;font-size:.98rem}
+.hero .again{color:var(--faint);font-size:.85rem;margin-top:10px;min-height:1.5em}
+.hint{
+  margin-top:7vh;color:var(--faint);font-size:.88rem;letter-spacing:.25em;
+}
+.hint::after{content:"▼";display:block;margin-top:6px;letter-spacing:0}
+@media (prefers-reduced-motion:no-preference){
+  .hint::after{animation:bob 1.8s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+}
+
+/* ---------- 井身 ---------- */
+.well{
+  position:relative;
+  background:linear-gradient(180deg,#141110 0,#191310 14%,#1c130c 38%,#20130a 62%,#241108 82%,#2a0f06 100%);
+  border-top:1px solid var(--line);border-bottom:1px solid #3a1508;
+}
+.bore{position:absolute;left:50%;top:0;transform:translateX(-40px);pointer-events:none}
+.bit{
+  position:absolute;left:50%;top:0;width:14px;height:14px;margin-left:-7px;
+  border-radius:50%;background:radial-gradient(circle,#ffd9a0 0,var(--amber) 45%,rgba(224,163,60,0) 75%);
+  will-change:transform;pointer-events:none;
+}
+.tick{
+  position:absolute;left:calc(50% + 26px);color:var(--faint);font-size:.72rem;
+  letter-spacing:.06em;border-top:1px solid var(--line);padding:2px 0 0 6px;width:92px;
+}
+.mark{
+  position:absolute;left:calc(50% - 168px);width:130px;text-align:right;
+  color:var(--faint);font-size:.72rem;border-bottom:1px dashed var(--line);
+  padding:0 8px 2px 0;transform:translateY(-100%);
+}
+.card{
+  position:absolute;width:min(340px,42vw);
+  background:var(--card);border:1px solid var(--line);border-radius:10px;
+  padding:16px 18px;opacity:0;transform:translateY(26px);
+}
+@media (prefers-reduced-motion:no-preference){
+  .card{transition:opacity .7s ease,transform .7s ease}
+}
+.card.seen{opacity:1;transform:none}
+.card.L{right:calc(50% + 56px)}
+.card.R{left:calc(50% + 56px)}
+.card .d{
+  font-size:.74rem;color:var(--amber);letter-spacing:.12em;
+  font-variant-numeric:tabular-nums;margin-bottom:4px;
+}
+.card h2{font-size:1.02rem;margin-bottom:6px;font-weight:700}
+.card p{font-size:.9rem;color:var(--dim)}
+.card em{color:var(--ink);font-style:normal}
+
+/* ---------- HUD ---------- */
+.hud{
+  position:fixed;right:14px;top:50%;transform:translateY(-50%) translateX(120%);
+  z-index:40;background:rgba(14,12,10,.88);border:1px solid var(--line);
+  border-radius:10px;padding:12px 14px;font-variant-numeric:tabular-nums;
+  font-size:.8rem;color:var(--dim);min-width:118px;opacity:0;will-change:transform,opacity;
+}
+@media (prefers-reduced-motion:no-preference){
+  .hud{transition:transform .5s ease,opacity .5s ease}
+}
+.hud.on{transform:translateY(-50%) translateX(0);opacity:1}
+.hud b{display:block;font-size:1.05rem;color:var(--ink);font-weight:700}
+.hud .row+.row{margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+.hud .warm b{color:var(--amber)}
+.hud .hot b{color:var(--hot)}
+
+/* ---------- 高潮 ---------- */
+.stall{
+  min-height:100svh;display:flex;align-items:center;justify-content:center;
+  padding:14vh 24px;background:linear-gradient(180deg,#2a0f06 0,#170a05 30%,#0d0806 100%);
+}
+.panel{max-width:560px;width:100%;text-align:center}
+.panel .lead{font-size:clamp(1.15rem,3.4vw,1.55rem);font-weight:800;margin-bottom:10px}
+.panel .why{color:var(--dim);font-size:.94rem;margin-bottom:26px}
+.gauges{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;
+  font-variant-numeric:tabular-nums;
+}
+.g{
+  background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:10px 16px;font-size:.78rem;color:var(--dim);min-width:120px;
+}
+.g b{display:block;font-size:1.25rem;color:var(--ink)}
+.g.alert b{color:var(--hot)}
+.bitsvg{display:block;margin:0 auto 20px}
+button.drill{
+  font:inherit;font-weight:800;font-size:1.05rem;letter-spacing:.15em;
+  color:var(--ink);background:linear-gradient(180deg,#4a2412,#2c150a);
+  border:1px solid var(--rust);border-radius:10px;padding:14px 40px;cursor:pointer;
+}
+button.drill:hover:not(:disabled){border-color:var(--amber)}
+button.drill:disabled{opacity:.45;cursor:not-allowed}
+@media (prefers-reduced-motion:no-preference){
+  button.drill{transition:transform .12s ease}
+  button.drill:active:not(:disabled){transform:translateY(2px)}
+}
+.plog{margin-top:22px;min-height:6.6em;font-size:.92rem;text-align:left}
+.plog p{opacity:0;transform:translateY(8px);margin-bottom:8px;color:var(--dim)}
+@media (prefers-reduced-motion:no-preference){
+  .plog p{transition:opacity .5s ease,transform .5s ease}
+}
+.plog p.in{opacity:1;transform:none}
+.plog p.final{color:var(--ink);font-weight:800;font-size:1.08rem}
+.pressme{color:var(--faint);font-size:.8rem;margin-top:12px}
+
+/* ---------- 收尾 ---------- */
+.zoom{display:none}
+.zoom.open{display:block}
+.scalewrap{
+  min-height:90svh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:12vh 24px;text-align:center;
+}
+.scalewrap h2{font-size:clamp(1.2rem,3.6vw,1.7rem);font-weight:800;margin-bottom:8px}
+.scalewrap .n{color:var(--dim);font-size:.94rem;max-width:30em;margin-bottom:30px}
+.coda{
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:10vh 24px 6vh;gap:20px;
+}
+.coda p{color:var(--dim);max-width:30em}
+.coda .last{color:var(--ink);font-weight:700}
+.rumor{
+  max-width:30em;margin:0 auto;border:1px dashed var(--line);border-radius:10px;
+  padding:14px 18px;font-size:.86rem;color:var(--faint);
+}
+footer{
+  text-align:center;color:var(--faint);font-size:.8rem;
+  padding:26px 20px 40px;border-top:1px solid var(--line);margin-top:8vh;
+}
+
+/* ---------- 手機 ---------- */
+@media (max-width:560px){
+  .card.L,.card.R{left:12px;right:64px;width:auto;margin-left:0}
+  .bore{left:auto;right:-8px;transform:none}
+  .bit{left:auto;right:25px;margin-left:0}
+  .tick{left:auto;right:4px;width:auto;text-align:right;padding:2px 0 0;font-size:.66rem}
+  .mark{display:none}
+  .hud{
+    top:auto;bottom:0;right:0;left:0;transform:translateY(110%);
+    border-radius:0;border-left:0;border-right:0;border-bottom:0;
+    display:flex;justify-content:space-around;min-width:0;padding:8px 6px;
+  }
+  .hud.on{transform:translateY(0)}
+  .hud .row+.row{margin:0;border-top:0;border-left:1px dashed var(--line);padding:0 0 0 12px}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<!-- 第一屏 -->
+<header class="hero">
+  <svg class="cap" viewBox="0 0 320 210" role="img" aria-label="一塊鏽蝕的圓形金屬井蓋，以十二顆螺栓封死" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="rust" gradientUnits="userSpaceOnUse" cx="160" cy="104" r="150">
+        <stop offset="0" stop-color="#7c4527"/><stop offset=".55" stop-color="#5d3018"/>
+        <stop offset=".85" stop-color="#40200f"/><stop offset="1" stop-color="#2c1409"/>
+      </radialGradient>
+      <linearGradient id="rim" gradientUnits="userSpaceOnUse" x1="20" y1="104" x2="300" y2="104">
+        <stop offset="0" stop-color="#8a5a33"/><stop offset=".5" stop-color="#c07a3e"/>
+        <stop offset="1" stop-color="#6b3d1e"/>
+      </linearGradient>
+    </defs>
+    <g style="filter:drop-shadow(0 14px 22px rgba(0,0,0,.6))">
+      <ellipse cx="160" cy="112" rx="142" ry="62" fill="#1c0f07"/>
+      <ellipse cx="160" cy="104" rx="142" ry="62" fill="url(#rust)" stroke="url(#rim)" stroke-width="3"/>
+      <ellipse cx="160" cy="104" rx="104" ry="45" fill="none" stroke="#3a1f0f" stroke-width="2" stroke-dasharray="7 9"/>
+      <g fill="#2e1a0c" stroke="#8a5a33" stroke-width="1.2">
+        <circle cx="160" cy="47" r="5.4"/><circle cx="222" cy="55" r="5.4"/><circle cx="270" cy="78" r="5.4"/>
+        <circle cx="288" cy="106" r="5.4"/><circle cx="268" cy="132" r="5.4"/><circle cx="220" cy="152" r="5.4"/>
+        <circle cx="160" cy="160" r="5.4"/><circle cx="100" cy="152" r="5.4"/><circle cx="52" cy="131" r="5.4"/>
+        <circle cx="33" cy="105" r="5.4"/><circle cx="52" cy="78" r="5.4"/><circle cx="99" cy="56" r="5.4"/>
+      </g>
+      <path d="M120,96 q40,-14 84,4" fill="none" stroke="#20110a" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+      <path d="M96,118 q60,16 120,-2" fill="none" stroke="#c07a3e" stroke-width="1.4" opacity=".35"/>
+    </g>
+  </svg>
+  <h1>這個洞比馬里亞納海溝還深。<br>上面蓋著一塊生鏽的鐵板。</h1>
+  <p class="sub">俄羅斯西北角，科拉半島的凍原上。沒有圍欄，沒有紀念碑，只有一圈廢墟和一塊焊死的圓蓋。蓋子底下，是人類鑿進地球最深的一道傷口。</p>
+  <p class="again" id="again" aria-live="polite"></p>
+  <p class="hint">往下捲，就是往下鑽</p>
+</header>
+
+<!-- 井身：1 像素＝1 公尺 -->
+<section class="well" id="well" aria-label="鑽井日誌，深度零到一萬兩千二百六十二公尺">
+  <svg class="bore" id="boreSvg" width="80" height="12262" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="boreGrad" gradientUnits="userSpaceOnUse" x1="40" y1="0" x2="40" y2="12262">
+        <stop offset="0" stop-color="#8fa3b0"/><stop offset=".45" stop-color="#b98a45"/>
+        <stop offset=".8" stop-color="#d96a30"/><stop offset="1" stop-color="#ff5a36"/>
+      </linearGradient>
+    </defs>
+    <path id="borePath" d="M40,0 L40,12262" fill="none" stroke="url(#boreGrad)" stroke-width="3"
+      stroke-dasharray="12262" stroke-dashoffset="12262"/>
+  </svg>
+  <div class="bit" id="bit" aria-hidden="true"></div>
+</section>
+
+<!-- 高潮 -->
+<section class="stall" aria-label="一萬兩千公尺處，鑽進停滯">
+  <div class="panel">
+    <p class="lead">12,000 公尺。鑽速掉到幾乎是零。</p>
+    <p class="why">預測這裡是 100°C。儀表讀到 180°C。花崗岩在這種溫度下不再是石頭——它像塑膠一樣慢慢流動，你前腳鑽開的孔，後腳自己閉合。孔也不再直：鑽頭往軟的地方偏，井身在地下扭成波浪。目標 15,000 公尺還在三公里外，但每往下一公尺的代價，已經以「顆」計算。莫斯科的電報還在催進度。手在按鈕上的，是你。</p>
+    <div class="gauges">
+      <div class="g" id="gTemp">井底溫度<b>180°C</b></div>
+      <div class="g" id="gRate">鑽進速度<b>1.2 m/h</b></div>
+      <div class="g" id="gBit">損毀鑽頭<b>0 顆</b></div>
+    </div>
+    <svg class="bitsvg" id="bitsvg" width="120" height="90" viewBox="0 0 120 90" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <g style="filter:drop-shadow(0 6px 10px rgba(0,0,0,.55))">
+        <rect x="50" y="4" width="20" height="34" rx="3" fill="#3c3c40" stroke="#6d6d74" stroke-width="1.5"/>
+        <path d="M44,38 h32 l-8,26 h-16 z" fill="#54545c" stroke="#8a8a94" stroke-width="1.5"/>
+        <path d="M52,64 l8,16 l8,-16 z" fill="#6d6d74"/>
+      </g>
+      <path id="crack" d="M60,40 l-6,8 l9,7 l-7,9 l6,8" fill="none" stroke="#ff5a36" stroke-width="2.5" stroke-linecap="round" opacity="0"/>
+    </svg>
+    <button class="drill" id="drillBtn" aria-label="繼續往下鑽">繼續鑽</button>
+    <p class="pressme" id="pressme">你是這口井的總工程師。決定吧。</p>
+    <div class="plog" id="plog" aria-live="polite"></div>
+  </div>
+</section>
+
+<!-- 收尾（按到底才浮現） -->
+<div class="zoom" id="zoom">
+  <section class="scalewrap" aria-label="十二公里與地球半徑的比例圖">
+    <h2>鏡頭拉遠一點。</h2>
+    <p class="n">左邊那條線，是地球半徑：6,371 公里。上面那一小截紅色刻痕——對，你得瞇著眼——就是這二十三年、無數顆鑽頭、一整代蘇聯地質學家換來的 12.262 公里。</p>
+    <svg width="220" height="700" viewBox="0 0 220 700" role="img" aria-label="比例圖：地球半徑六千三百七十一公里畫成一條長線，鑽孔深度十二公里只是頂端一點紅色刻痕，約占千分之二" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="earthGrad" gradientUnits="userSpaceOnUse" x1="70" y1="20" x2="70" y2="657">
+          <stop offset="0" stop-color="#6b4a2a"/><stop offset=".45" stop-color="#a04b20"/>
+          <stop offset=".85" stop-color="#e0a33c"/><stop offset="1" stop-color="#ffd9a0"/>
+        </linearGradient>
+      </defs>
+      <g style="filter:drop-shadow(0 0 12px rgba(224,163,60,.25))">
+        <path d="M70,20 L70,657" fill="none" stroke="url(#earthGrad)" stroke-width="8" stroke-linecap="round"/>
+      </g>
+      <path d="M70,20 L70,21.23" fill="none" stroke="#ff5a36" stroke-width="14" stroke-linecap="butt"/>
+      <path d="M84,21 h18" stroke="#5d564c" stroke-width="1"/>
+      <text x="108" y="26" fill="#e8e2d8" font-size="13" font-weight="700">← 12.262 km，你剛剛的全部</text>
+      <text x="108" y="46" fill="#9a9184" font-size="12">地球半徑的 0.19%</text>
+      <text x="84" y="360" fill="#9a9184" font-size="12">地函還在下面</text>
+      <text x="84" y="380" fill="#5d564c" font-size="12">（從來沒有人碰到過）</text>
+      <text x="84" y="655" fill="#9a9184" font-size="12">地心：6,371 km</text>
+    </svg>
+    <p class="n" style="margin-top:26px">後來有幾口油井的「長度」超過了 SG-3——像庫頁島外海那些斜著鑽出去的井——但那是橫向抄捷徑。論<em style="color:var(--ink);font-style:normal">垂直往下</em>，三十多年來沒有人更深。</p>
+    <p class="n">人類最深的洞，連地殼的一半都沒穿過。<em style="color:var(--ink);font-style:normal">我們挖了半天，皮都沒破。</em></p>
+  </section>
+
+  <section class="coda">
+    <div class="rumor">順帶一提：網路流傳那段「科拉井底的地獄慘叫」錄音是假的——後來被證實是拿電影音效拼接的。真正從一萬兩千公尺深處上來的，只有滾燙的岩芯、二十億年前的微化石，和不該存在的水。事實比謠言安靜，也比謠言深。</div>
+    <p>1992 年鑽機停轉，2008 年前後整座設施廢棄。器材拆走了，樓塌了，只剩凍原上的混凝土殘骸。後來德國人在巴伐利亞鑽了 KTB 井，九公里出頭，也是被高溫逼停。三十多年過去，全世界沒有任何一口井追上 SG-3——不是不想，是每一次都在差不多的深度，聽到地球用同一種方式說同一句話。</p>
+    <p>還有那塊直徑二十三公分的鐵蓋，十二顆螺栓，焊死。</p>
+    <p class="last">你剛剛往下捲了一萬兩千兩百六十二個像素。<br>一個像素，一公尺。<br>蓋子底下，那個洞還在。</p>
+  </section>
+</div>
+
+<!-- HUD -->
+<aside class="hud" id="hud" aria-label="即時鑽井儀表：深度、溫度、年份">
+  <div class="row">深度<b id="hDepth">0 m</b></div>
+  <div class="row" id="hTempRow">溫度<b id="hTemp">6°C</b></div>
+  <div class="row">年份<b id="hYear">1970</b></div>
+</aside>
+<p class="sr-only" id="announcer" aria-live="polite"></p>
+
+<footer>每日小專案 · 2026-08-21 ｜ 資料來源：Wikipedia「Kola Superdeep Borehole」條目與 EarthDate〈Kola Superdeep〉</footer>
+
+<script>
+'use strict';
+/* ========== 常數與純函式 ========== */
+const LS='kola.';
+const MAX_DEPTH=12262;          // 公尺
+const SCALE=1;                  // 1 px = 1 m，捲動距離即深度
+/** 分段線性內插：pts 為 [x,y] 升冪陣列 */
+function piecewise(pts,x){
+  if(x<=pts[0][0])return pts[0][1];
+  for(let i=1;i<pts.length;i++){
+    if(x<=pts[i][0]){
+      const [x0,y0]=pts[i-1],[x1,y1]=pts[i];
+      return y0+(y1-y0)*(x-x0)/(x1-x0);
+    }
+  }
+  return pts[pts.length-1][1];
+}
+/** 捲動進度(0~1) → 深度(m) */
+function depthAt(p){ return Math.min(1,Math.max(0,p))*MAX_DEPTH; }
+/** 深度(m) → 溫度(°C)：地表約 6°C，實測 12 km 約 180°C（非線性升溫） */
+const TEMP_PTS=[[0,6],[3000,48],[7000,120],[10000,158],[12262,180]];
+function tempAt(d){ return piecewise(TEMP_PTS,d); }
+/** 深度(m) → 對應年份：1970 開鑽、1979 破紀錄、1983 達 12,000、1989 達井底 */
+const YEAR_PTS=[[0,1970],[9583,1979],[12000,1983],[12262,1989]];
+function yearAt(d){ return Math.round(piecewise(YEAR_PTS,d)); }
+
+/* ========== 事件節點資料（深度單位：公尺） ========== */
+const EVENTS=[
+  {d:60,side:'L',t:'1970 年 5 月，開鑽',
+   p:'太空競賽打得火熱，蘇聯選了另一個方向：<em>往下</em>。目標 15,000 公尺，比任何人都深。地點選在科拉半島——這裡的古老地盾岩層冷又穩，理論上好鑽。理論上。'},
+  {d:1700,side:'L',t:'順手撿到一座礦',
+   p:'一．七公里附近的岩芯帶出<em>銅鎳礦化帶</em>——跟諾里爾斯克那種等級的礦床同一家族。科學鑽探意外附贈經濟價值，莫斯科很滿意。這時候大家還以為，這口井會一路順到底。'},
+  {d:2200,side:'R',t:'頭幾公里：順利得可疑',
+   p:'花崗岩一層層上來，鑽桿一節節接下去。整個 70 年代，這口編號 SG-3 的井安靜地吃掉一顆又一顆鑽頭。你腳下的深度，已經超過大多數礦坑。'},
+  {d:4100,side:'L',t:'順帶說一下你手上的工具',
+   p:'這口井的直徑只有<em>二十三公分</em>，一個餐盤大小。上萬公尺的鑽柱不整根旋轉——轉不動——而是把加壓泥漿打下去，推動井底一具渦輪，<em>只轉最前端的鑽頭</em>。你等於用一根十二公里長的吸管，在地球上刻字。'},
+  {d:6300,side:'R',t:'六公里深：有東西曾經活過',
+   p:'岩芯裡出現<em>二十多種單細胞浮游生物的微化石</em>，約二十億年前的遺骸，被有機碳氮化合物包著，居然沒被壓爛。這裡曾經是海。在六公里的岩石底下，你撞見了一片海的訃聞。'},
+  {d:7100,side:'L',t:'說好的玄武岩呢？',
+   p:'地震波資料說，大約七公里以下該換成玄武岩層。結果沒有——還是花崗岩，一路花崗岩。那個「不連續面」其實是<em>岩石在高溫高壓下的相變</em>，不是換料。教科書上的地殼剖面圖，就此重畫。'},
+  {d:8500,side:'R',t:'泥漿在冒泡',
+   p:'循環上來的鑽井泥漿帶著大量<em>氫氣</em>，多到像煮滾了一樣翻騰。這麼深的古老岩層裡不該藏著這種東西。井越深，上來的東西越不像地質學，越像懸疑小說。'},
+  {d:9583,side:'L',t:'9,583 公尺：世界最深',
+   p:'1979 年，SG-3 超越美國奧克拉荷馬州的 Bertha Rogers 井，成為<em>人類鑽過最深的洞</em>。從這一公尺開始，再往下的每一公尺，都是新紀錄。這個紀錄保持到今天。'},
+  {d:10300,side:'R',t:'不該有水的地方，出水了',
+   p:'深部岩層裡滲出<em>礦化的水</em>。按理論，這種深度的自由水早該被上方不透水層隔絕殆盡——這些水是從礦物結晶裡被高壓擠出來的，被封在岩石中，幾十億年沒見過天。'},
+  {d:10911,side:'L',t:'你剛剛經過馬里亞納海溝',
+   p:'挑戰者深淵，海洋最深點：10,911 公尺。全世界的海底都在你上面了。往上看是十一公里的岩石，往下——他們當年就是這樣想的——<em>還早</em>。'},
+  {d:11500,side:'R',t:'儀表開始不對勁',
+   p:'模型預測這個深度約 100°C。儀器讀數一路爬過 150，直逼 180。每往下一步，岩石就更軟、更黏、更不合作。鑽頭壽命從幾百小時，掉到論小時計。'},
+  {d:11900,side:'L',t:'1984 年，斷在井裡',
+   p:'鑽桿扭斷，<em>五公里長的鋼管</em>掉在井底，撈不回來。整個團隊退回七公里處斜著重鑽，花了五年才回到原來的深度。你現在捲過的這一段，他們鑽了兩次。而井底等著他們的，是<em>二十七億年前</em>形成的岩層——比地球上絕大多數的化石、山脈、海洋都老。'}
+];
+
+/* ========== 減速偏好 ========== */
+const rmq=matchMedia('(prefers-reduced-motion: reduce)');
+let reduced=rmq.matches;
+const onRm=()=>{reduced=rmq.matches;};
+if(rmq.addEventListener)rmq.addEventListener('change',onRm);else rmq.addListener(onRm);
+
+/* ========== 版面生成 ========== */
+const well=document.getElementById('well');
+well.style.height=(MAX_DEPTH*SCALE+320)+'px';
+/* 對照標記：把熟悉的尺度倒插進井裡（深度單位：公尺） */
+const MARKS=[
+  [508,'台北 101 的高度，到這裡為止'],
+  [1642,'貝加爾湖最深處'],
+  [3952,'玉山倒過來，山頂在這'],
+  [8849,'聖母峰倒插，峰頂剛好到這']
+];
+(function build(){
+  const frag=document.createDocumentFragment();
+  for(let d=1000;d<=12000;d+=1000){
+    const t=document.createElement('div');
+    t.className='tick';t.style.top=(d*SCALE)+'px';
+    t.textContent='−'+d.toLocaleString()+' m';
+    frag.appendChild(t);
+  }
+  MARKS.forEach(([d,label])=>{
+    const m=document.createElement('div');
+    m.className='mark';m.style.top=(d*SCALE)+'px';
+    m.textContent=label+' ⌄';
+    frag.appendChild(m);
+  });
+  EVENTS.forEach(ev=>{
+    const c=document.createElement('article');
+    c.className='card '+ev.side;c.style.top=(ev.d*SCALE)+'px';
+    c.innerHTML='<p class="d">−'+ev.d.toLocaleString()+' m ・ '+yearAt(ev.d)+' 年 ・ 約 '
+      +Math.round(tempAt(ev.d))+'°C</p><h2>'+ev.t+'</h2><p>'+ev.p+'</p>';
+    frag.appendChild(c);
+  });
+  well.appendChild(frag);
+})();
+
+/* ========== 捲動 → 深度（rAF 節流） ========== */
+const borePath=document.getElementById('borePath');
+const bit=document.getElementById('bit');
+const hud=document.getElementById('hud');
+const hDepth=document.getElementById('hDepth');
+const hTemp=document.getElementById('hTemp');
+const hTempRow=document.getElementById('hTempRow');
+const hYear=document.getElementById('hYear');
+const announcer=document.getElementById('announcer');
+let wellTop=0,ticking=false,paused=false,lastKm=-1,maxSeen=0;
+
+function measure(){ wellTop=well.getBoundingClientRect().top+window.scrollY; }
+measure();
+
+function update(){
+  ticking=false;
+  if(paused)return;
+  // 鑽頭參考點：視窗高度 60% 處
+  const probe=window.scrollY+window.innerHeight*0.6-wellTop;
+  const progress=probe/(MAX_DEPTH*SCALE);
+  const d=depthAt(progress);
+  const t=tempAt(d),y=yearAt(d);
+  hDepth.textContent=Math.round(d).toLocaleString()+' m';
+  hTemp.textContent=Math.round(t)+'°C';
+  hYear.textContent=String(y);
+  hTempRow.className='row'+(t>=150?' hot':(t>=90?' warm':''));
+  hud.classList.toggle('on',d>0&&d<MAX_DEPTH);
+  // 線由上往下畫（路徑方向即繪製方向）
+  borePath.style.strokeDashoffset=String(Math.max(0,MAX_DEPTH-d*SCALE));
+  bit.style.transform='translateY('+(d*SCALE)+'px)';
+  bit.style.opacity=(d>0&&d<MAX_DEPTH)?'1':'0';
+  // 每 2 公里向螢幕閱讀器報一次深度
+  const km=Math.floor(d/2000);
+  if(km!==lastKm&&d>0){
+    lastKm=km;
+    announcer.textContent='目前深度約 '+Math.round(d/100)*100+' 公尺，溫度約 '+Math.round(t)+' 度';
+  }
+  if(d>maxSeen){
+    maxSeen=d;
+    try{localStorage.setItem(LS+'maxDepth',String(Math.round(maxSeen)));}catch(e){}
+  }
+}
+function onScroll(){ if(!ticking){ticking=true;requestAnimationFrame(update);} }
+addEventListener('scroll',onScroll,{passive:true});
+let lastW=window.innerWidth,lastH=window.innerHeight;
+addEventListener('resize',()=>{
+  if(window.innerWidth===lastW&&window.innerHeight===lastH)return; // 尺寸相同不重算
+  lastW=window.innerWidth;lastH=window.innerHeight;
+  measure();onScroll();
+});
+document.addEventListener('visibilitychange',()=>{
+  paused=document.hidden;
+  if(!paused)onScroll();
+});
+
+/* ========== 卡片進場 ========== */
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){en.target.classList.add('seen');io.unobserve(en.target);}
+  });
+},{threshold:0.15,rootMargin:'0px 0px -6% 0px'});
+document.querySelectorAll('.card').forEach(c=>io.observe(c));
+
+/* ========== 高潮：繼續鑽 ========== */
+const drillBtn=document.getElementById('drillBtn');
+const plog=document.getElementById('plog');
+const gTemp=document.getElementById('gTemp');
+const gRate=document.getElementById('gRate');
+const gBit=document.getElementById('gBit');
+const crack=document.getElementById('crack');
+const zoom=document.getElementById('zoom');
+const pressme=document.getElementById('pressme');
+crack.dataset.len=String(Math.ceil(crack.getTotalLength()));
+const PRESSES=[
+  {temp:183,rate:'0.4',log:'鑽頭 #37 報廢。剛鑽出的孔正在你眼前緩緩閉合——不是塌陷，是岩石在<b>流</b>。'},
+  {temp:186,rate:'0.1',log:'換上的新鑽頭卡死。取出來時刃口整圈磨平，像被什麼東西含著咬過。'},
+  {temp:189,rate:'0.0',log:'第三顆，扭斷。井底傳回的讀數穩定在 180°C 以上，還在升。'}
+];
+let stage=0;
+function replayCrack(){
+  // dasharray 重播：先關 transition → 隱藏歸位 → 強制 reflow → 下一 rAF 再啟動
+  const len=crack.dataset.len;
+  crack.style.transition='none';
+  crack.style.opacity='0';
+  crack.style.strokeDasharray=len;
+  crack.style.strokeDashoffset=len;
+  void crack.getBoundingClientRect();
+  if(reduced){crack.style.opacity='1';crack.style.strokeDashoffset='0';return;}
+  requestAnimationFrame(()=>{
+    crack.style.opacity='1';
+    crack.style.transition='stroke-dashoffset .55s ease-out';
+    crack.style.strokeDashoffset='0';
+  });
+}
+function pushLog(html,final){
+  const p=document.createElement('p');
+  if(final)p.className='final';
+  p.innerHTML=html;
+  plog.appendChild(p);
+  if(reduced){p.classList.add('in');}
+  else{requestAnimationFrame(()=>requestAnimationFrame(()=>p.classList.add('in')));}
+}
+function openEnding(){
+  if(!zoom.classList.contains('open')){
+    zoom.classList.add('open');
+    try{localStorage.setItem(LS+'reached','1');}catch(e){}
+  }
+}
+drillBtn.addEventListener('click',()=>{
+  if(stage>=PRESSES.length)return;
+  const s=PRESSES[stage];stage++;
+  gTemp.innerHTML='井底溫度<b>'+s.temp+'°C</b>';gTemp.classList.add('alert');
+  gRate.innerHTML='鑽進速度<b>'+s.rate+' m/h</b>';
+  gBit.innerHTML='損毀鑽頭<b>'+stage+' 顆</b>';if(stage>1)gBit.classList.add('alert');
+  replayCrack();
+  pushLog(s.log,false);
+  pressme.textContent=stage<PRESSES.length?'再試一次？':'';
+  try{localStorage.setItem(LS+'bits',String(stage));}catch(e){}
+  if(stage>=PRESSES.length){
+    drillBtn.disabled=true;
+    drillBtn.textContent='鑽機停轉';
+    setTimeout(()=>{
+      pushLog('1992 年，這裡按下了同一個決定。<br>不是錢用完了——是地球說不。<br>12,262 公尺，到此為止。',true);
+      pushLog('往下捲，把鏡頭拉遠。',false);
+      openEnding();
+      measure();
+    },reduced?0:900);
+  }
+});
+
+/* ========== 回訪 ========== */
+(function revisit(){
+  let reached=null,md=null;
+  try{reached=localStorage.getItem(LS+'reached');md=localStorage.getItem(LS+'maxDepth');}catch(e){}
+  if(reached==='1'){
+    document.getElementById('again').textContent='你來過。井底還是 12,262 公尺，一公尺都沒多。';
+    // 走過全程的人，結尾直接解鎖，但鑽機照樣可以再按
+    zoom.classList.add('open');
+  }else if(md&&+md>1000){
+    document.getElementById('again').textContent='上次你鑽到 '+(+md).toLocaleString()+' 公尺就回頭了。這次呢？';
+  }
+})();
+</script>
+</body>
+</html>

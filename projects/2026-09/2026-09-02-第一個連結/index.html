@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>所有的路都通往同一個字｜每日小專案</title>
+<meta name="description" content="打開任何一個維基百科條目，只點正文的第一個連結，一直點下去——你會停在同一個字上面。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#080a12;
+  --pk-ink:#e6e6ee;
+  --pk-dim:#8b8ea3;
+  --pk-accent:#7ea6ff;
+  --pk-line:rgba(160,180,255,.14);
+  --pk-maxw:680px;
+  --paper:#f4f1e9;
+  --paper-ink:#1b1b20;
+  --paper-dim:#6f6c66;
+  --gold:#e8b45c;
+}
+body{
+  background:
+    radial-gradient(1100px 620px at 50% -10%, #131a33 0%, transparent 62%),
+    var(--pk-bg);
+}
+
+/* ── 第一屏 ── */
+.pk-hero h1{ letter-spacing:.01em; }
+.lede{ font-size:16.5px; color:#c3c6d8; margin:0 0 16px; }
+.claim{
+  font-family:var(--pk-serif); font-size:clamp(19px,4.6vw,24px);
+  color:var(--pk-ink); margin:26px 0 30px; line-height:1.7;
+}
+.claim b{ color:var(--gold); font-weight:600; }
+.scroll-cue{ font-size:12.5px; letter-spacing:.22em; color:var(--pk-dim); }
+
+/* ── 段落節奏 ── */
+.beat{ margin:76px 0; }
+.beat h2{
+  font-family:var(--pk-serif); font-weight:600;
+  font-size:clamp(20px,4.8vw,26px); line-height:1.6; margin:0 0 14px;
+}
+.beat p{ margin:0 0 15px; color:#c9ccdc; font-size:15.5px; }
+.aside{
+  border-left:2px solid var(--pk-line); padding-left:15px;
+  color:var(--pk-dim); font-size:14px; line-height:1.95;
+}
+
+/* ── 起點選擇 ── */
+.picker{ display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 6px; }
+.pick{
+  appearance:none; cursor:pointer; font-family:inherit; font-size:15px;
+  color:var(--pk-ink); background:rgba(126,166,255,.07);
+  border:1px solid var(--pk-line); border-radius:12px; padding:11px 17px;
+  transition:background .2s, border-color .2s, transform .12s;
+}
+.pick:hover{ background:rgba(126,166,255,.16); border-color:rgba(126,166,255,.45); }
+.pick:active{ transform:translateY(1px); }
+.pick[aria-pressed="true"]{ background:rgba(126,166,255,.22); border-color:var(--pk-accent); }
+.pick small{ display:block; color:var(--pk-dim); font-size:12px; letter-spacing:.04em; margin-top:2px; }
+.pick.done small::after{ content:" ✓ 走過"; color:var(--gold); }
+
+/* ── 閱讀器 ── */
+.reader{ margin:26px 0 0; }
+.chrome{
+  display:flex; align-items:center; gap:10px;
+  background:#171a2a; border:1px solid var(--pk-line);
+  border-radius:12px 12px 0 0; padding:9px 13px;
+}
+.dots{ display:flex; gap:5px; flex:0 0 auto; }
+.dots i{ width:8px; height:8px; border-radius:50%; background:#3a3f57; display:block; }
+.url{
+  flex:1 1 auto; min-width:0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px; color:#9aa0bd; background:#0e1120;
+  border-radius:999px; padding:5px 11px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.stepno{ flex:0 0 auto; font-size:11.5px; letter-spacing:.1em; color:var(--gold); }
+
+.paper{
+  position:relative; background:var(--paper); color:var(--paper-ink);
+  border:1px solid rgba(255,255,255,.1); border-top:0;
+  border-radius:0 0 12px 12px; padding:26px 24px 24px; min-height:250px;
+  transition:opacity .34s ease, transform .34s cubic-bezier(.2,.7,.3,1);
+}
+.paper.flip{ opacity:0; transform:translateY(-16px); }
+.paper .art-title{
+  font-family:var(--pk-serif); font-size:clamp(23px,5.6vw,30px); font-weight:600;
+  line-height:1.3; margin:0; letter-spacing:-.01em;
+}
+.paper .art-zh{ color:var(--paper-dim); font-size:13.5px; letter-spacing:.06em; margin:4px 0 0; }
+.paper hr{ border:0; border-top:1px solid #d8d3c6; margin:14px 0 16px; }
+.lead{ font-size:16px; line-height:1.95; margin:0; font-family:Georgia,"Times New Roman",serif; }
+.lead .dimlink{ color:#6b7fa8; border-bottom:1px dotted #a8b2c6; }
+.hot{
+  appearance:none; font:inherit; cursor:pointer;
+  color:#123; background:#cfe0ff; border:0;
+  border-bottom:2px solid #3c74e0; border-radius:4px;
+  padding:1px 5px; margin:0 1px;
+  box-shadow:0 0 0 0 rgba(60,116,224,.55);
+  animation:beat 2.1s ease-in-out infinite;
+}
+.hot:hover{ background:#3c74e0; color:#fff; }
+@keyframes beat{
+  0%,100%{ box-shadow:0 0 0 0 rgba(60,116,224,.5); }
+  50%{ box-shadow:0 0 0 7px rgba(60,116,224,0); }
+}
+.zhlead{
+  margin:16px 0 0; font-size:13.5px; line-height:1.9; color:var(--paper-dim);
+  border-left:2px solid #ddd6c6; padding-left:12px;
+}
+.hint{ margin:18px 0 0; font-size:12.5px; color:#8b8578; letter-spacing:.04em; }
+
+/* 旁白 */
+.narr{
+  margin:16px 0 0; min-height:1.2em;
+  font-family:var(--pk-serif); font-size:15.5px; line-height:1.85; color:var(--gold);
+  opacity:0; transform:translateY(6px); transition:opacity .5s, transform .5s;
+}
+.narr.on{ opacity:1; transform:none; }
+
+/* 足跡 */
+.trail{ display:flex; flex-wrap:wrap; gap:6px; margin:18px 0 0; padding:0; list-style:none; }
+.trail li{
+  font-size:11.5px; letter-spacing:.02em; color:#9aa0bd;
+  background:rgba(126,166,255,.08); border:1px solid var(--pk-line);
+  border-radius:999px; padding:3px 9px;
+  animation:pop .38s cubic-bezier(.2,.9,.3,1) both;
+}
+.trail li.now{ color:#0a0c14; background:var(--pk-accent); border-color:var(--pk-accent); }
+.trail li.end{ color:#1a1206; background:var(--gold); border-color:var(--gold); }
+@keyframes pop{ from{ opacity:0; transform:scale(.86); } to{ opacity:1; transform:none; } }
+
+/* ── 抵達 ── */
+.arrive{ display:none; text-align:center; padding:34px 8px 10px; }
+.arrive.on{ display:block; }
+.arrive .word{
+  font-family:var(--pk-serif); font-size:clamp(40px,11vw,68px); line-height:1;
+  color:var(--gold); margin:0; letter-spacing:-.02em;
+  animation:land 1.1s cubic-bezier(.15,.8,.25,1) both;
+}
+@keyframes land{ from{ opacity:0; transform:scale(1.14); filter:blur(6px); } to{ opacity:1; transform:none; filter:none; } }
+.arrive .word-zh{ font-size:15px; color:var(--pk-dim); letter-spacing:.36em; margin:12px 0 0; }
+.arrive .said{ font-size:15.5px; color:#c9ccdc; margin:22px 0 0; }
+.stats{ display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin:26px 0 4px; padding:0; list-style:none; }
+.stats li{
+  border:1px solid var(--pk-line); border-radius:12px; padding:12px 16px; min-width:118px;
+  background:rgba(126,166,255,.05);
+}
+.stats b{ display:block; font-family:var(--pk-serif); font-size:24px; color:var(--pk-ink); font-weight:600; }
+.stats span{ display:block; font-size:11.5px; color:var(--pk-dim); letter-spacing:.06em; margin-top:3px; }
+
+/* ── 匯流圖 ── */
+.merge-wrap{ text-align:center; }
+.merge-lock{ color:var(--pk-dim); font-size:14px; }
+svg{ overflow:visible; }
+.riv{ fill:none; stroke-width:2; stroke-linecap:round; }
+.riv.a{ stroke:#7ea6ff; }
+.riv.b{ stroke:#c58cff; }
+.riv.m{ stroke:var(--gold); stroke-width:2.6; }
+.riv.off{ opacity:.16; }
+.nd{ fill:#0b0e1a; stroke-width:1.6; }
+.nd.a{ stroke:#7ea6ff; }
+.nd.b{ stroke:#c58cff; }
+.lbl{ font-size:11px; fill:#9aa0bd; font-family:system-ui,sans-serif; }
+.lbl.hi{ fill:var(--gold); font-size:12.5px; }
+
+/* ── 環 ── */
+.ring-wrap{ text-align:center; display:none; }
+.ring-wrap.on{ display:block; }
+.spin{ transform-box:fill-box; transform-origin:50% 50%; animation:spin 26s linear infinite; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.end-note{ font-family:var(--pk-serif); font-size:clamp(18px,4.4vw,22px); line-height:1.75; color:var(--pk-ink); }
+
+@media (max-width:560px){
+  .paper{ padding:22px 17px 20px; }
+  .lead{ font-size:15.4px; }
+  .stats li{ min-width:0; flex:1 1 42%; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hot{ animation:none; box-shadow:0 0 0 3px rgba(60,116,224,.35); }
+  .trail li, .arrive .word{ animation:none; }
+  .spin{ animation:none; }
+  .paper.flip{ opacity:1; transform:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <h1 class="rv">隨便想一個東西。</h1>
+    <p class="lede rv">章魚也行。皮卡丘也行。你昨天查過的那個冷門詞也行。</p>
+    <p class="lede rv">打開它的英文維基百科，點正文裡的第一個連結。到了新的一頁，再點第一個連結。然後一直點下去。</p>
+    <p class="claim rv">不管你從哪裡出發，你都會停在<b>同一個字</b>上面。<br>而那個字，不是「維基百科」。</p>
+    <p class="scroll-cue rv">往下，挑一個起點</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="beat rv" id="sec-pick">
+    <h2>先說好規則，因為等一下你要自己點。</h2>
+    <p class="aside">
+      正文裡<strong style="color:#c9ccdc">最前面的那一個</strong>連結。括號裡的不算（那是註解，不是定義）、
+      斜體書名不算、註腳不算、外部連結不算。就這樣，沒有第二條規則。
+    </p>
+    <p style="margin-top:18px">選一個起點：</p>
+    <div class="picker" id="picker" role="group" aria-label="選擇起點"></div>
+  </section>
+
+  <section class="reader rv" id="sec-reader" aria-labelledby="rd-h">
+    <h2 id="rd-h" class="pk-sr">維基百科閱讀器</h2>
+    <div class="chrome">
+      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="url" id="url">en.wikipedia.org/wiki/…</span>
+      <span class="stepno" id="stepno">第 0 步</span>
+    </div>
+
+    <article class="paper" id="paper">
+      <h3 class="art-title" id="art-title">選一個起點</h3>
+      <p class="art-zh" id="art-zh">上面三顆按鈕，隨便挑</p>
+      <hr>
+      <p class="lead" id="lead">這台閱讀器只認得一種操作：點亮起來的那個連結。</p>
+      <p class="zhlead" id="zhlead">每點一次，你就往上爬一格。你會爬到哪裡，等一下就知道。</p>
+      <p class="hint" id="hint"></p>
+    </article>
+
+    <p class="narr" id="narr" role="status" aria-live="polite"></p>
+    <ol class="trail" id="trail" aria-label="你走過的路"></ol>
+
+    <div class="arrive" id="arrive">
+      <p class="word" id="arv-word">Philosophy</p>
+      <p class="word-zh" id="arv-zh">哲　學</p>
+      <p class="said" id="arv-said"></p>
+      <ul class="stats" id="arv-stats"></ul>
+      <p style="margin-top:26px"><button class="pk-btn" id="again">換一個起點</button></p>
+    </div>
+
+    <div class="ring-wrap" id="ring"></div>
+  </section>
+
+  <section class="beat rv" id="sec-why">
+    <h2>沒有人安排這件事。</h2>
+    <p>維基百科的寫作規範只要求一件小事：一篇條目的開頭，要先<strong style="color:#e6e6ee">定義</strong>它自己。</p>
+    <p>而定義一個東西，就是把它放進一個更大的盒子裡。章魚放進軟體動物，軟體動物放進門，門放進生物學，生物學放進科學研究……</p>
+    <p>每一次「第一個連結」，都是一次往上一階。幾百萬篇條目沒有商量過，卻一起往同一個方向爬。<strong style="color:#e6e6ee">2011 年 5 月的抽樣是 94.52%，2016 年再測，是 97%。</strong></p>
+  </section>
+
+  <section class="beat rv merge-wrap" id="sec-merge">
+    <h2 style="text-align:left">兩條路，在哪裡相遇？</h2>
+    <p class="merge-lock" id="merge-lock">先走完一條路，這張圖才畫得出來。</p>
+    <div id="merge-fig" hidden></div>
+    <p id="merge-cap" class="aside" style="text-align:left; margin-top:18px" hidden></p>
+  </section>
+
+  <section class="beat rv" id="sec-twist">
+    <h2>那，如果起點就是終點呢？</h2>
+    <p>你走了一段路才到「哲學」。可是「哲學」這篇條目自己，也有第一句話，也有第一個連結。</p>
+    <p>它會往哪裡爬？</p>
+    <p><button class="pk-btn" id="go-philo">從「哲學」出發</button></p>
+  </section>
+
+  <section class="beat rv" id="sec-end">
+    <p class="end-note">今天晚上，只要有人動了其中一句話的頭幾個字，這條路就會改道。</p>
+    <p>這一頁記下的，是 2026 年 9 月 2 日的走法。明天不保證還一樣——這正是它好玩的地方。</p>
+    <p style="margin-top:26px; color:var(--gold)">現在，去打開你最喜歡的那個條目，點下第一個連結。</p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  路徑取自英文維基百科，2026-09-02 逐頁實走。<br>
+  依據：Wikipedia:Getting to Philosophy；Ibrahim、Danforth 與 Dodds，《Journal of Computational Science》2017。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'flink.';
+const store = PK.store(LS);
+
+/* ==== CORE-START （純資料與純函式，可被 node 抽出來斷言） ==== */
+var NODES = {
+  'Octopus': { zh:'章魚', lead:[
+    'An octopus (pl.: octopuses or octopodes) is a soft-bodied, eight-limbed ',
+    {t:'mollusc', to:'Mollusca', first:true}, ' of the ', {t:'order'}, ' Octopoda.'],
+    zhLead:'章魚是一種身體柔軟、有八隻腕足的軟體動物，屬於八腕目。' },
+
+  'Mollusca': { zh:'軟體動物門', lead:[
+    'Mollusca is a ', {t:'phylum', to:'Phylum', first:true}, ' of ', {t:'protostomic'}, ' ',
+    {t:'invertebrate'}, ' ', {t:'animals'}, ', whose members are known as molluscs.'],
+    zhLead:'軟體動物門是原口動物中的一個「門」，成員通稱軟體動物。' },
+
+  'Phylum': { zh:'門（生物分類）', lead:[
+    'In ', {t:'biology', to:'Biology', first:true}, ', a phylum is a level of classification, or ',
+    {t:'taxonomic rank'}, ', that is below kingdom and above class.'],
+    zhLead:'在生物學裡，「門」是位於界之下、綱之上的分類階層。' },
+
+  'Biology': { zh:'生物學', lead:[
+    'Biology is the ', {t:'scientific study', to:'Scientific study', first:true}, ' of ',
+    {t:'life'}, ' and living ', {t:'organisms'}, '.'],
+    zhLead:'生物學是對生命與生物體的科學研究。' },
+
+  'Scientific study': { zh:'科學研究', lead:[
+    'Scientific study is a creative action to increase ', {t:'knowledge', to:'Knowledge', first:true},
+    ' and ', {t:'science'}, ' by systematically collecting, interpreting, and evaluating data.'],
+    zhLead:'科學研究是一種有創造性的行動：有系統地蒐集、詮釋、評估資料，以增進知識與科學。' },
+
+  'Knowledge': { zh:'知識', lead:[
+    'Knowledge is an ', {t:'awareness of facts', to:'Declarative knowledge', first:true}, ', a ',
+    {t:'familiarity with individuals and situations'}, ', or a ', {t:'practical skill'}, '.'],
+    zhLead:'知識是對事實的覺察、對人與情境的熟悉，或一項實作技能。' },
+
+  'Declarative knowledge': { zh:'陳述性知識', lead:[
+    'Declarative knowledge, also known as theoretical knowledge, descriptive knowledge, ',
+    {t:'propositional', to:'Proposition', first:true},
+    ' knowledge, and knowledge-that, is an awareness of facts that can be expressed using ',
+    {t:'declarative sentences'}, '.'],
+    zhLead:'陳述性知識，又稱理論知識、描述性知識、命題知識，是可以用陳述句表達的事實覺察。' },
+
+  'Proposition': { zh:'命題', lead:[
+    'Propositions are the ', {t:'meanings', to:'Meaning (philosophy)', first:true}, ' of ',
+    {t:'declarative sentences'}, ', objects of ', {t:'beliefs'}, ', and ', {t:'bearers of truth values'}, '.'],
+    zhLead:'命題是陳述句的意義、信念的對象，也是真假值的承載者。' },
+
+  'Meaning (philosophy)': { zh:'意義（哲學）', disp:'Meaning', lead:[
+    'In ', {t:'philosophy', to:'Philosophy', first:true},
+    ', meaning is "a ', {t:'relationship'}, ' between two sorts of things: signs and the kinds of things they intend, express, or signify".'],
+    zhLead:'在哲學裡，「意義」是「兩類事物之間的一種關係：符號，以及符號所指、所表達或所意謂的東西」。' },
+
+  'Pikachu': { zh:'皮卡丘', lead:[
+    'Pikachu (Japanese: ピカチュウ, Hepburn: Pikachū) is a ',
+    {t:'Pokémon species', to:'List of Pokémon', first:true}, ' in ', {t:'Nintendo'}, ' and ',
+    {t:'Game Freak'}, "'s ", {t:'Pokémon media franchise'}, ", and the franchise's ", {t:'mascot'}, '.'],
+    zhLead:'皮卡丘是任天堂與 Game Freak 的《寶可夢》系列中的一個寶可夢物種，也是該系列的吉祥物。' },
+
+  'List of Pokémon': { zh:'寶可夢列表', lead:[
+    'The ', {t:'Pokémon franchise', to:'Pokémon', first:true},
+    ' features 1025 fictional species of collectible creatures, each with unique designs, skills, and powers.'],
+    zhLead:'《寶可夢》系列共有 1025 種虛構的可收集生物，各有獨特造型、技能與能力。' },
+
+  'Pokémon': { zh:'寶可夢', lead:[
+    'Pokémon is a Japanese ', {t:'media franchise', to:'Media franchise', first:true}, ' consisting of ',
+    {t:'video games'}, ', ', {t:'animated series'}, ' and ', {t:'films'}, ', ',
+    {t:'a trading card game'}, ', and other related media.'],
+    zhLead:'寶可夢是一個日本的跨媒體系列，包含電子遊戲、動畫、電影、集換式卡牌遊戲與其他相關媒體。' },
+
+  'Media franchise': { zh:'跨媒體系列', lead:[
+    'A media franchise, also known as a multimedia franchise, is a collection of related ',
+    {t:'media', to:'Means of communication', first:true},
+    ' in which several derivative works have been produced from an original creative work of fiction.'],
+    zhLead:'跨媒體系列是一組彼此相關的媒體，其中的衍生作品都源自同一部原創虛構作品。' },
+
+  'Means of communication': { zh:'傳播媒介', lead:[
+    'Means of communication or media are ways used by people to ',
+    {t:'communicate', to:'Communication', first:true}, ' and exchange ', {t:'information'}, ' with each other.'],
+    zhLead:'傳播媒介是人們用來彼此溝通、交換訊息的方式。' },
+
+  'Communication': { zh:'溝通', lead:[
+    'Communication is commonly defined as the transmission of ',
+    {t:'information', to:'Information', first:true}, '.'],
+    zhLead:'溝通通常被定義為「訊息的傳遞」。' },
+
+  'Information': { zh:'資訊', lead:[
+    'Information is an ', {t:'abstract concept', to:'Abstraction', first:true},
+    ' that refers to something which has the power ', {t:'to inform'}, '.'],
+    zhLead:'資訊是一個抽象概念，指涉某種具有「告知」能力的東西。' },
+
+  'Abstraction': { zh:'抽象', lead:[
+    'Abstraction is the process of generalizing ', {t:'rules', to:'Rule of inference', first:true},
+    ' and ', {t:'concepts'}, ' from specific examples, literal signifiers, ', {t:'first principles'}, ', or other methods.'],
+    zhLead:'抽象是從具體例子、字面符號或第一原理，把規則與概念一般化的過程。' },
+
+  'Rule of inference': { zh:'推論規則', lead:[
+    'Rules of inference are ways of deriving conclusions from ', {t:'premises', to:'Premise', first:true}, '.'],
+    zhLead:'推論規則是從前提推導出結論的方式。' },
+
+  'Premise': { zh:'前提', lead:[
+    'A premise is a ', {t:'proposition', to:'Proposition', first:true}, ' offered to support a conclusion.'],
+    zhLead:'前提是為了支持某個結論而提出的命題。' },
+
+  'Philosophy': { zh:'哲學', lead:[
+    "Philosophy (from Ancient Greek philosophía, lit. 'love of wisdom') is a systematic study of general and fundamental questions concerning topics like ",
+    {t:'existence', to:'Existence', first:true}, ', ', {t:'knowledge'}, ', ', {t:'mind'}, ', ',
+    {t:'reason'}, ', ', {t:'language'}, ', and ', {t:'value'}, '.'],
+    zhLead:'哲學是對存在、知識、心靈、理性、語言與價值等一般而根本的問題所做的系統性研究。' },
+
+  'Existence': { zh:'存在', lead:[
+    'Existence is the state of having being or ', {t:'reality', to:'Reality', first:true},
+    ' in contrast to nonexistence and nonbeing.'],
+    zhLead:'存在，是相對於不存在與非有的「具有存有或實在」的狀態。' },
+
+  'Reality': { zh:'實在', lead:[
+    'Reality is "the state of ', {t:'things', to:'Subject and object (philosophy)', first:true},
+    ' as they are, rather than as they are ', {t:'imagined'}, ' to be".'],
+    zhLead:'實在是「事物本來的樣子，而不是被想像出來的樣子」。' },
+
+  'Subject and object (philosophy)': { zh:'主體與客體', disp:'Subject and object', lead:[
+    'In ', {t:'philosophy', to:'Philosophy', first:true}, ', a subject as a ', {t:'being'},
+    ' that exercises ', {t:'agency'}, ', undergoes ', {t:'conscious'},
+    ' experiences, and is situated in relation to other things that exist outside itself.'],
+    zhLead:'在哲學裡，主體是一個行使能動性、擁有意識經驗，並與自身之外的事物產生關係的存有。' }
+};
+
+/* 取一個條目的「第一個有效連結」目標 */
+function firstLinkOf(id){
+  var n = NODES[id]; if (!n) return null;
+  for (var i = 0; i < n.lead.length; i++){
+    var p = n.lead[i];
+    if (p && p.first) return p.to;
+  }
+  return null;
+}
+/* 從 start 一路走第一連結，直到抵達 Philosophy 或撞上重複節點 */
+function walk(start, max){
+  var path = [start], cur = start, cap = max || 40;
+  for (var i = 0; i < cap; i++){
+    var nx = firstLinkOf(cur);
+    if (!nx) break;
+    path.push(nx);
+    if (nx === 'Philosophy') break;
+    if (path.indexOf(nx) < path.length - 1) break;
+    cur = nx;
+  }
+  return path;
+}
+/* a 之中第一個也出現在 b 裡的節點 */
+function firstCommon(a, b){
+  for (var i = 0; i < a.length; i++) if (b.indexOf(a[i]) >= 0) return a[i];
+  return null;
+}
+/* ==== CORE-END ==== */
+
+/* 旁白：key = 「路線 id + 抵達的節點」 */
+var NARR = {
+  'oct|Mollusca'            : '注意到了嗎？它剛剛變大了一點。',
+  'oct|Biology'             : '維基百科的寫作規範只要求一件事：開頭先定義自己。而定義，就是把東西放進更大的盒子。',
+  'oct|Knowledge'           : '你從一隻軟體動物，走到了「知識」。中間沒有人幫你轉彎。',
+  'oct|Proposition'         : '空氣開始變稀薄了。',
+  'oct|Meaning (philosophy)': '下一句話裡，就有那個字。',
+  'pik|List of Pokémon'     : '括號裡的日文與羅馬拼音不算——那是註解，不是定義。規則很嚴格。',
+  'pik|Media franchise'     : '一隻黃色的老鼠，正在變成一個名詞。',
+  'pik|Information'         : '還記得你是從哪裡出發的嗎？',
+  'pik|Abstraction'         : '「抽象」的第一個連結，是「規則」。從這裡開始，你走的其實是邏輯。',
+  'pik|Proposition'         : '等一下——這一格，章魚也踩過。',
+  'phi|Existence'           : '哲學的第一個連結，是「存在」。',
+  'phi|Subject and object (philosophy)' : '還剩一步。你大概猜到了。'
+};
+
+var ROUTES = [
+  { id:'oct', start:'Octopus',    label:'章魚',      sub:'Octopus' },
+  { id:'pik', start:'Pikachu',    label:'皮卡丘',    sub:'Pikachu' },
+  { id:'phi', start:'Philosophy', label:'哲學自己',  sub:'Philosophy', quiet:true }
+];
+
+var $ = function(id){ return document.getElementById(id); };
+var picker = $('picker'), paper = $('paper'), trailEl = $('trail'),
+    narrEl = $('narr'), arriveEl = $('arrive'), ringEl = $('ring');
+
+var state = { route:null, path:[], i:0 };
+var done = store.get('done', {}) || {};
+
+/* ── 起點按鈕 ── */
+ROUTES.forEach(function(r){
+  var b = document.createElement('button');
+  b.className = 'pick' + (done[r.id] ? ' done' : '');
+  b.type = 'button';
+  b.setAttribute('aria-pressed', 'false');
+  b.dataset.route = r.id;
+  b.innerHTML = r.label + '<small>' + r.sub + '</small>';
+  if (r.quiet) b.hidden = true;
+  b.addEventListener('click', function(){ start(r.id); });
+  picker.appendChild(b);
+});
+
+function syncPicks(){
+  var bs = picker.querySelectorAll('.pick');
+  for (var i = 0; i < bs.length; i++){
+    var id = bs[i].dataset.route;
+    bs[i].setAttribute('aria-pressed', state.route && state.route.id === id ? 'true' : 'false');
+    bs[i].classList.toggle('done', !!done[id]);
+  }
+}
+
+function start(id){
+  var r = null;
+  for (var i = 0; i < ROUTES.length; i++) if (ROUTES[i].id === id) r = ROUTES[i];
+  if (!r) return;
+  state.route = r;
+  state.path = walk(r.start);
+  state.i = 0;
+  arriveEl.classList.remove('on');
+  ringEl.classList.remove('on');
+  trailEl.innerHTML = '';
+  narrEl.classList.remove('on');
+  paper.hidden = false;
+  paper.classList.remove('flip');
+  render(true);
+  pushTrail(r.start);
+  syncPicks();
+  PK.scrollTo($('sec-reader'));
+  PK.announce('起點：' + r.start + '。點亮起來的連結往下走。');
+}
+
+function label(id){ var n = NODES[id]; return (n && n.disp) || id; }
+
+function render(instant){
+  var id = state.path[state.i];
+  var n = NODES[id];
+  $('url').textContent = 'en.wikipedia.org/wiki/' + id.replace(/ /g, '_');
+  $('stepno').textContent = '第 ' + state.i + ' 步';
+  $('art-title').textContent = label(id);
+  $('art-zh').textContent = n.zh;
+  $('zhlead').textContent = n.zhLead;
+
+  var lead = $('lead');
+  lead.textContent = '';
+  n.lead.forEach(function(p){
+    if (typeof p === 'string'){ lead.appendChild(document.createTextNode(p)); return; }
+    if (p.first){
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'hot'; b.textContent = p.t;
+      b.setAttribute('aria-label', '點第一個連結：' + p.t + '，前往 ' + label(p.to));
+      b.addEventListener('click', advance);
+      lead.appendChild(b);
+    } else {
+      var s = document.createElement('span');
+      s.className = 'dimlink'; s.textContent = p.t;
+      s.title = '不是第一個，跳過';
+      lead.appendChild(s);
+    }
+  });
+  $('hint').textContent = state.i === 0
+    ? '點那個發亮的連結。它是這一句裡最前面的一個。'
+    : '';
+  if (!instant) paper.classList.remove('flip');
+}
+
+var busy = false;   /* 翻頁動畫期間鎖住，避免連點把 state.i 推出路徑尾端 */
+function advance(){
+  if (busy || state.i >= state.path.length - 1) return;
+  var go = function(){
+    busy = false;
+    state.i++;
+    var id = state.path[state.i];
+    var last = state.i === state.path.length - 1;
+    if (last){ finish(id); return; }
+    render(false);
+    pushTrail(id);
+    say(state.route.id + '|' + id);
+    PK.announce('第 ' + state.i + ' 步：' + label(id));
+  };
+  if (PK.reduced()){ go(); return; }
+  busy = true;
+  paper.classList.add('flip');
+  setTimeout(go, 300);
+}
+
+function pushTrail(id, cls){
+  var lis = trailEl.querySelectorAll('li');
+  for (var i = 0; i < lis.length; i++) lis[i].classList.remove('now');
+  var li = document.createElement('li');
+  li.className = 'now' + (cls ? ' ' + cls : '');
+  li.textContent = label(id);
+  trailEl.appendChild(li);
+}
+
+function say(key){
+  var t = NARR[key];
+  narrEl.classList.remove('on');
+  if (!t) { narrEl.textContent = ''; return; }
+  setTimeout(function(){ narrEl.textContent = t; narrEl.classList.add('on'); }, PK.reduced() ? 0 : 160);
+}
+
+function finish(id){
+  var steps = state.path.length - 1;
+  var loop = state.route.id === 'phi';
+  paper.hidden = true;
+  paper.classList.remove('flip');
+  narrEl.classList.remove('on');
+  pushTrail(id, 'end');
+  $('stepno').textContent = '第 ' + steps + ' 步';
+  $('url').textContent = 'en.wikipedia.org/wiki/Philosophy';
+
+  $('arv-word').textContent = 'Philosophy';
+  $('arv-zh').textContent = loop ? '回　到　原　點' : '哲　學';
+  $('arv-said').textContent = loop
+    ? '你從「哲學」出發，走了 4 步，又站回「哲學」。它也出不去。'
+    : '從「' + label(state.path[0]) + '」到這裡，' + steps + ' 步。你沒有選過任何一次方向。';
+
+  var stats = $('arv-stats');
+  stats.innerHTML = '';
+  var rows = loop
+    ? [['4','這個環的長度'],['3','其他被困住的節點'],['∞','你可以繞幾圈']]
+    : [['94.52%','2011 年抽樣的比例'],['97%','2016 年再測'],['23','所有條目的中位步數']];
+  rows.forEach(function(r){
+    var li = document.createElement('li');
+    li.innerHTML = '<b>' + r[0] + '</b><span>' + r[1] + '</span>';
+    stats.appendChild(li);
+  });
+
+  arriveEl.classList.add('on');
+  if (loop) drawRing();
+  done[state.route.id] = steps;
+  store.set('done', done);
+  syncPicks();
+  updateMerge();
+  unlockTwist();
+  PK.announce(loop ? '繞回原點：哲學。' : '抵達哲學，共 ' + steps + ' 步。');
+}
+
+$('again').addEventListener('click', function(){
+  arriveEl.classList.remove('on');
+  ringEl.classList.remove('on');
+  PK.scrollTo($('sec-pick'));
+});
+
+/* ── 匯流圖 ── */
+var PA = walk('Octopus'), PB = walk('Pikachu'), MERGE = firstCommon(PA, PB);
+
+function updateMerge(){
+  var any = done.oct || done.pik;
+  if (!any) return;
+  $('merge-lock').hidden = true;
+  var fig = $('merge-fig'), cap = $('merge-cap');
+  fig.hidden = false; cap.hidden = false;
+  var both = done.oct && done.pik;
+  fig.innerHTML = mergeSVG(both || !!done.oct, both || !!done.pik);
+  cap.innerHTML = both
+    ? '章魚走了 ' + (PA.length - 1) + ' 步，皮卡丘走了 ' + (PB.length - 1) + ' 步。兩條毫不相干的路，在「<b style="color:#e8b45c">' + MERGE + '</b>（命題）」這一格併成同一條——之後的每一步，它們一模一樣。'
+    : '你只走了一條。<b style="color:#e8b45c">另一個起點也走一次</b>，這張圖才會出現第二條河。';
+  var ps = fig.querySelectorAll('path.riv');
+  for (var i = 0; i < ps.length; i++) PK.replayDash(ps[i], 1100);
+}
+
+function mergeSVG(showA, showB){
+  var W = 340, R = 30, top = 26;
+  var rows = PB.length + 1;            /* 皮卡丘最長，決定總高 */
+  var H = top + (rows - 1) * R + 30;
+  var xa = 92, xb = 250, xm = 168;
+  var mIdxB = PB.indexOf(MERGE), mIdxA = PA.indexOf(MERGE);
+  var rowOfB = function(i){ return top + i * R; };
+  var offset = PB.length - PA.length;  /* 讓兩條路的終點對齊底部 */
+  var rowOfA = function(i){ return top + (i + offset) * R; };
+
+  var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" height="' + H + '" role="img" aria-label="兩條第一連結路徑在命題匯流，再一起走向哲學">';
+
+  /* 主幹（命題 → 意義 → 哲學） */
+  var yM = rowOfB(mIdxB), yEnd = rowOfB(PB.length - 1);
+  s += '<path class="riv m" d="M' + xm + ' ' + yM + ' L' + xm + ' ' + yEnd + '"/>';
+
+  /* 皮卡丘：直下再彎進主幹 */
+  var bEnd = rowOfB(mIdxB - 1);
+  s += '<path class="riv b' + (showB ? '' : ' off') + '" d="M' + xb + ' ' + top +
+       ' L' + xb + ' ' + bEnd + ' C' + xb + ' ' + (bEnd + 18) + ' ' + xm + ' ' + (yM - 18) + ' ' + xm + ' ' + yM + '"/>';
+
+  /* 章魚 */
+  var aTop = rowOfA(0), aEnd = rowOfA(mIdxA - 1);
+  s += '<path class="riv a' + (showA ? '' : ' off') + '" d="M' + xa + ' ' + aTop +
+       ' L' + xa + ' ' + aEnd + ' C' + xa + ' ' + (aEnd + 18) + ' ' + xm + ' ' + (yM - 18) + ' ' + xm + ' ' + yM + '"/>';
+
+  /* 節點 */
+  var i;
+  for (i = 0; i < mIdxB; i++) s += '<circle class="nd b' + (showB ? '' : ' off') + '" cx="' + xb + '" cy="' + rowOfB(i) + '" r="3.4"/>';
+  for (i = 0; i < mIdxA; i++) s += '<circle class="nd a' + (showA ? '' : ' off') + '" cx="' + xa + '" cy="' + rowOfA(i) + '" r="3.4"/>';
+  for (i = mIdxB; i < PB.length; i++){
+    var last = i === PB.length - 1;
+    s += '<circle cx="' + xm + '" cy="' + rowOfB(i) + '" r="' + (last ? 6.5 : 4.4) +
+         '" fill="' + (last ? '#e8b45c' : '#0b0e1a') + '" stroke="#e8b45c" stroke-width="1.8"/>';
+  }
+
+  /* 標籤 */
+  s += '<text class="lbl" x="' + (xb + 12) + '" y="' + (top + 4) + '">Pikachu</text>';
+  s += '<text class="lbl" x="' + (xa - 12) + '" y="' + (aTop + 4) + '" text-anchor="end">Octopus</text>';
+  s += '<text class="lbl hi" x="' + (xm + 14) + '" y="' + (yM + 4) + '">Proposition</text>';
+  s += '<text class="lbl hi" x="' + (xm + 14) + '" y="' + (yEnd + 5) + '">Philosophy</text>';
+  s += '</svg>';
+  return s;
+}
+
+/* ── 哲學的環 ── */
+function drawRing(){
+  var P = walk('Philosophy');
+  var names = P.slice(0, P.length - 1);
+  var cx = 150, cy = 150, r = 92;
+  var s = '<svg viewBox="0 0 300 300" width="100%" height="300" role="img" aria-label="哲學、存在、實在、主體與客體，四個節點構成一個閉環">';
+  s += '<circle class="spin" cx="' + cx + '" cy="' + cy + '" r="' + r +
+       '" fill="none" stroke="#e8b45c" stroke-opacity=".5" stroke-width="1.6" stroke-dasharray="5 9"/>';
+  names.forEach(function(id, k){
+    var a = -Math.PI / 2 + k * (Math.PI * 2 / names.length);
+    var x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+    s += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="6" fill="#0b0e1a" stroke="#e8b45c" stroke-width="2"/>';
+    var anchor = Math.abs(Math.cos(a)) < .3 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end');
+    var dx = Math.abs(Math.cos(a)) < .3 ? 0 : (Math.cos(a) > 0 ? 13 : -13);
+    var dy = Math.abs(Math.cos(a)) < .3 ? (Math.sin(a) > 0 ? 22 : -14) : 4;
+    s += '<text class="lbl hi" x="' + (x + dx).toFixed(1) + '" y="' + (y + dy).toFixed(1) +
+         '" text-anchor="' + anchor + '">' + label(id) + '</text>';
+  });
+  s += '<text class="lbl" x="150" y="146" text-anchor="middle">4 步</text>';
+  s += '<text class="lbl" x="150" y="164" text-anchor="middle">回到原地</text>';
+  s += '</svg><p class="aside" style="text-align:left;margin-top:14px">' +
+       '你以為你一直在往上爬。其實你在繞圈——只是那個圈太大，大部分人走了二十幾步都還沒發現。</p>';
+  ringEl.innerHTML = s;
+  ringEl.classList.add('on');
+}
+
+function unlockTwist(){
+  var b = picker.querySelector('[data-route="phi"]');
+  if (b) b.hidden = false;
+}
+
+/* 「從哲學出發」按鈕 */
+$('go-philo').addEventListener('click', function(){ unlockTwist(); start('phi'); });
+
+/* 還原上次的進度感（不重播路程，只點亮已完成狀態） */
+if (done.oct || done.pik){ updateMerge(); unlockTwist(); }
+syncPicks();
+PK.reveal();
+PK.onMotionChange(function(){ /* 靜態呈現由 CSS 全面接手，此處不需重繪 */ });
+</script>
+</body>
+</html>

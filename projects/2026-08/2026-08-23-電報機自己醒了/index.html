@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>電報機自己醒了｜每日小專案</title>
+<style>
+:root{
+  --bg:#120e0a; --panel:#1d1610; --panel2:#241b13;
+  --paper:#efe4cc; --paperink:#241c12;
+  --tx:#e6d9c0; --dim:#9c8c72;
+  --amber:#e8b45a; --amber2:#c98f36;
+  --aurora:#6fe8ad; --violet:#b18cff; --danger:#e2694f;
+  --serif:"Noto Serif TC","Songti TC",PMingLiU,serif;
+  --mono:"Cascadia Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+html.rm{scroll-behavior:auto}
+body{
+  margin:0;color:var(--tx);font-family:var(--serif);
+  background:
+    radial-gradient(1200px 600px at 50% -10%,#2a1f14 0%,transparent 60%),
+    repeating-linear-gradient(90deg,#151009 0 3px,#130f0a 3px 90px),
+    var(--bg);
+  line-height:1.85;font-size:17px;
+  overflow-x:hidden;
+}
+a{color:var(--amber)}
+.back{
+  position:absolute;top:14px;left:16px;z-index:9;
+  font-size:.82rem;color:var(--dim);text-decoration:none;
+  opacity:.65;padding:4px 8px;border-radius:6px;
+}
+.back:hover{opacity:1;color:var(--amber)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px;border-radius:4px}
+.wrap{max-width:720px;margin:0 auto;padding:0 22px}
+section,header{padding:4.2rem 0 3.2rem}
+p{margin:0 0 1.1em}
+.stamp{
+  font-family:var(--mono);font-size:.8rem;letter-spacing:.28em;
+  color:var(--amber2);text-transform:uppercase;margin-bottom:.6rem;
+}
+h1{font-size:clamp(1.7rem,6vw,2.6rem);line-height:1.4;margin:.4em 0 .5em;font-weight:700}
+h2{font-size:clamp(1.25rem,4.5vw,1.7rem);line-height:1.5;margin:.2em 0 .8em}
+.lead{font-size:1.06rem}
+.mute{color:var(--dim);font-size:.92rem}
+.hook{font-size:clamp(1.15rem,4.6vw,1.55rem);line-height:2;margin:1.4em 0}
+.hook b{color:var(--amber);font-weight:700}
+.hero{min-height:88vh;display:flex;align-items:center;position:relative;padding-top:5rem}
+.cue{display:block;margin-top:2.2rem;color:var(--dim);font-size:.85rem}
+.cue .arr{display:inline-block;margin-left:.4em}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+.cue .arr{animation:bob 1.8s ease-in-out infinite}
+html.rm .cue .arr{animation:none}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.rv.on{opacity:1;transform:none}
+html.rm .rv{opacity:1;transform:none;transition:none}
+[data-locked]{display:none}
+.slip{
+  background:var(--paper);color:var(--paperink);
+  padding:14px 18px;margin:14px 0;border-radius:2px;
+  box-shadow:0 6px 18px rgba(0,0,0,.45);
+  font-family:var(--mono);font-size:.9rem;line-height:1.7;
+  transform:rotate(-.6deg);
+}
+.slip:nth-child(even){transform:rotate(.5deg)}
+html.rm .slip{transform:none}
+.slip .src{display:block;font-size:.72rem;opacity:.55;letter-spacing:.12em;margin-bottom:2px}
+.keybox{
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid #3a2c1c;border-radius:14px;
+  padding:22px 20px 26px;margin:1.4rem 0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px rgba(0,0,0,.35);
+}
+.guide{display:flex;flex-wrap:wrap;gap:14px 18px;justify-content:center;margin:.4rem 0 1.2rem;padding:0}
+.lt{text-align:center;min-width:34px}
+.lch{display:block;font-family:var(--mono);font-size:1rem;color:var(--tx)}
+.lcode{display:block;font-family:var(--mono);font-size:1.05rem;letter-spacing:.12em;white-space:nowrap}
+.lcode i{font-style:normal;opacity:.3;transition:opacity .2s,color .2s}
+html.rm .lcode i{transition:none}
+.lcode i.done{opacity:1;color:var(--amber)}
+.wsp{width:14px}
+.keyrow{display:flex;align-items:center;gap:22px;justify-content:center;flex-wrap:wrap}
+#key{
+  width:96px;height:96px;border-radius:50%;cursor:pointer;border:0;
+  background:radial-gradient(circle at 35% 30%,#f3cf8a,#c98f36 55%,#7d5218 100%);
+  box-shadow:0 8px 0 #4d3210,0 14px 26px rgba(0,0,0,.55);
+  color:#3a2608;font-family:var(--serif);font-size:.95rem;font-weight:700;
+  transition:transform .08s ease,box-shadow .08s ease;
+}
+#key:active,#key.hit{transform:translateY(6px);box-shadow:0 2px 0 #4d3210,0 6px 12px rgba(0,0,0,.5)}
+html.rm #key{transition:none}
+#key:disabled{filter:grayscale(.5) brightness(.8);cursor:default}
+.ghost{
+  background:none;border:1px solid #4a3823;color:var(--dim);
+  font-family:var(--serif);font-size:.85rem;padding:8px 14px;border-radius:8px;cursor:pointer;
+}
+.ghost:hover{color:var(--amber);border-color:var(--amber2)}
+#tape{display:block;width:100%;height:64px;margin-top:18px;border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.4)}
+#keyStatus{min-height:1.8em;text-align:center;margin-top:12px;font-size:.95rem;color:var(--aurora)}
+.dialbox{display:flex;justify-content:center;margin:1.2rem 0}
+.dialbox svg{width:min(340px,80vw);height:auto}
+.sparks{position:relative;height:0}
+.sp{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--amber);
+  top:-90px;opacity:0}
+@keyframes spk{0%{opacity:0;transform:scale(.3) translateY(0)}12%{opacity:1}
+  60%{opacity:.6}100%{opacity:0;transform:scale(1.4) translateY(-26px)}}
+.chaos .sp{animation:spk 1.4s ease-out infinite}
+.sp:nth-child(1){left:22%;animation-delay:.1s}
+.sp:nth-child(2){left:48%;animation-delay:.7s;background:var(--danger)}
+.sp:nth-child(3){left:70%;animation-delay:1.1s}
+html.rm .sp{animation:none;opacity:0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:center}
+.sunbox svg{width:100%;height:auto;display:block}
+.fd{opacity:0;transform:scale(.2);transform-box:fill-box;transform-origin:center;
+  transition:opacity .5s ease,transform .5s ease}
+.play .fd{opacity:1;transform:scale(1)}
+.dimmed .fd{opacity:.14}
+html.rm .fd{transition:none}
+#flareCap{min-height:2.2em;font-size:.92rem;color:var(--dim);margin-top:.6rem}
+#battery{
+  display:flex;align-items:center;gap:18px;margin:1.6rem auto;padding:18px 26px;
+  background:linear-gradient(180deg,#2b1f14,#1c1410);border:1px solid #4a3823;
+  border-radius:14px;cursor:pointer;color:var(--tx);font-family:var(--serif);
+  font-size:1.1rem;font-weight:700;
+}
+#battery:hover{border-color:var(--amber2)}
+#battery:disabled{cursor:default;border-color:#3a2c1c;color:var(--dim)}
+#lever{transform-box:view-box;transform-origin:14px 34px;transition:transform .45s ease}
+.pulled #lever{transform:rotate(-52deg)}
+html.rm #lever{transition:none}
+.dlog{
+  background:var(--paper);color:var(--paperink);border-radius:4px;
+  padding:20px 22px;margin:1.4rem 0;font-family:var(--mono);font-size:.92rem;
+  box-shadow:0 10px 26px rgba(0,0,0,.5);line-height:2;
+}
+.dl{margin:0 0 .5em}
+.dl b{letter-spacing:.1em;margin-right:.6em}
+.dl.bos b{color:#7a3c14}
+.dl.por b{color:#1e4d6b}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.aurorabox{margin:0 -22px}
+.aurorabox svg{width:100%;height:auto;display:block}
+@keyframes sway{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.aur{animation:sway 7s ease-in-out infinite}
+.aur.a2{animation-duration:9s;animation-delay:-3s}
+.aur.a3{animation-duration:11s;animation-delay:-6s}
+html.rm .aur{animation:none}
+ul.bill{list-style:none;padding:0;margin:1.2rem 0}
+ul.bill li{
+  border-left:3px solid var(--amber2);padding:10px 16px;margin:10px 0;
+  background:rgba(232,180,90,.05);border-radius:0 8px 8px 0;
+}
+.punch{
+  margin:2.4rem 0 0;padding:1.4rem 0 0;border-top:1px dashed #4a3823;
+  font-size:1.08rem;
+}
+footer{
+  padding:2.2rem 22px 3rem;text-align:center;color:var(--dim);
+  font-size:.82rem;border-top:1px solid #241b13;margin-top:3rem;line-height:1.9;
+}
+@media (max-width:559px){
+  .duo{grid-template-columns:1fr}
+  body{font-size:16px}
+  .keyrow{gap:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cue .arr,.sp,.aur{animation:none!important}
+  .rv{opacity:1;transform:none;transition:none}
+}
+</style>
+</head>
+<body>
+<a class="back" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="stamp">1859.09.02 · 01:00 · 波士頓 州街電報局</p>
+    <h1>你值大夜。機器沒插電。<br>它開始自己說話。</h1>
+    <p class="hook">窗外沒有月亮。桌上的油燈壓得很低。<br>
+    線路指針垂著頭，一動不動——<b>目前為止</b>。</p>
+    <p class="lead mute">先別急。我們從還算正常的那一刻說起。</p>
+    <p id="againNote" class="mute" hidden>（帳簿邊有一行小字：這不是你第一次值這班。）</p>
+    <span class="cue">往下捲，接班<span class="arr" aria-hidden="true">↓</span></span>
+  </div>
+</header>
+
+<section id="s1" class="rv" aria-labelledby="s1h">
+  <div class="wrap">
+    <p class="stamp">01:00 · 一切正常</p>
+    <h2 id="s1h">例行報：向波特蘭報平安</h2>
+    <p>這是深夜最後一件差事。線路那頭一百多英里外，緬因州波特蘭的同行在等。<br>
+    電文很短：<strong>ALL WELL</strong>——一切平安。</p>
+    <p class="mute">照著下面的節奏敲。每按一下電鍵，就送出一個「點」或一「劃」。（鍵盤也行：Tab 到電鍵，按 Enter 或空白鍵。）</p>
+    <div class="keybox">
+      <div class="guide" id="guide" aria-hidden="true"></div>
+      <div class="keyrow">
+        <button id="key" aria-label="電報電鍵：按一下送出下一個訊號">電鍵</button>
+        <button id="assist" class="ghost" aria-label="讓學徒代打，自動送完剩下的訊號">手痠了？讓學徒代打</button>
+      </div>
+      <canvas id="tape" aria-label="電報紙帶，顯示已打出的點與劃" role="img"></canvas>
+      <p id="keyStatus" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+<section id="s2" class="rv" data-locked aria-labelledby="s2h">
+  <div class="wrap">
+    <p class="stamp">01:20 · 異狀</p>
+    <h2 id="s2h">指針先瘋了</h2>
+    <div class="dialbox" id="dialBox">
+      <svg viewBox="0 0 200 120" aria-label="線路檢流計，指針劇烈擺動" role="img">
+        <defs>
+          <linearGradient id="arcG" gradientUnits="userSpaceOnUse" x1="30" y1="96" x2="170" y2="96">
+            <stop offset="0" stop-color="#e8b45a"/>
+            <stop offset=".55" stop-color="#e2694f"/>
+            <stop offset="1" stop-color="#6fe8ad"/>
+          </linearGradient>
+          <filter id="dShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#000" flood-opacity=".55"/>
+          </filter>
+        </defs>
+        <g filter="url(#dShadow)">
+          <rect x="18" y="12" width="164" height="98" rx="10" fill="#241b13" stroke="#4a3823"/>
+          <path d="M40 88 A62 62 0 0 1 160 88" fill="none" stroke="url(#arcG)" stroke-width="4" stroke-linecap="round"/>
+          <g stroke="#9c8c72" stroke-width="2">
+            <line x1="46" y1="82" x2="52" y2="76"/><line x1="100" y1="34" x2="100" y2="42"/>
+            <line x1="154" y1="82" x2="148" y2="76"/>
+          </g>
+          <line id="needle" x1="100" y1="96" x2="100" y2="34" stroke="#efe4cc" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="100" cy="96" r="6" fill="#c98f36"/>
+        </g>
+      </svg>
+    </div>
+    <div class="sparks" id="sparkBox" aria-hidden="true"><span class="sp"></span><span class="sp"></span><span class="sp"></span></div>
+    <p>你的手還放在鍵上。指針忽然彈起來，抵到刻度盡頭，再彈回來，抽搐，像被誰在遠處拽著。</p>
+    <p>接著，各地的電文擠了進來——</p>
+    <div id="wire" aria-live="polite"></div>
+    <p id="wireEnd" hidden>從波士頓到巴黎，整片電報網在同一個晚上發瘋。<br>
+    而原因，在九千三百萬英里之外。<span class="mute">要說清楚，得把時間倒回十八個小時。</span></p>
+  </div>
+</section>
+
+<section id="s3" class="rv" data-locked aria-labelledby="s3h">
+  <div class="wrap">
+    <p class="stamp">前一天 · 09.01 · 11:18 · 英格蘭 雷德希爾</p>
+    <h2 id="s3h">畫黑子的人，看見太陽眨了一下</h2>
+    <div class="duo">
+      <div class="sunbox">
+        <svg id="sunG" viewBox="0 0 320 320" aria-label="太陽投影畫面：黑子群中爆出兩點白光" role="img">
+          <defs>
+            <radialGradient id="sunFill" cx="42%" cy="38%" r="75%">
+              <stop offset="0" stop-color="#ffe9b8"/>
+              <stop offset=".7" stop-color="#f2b95c"/>
+              <stop offset="1" stop-color="#c9852e"/>
+            </radialGradient>
+            <linearGradient id="ringG" gradientUnits="userSpaceOnUse" x1="118" y1="196" x2="218" y2="116">
+              <stop offset="0" stop-color="#fff6e0"/>
+              <stop offset="1" stop-color="#e8b45a"/>
+            </linearGradient>
+            <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+              <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#fff6e0" flood-opacity=".9"/>
+            </filter>
+          </defs>
+          <rect x="6" y="6" width="308" height="308" rx="8" fill="#efe4cc"/>
+          <circle cx="160" cy="160" r="130" fill="url(#sunFill)"/>
+          <g fill="#5a3a14" opacity=".85">
+            <ellipse cx="150" cy="160" rx="16" ry="10"/>
+            <ellipse cx="182" cy="150" rx="11" ry="7"/>
+            <ellipse cx="166" cy="176" rx="7" ry="5"/>
+            <ellipse cx="196" cy="168" rx="5" ry="4"/>
+          </g>
+          <g id="flareDots" filter="url(#glow)">
+            <circle class="fd" cx="156" cy="152" r="7" fill="#fffdf4"/>
+            <circle class="fd" cx="184" cy="164" r="6" fill="#fffdf4"/>
+          </g>
+          <circle id="flareRing" cx="168" cy="158" r="46" fill="none"
+            stroke="url(#ringG)" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
+          <text x="160" y="302" text-anchor="middle" font-size="11" fill="#6b5a3e" font-family="monospace">SOLAR PROJECTION · REDHILL</text>
+        </svg>
+      </div>
+      <div>
+        <p>理查・卡林頓，釀酒商之子，業餘天文學家。那天上午他做的事跟平常一樣：把太陽投影到螢幕上，安安靜靜描黑子。</p>
+        <p>11 點 18 分，一大群黑子中間，<strong>爆出兩點刺眼的白光</strong>。</p>
+        <p>史上第一次，有人親眼看著太陽閃焰發生。它只亮了約五分鐘。幾英里外，另一位觀測者霍奇森也同時看見——所以這不是幻覺。</p>
+        <button id="replayFlare" class="ghost" aria-label="重播那五分鐘的白光">重看那五分鐘</button>
+        <p id="flareCap" aria-live="polite"></p>
+      </div>
+    </div>
+    <p>那次爆發把一大團帶電物質甩向太空——後世叫它「日冕物質拋射」。這種東西從太陽走到地球，平常要三、四天。</p>
+    <p><strong>這一顆，只用了 17.6 小時。</strong></p>
+    <p class="mute">現在，它到了。回到你的電報房。</p>
+  </div>
+</section>
+
+<section id="s4" class="rv" data-locked aria-labelledby="s4h">
+  <div class="wrap">
+    <p class="stamp">02:05 · 你只剩一件事能做</p>
+    <h2 id="s4h">拔掉電池</h2>
+    <p>接線柱上的火花越炸越密。紙帶邊緣有焦味。有同行的手指被電得發麻，抬不起來。</p>
+    <p>波特蘭那頭敲來一句：電池在跟那股怪電流打架，越打越糟。<br>你盯著桌角那排本生電池。你伸手——</p>
+    <button id="battery" aria-label="拔掉電池，切斷線路電源">
+      <svg viewBox="0 0 96 48" width="86" height="43" aria-hidden="true">
+        <rect x="4" y="30" width="88" height="12" rx="3" fill="#3a2c1c"/>
+        <circle cx="14" cy="34" r="5" fill="#c98f36"/>
+        <circle cx="82" cy="34" r="5" fill="#c98f36"/>
+        <g id="lever"><rect x="12" y="30" width="70" height="7" rx="3" fill="#e8b45a"/>
+        <circle cx="80" cy="33" r="6" fill="#7d5218"/></g>
+      </svg>
+      <span id="batLabel">拔掉電池</span>
+    </button>
+    <p id="batStatus" aria-live="polite" class="mute"></p>
+  </div>
+</section>
+
+<section id="s5" class="rv" data-locked aria-labelledby="s5h">
+  <div class="aurorabox" aria-hidden="true">
+    <svg viewBox="0 0 640 160">
+      <defs>
+        <linearGradient id="aurG1" gradientUnits="userSpaceOnUse" x1="0" y1="140" x2="640" y2="20">
+          <stop offset="0" stop-color="#6fe8ad" stop-opacity=".05"/>
+          <stop offset=".5" stop-color="#6fe8ad" stop-opacity=".8"/>
+          <stop offset="1" stop-color="#b18cff" stop-opacity=".15"/>
+        </linearGradient>
+        <linearGradient id="aurG2" gradientUnits="userSpaceOnUse" x1="0" y1="30" x2="640" y2="130">
+          <stop offset="0" stop-color="#b18cff" stop-opacity=".1"/>
+          <stop offset=".6" stop-color="#8fd8ff" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#6fe8ad" stop-opacity=".1"/>
+        </linearGradient>
+        <filter id="aurBlur" x="-20%" y="-40%" width="140%" height="180%">
+          <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#6fe8ad" flood-opacity=".35"/>
+        </filter>
+      </defs>
+      <g filter="url(#aurBlur)">
+        <path class="aur" d="M-10 120 C 120 40, 260 140, 400 60 S 620 90, 650 40"
+          fill="none" stroke="url(#aurG1)" stroke-width="26" stroke-linecap="round" opacity=".7"/>
+        <path class="aur a2" d="M-10 70 C 150 130, 300 30, 460 110 S 600 60, 650 100"
+          fill="none" stroke="url(#aurG2)" stroke-width="16" stroke-linecap="round" opacity=".6"/>
+        <path class="aur a3" d="M-10 100 C 200 60, 380 120, 650 70"
+          fill="none" stroke="url(#aurG1)" stroke-width="8" stroke-linecap="round" opacity=".5"/>
+      </g>
+    </svg>
+  </div>
+  <div class="wrap">
+    <p class="stamp">02:06 · 電池已斷</p>
+    <h2 id="s5h">房間安靜了一秒。然後，電鍵又動了。</h2>
+    <p>沒有電池。線路上不該有任何電。<br>
+    可是銜鐵在打，紙帶在走，字一個一個吐出來。窗外，半個天空泛著綠紫色的光。</p>
+    <p>你俯下身，跟波特蘭把這段對話發完——<span class="mute">下面這幾句，當年真的留了紀錄。</span></p>
+    <div class="dlog" id="dlog" aria-live="polite"></div>
+    <p id="dlogNote" hidden>就這樣，波士頓—波特蘭線在<strong>沒有電池</strong>的情況下，靠著極光在大地裡感應出的電流，又收發了大約兩個小時的正式電文。</p>
+  </div>
+</section>
+
+<section id="epi" class="rv" data-locked aria-labelledby="epih">
+  <div class="wrap">
+    <p class="stamp">後來 · 帳單</p>
+    <h2 id="epih">這一晚的電費，是誰付的？</h2>
+    <p>太陽。</p>
+    <p>那一夜，極光一路南壓到古巴、夏威夷；加勒比海有人望著紅透的天，以為遠方城市失火；落磯山的礦工被天光叫醒，以為天亮了，摸黑起床煎早餐。這場風暴後來以那位畫黑子的人命名：<strong>卡林頓事件</strong>——有紀錄以來最猛的一次太陽風暴。</p>
+    <p>1859 年，全世界最嬌貴的電子設備是電報機，燒了還能修。那如果是今天？</p>
+    <p>不用想像太久。<strong>2012 年 7 月，一顆同等級的日冕物質拋射掃過地球軌道</strong>——差了大約一週，地球剛好不在那個位置。天文學家事後回看資料，冷汗直流。</p>
+    <p>各方評估過「若是今天正面命中」的帳單：</p>
+    <ul class="bill">
+      <li>電網變壓器可能成批燒毀；大型備品訂製交期以「月」計，部分地區停電恐拖上數月。</li>
+      <li>Lloyd's 估計僅北美的損失就達 <strong>0.6 ～ 2.6 兆美元</strong>，兩千萬到四千萬人受影響。</li>
+      <li>衛星、GPS、航空通訊、跨洋電纜——所有掛在天上和埋在地下的長導體，一起遭殃。</li>
+    </ul>
+    <div class="punch">
+      <p>對了，還有一件小事。</p>
+      <p>卡林頓看見那兩點白光的第一個反應，不是驚呼，也不是狂喜。<br>
+      他以為——<strong>是自己的儀器壞了</strong>。</p>
+      <p class="mute">下一次太陽發脾氣之前，希望我們認出它的速度，比他快一點。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  🌠 每日小專案 · 科學趣聞 · 2026-08-23<br>
+  史料：R. C. Carrington, MNRAS 20 (1859)；1859 年波士頓—波特蘭線報務紀錄；NASA Science News（2012 年 7 月 23 日事件）；Lloyd's《Solar Storm Risk to the North American Electric Grid》(2013)。
+</footer>
+
+<script>
+'use strict';
+(function(){
+var LS='carr59.';
+
+/* ---------- 偏好：減少動態 ---------- */
+var mq=window.matchMedia('(prefers-reduced-motion: reduce)');
+var reduced=mq.matches;
+function applyRM(){document.documentElement.classList.toggle('rm',reduced);syncNeedle();}
+if(mq.addEventListener){mq.addEventListener('change',function(e){reduced=e.matches;applyRM();});}
+else if(mq.addListener){mq.addListener(function(e){reduced=e.matches;applyRM();});}
+applyRM();
+
+/* ---------- 全域 rAF 節流器（分頁隱藏即暫停） ---------- */
+var subs=new Set(),rafId=0,lastT=0;
+function loop(t){
+  rafId=0;
+  var dt=Math.min(100,t-lastT);lastT=t;
+  subs.forEach(function(f){f(dt,t);});
+  if(subs.size&&!document.hidden)rafId=requestAnimationFrame(loop);
+}
+function addTick(f){
+  subs.add(f);
+  if(!rafId&&!document.hidden){lastT=performance.now();rafId=requestAnimationFrame(loop);}
+}
+function rmTick(f){subs.delete(f);}
+document.addEventListener('visibilitychange',function(){
+  if(document.hidden){if(rafId){cancelAnimationFrame(rafId);rafId=0;}}
+  else if(subs.size&&!rafId){lastT=performance.now();rafId=requestAnimationFrame(loop);}
+});
+function after(ms,fn){
+  if(reduced){fn();return;}
+  var acc=0;
+  function f(dt){acc+=dt;if(acc>=ms){rmTick(f);fn();}}
+  addTick(f);
+}
+
+/* ---------- 莫斯電碼：純函式 ---------- */
+var MORSE={A:'.-',B:'-...',C:'-.-.',D:'-..',E:'.',F:'..-.',G:'--.',H:'....',I:'..',
+J:'.---',K:'-.-',L:'.-..',M:'--',N:'-.',O:'---',P:'.--.',Q:'--.-',R:'.-.',S:'...',
+T:'-',U:'..-',V:'...-',W:'.--',X:'-..-',Y:'-.--',Z:'--..'};
+function textToMorse(text){
+  return String(text).toUpperCase().split('').map(function(ch){
+    return ch===' '?'/':(MORSE[ch]||'');
+  }).filter(Boolean).join(' ');
+}
+function morseSymbols(text){
+  var out=[];
+  String(text).toUpperCase().split(' ').forEach(function(w,wi){
+    if(wi)out.push('w');
+    w.split('').forEach(function(ch,ci){
+      var code=MORSE[ch];if(!code)return;
+      if(ci)out.push('g');
+      code.split('').forEach(function(s){out.push(s);});
+    });
+  });
+  return out;
+}
+
+/* ---------- 捲動進場 ---------- */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){
+    if(e.isIntersecting){
+      e.target.classList.add('on');
+      if(e.target.id==='s2')startWire();
+      io.unobserve(e.target);
+    }
+  });
+},{threshold:.12});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+function unlock(id){
+  var el=document.getElementById(id);
+  if(el&&el.hasAttribute('data-locked')){el.removeAttribute('data-locked');}
+}
+
+/* ---------- 紙帶 canvas ---------- */
+var tape=document.getElementById('tape'),ctx=tape.getContext('2d');
+var dpr=Math.max(1,window.devicePixelRatio||1);
+var marks=[],cursor=0,view=0,tapeOn=false;
+function fitTape(){
+  var w=Math.round(tape.clientWidth*dpr),h=Math.round(64*dpr);
+  if(tape.width!==w||tape.height!==h){tape.width=w;tape.height=h;}
+  drawTape();
+}
+function drawTape(){
+  var W=tape.clientWidth,H=64;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#efe4cc';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(90,58,20,.18)';
+  for(var x=8;x<W;x+=16){
+    ctx.beginPath();ctx.arc(x,8,1.6,0,6.284);ctx.fill();
+    ctx.beginPath();ctx.arc(x,H-8,1.6,0,6.284);ctx.fill();
+  }
+  var shift=Math.max(0,view-(W-44));
+  ctx.fillStyle='#241c12';
+  for(var i=0;i<marks.length;i++){
+    var m=marks[i],mx=16+m.x-shift;
+    if(mx+m.w<0||mx>W)continue;
+    ctx.beginPath();
+    if(ctx.roundRect)ctx.roundRect(mx,H/2-4,m.w,8,4);
+    else ctx.rect(mx,H/2-4,m.w,8);
+    ctx.fill();
+  }
+}
+function tapeTick(dt){
+  view+=(cursor-view)*Math.min(1,dt*0.012);
+  if(Math.abs(cursor-view)<.5){view=cursor;rmTick(tapeTick);tapeOn=false;}
+  drawTape();
+}
+function pushSym(s){
+  if(s==='g'){cursor+=10;return;}
+  if(s==='w'){cursor+=24;return;}
+  var w=(s==='.')?6:18;
+  marks.push({x:cursor,w:w});
+  cursor+=w+6;
+  if(reduced){view=cursor;drawTape();return;}
+  if(!tapeOn){tapeOn=true;addTick(tapeTick);}
+}
+var resizePending=false;
+window.addEventListener('resize',function(){
+  if(resizePending)return;resizePending=true;
+  requestAnimationFrame(function(){resizePending=false;fitTape();});
+});
+fitTape();
+
+/* ---------- 第一幕：親手發報 ---------- */
+var TARGET='ALL WELL';
+var guide=document.getElementById('guide');
+var flat=[];
+(function buildGuide(){
+  TARGET.split(' ').forEach(function(w,wi){
+    if(wi){var sp=document.createElement('span');sp.className='wsp';guide.appendChild(sp);}
+    w.split('').forEach(function(ch,ci){
+      var lt=document.createElement('span');lt.className='lt';
+      var a=document.createElement('span');a.className='lch';a.textContent=ch;
+      var b=document.createElement('span');b.className='lcode';
+      MORSE[ch].split('').forEach(function(s,si){
+        var i=document.createElement('i');
+        i.textContent=(s==='.')?'·':'—';
+        b.appendChild(i);
+        flat.push({s:s,el:i,pre:(si===0)?(ci===0&&wi>0?'w':(ci>0?'g':null)):null});
+      });
+      lt.appendChild(a);lt.appendChild(b);guide.appendChild(lt);
+    });
+  });
+})();
+var key=document.getElementById('key'),assist=document.getElementById('assist');
+var keyStatus=document.getElementById('keyStatus');
+var idx=0,doneMorse=false;
+function emitNext(){
+  if(idx>=flat.length)return false;
+  var f=flat[idx];
+  if(f.pre)pushSym(f.pre);
+  pushSym(f.s);
+  f.el.classList.add('done');
+  idx++;
+  return true;
+}
+function updateStatus(){
+  if(doneMorse)return;
+  keyStatus.textContent='已敲 '+idx+' / '+flat.length+'（'+textToMorse(TARGET)+'）';
+}
+function completeMorse(){
+  if(doneMorse)return;
+  doneMorse=true;
+  key.disabled=true;assist.hidden=true;
+  keyStatus.textContent='滴——波特蘭回電：「收到。晚安。」本來，今晚該就這樣結束的。';
+  try{localStorage.setItem(LS+'sent','1');}catch(e){}
+  after(900,function(){
+    unlock('s2');unlock('s3');unlock('s4');
+    startChaos();
+  });
+}
+key.addEventListener('click',function(){
+  if(doneMorse)return;
+  key.classList.add('hit');
+  setTimeout(function(){key.classList.remove('hit');},90);
+  emitNext();
+  if(idx>=flat.length)completeMorse();else updateStatus();
+});
+assist.addEventListener('click',function(){
+  if(doneMorse)return;
+  function step(){
+    if(!emitNext()||idx>=flat.length){
+      if(idx>=flat.length)completeMorse();
+      return;
+    }
+    updateStatus();
+    after(reduced?0:140,step);
+  }
+  step();
+});
+updateStatus();
+
+/* ---------- 第二幕：指針發瘋＋災情電文 ---------- */
+var needle=document.getElementById('needle');
+var dialVisible=false,needleOn=false,needleState='off';
+var dialIO=new IntersectionObserver(function(es){
+  es.forEach(function(e){dialVisible=e.isIntersecting;});
+  syncNeedle();
+},{threshold:.1});
+dialIO.observe(document.getElementById('dialBox'));
+function needleTick(dt,t){
+  var a=0;
+  if(needleState==='chaos'){
+    a=Math.sin(t*0.012)*Math.sin(t*0.0047)*46+(Math.random()*14-7);
+  }else if(needleState==='aurora'){
+    a=Math.sin(t*0.0011)*36;
+  }
+  needle.style.transform='rotate('+a.toFixed(2)+'deg)';
+}
+function syncNeedle(){
+  if(!needle)return;
+  var want=dialVisible&&!reduced&&needleState!=='off';
+  if(want&&!needleOn){needleOn=true;addTick(needleTick);}
+  else if(!want&&needleOn){needleOn=false;rmTick(needleTick);}
+  if(reduced&&needleState!=='off'){
+    needle.style.transform='rotate('+(needleState==='chaos'?38:-24)+'deg)';
+  }
+}
+function startChaos(){
+  needleState='chaos';
+  document.getElementById('sparkBox').classList.add('chaos');
+  document.getElementById('s2').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+  syncNeedle();
+}
+
+var TELEGRAMS=[
+['費城線','操作員觸鍵被電，指尖麻痺，暫離崗位。'],
+['匹茲堡','儀器接點噴出火花，接報紙險些燒起來。'],
+['華盛頓','線路電流忽強忽弱，時而完全中斷，時而無電池亦可拍發。']];
+var wire=document.getElementById('wire'),wireStarted=false;
+function typeInto(el,text,speed,done){
+  if(reduced){el.textContent=text;if(done)done();return;}
+  var i=0,acc=0;
+  function f(dt){
+    acc+=dt;
+    while(acc>=speed&&i<text.length){acc-=speed;i++;}
+    el.textContent=text.slice(0,i);
+    if(i>=text.length){rmTick(f);if(done)done();}
+  }
+  addTick(f);
+}
+function startWire(){
+  if(wireStarted||wire.childElementCount)return;
+  wireStarted=true;
+  var n=0;
+  function next(){
+    if(n>=TELEGRAMS.length){
+      document.getElementById('wireEnd').hidden=false;
+      return;
+    }
+    var t=TELEGRAMS[n++];
+    var slip=document.createElement('div');slip.className='slip';
+    var src=document.createElement('span');src.className='src';src.textContent='INCOMING · '+t[0];
+    var sr=document.createElement('span');sr.className='sr';sr.textContent=t[1];
+    var vis=document.createElement('span');vis.setAttribute('aria-hidden','true');
+    slip.appendChild(src);slip.appendChild(sr);slip.appendChild(vis);
+    wire.appendChild(slip);
+    typeInto(vis,t[1],34,function(){after(500,next);});
+  }
+  next();
+}
+
+/* ---------- 倒敘：那五分鐘 ---------- */
+var sunG=document.getElementById('sunG'),ring=document.getElementById('flareRing');
+var flareCap=document.getElementById('flareCap');
+var RING_LEN=2*Math.PI*46;
+ring.style.strokeDasharray=RING_LEN;
+ring.style.strokeDashoffset=RING_LEN;
+function playFlare(){
+  sunG.classList.remove('dimmed');
+  if(reduced){
+    sunG.classList.add('play');
+    ring.style.transition='none';
+    ring.style.strokeDashoffset='0';
+    flareCap.textContent='11:18 白光乍現 → 五分鐘後黯去。他跑去找人作證，回來時光已弱了大半。';
+    return;
+  }
+  ring.style.transition='none';
+  ring.style.strokeDashoffset=RING_LEN;
+  sunG.classList.remove('play');
+  ring.getBoundingClientRect(); /* 強制 reflow 再重播 */
+  requestAnimationFrame(function(){
+    ring.style.transition='stroke-dashoffset 2.2s ease';
+    ring.style.strokeDashoffset='0';
+    sunG.classList.add('play');
+  });
+  flareCap.textContent='11:18——黑子群中，兩點白光。';
+  after(2300,function(){flareCap.textContent='他衝出去找人作證。不到一分鐘回來，光已經弱了大半。';});
+  after(4600,function(){
+    sunG.classList.add('dimmed');
+    flareCap.textContent='11:23——白光熄滅。五分鐘，改寫了太陽物理學。';
+  });
+}
+document.getElementById('replayFlare').addEventListener('click',playFlare);
+
+/* ---------- 高潮：拔電池 ---------- */
+var battery=document.getElementById('battery'),batStatus=document.getElementById('batStatus');
+var DIALOGUE=[
+['波士頓','請把你的電池完全斷開線路，斷十五分鐘。','bos'],
+['波特蘭','照辦。現在已斷開。','por'],
+['波士頓','我這邊也斷了。我們正靠極光的電流收發。我的訊號如何？','bos'],
+['波特蘭','比接著電池時還清楚——電流會慢慢地漲、慢慢地退。','por'],
+['波士頓','電流很穩。那就繼續吧，把積壓的電文發完。','bos']];
+var dlog=document.getElementById('dlog');
+battery.addEventListener('click',function(){
+  if(battery.disabled)return;
+  battery.disabled=true;
+  battery.classList.add('pulled');
+  document.getElementById('batLabel').textContent='電池已斷開';
+  batStatus.textContent='喀。電極離開接線柱。';
+  try{localStorage.setItem(LS+'pulled','1');}catch(e){}
+  needleState='aurora';syncNeedle();
+  document.getElementById('sparkBox').classList.remove('chaos');
+  after(900,function(){
+    unlock('s5');
+    document.getElementById('s5').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+    after(600,runDialogue);
+  });
+});
+function runDialogue(){
+  var feed=morseSymbols('WE ARE WORKING WITH THE AURORAL CURRENT'),fi=0;
+  function feedStep(){
+    if(fi>=feed.length)return;
+    pushSym(feed[fi++]);
+    after(300,feedStep);
+  }
+  if(!reduced)feedStep();
+  var n=0;
+  function next(){
+    if(n>=DIALOGUE.length){
+      document.getElementById('dlogNote').hidden=false;
+      unlock('epi');
+      return;
+    }
+    var d=DIALOGUE[n++];
+    var line=document.createElement('p');line.className='dl '+d[2];
+    var who=document.createElement('b');who.textContent=d[0];
+    var sr=document.createElement('span');sr.className='sr';sr.textContent=d[1];
+    var vis=document.createElement('span');vis.setAttribute('aria-hidden','true');
+    line.appendChild(who);line.appendChild(sr);line.appendChild(vis);
+    dlog.appendChild(line);
+    typeInto(vis,d[1],46,function(){after(650,next);});
+  }
+  next();
+}
+
+/* ---------- 回訪彩蛋 ---------- */
+try{
+  if(localStorage.getItem(LS+'pulled')==='1'){
+    document.getElementById('againNote').hidden=false;
+  }
+}catch(e){}
+})();
+</script>
+</body>
+</html>

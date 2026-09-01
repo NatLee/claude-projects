@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>那杯咖啡還在你身體裡｜凌晨 00:47，替下午三點還債</title>
+<style>
+:root{
+  --bg:#0b0e1a; --panel:#141a2e; --panel2:#1a2138; --line:#262f4d;
+  --ink:#e9e7de; --dim:#98a0b8; --faint:#5c6580;
+  --amber:#ffb84d; --amber2:#f5a623; --violet:#8f7bff; --danger:#ff7a6b; --good:#5fd9a6;
+  --mono:"Cascadia Code","SF Mono",Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  line-height:1.75; letter-spacing:.02em; overflow-x:hidden;
+}
+a{color:var(--amber)}
+.home{
+  position:fixed; top:14px; left:16px; z-index:9; font-size:.82rem; color:var(--faint);
+  text-decoration:none; padding:4px 10px; border-radius:99px; background:rgba(11,14,26,.7);
+}
+.home:hover,.home:focus-visible{color:var(--amber)}
+:focus-visible{outline:2px solid var(--amber); outline-offset:2px; border-radius:4px}
+section,header.scene{max-width:820px; margin:0 auto; padding:0 22px}
+
+/* ── 第一屏 ── */
+header.scene{
+  min-height:96vh; max-width:none; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center; position:relative;
+  background:radial-gradient(ellipse 80% 55% at 50% 8%, #131a33 0%, var(--bg) 70%);
+}
+.clock{
+  font-family:var(--mono); font-size:clamp(3.4rem,11vw,6rem); font-weight:700;
+  color:var(--ink); letter-spacing:.04em; text-shadow:0 0 34px rgba(143,123,255,.35);
+}
+.clock .colon{display:inline-block; animation:blink 2s step-end infinite}
+@keyframes blink{50%{opacity:.15}}
+.paused .colon,.rm .colon{animation:none}
+.hook{margin-top:26px; font-size:clamp(1.05rem,3.4vw,1.3rem); color:var(--dim)}
+.hook p{margin:.4em 0}
+.hook .punch{color:var(--amber); font-weight:700; margin-top:1em}
+.down{
+  margin-top:52px; color:var(--faint); font-size:.85rem; text-decoration:none; display:inline-block;
+}
+.down:hover,.down:focus-visible{color:var(--amber)}
+
+h2{font-size:1.35rem; margin:0 0 .7em; color:var(--ink)}
+h2 .no{font-family:var(--mono); color:var(--violet); font-size:.85rem; display:block; letter-spacing:.2em; margin-bottom:.5em}
+.prose{color:var(--dim); font-size:.98rem}
+.prose strong{color:var(--ink)}
+.prose em{color:var(--amber); font-style:normal}
+section{padding-top:14vh; padding-bottom:6vh}
+
+/* 進場 */
+.rv{opacity:0; transform:translateY(20px); transition:opacity .7s ease,transform .7s ease}
+.rv.on{opacity:1; transform:none}
+.rm .rv{transition:none; opacity:1; transform:none}
+
+/* ── 帳單 ── */
+.billBox{
+  margin-top:24px; background:var(--panel); border:1px solid var(--line); border-radius:16px;
+  padding:22px; position:relative; overflow:hidden;
+}
+.billRow{display:flex; align-items:flex-end; gap:6px; height:120px; position:relative}
+.bill{
+  flex:1; background:linear-gradient(180deg,#5a6ba8,#3a4574); border-radius:4px 4px 2px 2px;
+  transform:scaleY(0); transform-origin:bottom; transition:transform .5s ease,opacity .4s ease;
+}
+.bill:nth-child(1){height:12%} .bill:nth-child(2){height:21%} .bill:nth-child(3){height:30%}
+.bill:nth-child(4){height:38%} .bill:nth-child(5){height:47%} .bill:nth-child(6){height:56%}
+.bill:nth-child(7){height:64%} .bill:nth-child(8){height:73%} .bill:nth-child(9){height:82%}
+.bill:nth-child(10){height:91%} .bill:nth-child(11){height:96%} .bill:nth-child(12){height:100%}
+.billBox.on .bill{transform:scaleY(1)}
+.billBox.on .bill:nth-child(n){transition-delay:calc(var(--i,0)*60ms)}
+.rm .bill{transition:none; transform:scaleY(1)}
+.cover{
+  position:absolute; inset:-2px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(180deg,rgba(245,166,35,.92),rgba(214,126,20,.92)); border-radius:8px;
+  transform:translateY(-130%); transition:transform .45s cubic-bezier(.3,.9,.35,1);
+  font-size:2rem; color:#241500; font-weight:700; letter-spacing:.1em;
+}
+.covered .cover{transform:translateY(0)}
+.covered .bill{opacity:.3}
+.rm .cover{transition:none}
+.billCap{margin-top:14px; color:var(--dim); font-size:.92rem; min-height:3.2em}
+.billCap strong{color:var(--amber)}
+button{
+  font:inherit; cursor:pointer; border:1px solid var(--line); background:var(--panel2);
+  color:var(--ink); border-radius:10px; padding:8px 16px; transition:transform .15s ease,opacity .15s ease;
+}
+button:hover{transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+.btnAmber{background:var(--amber2); color:#241500; border-color:transparent; font-weight:700}
+#coverBtn{margin-top:14px}
+
+/* ── 工具 ── */
+.tool{
+  background:var(--panel); border:1px solid var(--line); border-radius:18px;
+  padding:22px; margin-top:26px;
+}
+.addRow{display:flex; flex-wrap:wrap; gap:10px; align-items:flex-end}
+.fld{display:flex; flex-direction:column; gap:4px}
+.fld label{font-size:.78rem; color:var(--faint)}
+select,input[type="time"]{
+  font:inherit; background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+  border-radius:10px; padding:8px 10px; min-height:42px;
+}
+.chips{list-style:none; display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+.chips li{
+  display:flex; align-items:center; gap:6px; background:var(--panel2); border:1px solid var(--line);
+  border-radius:99px; padding:4px 6px 4px 12px; font-size:.86rem; color:var(--dim);
+}
+.chips li b{color:var(--ink); font-weight:500}
+.chips .del{
+  border:none; background:transparent; color:var(--faint); padding:2px 8px; border-radius:99px; font-size:.9rem;
+}
+.chips .del:hover{color:var(--danger)}
+.hintEmpty{color:var(--faint); font-size:.9rem; margin-top:14px}
+.chartWrap{margin-top:18px}
+svg{display:block; width:100%; height:auto}
+.axis text{fill:var(--faint); font-size:11px; font-family:var(--mono)}
+.grid line{stroke:var(--line); stroke-width:1; stroke-dasharray:2 5}
+#fdaLine{stroke:var(--danger); stroke-width:1; stroke-dasharray:6 5; opacity:.55}
+#fdaTxt{fill:var(--danger); font-size:10px; opacity:.8; font-family:var(--mono)}
+#curve{fill:none; stroke:url(#gline); stroke-width:2.6; stroke-linecap:round}
+#area{fill:url(#garea); opacity:.9}
+#bedLine{stroke:var(--violet); stroke-width:1.4; stroke-dasharray:4 5}
+#bedMg{fill:var(--ink); font-size:13px; font-weight:700; font-family:var(--mono)}
+.mark text{font-size:15px}
+.statRow{display:flex; flex-wrap:wrap; gap:10px 22px; margin-top:14px; font-size:.9rem; color:var(--dim)}
+.statRow b{font-family:var(--mono); color:var(--ink)}
+.over b{color:var(--danger)}
+.bedMsg{
+  margin-top:16px; background:var(--panel2); border-left:3px solid var(--violet);
+  border-radius:0 12px 12px 0; padding:12px 16px; font-size:.96rem; min-height:3em;
+}
+.bedMsg strong{color:var(--amber); font-family:var(--mono)}
+.hlBlock{margin-top:22px}
+.hlBlock label{display:block; font-size:.88rem; color:var(--dim); margin-bottom:6px}
+.hlBlock output{font-family:var(--mono); color:var(--amber); font-weight:700}
+input[type="range"]{width:100%; accent-color:var(--amber2); min-height:30px}
+.hlNote{font-size:.84rem; color:var(--faint); margin-top:6px; min-height:2.6em}
+.rowSplit{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:10px}
+
+/* ── 死線 ── */
+.dl{
+  background:linear-gradient(160deg,var(--panel),#1b1730); border:1px solid var(--line);
+  border-radius:18px; padding:22px; margin-top:26px;
+}
+.dlOut{
+  font-family:var(--mono); font-size:clamp(1.3rem,4.6vw,1.9rem); color:var(--amber);
+  font-weight:700; margin-top:14px; min-height:1.5em;
+}
+.dlSub{font-size:.86rem; color:var(--faint); margin-top:4px; min-height:1.4em}
+.drake{
+  margin-top:22px; font-size:.9rem; color:var(--dim); border-top:1px dashed var(--line); padding-top:16px;
+}
+.drake em{font-style:normal; color:var(--ink)}
+
+/* ── 結尾 ── */
+.outro{text-align:center; padding-bottom:12vh}
+.outro p{font-size:clamp(1.02rem,3.2vw,1.25rem); color:var(--dim); margin:.5em 0}
+.outro .final{color:var(--amber); font-weight:700; font-size:clamp(1.15rem,3.8vw,1.45rem)}
+.outro .tiny{font-size:.88rem; color:var(--faint); margin-top:2.4em}
+footer{
+  text-align:center; color:var(--faint); font-size:.78rem; padding:26px 20px 40px;
+  border-top:1px solid var(--line);
+}
+@media (max-width:560px){
+  .addRow{flex-direction:column; align-items:stretch}
+  .addRow .fld,.addRow button{width:100%}
+  .statRow{flex-direction:column; gap:6px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="scene" aria-label="開場：凌晨的天花板">
+  <div class="clock" aria-label="凌晨零點四十七分">00<span class="colon">:</span>47</div>
+  <div class="hook">
+    <p>你明明累得要死。</p>
+    <p>你的腦知道。你的身體知道。天花板都被你看熟了。</p>
+    <p class="punch">有一樣東西不知道——你下午三點喝的那杯。</p>
+  </div>
+  <a class="down" href="#story">往下，回到今天下午 ↓</a>
+</header>
+
+<section id="story" aria-label="睏意帳單的比喻">
+  <div class="rv">
+    <h2><span class="no">壹 ─ 帳單</span>睏意不是感覺，是帳單</h2>
+    <div class="prose">
+      <p>你醒著的每一小時，大腦都在累積一種叫<strong>腺苷</strong>的物質。它是清醒的代價，一張一張開給你的帳單。堆得夠高，大腦就收到通知：該睡了。</p>
+      <p>咖啡因做的事其實很簡單——它把手伸過去，<em>擋在帳單和收件人之間</em>。占住腺苷受體，讓「該睡了」的通知送不進來。</p>
+      <p>它沒有付錢。它不給你能量。<strong>它只是幫你賒帳。</strong></p>
+    </div>
+  </div>
+  <div class="billBox rv" id="billBox">
+    <div class="billRow" aria-hidden="true">
+      <div class="bill" style="--i:0"></div><div class="bill" style="--i:1"></div>
+      <div class="bill" style="--i:2"></div><div class="bill" style="--i:3"></div>
+      <div class="bill" style="--i:4"></div><div class="bill" style="--i:5"></div>
+      <div class="bill" style="--i:6"></div><div class="bill" style="--i:7"></div>
+      <div class="bill" style="--i:8"></div><div class="bill" style="--i:9"></div>
+      <div class="bill" style="--i:10"></div><div class="bill" style="--i:11"></div>
+      <div class="cover" aria-hidden="true">☕ 賒帳中</div>
+    </div>
+    <p class="billCap" id="billCap" aria-live="polite">從早上醒來到現在，帳單一張張堆上來。這就是你此刻的睏意存量。</p>
+    <button id="coverBtn" class="btnAmber" aria-pressed="false">☕ 把咖啡因蓋上去</button>
+  </div>
+</section>
+
+<section aria-label="你的一天：咖啡因時間軸工具">
+  <div class="rv">
+    <h2><span class="no">貳 ─ 對帳</span>把今天喝的，一杯一杯放回去</h2>
+    <p class="prose">回想一下今天。早上那杯、午餐後那杯、下午撐不住的那杯——放上時間軸，看它們現在還剩多少在你血液裡。</p>
+  </div>
+  <div class="tool rv">
+    <form class="addRow" id="addForm">
+      <div class="fld">
+        <label for="drinkSel">喝了什麼</label>
+        <select id="drinkSel" aria-label="選擇飲品"></select>
+      </div>
+      <div class="fld">
+        <label for="timeIn">幾點喝的</label>
+        <input type="time" id="timeIn" value="15:00" required aria-label="攝取時刻">
+      </div>
+      <button type="submit" class="btnAmber" aria-label="把這杯放上時間軸">放上時間軸 →</button>
+    </form>
+    <p class="hintEmpty" id="emptyHint">時間軸還空著。先把早上那杯放上來——或者
+      <button type="button" id="demoBtn" style="padding:4px 12px;font-size:.86rem" aria-label="放一個示範的一天上時間軸">先放一個「很普通的一天」看看 →</button>
+    </p>
+    <ul class="chips" id="doseList" aria-label="今天已放上的飲品"></ul>
+    <p style="margin-top:10px">
+      <button type="button" id="clearBtn" style="font-size:.82rem;padding:4px 12px;color:var(--faint)" aria-label="清空時間軸上所有飲品" hidden>全部清掉，重來一天</button>
+    </p>
+
+    <div class="chartWrap">
+      <svg viewBox="0 0 760 300" role="img" id="chart" aria-label="體內咖啡因濃度隨時間變化圖，從早上六點到隔天早上六點">
+        <defs>
+          <linearGradient id="gline" gradientUnits="userSpaceOnUse" x1="44" y1="0" x2="744" y2="0">
+            <stop offset="0" stop-color="#f5a623"/>
+            <stop offset="0.6" stop-color="#ff8a5c"/>
+            <stop offset="1" stop-color="#8f7bff"/>
+          </linearGradient>
+          <linearGradient id="garea" gradientUnits="userSpaceOnUse" x1="0" y1="20" x2="0" y2="252">
+            <stop offset="0" stop-color="rgba(245,166,35,.22)"/>
+            <stop offset="1" stop-color="rgba(245,166,35,0)"/>
+          </linearGradient>
+          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#f5a623" flood-opacity="0.45"/>
+          </filter>
+        </defs>
+        <g class="grid" id="grid"></g>
+        <g class="axis" id="axis"></g>
+        <line id="fdaLine" x1="44" x2="744" y1="0" y2="0" visibility="hidden"></line>
+        <text id="fdaTxt" x="48" y="0" visibility="hidden">FDA 每日建議上限 400mg</text>
+        <path id="area" d=""></path>
+        <g filter="url(#glow)"><path id="curve" d=""></path></g>
+        <g class="mark" id="marks"></g>
+        <g id="bedG">
+          <line id="bedLine" x1="0" x2="0" y1="20" y2="252"></line>
+          <text id="bedIcon" text-anchor="middle" font-size="20" y="16">🛏️</text>
+          <text id="bedMg" text-anchor="middle" y="268"></text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="statRow">
+      <span id="totalStat">今天累計 <b>0</b> mg（FDA 建議健康成人 ≤400mg／日）</span>
+      <span class="fld" style="flex-direction:row;align-items:center;gap:8px">
+        <label for="bedIn" style="font-size:.9rem;color:var(--dim)">🛏️ 打算幾點睡</label>
+        <input type="time" id="bedIn" value="23:00" aria-label="就寢時刻">
+      </span>
+    </div>
+    <p class="bedMsg" id="bedMsg" aria-live="polite"></p>
+
+    <div class="hlBlock">
+      <label for="hlIn">你的半衰期：<output id="hlOut" for="hlIn">5.0</output> 小時（肝臟撕掉一半帳單所需的時間）</label>
+      <input type="range" id="hlIn" min="1.5" max="9.5" step="0.5" value="5"
+             aria-label="調整咖啡因半衰期，範圍一點五到九點五小時">
+      <p class="hlNote" id="hlNote" aria-live="polite"></p>
+    </div>
+  </div>
+</section>
+
+<section aria-label="反推最後一杯的死線">
+  <div class="rv prose" style="margin-bottom:6px">
+    <p>看到了嗎？曲線下降得比你想的慢。半衰期是「砍半」不是「歸零」——五小時後剩一半，十小時後還有四分之一。<strong>下午那杯的後半段，是排進你的夜裡的。</strong>所以，與其晚上後悔，不如白天就算好：</p>
+  </div>
+  <div class="dl rv">
+    <h2><span class="no">參 ─ 死線</span>想睡個乾淨的覺？</h2>
+    <p class="prose">「乾淨」的標準抓寬一點：上床時體內殘量 <strong>≤25mg</strong>——大約四分之一杯手沖。從你的就寢時間和半衰期往回推，今天最後一杯的死線是：</p>
+    <div class="rowSplit">
+      <div class="fld">
+        <label for="lastSel">最後一杯想喝</label>
+        <select id="lastSel" aria-label="選擇今天的最後一杯飲品"></select>
+      </div>
+    </div>
+    <p class="dlOut" id="dlOut" aria-live="polite"></p>
+    <p class="dlSub" id="dlSub"></p>
+    <p class="drake">順帶一提：實驗室裡，<em>睡前整整 6 小時</em>喝下 400mg 咖啡因的受試者，整晚客觀睡眠少了超過一小時——而他們自己<em>完全沒感覺</em>（Drake et al. 2013, J Clin Sleep Med）。你以為睡得還行的那些夜晚，未必真的還行。</p>
+  </div>
+</section>
+
+<section class="outro" aria-label="結語">
+  <div class="rv">
+    <p>現在，回到凌晨 00:47。</p>
+    <p>盯著天花板的那個人，累得要死，卻醒得清清楚楚。</p>
+    <p class="final">醒著的不是你。是下午三點的你。</p>
+    <p class="tiny">明天，替他把最後一杯排在死線前面。</p>
+  </div>
+</section>
+
+<footer>
+  🫖 每日小專案｜2026-08-23 ・ 本頁為概估模型，非醫療建議；個人代謝差異很大。<br>
+  數據來源：FDA（每日 ≤400mg 建議）、Drake et al. 2013《J Clin Sleep Med》、常見飲品咖啡因平均含量。
+</footer>
+
+<script>
+(function(){
+'use strict';
+var LS='caff.';
+var CUP=95;          // 一杯手沖的基準 mg
+var CLEAN=25;        // 「乾淨入睡」門檻 mg（約四分之一杯）
+var T0=6, T1=30;     // 時間軸：今天 06:00 → 隔天 06:00
+var X0=44, X1=744, Y0=20, Y1=252;
+
+var DRINKS=[
+  {id:'drip',  name:'手沖／滴濾咖啡', mg:95,  e:'☕'},
+  {id:'esp',   name:'濃縮（1 shot）', mg:63,  e:'🤎'},
+  {id:'latte', name:'拿鐵（雙份濃縮）', mg:126, e:'🥛'},
+  {id:'black', name:'紅茶',           mg:47,  e:'🫖'},
+  {id:'green', name:'綠茶',           mg:28,  e:'🍵'},
+  {id:'cola',  name:'可樂（330ml）',  mg:34,  e:'🥤'},
+  {id:'energy',name:'能量飲（250ml）',mg:80,  e:'⚡'},
+  {id:'choc',  name:'黑巧克力（一片）',mg:12, e:'🍫'}
+];
+
+/* ── 純函式（可用 node 斷言驗證）────────────────────────
+   caffeineAt([{mg,t}], halfLifeH, tH) → 時刻 tH 的體內殘量 mg
+   lastCallH(bedH, mg, halfLifeH, limitMg) → 最後一杯的死線（小時）*/
+function caffeineAt(doses, halfLifeH, tH){
+  var s=0, i, d;
+  for(i=0;i<doses.length;i++){
+    d=doses[i];
+    if(tH>=d.t) s+=d.mg*Math.pow(0.5,(tH-d.t)/halfLifeH);
+  }
+  return s;
+}
+function lastCallH(bedH, mg, halfLifeH, limitMg){
+  if(mg<=limitMg) return bedH;
+  return bedH - halfLifeH*(Math.log(mg/limitMg)/Math.LN2);
+}
+function sumMg(doses){
+  var s=0; for(var i=0;i<doses.length;i++) s+=doses[i].mg; return s;
+}
+function parseHM(v){
+  var m=/^(\d{1,2}):(\d{2})$/.exec(v||'');
+  if(!m) return null;
+  var h=(+m[1])+(+m[2])/60;
+  if(h<T0) h+=24;            // 凌晨時段視為「今晚跨日」
+  return h;
+}
+function fmtHM(h){
+  var t=((h%24)+24)%24;
+  var H=Math.floor(t), M=Math.round((t-H)*60);
+  if(M===60){M=0;H=(H+1)%24;}
+  return (H<10?'0':'')+H+':'+(M<10?'0':'')+M;
+}
+/* ──────────────────────────────────────────────── */
+
+var $=function(s){return document.querySelector(s);};
+var doses=[], hl=5, bedStr='23:00';
+
+// 載入儲存值
+try{
+  var d0=JSON.parse(localStorage.getItem(LS+'doses')||'[]');
+  if(Array.isArray(d0)) doses=d0.filter(function(x){return x&&isFinite(x.mg)&&isFinite(x.t);});
+  var h0=parseFloat(localStorage.getItem(LS+'hl'));
+  if(h0>=1.5&&h0<=9.5) hl=h0;
+  var b0=localStorage.getItem(LS+'bed');
+  if(b0&&parseHM(b0)!==null) bedStr=b0;
+}catch(e){}
+function save(){
+  try{
+    localStorage.setItem(LS+'doses',JSON.stringify(doses));
+    localStorage.setItem(LS+'hl',String(hl));
+    localStorage.setItem(LS+'bed',bedStr);
+  }catch(e){}
+}
+
+// 減速模式
+var mqRM=matchMedia('(prefers-reduced-motion: reduce)');
+var rm=mqRM.matches;
+function applyRM(){document.documentElement.classList.toggle('rm',rm);}
+mqRM.addEventListener('change',function(e){rm=e.matches;applyRM();draw(false);});
+applyRM();
+
+// 分頁隱藏時暫停動畫
+document.addEventListener('visibilitychange',function(){
+  document.body.classList.toggle('paused',document.hidden);
+});
+
+// 進場觀察
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(en){
+    if(en.isIntersecting){en.target.classList.add('on');io.unobserve(en.target);}
+  });
+},{threshold:.15});
+document.querySelectorAll('.rv,.billBox').forEach(function(el){io.observe(el);});
+
+// 帳單互動
+var coverBtn=$('#coverBtn'), billBox=$('#billBox'), billCap=$('#billCap');
+coverBtn.addEventListener('click',function(){
+  var covered=billBox.classList.toggle('covered');
+  coverBtn.setAttribute('aria-pressed',String(covered));
+  coverBtn.textContent=covered?'🖐 把手放開':'☕ 把咖啡因蓋上去';
+  billCap.innerHTML=covered
+    ?'通知被擋下了。你「感覺」不睏。但看清楚——<strong>帳一張也沒少</strong>。手一放開，全部一起到期。'
+    :'從早上醒來到現在，帳單一張張堆上來。這就是你此刻的睏意存量。';
+});
+
+// 下拉選單
+var drinkSel=$('#drinkSel'), lastSel=$('#lastSel');
+DRINKS.forEach(function(d){
+  var t=d.e+' '+d.name+'（'+d.mg+'mg）';
+  var o1=new Option(t,d.id), o2=new Option(t,d.id);
+  drinkSel.add(o1); lastSel.add(o2);
+});
+lastSel.value='drip';
+
+// 圖表元素
+var curve=$('#curve'), area=$('#area'), marks=$('#marks'),
+    grid=$('#grid'), axis=$('#axis'), bedG=$('#bedG'),
+    bedLine=$('#bedLine'), bedIcon=$('#bedIcon'), bedMgT=$('#bedMg'),
+    fdaLine=$('#fdaLine'), fdaTxt=$('#fdaTxt'),
+    bedMsg=$('#bedMsg'), totalStat=$('#totalStat'), emptyHint=$('#emptyHint'),
+    doseList=$('#doseList'), dlOut=$('#dlOut'), dlSub=$('#dlSub'),
+    hlIn=$('#hlIn'), hlOut=$('#hlOut'), hlNote=$('#hlNote'), bedIn=$('#bedIn');
+
+function xOf(t){return X0+(t-T0)/(T1-T0)*(X1-X0);}
+
+// 座標軸（固定，只建一次）
+(function(){
+  var ax='', gd='', t, x, lab;
+  for(t=T0;t<=T1;t+=3){
+    x=xOf(t);
+    lab=fmtHM(t);
+    ax+='<text x="'+x+'" y="272" text-anchor="middle">'+lab+'</text>';
+    gd+='<line x1="'+x+'" x2="'+x+'" y1="'+Y0+'" y2="'+Y1+'"/>';
+  }
+  axis.innerHTML=ax; grid.innerHTML=gd;
+})();
+
+function cupText(r){
+  if(r<10) return '殘量不到十分之一杯手沖，帳幾乎清了';
+  if(r>=CUP*0.95) return '等於躺下前又灌了 '+(r/CUP).toFixed(1)+' 杯手沖';
+  var den=Math.max(2,Math.min(10,Math.round(CUP/r)));
+  var zh=['','','二','三','四','五','六','七','八','九','十'];
+  return '等於躺下前又乾了'+zh[den]+'分之一杯手沖';
+}
+
+function replayDash(path){
+  // 依實際繪製方向（左→右）重播描線
+  var len=path.getTotalLength();
+  path.style.transition='none';
+  path.style.strokeDasharray=len+' '+len;
+  path.style.strokeDashoffset=len;           // 先隱藏
+  void path.getBoundingClientRect();          // 強制 reflow
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      path.style.transition='stroke-dashoffset 1s ease-out';
+      path.style.strokeDashoffset='0';
+    });
+  });
+}
+
+function draw(animate){
+  var HL=hl;
+  var bedH=parseHM(bedStr); if(bedH===null) bedH=23;
+  var peak=0, t, v;
+  for(t=T0;t<=T1;t+=0.25){ v=caffeineAt(doses,HL,t); if(v>peak)peak=v; }
+  var maxY=Math.max(150,Math.ceil(peak*1.15/50)*50);
+  var yOf=function(mg){return Y1-(mg/maxY)*(Y1-Y0);};
+
+  var dLine='', dArea='M'+X0+','+Y1, first=true, x, y;
+  for(t=T0;t<=T1+1e-9;t+=0.1){
+    v=caffeineAt(doses,HL,t);
+    x=xOf(Math.min(t,T1)).toFixed(1); y=yOf(v).toFixed(1);
+    dLine+=(first?'M':'L')+x+','+y; first=false;
+    dArea+='L'+x+','+y;
+  }
+  dArea+='L'+X1+','+Y1+'Z';
+  curve.setAttribute('d',dLine);
+  area.setAttribute('d',dArea);
+
+  if(animate && !rm && !document.hidden){
+    replayDash(curve);
+  }else{
+    curve.style.transition='none';
+    curve.style.strokeDasharray='none';
+    curve.style.strokeDashoffset='0';
+  }
+
+  // FDA 線
+  if(maxY>=400){
+    var yf=yOf(400);
+    fdaLine.setAttribute('y1',yf); fdaLine.setAttribute('y2',yf);
+    fdaTxt.setAttribute('y',yf-5);
+    fdaLine.setAttribute('visibility','visible');
+    fdaTxt.setAttribute('visibility','visible');
+  }else{
+    fdaLine.setAttribute('visibility','hidden');
+    fdaTxt.setAttribute('visibility','hidden');
+  }
+
+  // 飲品標記
+  var mk='';
+  doses.forEach(function(d){
+    var mx=xOf(d.t), my=yOf(caffeineAt(doses,HL,d.t))-10;
+    mk+='<text x="'+mx.toFixed(1)+'" y="'+my.toFixed(1)+'" text-anchor="middle">'+d.e+'</text>';
+  });
+  marks.innerHTML=mk;
+
+  // 枕頭
+  var bx=xOf(Math.min(Math.max(bedH,T0),T1));
+  bedLine.setAttribute('x1',bx); bedLine.setAttribute('x2',bx);
+  bedIcon.setAttribute('x',bx);
+  var resid=caffeineAt(doses,HL,bedH);
+  bedMgT.setAttribute('x',bx);
+  bedMgT.textContent=Math.round(resid)+'mg';
+
+  // 訊息
+  if(doses.length===0){
+    bedMsg.innerHTML='時間軸還是空的。放一杯上來，枕頭底下就會浮出數字。';
+  }else if(resid<10){
+    bedMsg.innerHTML='上床時（'+fmtHM(bedH)+'），你體內只剩 <strong>'+Math.round(resid)+'mg</strong>——'+cupText(resid)+'。今晚的帳，付得掉。';
+  }else{
+    bedMsg.innerHTML='上床時（'+fmtHM(bedH)+'），你體內還有 <strong>'+Math.round(resid)+'mg</strong>——'+cupText(resid)+'。';
+  }
+  var tot=sumMg(doses);
+  totalStat.innerHTML='今天累計 <b>'+tot+'</b> mg（FDA 建議健康成人 ≤400mg／日）';
+  totalStat.classList.toggle('over',tot>400);
+  emptyHint.style.display=doses.length?'none':'';
+
+  updateDeadline(bedH);
+}
+
+function updateDeadline(bedH){
+  var d=DRINKS.filter(function(x){return x.id===lastSel.value;})[0]||DRINKS[0];
+  if(d.mg<=CLEAN){
+    dlOut.textContent='隨時。這杯量太小，擋不住帳單。';
+    dlSub.textContent='';
+    return;
+  }
+  var dl=lastCallH(bedH,d.mg,hl,CLEAN);
+  var lead=bedH-dl;
+  if(dl<T0){
+    dlOut.textContent='今天排不進去了。';
+    dlSub.textContent='以 '+hl+' 小時的半衰期，'+d.name+'（'+d.mg+'mg）得提前 '+lead.toFixed(1)+' 小時喝——換杯小的吧。';
+  }else{
+    dlOut.textContent='⏳ '+fmtHM(dl);
+    dlSub.textContent=d.name+'（'+d.mg+'mg）最晚這時喝完，'+fmtHM(bedH)+' 上床時才降得到 25mg 以下（提前 '+lead.toFixed(1)+' 小時）。';
+  }
+}
+
+// rAF 節流重繪
+var rafPending=false, wantAnim=false;
+function schedule(anim){
+  if(anim) wantAnim=true;
+  if(rafPending) return;
+  rafPending=true;
+  requestAnimationFrame(function(){
+    rafPending=false;
+    var a=wantAnim; wantAnim=false;
+    draw(a);
+  });
+}
+
+// 半衰期滑桿
+function hlText(v){
+  if(v<=3)   return '偏快。抽菸的人大多在這一帶——尼古丁會催快代謝，帳單撕得飛快。';
+  if(v<=6)   return '平均值附近。多數健康成人約 5 小時，主要由肝臟 CYP1A2 酵素決定，天生手速不同。';
+  return '偏慢。口服避孕藥、懷孕後期、肝功能較弱的人常在這一帶——同一杯，帳掛兩倍久。';
+}
+hlIn.value=String(hl); hlOut.textContent=hl.toFixed(1); hlNote.textContent=hlText(hl);
+hlIn.addEventListener('input',function(){
+  hl=parseFloat(hlIn.value);
+  hlOut.textContent=hl.toFixed(1);
+  hlNote.textContent=hlText(hl);
+  save(); schedule(false);
+});
+
+// 就寢時間
+bedIn.value=bedStr;
+bedIn.addEventListener('input',function(){
+  if(parseHM(bedIn.value)!==null){ bedStr=bedIn.value; save(); schedule(false); }
+});
+lastSel.addEventListener('change',function(){ schedule(false); });
+
+// 新增／刪除
+var clearBtn=$('#clearBtn');
+clearBtn.addEventListener('click',function(){
+  doses=[]; save(); renderList(); schedule(false);
+});
+function renderList(){
+  clearBtn.hidden=doses.length===0;
+  doseList.innerHTML='';
+  doses.slice().sort(function(a,b){return a.t-b.t;}).forEach(function(d){
+    var li=document.createElement('li');
+    li.innerHTML='<b>'+d.e+' '+fmtHM(d.t)+'</b> '+d.name+' '+d.mg+'mg';
+    var del=document.createElement('button');
+    del.type='button'; del.className='del'; del.textContent='✕';
+    del.setAttribute('aria-label','移除 '+fmtHM(d.t)+' 的'+d.name);
+    del.addEventListener('click',function(){
+      doses=doses.filter(function(x){return x!==d;});
+      save(); renderList(); schedule(true);
+    });
+    li.appendChild(del);
+    doseList.appendChild(li);
+  });
+}
+$('#addForm').addEventListener('submit',function(ev){
+  ev.preventDefault();
+  var t=parseHM($('#timeIn').value);
+  if(t===null) return;
+  var d=DRINKS.filter(function(x){return x.id===drinkSel.value;})[0];
+  doses.push({id:d.id,name:d.name,e:d.e,mg:d.mg,t:t});
+  save(); renderList(); schedule(true);
+});
+
+// 示範的一天：早上手沖、午餐後可樂、下午三點那杯
+$('#demoBtn').addEventListener('click',function(){
+  var demo=[
+    {id:'drip', t:8.5},
+    {id:'cola', t:12.75},
+    {id:'drip', t:15}
+  ];
+  demo.forEach(function(x){
+    var d=DRINKS.filter(function(k){return k.id===x.id;})[0];
+    doses.push({id:d.id,name:d.name,e:d.e,mg:d.mg,t:x.t});
+  });
+  save(); renderList(); schedule(true);
+});
+
+renderList();
+draw(doses.length>0 && !rm);
+})();
+</script>
+</body>
+</html>

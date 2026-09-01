@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>他把首頁切成一百萬格——然後那面牆開始死去</title>
+<style>
+:root{
+  --bg:#0e0a18;--bg2:#181026;--ink:#efe9f7;--dim:#b3a6cc;--faint:#7d7099;
+  --vio:#b58cff;--vio2:#d9c2ff;--gold:#ffd98a;--red:#e0604f;--ok:#8fc97a;
+  --line:#2e2344;--card:#171022;--dead:#63636e;--park:#a08c4e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:linear-gradient(180deg,#070510 0%,var(--bg) 24%,var(--bg2) 100%);
+  color:var(--ink);
+  font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  line-height:1.85;letter-spacing:.02em;
+}
+a{color:var(--vio)}
+.wrap{max-width:720px;margin:0 auto;padding:0 22px}
+.home{
+  position:absolute;top:14px;left:16px;font-size:.82rem;color:var(--faint);
+  text-decoration:none;opacity:.75;z-index:5;padding:6px 8px;border-radius:8px
+}
+.home:hover{color:var(--dim);opacity:1}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* ---------- hero ---------- */
+.hero{min-height:96vh;display:flex;flex-direction:column;justify-content:center;padding:78px 0 40px;position:relative}
+.kicker{color:var(--faint);font-size:.88rem;letter-spacing:.32em;margin-bottom:14px}
+h1{font-size:clamp(1.6rem,5.2vw,2.55rem);line-height:1.45;font-weight:900;margin-bottom:18px}
+h1 em{font-style:normal;color:var(--vio)}
+.hero p{color:var(--dim);max-width:36em}
+.hero .punch{color:var(--ink);margin-top:14px;font-weight:700}
+.wallbox{margin:26px 0 6px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#0a0714}
+canvas{display:block;width:100%;aspect-ratio:1/1;touch-action:none}
+#heroWall{aspect-ratio:2/1}
+.cue{margin-top:30px;color:var(--faint);font-size:.85rem}
+.cue .arrow{display:inline-block;animation:bob 1.7s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+/* ---------- acts ---------- */
+.act{padding:72px 0 8px;opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.act.in{opacity:1;transform:none}
+h2{font-size:1.32rem;color:var(--vio2);margin-bottom:18px;font-weight:800}
+h2 .no{color:var(--faint);font-weight:400;margin-right:.5em;font-size:.95rem;letter-spacing:.2em}
+.act p{margin-bottom:14px}
+.act p.mut{color:var(--dim)}
+.note{color:var(--faint);font-size:.88rem}
+.big{font-size:1.14rem;font-weight:700}
+.doc{border-left:3px solid var(--vio);padding:8px 16px;margin:18px 0;color:var(--dim);font-size:.95rem}
+/* ---------- stage ---------- */
+.stage{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin:20px 0}
+.dash{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.dash .date{color:var(--faint);font-size:.9rem;letter-spacing:.08em}
+.money{font-variant-numeric:tabular-nums;font-size:clamp(1.3rem,4.5vw,1.7rem);font-weight:900;color:var(--gold)}
+.money small{font-size:.72em;color:var(--faint);font-weight:400;margin-left:.4em}
+#nar{min-height:5.4em;color:var(--dim);font-size:.95rem;margin:12px 2px 14px}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+button{
+  font:inherit;color:var(--ink);background:#241735;border:1px solid #473364;
+  border-radius:12px;padding:10px 16px;cursor:pointer;font-weight:700;
+  transition:transform .15s ease,opacity .15s ease;
+}
+button:hover:not(:disabled){transform:translateY(-2px)}
+button:disabled{opacity:.4;cursor:default}
+button.ghost{background:transparent;border-color:var(--line);color:var(--dim);font-weight:400}
+.scanstats{margin-top:12px;color:var(--dim);font-size:.92rem;font-variant-numeric:tabular-nums}
+.scanstats b{color:var(--ink)}
+.hint{color:var(--faint);font-size:.85rem;margin-top:6px}
+/* ---------- final panel ---------- */
+#final{display:none;border:1px solid #4a3b12;background:#1c1608;border-radius:16px;padding:20px;margin:22px 0}
+#final.show{display:block}
+.frow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0 14px}
+.fcell{background:#241d0c;border-radius:12px;padding:10px 12px;text-align:center}
+.fcell b{display:block;font-size:1.25rem;font-variant-numeric:tabular-nums}
+.fcell span{color:var(--faint);font-size:.8rem}
+.fcell.ok b{color:var(--ok)}.fcell.dd b{color:var(--red)}.fcell.pk b{color:var(--park)}
+#final .big{color:var(--gold)}
+#again{color:var(--faint);font-size:.85rem;margin-top:10px}
+#epi{display:none}
+#epi.show{display:block}
+/* ---------- footer ---------- */
+footer{margin:70px 0 30px;color:var(--faint);font-size:.8rem;line-height:1.9}
+@media (max-width:560px){
+  .frow{grid-template-columns:1fr}
+  .stage{padding:14px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cue .arrow{animation:none}
+  .act{opacity:1;transform:none;transition:none}
+  button{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero wrap">
+  <p class="kicker">🟪 網路趣聞・冷知識</p>
+  <h1>2005 年，一個 21 歲的學生把網頁切成<em>一百萬塊</em>，一塊賣一美元。</h1>
+  <p>他只是想付大學學費。所有人都說，這是史上最蠢的主意。</p>
+  <p class="punch">五個月後，他多了一百萬美元。下面這面牆，長得就像那個網頁。</p>
+  <div class="wallbox"><canvas id="heroWall" role="img" aria-label="一百萬像素牆示意圖：滿版的彩色小方塊拼貼，模擬 2005 年網路廣告的花花綠綠"></canvas></div>
+  <p class="cue"><span class="arrow" aria-hidden="true">▼</span> 往下，回到一切開始的那個晚上</p>
+</header>
+
+<main class="wrap">
+<section class="act" id="a1">
+  <h2><span class="no">起</span>一本筆記本，一行字</h2>
+  <p>英國威爾特郡。開學前一個月，Alex Tew 睡不著。學費三年要好幾萬英鎊，他不想背二十年學貸。</p>
+  <p>他抓起筆記本，在頁首寫下：「怎麼變成百萬富翁？」</p>
+  <p>二十分鐘後，答案出現了。一個網頁的首頁，切成 1,000,000 個像素。一顆像素，賣一美元。因為一顆像素小到看不見，最少要買 10×10 的一小格——一百美元，廣告掛五年，連到你想連的任何地方。</p>
+  <p class="mut">成本？註冊網域五十英鎊。他把網站取名叫 The Million Dollar Homepage，先賣給弟弟的朋友、認識的站長。頭兩週，只進帳一千美元，全是熟人捧場。</p>
+  <p class="big">然後他發了一篇新聞稿。接下來的事，換你親手重演。</p>
+</section>
+
+<section class="act" id="a2">
+  <h2><span class="no">承</span>五個月，一百萬格</h2>
+  <p class="mut">下面是那面牆的縮尺模型（一格代表一塊 10×10 像素的廣告位）。按「下一週」，看錢滾進來。</p>
+  <div class="stage">
+    <div class="dash">
+      <span class="date" id="dLabel">2005/08/26　上線日</span>
+      <span class="money" aria-hidden="true">$<span id="mNum">0</span><small id="mPct">0% 售出</small></span>
+    </div>
+    <div class="wallbox"><canvas id="wall" role="img" aria-label="互動像素牆：目前是 2005 年時間軸模式，牆面尚未售出"></canvas></div>
+    <p id="nar" aria-live="polite">整面牆一片黑。第一顆像素還沒賣出去，只有他和他的筆記本相信這件事。</p>
+    <div class="btnrow">
+      <button id="btnNext" type="button">下一週 →</button>
+      <button id="btnSweep" type="button" hidden>全面掃描</button>
+    </div>
+    <p class="scanstats" id="scanStats" hidden></p>
+    <p class="hint" id="hint" hidden>用滑鼠或手指在牆上滑動掃描；鍵盤請先點牆面聚焦，再用方向鍵移動掃描器。</p>
+  </div>
+  <div class="sr" id="live" aria-live="polite"></div>
+</section>
+
+<section class="act" id="a3">
+  <div id="final">
+    <p class="note">考古掃描完成・比例依 2017 年哈佛大學圖書館創新實驗室對全部 2,816 條連結的實測</p>
+    <div class="frow">
+      <div class="fcell dd"><b id="fDead">—</b><span>網域完全失聯</span></div>
+      <div class="fcell pk"><b id="fPark">—</b><span>轉向陌生網域／停放頁</span></div>
+      <div class="fcell ok"><b id="fOk">—</b><span>還活著</span></div>
+    </div>
+    <p>換算像素面積，光是「完全失聯」的門牌，就覆蓋了整面牆約 <b>22%</b>。超過三分之一的格子，已經不通往當年買家想給你看的東西。</p>
+    <p class="big">這面牆有三分之一以上已經死了——但牆本身，還掛在網路上。</p>
+    <p id="again"></p>
+  </div>
+  <div id="epi">
+    <h2><span class="no">合</span>2005 年的龐貝城</h2>
+    <p>當年搶著買格子的是誰？線上賭場、撲克室、約會網站、賣減肥藥的、辦貸款的、算塔羅的。2005 年的網路長什麼樣子，全被火山灰一樣封存在這一頁上。</p>
+    <p>哈佛的研究員後來替每一條連結驗屍：547 條完全斷線，489 條轉進了陌生網域或「此網域出售中」的停放頁。他們管這叫連結腐爛（link rot）——你剛剛掃出來的灰色斑塊，就是它的長相。</p>
+    <p>牆的主人沒有修牆。他說過，這一頁是網路史的一部分，會一直放著。</p>
+    <p class="doc">那 Alex Tew 後來去哪了？他沒有再賣像素。2012 年，他共同創辦了另一個產品——教人閉上眼睛、什麼都不看的冥想 app：<b>Calm</b>，後來估值超過十億美元。</p>
+    <p class="big">靠一百萬個閃爍廣告位發跡的人，最後賣的，是安靜。</p>
+  </div>
+</section>
+</main>
+
+<footer class="wrap">
+  資料：Wikipedia〈The Million Dollar Homepage〉；J. Bowers，“A Million Squandered”，Harvard Library Innovation Lab（2017）。<br>
+  每日小專案・2026-08-25・牆為確定性模擬示意，非原圖
+</footer>
+
+<script>
+/* ================= 純函式區（可獨立以 node 斷言） ================= */
+var GRID=100,NCELL=GRID*GRID,SEED=20050826;
+var STUDY={links:2816,dead:547,parked:489};      /* 哈佛 2017 實測 */
+var PALN=12;
+var STAGES=[
+ {d:"2005/08/26　上線日",cum:0,t:"整面牆一片黑。第一顆像素還沒賣出去，只有他和他的筆記本相信這件事。"},
+ {d:"2005/09 上旬",cum:10,t:"頭兩週：買家全是熟人。弟弟的朋友、朋友開的小網站。十格，一千美元。像空城裡第一戶點燈。"},
+ {d:"2005/09 下旬",cum:400,t:"新聞稿發出去了。BBC 與科技媒體接連報導，訂單開始在半夜湧進來——線上賭場第一批衝進來圈地。"},
+ {d:"2005/10",cum:2500,t:"約會網站、撲克室、賣墨水匣的、辦貸款的，全來了。一格一格，這面牆成了 2005 年網路的縮影。"},
+ {d:"2005/11",cum:5000,t:"美國媒體跟上，牆滿了一半，流量排名衝進全球前一百多名。而一顆像素，仍然只賣一美元。"},
+ {d:"2005/12",cum:9000,t:"聖誕節前的搶位潮：再不買就沒了。有人開價想收購別人的格子——沒有人肯賣。"},
+ {d:"2006/01/01",cum:9990,t:"只剩最後 1,000 顆像素。他沒有照價賣掉，而是放上 eBay，讓全世界出價。"},
+ {d:"2006/01/11",cum:NCELL,t:"eBay 結標：38,100 美元，一個減重網站拿下壓軸。五個月完售，總計 1,037,100 美元。他 21 歲，學費有了——後來乾脆休學創業。"}
+];
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function shuffled(n,rnd){var a=new Array(n),i,j,t;for(i=0;i<n;i++)a[i]=i;for(i=n-1;i>0;i--){j=(rnd()*(i+1))|0;t=a[i];a[i]=a[j];a[j]=t;}return a;}
+/* 種子 → 整面牆：廣告矩形、色塊、購買週次、20 年後的存亡 */
+function genWall(seed){
+  var rnd=mulberry32(seed),owner=new Int32Array(NCELL),rects=[],i,j,x,y,w,h,dx,dy;
+  for(i=0;i<NCELL;i++)owner[i]=-1;
+  for(i=0;i<NCELL;i++){
+    if(owner[i]>=0)continue;
+    x=i%GRID;y=(i/GRID)|0;
+    w=1+((rnd()*4)|0);h=1+((rnd()*4)|0);
+    if(rnd()<0.15){w+=(rnd()*4)|0;h+=(rnd()*2)|0;}   /* 偶爾出現大廣告主 */
+    var cells=[];
+    for(dy=0;dy<h&&y+dy<GRID;dy++)for(dx=0;dx<w&&x+dx<GRID;dx++){
+      j=(y+dy)*GRID+(x+dx);
+      if(owner[j]<0){owner[j]=rects.length;cells.push(j);}
+    }
+    rects.push({cells:cells,color:(rnd()*PALN)|0,fate:2,stage:0});
+  }
+  /* 存亡配額（Bresenham 式追比例）：0=死 1=停放 2=活，對齊 547/489/1780 ÷ 2816 */
+  var tgt=[NCELL*STUDY.dead/STUDY.links,NCELL*STUDY.parked/STUDY.links,0];
+  tgt[2]=NCELL-tgt[0]-tgt[1];
+  var cnt=[0,0,0],T=0,ord=shuffled(rects.length,mulberry32(seed^0x9E3779)),r,k,best,bv,e;
+  for(k=0;k<ord.length;k++){
+    r=rects[ord[k]];var sz=r.cells.length;best=2;bv=-1e9;
+    for(e=0;e<3;e++){var err=tgt[e]*(T+sz)/NCELL-cnt[e];if(err>bv){bv=err;best=e;}}
+    r.fate=best;cnt[best]+=sz;T+=sz;
+  }
+  /* 購買時間軸：整塊廣告一次買下，累計對齊 STAGES 里程碑 */
+  var buy=shuffled(rects.length,mulberry32(seed+77)),cum=0,s=1,byStage=[],lists;
+  for(k=0;k<STAGES.length;k++)byStage.push([]);
+  for(k=0;k<buy.length;k++){
+    r=rects[buy[k]];cum+=r.cells.length;
+    while(s<STAGES.length-1&&cum>STAGES[s].cum)s++;
+    r.stage=s;byStage[s].push(buy[k]);
+  }
+  return {rects:rects,owner:owner,fateCount:cnt,byStage:byStage};
+}
+/* 資金里程碑：一格＝100 美元；最後一格以 eBay 實際結標價入帳 */
+function moneyAt(stageIdx){
+  if(stageIdx>=STAGES.length-1)return 1037100;
+  return STAGES[stageIdx].cum*100;
+}
+function fmt(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,",");}
+/* ================= 純函式區結束 ================= */
+
+(function(){
+"use strict";
+if(typeof document==="undefined")return;   /* 讓上方純函式可在 node 環境載入 */
+var $=function(id){return document.getElementById(id);};
+var PAL=["#2f6bd6","#d6452f","#e88f2a","#e8c832","#3fa25a","#8a4fd6","#2fb3c9","#d64f9a","#e6e0d2","#22346b","#7a2f2f","#5a6b2f"];
+var C_UNSOLD="#141021",C_DEAD="#26262e",C_PARK="#6e603a",VEIL="rgba(8,6,16,.55)";
+
+var reduced=false,rmq=null;
+if(window.matchMedia){
+  rmq=matchMedia("(prefers-reduced-motion: reduce)");
+  reduced=rmq.matches;
+  var onRM=function(){reduced=rmq.matches;};
+  if(rmq.addEventListener)rmq.addEventListener("change",onRM);
+  else if(rmq.addListener)rmq.addListener(onRM);
+}
+var LS="milpx.";
+function lsGet(k){try{return localStorage.getItem(LS+k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(LS+k,v);}catch(e){}}
+
+var wallData=genWall(SEED);
+var rects=wallData.rects,owner=wallData.owner;
+
+/* ---------- canvas 共用 ---------- */
+function fit(cv){
+  var r=cv.getBoundingClientRect();
+  if(r.width<2)return false;
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var w=Math.round(r.width*dpr),h=Math.round(r.height*dpr);
+  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;return true;}
+  return false;
+}
+/* ---------- 英雄牆：亮起動畫 ---------- */
+var hero=$("heroWall"),hctx=hero.getContext("2d");
+var heroOrder=shuffled(NCELL,mulberry32(SEED+5)),heroShown=0,heroRaf=0,heroVisible=false;
+function heroCell(i){
+  var cw=hero.width/GRID,chh=hero.height/(GRID/2);
+  var x=i%GRID,y=(i/GRID)|0;
+  if(y>=GRID/2)return;                       /* 英雄牆取上半面，寬幅呈現 */
+  hctx.fillStyle=PAL[rects[owner[i]].color];
+  hctx.fillRect(Math.floor(x*cw),Math.floor(y*chh),Math.ceil(cw),Math.ceil(chh));
+}
+function heroDrawAll(){
+  fit(hero);
+  hctx.fillStyle=C_UNSOLD;hctx.fillRect(0,0,hero.width,hero.height);
+  for(var k=0;k<heroShown;k++)heroCell(heroOrder[k]);
+}
+function heroTick(){
+  heroRaf=0;
+  if(document.hidden||!heroVisible)return;
+  var step=140,end=Math.min(NCELL,heroShown+step);
+  while(heroShown<end){heroCell(heroOrder[heroShown]);heroShown++;}
+  if(heroShown<NCELL)heroRaf=requestAnimationFrame(heroTick);
+}
+function heroStart(){
+  fit(hero);
+  if(reduced){heroShown=NCELL;heroDrawAll();return;}
+  hctx.fillStyle=C_UNSOLD;hctx.fillRect(0,0,hero.width,hero.height);
+  if(!heroRaf&&heroShown<NCELL)heroRaf=requestAnimationFrame(heroTick);
+}
+if("IntersectionObserver" in window){
+  var hio=new IntersectionObserver(function(es){
+    for(var i=0;i<es.length;i++){
+      heroVisible=es[i].isIntersecting;
+      if(heroVisible&&heroShown<NCELL&&!heroRaf)heroRaf=requestAnimationFrame(heroTick);
+    }
+  },{threshold:.05});
+  hio.observe(hero);
+}else{heroVisible=true;}
+heroStart();
+
+/* ---------- 主舞台狀態 ---------- */
+var cv=$("wall"),ctx=cv.getContext("2d");
+var MODE_TL=0,MODE_SCAN=1,MODE_DONE=2,mode=MODE_TL;
+var sold=new Uint8Array(NCELL),revealed=new Uint8Array(NCELL);
+var stage=0,revCount=0,found=[0,0,0];
+var cur={x:50,y:50,r:4},prevRing=null;
+
+function cellPaint(i){
+  var cw=cv.width/GRID,x=i%GRID,y=(i/GRID)|0,r=rects[owner[i]];
+  var px=Math.floor(x*cw),py=Math.floor(y*cw),ps=Math.ceil(cw);
+  var c;
+  if(mode===MODE_TL){c=sold[i]?PAL[r.color]:C_UNSOLD;ctx.fillStyle=c;ctx.fillRect(px,py,ps,ps);return;}
+  if(revealed[i]){
+    c=r.fate===0?C_DEAD:(r.fate===1?C_PARK:PAL[r.color]);
+    ctx.fillStyle=c;ctx.fillRect(px,py,ps,ps);
+  }else{
+    ctx.fillStyle=PAL[r.color];ctx.fillRect(px,py,ps,ps);
+    ctx.fillStyle=VEIL;ctx.fillRect(px,py,ps,ps);
+  }
+}
+function paintRegion(x0,y0,x1,y1){
+  var x,y;
+  for(y=Math.max(0,y0);y<=Math.min(GRID-1,y1);y++)
+    for(x=Math.max(0,x0);x<=Math.min(GRID-1,x1);x++)cellPaint(y*GRID+x);
+}
+function drawAll(){
+  for(var i=0;i<NCELL;i++)cellPaint(i);
+  if(mode===MODE_SCAN)drawRing();
+}
+function drawRing(){
+  var cw=cv.width/GRID,r=cur.r;
+  ctx.strokeStyle="#ffd98a";ctx.lineWidth=Math.max(2,cw*.3);
+  ctx.strokeRect((cur.x-r)*cw,(cur.y-r)*cw,(2*r+1)*cw,(2*r+1)*cw);
+  prevRing={x:cur.x,y:cur.y,r:r};
+}
+function clearRing(){
+  if(!prevRing)return;
+  var r=prevRing.r+1;
+  paintRegion(prevRing.x-r,prevRing.y-r,prevRing.x+r,prevRing.y+r);
+  prevRing=null;
+}
+if("ResizeObserver" in window){
+  var ro=new ResizeObserver(function(){if(fit(cv))drawAll();if(fit(hero))heroDrawAll();});
+  ro.observe(cv);ro.observe(hero);
+}
+window.addEventListener("resize",function(){if(fit(cv))drawAll();if(fit(hero))heroDrawAll();});
+fit(cv);drawAll();
+
+/* ---------- 第二幕：時間軸 ---------- */
+var mShown=0,mTarget=0,mRaf=0;
+function mTick(){
+  mRaf=0;
+  var diff=mTarget-mShown;
+  if(Math.abs(diff)<1||reduced){mShown=mTarget;}
+  else{mShown+=diff*0.14+1;if(mShown>mTarget)mShown=mTarget;}
+  $("mNum").textContent=fmt(Math.round(mShown));
+  if(mShown!==mTarget&&!document.hidden)mRaf=requestAnimationFrame(mTick);
+}
+function setMoney(v){mTarget=v;if(!mRaf)mRaf=requestAnimationFrame(mTick);}
+var animRaf=0,animQueue=[],animPos=0;
+function animTick(){
+  animRaf=0;
+  if(document.hidden){animRaf=requestAnimationFrame(animTick);return;}
+  var budget=Math.max(6,Math.ceil(animQueue.length/34));
+  while(budget-->0&&animPos<animQueue.length){
+    var rc=rects[animQueue[animPos++]],cs=rc.cells;
+    for(var k=0;k<cs.length;k++){sold[cs[k]]=1;cellPaint(cs[k]);}
+  }
+  if(animPos<animQueue.length)animRaf=requestAnimationFrame(animTick);
+  else $("btnNext").disabled=false;
+}
+function advance(){
+  if(stage>=STAGES.length-1)return;
+  stage++;
+  var st=STAGES[stage];
+  $("dLabel").textContent=st.d;
+  $("nar").textContent=st.t;
+  setMoney(moneyAt(stage));
+  $("mPct").textContent=Math.round(st.cum/NCELL*100)+"% 售出";
+  var list=wallData.byStage[stage];
+  if(reduced){
+    for(var k=0;k<list.length;k++){var cs=rects[list[k]].cells;for(var j=0;j<cs.length;j++){sold[cs[j]]=1;cellPaint(cs[j]);}}
+  }else{
+    animQueue=list;animPos=0;$("btnNext").disabled=true;
+    if(!animRaf)animRaf=requestAnimationFrame(animTick);
+  }
+  if(stage===STAGES.length-1){
+    $("btnNext").textContent="快轉到 20 年後 →";
+    $("btnNext").setAttribute("aria-label","進入考古掃描模式");
+  }
+}
+/* ---------- 第三幕：考古掃描 ---------- */
+function enterScan(){
+  mode=MODE_SCAN;
+  $("btnNext").hidden=true;
+  $("btnSweep").hidden=false;
+  $("hint").hidden=false;
+  $("scanStats").hidden=false;
+  $("dLabel").textContent="20 年後・牆還在線上";
+  $("nar").textContent="你把牆放大。顏色都還在，可是每一格背後的門牌呢？拿起掃描器，親手掃過去——掃到誰，誰就當場驗明正身。";
+  cv.setAttribute("tabindex","0");
+  cv.setAttribute("aria-label","考古掃描模式：用方向鍵移動掃描器，逐格判定連結存亡；也可用滑鼠或觸控滑過牆面");
+  drawAll();
+  updateStats(true);
+  $("live").textContent="掃描模式開始。牆上還沒有任何格子被判定。";
+}
+var lastMilestone=0;
+function updateStats(force){
+  var pct=revCount/NCELL*100;
+  $("scanStats").innerHTML="已掃描 <b>"+pct.toFixed(1)+"%</b>　｜　失聯 <b>"+found[0]+"</b> 格　停放 <b>"+found[1]+"</b> 格　存活 <b>"+found[2]+"</b> 格";
+  var ms=Math.floor(pct/25);
+  if(ms>lastMilestone||force===true){
+    lastMilestone=ms;
+    if(revCount>0)$("live").textContent="已掃描 "+Math.round(pct)+"%，其中 "+found[0]+" 格已失聯。";
+  }
+  if(revCount>=NCELL)finish();
+}
+function revealAt(cx,cy){
+  var r=cur.r,x,y,i;
+  clearRing();
+  cur.x=Math.max(0,Math.min(GRID-1,cx));cur.y=Math.max(0,Math.min(GRID-1,cy));
+  for(y=cur.y-r;y<=cur.y+r;y++)for(x=cur.x-r;x<=cur.x+r;x++){
+    if(x<0||y<0||x>=GRID||y>=GRID)continue;
+    i=y*GRID+x;
+    if(!revealed[i]){revealed[i]=1;revCount++;found[rects[owner[i]].fate]++;cellPaint(i);}
+  }
+  drawRing();
+  if(!statRaf)statRaf=requestAnimationFrame(statTick);
+}
+var statRaf=0;
+function statTick(){statRaf=0;updateStats();}
+var ptrPending=null,ptrRaf=0;
+function ptrTick(){
+  ptrRaf=0;
+  if(!ptrPending)return;
+  var p=ptrPending;ptrPending=null;
+  var rct=cv.getBoundingClientRect();
+  revealAt(Math.floor((p.x-rct.left)/rct.width*GRID),Math.floor((p.y-rct.top)/rct.height*GRID));
+}
+function onPtr(ev){
+  if(mode!==MODE_SCAN)return;
+  var t=ev.touches?ev.touches[0]:ev;
+  ptrPending={x:t.clientX,y:t.clientY};
+  if(ev.touches)ev.preventDefault();
+  if(!ptrRaf)ptrRaf=requestAnimationFrame(ptrTick);
+}
+cv.addEventListener("mousemove",onPtr);
+cv.addEventListener("mousedown",onPtr);
+cv.addEventListener("touchstart",onPtr,{passive:false});
+cv.addEventListener("touchmove",onPtr,{passive:false});
+cv.addEventListener("keydown",function(ev){
+  if(mode!==MODE_SCAN)return;
+  var dx=0,dy=0,step=3;
+  if(ev.key==="ArrowLeft")dx=-step;else if(ev.key==="ArrowRight")dx=step;
+  else if(ev.key==="ArrowUp")dy=-step;else if(ev.key==="ArrowDown")dy=step;
+  else if(ev.key===" "||ev.key==="Enter"){ev.preventDefault();startSweep();return;}
+  else return;
+  ev.preventDefault();
+  revealAt(cur.x+dx,cur.y+dy);
+});
+/* 全面掃描：由上而下的掃描線 */
+var sweepRaf=0,sweepRow=0,sweeping=false;
+function sweepTick(){
+  sweepRaf=0;
+  if(document.hidden){sweepRaf=requestAnimationFrame(sweepTick);return;}
+  var rows=reduced?GRID:2,y,x,i,done=0;
+  while(rows-->0&&sweepRow<GRID){
+    y=sweepRow++;
+    for(x=0;x<GRID;x++){
+      i=y*GRID+x;
+      if(!revealed[i]){revealed[i]=1;revCount++;found[rects[owner[i]].fate]++;}
+      cellPaint(i);
+    }
+  }
+  if(sweepRow<GRID){
+    var cw=cv.width/GRID;
+    ctx.fillStyle="#ffd98a";ctx.fillRect(0,sweepRow*cw-2,cv.width,3);
+    sweepRaf=requestAnimationFrame(sweepTick);
+  }else{sweeping=false;}
+  updateStats();
+}
+function startSweep(){
+  if(sweeping||mode!==MODE_SCAN)return;
+  sweeping=true;sweepRow=0;clearRing();
+  if(!sweepRaf)sweepRaf=requestAnimationFrame(sweepTick);
+}
+$("btnSweep").addEventListener("click",startSweep);
+$("btnNext").addEventListener("click",function(){
+  if(stage<STAGES.length-1)advance();else enterScan();
+});
+/* ---------- 完場 ---------- */
+function finish(){
+  if(mode===MODE_DONE)return;
+  mode=MODE_DONE;clearRing();drawAll();
+  $("btnSweep").disabled=true;
+  $("hint").hidden=true;
+  var fc=wallData.fateCount;
+  $("fDead").textContent=(fc[0]/NCELL*100).toFixed(1)+"%";
+  $("fPark").textContent=(fc[1]/NCELL*100).toFixed(1)+"%";
+  $("fOk").textContent=(fc[2]/NCELL*100).toFixed(1)+"%";
+  $("nar").textContent="掃描完成。灰色是死掉的門牌，土黃色是被人插了「出售中」牌子的空屋。";
+  var n=parseInt(lsGet("scans")||"0",10)+1;lsSet("scans",String(n));
+  $("again").textContent=n>1?"這是你第 "+n+" 次掃完這面牆。牆每次都死得一模一樣——腐爛是確定性的。":"你剛完成第一次全牆考古。";
+  $("final").classList.add("show");
+  $("epi").classList.add("show");
+  $("live").textContent="掃描完成。約 "+(fc[0]/NCELL*100).toFixed(1)+"% 的格子已完全失聯，"+(fc[1]/NCELL*100).toFixed(1)+"% 轉向停放頁。統計面板與結語已顯示。";
+}
+/* ---------- 進場動畫與分頁切換 ---------- */
+var acts=document.querySelectorAll(".act");
+if("IntersectionObserver" in window&&!reduced){
+  var io=new IntersectionObserver(function(es){
+    for(var i=0;i<es.length;i++)if(es[i].isIntersecting){es[i].target.classList.add("in");io.unobserve(es[i].target);}
+  },{threshold:.12});
+  for(var ai=0;ai<acts.length;ai++)io.observe(acts[ai]);
+}else{
+  for(var aj=0;aj<acts.length;aj++)acts[aj].classList.add("in");
+}
+document.addEventListener("visibilitychange",function(){
+  if(!document.hidden){
+    if(heroVisible&&heroShown<NCELL&&!heroRaf)heroRaf=requestAnimationFrame(heroTick);
+    if(mShown!==mTarget&&!mRaf)mRaf=requestAnimationFrame(mTick);
+  }
+});
+})();
+</script>
+</body>
+</html>

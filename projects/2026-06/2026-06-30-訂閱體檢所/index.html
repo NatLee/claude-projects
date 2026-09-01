@@ -597,12 +597,19 @@
     if(isNaN(d.getTime())) return null;
     var anchorDay = d.getDate(); // 記住原始扣款日（月底不脫節）
     var today = new Date(); today.setHours(0,0,0,0);
+    // 週繳先一次跳完整數個星期：否則逐週推進會被 guard 上限擋住，
+    // 填了十幾年前的日期時會停在過去，倒數變成負數。
+    if(s.cycle==="weekly" && d < today){
+      var wk = Math.floor((today - d) / 604800000);
+      if(wk > 0) d.setDate(d.getDate() + wk*7);
+    }
     var guard = 0;
-    while(d < today && guard < 600){
+    while(d < today && guard < 2000){
       if(s.cycle==="weekly") d.setDate(d.getDate()+7);
       else if(s.cycle==="monthly") d = addMonthsClamped(d, 1, anchorDay);
       else if(s.cycle==="quarterly") d = addMonthsClamped(d, 3, anchorDay);
-      else d.setFullYear(d.getFullYear()+1);
+      // 年繳同樣走夾日邏輯：2/29 用 setFullYear 會滑成 3/1，而且之後再也回不去
+      else d = addMonthsClamped(d, 12, anchorDay);
       guard++;
     }
     return d;

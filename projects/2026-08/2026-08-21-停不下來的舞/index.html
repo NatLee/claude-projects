@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>停不下來的舞｜1518 史特拉斯堡卷宗</title>
+<style>
+:root{
+  --desk:#191410;
+  --desk2:#211a13;
+  --paper:#e9dcbe;
+  --paper2:#dfd0ac;
+  --ink:#2f2418;
+  --ink-soft:#5c4c37;
+  --wax:#8f2b1c;
+  --wax-hi:#b4432e;
+  --gold:#a5813f;
+  --note:#7a1f13;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+html.rm{scroll-behavior:auto}
+body{
+  background:
+    radial-gradient(1100px 600px at 50% -10%, #2b2218 0%, transparent 60%),
+    linear-gradient(var(--desk),var(--desk2));
+  color:var(--paper);
+  font-family:"Noto Serif TC","Songti TC",PMingLiU,Georgia,serif;
+  line-height:1.9;
+  letter-spacing:.04em;
+  min-height:100vh;
+  overflow-x:hidden;
+}
+a{color:var(--gold)}
+a:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:4px}
+.back{
+  position:absolute;top:14px;left:16px;font-size:.82rem;opacity:.55;
+  text-decoration:none;letter-spacing:.08em;z-index:5;
+}
+.back:hover{opacity:.95}
+main{max-width:720px;margin:0 auto;padding:0 20px 40px}
+
+/* ── 第一屏 ── */
+.cover{
+  min-height:92vh;display:flex;flex-direction:column;justify-content:center;
+  padding:72px 4px 40px;position:relative;
+}
+.cover .date{
+  font-size:.9rem;color:var(--gold);letter-spacing:.35em;margin-bottom:18px;
+}
+.cover h1{
+  font-size:clamp(1.7rem,5.6vw,2.7rem);font-weight:700;line-height:1.5;
+  margin-bottom:26px;
+}
+.cover h1 em{font-style:normal;color:var(--wax-hi)}
+.cover p{max-width:36em;color:#d8c9a6;margin-bottom:14px}
+.cover .you{color:var(--paper);border-left:3px solid var(--wax);padding-left:14px;margin-top:20px}
+.dancer{
+  position:absolute;right:-10px;top:50%;transform:translateY(-52%);
+  width:min(200px,26vw);height:auto;opacity:.85;pointer-events:none;
+}
+.dancer path{fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:700px){.dancer{opacity:.28}}
+@media (max-width:560px){.dancer{display:none}}
+.openbtn{
+  margin-top:34px;align-self:flex-start;
+  background:var(--wax);color:#f6e9d2;border:1px solid #5e1c11;
+  font:inherit;font-size:1rem;letter-spacing:.2em;
+  padding:12px 30px;border-radius:3px;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.45);
+  transition:transform .18s ease,background .18s ease;
+}
+.openbtn:hover{background:var(--wax-hi);transform:translateY(-2px)}
+.rm .openbtn{transition:none}
+
+/* ── 卷宗（羊皮紙） ── */
+.doc{
+  background:
+    repeating-linear-gradient(0deg,rgba(120,90,40,.05) 0 2px,transparent 2px 5px),
+    radial-gradient(140% 100% at 30% 0%,var(--paper) 0%,var(--paper2) 78%,#cbb98f 100%);
+  color:var(--ink);
+  border-radius:3px;
+  padding:34px 34px 30px;
+  margin:56px 0;
+  box-shadow:0 10px 30px rgba(0,0,0,.5),inset 0 0 60px rgba(122,90,40,.16);
+  position:relative;
+  opacity:0;transform:translateY(26px) rotate(var(--tilt,-.4deg));
+  transition:opacity .7s ease,transform .7s ease;
+}
+.doc:nth-of-type(even){--tilt:.35deg}
+.doc.in{opacity:1;transform:translateY(0) rotate(var(--tilt,-.4deg))}
+.rm .doc{transition:none;opacity:1;transform:none}
+.doc .tag{
+  position:absolute;top:-13px;left:22px;
+  background:var(--wax);color:#f4e4c8;font-size:.78rem;letter-spacing:.22em;
+  padding:3px 14px;border-radius:2px;box-shadow:0 2px 6px rgba(0,0,0,.4);
+}
+.doc h2{font-size:1.14rem;letter-spacing:.14em;color:var(--note);margin:4px 0 14px}
+.doc p{margin-bottom:12px}
+.doc .fine{font-size:.85rem;color:var(--ink-soft)}
+.doc .marg{
+  margin-top:16px;padding-top:10px;border-top:1px dashed rgba(95,70,35,.5);
+  font-size:.88rem;color:var(--note);letter-spacing:.1em;
+}
+.rule{display:block;width:100%;height:14px;margin:6px 0 14px}
+.rule path{stroke-width:2;fill:none;stroke-linecap:round}
+
+/* ── 頁緣計數 ── */
+.count{
+  position:fixed;right:14px;bottom:14px;z-index:9;
+  background:rgba(30,23,15,.92);border:1px solid rgba(165,129,63,.55);
+  color:var(--paper);border-radius:6px;padding:8px 14px;
+  font-size:.82rem;letter-spacing:.1em;line-height:1.6;
+  box-shadow:0 4px 16px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(8px);
+  transition:opacity .4s ease,transform .4s ease;pointer-events:none;
+}
+.count.show{opacity:1;transform:none}
+.rm .count{transition:none}
+.count b{display:block;font-size:1.3rem;color:var(--wax-hi);font-weight:700;letter-spacing:.06em}
+
+/* ── 決策 ── */
+.choices{display:grid;gap:12px;margin:18px 0 6px}
+.choice{
+  text-align:left;font:inherit;font-size:.98rem;line-height:1.75;
+  background:#f3e8cc;color:var(--ink);
+  border:1px solid #b49a63;border-left:5px solid var(--gold);
+  border-radius:3px;padding:14px 18px;cursor:pointer;
+  transition:transform .16s ease,box-shadow .16s ease;
+}
+.choice:hover:not(:disabled){transform:translateX(4px);box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.rm .choice{transition:none}
+.choice b{display:block;letter-spacing:.12em;color:var(--note)}
+.choice:disabled{opacity:.45;cursor:default}
+.choice.picked{opacity:1;border-left-color:var(--wax);background:#f8ecca;box-shadow:0 0 0 2px var(--wax) inset}
+.lastnote{font-size:.82rem;color:var(--ink-soft);margin-top:10px}
+.seal{
+  position:absolute;right:22px;top:-20px;width:52px;height:52px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--wax-hi),var(--wax) 60%,#5e1c11);
+  box-shadow:0 3px 8px rgba(0,0,0,.45),inset 0 0 0 4px rgba(0,0,0,.14);
+  display:flex;align-items:center;justify-content:center;
+  color:#f0dcbb;font-size:.72rem;letter-spacing:.05em;
+}
+.replay{
+  margin-top:14px;background:none;border:1px solid #b49a63;color:var(--ink-soft);
+  font:inherit;font-size:.82rem;padding:5px 14px;border-radius:3px;cursor:pointer;
+}
+.replay:hover{color:var(--ink)}
+.hideme{display:none}
+
+/* ── 震動 ── */
+@keyframes quake{
+  0%,100%{transform:translate(0,0) rotate(0)}
+  20%{transform:translate(2px,-2px) rotate(.35deg)}
+  40%{transform:translate(-2px,1px) rotate(-.3deg)}
+  60%{transform:translate(2px,2px) rotate(.25deg)}
+  80%{transform:translate(-1px,-1px) rotate(-.2deg)}
+}
+.quaking main{animation:quake .46s ease-in-out 9}
+.rm .quaking main{animation:none}
+
+/* ── 兩派解釋 ── */
+.theories{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.theory{background:rgba(233,220,190,.07);border:1px solid rgba(165,129,63,.4);border-radius:4px;padding:16px 18px;font-size:.93rem}
+.theory h3{color:var(--gold);font-size:1rem;letter-spacing:.14em;margin-bottom:8px}
+.theory .verdict{margin-top:10px;font-size:.85rem;color:var(--wax-hi)}
+.narr{margin:52px 0;color:#dccfae}
+.narr p{margin-bottom:12px;max-width:38em}
+.narr .punch{color:var(--paper);font-size:1.06rem;border-left:3px solid var(--wax);padding-left:14px;margin-top:18px}
+
+footer{
+  max-width:720px;margin:0 auto;padding:26px 20px 40px;
+  font-size:.8rem;color:#8d7c5e;border-top:1px solid rgba(165,129,63,.25);
+  line-height:1.9;
+}
+@media (max-width:560px){
+  .theories{grid-template-columns:1fr}
+  .doc{padding:26px 20px 24px}
+  .count{right:10px;bottom:10px;font-size:.76rem}
+}
+::selection{background:var(--wax);color:#f6e9d2}
+</style>
+<noscript><style>
+.doc{opacity:1;transform:none}
+#afterZone{display:block}
+.count,.choices,#replayBtn{display:none}
+</style></noscript>
+</head>
+<body>
+<a class="back" href="../../../index.html">← 回首頁</a>
+
+<main>
+  <section class="cover">
+    <p class="date">奇聞軼事．一五一八年七月</p>
+    <h1>石板路燙得能烙餅的那天，<br>一個女人走到街心，<em>開始跳舞</em>。</h1>
+    <p>沒有音樂。沒有節慶。她只是跳，一直跳。太陽落下，她還在跳；腳腫了、滲血了，第二天清晨，她又站回街心。</p>
+    <p>她叫 Troffea。這是後來所有記載裡，她唯一留下的東西——一個名字。</p>
+    <p class="you">你是史特拉斯堡市議會的書記官。桌上這疊卷宗，是這座城對「一支停不下來的舞」的全部處置紀錄。<br>現在，請翻開第一頁。</p>
+    <button class="openbtn" id="openBtn" aria-label="翻開卷宗，往下閱讀">翻開卷宗</button>
+    <svg class="dancer" id="dancerFig" viewBox="0 0 200 320" aria-hidden="true">
+      <defs><linearGradient id="gd" gradientUnits="userSpaceOnUse" x1="20" y1="20" x2="185" y2="270">
+        <stop offset="0" stop-color="#a5813f"/><stop offset=".55" stop-color="#b4432e"/><stop offset="1" stop-color="#8f2b1c"/>
+      </linearGradient></defs>
+      <g stroke="url(#gd)">
+        <path d="M110 24 a16 16 0 1 1 -0.1 0"/>
+        <path d="M104 58 C 98 90, 112 120, 100 150"/>
+        <path d="M102 74 C 130 60, 150 40, 168 18"/>
+        <path d="M104 80 C 80 92, 60 84, 42 62"/>
+        <path d="M100 150 C 120 180, 150 200, 170 236"/>
+        <path d="M100 150 C 84 190, 60 210, 36 224"/>
+        <path d="M20 268 C 70 258, 140 278, 185 264"/>
+      </g>
+    </svg>
+  </section>
+
+  <section class="doc" data-count="1" id="doc1">
+    <span class="tag">卷宗一</span>
+    <h2>呈報：異舞一案</h2>
+    <svg class="rule" viewBox="0 0 640 14" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g1" gradientUnits="userSpaceOnUse" x1="0" y1="7" x2="640" y2="7">
+        <stop offset="0" stop-color="#8f2b1c"/><stop offset=".5" stop-color="#a5813f"/><stop offset="1" stop-color="#8f2b1c"/>
+      </linearGradient></defs>
+      <path d="M6 7 C 170 3, 470 11, 634 7" stroke="url(#g1)"/>
+    </svg>
+    <p>七月十四日前後。婦人 Troffea 於街頭起舞，晝夜不歇，已歷數日。其夫再三勸阻，無效。</p>
+    <p>醫師會診，斷為「熱血症」——血太熱，鬱積於腦。依當時醫理，這種熱只有一種洩法：<strong>讓她跳，跳到好為止。</strong></p>
+    <p class="fine">你合上這頁時大概想：一個人的怪病，過幾天就好了。</p>
+    <p class="marg">頁緣批註——仍在跳舞：一人。</p>
+  </section>
+
+  <section class="doc" data-count="34" id="doc2">
+    <span class="tag">卷宗二</span>
+    <h2>一週之後</h2>
+    <svg class="rule" viewBox="0 0 640 14" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g2" gradientUnits="userSpaceOnUse" x1="0" y1="7" x2="640" y2="7">
+        <stop offset="0" stop-color="#8f2b1c"/><stop offset=".5" stop-color="#a5813f"/><stop offset="1" stop-color="#8f2b1c"/>
+      </linearGradient></defs>
+      <path d="M6 7 C 170 3, 470 11, 634 7" stroke="url(#g2)"/>
+    </svg>
+    <p>跳舞者已逾三十人。多為婦人，亦有男子。他們不是在慶祝——目擊者說，那些臉上沒有笑，只有恐懼與恍惚，像被什麼東西攥著手腳。</p>
+    <p>他們求人幫忙，卻停不下來。</p>
+    <p class="fine">城裡開始有人低聲說一個名字：聖維特（St. Vitus）。傳說觸怒這位聖人的人，會被罰跳舞。</p>
+    <p class="marg">頁緣批註——仍在跳舞：三十餘人。數字還在往上爬。</p>
+  </section>
+
+  <section class="doc" id="docMid">
+    <span class="tag">插頁</span>
+    <h2>兩種診斷，一張桌子</h2>
+    <svg class="rule" viewBox="0 0 640 14" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g5" gradientUnits="userSpaceOnUse" x1="0" y1="7" x2="640" y2="7">
+        <stop offset="0" stop-color="#8f2b1c"/><stop offset=".5" stop-color="#a5813f"/><stop offset="1" stop-color="#8f2b1c"/>
+      </linearGradient></defs>
+      <path d="M6 7 C 170 3, 470 11, 634 7" stroke="url(#g5)"/>
+    </svg>
+    <p>議事廳裡，兩派人隔桌對峙。</p>
+    <p><strong>醫師派</strong>搬出體液學說：血過熱、鬱於腦，是「自然之疾」，唯一的洩法是讓病人跳個痛快——跳完，熱散，病除。聽起來荒謬？在 1518 年，這是最正統的醫學。</p>
+    <p><strong>教士派</strong>則壓低聲音：這是聖維特的懲罰。這位聖人專管舞者與癲癇，觸怒他的人，會被罰跳到倒下。城裡人人聽過這個傳說——記住這件事，它稍後很重要。</p>
+    <p class="fine">多年後，路過此地的名醫帕拉塞爾蘇斯（Paracelsus）還補了第三種說法：Troffea 根本是跳給丈夫看的裝病，其他人有樣學樣。他隨手把一場數百人的災難，寫成了一則家務事笑話——後世史家沒人買帳。</p>
+  </section>
+
+  <section class="doc" data-count="400" id="doc3">
+    <span class="tag">卷宗三</span>
+    <h2>八月：滿城之舞</h2>
+    <svg class="rule" viewBox="0 0 640 14" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g3" gradientUnits="userSpaceOnUse" x1="0" y1="7" x2="640" y2="7">
+        <stop offset="0" stop-color="#8f2b1c"/><stop offset=".5" stop-color="#a5813f"/><stop offset="1" stop-color="#8f2b1c"/>
+      </linearGradient></defs>
+      <path d="M6 7 C 170 3, 470 11, 634 7" stroke="url(#g3)"/>
+    </svg>
+    <p>一個月內，捲入者約<strong>四百人</strong>。市場、巷弄、廣場，到處是抽動的身影。這座城剛熬過連年歉收與饑荒，如今連街道也病了。</p>
+    <p>有人跳到力竭倒地。後世記述稱，最烈時「每日十五人」不起——這個數字出自事件多年後的紀錄，史家至今存疑，你只能照抄，在頁緣打上一個問號。</p>
+    <p class="marg">頁緣批註——仍在跳舞：約四百人。（每日十五人？——待考）</p>
+  </section>
+
+  <section class="doc" id="decide" aria-labelledby="decideTitle">
+    <span class="tag">卷宗四</span>
+    <span class="seal" aria-hidden="true">議印</span>
+    <h2 id="decideTitle">議會緊急會議：待你落印</h2>
+    <svg class="rule" viewBox="0 0 640 14" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="g4" gradientUnits="userSpaceOnUse" x1="0" y1="7" x2="640" y2="7">
+        <stop offset="0" stop-color="#8f2b1c"/><stop offset=".5" stop-color="#a5813f"/><stop offset="1" stop-color="#8f2b1c"/>
+      </linearGradient></defs>
+      <path d="M6 7 C 170 3, 470 11, 634 7" stroke="url(#g4)"/>
+    </svg>
+    <p>這一頁是空白的。議員們吵成一團，最後把筆推到你面前——書記官，今天由你代行處置。</p>
+    <p>醫師堅持「跳到好」。教士說是聖維特降罰。商人只想要街道清空。你的選項有三：</p>
+    <div class="choices" role="group" aria-label="選擇議會的處置方式">
+      <button class="choice" data-c="music"><b>甲議：以舞攻舞</b>清出行會大廳、搭起木舞台，雇樂師奏樂、壯漢陪舞——既然要跳到好，就讓他們盡快跳完。</button>
+      <button class="choice" data-c="ban"><b>乙議：禁樂禁舞</b>全城禁止奏樂與舞蹈，違者重罰；把病人送往薩韋訥（Saverne）的聖維特聖壇祈求解咒。</button>
+      <button class="choice" data-c="wait"><b>丙議：靜觀其變</b>不動用公帑，封鎖消息，等它自己燒完。</button>
+    </div>
+    <p class="lastnote hideme" id="lastNote"></p>
+    <div id="outcome" aria-live="polite"></div>
+    <button class="replay hideme" id="replayBtn" aria-label="重新選擇處置方式">重新落印，再選一次</button>
+  </section>
+
+  <div id="afterZone" class="hideme">
+    <section class="doc" id="docHist">
+      <span class="tag">卷宗五</span>
+      <h2>史實：議會的兩步棋</h2>
+      <p><strong>第一步（惡手）。</strong>1518 年的市議會採信醫師，真的清出行會大廳與馬匹市場、搭台、雇樂師與陪舞者。結果鼓聲像油澆進火裡——公開的音樂與舞台，等於向全城廣播「這病會傳染」，捲入的人不減反增。</p>
+      <p><strong>第二步（改口）。</strong>議會急轉彎：拆台、撤樂師，全城禁止公開奏樂與舞蹈——只有體面人家的婚禮獲准例外，且限弦樂，鼓與鈴鼓一律不許，因為那是最容易勾人起舞的聲音。接著，病人被一車車送往薩韋訥近郊的聖維特聖壇：穿上紅鞋、灑過聖水，捧著小蠟燭在聖像前繞行祝禱。</p>
+      <p>九月初，舞，停了。</p>
+      <p class="fine">同一群人、同一場病，差別只在議會敲的是鼓，還是蓋的是禁印。順帶一提：把「被詛咒的人」送到聖人面前解咒，恰好正面回應了他們最深的恐懼——以現代眼光看，這是一場意外精準的心理治療。</p>
+    </section>
+
+    <section class="narr" aria-labelledby="whyTitle">
+      <h2 id="whyTitle" style="color:var(--gold);letter-spacing:.15em;font-size:1.1rem;margin-bottom:12px">五百年後，驗屍報告攤開兩份</h2>
+      <div class="theories">
+        <div class="theory">
+          <h3>其一：麥角中毒說</h3>
+          <p>潮濕的裸麥上長出麥角菌，其生物鹼與致幻劑同源——吃下污染的麵包，整城人一起「起乩」？</p>
+          <p class="verdict">破綻：歷史學家 John Waller 指出，麥角中毒帶來的是抽搐、劇痛與肢體壞死，患者連站都站不穩，不可能協調地連跳好幾天。</p>
+        </div>
+        <div class="theory">
+          <h3>其二：集體心因性疾病</h3>
+          <p>Waller 的重建：1517 年被編年史家稱作「壞年」，麥價飆到天上，饑荒、天花、梅毒輪番碾過這座城，乞丐擠滿教堂門口。再加上人人深信「聖維特會罰人跳舞」——極端壓力，遇上一個所有人都相信的劇本，身體就照著劇本演了。恍惚狀態下的人格外容易被暗示，而街上每一個跳動的身影，都是下一個人的暗示。</p>
+          <p class="verdict">而議會的舞台與樂師，正好替這個劇本打了拍子。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="narr">
+      <h2 style="color:var(--gold);letter-spacing:.15em;font-size:1.1rem;margin-bottom:12px">檔案邊角</h2>
+      <p>這場舞在語言裡留下了指紋。「聖維特之舞」後來成為正式醫學名詞，指一種兒童神經疾患（今稱西登哈姆舞蹈症）；而史家替這類事件另造了一個詞：<strong>舞蹈狂（choreomania）</strong>——跳舞的瘋狂。</p>
+      <p>至於集體心因性疾病本身，從未退場。近代的校園集體昏倒、工廠怪病，乃至 2020 年代初隨短影音平台擴散、被多國神經科醫師記錄的青少年抽動症狀群——機制與五百年前遙相呼應。差別只有一個：傳播的媒介，從教堂裡的傳說，換成了口袋裡的螢幕。</p>
+    </section>
+
+    <section class="narr">
+      <p>最後一件事，你該知道。</p>
+      <p>史特拉斯堡不是第一次。1374 年，同樣的舞疫沿著萊茵河與摩澤爾河一路延燒，亞琛、科隆、梅斯，數以千計的人在街上跳到倒下；此後百餘年間，類似記載十餘起。義大利南部另有自己的版本——被狼蛛咬了就得跳「塔朗泰拉」跳掉毒性，一跳跳了幾百年。不同的年份、不同的城、不同的藉口，同一支舞。</p>
+      <p>兩次之間隔了一百多年——隔不開的，是同一個流傳不息的信仰。</p>
+      <p class="punch">所以點燃這場瘟疫的，也許從來不是麵包上的黴菌，而是一個念頭：<strong>相信自己會跳到死</strong>。念頭會傳染，故事也會。</p>
+      <p class="punch">而現在，這個故事也在你這裡了。合上卷宗前，別去想你的腳尖。</p>
+    </section>
+  </div>
+</main>
+
+<div class="count" id="countBox" role="status" aria-live="polite" aria-label="頁緣批註：仍在跳舞的人數">
+  頁緣批註．仍在跳舞
+  <b id="countNum">—</b>
+</div>
+
+<footer>
+  史料整理自 John Waller《A Time to Dance, a Time to Die》（2008）與史特拉斯堡市政編年紀錄之後世研究；「每日十五人」等死亡數字出自後世記述，真偽存疑。
+</footer>
+
+<script>
+(function(){
+'use strict';
+const LS='dance1518.';
+
+/* ── 純函式 ── */
+function clamp(n,a,b){return Math.min(b,Math.max(a,n));}
+function easeOut(t){return 1-Math.pow(1-t,3);}
+function fmtCount(n){return n>=460?'無法計數':String(Math.round(n));}
+function lerp(a,b,t){return a+(b-a)*t;}
+function choiceLabel(c){return c==='music'?'甲議．以舞攻舞':c==='ban'?'乙議．禁樂禁舞':'丙議．靜觀其變';}
+function outcomeHTML(c){
+  if(c==='music')return '<p><strong>你落印了：以舞攻舞。</strong>行會大廳清空、木台搭起，鼓手與笛手領了賞錢。你站在窗邊看——鼓聲一起，圍觀者的腳跟先打起拍子，然後是膝蓋，然後是整條街。</p><p>計數的筆，跟不上了。</p>';
+  if(c==='ban')return '<p><strong>你落印了：禁樂禁舞。</strong>罰金公告貼上城門，病人被送往薩韋訥的聖維特聖壇。街道慢慢靜下來。</p><p>恭喜——你比 1518 年的議會清醒。因為歷史上，這是他們的<strong>第二次</strong>決策。第一次，他們選了另一份提案。翻下一頁，看他們選了什麼。</p>';
+  return '<p><strong>你按兵不動。</strong>但街上的人一天多過一天，商旅繞道，教會施壓，議員拍桌。第三天清晨，這份卷宗被摔回你桌上。</p><p>1518 年的史特拉斯堡沒有「不管」這個選項——議會很快出手了。而他們的第一步，是三案之中最糟的那一步。</p>';
+}
+function musicVerdictHTML(){
+  return '<p class="fine" style="margin-top:14px"><strong>這正是 1518 年 8 月，史特拉斯堡市議會真實做出的決定。</strong>公開的舞台與樂聲，把「舞疫會傳染」這個念頭敲進每個人的耳朵。疫情惡化——你剛剛親手重演了史上最糟的公共衛生決策之一。</p>';
+}
+
+/* ── reduced motion ── */
+const RM=window.matchMedia('(prefers-reduced-motion: reduce)');
+let reduced=RM.matches;
+function applyRM(){document.documentElement.classList.toggle('rm',reduced);}
+(RM.addEventListener?RM.addEventListener('change',onRM):RM.addListener(onRM));
+function onRM(e){reduced=e.matches;applyRM();}
+applyRM();
+
+/* ── 頁緣計數（rAF 補間，hidden 暫停） ── */
+const box=document.getElementById('countBox');
+const numEl=document.getElementById('countNum');
+let cur=0,raf=0;
+function render(){numEl.textContent=fmtCount(cur);}
+function tweenTo(target,dur){
+  cancelAnimationFrame(raf);
+  if(reduced||dur<=0){cur=target;render();return;}
+  const from=cur;let acc=0,last=null;
+  function step(t){
+    if(document.hidden){last=null;raf=requestAnimationFrame(step);return;}
+    if(last!==null)acc+=t-last;
+    last=t;
+    const p=clamp(acc/dur,0,1);
+    cur=lerp(from,target,easeOut(p));render();
+    if(p<1)raf=requestAnimationFrame(step);
+  }
+  raf=requestAnimationFrame(step);
+}
+let maxSeen=0;
+function bumpTo(n){
+  if(n<=maxSeen)return;
+  maxSeen=n;
+  box.classList.add('show');
+  tweenTo(n,1300);
+}
+
+/* ── 狂飆（甲議） ── */
+let frenzyRaf=0;
+function frenzy(done){
+  cancelAnimationFrame(raf);cancelAnimationFrame(frenzyRaf);
+  if(reduced){cur=460;render();numEl.textContent='書記已擱筆';done();return;}
+  let acc=0,last=null,shown=0;
+  const DUR=2600;
+  function step(t){
+    if(document.hidden){last=null;frenzyRaf=requestAnimationFrame(step);return;}
+    if(last!==null)acc+=t-last;
+    last=t;
+    if(acc-shown>90){ /* 節流 ~11fps */
+      shown=acc;
+      const p=clamp(acc/DUR,0,1);
+      cur=400+Math.floor(easeOut(p)*720+Math.random()*30);
+      numEl.textContent=String(cur);
+    }
+    if(acc<DUR){frenzyRaf=requestAnimationFrame(step);}
+    else{numEl.textContent='書記已擱筆';cur=460;done();}
+  }
+  frenzyRaf=requestAnimationFrame(step);
+}
+
+/* ── SVG 描線（dasharray 重播規則） ── */
+function drawRule(svg){
+  const p=svg.querySelector('path');
+  if(!p)return;
+  let len;
+  try{len=p.getTotalLength();}catch(e){return;}
+  if(reduced){p.style.transition='none';p.style.strokeDasharray='none';p.style.strokeDashoffset='0';return;}
+  p.style.transition='none';
+  p.style.strokeDasharray=len+' '+len;
+  p.style.strokeDashoffset=String(len);      /* 先隱藏 */
+  void p.getBoundingClientRect();            /* 強制 reflow */
+  requestAnimationFrame(function(){          /* 下一 rAF 才開 transition */
+    p.style.transition='stroke-dashoffset 1.15s ease .15s';
+    p.style.strokeDashoffset='0';            /* 依繪製方向左→右畫出 */
+  });
+}
+
+/* ── 封面舞者：逐筆描線 ── */
+function drawFigure(){
+  const svg=document.getElementById('dancerFig');
+  if(!svg)return;
+  const paths=svg.querySelectorAll('path');
+  paths.forEach(function(p,i){
+    let len;
+    try{len=p.getTotalLength();}catch(e){return;}
+    if(reduced){p.style.transition='none';p.style.strokeDasharray='none';p.style.strokeDashoffset='0';return;}
+    p.style.transition='none';
+    p.style.strokeDasharray=len+' '+len;
+    p.style.strokeDashoffset=String(len);    /* 先隱藏 */
+    void p.getBoundingClientRect();          /* 強制 reflow */
+    requestAnimationFrame(function(){        /* 下一 rAF 才開 transition */
+      p.style.transition='stroke-dashoffset .8s ease '+(0.25+i*0.28)+'s';
+      p.style.strokeDashoffset='0';          /* 依各筆繪製方向畫出 */
+    });
+  });
+}
+drawFigure();
+
+/* ── 捲動揭露 ── */
+const io=new IntersectionObserver(function(entries){
+  entries.forEach(function(en){
+    if(!en.isIntersecting)return;
+    const el=en.target;
+    el.classList.add('in');
+    const n=parseInt(el.getAttribute('data-count')||'0',10);
+    if(n)bumpTo(n);
+    const rule=el.querySelector('.rule');
+    if(rule&&!el._drawn){el._drawn=true;drawRule(rule);}
+    io.unobserve(el);
+  });
+},{threshold:.25});
+document.querySelectorAll('.doc').forEach(function(d){io.observe(d);});
+
+/* ── 翻開卷宗 ── */
+document.getElementById('openBtn').addEventListener('click',function(){
+  document.getElementById('doc1').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+});
+
+/* ── 決策 ── */
+const outcome=document.getElementById('outcome');
+const afterZone=document.getElementById('afterZone');
+const replayBtn=document.getElementById('replayBtn');
+const btns=Array.prototype.slice.call(document.querySelectorAll('.choice'));
+const lastNote=document.getElementById('lastNote');
+let deciding=false;
+
+try{
+  const prev=localStorage.getItem(LS+'choice');
+  if(prev){lastNote.textContent='上次翻閱時，你落印的是：'+choiceLabel(prev)+'。這次呢？';lastNote.classList.remove('hideme');}
+}catch(e){}
+
+function revealAfter(extraHTML){
+  if(extraHTML)outcome.insertAdjacentHTML('beforeend',extraHTML);
+  afterZone.classList.remove('hideme');
+  afterZone.querySelectorAll('.doc').forEach(function(d){io.observe(d);});
+  replayBtn.classList.remove('hideme');
+}
+function quakePage(){
+  if(reduced)return;
+  document.body.classList.add('quaking');
+  setTimeout(function(){document.body.classList.remove('quaking');},4200);
+}
+function decide(c){
+  if(deciding)return;
+  deciding=true;
+  btns.forEach(function(b){b.disabled=true;b.classList.toggle('picked',b.getAttribute('data-c')===c);});
+  try{localStorage.setItem(LS+'choice',c);}catch(e){}
+  lastNote.classList.add('hideme');
+  outcome.innerHTML=outcomeHTML(c);
+  if(c==='music'){
+    quakePage();
+    if(reduced){
+      outcome.insertAdjacentHTML('beforeend','<p class="fine">頁緣的數字失控了：四百……六百……九百……書記已擱筆，放棄計數。</p>');
+    }
+    frenzy(function(){revealAfter(musicVerdictHTML());deciding=false;});
+  }else{
+    revealAfter('');
+    deciding=false;
+  }
+}
+btns.forEach(function(b){
+  b.addEventListener('click',function(){decide(b.getAttribute('data-c'));});
+});
+replayBtn.addEventListener('click',function(){
+  btns.forEach(function(b){b.disabled=false;b.classList.remove('picked');});
+  outcome.innerHTML='';
+  replayBtn.classList.add('hideme');
+  cancelAnimationFrame(frenzyRaf);
+  cur=400;maxSeen=400;render();
+  document.getElementById('decide').scrollIntoView({behavior:reduced?'auto':'smooth',block:'start'});
+});
+
+/* ── 分頁隱藏時停一切 rAF（回前景由各 step 自動續跑） ── */
+document.addEventListener('visibilitychange',function(){
+  /* step 內部已檢查 document.hidden，這裡僅確保背景不累積時間 */
+});
+})();
+</script>
+</body>
+</html>

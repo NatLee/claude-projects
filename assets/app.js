@@ -337,39 +337,54 @@ function countUp(el, to) {
     return h / 4294967295;
   };
 
-  /* ── 六星座：每一類是一個星座，圖形是它的「關聯」──
-   *   nodes：0..1 相對座標（在星座框內）；edges：連線（節點索引對）
-   *   每次載入從該類作品隨機抽 nodes.length 顆點亮；今日之星必抽、且鎮座 */
-  const CONSTELLATIONS = [
-    { cat: "網路趣聞・冷知識", name: "訊號座", motif: "一座對著夜空的碟形天線",
-      nodes: [[.50,.14],[.28,.34],[.72,.34],[.50,.44],[.14,.20],[.86,.20],[.50,.66],[.38,.90],[.62,.90]],
+  /* ── 六星座：每一類是一個星座 ──
+   *   圖形從 12 個圖形池隨機分配（每次載入、每次「換一批星」都重分）；
+   *   nodes：0..1 相對座標（在星座框內）；edges：連線（節點索引對）；
+   *   每座從該類作品隨機抽 nodes.length 顆點亮；今日之星必抽、且鎮座 */
+  const MOTIFS = [
+    { name: "訊號座", nodes: [[.50,.14],[.28,.34],[.72,.34],[.50,.44],[.14,.20],[.86,.20],[.50,.66],[.38,.90],[.62,.90]],
       edges: [[4,1],[1,0],[0,2],[2,5],[1,3],[2,3],[3,6],[6,7],[6,8]] },
-    { cat: "奇聞軼事", name: "問號座", motif: "一枚懸在半空的問號",
-      nodes: [[.26,.30],[.40,.15],[.58,.13],[.72,.28],[.68,.46],[.52,.58],[.50,.72],[.50,.92],[.24,.62]],
+    { name: "問號座", nodes: [[.26,.30],[.40,.15],[.58,.13],[.72,.28],[.68,.46],[.52,.58],[.50,.72],[.50,.92],[.24,.62]],
       edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
-    { cat: "科學趣聞", name: "燒瓶座", motif: "一只正在起泡的錐形瓶",
-      nodes: [[.40,.10],[.60,.10],[.44,.32],[.56,.32],[.24,.68],[.76,.68],[.36,.90],[.64,.90],[.50,.56]],
+    { name: "燒瓶座", nodes: [[.40,.10],[.60,.10],[.44,.32],[.56,.32],[.24,.68],[.76,.68],[.36,.90],[.64,.90],[.50,.56]],
       edges: [[0,2],[1,3],[2,4],[3,5],[4,6],[6,7],[7,5]] },
-    { cat: "學習新知", name: "鑰匙座", motif: "一把插向星空的鑰匙",
-      nodes: [[.18,.24],[.32,.14],[.44,.26],[.30,.38],[.52,.44],[.64,.56],[.76,.68],[.68,.86],[.88,.80]],
+    { name: "鑰匙座", nodes: [[.18,.24],[.32,.14],[.44,.26],[.30,.38],[.52,.44],[.64,.56],[.76,.68],[.68,.86],[.88,.80]],
       edges: [[0,1],[1,2],[2,3],[3,0],[2,4],[4,5],[5,6],[6,7],[6,8]] },
-    { cat: "生活痛點小工具", name: "板手座", motif: "一支還握得到餘溫的板手",
-      nodes: [[.22,.16],[.40,.12],[.32,.30],[.44,.42],[.54,.52],[.64,.62],[.78,.74],[.70,.90],[.88,.84]],
+    { name: "板手座", nodes: [[.22,.16],[.40,.12],[.32,.30],[.44,.42],[.54,.52],[.64,.62],[.78,.74],[.70,.90],[.88,.84]],
       edges: [[0,2],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[6,8]] },
-    { cat: "創意・娛樂", name: "紙鳶座", motif: "一只掙著線的風箏",
-      nodes: [[.50,.10],[.32,.32],[.68,.32],[.50,.52],[.50,.30],[.56,.66],[.44,.76],[.56,.86],[.42,.94]],
+    { name: "紙鳶座", nodes: [[.50,.10],[.32,.32],[.68,.32],[.50,.52],[.50,.30],[.56,.66],[.44,.76],[.56,.86],[.42,.94]],
       edges: [[0,1],[0,2],[1,3],[2,3],[1,4],[2,4],[3,5],[5,6],[6,7],[7,8]] },
+    { name: "彗星座", nodes: [[.84,.22],[.72,.16],[.74,.34],[.62,.36],[.50,.46],[.38,.56],[.26,.68],[.14,.82],[.60,.24]],
+      edges: [[0,1],[0,2],[0,3],[3,4],[4,5],[5,6],[6,7],[1,8],[8,3]] },
+    { name: "茶壺座", nodes: [[.50,.12],[.34,.28],[.66,.28],[.26,.70],[.74,.70],[.50,.84],[.12,.36],[.26,.48],[.88,.48]],
+      edges: [[0,1],[0,2],[1,3],[2,4],[3,5],[4,5],[6,7],[7,3],[2,8],[8,4]] },
+    { name: "沙漏座", nodes: [[.30,.12],[.70,.12],[.50,.48],[.30,.88],[.70,.88],[.50,.16],[.50,.66],[.38,.30],[.62,.30]],
+      edges: [[0,5],[5,1],[0,7],[7,2],[1,8],[8,2],[2,3],[2,4],[3,4],[2,6]] },
+    { name: "雨傘座", nodes: [[.18,.42],[.34,.32],[.50,.24],[.66,.32],[.82,.42],[.50,.44],[.52,.62],[.56,.84],[.68,.88]],
+      edges: [[0,1],[1,2],[2,3],[3,4],[2,5],[5,6],[6,7],[7,8]] },
+    { name: "燈塔座", nodes: [[.34,.90],[.66,.90],[.42,.42],[.58,.42],[.50,.28],[.22,.16],[.78,.16],[.46,.66],[.54,.66]],
+      edges: [[0,2],[1,3],[2,4],[3,4],[4,5],[4,6],[7,8],[0,1]] },
+    { name: "迴旋座", nodes: [[.50,.50],[.63,.45],[.62,.61],[.45,.63],[.36,.46],[.48,.30],[.68,.30],[.80,.52],[.64,.80]],
+      edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8]] },
   ];
+  const CONSTELLATIONS = CAT_NAMES.map(cat => ({ cat, m: null }));
   const byCat = new Map(CAT_NAMES.map(c => [c, []]));
   PROJECTS.forEach((p, gi) => { if (byCat.has(p.category)) byCat.get(p.category).push(gi); });
 
-  /* 每座隨機抽星（今日之星必入列，並鎮在圖形第一個節點） */
+  /* 每座隨機抽星（今日之星必入列，並鎮在圖形第一個節點）＋隨機分配圖形 */
   let sampled = new Map(); /* cat → gi[]（長度 ≤ nodes.length） */
   function sampleStars() {
+    /* 洗牌圖形池，六座各拿一個不重複的圖形 */
+    const deck = [...MOTIFS];
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    CONSTELLATIONS.forEach((cn, i) => { cn.m = deck[i]; });
     sampled = new Map();
     for (const cn of CONSTELLATIONS) {
       const pool = [...(byCat.get(cn.cat) || [])];
-      const want = Math.min(cn.nodes.length, pool.length);
+      const want = Math.min(cn.m.nodes.length, pool.length);
       const picked = [];
       if (pool.includes(0)) { picked.push(0); pool.splice(pool.indexOf(0), 1); }
       while (picked.length < want && pool.length) {
@@ -433,19 +448,21 @@ function countUp(el, to) {
 
   function layoutSky() {
     const rect = skyWrap.getBoundingClientRect();
-    W = Math.max(300, rect.width); H = Math.max(260, rect.height);
+    /* 分頁隱藏時尺寸是 0：直接重排會把星座壓縮成一團，跳過、等顯示後再排 */
+    if (rect.width < 80 || rect.height < 80) return;
+    W = rect.width; H = rect.height;
     dpr = Math.min(2, window.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     ctx = cv.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    /* 星座框排版：寬幕 3×2、窄幕 2×3 */
+    /* 星座框排版：寬幕 3×2、窄幕 2×3，盡量把整片天空撐滿 */
     const cols = W >= 980 ? 3 : 2;
     const rows = Math.ceil(CONSTELLATIONS.length / cols);
-    const mx = Math.max(18, W * .035), myT = 40, myB = 96;
+    const mx = Math.max(14, W * .025), myT = 30, myB = 88;
     const uw = W - mx * 2, uh = H - myT - myB;
     const bw = uw / cols, bh = uh / rows;
-    const padX = Math.min(bw * .16, 34), padTop = Math.min(bh * .12, 22), padBot = 30; /* 底部留星座名 */
+    const padX = Math.min(bw * .1, 24), padTop = Math.min(bh * .08, 16), padBot = 34; /* 底部留星座名 */
 
     stars = [];
     labelBoxes = [];
@@ -455,7 +472,7 @@ function countUp(el, to) {
       const bx = mx + bw * c, by = myT + bh * r;
       const iw = bw - padX * 2, ih = bh - padTop - padBot;
       const picked = sampled.get(cn.cat) || [];
-      cn._pts = cn.nodes.map(([nx, ny]) => [bx + padX + nx * iw, by + padTop + ny * ih]);
+      cn._pts = cn.m.nodes.map(([nx, ny]) => [bx + padX + nx * iw, by + padTop + ny * ih]);
       picked.forEach((gi, k) => {
         const p = PROJECTS[gi];
         const node = (gi === 0) ? 0 : k; /* 今日之星鎮座在第一個節點 */
@@ -472,14 +489,14 @@ function countUp(el, to) {
       const here = stars.filter(s => s.ci === ci);
       const usedNodes = new Set();
       for (const s of here) {
-        while (usedNodes.has(s.node)) s.node = (s.node + 1) % cn.nodes.length;
+        while (usedNodes.has(s.node)) s.node = (s.node + 1) % cn.m.nodes.length;
         usedNodes.add(s.node);
         s.x = cn._pts[s.node][0]; s.y = cn._pts[s.node][1];
       }
       const total = (byCat.get(cn.cat) || []).length;
       labelBoxes.push({
-        ci, cat: cn.cat, text: `${cn.name}`, sub: `${total} 顆 · 亮 ${picked.length}`,
-        x: bx + bw / 2, y: by + bh - 12, w: Math.min(bw * .8, 190), h: 30,
+        ci, cat: cn.cat, text: cn.m.name, sub: `${cn.cat}｜${total} 顆 · 亮 ${picked.length}`,
+        x: bx + bw / 2, y: by + bh - 14, w: Math.min(bw * .86, 220), h: 32,
       });
     });
     starByGi = new Map(stars.map(s => [s.gi, s]));
@@ -563,7 +580,7 @@ function countUp(el, to) {
       const hx = catHex(cn.cat);
       const catOn = !state.cat || state.cat === cn.cat;
       const nodeHasStar = new Set(stars.filter(s => s.ci === ci && visSet.has(s.gi)).map(s => s.node));
-      cn.edges.forEach(([a, b], ei) => {
+      cn.m.edges.forEach(([a, b], ei) => {
         const pa = cn._pts[a], pb = cn._pts[b];
         const lit = catOn && nodeHasStar.has(a) && nodeHasStar.has(b);
         const puls = reduced() ? .5 : (.5 + .5 * Math.sin(t / 1200 + ei * .8 + ci));
@@ -944,6 +961,13 @@ function countUp(el, to) {
   if ("ResizeObserver" in window) new ResizeObserver(onResize).observe(skyWrap);
   else addEventListener("resize", onResize);
 
+  /* 分頁切回星空時，補一次正確尺寸的重排（隱藏時 layoutSky 會跳過） */
+  window.__skyRelayout = function () {
+    layoutSky();
+    drawSky(performance.now());
+    setRunning();
+  };
+
   layoutSky();
   drawSky(performance.now());
   setRunning();
@@ -1033,6 +1057,9 @@ function setTab(name) {
     $(panelId).classList.toggle("on", on);
   }
   try { localStorage.setItem("index.tab", name); } catch (e) {}
+  if (name === "sky" && window.__skyRelayout) {
+    requestAnimationFrame(() => window.__skyRelayout()); /* 等 display 生效拿到真實尺寸 */
+  }
 }
 window.__setTab = setTab;
 Object.entries(TABS).forEach(([key, [tabId]]) => {

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>他把那個字母綁起來｜每日小專案</title>
+<style>
+:root{
+  --bg:#1b1712;--paper:#f4eedb;--paper2:#efe6cf;--ink:#2b2317;--dim:#7a705c;
+  --red:#b3272d;--green:#1e6b34;--rope:#a5824a;--line:#d8cdb0;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Iowan Old Style",Georgia,"Noto Serif TC","PMingLiU",serif;
+  font-size:17px;line-height:1.85;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.home{position:fixed;top:12px;left:14px;z-index:9;font-size:.82rem;
+  color:#8d8268;text-decoration:none;opacity:.75;padding:4px 8px;border-radius:6px}
+.home:hover{opacity:1;text-decoration:underline}
+.mono,code,.k,.chip{font-family:"Courier New",ui-monospace,monospace}
+/* ---------- hero ---------- */
+.hero{min-height:94vh;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;text-align:center;padding:64px 20px 40px;color:#e9e1cd}
+.hero svg{width:min(440px,86vw);height:auto;margin-bottom:26px}
+.kicker{margin:0;font-size:.9rem;letter-spacing:.18em;color:#9a8f74}
+h1{margin:.5em 0 .3em;font-size:clamp(1.35rem,4.6vw,2rem);font-weight:700;
+  line-height:1.6;max-width:22em}
+.lead{margin:0;font-size:clamp(1rem,3vw,1.2rem);color:#cfc4a6}
+.hint{margin-top:9vh;font-size:.85rem;color:#7d7359;letter-spacing:.1em}
+/* ---------- paper sheets ---------- */
+main{display:block}
+.sheet{max-width:700px;margin:56px auto;background:var(--paper);
+  padding:40px 34px 44px;border-radius:3px;
+  box-shadow:0 18px 40px rgba(0,0,0,.5),0 2px 0 rgba(255,255,255,.06) inset;
+  position:relative}
+.sheet:nth-of-type(odd){transform:rotate(-.35deg)}
+.sheet:nth-of-type(even){transform:rotate(.3deg)}
+h2{font-size:1.3rem;margin:0 0 .8em;border-bottom:2px solid var(--ink);
+  padding-bottom:.35em;letter-spacing:.04em}
+p{margin:.8em 0}
+.mut{color:var(--dim);font-size:.9rem}
+/* every stray E on this page is caught and painted red */
+b.he{font-weight:inherit;font-style:normal;color:var(--red);background:rgba(179,39,45,.12);border-radius:2px}
+.noe{color:var(--green);background:rgba(30,107,52,.1);padding:0 .25em;border-radius:3px;font-family:"Courier New",ui-monospace,monospace}
+.ee{font-family:"Courier New",ui-monospace,monospace}
+/* ---------- freq demo ---------- */
+#demoP{background:var(--paper2);border:1px solid var(--line);padding:16px 18px;
+  border-radius:4px;font-size:.98rem;line-height:1.7}
+button{font:inherit;cursor:pointer;background:var(--ink);color:var(--paper);
+  border:0;border-radius:6px;padding:10px 20px;letter-spacing:.06em}
+button:hover{background:#000}
+button:disabled{opacity:.4;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px;border-radius:4px}
+#freqOut{min-height:1.4em;margin-top:.8em}
+.bars{margin-top:14px;display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:8.5em 1fr 4.5em;align-items:center;gap:10px;font-size:.88rem}
+.bar .tr{height:14px;background:var(--paper2);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.bar .fl{display:block;height:100%;background:var(--dim);transform-origin:left center;
+  transform:scaleX(0);transition:transform .9s cubic-bezier(.2,.7,.2,1)}
+.bar.big .fl{background:var(--red)}
+.bars.go .fl{transform:scaleX(var(--s))}
+/* ---------- pain list ---------- */
+ol.pain{padding-left:1.4em;margin:0}
+ol.pain li{margin:1em 0}
+.rev{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+.rev.in{opacity:1;transform:none}
+/* ---------- typewriter play ---------- */
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+.tabs button{background:transparent;color:var(--ink);border:1.5px solid var(--ink);
+  border-radius:999px;padding:6px 16px;font-size:.9rem}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+#prompt{background:var(--paper2);border-left:4px solid var(--ink);padding:10px 14px;border-radius:0 4px 4px 0}
+#keys{display:flex;gap:6px;justify-content:center;margin:20px 0 10px;flex-wrap:wrap}
+.k{width:40px;height:40px;border-radius:50%;background:#2e2a24;color:#d8cdb0;
+  display:flex;align-items:center;justify-content:center;font-size:.95rem;
+  box-shadow:0 3px 0 #12100c;user-select:none;transition:transform .08s ease}
+.k.down{transform:translateY(3px)}
+.k.bound{background:var(--paper2);color:var(--red);position:relative;box-shadow:0 3px 0 #b7ab8d}
+.k.bound::before,.k.bound::after{content:"";position:absolute;left:-6px;right:-6px;top:50%;
+  height:4px;background:var(--rope);border-radius:2px;box-shadow:0 1px 0 rgba(0,0,0,.35)}
+.k.bound::before{transform:rotate(24deg)}
+.k.bound::after{transform:rotate(-24deg)}
+@keyframes jam{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px) rotate(-3deg)}
+  50%{transform:translateX(4px) rotate(3deg)}80%{transform:translateX(-2px)}}
+.k.jam{animation:jam .3s ease}
+@keyframes shk{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}65%{transform:translateX(5px)}}
+.deskrow.shk{animation:shk .28s ease}
+.deskrow{margin-top:6px}
+#pad{width:100%;font:inherit;font-family:"Courier New",ui-monospace,monospace;
+  font-size:1.05rem;padding:12px 14px;background:#fffdf2;border:1px solid var(--line);
+  border-radius:4px;color:var(--ink)}
+#status{margin-top:.6em;min-height:1.5em;font-size:.92rem}
+#status .bad{color:var(--red)}
+#status .ok{color:var(--green)}
+.stamprow{margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+#card{margin-top:22px;background:#fffdf2;border:1px dashed var(--line);border-radius:4px;
+  padding:18px 20px 20px;position:relative;opacity:0;transform:translateY(10px);
+  transition:opacity .5s ease,transform .5s ease}
+#card.on{opacity:1;transform:none}
+#cardTxt{font-family:"Courier New",ui-monospace,monospace;font-size:1.05rem;word-break:break-word}
+.stamp{position:absolute;right:14px;top:-14px;width:84px;height:84px;border:3px double var(--red);
+  border-radius:50%;color:var(--red);display:flex;align-items:center;justify-content:center;
+  text-align:center;font-size:.85rem;line-height:1.3;font-weight:700;
+  transform:rotate(-14deg) scale(1);opacity:.9}
+#card.on .stamp{animation:stmp .45s cubic-bezier(.2,1.6,.4,1)}
+@keyframes stmp{0%{transform:rotate(-14deg) scale(1.9);opacity:0}100%{transform:rotate(-14deg) scale(1);opacity:.9}}
+.tiny{background:transparent;color:var(--dim);border:1px solid var(--line);padding:4px 12px;font-size:.8rem}
+.tiny:hover{background:var(--paper2);color:var(--ink)}
+/* ---------- hack / relay ---------- */
+#hack.locked ul{filter:blur(6px);pointer-events:none;user-select:none}
+#hack .gate{margin:.4em 0 1em}
+#hack ul{padding-left:1.3em}
+#hack li{margin:.9em 0}
+.fin{border-left:4px solid var(--red);padding:4px 0 4px 16px;margin-top:1.6em}
+#audit{font-size:.92rem;color:var(--dim)}
+footer{max-width:700px;margin:64px auto 48px;padding:0 24px;color:#8d8268;
+  font-size:.82rem;text-align:center;line-height:1.9}
+@media (max-width:559px){
+  .sheet{margin:34px 12px;padding:28px 18px 32px;transform:none!important}
+  .bar{grid-template-columns:6em 1fr 4em}
+  .k{width:32px;height:32px;font-size:.8rem}
+  .stamp{width:70px;height:70px;font-size:.75rem}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .rev{opacity:1;transform:none;transition:none}
+  .bar .fl,#card{transition:none}
+  .k.jam,.deskrow.shk,#card.on .stamp{animation:none}
+}
+html.rm .rev{opacity:1;transform:none;transition:none}
+html.rm .bar .fl,html.rm #card{transition:none}
+html.rm .k.jam,html.rm .deskrow.shk,html.rm #card.on .stamp{animation:none}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <svg viewBox="0 0 640 400" role="img" aria-label="一台老式打字機的插畫，其中一顆按鍵被細繩綁住" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="gPaper" gradientUnits="userSpaceOnUse" x1="235" y1="26" x2="420" y2="180">
+        <stop offset="0" stop-color="#fbf5e2"/><stop offset="1" stop-color="#cfc4a4"/>
+      </linearGradient>
+      <linearGradient id="gRope" gradientUnits="userSpaceOnUse" x1="150" y1="300" x2="330" y2="300">
+        <stop offset="0" stop-color="#c9a86b"/><stop offset="1" stop-color="#8a6a34"/>
+      </linearGradient>
+      <filter id="sh" x="-20%" y="-20%" width="140%" height="160%">
+        <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.5"/>
+      </filter>
+    </defs>
+    <g filter="url(#sh)">
+      <rect x="232" y="26" width="176" height="152" rx="3" fill="url(#gPaper)" stroke="#b7ab8d" stroke-width="1.5"/>
+      <g fill="#6b6154">
+        <rect x="252" y="52" width="136" height="6" rx="3"/>
+        <rect x="252" y="70" width="122" height="6" rx="3"/>
+        <rect x="252" y="88" width="130" height="6" rx="3"/>
+        <rect x="252" y="106" width="96" height="6" rx="3"/>
+        <rect x="252" y="124" width="118" height="6" rx="3"/>
+        <rect x="252" y="142" width="58" height="6" rx="3"/>
+      </g>
+      <rect x="314" y="140" width="10" height="10" fill="#b3272d" opacity=".85"/>
+      <rect x="148" y="168" width="344" height="28" rx="14" fill="#3a3733"/>
+      <circle cx="140" cy="182" r="13" fill="#26231e"/>
+      <circle cx="500" cy="182" r="13" fill="#26231e"/>
+      <path d="M118,196 h404 a16,16 0 0 1 16,16 v76 a22,22 0 0 1 -22,22 H124 a22,22 0 0 1 -22,-22 v-76 a16,16 0 0 1 16,-16 z" fill="#23201b"/>
+      <g fill="#2e2a24" stroke="#4a443b" stroke-width="1.5">
+        <circle cx="187" cy="248" r="13"/><circle cx="220" cy="248" r="13"/>
+        <circle cx="286" cy="248" r="13"/><circle cx="319" cy="248" r="13"/>
+        <circle cx="352" cy="248" r="13"/><circle cx="385" cy="248" r="13"/>
+        <circle cx="418" cy="248" r="13"/><circle cx="451" cy="248" r="13"/>
+        <circle cx="203" cy="280" r="13"/><circle cx="236" cy="280" r="13"/>
+        <circle cx="269" cy="280" r="13"/><circle cx="302" cy="280" r="13"/>
+        <circle cx="335" cy="280" r="13"/><circle cx="368" cy="280" r="13"/>
+        <circle cx="401" cy="280" r="13"/><circle cx="434" cy="280" r="13"/>
+        <circle cx="236" cy="312" r="13"/><circle cx="269" cy="312" r="13"/>
+        <circle cx="302" cy="312" r="13"/><circle cx="335" cy="312" r="13"/>
+        <circle cx="368" cy="312" r="13"/><circle cx="401" cy="312" r="13"/>
+      </g>
+      <circle cx="253" cy="248" r="14" fill="#efe6cf" stroke="#b7ab8d" stroke-width="2"/>
+      <text x="253" y="254" text-anchor="middle" font-size="16" font-family="Courier New,monospace" font-weight="bold" fill="#b3272d" class="ee">E</text>
+      <path id="ropeMain" d="M150,302 C196,262 228,248 251,242 C276,248 306,266 334,300" fill="none" stroke="url(#gRope)" stroke-width="5" stroke-linecap="round"/>
+      <path d="M241,240 L266,256 M266,240 L241,256" stroke="#8a6a34" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <g id="ropeTail">
+        <path d="M334,300 q8,14 -1,27" fill="none" stroke="#8a6a34" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="333" cy="329" r="5" fill="#8a6a34"/>
+      </g>
+    </g>
+  </svg>
+  <p class="kicker">1939 年・加州・一處退伍軍人之家</p>
+  <h1>一位年近七十的老人，用細繩把打字機上<br>最常用的那顆鍵，綁了起來。</h1>
+  <p class="lead">然後，他開始打一本五萬字的小說。</p>
+  <p class="hint" aria-hidden="true">▼ 往下，看他怎麼活下來</p>
+</header>
+
+<main>
+<section class="sheet" aria-labelledby="h-freq">
+  <h2 id="h-freq">先說那顆鍵有多重要</h2>
+  <p class="ee">他綁住的是字母 E——英文裡出現頻率最高的字母，平均每八個字母就有一個，
+  佔比大約 12.7%，把第二名遠遠甩開。你可能沒什麼感覺。來，親手抓一次。</p>
+  <p>下面是一段普通英文，講的正是他的故事。先讀一遍，憑感覺猜猜裡面藏了幾個：</p>
+  <p id="demoP" class="ee" lang="en">In 1939 an old man near seventy tied one key down on his typewriter, then set out to write a novel of fifty thousand words. Every sentence, every page, had to survive without the letter he had sealed away — the most common letter in the English language.</p>
+  <p><button id="btnScan" type="button">按一下，抓出所有 <span class="ee">E</span></button></p>
+  <p id="freqOut" class="ee" aria-live="polite"></p>
+  <div class="bars" id="bars" role="img" aria-label="英文字母頻率長條圖：E 約 12.7%，T 約 9.1%，A 約 8.2%">
+    <div class="bar big"><span class="ee">E（頻率冠軍）</span><span class="tr"><i class="fl" style="--s:1"></i></span><span>12.7%</span></div>
+    <div class="bar"><span>T（第二名）</span><span class="tr"><i class="fl" style="--s:.716"></i></span><span>9.1%</span></div>
+    <div class="bar"><span>A（第三名）</span><span class="tr"><i class="fl" style="--s:.645"></i></span><span>8.2%</span></div>
+  </div>
+  <p class="mut">頻率為英文書面語的一般統計。他綁掉的，就是那根紅色的長條。</p>
+</section>
+
+<section class="sheet" aria-labelledby="h-pain">
+  <h2 id="h-pain">綁掉 <span class="ee">E</span> 之後，你會失去什麼</h2>
+  <p>這位老人叫萊特（Wright）。他在小說序言裡——序言不算正文，可以用 <span class="ee">E</span>——把苦水倒了一輪。
+  據他所述，正文前後打了 165 天。條件是，以下全部丟掉：</p>
+  <ol class="pain">
+    <li class="rev"><strong class="ee">the 沒了。</strong>英文最常用的單字，平均每十幾個字就要用一次。整本書，一次都不准出現。</li>
+    <li class="rev"><strong>過去式全滅。</strong><span class="ee">walked、opened、finished</span>……幾乎所有 -<span class="ee">ed</span> 結尾都陣亡。他的活路：拆成 <span class="noe">did walk</span> 這種繞法。</li>
+    <li class="rev"><strong>數字斷層。</strong><span class="noe">six</span> 以下、<span class="noe">thirty</span> 以上還活著；中間的 <span class="ee">seven 到 twenty-nine</span> 全帶 <span class="ee">E</span>。他在序言裡自己吐槽：這下故事裡的年齡只能寫「不到三十」——哪位姑娘不樂意呢。</li>
+    <li class="rev"><strong>代名詞死光。</strong><span class="ee">he、she、we、me、they</span>——全帶 <span class="ee">E</span>。講到人，只能一直喊全名，或硬叫 <span class="noe">that man</span>。</li>
+    <li class="rev"><strong>縮寫也逃不掉。</strong>Mr. 看起來乾淨？可是全稱 <span class="ee">Mister</span> 帶 <span class="ee">E</span>。他給自己立規矩：全稱乾淨，縮寫才准用。<span class="noe">Dr.</span> 過關，Mr. 出局。</li>
+    <li class="rev"><strong class="ee">連作者本人都出局。</strong>他的全名 <span class="ee">Ernest Vincent Wright</span>，一共藏了三個 <span class="ee">E</span>。這套規則，第一個開除的就是發明它的人。</li>
+  </ol>
+</section>
+
+<section class="sheet" aria-labelledby="h-play">
+  <h2 id="h-play">換你上機</h2>
+  <p class="ee">這台讓給你。E 鍵已經綁好了——真的按不下去，不信你試。</p>
+  <div class="tabs" role="tablist" aria-label="挑戰語言切換">
+    <button id="tabEn" role="tab" aria-selected="true" aria-controls="prompt" type="button">英文關卡</button>
+    <button id="tabZh" role="tab" aria-selected="false" aria-controls="prompt" type="button">中文關卡</button>
+  </div>
+  <div id="prompt" role="tabpanel" aria-live="polite">
+    <p style="margin:.2em 0">題目：那句著名的打字練習句——<span class="ee" lang="en">“The quick brown fox jumps over the lazy dog.”</span><br>
+    把它的意思重新打出來，一個 <span class="ee">E</span> 都不准用。十二個字母以上就算數。</p>
+  </div>
+  <div id="keys" aria-hidden="true">
+    <span class="k" data-k="q">Q</span><span class="k" data-k="w">W</span><span class="k bound" id="keyE"><b class="ee">E</b></span><span class="k" data-k="r">R</span><span class="k" data-k="t">T</span><span class="k" data-k="y">Y</span><span class="k" data-k="u">U</span><span class="k" data-k="i">I</span><span class="k" data-k="o">O</span><span class="k" data-k="p">P</span>
+  </div>
+  <div class="deskrow" id="desk">
+    <label for="pad" class="mut">你的稿紙：</label>
+    <input id="pad" type="text" autocomplete="off" spellcheck="false" placeholder="在這裡打字……" aria-describedby="status">
+  </div>
+  <p id="status" class="ee" aria-live="polite"></p>
+  <div class="stamprow">
+    <button id="btnStamp" type="button" disabled>蓋上完稿章</button>
+    <span class="mut" id="stampHint">句子過關，章才蓋得下去。</span>
+  </div>
+  <div id="card" hidden>
+    <div class="stamp ee" aria-hidden="true">完稿<br>無 E</div>
+    <p class="mut ee" id="cardNote" style="margin:0 0 .4em"></p>
+    <p id="cardTxt" class="ee" style="margin:0"></p>
+    <p style="margin: .8em 0 0"><button class="tiny" id="btnTear" type="button">撕掉重寫</button></p>
+  </div>
+</section>
+
+<section class="sheet locked" id="hack" aria-labelledby="h-hack">
+  <h2 id="h-hack">他真的用過的繞路技</h2>
+  <p class="gate" id="gateMsg">先把你自己的句子打完，再來看老前輩的手法。<button class="tiny" id="btnPeek" type="button">忍不住，直接偷看</button></p>
+  <ul>
+    <li><strong>名言動手術。</strong>濟慈那句 <span class="ee" lang="en">“a thing of beauty is a joy forever”</span>，在他書裡變成 <span class="noe" lang="en">a charming thing is a joy always</span>。意思還在，<span class="ee">E</span> 不見了。</li>
+    <li><strong>正面繞過名詞。</strong>書裡有一整段在描寫一輛馬拉消防車，卻從頭到尾不用 <span class="ee" lang="en">horse、fire、engine</span> 這三個字。硬是用別的話把畫面拼出來。</li>
+    <li><strong>你的參考解。</strong><span class="noe" lang="en">a quick brown fox jumps on a lazy dog</span>——冠詞降級、換一個介系詞，整句就乾淨了。</li>
+    <li><strong class="ee">但打字機還是輸了一次。</strong>1939 年初版裡，仍有四個 <span class="ee">E</span> 溜進正文——三次 <span class="ee" lang="en">the</span>，一次 <span class="ee" lang="en">officers</span>。綁得住自己的手，綁不住排字房。</li>
+  </ul>
+</section>
+
+<section class="sheet" aria-labelledby="h-relay">
+  <h2 id="h-relay">接力棒</h2>
+  <p>《Gadsby》自費出版，當年沒人理。萊特在 1939 年 10 月過世——就是書出版的那一年。
+  他沒等到後面的事：據傳倉庫失火，燒掉大半初版；倖存下來的初版，如今在書商手上喊價四千到七千五百美元。</p>
+  <p class="ee">三十年後，巴黎。Georges Perec 接下這根棒子，寫出整本沒有 e 的法文小說《La Disparition》（1969）。
+  更離譜的是英譯本《A Void》——譯者硬是讓譯文也一個 e 都沒有。Perec 意猶未盡，後來反手又寫了
+  《Les Revenentes》：這一回，全書的母音只准用 e。綁起來的字母，換人鬆綁。</p>
+  <div class="fin">
+    <p><strong>最後一件事。</strong></p>
+    <p class="ee">這一頁，凡是<span class="noe">綠色的英文</span>——所有示範給你的活路——從頭到尾，沒有出現過那個字母。
+    而混進頁面的每一個 E，全都被抓出來、標成紅色了。不信？工具函式剛替你數過：</p>
+    <p id="audit" class="ee" aria-live="polite">（自檢中……）</p>
+    <p class="ee">你可以捲回去，一個一個檢查。他當年沒有這種工具——只有一條細繩，和 165 個不准出錯的日子。</p>
+  </div>
+</section>
+</main>
+
+<footer>
+  <p class="ee">史料：英文維基百科〈Gadsby (novel)〉〈Ernest Vincent Wright〉〈A Void〉；小說全文見古騰堡計畫 #47342。</p>
+  <p>每日小專案・2026-08-29・🖋️</p>
+</footer>
+
+<script>
+'use strict';
+/* ============ 純函式區（可用 node 直接載入斷言） ============ */
+const LS='gadsby.';
+
+/** 數出 text 裡被禁字元 ch 的出現次數（拉丁字母不分大小寫） */
+function countForbidden(text,ch){
+  if(!text||!ch)return 0;
+  const f=String(ch).toLowerCase();
+  let n=0;
+  for(const c of String(text)){ if(c.toLowerCase()===f)n++; }
+  return n;
+}
+
+/** 拉丁字母頻率統計：回傳 {counts,total,pct(letter)} */
+function letterStats(text){
+  const counts={};let total=0;
+  for(const raw of String(text)){
+    const c=raw.toLowerCase();
+    if(c>='a'&&c<='z'){counts[c]=(counts[c]||0)+1;total++;}
+  }
+  return {counts,total,pct:function(l){return total?100*(counts[l]||0)/total:0;}};
+}
+
+/** 英文句是否為合格的無 E 句 */
+function validEn(text){
+  const t=String(text).trim();
+  return letterStats(t).total>=12 && countForbidden(t,'e')===0 && /[a-z]/i.test(t);
+}
+/** 中文句是否為合格的無「的」句 */
+function validZh(text){
+  const t=String(text).trim();
+  return t.length>=8 && countForbidden(t,'的')===0;
+}
+
+/* ============ 以下需要 DOM ============ */
+if(typeof document!=='undefined'&&document.querySelector){(function(){
+  const $=s=>document.querySelector(s);
+  const mq=matchMedia('(prefers-reduced-motion: reduce)');
+  const rm=()=>mq.matches||document.documentElement.classList.contains('rm');
+  function applyMotion(){
+    document.documentElement.classList.toggle('rm',mq.matches);
+    if(mq.matches){stopSway();}else{startSway();}
+  }
+  if(mq.addEventListener)mq.addEventListener('change',applyMotion);
+  else if(mq.addListener)mq.addListener(applyMotion);
+
+  /* --- 把 .ee 區裡每一個 E 抓出來標紅 --- */
+  function markE(el){
+    const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),list=[];let n;
+    while((n=w.nextNode())){ if(/[eE]/.test(n.nodeValue))list.push(n); }
+    list.forEach(node=>{
+      const frag=document.createDocumentFragment();
+      node.nodeValue.split(/([eE])/).forEach(part=>{
+        if(part==='e'||part==='E'){
+          const b=document.createElement('b');b.className='he';b.textContent=part;
+          frag.appendChild(b);
+        }else if(part){frag.appendChild(document.createTextNode(part));}
+      });
+      node.parentNode.replaceChild(frag,node);
+    });
+  }
+  const demoP=$('#demoP');
+  document.querySelectorAll('.ee').forEach(el=>{ if(el!==demoP&&!demoP.contains(el))markE(el); });
+
+  /* --- 頁面自檢：所有 E 必須待在 .ee 紅區內 --- */
+  function auditPage(){
+    const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+    let inZone=0,outZone=0,node;
+    while((node=w.nextNode())){
+      const p=node.parentElement;
+      if(!p||p.closest('script,style'))continue;
+      const n=countForbidden(node.nodeValue,'e');
+      if(!n)continue;
+      if(p.closest('.ee'))inZone+=n;else outZone+=n;
+    }
+    const zones=document.querySelectorAll('.noe');
+    let noeBad=0;
+    zones.forEach(z=>{ if(countForbidden(z.textContent,'e')>0)noeBad++; });
+    return {inZone,outZone,zones:zones.length,noeBad};
+  }
+  (function(){
+    const a=auditPage();
+    $('#audit').textContent='工具函式報告：本頁紅區共關住 '+a.inZone+' 個 E；紅區之外抓到 '
+      +a.outZone+' 個。綠色示範 '+a.zones+' 段，E 含量：'+(a.noeBad===0?'0。':a.noeBad+' 段出包！');
+    markE($('#audit'));
+  })();
+
+  /* --- 頻率示範 --- */
+  $('#btnScan').addEventListener('click',()=>{
+    markE(demoP);
+    const st=letterStats(demoP.textContent);
+    const ec=st.counts.e||0;
+    $('#freqOut').textContent='這一段共 '+st.total+' 個字母，E 就佔了 '+ec
+      +' 個（'+st.pct('e').toFixed(1)+'%）。你剛剛讀過去，多半沒注意到它們。';
+    markE($('#freqOut'));
+    const bars=$('#bars');
+    if(rm()){bars.classList.add('go');}
+    else{requestAnimationFrame(()=>requestAnimationFrame(()=>bars.classList.add('go')));}
+    $('#btnScan').disabled=true;
+  });
+
+  /* --- 逐條浮現 --- */
+  const io=new IntersectionObserver(es=>{
+    es.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);} });
+  },{threshold:.25});
+  document.querySelectorAll('.rev').forEach(el=>io.observe(el));
+
+  /* --- 繩結描邊：transition:none → 藏起 → 強制 reflow → 下一 rAF 播放（沿實際繪製方向收線） --- */
+  const rope=document.getElementById('ropeMain');
+  if(rope&&rope.getTotalLength&&!mq.matches){
+    const L=rope.getTotalLength();
+    rope.style.transition='none';
+    rope.style.strokeDasharray=L+' '+L;
+    rope.style.strokeDashoffset=L;
+    void rope.getBoundingClientRect();
+    requestAnimationFrame(()=>{
+      rope.style.transition='stroke-dashoffset 1.1s ease-out';
+      rope.style.strokeDashoffset='0';
+    });
+  }
+
+  /* --- 繩尾輕晃：rAF 節流 30fps，分頁隱藏即暫停 --- */
+  const tail=document.getElementById('ropeTail');
+  let swayOn=false,lastT=0;
+  function swayLoop(t){
+    if(!swayOn)return;
+    requestAnimationFrame(swayLoop);
+    if(t-lastT<33)return;
+    lastT=t;
+    tail.setAttribute('transform','rotate('+(Math.sin(t/850)*4).toFixed(2)+' 334 300)');
+  }
+  function startSway(){ if(swayOn||mq.matches||document.hidden)return; swayOn=true;requestAnimationFrame(swayLoop); }
+  function stopSway(){ swayOn=false; if(tail)tail.removeAttribute('transform'); }
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden)stopSway();else startSway(); });
+  startSway();
+
+  /* --- 打字機關卡 --- */
+  const pad=$('#pad'),status=$('#status'),keyE=$('#keyE'),desk=$('#desk'),
+        btnStamp=$('#btnStamp'),promptBox=$('#prompt'),
+        tabEn=$('#tabEn'),tabZh=$('#tabZh');
+  const keyEHome=keyE.innerHTML;  // 已標紅的 E
+  let mode='en',dodged=0,zhPrev=0,vals={en:'',zh:''},unlocked=false;
+
+  const PROMPTS={
+    en:'題目：那句著名的打字練習句——<span class="ee" lang="en">“The quick brown fox jumps over the lazy dog.”</span><br>把它的意思重新打出來，一個 <span class="ee">E</span> 都不准用。十二個字母以上就算數。',
+    zh:'中文也有自己的 E——「的」，中文最常用的字之一。<br>用一句完整的話（八個字以上）說說你今天過得如何，整句不准出現「的」。'
+  };
+  function setPrompt(){
+    promptBox.innerHTML='<p style="margin:.2em 0">'+PROMPTS[mode]+'</p>';
+    promptBox.querySelectorAll('.ee').forEach(markE);
+  }
+  function jam(){
+    if(!rm()){
+      keyE.classList.remove('jam');desk.classList.remove('shk');
+      void keyE.offsetWidth;
+      keyE.classList.add('jam');desk.classList.add('shk');
+      setTimeout(()=>{keyE.classList.remove('jam');desk.classList.remove('shk');},350);
+    }
+  }
+  function dodge(n){ dodged+=n; }
+  function setStatus(){
+    const v=pad.value;
+    let html='';
+    if(mode==='en'){
+      if(dodged>0)html+='已繞掉 <b>'+dodged+'</b> 個 E。 ';
+      if(validEn(v))html+='<span class="ok">過關！這句乾乾淨淨，可以蓋章了。</span>';
+      else if(v.trim())html+='<span class="bad">還不夠長，繼續。</span>';
+      else html+='鍵盤交給你。';
+    }else{
+      const n=countForbidden(v,'的');
+      if(dodged>0)html+='已繞掉 <b>'+dodged+'</b> 個禁字。 ';
+      if(n>0)html+='<span class="bad">卡鍵！句子裡還有 '+n+' 個「的」，拆掉它。</span>';
+      else if(validZh(v))html+='<span class="ok">過關！一個「的」都沒有，可以蓋章了。</span>';
+      else if(v.trim())html+='<span class="bad">再長一點，湊滿八個字。</span>';
+      else html+='換中文稿紙。';
+    }
+    status.innerHTML=html;
+    markE(status);
+    const ok=(mode==='en')?validEn(v):validZh(v);
+    btnStamp.disabled=!ok;
+    $('#stampHint').textContent=ok?'就是現在。':'句子過關，章才蓋得下去。';
+    if(ok&&!unlocked)unlock();
+  }
+  function unlock(){
+    unlocked=true;
+    const h=$('#hack');
+    h.classList.remove('locked');
+    $('#gateMsg').textContent='你過關了。以下是老前輩的手法，對答案吧：';
+  }
+  pad.addEventListener('keydown',e=>{
+    if(mode==='en'&&(e.key==='e'||e.key==='E')){
+      e.preventDefault();dodge(1);jam();setStatus();return;
+    }
+    const k=document.querySelector('.k[data-k="'+String(e.key).toLowerCase()+'"]');
+    if(k&&!rm()){k.classList.add('down');setTimeout(()=>k.classList.remove('down'),120);}
+  });
+  pad.addEventListener('input',()=>{
+    if(mode==='en'){
+      const n=countForbidden(pad.value,'e');
+      if(n>0){ // 貼上等旁門也一併沒收
+        pad.value=pad.value.replace(/[eE]/g,'');
+        dodge(n);jam();
+      }
+    }else{
+      const n=countForbidden(pad.value,'的');
+      if(n>zhPrev){dodge(n-zhPrev);jam();}
+      zhPrev=n;
+    }
+    vals[mode]=pad.value;
+    setStatus();
+  });
+  function switchMode(m){
+    if(mode===m)return;
+    vals[mode]=pad.value;
+    mode=m;zhPrev=countForbidden(vals[m]||'','的');
+    pad.value=vals[m]||'';
+    tabEn.setAttribute('aria-selected',m==='en');
+    tabZh.setAttribute('aria-selected',m==='zh');
+    keyE.innerHTML=(m==='en')?keyEHome:'的';
+    setPrompt();setStatus();pad.focus();
+  }
+  tabEn.addEventListener('click',()=>switchMode('en'));
+  tabZh.addEventListener('click',()=>switchMode('zh'));
+  [tabEn,tabZh].forEach(t=>t.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){
+      e.preventDefault();
+      (t===tabEn?tabZh:tabEn).focus();
+      switchMode(t===tabEn?'zh':'en');
+    }
+  }));
+
+  /* --- 完稿章 + 收藏 --- */
+  const card=$('#card');
+  function showCard(txt,m,note){
+    $('#cardTxt').textContent=txt;
+    markE($('#cardTxt'));
+    $('#cardNote').textContent=note+(m==='en'?'（英文・無 E）':'（中文・無「的」）');
+    markE($('#cardNote'));
+    card.hidden=false;
+    if(rm()){card.classList.add('on');}
+    else{requestAnimationFrame(()=>requestAnimationFrame(()=>card.classList.add('on')));}
+  }
+  btnStamp.addEventListener('click',()=>{
+    const txt=pad.value.trim();
+    const ok=(mode==='en')?validEn(txt):validZh(txt);
+    if(!ok)return;
+    showCard(txt,mode,'蓋章存檔：');
+    try{
+      localStorage.setItem(LS+'draft',JSON.stringify({txt,mode,dodged,ts:Date.now()}));
+    }catch(_){}
+    status.innerHTML='<span class="ok">蓋下去了。這張稿子收進抽屜，下次回來還在。</span>';
+  });
+  $('#btnTear').addEventListener('click',()=>{
+    try{localStorage.removeItem(LS+'draft');}catch(_){}
+    card.classList.remove('on');card.hidden=true;
+    status.textContent='撕掉了。稿紙還你，再來一次。';
+  });
+  try{
+    const saved=JSON.parse(localStorage.getItem(LS+'draft')||'null');
+    if(saved&&saved.txt)showCard(saved.txt,saved.mode,'上次蓋章的稿子：');
+  }catch(_){}
+
+  $('#btnPeek').addEventListener('click',unlock);
+
+  setStatus();
+})();}
+</script>
+</body>
+</html>

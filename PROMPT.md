@@ -148,3 +148,12 @@ projects/YYYY-MM/YYYY-MM-DD-專案名/{index.html, 說明.md}
 - 真實正確：凡涉及事實或數據務必查證（WebSearch）。
 - 全站一致的底線：純靜態、自包含、`file://` 雙擊可開、localStorage 加前綴（抽成字面常數）、放在 `projects/YYYY-MM/` 底下（資料夾名不以 `_`／`.` 開頭）、用 `tools/add.js` 掛上 `PROJECTS`、desc ≤120 字、回首頁連結（`../../../index.html`）、行為鷹架照 `tools/snippets.md`、`node tools/check.js` 全過、達到設計品質標準——其餘盡情發揮。
 - 重點是**故事**、趣味、美感與實用：讓使用者不只「眼睛一亮」，還想一路看到最後。
+
+---
+
+## 附錄：省 token 工作流與 page-kit（2026-09-01 政策更新，使用者指示）
+
+- **偵察改跑指令**：每日步驟 1 改為 `node tools/brief.js`（近 14 天題材、已用 emoji／LS 前綴、今日保養對象一次列出），不再通讀 data.js 前 60 行與名冊。
+- **新頁用鷹架**：`node tools/new-page.js --slug 專案名 --ls 前綴.` 產出已接好 page-kit、回首頁、meta、reduced-motion、footer 規範的骨架；只填故事與互動。掛首頁用 `tools/add.js`。
+- **page-kit**（`assets/page-kit.{css,js}`）：新頁共用骨架/執行時（rAF 管理、IO 進場、fitCanvas、replayDash、store、announce…）。三條圈爆炸半徑的規矩：舊頁一律不回改；kit 語意凍結（只加 API 不改行為）；動 kit 必過 `node tools/check.js`。
+- **AI 協作者入口**：規範速查濃縮在根目錄 `CLAUDE.md`——新 session 先讀它與 brief.js 輸出，按需再用 grep/sed 讀單檔段落，避免整包掃描。

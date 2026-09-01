@@ -463,6 +463,11 @@ function stepDoll(s,dt,env){
     if(vy>90){impact=vy;vy=-vy*env.rest;av*=.5;vx*=.65;y=env.ground;}
     else{y=env.ground;vy=0;vx*=.82;av*=.7;}
   }
+  /* 天花板（太空艙等封閉場景）：低重力下小人不再飛出畫面外消失 */
+  if(env.ceil!=null&&y<=env.ceil&&vy<0){
+    if(-vy>90)impact=-vy;
+    y=env.ceil;vy=-vy*env.rest;av*=.6;
+  }
   if(x<18){x=18;vx=-vx*.7;}
   if(x>env.w-18){x=env.w-18;vx=-vx*.7;}
   const rest=y>=env.ground-.5&&Math.abs(vy)<5&&Math.abs(vx)<6;
@@ -492,7 +497,7 @@ let doll={x:100,y:0,vx:0,vy:0,ang:0,av:0},flying=false,screamed=false,dragging=f
 let gameRAF=0,lastT=0,gameVisible=true;
 
 function stageSize(){fitCanvas(stage);return{w:stage.width/dpr,h:stage.height/dpr};}
-function env(){const{w,h}=stageSize();const sc=SCENES[sceneIdx];return{w,h,ground:h-36,g:sc.g,rest:sc.rest};}
+function env(){const{w,h}=stageSize();const sc=SCENES[sceneIdx];return{w,h,ground:h-36,g:sc.g,rest:sc.rest,ceil:sc.deco==='space'?16:null};}
 function resetDoll(){const e=env();doll={x:Math.min(110,e.w*.2),y:e.ground,vx:0,vy:0,ang:0,av:0};flying=false;screamed=false;}
 function drawScene(e){
   const sc=SCENES[sceneIdx];

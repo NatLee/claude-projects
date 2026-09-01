@@ -337,12 +337,55 @@ function countUp(el, to) {
     return h / 4294967295;
   };
 
-  const chrono = PROJECTS.map((p, gi) => ({ p, gi })).reverse(); /* 舊 → 新 */
+  /* ── 六星座：每一類是一個星座，圖形是它的「關聯」──
+   *   nodes：0..1 相對座標（在星座框內）；edges：連線（節點索引對）
+   *   每次載入從該類作品隨機抽 nodes.length 顆點亮；今日之星必抽、且鎮座 */
+  const CONSTELLATIONS = [
+    { cat: "網路趣聞・冷知識", name: "訊號座", motif: "一座對著夜空的碟形天線",
+      nodes: [[.50,.14],[.28,.34],[.72,.34],[.50,.44],[.14,.20],[.86,.20],[.50,.66],[.38,.90],[.62,.90]],
+      edges: [[4,1],[1,0],[0,2],[2,5],[1,3],[2,3],[3,6],[6,7],[6,8]] },
+    { cat: "奇聞軼事", name: "問號座", motif: "一枚懸在半空的問號",
+      nodes: [[.26,.30],[.40,.15],[.58,.13],[.72,.28],[.68,.46],[.52,.58],[.50,.72],[.50,.92],[.24,.62]],
+      edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]] },
+    { cat: "科學趣聞", name: "燒瓶座", motif: "一只正在起泡的錐形瓶",
+      nodes: [[.40,.10],[.60,.10],[.44,.32],[.56,.32],[.24,.68],[.76,.68],[.36,.90],[.64,.90],[.50,.56]],
+      edges: [[0,2],[1,3],[2,4],[3,5],[4,6],[6,7],[7,5]] },
+    { cat: "學習新知", name: "鑰匙座", motif: "一把插向星空的鑰匙",
+      nodes: [[.18,.24],[.32,.14],[.44,.26],[.30,.38],[.52,.44],[.64,.56],[.76,.68],[.68,.86],[.88,.80]],
+      edges: [[0,1],[1,2],[2,3],[3,0],[2,4],[4,5],[5,6],[6,7],[6,8]] },
+    { cat: "生活痛點小工具", name: "板手座", motif: "一支還握得到餘溫的板手",
+      nodes: [[.22,.16],[.40,.12],[.32,.30],[.44,.42],[.54,.52],[.64,.62],[.78,.74],[.70,.90],[.88,.84]],
+      edges: [[0,2],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[6,8]] },
+    { cat: "創意・娛樂", name: "紙鳶座", motif: "一只掙著線的風箏",
+      nodes: [[.50,.10],[.32,.32],[.68,.32],[.50,.52],[.50,.30],[.56,.66],[.44,.76],[.56,.86],[.42,.94]],
+      edges: [[0,1],[0,2],[1,3],[2,3],[1,4],[2,4],[3,5],[5,6],[6,7],[7,8]] },
+  ];
+  const byCat = new Map(CAT_NAMES.map(c => [c, []]));
+  PROJECTS.forEach((p, gi) => { if (byCat.has(p.category)) byCat.get(p.category).push(gi); });
+
+  /* 每座隨機抽星（今日之星必入列，並鎮在圖形第一個節點） */
+  let sampled = new Map(); /* cat → gi[]（長度 ≤ nodes.length） */
+  function sampleStars() {
+    sampled = new Map();
+    for (const cn of CONSTELLATIONS) {
+      const pool = [...(byCat.get(cn.cat) || [])];
+      const want = Math.min(cn.nodes.length, pool.length);
+      const picked = [];
+      if (pool.includes(0)) { picked.push(0); pool.splice(pool.indexOf(0), 1); }
+      while (picked.length < want && pool.length) {
+        picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+      }
+      sampled.set(cn.cat, picked);
+    }
+  }
+  sampleStars();
+
   let ctx = null, W = 0, H = 0, dpr = 1;
   let farL = null, nearL = null, nebs = [];
   let stars = [], starByGi = new Map(), pathPts = [], pathCum = [], pathLen = 1;
+  let labelBoxes = []; /* 星座名的點擊熱區 */
   let igStep = 16; /* 點燈間隔：星多時自動縮短，總長鎖在 ~1.1s（動畫紀律 ≤1.2s） */
-  let hoverGi = -1, selGi = -1, lastPT = "mouse";
+  let hoverGi = -1, selGi = -1, hoverLabel = -1, lastPT = "mouse";
   let pulses = [], meteor = null, meteorTimer = null, glint = null, glintTimer = null;
   let scan = null, lastScan = -1;
   const par = { x: 0, y: 0, tx: 0, ty: 0 };
@@ -396,38 +439,53 @@ function countUp(el, to) {
     ctx = cv.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    const n = chrono.length;
-    const mx = Math.max(30, W * .05), myT = 56, myB = 104;
+    /* 星座框排版：寬幕 3×2、窄幕 2×3 */
+    const cols = W >= 980 ? 3 : 2;
+    const rows = Math.ceil(CONSTELLATIONS.length / cols);
+    const mx = Math.max(18, W * .035), myT = 40, myB = 96;
     const uw = W - mx * 2, uh = H - myT - myB;
-    const perRow = Math.max(5, Math.min(14, Math.round(uw / 88)));
-    const rows = Math.max(1, Math.ceil(n / perRow));
-    const rowH = uh / rows;
-    let lastMonth = "";
-    stars = chrono.map((it, i) => {
-      const r = Math.floor(i / perRow), c = i % perRow;
-      const col = (r % 2 === 0) ? c : (perRow - 1 - c);          /* 蛇行 */
-      const bx = mx + (perRow === 1 ? uw / 2 : uw * col / (perRow - 1));
-      const by = myT + rowH * (r + .5);
-      const h1 = hashStr(it.p.dir), h2 = hashStr(it.p.title + it.p.date);
-      const x = bx + (h1 - .5) * Math.min(40, uw / perRow * .5);
-      /* 底緣留 100px 淨空：卡片會往上疊 56px，加上今日之星的光暈/脈動環約 30px，
-         留 100px 才不會讓最亮的星壓到「今晚最亮的星」卡片頂緣。 */
-      const y = Math.min(H - 100, by + (h2 - .5) * Math.min(rowH * .62, 52));
-      const mm = it.p.date.slice(5, 7);
-      const mkey = it.p.date.slice(0, 7);
-      const label = (mkey !== lastMonth) ? `${Number(mm)} 月` : "";
-      lastMonth = mkey;
-      return {
-        gi: it.gi, p: it.p, x, y, idx: i,
-        r: 2.1 + h1 * 1.6, hex: catHex(it.p.category),
-        ph: h2 * Math.PI * 2, sp: .8 + h1 * 1.6,
-        label, today: it.gi === 0,
-      };
+    const bw = uw / cols, bh = uh / rows;
+    const padX = Math.min(bw * .16, 34), padTop = Math.min(bh * .12, 22), padBot = 30; /* 底部留星座名 */
+
+    stars = [];
+    labelBoxes = [];
+    let idx = 0;
+    CONSTELLATIONS.forEach((cn, ci) => {
+      const r = Math.floor(ci / cols), c = ci % cols;
+      const bx = mx + bw * c, by = myT + bh * r;
+      const iw = bw - padX * 2, ih = bh - padTop - padBot;
+      const picked = sampled.get(cn.cat) || [];
+      cn._pts = cn.nodes.map(([nx, ny]) => [bx + padX + nx * iw, by + padTop + ny * ih]);
+      picked.forEach((gi, k) => {
+        const p = PROJECTS[gi];
+        const node = (gi === 0) ? 0 : k; /* 今日之星鎮座在第一個節點 */
+        const [x, y] = cn._pts[node];
+        const h1 = hashStr(p.dir), h2 = hashStr(p.title + p.date);
+        stars.push({
+          gi, p, x, y, idx: idx++,
+          r: 2.3 + h1 * 1.5, hex: catHex(p.category),
+          ph: h2 * Math.PI * 2, sp: .8 + h1 * 1.6,
+          label: "", today: gi === 0, node, ci,
+        });
+      });
+      /* 今日之星若被抽中，會與第 0 顆搶同一節點——把被擠到的那顆挪去空節點 */
+      const here = stars.filter(s => s.ci === ci);
+      const usedNodes = new Set();
+      for (const s of here) {
+        while (usedNodes.has(s.node)) s.node = (s.node + 1) % cn.nodes.length;
+        usedNodes.add(s.node);
+        s.x = cn._pts[s.node][0]; s.y = cn._pts[s.node][1];
+      }
+      const total = (byCat.get(cn.cat) || []).length;
+      labelBoxes.push({
+        ci, cat: cn.cat, text: `${cn.name}`, sub: `${total} 顆 · 亮 ${picked.length}`,
+        x: bx + bw / 2, y: by + bh - 12, w: Math.min(bw * .8, 190), h: 30,
+      });
     });
     starByGi = new Map(stars.map(s => [s.gi, s]));
-    igStep = Math.min(16, 1100 / Math.max(1, stars.length));
-    /* 星軌折線累積長度（彗星巡行用） */
-    pathPts = stars.map(s => [s.x, s.y]);
+    igStep = Math.min(28, 1100 / Math.max(1, stars.length));
+    /* 彗星巡行路徑：抽中的星依日期舊→新串起來 */
+    pathPts = [...stars].sort((a, b) => a.p.date < b.p.date ? -1 : 1).map(s => [s.x, s.y]);
     pathCum = [0];
     for (let i = 1; i < pathPts.length; i++) {
       pathCum[i] = pathCum[i - 1] + Math.hypot(pathPts[i][0] - pathPts[i - 1][0], pathPts[i][1] - pathPts[i - 1][1]);
@@ -498,24 +556,45 @@ function countUp(el, to) {
       if (d <= pathLen) { cometD = d; cometPos = pathAt(d); }
     }
 
-    /* 月份標記 */
-    ctx.font = '10.5px "Noto Sans TC", system-ui, sans-serif';
-    ctx.textAlign = "center";
-    for (const s of stars) {
-      if (!s.label) continue;
-      const ly = (s.today && s.y > H - 120) ? s.y - 42 : s.y - 18;
-      ctx.fillStyle = "rgba(166,174,201,.5)";
-      ctx.fillText(s.label, s.x, ly);
-    }
-
-    /* 星軌連線（沿線微微呼吸） */
+    /* 星座圖形：完整骨架淡淡打底，抽中星之間的邊亮起呼吸 */
     ctx.lineWidth = 1;
-    for (let i = 1; i < stars.length; i++) {
-      const a = stars[i - 1], b = stars[i];
-      const on = visSet.has(a.gi) && visSet.has(b.gi);
-      const puls = reduced() ? .5 : (.5 + .5 * Math.sin(t / 1100 + i * .55));
-      ctx.strokeStyle = `rgba(160,175,225,${on ? (.1 + .09 * puls).toFixed(3) : ".04"})`;
-      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    CONSTELLATIONS.forEach((cn, ci) => {
+      if (!cn._pts) return;
+      const hx = catHex(cn.cat);
+      const catOn = !state.cat || state.cat === cn.cat;
+      const nodeHasStar = new Set(stars.filter(s => s.ci === ci && visSet.has(s.gi)).map(s => s.node));
+      cn.edges.forEach(([a, b], ei) => {
+        const pa = cn._pts[a], pb = cn._pts[b];
+        const lit = catOn && nodeHasStar.has(a) && nodeHasStar.has(b);
+        const puls = reduced() ? .5 : (.5 + .5 * Math.sin(t / 1200 + ei * .8 + ci));
+        ctx.strokeStyle = lit ? rgba(hx, .16 + .14 * puls) : "rgba(160,175,225,.05)";
+        ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+      });
+      /* 未被抽中的節點：一粒極淡的殘星，暗示這座還有更多 */
+      for (let ni = 0; ni < cn._pts.length; ni++) {
+        if (nodeHasStar.has(ni)) continue;
+        ctx.fillStyle = "rgba(170,182,215,.14)";
+        ctx.beginPath(); ctx.arc(cn._pts[ni][0], cn._pts[ni][1], 1.1, 0, 7); ctx.fill();
+      }
+    });
+
+    /* 星座名（可點：跳到作品牆看整座） */
+    ctx.textAlign = "center";
+    for (const lb of labelBoxes) {
+      const hot = lb.ci === hoverLabel;
+      const catOn = !state.cat || state.cat === lb.cat;
+      ctx.font = '12px "Noto Serif TC", serif';
+      ctx.fillStyle = hot ? rgba(catHex(lb.cat), .95) : (catOn ? "rgba(196,205,232,.72)" : "rgba(166,174,201,.3)");
+      ctx.fillText(lb.text, lb.x, lb.y - 8);
+      ctx.font = '10px "Noto Sans TC", system-ui, sans-serif';
+      ctx.fillStyle = hot ? "rgba(196,205,232,.8)" : "rgba(166,174,201,.45)";
+      ctx.fillText(lb.sub, lb.x, lb.y + 7);
+      if (hot) {
+        ctx.strokeStyle = rgba(catHex(lb.cat), .5);
+        ctx.beginPath();
+        ctx.moveTo(lb.x - lb.w / 2 + 30, lb.y + 14); ctx.lineTo(lb.x + lb.w / 2 - 30, lb.y + 14);
+        ctx.stroke();
+      }
     }
 
     /* 彗星尾跡與頭部 */
@@ -680,7 +759,7 @@ function countUp(el, to) {
     if (!running) drawSky(performance.now());
   }
   function startScan() {
-    const pool = [...visSet];
+    const pool = stars.filter(s => visSet.has(s.gi)).map(s => s.gi); /* 只掃「亮著」的抽中星 */
     if (!pool.length) return;
     let gi = pool[Math.floor(Math.random() * pool.length)];
     if (pool.length > 1 && gi === lastScan) gi = pool[(pool.indexOf(gi) + 1) % pool.length];
@@ -692,6 +771,18 @@ function countUp(el, to) {
     scanBtn.querySelector(".lbl").textContent = "掃描中…";
   }
   scanBtn.addEventListener("click", startScan);
+
+  /* 換一批星：重抽各星座顯示的星，重新點燈 */
+  const reshufBtn = $("reshufBtn");
+  if (reshufBtn) reshufBtn.addEventListener("click", () => {
+    sampleStars();
+    hideTip(); hoverGi = -1; hoverLabel = -1;
+    if (scan) { scan = null; resetScanBtn(); }
+    bornAt = 0;
+    layoutSky();
+    drawSky(performance.now());
+    announce("已重新從各星座抽星");
+  });
 
   /* rAF 迴圈：只在「在畫面內＋分頁可見＋允許動態」時運轉 */
   function frame(t) {
@@ -724,8 +815,8 @@ function countUp(el, to) {
     clearTimeout(glintTimer);
     glintTimer = setTimeout(() => {
       if (!running) return;
-      const pool = [...visSet].filter(g => g !== 0);
-      if (pool.length) glint = { gi: pool[Math.floor(Math.random() * pool.length)], t0: performance.now() };
+      const pool = stars.filter(s => s.gi !== 0 && visSet.has(s.gi));
+      if (pool.length) glint = { gi: pool[Math.floor(Math.random() * pool.length)].gi, t0: performance.now() };
       scheduleGlint();
     }, 1400 + Math.random() * 2200);
   }
@@ -772,22 +863,29 @@ function countUp(el, to) {
     selGi = -1;
   }
 
+  function labelAt(x, y) {
+    for (const lb of labelBoxes) {
+      if (Math.abs(x - lb.x) <= lb.w / 2 && y >= lb.y - lb.h / 2 - 4 && y <= lb.y + lb.h / 2 + 4) return lb.ci;
+    }
+    return -1;
+  }
   cv.addEventListener("pointermove", e => {
     const rc = cv.getBoundingClientRect();
     const x = e.clientX - rc.left, y = e.clientY - rc.top;
     if (!reduced()) { par.tx = (x / W - .5) * 2; par.ty = (y / H - .5) * 2; }
     if (e.pointerType === "touch" || scan) return;
     const gi = starAt(x, y);
-    if (gi !== hoverGi) {
-      hoverGi = gi;
-      cv.style.cursor = gi < 0 ? "" : "pointer";
+    const li = gi < 0 ? labelAt(x, y) : -1;
+    if (gi !== hoverGi || li !== hoverLabel) {
+      hoverGi = gi; hoverLabel = li;
+      cv.style.cursor = (gi < 0 && li < 0) ? "" : "pointer";
       if (gi >= 0) { selGi = -1; showTip(gi, false); }
       else if (selGi < 0) hideTip();
       if (!running) drawSky(performance.now());
     }
   });
   cv.addEventListener("pointerleave", () => {
-    hoverGi = -1; par.tx = par.ty = 0; cv.style.cursor = "";
+    hoverGi = -1; hoverLabel = -1; par.tx = par.ty = 0; cv.style.cursor = "";
     if (selGi < 0) hideTip();
     if (!running) drawSky(performance.now());
   });
@@ -795,8 +893,18 @@ function countUp(el, to) {
   cv.addEventListener("click", e => {
     if (scan) { scan = null; resetScanBtn(); }   /* 點天空可中止掃描 */
     const rc = cv.getBoundingClientRect();
-    const gi = starAt(e.clientX - rc.left, e.clientY - rc.top);
-    if (gi < 0) { hideTip(); if (!running) drawSky(performance.now()); return; }
+    const cx = e.clientX - rc.left, cy = e.clientY - rc.top;
+    const gi = starAt(cx, cy);
+    if (gi < 0) {
+      const li = labelAt(cx, cy);
+      if (li >= 0) { /* 點星座名：跳到作品牆看整座 */
+        const cat = CONSTELLATIONS[li].cat;
+        setCat(cat);
+        window.__setTab && window.__setTab("wall");
+        return;
+      }
+      hideTip(); if (!running) drawSky(performance.now()); return;
+    }
     if (lastPT === "touch") {
       /* 觸控：第一下點選看介紹，第二下（或按懸浮卡連結）開啟 */
       if (selGi === gi) { location.href = `./${PROJECTS[gi].dir}/index.html`; return; }
@@ -857,6 +965,7 @@ function searchFor(v) {
   document.body.classList.toggle("searching", v !== "");
   const shown = renderWall();
   announce(`篩選 ${v}，找到 ${shown} 件`);
+  window.__setTab && window.__setTab("wall");
   const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   $("wall").scrollIntoView({ behavior: rm ? "auto" : "smooth", block: "start" });
 }
@@ -911,10 +1020,45 @@ function renderActivity() {
 $("actCal").addEventListener("click", () => { setActView("cal"); announce("依年月日聚合"); });
 $("actCat").addEventListener("click", () => { setActView("cat"); announce("依分類聚合"); });
 
+/* ── 分頁（tab）───────────────────────────────────────
+ * 星空／作品牆／觀測記錄三個檢視；記住上次停留的分頁。
+ * 星空 canvas 在隱藏分頁時尺寸為 0，切回來由 ResizeObserver 觸發重排。 */
+const TABS = { sky: ["tabSky", "panelSky"], wall: ["tabWall", "panelWall"], obs: ["tabObs", "panelObs"] };
+function setTab(name) {
+  if (!TABS[name]) name = "sky";
+  for (const [key, [tabId, panelId]] of Object.entries(TABS)) {
+    const on = key === name;
+    $(tabId).setAttribute("aria-selected", String(on));
+    $(tabId).tabIndex = on ? 0 : -1;
+    $(panelId).classList.toggle("on", on);
+  }
+  try { localStorage.setItem("index.tab", name); } catch (e) {}
+}
+window.__setTab = setTab;
+Object.entries(TABS).forEach(([key, [tabId]]) => {
+  $(tabId).addEventListener("click", () => {
+    setTab(key);
+    announce(key === "sky" ? "星空檢視" : key === "wall" ? "作品牆檢視" : "觀測記錄檢視");
+  });
+});
+/* 方向鍵在 tab 之間移動（roving tabindex） */
+document.querySelector(".tabbar").addEventListener("keydown", e => {
+  if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+  e.preventDefault();
+  const keys = Object.keys(TABS);
+  const cur = keys.findIndex(k => $(TABS[k][0]).getAttribute("aria-selected") === "true");
+  const next = (cur + (e.key === "ArrowRight" ? 1 : keys.length - 1)) % keys.length;
+  setTab(keys[next]);
+  $(TABS[keys[next]][0]).focus();
+});
+
 renderHero();
 renderChips();
 renderActivity();
 let savedGroup = "date";
 try { savedGroup = localStorage.getItem("index.group") || "date"; } catch (e) {}
 setGroup(savedGroup === "cat" ? "cat" : "date");
+let savedTab = "sky";
+try { savedTab = localStorage.getItem("index.tab") || "sky"; } catch (e) {}
+setTab(savedTab);
 mReduced.addEventListener("change", () => revealCards(false));

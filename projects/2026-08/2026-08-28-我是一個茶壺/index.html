@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我是一個茶壺——一個玩笑錯誤碼的死與復活</title>
+<style>
+:root{
+  --bg:#0a0e0c; --panel:#0e1511; --edge:#1d2b22;
+  --fg:#cfe8d2; --dim:#79a488; --acc:#7cfc9a; --amber:#ffd479;
+  --err:#ff8a80; --tea:#ffd479; --card:#101812;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace;
+}
+body.tea{
+  --bg:#0f0b05; --panel:#171106; --edge:#3a2d12;
+  --fg:#f0e2ba; --dim:#b39c66; --acc:#ffd479; --card:#1a1408;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--mono);
+  font-size:15px; line-height:1.6; padding:0 16px 40px;
+}
+a{color:var(--acc)}
+a.home{
+  display:inline-block; margin:14px 0 4px; font-size:.8rem; color:var(--dim);
+  text-decoration:none;
+}
+a.home:hover{color:var(--fg)}
+main{max-width:780px; margin:0 auto}
+.term-wrap{min-height:88vh; display:flex; flex-direction:column; justify-content:flex-start; padding-top:4vh}
+.term{
+  background:var(--panel); border:1px solid var(--edge); border-radius:10px;
+  overflow:hidden;
+}
+.tbar{
+  display:flex; align-items:center; gap:7px; padding:9px 12px;
+  border-bottom:1px solid var(--edge); background:rgba(255,255,255,.02);
+}
+.dot{width:11px;height:11px;border-radius:50%;opacity:.85}
+.dot.r{background:#ff5f57}.dot.y{background:#febc2e}.dot.g{background:#28c840}
+.ttitle{margin-left:8px; color:var(--dim); font-size:.78rem; letter-spacing:.04em}
+#screen{
+  padding:16px 16px 8px; max-height:56vh; overflow-y:auto;
+  scrollbar-width:thin;
+}
+.ln{white-space:pre-wrap; min-height:1.2em; word-break:break-word}
+.ln.dim{color:var(--dim)}
+.ln.ok{color:var(--acc)}
+.ln.err{color:var(--err)}
+.ln.warn{color:var(--amber)}
+.ln.cmd{color:var(--amber)}
+.ln.cmd::before{content:''}
+.ln.status{font-weight:700}
+.ln.tea418{color:var(--tea)}
+.ln.big{font-size:1.35rem; letter-spacing:.06em; font-weight:700}
+.ln.tp{white-space:pre; color:var(--tea); text-shadow:0 0 14px rgba(255,212,121,.5); line-height:1.25}
+.typing::after{content:'▌'; animation:blink 1s steps(1) infinite; color:var(--acc)}
+@keyframes blink{50%{opacity:0}}
+#inputrow{padding:8px 12px 12px; border-top:1px dashed var(--edge)}
+#chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px}
+.chip{
+  font-family:var(--mono); font-size:.8rem; color:var(--fg);
+  background:transparent; border:1px solid var(--edge); border-radius:6px;
+  padding:6px 10px; cursor:pointer;
+}
+.chip:hover{border-color:var(--acc); color:var(--acc)}
+.chip.hot{border-color:var(--amber); color:var(--amber); animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.55}}
+.prompt-line{display:flex; align-items:center; gap:8px}
+.ps1{color:var(--acc); font-weight:700}
+#cmd{
+  flex:1; background:transparent; border:none; outline:none;
+  color:var(--fg); font-family:var(--mono); font-size:15px; caret-color:var(--acc);
+  padding:4px 0;
+}
+.kbd-hint{color:var(--dim); font-size:.76rem; margin:10px 2px}
+kbd{border:1px solid var(--edge); border-radius:4px; padding:0 5px; font-size:.72rem}
+#flash{
+  position:fixed; inset:0; background:#fff7e0; opacity:0; pointer-events:none;
+  transition:opacity .7s ease; z-index:9;
+}
+#flash.on{opacity:.8; transition:opacity .04s}
+.hidden{display:none}
+section h2{
+  font-size:1rem; color:var(--amber); letter-spacing:.12em;
+  border-bottom:1px solid var(--edge); padding-bottom:8px; margin:56px 0 8px;
+}
+.lede{color:var(--dim); margin:6px 0 24px}
+.issue{
+  background:var(--card); border:1px solid var(--edge); border-radius:8px;
+  padding:14px 16px; margin:14px 0;
+}
+.issue header{display:flex; align-items:center; gap:8px; font-size:.78rem; color:var(--dim); margin-bottom:6px}
+.tag{border-radius:99px; padding:1px 9px; font-size:.72rem; font-weight:700}
+.tag.red{background:#3a1613; color:#ff8a80; border:1px solid #5c211c}
+.tag.grn{background:#12301c; color:#7cfc9a; border:1px solid #1d4d2c}
+.issue h3{margin:2px 0 6px; font-size:.95rem}
+.issue p,.issue blockquote{margin:6px 0; color:var(--fg); font-size:.88rem}
+.issue blockquote{border-left:3px solid var(--edge); padding-left:12px; color:var(--dim)}
+.issue .tl{color:var(--dim); font-size:.82rem; margin:3px 0}
+.petition{
+  background:var(--card); border:1px solid var(--amber); border-radius:8px;
+  padding:16px; margin:22px 0; text-align:center;
+}
+.petition p{margin:4px 0 10px; font-size:.88rem}
+.petition blockquote{margin:8px auto 14px; color:var(--tea); font-size:.95rem; max-width:34em}
+#joinBtn{
+  font-family:var(--mono); font-size:1rem; font-weight:700; cursor:pointer;
+  background:var(--amber); color:#241a05; border:none; border-radius:8px;
+  padding:12px 22px;
+}
+#joinBtn:hover{opacity:.9}
+#joinBtn:disabled{opacity:.75; cursor:default}
+.count{margin-top:10px; color:var(--dim); font-size:.85rem}
+#cnum{color:var(--tea); font-weight:700; font-size:1.05rem}
+#outcome .oline{
+  margin:10px 0; padding:8px 12px; border-left:3px solid var(--acc);
+  color:var(--fg); font-size:.9rem; opacity:0; transform:translateX(-10px);
+  transition:opacity .5s ease, transform .5s ease;
+}
+#outcome .oline.in{opacity:1; transform:none}
+#outcome .final{border-left-color:var(--tea); color:var(--tea); font-weight:700}
+.reveal{opacity:0; transform:translateY(16px); transition:opacity .55s ease, transform .55s ease}
+.reveal.in{opacity:1; transform:none}
+#epilogue p{margin:14px 0; max-width:38em}
+#epilogue .punch{color:var(--tea); font-weight:700}
+.gems{background:var(--card); border:1px solid var(--edge); border-radius:8px; padding:10px 14px; margin:18px 0}
+.gems summary{cursor:pointer; color:var(--amber); font-size:.9rem}
+.gems ul{margin:10px 0 4px; padding-left:20px}
+.gems li{color:var(--dim); font-size:.85rem; margin:6px 0}
+.teapot-svg{display:flex; align-items:center; gap:18px; flex-wrap:wrap}
+.stamp{
+  display:inline-block; border:2px solid var(--tea); color:var(--tea);
+  border-radius:8px; padding:6px 14px; font-weight:700; letter-spacing:.1em;
+  transform:rotate(-3deg); margin:10px 0;
+}
+footer{
+  max-width:780px; margin:64px auto 0; padding-top:14px;
+  border-top:1px solid var(--edge); color:var(--dim); font-size:.75rem;
+}
+:focus-visible{outline:2px solid var(--acc); outline-offset:2px; border-radius:4px}
+@media (max-width:560px){
+  body{font-size:13.5px; padding:0 10px 32px}
+  #screen{max-height:52vh; padding:12px 10px 6px}
+  .ln.tp{font-size:.8rem}
+  .ln.big{font-size:1.1rem}
+  .chip{font-size:.72rem}
+}
+@media (prefers-reduced-motion: reduce){
+  *{animation:none!important; transition:none!important}
+  .reveal,#outcome .oline{opacity:1; transform:none}
+  .typing::after{content:''}
+}
+</style>
+</head>
+<body>
+<a class="home" href="../../../index.html">← 回首頁</a>
+<main>
+
+<section class="term-wrap" aria-label="HTCPCP 模擬終端機">
+  <div class="term">
+    <div class="tbar" aria-hidden="true">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="ttitle">htcpcp ─ 遠端咖啡壺控制台（模擬）</span>
+    </div>
+    <div id="screen" role="log" aria-live="polite" aria-label="終端機輸出"></div>
+    <div id="inputrow" class="hidden">
+      <div id="chips" role="group" aria-label="快速指令"></div>
+      <div class="prompt-line">
+        <span class="ps1" aria-hidden="true">htcpcp&gt;</span>
+        <input id="cmd" autocomplete="off" spellcheck="false"
+               aria-label="輸入 HTCPCP 指令，按 Enter 送出。例如 BREW coffee://pot-1">
+      </div>
+    </div>
+  </div>
+  <p class="kbd-hint">可以點快速鍵，也可以自己輸入指令。<kbd>Esc</kbd> 跳過逐字輸出。</p>
+</section>
+
+<div id="flash" aria-hidden="true"></div>
+
+<section id="act2017" class="hidden" aria-label="2017 年：418 保衛戰">
+  <h2>快轉 ▸ 2017 年 8 月</h2>
+  <p class="lede">你的 418 玩了 19 年，成了工程師之間的接頭暗號。然後，有人開了幾張 issue。</p>
+
+  <article class="issue reveal">
+    <header><span class="tag red">提案</span><span>golang/go</span><b>#21326</b></header>
+    <h3>net/http：移除狀態碼 418「I'm a teapot」</h3>
+    <p>開 issue 的不是路人，是 IETF HTTP 工作小組主席 Mark Nottingham。</p>
+    <blockquote>「418 從來不是正式的 HTTP 狀態碼。哪天真正的標準需要這個號碼，怎麼辦？」</blockquote>
+  </article>
+
+  <article class="issue reveal">
+    <header><span class="tag red">提案</span><span>nodejs/node</span><b>#14644</b></header>
+    <h3>移除 418 I'm a Teapot</h3>
+    <p>同一個人、同一週、同樣的理由。ASP.NET 也收到了。三大平台，同時收到茶壺的死刑通知。</p>
+  </article>
+
+  <article class="issue reveal">
+    <header><span class="tag grn">回應</span><span>save418.com</span></header>
+    <h3>一個 15 歲的開發者連夜架了網站</h3>
+    <p>他叫 Shane Brunswick。#save418 幾天內滾成雪球，連署湧入，各專案的討論串被茶壺表情符號淹沒。</p>
+    <blockquote>他的理由只有一句：418 提醒我們——電腦底層的一切，仍然是人做的。</blockquote>
+  </article>
+
+  <article class="issue reveal">
+    <header><span class="tag grn">戰報</span><span>#save418</span><b>那一週</b></header>
+    <h3>雪球是這樣滾起來的</h3>
+    <p class="tl">8/05 ── 移除提案送進 Node、Go、ASP.NET。</p>
+    <p class="tl">8/07 ── save418.com 上線，茶壺表情符號開始洗版。</p>
+    <p class="tl">8/10 ── 各專案維護者陸續表態：「不刪。」</p>
+    <p class="tl">8/14 ── 科技媒體下標：〈上古茶壺玩笑，將以標準之姿永存〉。</p>
+    <p>連最初開 issue 的 Nottingham 都轉了方向：既然大家都在用，那就把 418 正式「保留」起來──誰都不准拿去做別的事。</p>
+  </article>
+
+  <div class="petition reveal">
+    <p>連署頁面還開著。就差你了。</p>
+    <blockquote>「我是一個茶壺，又矮又胖。」</blockquote>
+    <button id="joinBtn" aria-label="加入 #save418 連署">加入 #save418 連署</button>
+    <div class="count" aria-live="polite">連署編號：<span id="cnum">──</span></div>
+  </div>
+
+  <div id="outcome" class="hidden" aria-live="polite">
+    <div class="oline">golang/go #21326 ── 關閉。Go 保留 StatusTeapot ✓</div>
+    <div class="oline">nodejs/node #14644 ── 關閉。Node 保留 ImATeapot ✓</div>
+    <div class="oline">IETF 讓步：418 列入 IANA 狀態碼註冊表，標記為「保留」──永遠不分配給別的用途 ✓</div>
+    <div class="oline final">2022 年，RFC 9110 白紙黑字寫下「418 (Unused)」。玩笑，成了標準的一部分。</div>
+  </div>
+</section>
+
+<section id="epilogue" class="hidden" aria-label="尾聲">
+  <h2>現在 ▸ 2026 年</h2>
+  <p class="reveal">回頭看，RFC 2324 其實有正經的一面。Masinter 後來說，這是一篇諷刺──1998 年正是大家搶著「把什麼都接上 HTTP」的年代（劍橋那台咖啡壺攝影機就是物聯網的史前化石），他用一份格式無懈可擊的假標準，示範了 HTTP 被亂擴充可以荒謬到什麼程度。結果諷刺本身也被實作了。網路就是這樣的地方。</p>
+  <p class="reveal">google.com/teapot 還在。去倒倒看，那個壺真的會傾斜。</p>
+  <p class="reveal">Node 的原始碼裡，418 依然叫 <b>ImATeapot</b>；Go 依然叫 <b>StatusTeapot</b>。1998 年 4 月 1 日那份「格式完美、內容荒謬」的 RFC 2324，比當年許多正經協定活得都久──2014 年甚至出了續集 RFC 7168，正式教茶壺泡茶。</p>
+  <details class="reveal gems">
+    <summary>RFC 2324 遺珠（都是真的）</summary>
+    <ul>
+      <li>安全考量一章的態度大概是：擋在我和早晨咖啡之間的人，本來就不該有安全感。</li>
+      <li>coffee: URI 附了十幾種語言的變體——荷蘭語 koffie:、世界語 kafo:、德語 kaffee:……格式一絲不苟。</li>
+      <li>用 POST 煮咖啡「已棄用」，請改用 BREW。一個假協定，認真維護方法的生命週期。</li>
+      <li>續集 RFC 7168 同樣選在 4 月 1 日發表，定義了 message/teapot 媒體型別——從此茶壺說話有了正式格式。</li>
+    </ul>
+  </details>
+  <p class="reveal teapot-svg">
+    <svg viewBox="0 0 240 150" width="220" height="138" role="img" aria-label="金綠漸層線條畫的茶壺，壺口冒著一縷蒸氣">
+      <defs>
+        <linearGradient id="tg" gradientUnits="userSpaceOnUse" x1="30" y1="130" x2="210" y2="30">
+          <stop offset="0" stop-color="#ffd479"/>
+          <stop offset="1" stop-color="#7cfc9a"/>
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke="url(#tg)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+         style="filter:drop-shadow(0 0 6px rgba(255,212,121,.55))">
+        <path d="M74,66 C52,80 48,114 78,127 C106,137 134,137 162,127 C192,114 188,80 166,66 C138,55 102,55 74,66 Z"/>
+        <path d="M96,62 Q120,46 144,62"/>
+        <circle cx="120" cy="44" r="5"/>
+        <path d="M74,80 C54,78 38,90 32,106 L46,110 C52,98 62,93 76,96"/>
+        <path d="M166,74 C202,68 208,104 172,114"/>
+        <path d="M120,28 q7,-9 0,-18"/>
+      </g>
+    </svg>
+    <span class="stamp">418 I'M A TEAPOT</span>
+  </p>
+  <p class="reveal punch">往後你在某個網站的角落撞見 418──那不是錯誤，是暗號。有人在對你眨眼睛：這裡有人記得 1998 年的那個愚人節。</p>
+</section>
+
+</main>
+<footer>
+  資料來源：IETF RFC 2324（1998, L. Masinter）・RFC 7168（2014）・RFC 9110・save418.com（2017）。<br>
+  每日小專案 🍵 2026-08-28
+</footer>
+
+<script>
+'use strict';
+const LS='tea418.';
+
+/*__PURE_START__*/
+var SCHEMES=['coffee','caffe','kafo','koffie','kahva','kaffee'];
+var ADDITIONS=['milk','cream','half-and-half','whole-milk','part-skim','skim','non-dairy','sugar','syrup','vanilla','almond','raspberry','chocolate','whisky','rum','aquavit'];
+
+function parseRequest(line){
+  var s=String(line==null?'':line).trim();
+  if(!s) return {error:'empty'};
+  var segs=s.split(';');
+  var m=segs[0].trim().split(/\s+/);
+  var method=(m[0]||'').toUpperCase();
+  var uri=m[1]||'';
+  var headers={};
+  for(var i=1;i<segs.length;i++){
+    var seg=segs[i], k=seg.indexOf(':');
+    if(k>0) headers[seg.slice(0,k).trim().toLowerCase()]=seg.slice(k+1).trim();
+  }
+  return {method:method, uri:uri, headers:headers};
+}
+function schemeOf(uri){ var i=uri.indexOf(':'); return i>0?uri.slice(0,i).toLowerCase():''; }
+function isTeapot(uri){ return /teapot/i.test(uri); }
+function badAdditions(v){
+  return String(v||'').split(',')
+    .map(function(x){return x.trim().toLowerCase();})
+    .filter(function(x){return x && ADDITIONS.indexOf(x)<0;});
+}
+function respond(req){
+  if(req.error) return {code:400,status:'Bad Request',body:['指令是空的。試試：BREW coffee://pot-1']};
+  var method=req.method, uri=req.uri, headers=req.headers||{};
+  if(!uri) return {code:400,status:'Bad Request',body:['缺少 URI。格式：BREW coffee://pot-1']};
+  var sch=schemeOf(uri);
+  if(SCHEMES.indexOf(sch)<0) return {code:400,status:'Bad Request',
+    body:['不支援的 URI scheme「'+(sch||'?')+'」。','RFC 2324 只認得 coffee:（以及它在各國語言裡的變體）。這裡不是給網頁用的。']};
+  if(method==='WHEN') return {code:200,status:'OK',
+    body:['已停止倒入牛奶。','（RFC 2324：奶要倒到什麼時候？你喊 WHEN 的時候。真的有這個方法。）']};
+  if(method==='GET'){
+    if(isTeapot(uri)) return {code:200,status:'OK',body:['裝置自述：茶壺。陶瓷。圓圓的。驕傲。']};
+    return {code:200,status:'OK',body:['Content-Type: message/coffeepot','壺況：92°C，剩 3 杯。','攝影機正對著它──一如 1993 年劍橋那台上網直播的咖啡壺。']};
+  }
+  if(method==='PROPFIND') return {code:200,status:'OK',
+    body:['豆源：衣索比亞。烘焙：中焙。心情：待命。','（RFC 2324 真的定義了用 PROPFIND 查咖啡的「豆世代資訊」。）']};
+  if(method!=='BREW'&&method!=='POST') return {code:501,status:'Not Implemented',
+    body:['未知方法「'+method+'」。本協定支援：BREW、POST、GET、WHEN、PROPFIND。']};
+  if(isTeapot(uri)) return {code:418,status:"I'm a teapot",teapot:true,
+    body:['我是茶壺。又矮又胖（short and stout）。','「任何試圖用茶壺煮咖啡的請求，應回應錯誤碼 418。」── RFC 2324 §2.3.2']};
+  var bad=headers['accept-additions']?badAdditions(headers['accept-additions']):[];
+  if(bad.length) return {code:406,status:'Not Acceptable',
+    body:['本壺不提供「'+bad.join('、')+'」。這裡是咖啡壺，不是手搖店。','可接受配料：milk、cream、sugar、syrup、vanilla、whisky……（RFC 2324 連 whisky 都列進去了）']};
+  var adds=headers['accept-additions']||'';
+  return {code:200,status:'OK',brew:true,adds:adds,
+    body:[adds?('已受理配料：'+adds):'黑咖啡，不加料。','開始沖煮。BREW 不是安全方法──幫別人亂煮咖啡，後果自負。']};
+}
+/*__PURE_END__*/
+
+(function(){
+  var $=function(s){return document.querySelector(s);};
+  var screenEl=$('#screen'), inputRow=$('#inputrow'), chipsEl=$('#chips'), cmdEl=$('#cmd');
+  var flashEl=$('#flash'), act2017=$('#act2017'), epi=$('#epilogue');
+  var outcome=$('#outcome'), joinBtn=$('#joinBtn'), cnum=$('#cnum');
+
+  /* --- 動態偏好 --- */
+  var reduced=false;
+  var mq=matchMedia('(prefers-reduced-motion: reduce)');
+  function syncMotion(){ reduced=mq.matches; }
+  syncMotion();
+  if(mq.addEventListener) mq.addEventListener('change',syncMotion);
+  else if(mq.addListener) mq.addListener(syncMotion);
+
+  /* --- localStorage --- */
+  function lsGet(k){ try{ return localStorage.getItem(LS+k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(LS+k,v); }catch(e){} }
+
+  /* --- 逐字輸出引擎（rAF 節流、分頁隱藏自然暫停） --- */
+  var q=[], busy=false, flushAll=false;
+  function scrollTerm(){ screenEl.scrollTop=screenEl.scrollHeight; }
+  function mkline(cls){
+    var d=document.createElement('div');
+    d.className='ln '+(cls||'');
+    screenEl.appendChild(d);
+    return d;
+  }
+  function line(t,c){ q.push({t:t,c:c}); pump(); }
+  function call(fn){ q.push({fn:fn}); pump(); }
+  function hold(ms){ q.push({ms:ms}); pump(); }
+  function job(fn){ q.push({job:fn}); pump(); }
+
+  function pump(){
+    if(busy) return;
+    var it=q.shift();
+    if(!it){ flushAll=false; return; }
+    busy=true;
+    if(it.fn){ it.fn(); busy=false; pump(); return; }
+    if(it.ms!=null){
+      if(reduced||flushAll){ busy=false; pump(); return; }
+      setTimeout(function(){ busy=false; pump(); }, it.ms);
+      return;
+    }
+    if(it.job){ it.job(function(){ busy=false; pump(); }); return; }
+    var div=mkline(it.c), t=it.t;
+    if(reduced||flushAll||!t){ div.textContent=t; scrollTerm(); busy=false; pump(); return; }
+    div.classList.add('typing');
+    var shown=0, prev=null, cps=70;
+    function step(ts){
+      if(flushAll){ finish(); return; }
+      if(document.hidden){ prev=null; requestAnimationFrame(step); return; }
+      if(prev==null) prev=ts;
+      var dt=Math.min(ts-prev,100); prev=ts;
+      shown+=dt/1000*cps;
+      var n=Math.min(t.length, Math.max(1, Math.floor(shown)));
+      div.textContent=t.slice(0,n); scrollTerm();
+      if(n>=t.length) finish(); else requestAnimationFrame(step);
+    }
+    function finish(){
+      div.textContent=t; div.classList.remove('typing');
+      scrollTerm(); busy=false; pump();
+    }
+    requestAnimationFrame(step);
+  }
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){ flushAll=true; }
+  });
+
+  /* --- 煮咖啡進度條 --- */
+  function brewBar(done){
+    var div=mkline('ok'), W=20;
+    function bar(f,p){ return '['+'█'.repeat(f)+'░'.repeat(W-f)+'] '+p+'%'+(p>=100?'  咖啡完成 ☕':''); }
+    if(reduced||flushAll){ div.textContent=bar(W,100); scrollTerm(); done(); return; }
+    var p=0, prev=null;
+    function st(ts){
+      if(flushAll){ div.textContent=bar(W,100); scrollTerm(); done(); return; }
+      if(document.hidden){ prev=null; requestAnimationFrame(st); return; }
+      if(prev==null) prev=ts;
+      var dt=Math.min(ts-prev,100); prev=ts;
+      p=Math.min(1,p+dt/1700);
+      div.textContent=bar(Math.round(p*W), Math.round(p*100)); scrollTerm();
+      if(p<1) requestAnimationFrame(st); else done();
+    }
+    requestAnimationFrame(st);
+  }
+
+  /* --- 快速鍵 --- */
+  function addChips(list){
+    list.forEach(function(c){
+      var b=document.createElement('button');
+      b.className='chip'+(c.hot?' hot':'');
+      b.type='button'; b.textContent=c.t;
+      b.setAttribute('aria-label','送出指令：'+c.t);
+      b.addEventListener('click',function(){ submit(c.t); });
+      chipsEl.appendChild(b);
+    });
+  }
+  var CHIPS_A=[
+    {t:'BREW coffee://pot-1',hot:1},
+    {t:'GET coffee://pot-1'},
+    {t:'HELP'}
+  ];
+  var CHIPS_ADD=[
+    {t:'BREW coffee://pot-1; Accept-Additions: milk'},
+    {t:'BREW coffee://pot-1; Accept-Additions: 珍珠'},
+    {t:'WHEN coffee://pot-1'}
+  ];
+  var CHIPS_TEAPOT=[{t:'BREW coffee://teapot-1',hot:1}];
+
+  var HELP_LINES=[
+    '可用方法（真的都出自 RFC 2324）：',
+    '  BREW coffee://pot-1                         煮咖啡（本協定存在的唯一理由）',
+    '  BREW coffee://pot-1; Accept-Additions: milk 加配料',
+    '  GET coffee://pot-1                          看壺況',
+    '  WHEN coffee://pot-1                         喊「夠了」，停止加奶',
+    '  PROPFIND coffee://pot-1                     問壺的身世',
+    '提示：URI 的 scheme 一定要是 coffee:。一定。',
+    '（彩蛋：RFC 2324 附了咖啡的多國語言 scheme。koffie:// 或 kaffee:// 也通。）'
+  ];
+
+  /* --- 劇情狀態 --- */
+  var stage=0, potFired=false, brews=parseInt(lsGet('brews')||'0',10)||0;
+
+  var TEAPOT_ART=[
+    '                  ;,\'',
+    '          _o_    ;:;\'',
+    '      ,-.\'---`.__ ;',
+    '     ((j`=====\',-\'',
+    '      `-\\     /',
+    '         `-=-\''
+  ];
+
+  function submit(raw){
+    raw=String(raw||'').trim();
+    if(!raw) return;
+    cmdEl.value='';
+    line('htcpcp> '+raw,'cmd');
+    var up=raw.replace(/\s+/g,' ').toUpperCase();
+    if(up==='HELP'||up==='?'||up==='H'){
+      HELP_LINES.forEach(function(t){ line(t,'dim'); });
+      return;
+    }
+    var res=respond(parseRequest(raw));
+    var cls=res.code===418?'tea418':(res.code>=400?'err':'ok');
+    line('HTCPCP/1.0 '+res.code+' '+res.status, cls+' status');
+    (res.body||[]).forEach(function(t){ line(t, res.code===418?'tea418':'dim'); });
+    if(res.brew){
+      job(brewBar);
+      brews++; lsSet('brews',String(brews));
+      if(stage<1){
+        stage=1;
+        hold(500);
+        line('','');
+        line('不錯。你剛剛用 HTTP 的口氣，命令了一台 1998 年的咖啡壺。','sys');
+        line('要加點料嗎？Accept-Additions 標頭伺候──點錯東西會被壺拒絕。','sys');
+        call(function(){ addChips(CHIPS_ADD); });
+      } else {
+        call(maybeTeapot);
+      }
+    } else if(res.code===406||res.code===200){
+      call(maybeTeapot);
+    }
+    if(res.teapot) teapotRitual();
+  }
+
+  function maybeTeapot(){
+    if(stage<1||stage>=3) return;
+    stage=3;
+    hold(600);
+    line('','');
+    line('⚠ 掃描到未知裝置：teapot-1','warn');
+    line('  材質：陶瓷。外型：圓圓的。狀態：看起來不太情願。','dim');
+    line('它接在同一個協定上。你知道該怎麼做。','sys');
+    call(function(){ addChips(CHIPS_TEAPOT); });
+  }
+
+  function teapotRitual(){
+    if(potFired){
+      line('（它還是茶壺。這一點永遠不會變。）','dim');
+      return;
+    }
+    potFired=true; stage=4;
+    hold(300);
+    call(function(){
+      document.body.classList.add('tea');
+      if(!reduced){
+        flashEl.classList.add('on');
+        setTimeout(function(){ flashEl.classList.remove('on'); },80);
+      }
+    });
+    line('','');
+    line('🔔 噹────','tea418 big');
+    call(function(){
+      var pre=mkline('tp');
+      pre.textContent=TEAPOT_ART.join('\n');
+      scrollTerm();
+    });
+    line('','');
+    line('它拒絕了你。用全世界第一個為了說「我不要」而生的狀態碼。','sys');
+    line('1998 年寫下這行的人不會知道：這個玩笑，會活得比大多數正經標準都久。','sys');
+    line('（久到 2014 年出了續集 RFC 7168──這次是正式教茶壺泡茶。）','dim');
+    hold(700);
+    line('','');
+    line('▼ 但故事還有下半場。19 年後，有人要殺掉它。往下捲。','warn');
+    call(reveal2017);
+  }
+
+  /* --- 2017 幕 --- */
+  var io=null;
+  function reveal2017(){
+    act2017.classList.remove('hidden');
+    var targets=document.querySelectorAll('.reveal');
+    if('IntersectionObserver' in window){
+      io=new IntersectionObserver(function(es){
+        es.forEach(function(e){
+          if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+        });
+      },{threshold:.15});
+      targets.forEach(function(t){ io.observe(t); });
+    } else {
+      targets.forEach(function(t){ t.classList.add('in'); });
+    }
+  }
+
+  function rollNumber(el,to,done){
+    if(reduced){ el.textContent='#000'+to; if(done)done(); return; }
+    var v=0, prev=null;
+    function st(ts){
+      if(document.hidden){ prev=null; requestAnimationFrame(st); return; }
+      if(prev==null) prev=ts;
+      var dt=Math.min(ts-prev,100); prev=ts;
+      v=Math.min(to, v+dt*(to/900));
+      var n=Math.round(v);
+      el.textContent='#'+String(n).padStart(6,'0');
+      if(v<to) requestAnimationFrame(st); else { el.textContent='#000'+to; if(done)done(); }
+    }
+    requestAnimationFrame(st);
+  }
+
+  function runOutcome(){
+    outcome.classList.remove('hidden');
+    var lines=outcome.querySelectorAll('.oline');
+    var i=0;
+    function next(){
+      if(i>=lines.length){ revealEpilogue(); return; }
+      lines[i].classList.add('in'); i++;
+      if(reduced){ next(); } else { setTimeout(next,650); }
+    }
+    if(reduced){ Array.prototype.forEach.call(lines,function(l){l.classList.add('in');}); revealEpilogue(); }
+    else setTimeout(next,400);
+  }
+
+  function revealEpilogue(){
+    epi.classList.remove('hidden');
+    if(io) epi.querySelectorAll('.reveal').forEach(function(t){ io.observe(t); });
+    else epi.querySelectorAll('.reveal').forEach(function(t){ t.classList.add('in'); });
+  }
+
+  joinBtn.addEventListener('click',function(){
+    joinBtn.disabled=true;
+    joinBtn.textContent='已連署 ✓';
+    lsSet('joined','1');
+    rollNumber(cnum,418,function(){
+      var tail=document.createElement('span');
+      tail.textContent='（好巧，不巧）';
+      tail.style.color='var(--dim)';
+      cnum.parentNode.appendChild(tail);
+    });
+    runOutcome();
+  });
+  if(lsGet('joined')){
+    joinBtn.textContent='再連署一次（上次的還算數）';
+    cnum.textContent='#000418';
+  }
+
+  /* --- 開場 --- */
+  var INTRO=[
+    ['[1998-04-01 09:12] 收件匣：新文件一份','dim'],
+    ['',''],
+    ['RFC 2324 ── Hyper Text Coffee Pot Control Protocol（HTCPCP/1.0）','sys'],
+    ['作者：Larry Masinter','sys'],
+    ['審稿備註：格式完美。用詞嚴謹。找不到任何錯誤。','sys'],
+    ['唯一的問題──它是寫給咖啡壺用的。','warn'],
+    ['',''],
+    ['（是的，今天是愚人節。但這份文件的每一行，都是用正經標準的口吻寫的：','dim'],
+    ['  新方法 BREW、新的 coffee: URI、專門加奶精糖漿的 Accept-Additions 標頭。）','dim'],
+    ['',''],
+    ['協定已載入。裝置上線：pot-1（辦公室咖啡壺）','ok']
+  ];
+
+  function boot(){
+    INTRO.forEach(function(p){ line(p[0],p[1]); });
+    if(brews>0) line('（歡迎回來。這台壺記得你煮過 '+brews+' 杯。）','dim');
+    line('現在，換你了。','sys');
+    call(function(){
+      inputRow.classList.remove('hidden');
+      addChips(CHIPS_A);
+    });
+  }
+
+  cmdEl.addEventListener('keydown',function(e){
+    if(e.key==='Enter') submit(cmdEl.value);
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>

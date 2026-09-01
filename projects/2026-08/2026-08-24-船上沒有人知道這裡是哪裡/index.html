@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>⌚ 船上沒有人知道這裡是哪裡——經度、海難與一只懷錶</title>
+<style>
+:root{
+  --ink:#dfe7ef; --dim:#8fa0b3; --faint:#5a6b7e;
+  --bg:#0a121d; --bg2:#0e1826; --panel:#121f30; --line:#22344a;
+  --brass:#d9a94f; --brass2:#f0c877; --red:#e2604f; --sea:#1b3350; --ok:#7fc9a6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+html.rm{scroll-behavior:auto}
+body{background:var(--bg);color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;line-height:1.85;letter-spacing:.02em}
+a{color:var(--brass)}
+.back{position:fixed;top:12px;left:14px;z-index:9;font-size:.82rem;color:var(--faint);text-decoration:none;padding:4px 8px;border-radius:6px;background:rgba(10,18,29,.6)}
+.back:hover{color:var(--brass)}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px;border-radius:4px}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+section{padding:72px 0}
+h2{font-size:1.45rem;color:var(--brass2);margin-bottom:1rem;font-weight:700}
+p{margin-bottom:1rem}
+em{font-style:normal;color:var(--brass2)}
+strong{color:var(--ink)}
+.dim{color:var(--dim)}
+.small{font-size:.85rem}
+/* 首屏 */
+.hero{min-height:94vh;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 110%,#122036 0%,var(--bg) 68%)}
+.fog{position:absolute;inset:-20%;pointer-events:none;background:radial-gradient(45% 30% at 30% 60%,rgba(150,170,195,.10),transparent 70%),radial-gradient(40% 26% at 72% 40%,rgba(150,170,195,.08),transparent 70%);animation:fog 26s ease-in-out infinite alternate}
+.fog.f2{animation-duration:37s;animation-direction:alternate-reverse;background:radial-gradient(38% 24% at 60% 70%,rgba(130,155,185,.09),transparent 70%)}
+@keyframes fog{from{transform:translateX(-4%) translateY(1%)}to{transform:translateX(4%) translateY(-2%)}}
+html.rm .fog{animation:none}
+.stamp{font-size:.85rem;color:var(--faint);letter-spacing:.35em;margin-bottom:1.4rem}
+.hook{font-size:clamp(1.5rem,4.6vw,2.35rem);font-weight:800;line-height:1.6;color:var(--ink)}
+.hook em{color:var(--brass)}
+.hero .sub{margin-top:1.6rem;color:var(--dim);max-width:34em}
+.cue{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);color:var(--faint);font-size:.85rem;animation:cue 2.2s ease-in-out infinite}
+@keyframes cue{0%,100%{transform:translate(-50%,0);opacity:.55}50%{transform:translate(-50%,7px);opacity:1}}
+html.rm .cue{animation:none}
+/* 面板與互動 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:1.4rem 0}
+.panel svg{display:block;width:100%;height:auto}
+.ctrls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px}
+.ctrl label{display:block;font-size:.82rem;color:var(--dim);margin-bottom:4px}
+.ctrl output{color:var(--brass2);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brass);height:28px;cursor:pointer}
+.read{margin-top:10px;font-size:.92rem;color:var(--dim);min-height:3.2em;font-variant-numeric:tabular-nums}
+.read b{color:var(--ink);font-weight:600}
+.warn{color:var(--red)}
+.okc{color:var(--ok)}
+button{font:inherit;cursor:pointer;border:none;border-radius:10px}
+.noon{display:block;width:100%;margin-top:14px;padding:14px;background:linear-gradient(180deg,var(--brass2),var(--brass));color:#241a08;font-size:1.05rem;font-weight:800;letter-spacing:.1em;transition:transform .12s ease,opacity .12s ease}
+.noon:hover{transform:translateY(-2px)}
+.noon:disabled{opacity:.35;cursor:default;transform:none}
+html.rm .noon{transition:none}
+.ghost{margin-top:12px;padding:8px 16px;background:transparent;border:1px solid var(--line);color:var(--dim)}
+.ghost:hover{color:var(--brass);border-color:var(--brass)}
+.clocks{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.clock{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+.clock h3{font-size:.85rem;color:var(--dim);font-weight:600;margin-bottom:6px}
+.clock .t{font-size:1.5rem;color:var(--brass2);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+#steps{list-style:none;margin-top:14px}
+#steps li{padding:9px 12px;margin-bottom:8px;background:var(--bg2);border-left:3px solid var(--brass);border-radius:0 8px 8px 0;font-size:.95rem;opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .5s ease}
+#steps li.on{opacity:1;transform:none}
+html.rm #steps li{transition:none}
+/* 時間軸 */
+.tl{border-left:2px solid var(--line);margin:1.4rem 0 0 6px;padding-left:22px}
+.tl li{list-style:none;margin-bottom:1.15rem;position:relative}
+.tl li::before{content:"";position:absolute;left:-27.5px;top:.55em;width:9px;height:9px;border-radius:50%;background:var(--brass);}
+.tl .y{color:var(--brass2);font-weight:700;margin-right:.5em;font-variant-numeric:tabular-nums}
+/* 捲動顯現 */
+.rv{opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s ease}
+.rv.on{opacity:1;transform:none}
+html.rm .rv{opacity:1;transform:none;transition:none}
+.final{font-size:1.12rem;line-height:2.1}
+footer{border-top:1px solid var(--line);margin-top:40px;padding:26px 20px 40px;text-align:center;color:var(--faint);font-size:.8rem}
+@media (max-width:560px){
+  .ctrls,.clocks{grid-template-columns:1fr}
+  section{padding:52px 0}
+}
+</style>
+</head>
+<body>
+<a class="back" href="../../../index.html">← 回首頁</a>
+
+<!-- 起：霧夜甲板 -->
+<header class="hero">
+  <div class="fog" aria-hidden="true"></div>
+  <div class="fog f2" aria-hidden="true"></div>
+  <div class="wrap">
+    <p class="stamp">1707・10・22　錫利群島外海</p>
+    <h1 class="hook">那個晚上，將近兩千個人淹死在<em>離家八十公里</em>的地方——因為全艦隊沒有一個人知道船在哪裡。</h1>
+    <p class="sub">霧，夜，二十一艘從地中海返航的英國戰艦。艦隊司令 Shovell 剛召集所有領航員開會，結論一致：位置安全，離礁區還遠。幾小時後，四艘軍艦接連撞上礁石沉沒，旗艦上無人生還。</p>
+  </div>
+  <p class="cue" aria-hidden="true">往下走 ↓</p>
+</header>
+
+<main>
+<!-- 承：沒有鐘的定位 -->
+<section class="wrap rv">
+  <h2>他們不是不小心</h2>
+  <p>先說清楚：緯度不難。量正午太陽的高度，查一張表，緯度就有了，古希臘人就會。難的是<em>經度</em>——海上沒有地標，沒有訊號，什麼都沒有。</p>
+  <p>你只有羅盤、沙漏、一條打結的繩子。方法叫<strong>航位推測</strong>：記下航向，估計航速，乘上時間，在海圖上一步步畫。聽起來合理？你自己來。下面是你的海圖，拖動航向和航速，然後把日子往前推。</p>
+
+  <div class="panel">
+    <svg viewBox="0 0 640 400" role="img" aria-label="航位推測海圖：不確定範圍隨天數擴大，逐漸蓋住錫利礁區">
+      <defs>
+        <linearGradient id="sea" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="400">
+          <stop offset="0" stop-color="#14283f"/><stop offset="1" stop-color="#0d1a2b"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="640" height="400" fill="url(#sea)" rx="10"/>
+      <g opacity=".9">
+        <circle cx="425" cy="92" r="46" fill="none" stroke="#5a3a3a" stroke-dasharray="4 5"/>
+        <path d="M405 78l10-14 9 12 12-8 8 14-7 12-16 6-13-7z" fill="#3c2f33" stroke="#6b4a44"/>
+        <path d="M441 100l9-7 8 9-5 10-11 2z" fill="#3c2f33" stroke="#6b4a44"/>
+        <text x="425" y="35" fill="#b98a80" font-size="13" text-anchor="middle">錫利礁區</text>
+      </g>
+      <g opacity=".7">
+        <circle cx="545" cy="332" r="7" fill="none" stroke="#57718c" stroke-dasharray="3 4"/>
+        <text x="545" y="360" fill="#57718c" font-size="12" text-anchor="middle">烏尚島（你以為快到這附近）</text>
+      </g>
+      <circle cx="100" cy="360" r="4" fill="#8fa0b3"/>
+      <text x="100" y="384" fill="#8fa0b3" font-size="12" text-anchor="middle">三天前最後的確定位置</text>
+      <polyline id="drtrack" points="100,360 100,360" fill="none" stroke="#d9a94f" stroke-width="2" stroke-dasharray="6 5" opacity=".85"/>
+      <circle id="drc" cx="100" cy="360" r="14" fill="rgba(217,169,79,.10)" stroke="#d9a94f" stroke-opacity=".7"/>
+      <circle id="drs" cx="100" cy="360" r="5" fill="#f0c877"/>
+    </svg>
+    <div class="ctrls">
+      <div class="ctrl"><label for="hdg">航向（羅盤讀的）<output id="hdgv">40°</output></label>
+        <input type="range" id="hdg" min="20" max="70" value="40" step="1" aria-label="調整航向，20 到 70 度"></div>
+      <div class="ctrl"><label for="spd">航速（繩結估的）<output id="spdv">7 節</output></label>
+        <input type="range" id="spd" min="5" max="9" value="7" step="1" aria-label="調整航速，5 到 9 節"></div>
+      <div class="ctrl"><label for="days">又過了幾天<output id="daysv">1 天</output></label>
+        <input type="range" id="days" min="1" max="7" value="1" step="1" aria-label="推進航行天數，1 到 7 天"></div>
+    </div>
+    <p class="read" id="drread" aria-live="polite"></p>
+  </div>
+
+  <p>看到那個圈了嗎？羅盤有偏差，航速靠猜，洋流根本沒得量。每過一天，「你可能在的範圍」就腫一圈。到第七天，<strong>礁區整個在你的圈裡</strong>——而你毫無感覺，因為推測給你的永遠是一個乾淨漂亮的點。</p>
+  <p>Shovell 的領航員全體投票，一致認為艦隊在烏尚島外海、航道正中。實際位置在北邊一百多公里，礁石正前方。四艘船、將近兩千條命，就沉在那個誰也看不見的圈裡。這不是失誤。<em>是這個時代根本沒有工具。</em>而這樣的船難，在大航海時代一場接一場地重演。</p>
+</section>
+
+<!-- 轉：懸賞與一句話原理 -->
+<section class="wrap rv">
+  <h2>兩萬英鎊，買一個答案</h2>
+  <p>海難震動全國。1714 年，英國國會通過《經度法案》：誰能在海上把經度量到<strong>半度以內</strong>，賞金 <em>£20,000</em>——相當於今日數百萬英鎊，一筆足以讓任何人瘋狂的錢。</p>
+  <p>天文學家提月亮，數學家提木星衛星。但答案其實只有一句話：</p>
+  <p style="font-size:1.15rem;border-left:3px solid var(--brass);padding-left:14px"><em>地球 24 小時轉 360°，所以每差 1 小時＝經度差 15°。</em><br>只要船上帶著一個「還記得倫敦現在幾點」的鐘，跟正午的太陽對個時，你就知道自己在哪。</p>
+
+  <div class="panel">
+    <svg viewBox="0 0 440 220" role="img" aria-label="時差與經度連動示意：時鐘每轉一小時，地球轉十五度">
+      <g id="globe" transform="rotate(0 110 110)">
+        <circle cx="110" cy="110" r="72" fill="#152a42" stroke="#39557a"/>
+        <ellipse cx="110" cy="110" rx="24" ry="72" fill="none" stroke="#2c4666"/>
+        <ellipse cx="110" cy="110" rx="48" ry="72" fill="none" stroke="#2c4666"/>
+        <line x1="110" y1="38" x2="110" y2="182" stroke="#2c4666"/>
+        <line id="gmark" x1="110" y1="110" x2="110" y2="40" stroke="#f0c877" stroke-width="3"/>
+      </g>
+      <line x1="110" y1="24" x2="110" y2="12" stroke="#8fa0b3"/>
+      <text x="110" y="208" fill="#8fa0b3" font-size="12" text-anchor="middle">地球（俯視北極）</text>
+      <text x="220" y="115" fill="#5a6b7e" font-size="20" text-anchor="middle">⇄</text>
+      <g>
+        <circle cx="330" cy="110" r="72" fill="#152a42" stroke="#39557a"/>
+        <g stroke="#39557a"><line x1="330" y1="42" x2="330" y2="52"/><line x1="330" y1="168" x2="330" y2="178"/><line x1="262" y1="110" x2="272" y2="110"/><line x1="388" y1="110" x2="398" y2="110"/></g>
+        <line id="chand" x1="330" y1="110" x2="330" y2="52" stroke="#f0c877" stroke-width="4" stroke-linecap="round" transform="rotate(0 330 110)"/>
+        <circle cx="330" cy="110" r="4" fill="#f0c877"/>
+      </g>
+      <text x="330" y="208" fill="#8fa0b3" font-size="12" text-anchor="middle">你帶的鐘</text>
+    </svg>
+    <div class="ctrls" style="grid-template-columns:1fr">
+      <div class="ctrl"><label for="hrs">你的正午和倫敦差了幾小時<output id="hrsv">3 小時</output></label>
+        <input type="range" id="hrs" min="0" max="12" value="3" step="1" aria-label="調整與倫敦的時差，0 到 12 小時"></div>
+    </div>
+    <p class="read" id="hrsread" aria-live="polite"></p>
+  </div>
+
+  <p>就這樣？就這樣。那為什麼值兩萬英鎊？因為<strong>那個鐘做不出來</strong>。半度的門檻，換算下來是整趟航程誤差不能超過兩分鐘——當年最好的擺鐘在陸地上都未必辦得到，而船上還有三個殺手：</p>
+  <p class="dim">浪——鐘擺被甲板的每一次起伏打亂節拍。<br>溫度——熱帶到北海，金屬熱脹冷縮，快慢全變。<br>鹽霧與濕氣——潤滑油變稠，齒輪生鏽。</p>
+  <p>連牛頓都在國會作證：靠鐘解經度，恐怕永遠辦不到。所以主流押注天上——「月距法」：把月亮當時鐘，量月亮和恆星的夾角，翻幾十頁對數表，算上三、四個小時，還得祈禱那晚看得到月亮。皇家天文台後來為此編了整本《航海曆》。天文學家相信，答案理應在星空裡，而不是某個木匠的口袋裡。</p>
+  <p>約克郡一個木匠出身、幾乎全靠自學的鐘錶匠不同意。他叫<em>約翰・哈里森</em>。他不用鐘擺，改用對滾的彈簧；他發明雙金屬片，讓溫度自己抵銷自己；他用不需上油的鐵梨木和滾珠軸承對付鹽霧。三十一年，四台機器：H1 重 34 公斤，像一座黃銅雕塑；H2、H3 一台比一台精，但都還是搬不動的櫃子。然後是 H4——直徑十三公分、1.45 公斤，一只放得進手心的大懷錶。1761 年 11 月，它跟著哈里森的兒子威廉登上開往牙買加的軍艦「德特福號」。</p>
+</section>
+
+<!-- 高潮：你來定位 -->
+<section class="wrap rv">
+  <h2>換你了：用 H4 定一次位</h2>
+  <p>你現在在中大西洋某處，已經好幾週沒看到陸地。航位推測給你的圈大得離譜。但這次你口袋裡有 H4，它從樸茨茅斯出港那天起一路沒停，到現在還記得倫敦的每一秒。</p>
+  <p>剩下的工作只有一件：抓住<strong>你這裡的正午</strong>。太陽爬到一天最高點的那個瞬間，就是當地十二點整——這不用任何儀器授時，太陽自己就是鐘面。盯著它。到頂的那一刻，按下去。（按早按晚都算數：差一分鐘，就是四分之一度。）</p>
+
+  <div class="panel">
+    <svg viewBox="0 0 640 200" role="img" aria-label="天空與太陽：太陽爬到最高點時就是當地正午">
+      <rect x="0" y="0" width="640" height="200" fill="#0f1e31" rx="10"/>
+      <line x1="320" y1="18" x2="320" y2="60" stroke="#39557a" stroke-dasharray="3 4"/>
+      <text x="320" y="14" fill="#57718c" font-size="11" text-anchor="middle">最高點</text>
+      <path d="M60 180 Q320 -100 580 180" fill="none" stroke="#22344a" stroke-dasharray="2 6"/>
+      <line x1="20" y1="180" x2="620" y2="180" stroke="#39557a"/>
+      <g id="sung" transform="translate(60 180)">
+        <circle r="13" fill="#f0c877"/>
+        <circle r="20" fill="rgba(240,200,119,.16)"/>
+      </g>
+    </svg>
+    <div class="clocks">
+      <div class="clock"><h3>H4 · 倫敦時間</h3><div class="t" id="h4t">14:51:40</div></div>
+      <div class="clock"><h3>你的當地時間</h3><div class="t" id="loct">——:——</div></div>
+    </div>
+    <button class="noon" id="noonbtn" aria-label="宣告當地正午，抓下這一刻的時間">☀ 就是現在——正午！</button>
+    <ol id="steps" aria-live="polite"></ol>
+    <svg id="atl" viewBox="0 0 640 300" role="img" aria-label="大西洋海圖：定位範圍從大圈縮成一個點" style="margin-top:14px">
+      <rect x="0" y="0" width="640" height="300" fill="#0f1e31" rx="10"/>
+      <path d="M0 40l38 18 14 40-20 34 26 44-10 52-34 20-14 52H0z" fill="#1a2c42"/>
+      <path d="M640 20l-30 30-6 46 22 38-14 48 20 40 8 78h0v-280z" fill="#1a2c42"/>
+      <g fill="#3d5678" font-size="11" text-anchor="middle">
+        <text x="160" y="290">60°W</text><text x="320" y="290">40°W</text><text x="480" y="290">20°W</text>
+      </g>
+      <g stroke="#1e3450"><line x1="160" y1="10" x2="160" y2="272"/><line x1="320" y1="10" x2="320" y2="272"/><line x1="480" y1="10" x2="480" y2="272"/></g>
+      <circle id="fixc" cx="296" cy="150" r="150" fill="rgba(217,169,79,.08)" stroke="#d9a94f" stroke-opacity=".65" stroke-dasharray="7 6"/>
+      <circle id="fixd" cx="296" cy="150" r="0" fill="#f0c877"/>
+      <text id="fixlabel" x="296" y="150" fill="#8fa0b3" font-size="12" text-anchor="middle" dy="4">你可能在這一大片的任何地方</text>
+    </svg>
+    <p class="read" id="fixread" aria-live="polite"></p>
+    <button class="ghost" id="again" hidden>再校一次</button>
+  </div>
+
+  <p>1761 年 11 月，H4 真的這樣被用了一路。航程中威廉靠它預報馬德拉群島的抵達時間，比船上領航員的推測準了整整一天半——船長當場說要預訂下一只。81 天後船到牙買加，把 H4 跟當地天文觀測一對——<strong>它只慢了 5.1 秒</strong>。換算成經度，誤差大約一海里，比懸賞門檻的半度小了一個數量級。木匠贏了。</p>
+</section>
+
+<!-- 合：三十年拉鋸 -->
+<section class="wrap rv">
+  <h2>然後呢？他們不付錢</h2>
+  <p>經度委員會坐著的是皇家天文學家，他們押注的是月距法——用月亮當天上的鐘。一個木匠用齒輪贏了天文學，這件事本身就是冒犯。接下來的劇情，比大西洋還冷：</p>
+  <ul class="tl">
+    <li class="rv"><span class="y">1730</span>三十七歲的哈里森帶著圖紙到倫敦。委員會連一次正式會議都懶得為他開。</li>
+    <li class="rv"><span class="y">1736</span>H1 隨艦試航里斯本，返程精準指出船位偏差——史上第一次，鐘在海上贏了推測。</li>
+    <li class="rv"><span class="y">1741–59</span>H2、H3、H4。十九年磨一只錶。哈里森從中年做到白髮。</li>
+    <li class="rv"><span class="y">1761–62</span>牙買加航行，81 天慢 5.1 秒。委員會說：運氣好，重測。</li>
+    <li class="rv"><span class="y">1764</span>巴貝多複測，再次遠低於門檻。委員會改口：先給一半，另一半要你交出 H4、公開全部設計、再親手做兩只複製品。</li>
+    <li class="rv"><span class="y">1765–72</span>H4 被扣走。哈里森一邊變老，一邊從頭再做一只。</li>
+    <li class="rv"><span class="y">1772</span>國王喬治三世親自試驗新錶 H5，表現優異。據載國王震怒：「天啊，哈里森，我會為你討回公道！」</li>
+    <li class="rv"><span class="y">1773</span>國會另行撥款，補足剩餘獎金。哈里森八十歲，離過世還有三年。</li>
+  </ul>
+  <p style="margin-top:1rem">委員會從頭到尾沒有正式承認他「解決了經度問題」。但歷史自己投了票：庫克船長第二次環球航行帶著 H4 的複製品 K1，回來後稱它是「我們在所有氣候下永不出錯的嚮導」。此後每一艘遠洋船，都帶著一只哈里森孫輩般的航海鐘出港——直到無線電報時出現之前，人類橫渡大洋，靠的都是口袋裡那個「別處的現在」。</p>
+</section>
+
+<!-- 回馬槍 -->
+<section class="wrap rv">
+  <p class="final">最後一件事。<br><br>你的手機現在就知道自己在哪，誤差幾公尺。它怎麼辦到的？頭頂兩萬公里外，每顆 GPS 衛星都載著原子鐘，日夜不停地廣播同一句話：<em>「我這裡，現在，是幾點幾分幾秒。」</em>你的手機比對這些時間差，算出距離，交出位置。<br><br>換掉幾個名詞，這就是 1761 年那個甲板上的動作：<strong>知道別處的「現在」，你就知道自己的「這裡」。</strong><br><br>你口袋裡裝著幾十只 H4。它們還在對時。</p>
+</section>
+</main>
+
+<footer>
+  <p>史料參考：Royal Museums Greenwich・Wikipedia「Scilly naval disaster of 1707」「John Harrison」條目｜每日小專案 2026-08-24 ⌚</p>
+</footer>
+
+<script>
+'use strict';
+(function(){
+var LS='h4clock.';
+var $=function(s){return document.querySelector(s)};
+
+/* ---------- 純函式：時差→經度 ---------- */
+function diffMinutesToLongitude(min){return min/4;}                 /* 4 分鐘 = 1 度 */
+function longitudeDegToKm(deg,latDeg){return Math.abs(deg)*111.32*Math.cos(latDeg*Math.PI/180);}
+function drRadiusKm(days){return days*28;}                          /* 航位推測：每天腫 28 公里 */
+function fmtMin(m){var h=Math.floor(m/60);return h+' 小時 '+(Math.round((m-h*60)*10)/10)+' 分';}
+function fmtClock(sec){var h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=Math.floor(sec%60);
+  var p=function(n){return (n<10?'0':'')+n};return p(h)+':'+p(m)+':'+p(s);}
+
+/* ---------- 減少動態 ---------- */
+var mq=matchMedia('(prefers-reduced-motion: reduce)');
+var RM=mq.matches;
+function applyRM(){document.documentElement.classList.toggle('rm',RM);}
+(mq.addEventListener?mq.addEventListener('change',onMQ):mq.addListener(onMQ));
+function onMQ(e){RM=e.matches;applyRM();}
+applyRM();
+
+/* ---------- 捲動顯現 ---------- */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});
+},{threshold:.15});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+
+/* ---------- 互動一：航位推測 ---------- */
+var REEF={x:425,y:92,r:46},START={x:100,y:360},KM_PER_PX=2;
+var hdg=$('#hdg'),spd=$('#spd'),days=$('#days');
+function drUpdate(){
+  var a=+hdg.value*Math.PI/180,v=+spd.value,d=+days.value;
+  var dist=v*8*d;                                   /* 畫面像素 */
+  var x=START.x+Math.sin(a)*dist,y=START.y-Math.cos(a)*dist;
+  x=Math.min(600,Math.max(40,x));y=Math.min(370,Math.max(40,y));
+  var r=drRadiusKm(d)/KM_PER_PX;
+  $('#hdgv').textContent=hdg.value+'°';
+  $('#spdv').textContent=v+' 節';
+  $('#daysv').textContent=d+' 天';
+  $('#drtrack').setAttribute('points',START.x+','+START.y+' '+x+','+y);
+  var c=$('#drc');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',r);
+  var s=$('#drs');s.setAttribute('cx',x);s.setAttribute('cy',y);
+  var hit=Math.hypot(x-REEF.x,y-REEF.y)<r+REEF.r;
+  c.setAttribute('stroke',hit?'#e2604f':'#d9a94f');
+  $('#drread').innerHTML='第 <b>'+d+'</b> 天｜推算航程約 <b>'+Math.round(dist*KM_PER_PX)+'</b> 公里｜不確定範圍半徑約 <b>'+drRadiusKm(d)+'</b> 公里<br>'+
+    (hit?'<span class="warn">礁區已經在你的圈裡。你可能在圈中任何一點——包括礁石上。而海圖上，你只看得到那個漂亮的小點。</span>'
+        :'<span class="okc">帳面上看起來還安全。繼續航行看看。</span>');
+}
+[hdg,spd,days].forEach(function(el){el.addEventListener('input',drUpdate);});
+drUpdate();
+
+/* ---------- 互動二：時差＝經度 ---------- */
+var hrs=$('#hrs');
+function hrsUpdate(){
+  var h=+hrs.value,deg=diffMinutesToLongitude(h*60);
+  $('#hrsv').textContent=h+' 小時';
+  $('#globe').setAttribute('transform','rotate('+(-deg)+' 110 110)');
+  $('#chand').setAttribute('transform','rotate('+(h*30)+' 330 110)');
+  $('#hrsread').innerHTML=h===0?'時差 0——你就站在倫敦的經線上。'
+    :'時差 <b>'+h+'</b> 小時 → 經度差 <b>'+deg+'°</b>。在赤道上，這是約 '+Math.round(longitudeDegToKm(deg,0)).toLocaleString()+' 公里。一小時，十五度，一句話。';
+}
+hrs.addEventListener('input',hrsUpdate);
+hrsUpdate();
+
+/* ---------- 互動三：H4 定位 ---------- */
+/* 場景：真實位置西經 43°，緯度 18°；當地正午時倫敦為 14:52（172 分鐘時差） */
+var TRUE_LON=43,LAT=18,H4_AT_NOON=14*3600+52*60,CYCLE=8000,ARC_MIN=240; /* 太陽一輪代表正午前後共 4 小時 */
+var LON_L=80,LON_R=0,MAPW=640; /* 地圖左緣 80°W、右緣 0° */
+function lonToX(lonW){return (LON_L-lonW)/(LON_L-LON_R)*MAPW;}
+var KM_PER_PX_ATL=longitudeDegToKm(LON_L-LON_R,LAT)/MAPW;
+
+var noonbtn=$('#noonbtn'),sung=$('#sung'),h4t=$('#h4t'),fixDone=false,phase=0,t0=null;
+var sunVisible=false,rafId=null,lastFrame=0;
+var sunIO=new IntersectionObserver(function(es){
+  es.forEach(function(e){sunVisible=e.isIntersecting;});
+  tickCtl();
+},{threshold:.2});
+sunIO.observe(noonbtn);
+
+function frame(ts){
+  rafId=null;
+  if(document.hidden||!sunVisible||fixDone){t0=null;return;}
+  if(ts-lastFrame>=33){                            /* rAF 節流至 ~30fps */
+    lastFrame=ts;
+    if(t0===null)t0=ts-CYCLE*.18;
+    phase=((ts-t0)%CYCLE)/CYCLE;
+    if(!RM){
+      var x=60+phase*520,y=180-Math.sin(phase*Math.PI)*140;
+      sung.setAttribute('transform','translate('+x+' '+y+')');
+      /* H4 與太陽同步：太陽到頂時，倫敦恰為 14:52 */
+      h4t.textContent=fmtClock(H4_AT_NOON+Math.round((phase-0.5)*ARC_MIN*60));
+    }else{
+      sung.setAttribute('transform','translate(320 40)');   /* 降級：太陽定在最高點 */
+      h4t.textContent=fmtClock(H4_AT_NOON);
+    }
+  }
+  tickCtl();
+}
+function tickCtl(){
+  if(!rafId&&sunVisible&&!document.hidden&&!fixDone)rafId=requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange',tickCtl);
+tickCtl();
+
+function bestGet(){try{var v=localStorage.getItem(LS+'best');return v===null?null:+v;}catch(e){return null;}}
+function bestSet(km){try{var b=bestGet();if(b===null||km<b)localStorage.setItem(LS+'best',String(Math.round(km)));}catch(e){}}
+
+function shrink(toR,toX){
+  var c=$('#fixc'),d=$('#fixd'),from=150,fx=296,start=null;
+  $('#fixlabel').setAttribute('opacity','0');
+  if(RM){c.setAttribute('r',Math.max(toR,3));c.setAttribute('cx',toX);d.setAttribute('cx',toX);d.setAttribute('r',4);return;}
+  function step(ts){
+    if(document.hidden){requestAnimationFrame(step);return;}
+    if(start===null)start=ts;
+    var p=Math.min(1,(ts-start)/1400),e=1-Math.pow(1-p,3);
+    c.setAttribute('r',from+(Math.max(toR,3)-from)*e);
+    c.setAttribute('cx',fx+(toX-fx)*e);
+    if(p<1)requestAnimationFrame(step);
+    else{d.setAttribute('cx',toX);d.setAttribute('r',4);}
+  }
+  requestAnimationFrame(step);
+}
+
+noonbtn.addEventListener('click',function(){
+  if(fixDone)return;fixDone=true;noonbtn.disabled=true;
+  /* 你按下的瞬間離真正的最高點差多少 → 分鐘誤差 */
+  var errMin=RM?0:Math.max(-30,Math.min(30,Math.round((phase-0.5)*ARC_MIN)));
+  var h4Sec=H4_AT_NOON+errMin*60;
+  var diffMin=(h4Sec-12*3600)/60;
+  var lon=diffMinutesToLongitude(diffMin);
+  var errDeg=Math.abs(lon-TRUE_LON);
+  var errKm=Math.max(1,Math.round(longitudeDegToKm(errDeg,LAT)));
+  h4t.textContent=fmtClock(h4Sec);
+  $('#loct').textContent='12:00:00';
+  if(!RM)sung.setAttribute('transform','translate('+(60+(0.5+errMin/ARC_MIN)*520)+' '+(180-Math.sin((0.5+errMin/ARC_MIN)*Math.PI)*140)+')');
+  var prevBest=bestGet();bestSet(errKm);
+  var lines=[
+    '① 太陽最高——你宣告：這裡現在是 <b>12:00</b>。'+(errMin===0?'（抓得正準）':'（其實你'+(errMin>0?'晚':'早')+'按了約 '+Math.abs(errMin)+' 分鐘）'),
+    '② 同一瞬間，低頭看 H4：倫敦現在是 <b>'+fmtClock(h4Sec).slice(0,5)+'</b>。',
+    '③ 時差＝'+fmtMin(diffMin)+'＝ <b>'+diffMin+'</b> 分鐘。每 4 分鐘差 1 度……',
+    '④ '+diffMin+' ÷ 4 ＝ <b>'+(Math.round(lon*10)/10)+'°</b>——你在<b>西經 '+(Math.round(lon*10)/10)+'°</b>。',
+    '⑤ 真實位置是西經 43.0°。你的定位誤差：<b>約 '+errKm+' 公里</b>。'+
+      (errKm<=30?'半度門檻約 52 公里——1714 年的你，已經可以去領兩萬英鎊了。'
+                :errKm<=120?'已經比航位推測好上一個量級。多練幾次正午。'
+                :'手抖了。太陽不等人——再校一次。')+
+      (prevBest!==null?'（你的最佳紀錄：'+Math.min(prevBest,errKm)+' 公里）':'')
+  ];
+  var ol=$('#steps');ol.innerHTML='';
+  lines.forEach(function(txt,i){
+    var li=document.createElement('li');li.innerHTML=txt;ol.appendChild(li);
+    if(RM)li.classList.add('on');
+    else setTimeout(function(){li.classList.add('on');},350+i*650);
+  });
+  setTimeout(function(){shrink(errKm/KM_PER_PX_ATL,lonToX(lon));},RM?0:1800);
+  $('#fixread').innerHTML='那個蓋住半片海的圈，縮成了一個點。這就是 1761 年甲板上發生的事。';
+  $('#again').hidden=false;
+});
+$('#again').addEventListener('click',function(){
+  fixDone=false;t0=null;noonbtn.disabled=false;
+  $('#steps').innerHTML='';$('#fixread').textContent='';$('#loct').textContent='——:——';
+  var c=$('#fixc');c.setAttribute('r',150);c.setAttribute('cx',296);
+  var d=$('#fixd');d.setAttribute('r',0);d.setAttribute('cx',296);
+  $('#fixlabel').setAttribute('opacity','1');
+  $('#again').hidden=true;tickCtl();noonbtn.focus();
+});
+})();
+</script>
+</body>
+</html>

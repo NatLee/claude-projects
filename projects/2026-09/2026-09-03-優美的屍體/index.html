@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>請在這裡寫一個動詞｜每日小專案</title>
+<meta name="description" content="1925 年冬天，巴黎，一張紙在四個人手上傳了一圈。那晚桌邊少了一個人——那個位子留給你。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#12100e; --pk-ink:#e9e0cd; --pk-dim:#928878; --pk-accent:#c2544f;
+  --pk-line:rgba(233,224,205,.14); --pk-maxw:660px;
+  --paper:#efe6d2; --paper2:#e4d9c1; --pen:#2b2620; --crease:rgba(43,38,32,.28);
+}
+body{background:
+  radial-gradient(120% 70% at 50% -10%, #241f18 0%, rgba(36,31,24,0) 60%),
+  radial-gradient(80% 50% at 50% 108%, #1c1813 0%, rgba(28,24,19,0) 70%),
+  var(--pk-bg);}
+
+h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(20px,4.6vw,26px);line-height:1.55;margin:0 0 14px}
+p{margin:0 0 18px}
+section{margin:0 0 84px}
+.lead{font-size:clamp(17px,3.6vw,19px)}
+.dim{color:var(--pk-dim)}
+.yr{font-family:var(--pk-serif);letter-spacing:.1em;color:var(--pk-accent);font-size:13px;
+    display:block;margin:0 0 10px;text-transform:none}
+em{font-style:normal;color:var(--pk-accent)}
+
+/* ── 第一屏：桌燈下那張還摺著的紙 ── */
+.pk-hero{position:relative}
+.hint{margin:0 auto 34px;width:min(280px,72vw);background:var(--paper);border-radius:2px;
+  box-shadow:0 20px 50px rgba(0,0,0,.55);transform:rotate(-1.4deg);padding:10px 0 0}
+.hint .r{height:15px;border-bottom:1px dashed var(--crease);margin:0 14px}
+.hint .r:last-child{border-bottom:0;height:auto;padding:6px 0 12px;font-family:var(--pk-serif);
+  color:var(--pen);font-size:15px;letter-spacing:.02em;opacity:.85}
+.hint .r:last-child::after{content:"…le vin nouveau"}
+.lamp{position:absolute;inset:auto 0 0;height:1px}
+
+/* ── 五格紙 ── */
+.sheet{background:var(--paper);color:var(--pen);border-radius:3px;perspective:1000px;
+  box-shadow:0 18px 44px rgba(0,0,0,.5),0 1px 0 rgba(255,255,255,.06);
+  padding:8px 0;margin:0 0 22px}
+.cell{position:relative;border-bottom:1px dashed var(--crease);padding:0 18px}
+.cell:last-child{border-bottom:0}
+.face{transform-origin:top center;transform:rotateX(-96deg);opacity:0;
+  transition:transform .72s cubic-bezier(.22,.75,.3,1),opacity .45s ease;
+  min-height:62px;display:flex;align-items:center;gap:12px;padding:9px 0}
+.cell.open .face{transform:none;opacity:1}
+.pos{flex:0 0 auto;font-size:11px;letter-spacing:.14em;color:rgba(43,38,32,.5);
+  border:1px solid rgba(43,38,32,.22);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.word{font-family:var(--pk-serif);font-size:clamp(20px,5vw,26px);line-height:1.3;
+  transition:opacity .5s ease,color .5s ease}
+.word.swap{opacity:0}
+.who{margin-left:auto;font-size:11.5px;color:rgba(43,38,32,.45);white-space:nowrap}
+.who.me{color:var(--pk-accent)}
+
+/* 你正要寫的那一格 */
+.slot{display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%}
+.slot input{font:inherit;font-family:var(--pk-serif);font-size:clamp(19px,4.6vw,24px);
+  color:var(--pen);background:transparent;border:0;border-bottom:2px solid rgba(43,38,32,.35);
+  padding:2px 4px;width:min(230px,52vw);outline:none}
+.slot input::placeholder{color:rgba(43,38,32,.3)}
+.slot input:focus{border-bottom-color:var(--pk-accent)}
+
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.ghost{border-color:var(--pk-line);color:var(--pk-dim)}
+.ghost:hover{background:transparent;color:var(--pk-ink);border-color:var(--pk-ink)}
+
+/* 攤開後的句子 */
+.out{min-height:1px}
+.line{font-family:var(--pk-serif);font-size:clamp(21px,5.4vw,30px);line-height:1.7;
+  margin:0 0 10px;opacity:0;transform:translateY(8px);
+  transition:opacity .7s ease,transform .7s ease}
+.line.in{opacity:1;transform:none}
+.fr{font-style:italic;color:var(--pk-dim);font-size:15px;letter-spacing:.01em;
+  opacity:0;transition:opacity .8s ease}
+.fr.in{opacity:1}
+.reveal{opacity:0;transform:translateY(10px);transition:opacity .8s ease,transform .8s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* 摺紙示意（規則段） */
+.demo{display:flex;flex-direction:column;gap:0;background:var(--paper);border-radius:3px;
+  padding:6px 0;color:var(--pen);box-shadow:0 12px 30px rgba(0,0,0,.42);margin:0 0 18px;perspective:900px}
+.demo b{display:block;border-bottom:1px dashed var(--crease);padding:11px 18px;font-weight:400;
+  font-family:var(--pk-serif);font-size:16px;transform-origin:top center;
+  transition:transform .6s cubic-bezier(.3,.7,.3,1),opacity .4s}
+.demo b:last-child{border-bottom:0}
+.demo.folded b:nth-child(-n+3){transform:rotateX(-88deg);opacity:.15}
+
+/* 桌邊四個人 */
+.seats{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.seat{font-size:12.5px;letter-spacing:.03em;color:var(--pk-dim);border:1px solid var(--pk-line);
+  border-radius:999px;padding:5px 12px}
+.seat i{font-style:normal;color:var(--pk-ink)}
+
+/* 收藏的句子 */
+.kept{list-style:none;margin:18px 0 0;padding:0}
+.kept li{border-left:2px solid var(--pk-line);padding:2px 0 2px 14px;margin:0 0 12px;
+  font-family:var(--pk-serif);font-size:16.5px;line-height:1.75}
+.kept li span{display:block;font-family:var(--pk-sans);font-size:11.5px;color:var(--pk-dim)}
+
+/* 1932：畫的版本 */
+.fig{width:min(230px,64vw);margin:0 auto 16px;background:var(--paper2);border-radius:3px;
+  box-shadow:0 14px 34px rgba(0,0,0,.45);padding:6px 0}
+.fig button{display:block;width:100%;background:transparent;border:0;border-bottom:1px dashed var(--crease);
+  padding:0;cursor:pointer;line-height:0}
+.fig button:last-child{border-bottom:0}
+.fig button:hover{background:rgba(194,84,79,.09)}
+.fig svg{display:block;width:100%;height:auto}
+.fig path,.fig circle,.fig line,.fig rect,.fig polyline{fill:none;stroke:var(--pen);
+  stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.fig .sol{fill:var(--pen);stroke:none}
+
+.end{font-family:var(--pk-serif);font-size:clamp(21px,5.2vw,28px);line-height:1.7}
+
+@media (max-width:560px){
+  .who{margin-left:0;flex-basis:100%}
+  .face{flex-wrap:wrap;gap:8px}
+}
+@media (prefers-reduced-motion: reduce){
+  .face,.demo b,.line,.fr,.reveal,.word{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <div class="hint rv" aria-hidden="true"><div class="r"></div><div class="r"></div><div class="r"></div><div class="r"></div><div class="r"></div></div>
+    <h1 class="rv">1925 年冬天，巴黎，<br>一張紙在四個人手上傳了一圈。</h1>
+    <p class="rv lead">攤開的時候他們笑了很久，然後決定用那句話，當一整個藝術運動的暗號。<br>你等一下會看到那句話——但那晚桌邊少了一個人，你得先幫他們把它寫完。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <span class="yr">蒙帕納斯・城堡街 54 號</span>
+    <h2>那棟房子現在已經不在了</h2>
+    <p>馬塞爾・杜哈梅（Marcel Duhamel）租下它，讓賈克・普維（Jacques Prévert）和伊夫・唐吉（Yves Tanguy）住進來；班傑明・佩雷（Benjamin Péret）也窩了一陣子。安德烈・布勒東（André Breton）幾乎每晚都來。</p>
+    <p>他們聊天、抽菸、講到沒力氣了，就開始玩遊戲。那天晚上玩的那個，規則只有一條：<em>句子的文法要對</em>。</p>
+  </section>
+
+  <section class="rv">
+    <h2>所以每個人只負責一種詞</h2>
+    <p>紙直著放，切成五格。第一個人寫「冠詞＋名詞」，寫完把紙往下摺，蓋住自己的字，遞給旁邊的人。第二個人拿到一張看起來乾乾淨淨的紙，被告知：<em>請在這裡寫一個形容詞</em>。</p>
+    <div class="demo folded" id="demo" aria-hidden="true">
+      <b>冠詞＋名詞</b><b>形容詞</b><b>動詞</b><b>冠詞＋名詞</b><b>形容詞</b>
+    </div>
+    <p class="dim" style="font-size:14px">摺痕之上是別人的字，你永遠看不到。你只知道自己該寫哪一種詞。</p>
+  </section>
+
+  <section class="rv" id="s1">
+    <span class="yr">第三格</span>
+    <h2>紙傳到你手上了</h2>
+    <p>上面兩格已經有人寫過，摺起來了。下面兩格還空著。輪到你的是中間那一格——<em>一個動詞</em>。你不知道它會接在什麼後面，也不知道它會帶出什麼。</p>
+
+    <div class="sheet" id="sheet1">
+      <div class="cell" id="c1-0"><div class="face"><span class="pos">冠詞＋名詞</span><span class="word"></span><span class="who"></span></div></div>
+      <div class="cell" id="c1-1"><div class="face"><span class="pos">形容詞</span><span class="word"></span><span class="who"></span></div></div>
+      <div class="cell open" id="c1-2"><div class="face">
+        <form class="slot" id="form1" autocomplete="off">
+          <span class="pos">動詞</span>
+          <label class="pk-sr" for="in1">請寫一個動詞</label>
+          <input id="in1" maxlength="12" placeholder="寫一個動詞…">
+          <button class="pk-btn" type="submit" style="font-size:13px;padding:9px 18px">寫完，摺起來</button>
+        </form>
+      </div></div>
+      <div class="cell" id="c1-3"><div class="face"><span class="pos">冠詞＋名詞</span><span class="word"></span><span class="who"></span></div></div>
+      <div class="cell" id="c1-4"><div class="face"><span class="pos">形容詞</span><span class="word"></span><span class="who"></span></div></div>
+    </div>
+
+    <div class="out">
+      <p class="line" id="line1"></p>
+      <div class="reveal" id="rev1">
+        <p>他們當年寫下的那個動詞是「<em>將喝下</em>」。整張紙攤開，桌上安靜了一秒——</p>
+        <p class="line in" style="margin-top:22px">優美的屍體將喝下新的酒。</p>
+        <p class="fr in">Le cadavre exquis boira le vin nouveau.</p>
+        <p style="margin-top:22px">沒有人記得那晚是誰寫了哪一格。他們只是把那句話的前兩個字撕下來，當成這個遊戲的名字：<em>優美的屍體</em>。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="rv" id="s2">
+    <span class="yr">同一張桌子・任一個晚上</span>
+    <h2>換你當發紙的人</h2>
+    <p>他們四個還坐在原位。發一張新的紙下去，紙會隨機停在你手上一次——只有一次，一格。其他四格由他們寫，你到攤開為止都看不見。</p>
+    <div class="seats" aria-hidden="true">
+      <span class="seat"><i>布勒東</i>　磁場與宣言</span>
+      <span class="seat"><i>唐吉</i>　石頭與地平線</span>
+      <span class="seat"><i>普維</i>　麵包與公車</span>
+      <span class="seat"><i>佩雷</i>　火與警察</span>
+    </div>
+
+    <div class="sheet" id="sheet2"></div>
+    <div class="row">
+      <button class="pk-btn" id="deal">發一張新的紙</button>
+      <button class="pk-btn ghost" id="skip" hidden>讓他們替我寫</button>
+    </div>
+    <div class="out"><p class="line" id="line2"></p></div>
+
+    <div id="keptWrap" hidden>
+      <h2 style="font-size:17px;margin-top:44px">今晚這張桌子留下的句子</h2>
+      <ul class="kept" id="kept"></ul>
+      <button class="pk-btn ghost" id="clear" style="font-size:12.5px;padding:8px 16px">收走這疊紙</button>
+    </div>
+  </section>
+
+  <section class="rv">
+    <span class="yr">1932</span>
+    <h2>後來他們不寫字了，改用畫的</h2>
+    <p>規則原封不動搬過去，只是五格變成四段：頭、軀幹、腿、腳。摺痕在脖子上、在腰上。那一年芙烈達・卡蘿和露西安・布洛赫一起畫了兩張，一張題〈Frida〉，一張題〈Diego〉，現在收在紐約大都會藝術博物館。</p>
+    <div class="fig" id="fig">
+      <button type="button" data-part="0" aria-label="換一個頭"></button>
+      <button type="button" data-part="1" aria-label="換一個軀幹"></button>
+      <button type="button" data-part="2" aria-label="換一雙腿"></button>
+    </div>
+    <p class="dim" style="font-size:14px;text-align:center">點任何一段，換一個沒見過面的合作者。</p>
+  </section>
+
+  <section class="rv">
+    <h2>這個遊戲自己也是拼貼的</h2>
+    <p>布勒東說是 1925 年開始的。皮耶・勒維第（Pierre Reverdy）說不對，至少 1918 年就有人在玩了。而在他們之前，英國人早就有一個叫「後果」（Consequences）的客廳遊戲，摺紙、傳、攤開，一模一樣。</p>
+    <p>連它的出身都沒有人簽名。第一格是誰寫的，這件事本身就被摺起來了。</p>
+    <p>1940 年代，約翰・凱吉和另外三個作曲家把它搬上五線譜：寫一小節，沿著小節線摺起來，傳給下一個人——後來集成一組小品，叫《Party Pieces》。2024 年，一款線上遊戲 Gartic Phone 加了一個新模式，三個玩家分別畫頭、身體、腿。一百年了，規則一個字都沒改。</p>
+  </section>
+
+  <section class="rv">
+    <p class="end">2022 年，一個沉寂了十四年的樂團突然發了新歌。<br>歌名叫〈<em>Drink the New Wine</em>〉。</p>
+    <p class="end" style="margin-top:26px">那具屍體到現在還在喝。<br><span class="dim">而這張紙的最下面，永遠留著一格空白。</span></p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：André Breton〈Le Cadavre Exquis: Son Exaltation〉展覽圖錄（1948）、Tate、大都會藝術博物館、Britannica。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'exq.';
+const store = PK.store(LS);
+
+/* ==CORE== 純函式（可用 node 斷言驗證，勿在此區碰 DOM） */
+var POS = ['名詞', '形容詞', '動詞', '名詞', '形容詞'];
+var POS_LABEL = ['冠詞＋名詞', '形容詞', '動詞', '冠詞＋名詞', '形容詞'];
+
+/* 四位超現實主義者各自的口味 */
+var PEOPLE = [
+  { name: '布勒東',
+    名詞: ['磁場', '宣言', '鑰匙', '睡眠', '鏡子', '抽屜'],
+    形容詞: ['絕對的', '溶解的', '被催眠的', '第七個', '不肯醒的', '透明的'],
+    動詞: ['溶解', '召喚', '拒絕承認', '重新命名', '吞掉', '點燃'] },
+  { name: '唐吉',
+    名詞: ['石頭', '地平線', '骨頭', '影子', '沙', '海'],
+    形容詞: ['灰白的', '極慢的', '沒有邊的', '光滑的', '很遠的', '半埋著的'],
+    動詞: ['慢慢爬過', '磨平', '越過', '沉進', '拉長', '等待'] },
+  { name: '普維',
+    名詞: ['麵包', '公車', '貓', '口袋', '雨傘', '零錢'],
+    形容詞: ['潮濕的', '遲到的', '九歲的', '藍色的', '會流汗的', '剛出爐的'],
+    動詞: ['弄丟', '抱住', '賣掉', '原諒', '摺起來', '偷偷跟著'] },
+  { name: '佩雷',
+    名詞: ['火', '警察', '蜂蜜', '雷', '牙齒', '烏鴉'],
+    形容詞: ['燃燒的', '假的', '倒立的', '太大聲的', '生鏽的', '瞎掉的'],
+    動詞: ['引爆', '驚醒', '啃穿', '踢翻', '埋葬', '吹熄'] }
+];
+
+/* 依格子順序（名/形/動/名/形）拼成中文語序：形1名1 動 形2名2 */
+function assemble(words) {
+  return words[1] + words[0] + words[2] + words[4] + words[3] + '。';
+}
+
+/* 清理使用者輸入：去頭尾空白、壓掉換行、限長 */
+function normalize(s, max) {
+  s = String(s == null ? '' : s).replace(/\s+/g, ' ').trim();
+  if (s.length > (max || 12)) s = s.slice(0, max || 12);
+  return s;
+}
+
+/* 洗牌（Fisher–Yates），rnd 需回傳 [0,1) */
+function shuffle(arr, rnd) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(rnd() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+/* 發一輪：五個座位（你＋四人）隨機對應五格；回傳每格的作者與（他們的）字 */
+function deal(rnd) {
+  var seats = shuffle([-1, 0, 1, 2, 3], rnd); /* -1 = 你 */
+  return seats.map(function (who, i) {
+    if (who < 0) return { who: -1, name: '你', pos: POS[i], word: '' };
+    var pool = PEOPLE[who][POS[i]];
+    return { who: who, name: PEOPLE[who].name, pos: POS[i], word: pool[Math.floor(rnd() * pool.length)] };
+  });
+}
+
+/* 使用者跳過時，替他那一格也抽一個（用桌上還沒發言的人的詞庫，穩定不重複） */
+function fillMine(round, rnd) {
+  var used = {}, i;
+  for (i = 0; i < round.length; i++) if (round[i].who >= 0) used[round[i].who] = 1;
+  var free = [0, 1, 2, 3].filter(function (k) { return !used[k]; });
+  var pick = free.length ? free[Math.floor(rnd() * free.length)] : Math.floor(rnd() * 4);
+  var idx = round.findIndex(function (c) { return c.who < 0; });
+  var pool = PEOPLE[pick][round[idx].pos];
+  return pool[Math.floor(rnd() * pool.length)];
+}
+/* ==/CORE== */
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { assemble: assemble, normalize: normalize, shuffle: shuffle, deal: deal, fillMine: fillMine, PEOPLE: PEOPLE, POS: POS };
+}
+
+/* ───────────────────────── 以下為 DOM ───────────────────────── */
+(function () {
+  if (typeof document === 'undefined') return;
+  PK.reveal();
+
+  var slow = function (ms) { return PK.reduced() ? Math.min(ms, 90) : ms; };
+  var rnd = Math.random;
+
+  /* 規則段：捲到就把上面三格摺起來 */
+  var demo = document.getElementById('demo');
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        io.unobserve(e.target);
+        setTimeout(function () { demo.classList.remove('folded'); }, 60);
+        setTimeout(function () { if (!PK.reduced()) demo.classList.add('folded'); }, slow(1400));
+      });
+    }, { threshold: .5 });
+    io.observe(demo);
+  } else { demo.classList.remove('folded'); }
+
+  /* ── 第一輪：歷史的那張紙 ── */
+  var HIST = ['屍體', '優美的', null, '酒', '新的'];
+  var form1 = document.getElementById('form1');
+  var in1 = document.getElementById('in1');
+  var line1 = document.getElementById('line1');
+  var rev1 = document.getElementById('rev1');
+  var done1 = false;
+
+  function openCell1(i, word, who) {
+    var cell = document.getElementById('c1-' + i);
+    if (word !== undefined) {
+      cell.querySelector('.word').textContent = word;
+      cell.querySelector('.who').textContent = who || '';
+    }
+    cell.classList.add('open');
+  }
+
+  form1.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (done1) return;
+    var w = normalize(in1.value, 10) || '喝下';
+    done1 = true;
+
+    /* 把輸入框換成寫好的字 */
+    var mine = document.getElementById('c1-2').querySelector('.face');
+    mine.innerHTML = '';
+    var p = document.createElement('span'); p.className = 'pos'; p.textContent = '動詞';
+    var wd = document.createElement('span'); wd.className = 'word'; wd.id = 'myVerb'; wd.textContent = w;
+    var wh = document.createElement('span'); wh.className = 'who me'; wh.textContent = '你';
+    mine.appendChild(p); mine.appendChild(wd); mine.appendChild(wh);
+    PK.announce('紙攤開了。');
+
+    var order = [0, 1, 3, 4];
+    order.forEach(function (i, k) {
+      setTimeout(function () { openCell1(i, HIST[i], ''); }, slow(420 + k * 520));
+    });
+
+    setTimeout(function () {
+      line1.textContent = assemble([HIST[0], HIST[1], w, HIST[3], HIST[4]]);
+      line1.classList.add('in');
+    }, slow(2500));
+
+    setTimeout(function () {
+      var v = document.getElementById('myVerb');
+      v.classList.add('swap');
+      line1.style.transition = 'opacity .5s ease';
+      line1.style.opacity = '0';
+      setTimeout(function () {
+        v.textContent = '將喝下'; v.classList.remove('swap');
+        line1.textContent = ''; line1.style.opacity = '';
+        rev1.classList.add('in');
+        PK.announce('優美的屍體將喝下新的酒。');
+      }, slow(560));
+    }, slow(4600));
+  });
+
+  /* ── 第二輪：可重玩 ── */
+  var sheet2 = document.getElementById('sheet2');
+  var line2 = document.getElementById('line2');
+  var dealBtn = document.getElementById('deal');
+  var skipBtn = document.getElementById('skip');
+  var round = null, myIdx = -1, busy = false, sealed = false;
+
+  function cellEl(c, i) {
+    var cell = document.createElement('div'); cell.className = 'cell';
+    var face = document.createElement('div'); face.className = 'face';
+    var pos = document.createElement('span'); pos.className = 'pos'; pos.textContent = POS_LABEL[i];
+    face.appendChild(pos);
+    if (c.who < 0) {
+      var f = document.createElement('form'); f.className = 'slot'; f.autocomplete = 'off';
+      var lb = document.createElement('label'); lb.className = 'pk-sr';
+      lb.setAttribute('for', 'in2'); lb.textContent = '請寫一個' + c.pos;
+      var ip = document.createElement('input'); ip.id = 'in2'; ip.maxLength = 12;
+      ip.placeholder = '寫一個' + c.pos + '…';
+      var bt = document.createElement('button'); bt.className = 'pk-btn'; bt.type = 'submit';
+      bt.style.fontSize = '13px'; bt.style.padding = '9px 18px'; bt.textContent = '摺起來，傳下去';
+      f.appendChild(lb); f.appendChild(ip); f.appendChild(bt);
+      f.addEventListener('submit', function (e) { e.preventDefault(); play(normalize(ip.value, 12)); });
+      face.appendChild(f);
+    } else {
+      var w = document.createElement('span'); w.className = 'word'; w.textContent = '';
+      var h = document.createElement('span'); h.className = 'who'; h.textContent = '';
+      face.appendChild(w); face.appendChild(h);
+    }
+    cell.appendChild(face);
+    return cell;
+  }
+
+  function newRound() {
+    if (busy) return;
+    sealed = false;
+    round = deal(rnd);
+    myIdx = round.findIndex(function (c) { return c.who < 0; });
+    sheet2.innerHTML = '';
+    line2.textContent = ''; line2.classList.remove('in');
+    round.forEach(function (c, i) {
+      var el = cellEl(c, i);
+      if (c.who < 0) el.classList.add('open');
+      sheet2.appendChild(el);
+    });
+    skipBtn.hidden = false;
+    dealBtn.textContent = '換一張紙';
+    busy = false;
+    var ip = document.getElementById('in2');
+    if (ip) ip.focus({ preventScroll: true });
+    PK.announce('紙傳到你手上，第 ' + (myIdx + 1) + ' 格，請寫一個' + round[myIdx].pos + '。');
+  }
+
+  function play(myWord) {
+    if (busy || sealed || !round) return;
+    busy = true; sealed = true; skipBtn.hidden = true;
+    if (!myWord) myWord = fillMine(round, rnd);
+    round[myIdx].word = myWord;
+
+    var cells = sheet2.querySelectorAll('.cell');
+    var mine = cells[myIdx].querySelector('.face');
+    mine.innerHTML = '';
+    var p = document.createElement('span'); p.className = 'pos'; p.textContent = POS_LABEL[myIdx];
+    var wd = document.createElement('span'); wd.className = 'word'; wd.textContent = myWord;
+    var wh = document.createElement('span'); wh.className = 'who me'; wh.textContent = '你';
+    mine.appendChild(p); mine.appendChild(wd); mine.appendChild(wh);
+
+    var k = 0;
+    round.forEach(function (c, i) {
+      if (i === myIdx) return;
+      setTimeout(function () {
+        cells[i].querySelector('.word').textContent = c.word;
+        cells[i].querySelector('.who').textContent = c.name;
+        cells[i].classList.add('open');
+      }, slow(300 + (k++) * 460));
+    });
+
+    setTimeout(function () {
+      var words = round.map(function (c) { return c.word; });
+      var text = assemble(words);
+      line2.textContent = text;
+      line2.classList.add('in');
+      PK.announce(text);
+      keep(text, round.map(function (c) { return c.name; }).join('、'));
+      busy = false;
+    }, slow(2200));
+  }
+
+  dealBtn.addEventListener('click', newRound);
+  skipBtn.addEventListener('click', function () { play(''); });
+
+  /* ── 收藏 ── */
+  var keptWrap = document.getElementById('keptWrap');
+  var keptUl = document.getElementById('kept');
+  function keep(text, names) {
+    var list = store.get('lines', []);
+    if (!Array.isArray(list)) list = [];
+    list.unshift({ t: text, n: names });
+    if (list.length > 12) list.length = 12;
+    store.set('lines', list);
+    renderKept();
+  }
+  function renderKept() {
+    var list = store.get('lines', []);
+    if (!Array.isArray(list)) list = [];
+    keptWrap.hidden = list.length === 0;
+    keptUl.innerHTML = '';
+    list.forEach(function (o) {
+      var li = document.createElement('li');
+      li.appendChild(document.createTextNode(o.t));
+      var s = document.createElement('span'); s.textContent = o.n;
+      li.appendChild(s);
+      keptUl.appendChild(li);
+    });
+  }
+  document.getElementById('clear').addEventListener('click', function () {
+    store.del('lines'); renderKept();
+  });
+  renderKept();
+
+  /* ── 1932：畫的版本（三段，各四個變化） ── */
+  var PARTS = [
+    [ /* 頭 */
+      '<circle cx="100" cy="55" r="30"/><circle class="sol" cx="90" cy="50" r="3.2"/><circle class="sol" cx="112" cy="50" r="3.2"/><path d="M88 68q12 9 24 0"/><path d="M100 25V10"/><circle cx="100" cy="7" r="4"/>',
+      '<path d="M78 72q0-40 30-40t30 34"/><path d="M78 72h60"/><path d="M78 52 44 60l34 10"/><circle class="sol" cx="112" cy="48" r="3.4"/><path d="M100 32q6-14 20-16"/>',
+      '<path d="M100 20a26 26 0 0 1 14 48v8H86v-8a26 26 0 0 1 14-48"/><path d="M86 82h28M90 90h20"/><path d="M100 40v22M92 52h16"/>',
+      '<circle cx="100" cy="54" r="30"/><path d="M100 54V34M100 54l16 10"/><path d="M100 24v-6M130 54h6M100 84v6M70 54h-6"/>'
+    ],
+    [ /* 軀幹 */
+      '<path d="M100 0v14"/><path d="M70 14h60l6 90H64z"/><path d="M100 14 88 40h24z"/><path d="M100 40v42"/><path d="M70 22 40 46M130 22l30 24"/>',
+      '<path d="M100 0v10"/><path d="M62 104h20V84h20V64h20V44h20"/><path d="M62 104V88h20"/><path d="M142 44V26h-18"/>',
+      '<path d="M100 0v10"/><rect x="64" y="14" width="72" height="90"/><rect x="76" y="28" width="20" height="20"/><rect x="104" y="28" width="20" height="20"/><path d="M76 66h48M76 82h30"/>',
+      '<path d="M100 0v12"/><path d="M100 12v92"/><path d="M100 24q-34-6-52 22 30 8 52-8"/><path d="M100 24q34-6 52 22-30 8-52-8"/><path d="M100 62q-30-4-44 20 26 6 44-6"/><path d="M100 62q30-4 44 20-26 6-44-6"/>'
+    ],
+    [ /* 腿 */
+      '<path d="M86 0v76M114 0v76"/><path d="M86 76H62M114 76h24"/><path d="M100 0v8"/>',
+      '<path d="M100 0v22"/><circle cx="70" cy="66" r="30"/><circle cx="132" cy="72" r="24"/><path d="M100 22 76 50M100 22l28 30"/>',
+      '<path d="M100 0v34"/><path d="M100 34 66 96M100 34l36 62M100 34 82 98M100 34l20 64"/><path d="M100 34 46 82M100 34l56 44"/>',
+      '<path d="M88 0v10"/><path d="M112 0v10"/><path d="M88 10c-18 6 18 12 0 18s18 12 0 18 18 12 0 18 18 12 0 18"/><path d="M112 10c18 6-18 12 0 18s-18 12 0 18-18 12 0 18-18 12 0 18"/><path d="M76 82h24M100 82h24"/>'
+    ]
+  ];
+  var figState = [0, 0, 0];
+  var figBtns = document.querySelectorAll('#fig button');
+  function drawFig() {
+    for (var i = 0; i < figBtns.length; i++) {
+      figBtns[i].innerHTML = '<svg viewBox="0 0 200 106" role="img" aria-hidden="true">' + PARTS[i][figState[i]] + '</svg>';
+    }
+  }
+  for (var i = 0; i < figBtns.length; i++) {
+    figBtns[i].addEventListener('click', function () {
+      var p = +this.getAttribute('data-part');
+      figState[p] = (figState[p] + 1) % PARTS[p].length;
+      drawFig();
+      PK.announce('換了一段。');
+    });
+  }
+  figState = [Math.floor(rnd() * 4), Math.floor(rnd() * 4), Math.floor(rnd() * 4)];
+  drawFig();
+})();
+</script>
+</body>
+</html>

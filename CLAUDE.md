@@ -65,3 +65,4 @@ JS 全域 `PK`：`reduced()`、`onMotionChange(fn)`、`tick/untick(fn(dt,t))`（
 - 星空＝六星座（六大類），圖形從 `MOTIFS` 12 圖形池隨機分配；每座隨機抽星、今日之星（PROJECTS[0]）必亮鎮座；`換一批星` 重抽。
 - 三分頁 sky/wall/obs（`index.tab` 記憶）；切回 sky 時 `window.__skyRelayout()` 補排。
 - hero/卡片牆/產量圖全由 data.js 自動生成。
+- 2026-09-02 視覺升級：index.html 多了 `#dust/#torch/#grain` 三個裝飾層與 `.tab-ind` 指示器；app.js 尾端 `fancy()` 負責標題逐字、tab 指示器、游標光暈、hero／卡片 3D 傾斜；星空多了畫線點燈、整座 hover 發光、光暈精靈、游標星塵。全部 transform/opacity，reduced-motion 與觸控自動退回。

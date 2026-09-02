@@ -172,6 +172,8 @@ function revealCards(replay) {
       if (!e.isIntersecting) continue;
       e.target.style.setProperty("--d", (Math.min(i, 8) * 0.045).toFixed(3) + "s");
       e.target.classList.add("in");
+      /* 進場延遲只該用在進場：淡入完成就拿掉，否則 hover 的位移也會被延遲 */
+      e.target.addEventListener("transitionend", () => e.target.style.removeProperty("--d"), { once: true });
       obs.unobserve(e.target);
       i++;
     }
@@ -294,11 +296,12 @@ $("rand").addEventListener("click", () => {
 /* ── 頁首統計數字滾動 ── */
 function countUp(el, to) {
   if (reduced()) { el.textContent = to; return; }
-  const dur = 900, t0 = performance.now();
+  const dur = 1100, t0 = performance.now();
   const step = t => {
     const k = Math.min(1, (t - t0) / dur);
     el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3)));
     if (k < 1) requestAnimationFrame(step);
+    else el.classList.add("lit"); /* 跑完彈一下 */
   };
   requestAnimationFrame(step);
 }
@@ -403,7 +406,22 @@ function countUp(el, to) {
   let hoverGi = -1, selGi = -1, hoverLabel = -1, lastPT = "mouse";
   let pulses = [], meteor = null, meteorTimer = null, glint = null, glintTimer = null;
   let scan = null, lastScan = -1;
+  let trail = [], trailLast = [-99, -99]; /* 游標劃過星空時撒下的星塵 */
   const par = { x: 0, y: 0, tx: 0, ty: 0 };
+  /* 光暈精靈：每色只烘一次，繪製時縮放貼上（比每幀建 radial gradient 便宜得多） */
+  const bloomCache = new Map();
+  function bloom(hex) {
+    let c = bloomCache.get(hex);
+    if (!c) {
+      c = document.createElement("canvas"); c.width = c.height = 64;
+      const g = c.getContext("2d");
+      const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      rg.addColorStop(0, rgba(hex, .6)); rg.addColorStop(.32, rgba(hex, .22)); rg.addColorStop(1, rgba(hex, 0));
+      g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+      bloomCache.set(hex, c);
+    }
+    return c;
+  }
   let running = false, inView = true, rafId = 0;
   let visSet = new Set(PROJECTS.map((_, gi) => gi));
   let bornAt = 0; /* 0＝尚未點燈；>0＝點燈中；-1＝完成（resize 不重播） */
@@ -493,6 +511,7 @@ function countUp(el, to) {
         usedNodes.add(s.node);
         s.x = cn._pts[s.node][0]; s.y = cn._pts[s.node][1];
       }
+      cn._nodeIdx = new Map(here.map(s => [s.node, s.idx])); /* 節點 → 點燈序號（畫線動畫用） */
       const total = (byCat.get(cn.cat) || []).length;
       labelBoxes.push({
         ci, cat: cn.cat, text: cn.m.name, sub: `${cn.cat}｜${total} 顆 · 亮 ${picked.length}`,
@@ -573,19 +592,37 @@ function countUp(el, to) {
       if (d <= pathLen) { cometD = d; cometPos = pathAt(d); }
     }
 
-    /* 星座圖形：完整骨架淡淡打底，抽中星之間的邊亮起呼吸 */
+    /* 星座圖形：完整骨架淡淡打底，抽中星之間的邊亮起呼吸；
+       開頁時邊線跟著點燈順序一段段畫出來；滑到任一顆星，整座星座一起亮 */
+    const igniting = bornAt > 0;
+    const hotStar = starByGi.get(hoverGi >= 0 ? hoverGi : selGi);
+    const hotCi = hotStar ? hotStar.ci : hoverLabel;
     ctx.lineWidth = 1;
     CONSTELLATIONS.forEach((cn, ci) => {
       if (!cn._pts) return;
       const hx = catHex(cn.cat);
       const catOn = !state.cat || state.cat === cn.cat;
       const nodeHasStar = new Set(stars.filter(s => s.ci === ci && visSet.has(s.gi)).map(s => s.node));
+      const hotC = ci === hotCi;
       cn.m.edges.forEach(([a, b], ei) => {
         const pa = cn._pts[a], pb = cn._pts[b];
         const lit = catOn && nodeHasStar.has(a) && nodeHasStar.has(b);
         const puls = reduced() ? .5 : (.5 + .5 * Math.sin(t / 1200 + ei * .8 + ci));
-        ctx.strokeStyle = lit ? rgba(hx, .16 + .14 * puls) : "rgba(160,175,225,.05)";
-        ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pb[0], pb[1]); ctx.stroke();
+        let k = 1;
+        if (igniting && lit && cn._nodeIdx) {
+          const later = Math.max(cn._nodeIdx.get(a) || 0, cn._nodeIdx.get(b) || 0);
+          k = clamp01((t - bornAt - later * igStep - 160) / 520);
+          if (k <= 0) return;
+        }
+        const ex = pa[0] + (pb[0] - pa[0]) * k, ey = pa[1] + (pb[1] - pa[1]) * k;
+        if (lit && hotC) { /* 整座發光：先鋪一道寬而淡的光暈 */
+          ctx.lineWidth = 4; ctx.strokeStyle = rgba(hx, .13);
+          ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(ex, ey); ctx.stroke();
+          ctx.lineWidth = 1.4;
+        }
+        ctx.strokeStyle = lit ? rgba(hx, hotC ? .62 : .16 + .14 * puls) : "rgba(160,175,225,.05)";
+        ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.lineWidth = 1;
       });
       /* 未被抽中的節點：一粒極淡的殘星，暗示這座還有更多 */
       for (let ni = 0; ni < cn._pts.length; ni++) {
@@ -598,7 +635,7 @@ function countUp(el, to) {
     /* 星座名（可點：跳到作品牆看整座） */
     ctx.textAlign = "center";
     for (const lb of labelBoxes) {
-      const hot = lb.ci === hoverLabel;
+      const hot = lb.ci === hoverLabel || lb.ci === hotCi;
       const catOn = !state.cat || state.cat === lb.cat;
       ctx.font = '12px "Noto Serif TC", serif';
       ctx.fillStyle = hot ? rgba(catHex(lb.cat), .95) : (catOn ? "rgba(196,205,232,.72)" : "rgba(166,174,201,.3)");
@@ -629,7 +666,6 @@ function countUp(el, to) {
     }
 
     /* 星星（開頁沿星軌依序點燈；彗星經過時被喚亮） */
-    const igniting = bornAt > 0;
     for (const s of stars) {
       const on = visSet.has(s.gi);
       const hot = s.gi === hoverGi || s.gi === selGi;
@@ -647,8 +683,18 @@ function countUp(el, to) {
       }
       const col = s.today ? GOLD_HEX : s.hex;
       a = Math.min(1, a);
-      ctx.fillStyle = rgba(col, a * .3);
-      ctx.beginPath(); ctx.arc(s.x, s.y, rr * 3.2, 0, 7); ctx.fill();
+      /* 柔光暈（預烘精靈）；同座被滑到時整座星星一起微亮 */
+      const inHotC = hotCi >= 0 && s.ci === hotCi && !hot;
+      if (inHotC && on) { a = Math.min(1, a + .18); rr *= 1.12; }
+      const R = rr * (hot ? 7 : 3.8);
+      ctx.globalAlpha = a * (hot ? .95 : .8);
+      ctx.drawImage(bloom(col), s.x - R, s.y - R, R * 2, R * 2);
+      if (hot) { /* 熱點再疊一層加亮 */
+        ctx.globalCompositeOperation = "lighter";
+        ctx.drawImage(bloom(col), s.x - R * .55, s.y - R * .55, R * 1.1, R * 1.1);
+        ctx.globalCompositeOperation = "source-over";
+      }
+      ctx.globalAlpha = 1;
       ctx.fillStyle = `rgba(255,255,255,${a.toFixed(3)})`;
       ctx.beginPath(); ctx.arc(s.x, s.y, rr, 0, 7); ctx.fill();
       if (s.r > 2.9 || s.today || hot) {
@@ -709,6 +755,24 @@ function countUp(el, to) {
         ctx.strokeStyle = g; ctx.lineWidth = 1.6;
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - meteor.ux * tail, y - meteor.uy * tail); ctx.stroke();
         ctx.lineWidth = 1;
+        /* 流星頭：一顆發光的核 */
+        const hr = 9 + 5 * (1 - k);
+        ctx.globalAlpha = (1 - k) * .9;
+        ctx.drawImage(bloom("#ffffff"), x - hr, y - hr, hr * 2, hr * 2);
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = `rgba(255,255,255,${(.95 * (1 - k)).toFixed(3)})`;
+        ctx.beginPath(); ctx.arc(x, y, 1.6, 0, 7); ctx.fill();
+      }
+    }
+
+    /* 游標星塵：滑過夜空時撒下、緩緩飄散 */
+    if (trail.length) {
+      trail = trail.filter(p => t - p.t0 < 1000);
+      for (const p of trail) {
+        const age = t - p.t0, k = age / 1000;
+        const x = p.x + p.vx * age * .05, y = p.y + p.vy * age * .05;
+        ctx.fillStyle = rgba(p.hex, (1 - k) * .75);
+        ctx.beginPath(); ctx.arc(x, y, .6 + (1 - k) * 1.3, 0, 7); ctx.fill();
       }
     }
 
@@ -826,7 +890,7 @@ function countUp(el, to) {
       const ul = Math.hypot(dx, dy);
       meteor = { x0, y0, dx, dy, ux: dx / ul, uy: dy / ul, t0: performance.now(), dur: 900 + Math.random() * 500 };
       scheduleMeteor();
-    }, 2600 + Math.random() * 4200);
+    }, 2200 + Math.random() * 3800);
   }
   function scheduleGlint() {
     clearTimeout(glintTimer);
@@ -890,7 +954,14 @@ function countUp(el, to) {
     const rc = cv.getBoundingClientRect();
     const x = e.clientX - rc.left, y = e.clientY - rc.top;
     if (!reduced()) { par.tx = (x / W - .5) * 2; par.ty = (y / H - .5) * 2; }
-    if (e.pointerType === "touch" || scan) return;
+    if (e.pointerType === "touch") return;
+    /* 撒星塵：每移動 7px 撒一粒，最多留 80 粒 */
+    if (running && Math.hypot(x - trailLast[0], y - trailLast[1]) > 7) {
+      trailLast = [x, y];
+      trail.push({ x, y, vx: (Math.random() - .5) * .5, vy: (Math.random() - .5) * .5 - .18, t0: performance.now(), hex: Math.random() < .2 ? GOLD_HEX : "#d6e4ff" });
+      if (trail.length > 80) trail.splice(0, trail.length - 80);
+    }
+    if (scan) return;
     const gi = starAt(x, y);
     const li = gi < 0 ? labelAt(x, y) : -1;
     if (gi !== hoverGi || li !== hoverLabel) {
@@ -1057,6 +1128,7 @@ function setTab(name) {
     $(panelId).classList.toggle("on", on);
   }
   try { localStorage.setItem("index.tab", name); } catch (e) {}
+  if (window.__moveTabInd) window.__moveTabInd();
   if (name === "sky" && window.__skyRelayout) {
     requestAnimationFrame(() => window.__skyRelayout()); /* 等 display 生效拿到真實尺寸 */
   }
@@ -1089,3 +1161,96 @@ let savedTab = "sky";
 try { savedTab = localStorage.getItem("index.tab") || "sky"; } catch (e) {}
 setTab(savedTab);
 mReduced.addEventListener("change", () => revealCards(false));
+
+/* ==========================================================================
+ * 視覺升級（2026-09-02）：標題逐字流光、tab 滑動指示器、游標光暈、
+ * hero／卡片的 3D 傾斜與跟隨滑鼠的高光。全部只動 transform／opacity／CSS 變數，
+ * 觸控與 reduced-motion 自動退回靜態。
+ * ========================================================================== */
+(function fancy() {
+  const fine = matchMedia("(pointer: fine)").matches;
+
+  /* 標題逐字：每個字自己一段進場延遲與流光相位 */
+  const h1 = document.querySelector(".site-head h1");
+  if (h1 && !h1.querySelector(".ch")) {
+    const txt = h1.textContent.trim();
+    h1.setAttribute("aria-label", txt);
+    h1.textContent = "";
+    [...txt].forEach((ch, i) => {
+      const s = document.createElement("span");
+      s.className = "ch"; s.setAttribute("aria-hidden", "true");
+      s.style.setProperty("--i", i); s.textContent = ch;
+      h1.appendChild(s);
+    });
+  }
+
+  /* tab 指示器：一顆膠囊在三個 tab 之間滑動 */
+  const bar = document.querySelector(".tabbar");
+  const ind = bar && bar.querySelector(".tab-ind");
+  function moveInd() {
+    if (!ind) return;
+    const on = bar.querySelector('.tab[aria-selected="true"]');
+    if (!on) return;
+    const br = bar.getBoundingClientRect(), r = on.getBoundingClientRect();
+    if (r.width < 1) return; /* 尚未排版 */
+    ind.style.transform = `translateX(${Math.round(r.left - br.left)}px)`;
+    ind.style.width = Math.round(r.width) + "px";
+    ind.classList.add("ready");
+    bar.classList.add("has-ind");
+  }
+  window.__moveTabInd = moveInd;
+  moveInd();
+  addEventListener("resize", moveInd);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveInd);
+
+  /* 游標光暈：一團柔光跟著滑鼠（lerp 追隨，靜止後停 rAF） */
+  const torch = $("torch");
+  if (torch && fine && !reduced()) {
+    let tx = 0, ty = 0, x = 0, y = 0, raf = 0, on = false;
+    const step = () => {
+      x += (tx - x) * .14; y += (ty - y) * .14;
+      torch.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
+      raf = (Math.abs(tx - x) + Math.abs(ty - y) > .4) ? requestAnimationFrame(step) : 0;
+    };
+    addEventListener("pointermove", e => {
+      if (e.pointerType === "touch") return;
+      tx = e.clientX; ty = e.clientY;
+      if (!on) { on = true; x = tx; y = ty; torch.classList.add("on"); }
+      if (!raf) raf = requestAnimationFrame(step);
+    }, { passive: true });
+    document.documentElement.addEventListener("pointerleave", () => { on = false; torch.classList.remove("on"); });
+  }
+
+  /* 3D 傾斜＋高光：容器內委派，rAF 節流，一次只顧一張 */
+  function bindTilt(container, sel, ax, ay) {
+    if (!container || !fine) return;
+    let cur = null, pend = null, raf = 0;
+    const apply = () => {
+      raf = 0;
+      if (!cur || !pend) return;
+      const r = cur.getBoundingClientRect();
+      const px = (pend.x - r.left) / r.width, py = (pend.y - r.top) / r.height;
+      cur.style.setProperty("--mx", (px * 100).toFixed(1) + "%");
+      cur.style.setProperty("--my", (py * 100).toFixed(1) + "%");
+      if (!reduced()) {
+        cur.style.setProperty("--rx", ((.5 - py) * ax).toFixed(2) + "deg");
+        cur.style.setProperty("--ry", ((px - .5) * ay).toFixed(2) + "deg");
+      }
+    };
+    const leave = () => {
+      if (cur) { cur.classList.remove("tilt"); cur.style.removeProperty("--rx"); cur.style.removeProperty("--ry"); }
+      cur = null;
+    };
+    container.addEventListener("pointermove", e => {
+      if (e.pointerType === "touch") return;
+      const c = e.target.closest(sel);
+      if (c !== cur) { leave(); cur = c; if (cur) cur.classList.add("tilt"); }
+      if (!cur) return;
+      pend = { x: e.clientX, y: e.clientY };
+      if (!raf) raf = requestAnimationFrame(apply);
+    }, { passive: true });
+    container.addEventListener("pointerleave", leave);
+  }
+  bindTilt(wallEl, ".card", 7, 9);
+  bindTilt($("hero"), ".h-card", 3.5, 4);
+})();

@@ -1193,7 +1193,8 @@ mReduced.addEventListener("change", () => revealCards(false));
     if (!on) return;
     const br = bar.getBoundingClientRect(), r = on.getBoundingClientRect();
     if (r.width < 1) return; /* 尚未排版 */
-    ind.style.transform = `translateX(${Math.round(r.left - br.left)}px)`;
+    const indLeft = parseFloat(getComputedStyle(ind).left) || 0; /* 指示器本身的 left 偏移 */
+    ind.style.transform = `translateX(${Math.round(r.left - br.left - indLeft)}px)`;
     ind.style.width = Math.round(r.width) + "px";
     ind.classList.add("ready");
     bar.classList.add("has-ind");

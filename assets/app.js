@@ -1079,12 +1079,53 @@ function searchFor(v) {
   const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
   $("wall").scrollIntoView({ behavior: rm ? "auto" : "smooth", block: "start" });
 }
+/* ── 觀測記錄 ─────────────────────────────────────────
+ * 這一頁的視覺語彙跟星空／作品牆對齊：不用 GitHub 那種方塊熱力圖，
+ * 改成「曝光板」——每個有作品的日子是一顆星，件數決定亮度與暈開的大小；
+ * 分類則是「六星座光譜」，每條帶著該星座的顏色與一道緩慢掃過的流光。
+ * 動畫一律只動 transform／opacity／background-position，reduced-motion 全靜。 */
+
+const ACT_TITLE = { cal: "曝光板", cat: "光譜" };
+function moveSegInd() {
+  const seg = document.querySelector(".act-seg");
+  const ind = seg && seg.querySelector(".seg-ind");
+  if (!ind) return;
+  const on = seg.querySelector('button[aria-pressed="true"]');
+  if (!on) return;
+  const sr = seg.getBoundingClientRect(), r = on.getBoundingClientRect();
+  if (r.width < 1) return; /* 面板尚未顯示，尺寸為 0：等 __obsRelayout 再來 */
+  /* 指示器的 left 是相對於 .act-seg 的 padding box，getBoundingClientRect() 卻是
+     border box —— .act-seg 有 1px 邊框，不扣掉 clientLeft 會整顆偏 1px。
+     （.tabbar 沒有邊框，所以那邊的算式可以省略這一項。） */
+  const off = seg.clientLeft + 3; /* 3 = .act-seg 的 padding，也是 .seg-ind 的 left */
+  ind.style.transform = `translateX(${Math.round(r.left - sr.left - off)}px)`;
+  ind.style.width = Math.round(r.width) + "px";
+  ind.classList.add("ready");
+  seg.classList.add("has-ind");
+}
 function setActView(v) {
   $("actCal").setAttribute("aria-pressed", String(v === "cal"));
   $("actCat").setAttribute("aria-pressed", String(v === "cat"));
   $("actViewCal").classList.toggle("on", v === "cal");
   $("actViewCat").classList.toggle("on", v === "cat");
+  const t = $("actTitle");
+  if (t) t.lastChild.textContent = ACT_TITLE[v] || ACT_TITLE.cal;
+  moveSegInd();
 }
+
+/* 連續產出：回傳 {best, cur}——cur 由「最新的一天」往回算，資料落後時也誠實 */
+function streaks(dates) {
+  const ds = [...dates].sort();
+  if (!ds.length) return { best: 0, cur: 0 };
+  const day = s => Date.UTC(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10)) / 864e5;
+  let best = 1, run = 1;
+  for (let i = 1; i < ds.length; i++) {
+    run = (day(ds[i]) - day(ds[i - 1]) === 1) ? run + 1 : 1;
+    if (run > best) best = run;
+  }
+  return { best, cur: run }; /* run 結束在最後一天，正好是「最近一段」 */
+}
+
 function renderActivity() {
   const byDate = new Map(), byMonth = new Map(), byCat = new Map();
   PROJECTS.forEach(p => {
@@ -1096,32 +1137,72 @@ function renderActivity() {
   const activeDays = byDate.size, total = PROJECTS.length;
   let peak = { d: "", n: 0 };
   byDate.forEach((n, d) => { if (n > peak.n) peak = { d, n }; });
-  $("actSum").innerHTML = `<b>${total}</b> 件作品 · 橫跨 <b>${activeDays}</b> 個產出日 · 平均每天 <b>${(total / Math.max(1, activeDays)).toFixed(1)}</b> 件 · 單日最多 <b>${peak.n}</b> 件（${esc(peak.d.slice(5))}）`;
+  const sk = streaks(byDate.keys());
+  const avg = (total / Math.max(1, activeDays)).toFixed(1);
 
+  /* ── 觀測數據：六張小卡，數字等面板露臉時才滾動 ──
+   * 六格要說六件不同的事。連續天數只留一張（目前資料一天沒斷，
+   * 最近＝最長＝觀測夜，擺三張會是同一個數字），把位子讓給
+   * 「本月」與「最亮星座」——後者用該星座的顏色，接回六色調色盤。 */
+  const lastYm = [...byMonth.keys()].sort().pop() || "";
+  const topCat = [...byCat.entries()].sort((a, b) => b[1] - a[1])[0] || ["—", 0];
+  const STATS = [
+    { v: total,      lab: "累計星數", sub: "件作品" },
+    { v: activeDays, lab: "觀測夜",   sub: "個產出日" },
+    { v: sk.cur,     lab: "連續產出", sub: sk.cur === activeDays ? "天・一天沒斷" : "天・最長 " + sk.best },
+    { v: avg,        lab: "每夜平均", sub: "件／夜" },
+    { v: peak.n,     lab: "單夜最多", sub: "件・" + (esc(peak.d.slice(5)) || "—") },
+    { v: topCat[1],  lab: "最亮星座", sub: esc(topCat[0]), cc: catColor(topCat[0]) },
+  ];
+  $("obsStats").innerHTML = STATS.map((s, i) => `
+    <div class="obs-stat${s.cc ? " tinted" : ""}" style="--d:${(i * .06).toFixed(2)}s${s.cc ? ";--cc:" + s.cc : ""}">
+      <b data-to="${s.v}">0</b>
+      <span class="ol">${s.lab}</span>
+      <span class="os">${s.sub}</span>
+    </div>`).join("");
+
+  $("actSum").innerHTML = `橫跨 <b>${byMonth.size}</b> 個月 · 平均每夜 <b>${avg}</b> 件 · 單夜最多 <b>${peak.n}</b> 件（${esc(peak.d.slice(5))}）`;
+
+  /* ── 曝光板：一格一天，有作品的日子是一顆星 ── */
   const lvl = n => n === 0 ? 0 : n === 1 ? 1 : n === 2 ? 2 : n <= 4 ? 3 : 4;
+  const months = [...byMonth.keys()].sort();
+  const maxMon = Math.max(...byMonth.values(), 1);
   let html = "";
-  [...byMonth.keys()].sort().forEach(ym => {
-    html += `<div class="cal-row"><span class="cal-lab">${esc(ym)}</span><div class="cal-cells">`;
+  months.forEach((ym, mi) => {
+    const mn = byMonth.get(ym);
+    html += `<div class="cal-row" style="--d:${Math.min(mi * .045, .5).toFixed(3)}s">`
+      + `<span class="cal-lab">${esc(ym)}</span><div class="cal-cells">`;
     for (let d = 1; d <= 31; d++) {
       const ds = ym + "-" + String(d).padStart(2, "0");
       const n = byDate.get(ds) || 0;
+      /* --j：每顆星自己的閃爍相位，避免整片同步呼吸 */
+      const j = ((d * 37 + mi * 17) % 23) / 23;
       html += n
-        ? `<button type="button" class="cal-c" data-n="${lvl(n)}" data-date="${ds}" title="${ds}：${n} 件" aria-label="${ds} 有 ${n} 件作品，點擊篩選"></button>`
+        ? `<button type="button" class="cal-c" data-n="${lvl(n)}" data-date="${ds}" style="--j:${j.toFixed(3)}" title="${ds}：${n} 件" aria-label="${ds} 有 ${n} 件作品，點擊篩選"></button>`
         : `<span class="cal-c" data-n="0" aria-hidden="true"></span>`;
     }
-    html += `</div><span class="cal-lab" style="width:auto;color:var(--dim)">${byMonth.get(ym)}</span></div>`;
+    html += `</div><span class="cal-mon"><i style="--w:${(mn / maxMon * 100).toFixed(1)}%"></i><b>${mn}</b></span></div>`;
   });
   html += `<div class="cal-axis"><span class="cal-lab"></span><div class="cal-ticks">`;
   for (let d = 1; d <= 31; d++) html += `<span>${(d === 1 || d % 5 === 0) ? d : ""}</span>`;
-  html += `</div></div><div class="cal-legend">少 <i style="background:rgba(150,165,220,.07)"></i><i style="background:rgba(240,198,116,.32)"></i><i style="background:rgba(240,198,116,.55)"></i><i style="background:rgba(240,198,116,.78)"></i><i style="background:var(--gold)"></i> 多　·　點一天可篩選出當天的作品</div>`;
+  html += `</div><span class="cal-mon"></span></div>`
+    + `<div class="cal-legend"><span>暗</span>`
+    + `<i data-n="1"></i><i data-n="2"></i><i data-n="3"></i><i data-n="4"></i>`
+    + `<span>亮</span><em>點任何一顆星，看那天做了什麼</em></div>`;
   $("actViewCal").innerHTML = html;
   $("actViewCal").querySelectorAll(".cal-c[data-date]").forEach(b =>
     b.addEventListener("click", () => searchFor(b.dataset.date)));
 
+  /* ── 光譜：六星座各一條，長度＝件數，右側標份額 ── */
   const maxCat = Math.max(...byCat.values(), 1);
   let ch = "";
-  [...byCat.entries()].sort((a, b) => b[1] - a[1]).forEach(([c, n]) => {
-    ch += `<div class="cat-row" style="--cc:${catColor(c)}"><button type="button" class="nm" data-cat="${esc(c)}" aria-label="篩選 ${esc(c)}">${esc(c)}</button><span class="track"><span class="fill" style="width:${(n / maxCat * 100).toFixed(1)}%"></span></span><span class="n">${n}</span></div>`;
+  [...byCat.entries()].sort((a, b) => b[1] - a[1]).forEach(([c, n], i) => {
+    const share = (n / Math.max(1, total) * 100).toFixed(1);
+    ch += `<div class="cat-row" style="--cc:${catColor(c)};--d:${(i * .07).toFixed(2)}s">`
+      + `<button type="button" class="nm" data-cat="${esc(c)}" aria-label="篩選 ${esc(c)}">`
+      + `<span class="rk">${String(i + 1).padStart(2, "0")}</span>${esc(c)}</button>`
+      + `<span class="track"><span class="fill" style="--w:${(n / maxCat * 100).toFixed(1)}%"></span></span>`
+      + `<span class="n">${n}<em>${share}%</em></span></div>`;
   });
   $("actViewCat").innerHTML = ch;
   $("actViewCat").querySelectorAll("button.nm").forEach(b =>
@@ -1129,6 +1210,25 @@ function renderActivity() {
 }
 $("actCal").addEventListener("click", () => { setActView("cal"); announce("依年月日聚合"); });
 $("actCat").addEventListener("click", () => { setActView("cat"); announce("依分類聚合"); });
+
+/* 面板一開始是 display:none，量不到尺寸也看不到動畫——切到觀測記錄時才補做：
+   指示器定位、長條展開、數字滾動（只跑一次）。 */
+let obsLit = false;
+window.__obsRelayout = function () {
+  moveSegInd();
+  const act = $("activity");
+  if (!act) return;
+  act.classList.add("lit"); /* 觸發 CSS 的展開／進場 */
+  if (obsLit) return;
+  obsLit = true;
+  $("obsStats").querySelectorAll("b[data-to]").forEach(b => {
+    const to = b.dataset.to;
+    /* 只有純整數適合滾動；小數（每夜平均）直接放上，免得滾出 2.79999 */
+    if (/^\d+$/.test(to)) countUp(b, +to);
+    else { b.textContent = to; b.classList.add("lit"); }
+  });
+};
+addEventListener("resize", moveSegInd);
 
 /* ── 分頁（tab）───────────────────────────────────────
  * 星空／作品牆／觀測記錄三個檢視；記住上次停留的分頁。
@@ -1146,6 +1246,9 @@ function setTab(name) {
   if (window.__moveTabInd) window.__moveTabInd();
   if (name === "sky" && window.__skyRelayout) {
     requestAnimationFrame(() => window.__skyRelayout()); /* 等 display 生效拿到真實尺寸 */
+  }
+  if (name === "obs" && window.__obsRelayout) {
+    requestAnimationFrame(() => window.__obsRelayout());
   }
 }
 window.__setTab = setTab;

@@ -562,73 +562,214 @@
   }
   /* ── 產量面板：以年月日 / 分類聚合 ── */
   /* 與上方「今晚最亮的星」卡片留出間隔——兩者原本緊貼在一起 */
+  /* ── 觀測記錄 ──────────────────────────────────────
+   * 視覺語彙跟星空／作品牆對齊：不用方塊熱力圖，改成「曝光板」——
+   * 有作品的日子是一顆星，件數決定亮度、大小與暈開的範圍；分類則是
+   * 「六星座光譜」，每條帶著該星座的顏色與一道緩慢掃過的流光。
+   * 展開／進場統一由 JS 在切到本分頁時掛上 #activity.lit 觸發
+   * （面板平時 display:none，量不到尺寸也看不到動畫）。 */
   #activity { max-width: 1240px; margin: clamp(20px, 2.6vw, 34px) auto 6px; padding: 0 24px; }
+
+  /* 觀測數據：六張小卡 */
+  .obs-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 10px; margin-bottom: 14px;
+  }
+  .obs-stat {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 14px 10px 12px; border-radius: 14px;
+    background: linear-gradient(160deg, rgba(19, 24, 46, .62), rgba(9, 12, 26, .62));
+    border: 1px solid var(--line); backdrop-filter: blur(10px);
+    opacity: 0; transform: translateY(10px);
+    transition: opacity .6s ease var(--d, 0s), transform .6s cubic-bezier(.2, .8, .3, 1) var(--d, 0s),
+                border-color .3s, box-shadow .3s;
+  }
+  #activity.lit .obs-stat { opacity: 1; transform: none; }
+  /* 卡片頂緣一道金色細光，呼應 hero 卡 */
+  .obs-stat::before {
+    content: ""; position: absolute; left: 18%; right: 18%; top: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(240, 198, 116, .5), transparent);
+  }
+  .obs-stat:hover { border-color: rgba(240, 198, 116, .3); box-shadow: 0 0 24px rgba(240, 198, 116, .1); }
+  .obs-stat b {
+    font-family: var(--serif); font-size: clamp(22px, 3.4vw, 28px); font-weight: 700; line-height: 1.1;
+    color: var(--gold); font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(240, 198, 116, .3);
+  }
+  .obs-stat .ol { font-size: 11px; color: var(--dim); letter-spacing: .16em; text-indent: .16em; }
+  .obs-stat .os { font-size: 10.5px; color: var(--faint); letter-spacing: .06em; text-align: center; }
+  /* 「最亮星座」那張改用該星座自己的顏色，接回六色調色盤 */
+  .obs-stat.tinted::before { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cc) 60%, transparent), transparent); }
+  .obs-stat.tinted b { color: var(--cc); text-shadow: 0 0 18px color-mix(in srgb, var(--cc) 40%, transparent); }
+  .obs-stat.tinted .os { color: var(--dim); }
+  .obs-stat.tinted:hover { border-color: color-mix(in srgb, var(--cc) 34%, transparent); box-shadow: 0 0 24px color-mix(in srgb, var(--cc) 14%, transparent); }
+
   .act {
+    position: relative;
     background: var(--panel); border: 1px solid var(--line); border-radius: 18px;
     padding: 16px 18px 14px; backdrop-filter: blur(10px);
   }
-  .act-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .act-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .act-head h2 {
+    display: flex; align-items: baseline; gap: 7px;
     font-family: var(--serif); font-size: 14.5px; font-weight: 700; letter-spacing: .12em;
     color: var(--ink); white-space: nowrap;
   }
+  .act-head .act-t { color: var(--gold); font-size: 13px; text-shadow: 0 0 12px rgba(240, 198, 116, .5); }
   .act-sum { flex: 1; font-size: 12.5px; color: var(--faint); letter-spacing: .01em; }
   .act-sum b { color: var(--dim); font-variant-numeric: tabular-nums; }
-  .act-seg { display: flex; gap: 4px; background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
-  .act-seg button {
-    font: inherit; font-size: 12px; color: var(--faint); background: none; border: none;
-    padding: 4px 12px; border-radius: 999px; cursor: pointer; transition: color .2s, background .2s;
+  .act-seg {
+    position: relative; display: flex; gap: 4px;
+    background: rgba(255, 255, 255, .04); border: 1px solid var(--line);
+    border-radius: 999px; padding: 3px;
   }
-  .act-seg button[aria-pressed="true"] { color: var(--bg); background: var(--gold); font-weight: 600; }
-  /* overflow-x:auto 會讓 overflow-y 從 visible 變成 auto，第一排格子 hover 放大時
-     會被上緣裁掉。用上下留白換回空間，再用負 margin 抵銷、維持原本的版面節奏。 */
-  .act-body { overflow-x: auto; overflow-y: hidden; }
+  /* 滑動指示器：跟 tabbar 同一套語彙 */
+  .seg-ind {
+    position: absolute; left: 3px; top: 3px; bottom: 3px; width: 0;
+    border-radius: 999px; pointer-events: none; opacity: 0;
+    background: rgba(240, 198, 116, .92);
+    box-shadow: 0 0 16px rgba(240, 198, 116, .35);
+    transition: transform .42s cubic-bezier(.2, .8, .3, 1), width .42s cubic-bezier(.2, .8, .3, 1), opacity .3s;
+  }
+  .seg-ind.ready { opacity: 1; }
+  .act-seg button {
+    position: relative; z-index: 1;
+    font: inherit; font-size: 12px; color: var(--faint); background: none; border: none;
+    padding: 4px 12px; border-radius: 999px; cursor: pointer; transition: color .25s;
+  }
+  .act-seg button:hover { color: var(--dim); }
+  .act-seg button[aria-pressed="true"] { color: var(--bg); font-weight: 600; }
+  /* 指示器沒能就位時（JS 失效）退回舊的實心底 */
+  .act-seg:not(.has-ind) button[aria-pressed="true"] { background: var(--gold); }
+  /* overflow-x:auto 會讓 overflow-y 從 visible 變成 auto，星點放大與外暈會被上下緣
+     裁掉。用上下留白換回空間，再用負 margin 抵銷、維持原本的版面節奏。 */
+  .act-body { overflow-x: auto; overflow-y: hidden; padding: 12px 0; margin: -12px 0; }
   .act-view { display: none; } .act-view.on { display: block; }
 
-  /* 日曆熱力圖 */
-  .cal-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  /* ── 曝光板：一格一天，有作品的日子是一顆星 ── */
+  .cal-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+    opacity: 0; transform: translateX(-8px);
+    transition: opacity .5s ease var(--d, 0s), transform .5s cubic-bezier(.2, .8, .3, 1) var(--d, 0s);
+  }
+  #activity.lit .cal-row { opacity: 1; transform: none; }
   .cal-lab { width: 62px; flex: none; font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
   .cal-cells { display: grid; grid-template-columns: repeat(31, 1fr); gap: 3px; flex: 1; min-width: 420px; }
   .cal-c {
-    aspect-ratio: 1; border-radius: 3px; background: rgba(150,165,220,.07); border: 0; padding: 0;
-    cursor: default; transition: filter .15s, box-shadow .15s;
+    aspect-ratio: 1; border: 0; padding: 0; border-radius: 50%;
+    background: rgba(150, 165, 220, .18);
+    transform: scale(var(--s, .24)); cursor: default;
+    transition: transform .18s cubic-bezier(.2, .8, .3, 1), box-shadow .18s, background .18s;
   }
   .cal-c[data-n]:not([data-n="0"]) { cursor: pointer; }
-  .cal-c[data-n="1"] { background: rgba(240,198,116,.32); }
-  .cal-c[data-n="2"] { background: rgba(240,198,116,.55); }
-  .cal-c[data-n="3"] { background: rgba(240,198,116,.78); }
-  .cal-c[data-n="4"] { background: var(--gold); box-shadow: 0 0 8px rgba(240,198,116,.5); }
-  /* 高亮改成「往內」畫，不放大、不外溢：亮度＋內圈描邊。
-     先前 transform:scale 會讓格子長到格線外，而 .act-body 為了橫向捲動必須
-     裁掉垂直方向（overflow-x:auto 會把 overflow-y 從 visible 變成 auto），
-     於是最上面那排月份 hover 時就被上緣切掉、看起來像「跑上去」。 */
-  .cal-c:hover[data-n]:not([data-n="0"]) { filter: brightness(1.28) saturate(1.08); box-shadow: inset 0 0 0 2px rgba(255,246,222,.95); }
-  .cal-c:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--gold); }
-  .cal-axis { display: flex; gap: 8px; margin-top: 6px; }
+  .cal-c[data-n="1"] { --s: .5;  background: rgba(240, 198, 116, .6);  box-shadow: 0 0 5px rgba(240, 198, 116, .3); }
+  .cal-c[data-n="2"] { --s: .68; background: rgba(240, 198, 116, .82); box-shadow: 0 0 8px rgba(240, 198, 116, .42); }
+  .cal-c[data-n="3"] { --s: .84; background: var(--gold);              box-shadow: 0 0 12px rgba(240, 198, 116, .58); }
+  .cal-c[data-n="4"] {
+    --s: 1; background: radial-gradient(circle at 50% 50%, #fff6de 0%, var(--gold) 62%, rgba(240, 198, 116, .7) 100%);
+    box-shadow: 0 0 16px rgba(240, 198, 116, .75), 0 0 34px rgba(240, 198, 116, .28);
+  }
+  /* 亮星自己呼吸；--j 是每顆星的相位，整片不會同步閃 */
+  .cal-c[data-n="3"], .cal-c[data-n="4"] {
+    animation: starBreathe 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--j, 0) * -3.6s);
+  }
+  @keyframes starBreathe { 0%, 100% { opacity: .82; } 50% { opacity: 1; } }
+  .cal-c[data-n]:not([data-n="0"]):hover,
+  .cal-c[data-n]:not([data-n="0"]):focus-visible {
+    outline: none; animation: none; opacity: 1;
+    transform: scale(calc(var(--s) * 1.5));
+    background: radial-gradient(circle at 50% 50%, #fffdf6 0%, #ffe9b8 55%, var(--gold) 100%);
+    box-shadow: 0 0 14px rgba(255, 246, 222, .9), 0 0 30px rgba(240, 198, 116, .5);
+  }
+  /* 每月小結：一條迷你長條＋件數 */
+  .cal-mon { flex: none; width: 54px; display: flex; align-items: center; gap: 6px; }
+  .cal-mon i {
+    flex: 1; height: 3px; border-radius: 99px; width: 0;
+    background: linear-gradient(90deg, rgba(240, 198, 116, .35), var(--gold));
+    transition: width .8s cubic-bezier(.2, .8, .3, 1) var(--d, 0s);
+  }
+  #activity.lit .cal-mon i { width: var(--w, 0); }
+  .cal-mon b { font-size: 11px; font-weight: 400; color: var(--dim); font-variant-numeric: tabular-nums; }
+  .cal-axis { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .cal-axis .cal-lab { visibility: hidden; }
   .cal-ticks { display: grid; grid-template-columns: repeat(31, 1fr); gap: 3px; flex: 1; min-width: 420px;
     font-size: 9px; color: var(--faint); text-align: center; font-variant-numeric: tabular-nums; }
-  .cal-legend { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11px; color: var(--faint); }
-  .cal-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .cal-legend { display: flex; align-items: center; gap: 7px; margin-top: 12px; font-size: 11px; color: var(--faint); }
+  .cal-legend i {
+    width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none;
+    background: rgba(240, 198, 116, .6);
+  }
+  .cal-legend i[data-n="2"] { background: rgba(240, 198, 116, .82); }
+  .cal-legend i[data-n="3"] { background: var(--gold); }
+  .cal-legend i[data-n="4"] { background: var(--gold); box-shadow: 0 0 9px rgba(240, 198, 116, .7); }
+  .cal-legend em { font-style: normal; margin-left: 8px; padding-left: 10px; border-left: 1px solid var(--line); }
 
-  /* 分類聚合 */
-  .cat-row { display: grid; grid-template-columns: 96px 1fr 34px; align-items: center; gap: 10px; margin-bottom: 7px; }
-  .cat-row .nm { font-size: 12px; color: var(--dim); white-space: nowrap; }
-  .cat-row .track { height: 9px; border-radius: 99px; background: rgba(255,255,255,.05); overflow: hidden; }
+  /* ── 光譜：六星座各一條 ── */
+  .cat-row {
+    display: grid; grid-template-columns: 148px 1fr 62px; align-items: center; gap: 12px; margin-bottom: 10px;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .5s ease var(--d, 0s), transform .5s cubic-bezier(.2, .8, .3, 1) var(--d, 0s);
+  }
+  #activity.lit .cat-row { opacity: 1; transform: none; }
+  .cat-row button.nm {
+    display: flex; align-items: baseline; gap: 8px;
+    background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+    font: inherit; font-size: 12.5px; color: var(--dim); white-space: nowrap;
+    transition: color .25s;
+  }
+  .cat-row .rk {
+    font-family: var(--serif); font-size: 11px; color: var(--cc); opacity: .7;
+    font-variant-numeric: tabular-nums;
+  }
+  .cat-row button.nm:hover { color: var(--ink); }
+  .cat-row button.nm:hover .rk { opacity: 1; }
+  .cat-row .track {
+    position: relative; height: 10px; border-radius: 99px;
+    background: rgba(255, 255, 255, .05); overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .03);
+  }
   /* .fill 是 .track 的子元素、不是 grid item，不會被 blockify；
      留在 display:inline 的話 width/height 一律無效，長條圖會整條不見。 */
-  .cat-row .fill { display: block; height: 100%; border-radius: 99px; background: var(--cc); transition: width .6s cubic-bezier(.2,.8,.3,1); }
-  .cat-row .n { font-size: 12px; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
-  .cat-row button.nm { background: none; border: 0; padding: 0; cursor: pointer; text-align: left; font: inherit; font-size: 12px; color: var(--dim); }
-  .cat-row button.nm:hover { color: var(--ink); }
+  .cat-row .fill {
+    display: block; position: relative; height: 100%; width: 0; border-radius: 99px;
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--cc) 42%, transparent), var(--cc));
+    box-shadow: 0 0 14px color-mix(in srgb, var(--cc) 45%, transparent);
+    transition: width .9s cubic-bezier(.2, .8, .3, 1) var(--d, 0s);
+  }
+  #activity.lit .cat-row .fill { width: var(--w, 0); }
+  /* 一道緩慢掃過的流光（只動 background-position） */
+  .cat-row .fill::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit;
+    background: linear-gradient(100deg, transparent 36%, rgba(255, 255, 255, .32) 50%, transparent 64%);
+    background-size: 260% 100%;
+    animation: specSweep 4.6s linear infinite; animation-delay: calc(var(--d, 0s) * 3);
+  }
+  @keyframes specSweep { from { background-position: 160% 0; } to { background-position: -60% 0; } }
+  .cat-row:hover .fill { box-shadow: 0 0 22px color-mix(in srgb, var(--cc) 62%, transparent); }
+  .cat-row .n {
+    font-size: 12.5px; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums;
+    display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25;
+  }
+  .cat-row .n em { font-style: normal; font-size: 10px; color: var(--faint); }
 
   @media (max-width: 640px) {
     #activity { padding: 0 16px; }
+    .obs-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .obs-stat { padding: 11px 6px 10px; border-radius: 12px; }
+    .obs-stat .ol { letter-spacing: .1em; text-indent: .1em; }
     .cal-lab { width: 50px; font-size: 10px; }
+    .cal-mon { width: 44px; }
     .act-sum { flex-basis: 100%; order: 3; }
+    .cat-row { grid-template-columns: 112px 1fr 52px; gap: 9px; }
+    .cat-row button.nm { font-size: 11.5px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .cal-c, .cat-row .fill { transition: none; }
+    .obs-stat, .cal-row, .cat-row, .cal-c, .cat-row .fill, .cal-mon i, .seg-ind { transition: none; }
+    .cal-c[data-n="3"], .cal-c[data-n="4"], .cat-row .fill::after { animation: none; }
+    .cal-c[data-n]:not([data-n="0"]):hover { transform: scale(var(--s)); }
   }
 
   /* ==========================================================================

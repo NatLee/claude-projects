@@ -347,24 +347,65 @@
 
   /* min-width:0 －flex item 預設 min-width:auto 會以 max-content 撐寬整列 */
   .chips { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; }
+  /* 類別 chip＝星座圖例：標記是一顆四角星（不是圓點），件數是獨立的徽章，
+     選取時該星座的顏色從左端暈進來、其餘的收斂到背景去。 */
   .chip {
+    position: relative;
     font-family: inherit; font-size: 12.5px; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 7px; white-space: nowrap;
-    color: var(--dim); background: rgba(10, 14, 30, .55);
-    border: 1px solid var(--line); border-radius: 999px; padding: 7px 13px;
-    transition: color .25s, border-color .25s, background .25s, box-shadow .25s, transform .2s;
+    display: inline-flex; align-items: center; gap: 8px; white-space: nowrap;
+    color: var(--dim);
+    background: linear-gradient(160deg, rgba(19, 24, 46, .6), rgba(9, 12, 26, .6));
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 8px 6px 11px;
+    transition: color .25s, border-color .25s, opacity .25s, box-shadow .25s, transform .2s;
   }
-  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cc, var(--gold)); flex: none; }
-  .chip .n { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; transition: color .25s; }
-  .chip:hover { color: var(--ink); border-color: color-mix(in srgb, var(--cc, var(--gold)) 50%, transparent); transform: translateY(-1px); }
+  /* 有選到某一類時，其餘的退到背景。.7 是對比的下限：--dim 疊在 --bg 上還有
+     4.85:1，再低（.65 → 4.33:1）就跌破 4.5:1。退場只是輔助訊號，被選中的那顆
+     另有邊框、外暈、色暈與實心件數徽章，不必靠壓暗其他人來凸顯。 */
+  .chips.has-sel .chip:not([aria-pressed="true"]) { opacity: .7; }
+  .chips.has-sel .chip:not([aria-pressed="true"]):hover { opacity: .95; }
+
+  .chip .dot {
+    width: 10px; height: 10px; flex: none; background: var(--cc, var(--gold));
+    clip-path: polygon(50% 0%, 60% 40%, 100% 50%, 60% 60%, 50% 100%, 40% 60%, 0% 50%, 40% 40%);
+    transition: filter .25s, transform .4s cubic-bezier(.2, .8, .3, 1);
+  }
+  /* 「全部」＝六個星座一起：標記畫成六色 conic */
+  .chip.all .dot {
+    background: conic-gradient(from -90deg,
+      var(--c-trivia) 0 16.7%, var(--c-odd) 0 33.4%, var(--c-sci) 0 50%,
+      var(--c-learn) 0 66.7%, var(--c-tool) 0 83.4%, var(--c-fun) 0 100%);
+  }
+  .chip .n {
+    font-size: 10.5px; line-height: 1.6; color: var(--faint); font-variant-numeric: tabular-nums;
+    padding: 1px 7px; border-radius: 999px; background: rgba(150, 165, 220, .1);
+    transition: color .25s, background .25s;
+  }
+  .chip:hover {
+    color: var(--ink); transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--cc, var(--gold)) 46%, transparent);
+  }
+  .chip:hover .dot { filter: drop-shadow(0 0 6px var(--cc, var(--gold))); }
+  .chip:hover .n { color: var(--dim); background: rgba(150, 165, 220, .18); }
+
   .chip[aria-pressed="true"] {
-    color: var(--cc, var(--gold));
+    color: color-mix(in srgb, var(--cc, var(--gold)) 50%, var(--ink));
     border-color: color-mix(in srgb, var(--cc, var(--gold)) 62%, transparent);
-    background: color-mix(in srgb, var(--cc, var(--gold)) 10%, transparent);
-    box-shadow: 0 0 16px color-mix(in srgb, var(--cc, var(--gold)) 20%, transparent);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--cc, var(--gold)) 22%, transparent),
+                inset 0 1px 0 rgba(255, 255, 255, .06);
   }
-  .chip[aria-pressed="true"] .dot { box-shadow: 0 0 9px var(--cc, var(--gold)); }
-  .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--cc, var(--gold)) 70%, var(--ink)); }
+  /* 顏色從標記那一端暈開，而不是整顆平鋪上色 */
+  .chip[aria-pressed="true"]::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(120% 180% at 9% 50%,
+      color-mix(in srgb, var(--cc, var(--gold)) 26%, transparent), transparent 62%);
+  }
+  .chip[aria-pressed="true"] .dot {
+    transform: rotate(90deg) scale(1.16);
+    filter: drop-shadow(0 0 8px var(--cc, var(--gold)));
+  }
+  .chip[aria-pressed="true"] .n {
+    color: var(--bg); background: var(--cc, var(--gold)); font-weight: 600;
+  }
 
   .tools { display: flex; align-items: center; gap: 10px; margin-left: auto; min-width: 0; }
   .seg {
@@ -552,6 +593,9 @@
     .chips {
       flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 2px;
       scrollbar-width: none; -ms-overflow-style: none;
+      /* 橫向捲動時右緣收掉，不要切一刀（左緣不收：清單一定從最左邊開始） */
+      -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+      mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 26px), transparent 100%);
     }
     .chips::-webkit-scrollbar { display: none; }
     .search kbd { display: none; }
@@ -976,6 +1020,10 @@
     #torch { display: none; }
     .card, .card.tilt, .h-card.tilt { transform: none !important; }
     .tab-ind { transition: none; }
+    /* chip：抽掉位移與標記轉動，只留顏色狀態（放大保留，那是靜態的層級訊號） */
+    .chip, .chip .dot { transition: none; }
+    .chip:hover { transform: none; }
+    .chip[aria-pressed="true"] .dot { transform: scale(1.16); }
   }
   @media (max-width: 560px) {
     #torch { display: none; }

@@ -186,7 +186,7 @@ function renderChips() {
   const nav = $("chips");
   const all = document.createElement("button");
   all.type = "button";
-  all.className = "chip";
+  all.className = "chip all"; /* .all → 標記畫成六色 conic（六個星座一起） */
   all.innerHTML = `<span class="dot"></span>全部<span class="n">${PROJECTS.length}</span>`;
   all.setAttribute("aria-pressed", "true");
   all.addEventListener("click", () => setCat(null));
@@ -208,6 +208,8 @@ function syncChips() {
   document.querySelectorAll("#chips .chip").forEach(c => {
     c.setAttribute("aria-pressed", String((c.dataset.cat || null) === state.cat));
   });
+  /* has-sel：有選到某一類時，其餘的收斂到背景去，讓當下那一顆自己站出來 */
+  $("chips").classList.toggle("has-sel", !!state.cat);
 }
 function setCat(cat) {
   state.cat = cat;

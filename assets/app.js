@@ -432,10 +432,18 @@ function countUp(el, to) {
     c.width = Math.round(W * dpr); c.height = Math.round(H * dpr);
     const g = c.getContext("2d");
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    /* 上下緣垂直衰減：畫布內的星塵濃度遠高於頁面的 #dust，若靠 CSS 遮罩硬切，
+       濃度落差會在遮罩轉折處露出一條水平接縫。這裡在「產生星塵時」就用 smoothstep
+       把濃度沿垂直方向化開（上緣 18%、下緣 22% 的高度），讓兩層自然接上；
+       遮罩因此只需要很短的距離收尾。銀河帶用同一支函式，兩端也不會被切斷。 */
+    const edgeFade = (y) => {
+      const k = Math.min(1, Math.max(0, Math.min(y / (H * .18), (H - y) / (H * .22))));
+      return k * k * (3 - 2 * k);
+    };
     const n = Math.round(W * H / density);
     for (let i = 0; i < n; i++) {
       const x = Math.random() * W, y = Math.random() * H, k = Math.random();
-      g.globalAlpha = (.1 + k * .4) * bright;
+      g.globalAlpha = (.1 + k * .4) * bright * edgeFade(y);
       g.fillStyle = k > .85 ? "#d6e4ff" : "#93a5d6";
       g.beginPath(); g.arc(x, y, .3 + k * 1.2, 0, 7); g.fill();
     }
@@ -443,9 +451,10 @@ function countUp(el, to) {
       const u = Math.random();
       const cx = W * (.06 + u * .92), cy = H * (.84 - u * .64);
       const spread = (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
-      g.globalAlpha = (.05 + Math.random() * .2) * bright;
+      const gy = cy + spread * 92;
+      g.globalAlpha = (.05 + Math.random() * .2) * bright * edgeFade(gy);
       g.fillStyle = "#aebbe8";
-      g.beginPath(); g.arc(cx + spread * 46, cy + spread * 92, .3 + Math.random() * .9, 0, 7); g.fill();
+      g.beginPath(); g.arc(cx + spread * 46, gy, .3 + Math.random() * .9, 0, 7); g.fill();
     }
     g.globalAlpha = 1;
     return c;
@@ -477,7 +486,11 @@ function countUp(el, to) {
     /* 星座框排版：寬幕 3×2、窄幕 2×3，盡量把整片天空撐滿 */
     const cols = W >= 980 ? 3 : 2;
     const rows = Math.ceil(CONSTELLATIONS.length / cols);
-    const mx = Math.max(14, W * .025), myT = 30, myB = 88;
+    /* myT／myB 跟著 H 走，讓星座與星座名永遠落在 style.css 那道遮罩的全不透明區內
+       （遮罩：0→6% 淡入、91%→100% 淡出）。原本是固定的 30／88px：天空一高，
+       6% 就吃掉超過 49px，最上排的星星剛好卡在淡入區裡半明半滅——那就是上緣的破綻。 */
+    const mx = Math.max(14, W * .025);
+    const myT = Math.max(38, H * .085), myB = Math.max(92, H * .125);
     const uw = W - mx * 2, uh = H - myT - myB;
     const bw = uw / cols, bh = uh / rows;
     const padX = Math.min(bw * .1, 24), padTop = Math.min(bh * .08, 16), padBot = 34; /* 底部留星座名 */
@@ -533,7 +546,9 @@ function countUp(el, to) {
     const nebHex = ["#64b5f6", "#ba9df1", "#4dd0e1", "#f48fb1"];
     nebs = nebHex.map((hx, i) => ({
       sp: nebSprite(hx),
-      bx: W * [.16, .78, .46, .9][i], by: H * [.3, .22, .74, .66][i],
+      /* 星雲精靈很大（最大 0.6×max(W,H)），中心太靠上下緣時，它還很亮的那一段
+         會被畫布邊緣直接切平——收進 [.28,.72] 讓切口落在精靈已經淡掉的外圈。 */
+      bx: W * [.16, .78, .46, .9][i], by: H * Math.min(.72, Math.max(.28, [.3, .22, .74, .66][i])),
       size: Math.max(W, H) * [.52, .6, .46, .4][i],
       orb: 16 + i * 7, spd: .00005 + i * .00002, ph: i * 1.7,
     }));

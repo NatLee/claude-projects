@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>誰先開口｜每日小專案</title>
+<meta name="description" content="七則訊息、二十七筆零碎的欠款，三個星期沒人開口。把線折起來，只剩四次轉帳——而且附一段寫好的訊息。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b0f13; --pk-ink:#e7ece9; --pk-dim:#7f8d8c; --pk-accent:#6ed3a3;
+  --owe:#e3714c; --line:rgba(255,255,255,.10); --panel:#121820;
+  --pk-maxw:660px;
+}
+body{ background:radial-gradient(1200px 700px at 50% -10%, #131b22 0%, #0b0f13 62%) no-repeat, var(--pk-bg); }
+[hidden]{ display:none !important; }
+
+/* ── 第一屏 ── */
+.hero-total{ font-variant-numeric:tabular-nums; color:var(--pk-dim); font-size:13px; letter-spacing:.1em; }
+.tear{ height:12px; margin:26px 0 0;
+  background:linear-gradient(-45deg, transparent 50%, var(--line) 50%) 0 0/10px 12px repeat-x; opacity:.7; }
+.cue{ margin-top:34px; color:var(--pk-dim); font-size:13px; letter-spacing:.18em; }
+.cue span{ display:inline-block; animation:bob 2.4s ease-in-out infinite; }
+@keyframes bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+
+h2.ch{ font-family:var(--pk-serif); font-size:clamp(19px,4.4vw,25px); font-weight:600;
+  margin:0 0 6px; line-height:1.5; }
+.eyebrow{ font-size:11.5px; letter-spacing:.28em; color:var(--pk-dim); margin:0 0 12px; }
+section{ margin:0 0 clamp(72px,14vh,120px); }
+p{ margin:0 0 16px; }
+.lead{ font-size:17px; }
+.dim{ color:var(--pk-dim); }
+
+/* ── 聊天 ── */
+.chat{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:16px 14px 10px; }
+.chat-top{ display:flex; align-items:center; gap:10px; padding:0 4px 14px; border-bottom:1px solid var(--line); margin-bottom:16px; }
+.chat-top b{ font-size:14.5px; font-weight:600; letter-spacing:.02em; }
+.chat-top small{ color:var(--pk-dim); font-size:11.5px; }
+.msg{ display:flex; gap:10px; margin:0 0 15px; }
+.av{ flex:0 0 30px; height:30px; border-radius:50%; display:grid; place-items:center;
+  font-size:12px; font-weight:700; color:#0b0f13; margin-top:2px; }
+.body{ min-width:0; }
+.who{ font-size:11.5px; color:var(--pk-dim); margin:0 0 4px; }
+.who i{ font-style:normal; opacity:.65; margin-left:6px; font-variant-numeric:tabular-nums; }
+.bub{ display:inline-block; background:#1b2430; border:1px solid var(--line); border-radius:4px 14px 14px 14px;
+  padding:9px 13px; font-size:14.5px; line-height:1.7; }
+.tag{ margin:8px 0 0; font-size:11.5px; color:var(--pk-dim); letter-spacing:.02em;
+  border-left:2px solid var(--pk-accent); padding-left:9px; font-variant-numeric:tabular-nums; }
+.tag b{ color:var(--pk-ink); font-weight:600; }
+.gap{ text-align:center; color:var(--pk-dim); font-size:11.5px; letter-spacing:.14em; margin:22px 0 16px; }
+.gap::before,.gap::after{ content:''; display:inline-block; width:34px; height:1px; background:var(--line); vertical-align:middle; margin:0 10px; }
+.read{ text-align:right; color:var(--pk-dim); font-size:11.5px; padding:0 4px 8px; }
+
+/* ── 線團 ── */
+.stage{ position:relative; width:100%; max-width:520px; margin:0 auto;
+  aspect-ratio:420/320; }
+.stage svg{ width:100%; height:100%; overflow:visible; display:block; }
+.edge{ fill:none; stroke:var(--owe); stroke-width:1.1; opacity:.62; }
+.node{ fill:#22303c; stroke:var(--line); stroke-width:1; }
+.nlab{ fill:var(--pk-ink); font-size:14px; font-family:system-ui,-apple-system,"PingFang TC",sans-serif; }
+.counter{ text-align:center; font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  font-size:13px; color:var(--pk-dim); margin-top:6px; }
+.counter b{ font-size:30px; color:var(--owe); font-weight:600; display:block; line-height:1.2; }
+
+.act{ text-align:center; margin:26px 0 0; }
+.act .pk-btn{ font-size:14.5px; }
+.note{ text-align:center; font-size:12.5px; color:var(--pk-dim); margin:12px 0 0; min-height:1.2em; }
+
+/* ── 淨額帳本 ── */
+.ledger{ margin:22px 0 0; border-top:1px solid var(--line); }
+.row{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--line); }
+.row .nm{ flex:0 0 62px; font-size:13.5px; }
+.track{ position:relative; flex:1 1 auto; height:12px; }
+.track::before{ content:''; position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--line); }
+.bar{ position:absolute; top:1px; height:10px; border-radius:2px; width:50%;
+  transition:transform .7s cubic-bezier(.2,.7,.3,1); }
+.bar.pos{ left:50%; transform-origin:0 50%; background:var(--pk-accent); }
+.bar.neg{ right:50%; transform-origin:100% 50%; background:var(--owe); }
+.amt{ flex:0 0 88px; text-align:right; font-variant-numeric:tabular-nums; font-size:13.5px;
+  transition:color .5s, opacity .5s; }
+.row.done .nm,.row.done .amt{ opacity:.4; }
+.sumline{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--pk-dim); padding:11px 0 0; }
+
+/* ── 轉帳 ── */
+.tf{ list-style:none; margin:18px 0 0; padding:0; }
+.tf li{ display:flex; align-items:baseline; gap:8px; padding:11px 12px; margin:0 0 8px;
+  background:var(--panel); border:1px solid var(--line); border-left:2px solid var(--pk-accent);
+  border-radius:0 10px 10px 0; font-size:14.5px; font-variant-numeric:tabular-nums;
+  opacity:0; transform:translateX(-10px); transition:opacity .5s, transform .5s; }
+.tf li.in{ opacity:1; transform:none; }
+.tf .ar{ color:var(--pk-accent); }
+.tf .v{ margin-left:auto; font-weight:600; }
+
+.big{ text-align:center; margin:34px 0 0; font-variant-numeric:tabular-nums; }
+.big .a{ font-size:clamp(38px,11vw,58px); color:var(--owe); font-family:var(--pk-serif); }
+.big .to{ font-size:22px; color:var(--pk-dim); margin:0 12px; }
+.big .b{ font-size:clamp(38px,11vw,58px); color:var(--pk-accent); font-family:var(--pk-serif); }
+.big small{ display:block; font-size:12.5px; color:var(--pk-dim); letter-spacing:.16em; margin-top:2px; }
+
+/* ── 訊息框 ── */
+.draft{ margin:22px 0 0; }
+.draft textarea{ width:100%; min-height:132px; resize:vertical; background:#0e141a; color:var(--pk-ink);
+  border:1px solid var(--line); border-radius:12px; padding:14px; font:inherit; font-size:14px; line-height:1.9;
+  font-variant-numeric:tabular-nums; }
+.draft .bar2{ display:flex; gap:10px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+
+/* ── 工具 ── */
+.tool{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px 16px; }
+.tool h3{ font-size:12px; letter-spacing:.22em; color:var(--pk-dim); font-weight:600; margin:0 0 12px; text-transform:uppercase; }
+.tool section{ margin:0 0 24px; }
+.people{ display:flex; flex-wrap:wrap; gap:8px; }
+.person{ display:flex; align-items:center; background:#0e141a; border:1px solid var(--line); border-radius:999px; padding:3px 4px 3px 12px; }
+.person input{ width:5.2em; background:transparent; border:0; color:var(--pk-ink); font:inherit; font-size:13.5px; padding:3px 0; }
+.person input:focus{ outline:none; border-bottom:1px solid var(--pk-accent); }
+.x{ appearance:none; border:0; background:transparent; color:var(--pk-dim); cursor:pointer;
+  font-size:15px; line-height:1; padding:5px 7px; border-radius:50%; }
+.x:hover{ color:var(--owe); }
+.mini{ appearance:none; cursor:pointer; font:inherit; font-size:13px; color:var(--pk-dim);
+  background:transparent; border:1px dashed var(--line); border-radius:999px; padding:6px 13px; }
+.mini:hover{ color:var(--pk-ink); border-color:var(--pk-accent); }
+.frm{ display:grid; grid-template-columns:1fr 96px; gap:8px; }
+.frm input,.frm select{ background:#0e141a; border:1px solid var(--line); border-radius:9px;
+  color:var(--pk-ink); font:inherit; font-size:14px; padding:9px 11px; width:100%; }
+.frm input:focus,.frm select:focus{ outline:none; border-color:var(--pk-accent); }
+.chips{ display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; }
+.chip{ appearance:none; cursor:pointer; font:inherit; font-size:12.5px; padding:5px 11px; border-radius:999px;
+  background:transparent; color:var(--pk-dim); border:1px solid var(--line); transition:background .2s,color .2s,border-color .2s; }
+.chip[aria-pressed="true"]{ background:rgba(110,211,163,.14); color:var(--pk-accent); border-color:rgba(110,211,163,.45); }
+.bills{ list-style:none; margin:12px 0 0; padding:0; }
+.bills li{ display:flex; align-items:center; gap:8px; font-size:13px; padding:8px 0; border-bottom:1px solid var(--line);
+  font-variant-numeric:tabular-nums; }
+.bills .g{ color:var(--pk-dim); font-size:11.5px; }
+.bills .v{ margin-left:auto; }
+.empty{ color:var(--pk-dim); font-size:13px; padding:10px 0; }
+.out{ border-top:1px solid var(--line); padding-top:16px; }
+.hint{ font-size:12px; color:var(--pk-dim); margin:8px 0 0; }
+.lbl{ font-size:12px; color:var(--pk-dim); margin:14px 0 6px; }
+
+.kicker{ font-family:var(--pk-serif); font-size:clamp(20px,5vw,27px); line-height:1.65; margin:26px 0 0; }
+.kicker em{ font-style:normal; color:var(--pk-accent); }
+.hr{ height:1px; background:var(--line); margin:30px 0; }
+
+@media (max-width:560px){
+  .amt{ flex:0 0 76px; font-size:12.5px; }
+  .row .nm{ flex:0 0 52px; font-size:12.5px; }
+  .frm{ grid-template-columns:1fr 84px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .cue span{ animation:none; }
+  .bar,.tf li{ transition:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="hero-total rv">宜蘭・兩天一夜・六個人</p>
+    <h1 class="rv">宜蘭那兩天，是三個星期前的事了。</h1>
+    <p class="lead rv">錢還沒清。不是因為有人想賴帳——是因為到現在，沒有人算得出來誰該給誰多少。</p>
+    <div class="tear rv"></div>
+    <p class="cue rv"><span>往下 ↓</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- 章一：群組 -->
+  <section id="chat">
+    <p class="eyebrow rv">第一章 · 那個沒有人再說話的群組</p>
+    <h2 class="ch rv">回程車上，七則訊息。</h2>
+    <p class="rv dim">每一則後面，都跟著一筆帳。</p>
+
+    <div class="chat rv" id="chatBox">
+      <div class="chat-top">
+        <b>宜蘭 走就走</b><small>6 人</small>
+      </div>
+      <!-- 訊息由 JS 產生 -->
+      <div class="read">已讀 6</div>
+    </div>
+  </section>
+
+  <!-- 章二：線團 -->
+  <section id="web">
+    <p class="eyebrow rv">第二章 · 把它畫出來</p>
+    <h2 class="ch rv">七則訊息，攤開來是幾條線？</h2>
+    <p class="rv">每一筆帳都會生出好幾條「誰欠誰」。六個人、七筆帳，畫成一張圖大概長這樣——</p>
+
+    <div class="stage rv">
+      <svg id="webSvg" viewBox="0 0 420 320" aria-hidden="true"></svg>
+    </div>
+    <p class="counter" id="webCount"><b>0</b>條零碎的欠款</p>
+    <div class="act rv">
+      <button class="pk-btn" id="drawBtn" type="button">把七則訊息畫成線</button>
+    </div>
+    <p class="note" id="webNote"></p>
+  </section>
+
+  <!-- 章三：轉折 -->
+  <section id="fold">
+    <p class="eyebrow rv">第三章 · 那個沒有人講的祕密</p>
+    <h2 class="ch rv">你其實不需要知道誰欠誰。</h2>
+    <p class="rv">二十七條線裡，藏著一個會讓整團線瞬間鬆開的事實：<br>
+      你只需要知道，每個人到底<b>多付了多少</b>、<b>少付了多少</b>。</p>
+    <p class="rv dim">誰欠誰不重要。因為錢繞一圈之後，只有這一個數字會留下來。</p>
+
+    <div class="act rv">
+      <button class="pk-btn" id="foldBtn" type="button" disabled>把線折起來</button>
+    </div>
+
+    <div class="ledger" id="ledger" hidden aria-live="polite"></div>
+    <p class="sumline" id="sumline" hidden><span>六個數字加起來</span><b id="sumVal">0</b></p>
+    <p class="note" id="foldNote"></p>
+  </section>
+
+  <!-- 章四：結清 -->
+  <section id="settle">
+    <p class="eyebrow rv">第四章 · 結清</p>
+    <h2 class="ch rv">剩下的事，只是把多的還給少的。</h2>
+    <p class="rv">規則簡單到有點失禮：<b>欠最多的人，付給該收最多的人</b>，付到其中一邊歸零為止。然後重來。</p>
+
+    <div class="act rv">
+      <button class="pk-btn" id="settleBtn" type="button" disabled>結清</button>
+    </div>
+    <ul class="tf" id="tfList"></ul>
+
+    <div class="big" id="bigNum" hidden>
+      <span class="a" id="bigA">27</span><span class="to">→</span><span class="b" id="bigB">4</span>
+      <small>條欠款 · 變成 · 次轉帳</small>
+    </div>
+
+    <div class="act" id="proveWrap" hidden>
+      <button class="pk-btn" id="proveBtn" type="button">等等，這真的是最少的嗎？</button>
+    </div>
+    <p class="note" id="proveNote"></p>
+
+    <div class="draft" id="draftWrap" hidden>
+      <p class="lbl">最後一步，也是最難的一步——貼回群組：</p>
+      <textarea id="draft" readonly aria-label="可複製的結帳訊息"></textarea>
+      <div class="bar2">
+        <button class="pk-btn" id="copyBtn" type="button">複製這段話</button>
+        <span class="note" id="copyNote" style="margin:0"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 章五：工具 -->
+  <section id="tool">
+    <p class="eyebrow rv">第五章 · 換你的那一頓</p>
+    <h2 class="ch rv">你的群組裡，大概也有一筆這樣的帳。</h2>
+    <p class="rv dim">填進去。它會算完，順便幫你把話寫好。</p>
+
+    <div class="tool rv">
+      <section>
+        <h3>誰在場</h3>
+        <div class="people" id="people"></div>
+        <div style="margin-top:10px"><button class="mini" id="addPerson" type="button">＋ 加一個人</button></div>
+      </section>
+
+      <section>
+        <h3>誰付了什麼</h3>
+        <div class="frm">
+          <input id="fName" type="text" placeholder="項目（晚餐、車錢…）" aria-label="項目">
+          <input id="fAmt" type="number" inputmode="decimal" min="0" step="any" placeholder="金額" aria-label="金額">
+        </div>
+        <div class="lbl">誰先付的</div>
+        <div class="chips" id="fPayer" role="group" aria-label="付款人"></div>
+        <div class="lbl">分給誰 <button class="mini" id="fAll" type="button" style="margin-left:6px;padding:3px 10px">全選／全不選</button></div>
+        <div class="chips" id="fParts" role="group" aria-label="分攤對象"></div>
+        <div style="margin-top:14px"><button class="pk-btn" id="addBill" type="button" style="font-size:14px;padding:10px 20px">加進去</button></div>
+        <p class="hint" id="toolMsg" role="status"></p>
+        <ul class="bills" id="billList"></ul>
+      </section>
+
+      <section class="out" style="margin-bottom:0">
+        <h3>結果</h3>
+        <div id="toolOut"><p class="empty">加一筆帳，這裡就會有答案。</p></div>
+      </section>
+    </div>
+    <p class="hint">這一頓會被記住，下次回來還在。</p>
+  </section>
+
+  <!-- 記憶點 -->
+  <section id="end">
+    <div class="hr"></div>
+    <p class="eyebrow rv">最後一件事</p>
+    <p class="rv">剛剛按下「這真的是最少的嗎」的時候，這一頁做的事是：把六個人拆成所有可能的分組，一組一組檢查有沒有剛好互相抵銷。六個人有 203 種分法，一眨眼就跑完了。</p>
+    <p class="rv">十二個人是 4,213,597 種。二十個人是五十兆種。<br>
+      這個問題有名字，叫 <b>NP-complete</b>——它和「有沒有辦法把一堆數字剛好分成相等的兩堆」一樣難。連 Splitwise 都沒有真正解開它；它跟這一頁一樣，先用貪婪法猜一個，能不能證明是最少，看人數。</p>
+    <p class="rv dim">所以那筆錢卡了三個星期，其實不是因為數學。</p>
+    <p class="kicker rv">六個人裡沒有人不會算除法。<br>他們卡住的地方是——<em>誰要當第一個開口的人</em>。</p>
+    <p class="rv" style="margin-top:22px">現在那段話已經寫好了。你只要按複製。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  演算法與複雜度參考：Splitwise 債務簡化說明、Yao《Settling Debts Efficiently: Zero-Sum Set Packing》（Harvard, 2017）。<br>
+  故事、人名與金額皆為虛構。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'splitr.';
+const store = PK.store(LS);
+
+/* ══════════════════════════════════════════════════════════════
+   核心邏輯（純函式，金額一律以「分」為整數單位，可用 node 斷言）
+   ══════════════════════════════════════════════════════════════ */
+
+/* 平均分攤：整數守恆，餘數逐一分給前面的人（不會憑空多出或少掉一分） */
+function splitShares(total, n) {
+  const base = Math.floor(total / n), r = total - base * n, out = [];
+  for (let i = 0; i < n; i++) out.push(base + (i < r ? 1 : 0));
+  return out;
+}
+
+/* 淨額＝付出去的 − 應該分攤的。所有人的淨額加起來恆為 0。 */
+function computeNets(nPeople, bills) {
+  const net = new Array(nPeople).fill(0);
+  bills.forEach(function (b) {
+    if (!b.parts.length || !b.amount) return;
+    net[b.payer] += b.amount;
+    const sh = splitShares(b.amount, b.parts.length);
+    b.parts.forEach(function (p, i) { net[p] -= sh[i]; });
+  });
+  return net;
+}
+
+/* 貪婪法：欠最多的付給該收最多的，直到一邊歸零。最多 n−1 筆。 */
+function greedySettle(net) {
+  const cr = [], de = [], out = [];
+  net.forEach(function (v, i) { if (v > 0) cr.push({ i: i, v: v }); else if (v < 0) de.push({ i: i, v: -v }); });
+  const bigFirst = function (a, b) { return b.v - a.v; };
+  while (cr.length && de.length) {
+    cr.sort(bigFirst); de.sort(bigFirst);
+    const c = cr[0], d = de[0], m = Math.min(c.v, d.v);
+    out.push({ from: d.i, to: c.i, amt: m });
+    c.v -= m; d.v -= m;
+    if (c.v === 0) cr.shift();
+    if (d.v === 0) de.shift();
+  }
+  return out;
+}
+
+/* 最少轉帳＝非零人數 − 最大「零和分組」數。bitmask DP，O(3^n)，人多就放棄。 */
+const EXACT_MAX = 14;
+function minSettle(net) {
+  const idx = [];
+  for (let i = 0; i < net.length; i++) if (net[i] !== 0) idx.push(i);
+  const n = idx.length;
+  if (n === 0) return { groups: [], count: 0, tried: 0, exact: true };
+  if (n > EXACT_MAX) return { groups: null, count: greedySettle(net).length, tried: 0, exact: false };
+  const v = idx.map(function (k) { return net[k]; });
+  const full = (1 << n) - 1;
+  const sum = new Int32Array(1 << n);
+  for (let m = 1; m <= full; m++) {
+    const lb = m & -m;
+    sum[m] = sum[m ^ lb] + v[31 - Math.clz32(lb)];
+  }
+  const dp = new Int32Array(1 << n).fill(-1), pick = new Int32Array(1 << n);
+  let tried = 0;
+  dp[0] = 0;
+  for (let mask = 1; mask <= full; mask++) {
+    const low = mask & -mask, rest = mask ^ low;
+    let best = -1, bs = 0;
+    for (let sub = rest; ; sub = (sub - 1) & rest) {
+      const g = sub | low;
+      tried++;
+      if (sum[g] === 0 && dp[mask ^ g] >= 0 && dp[mask ^ g] + 1 > best) { best = dp[mask ^ g] + 1; bs = g; }
+      if (sub === 0) break;
+    }
+    dp[mask] = best; pick[mask] = bs;
+  }
+  const groups = [];
+  let cur = full;
+  while (cur) {
+    const g = pick[cur], gi = [];
+    for (let i = 0; i < n; i++) if (g & (1 << i)) gi.push(idx[i]);
+    groups.push(gi); cur ^= g;
+  }
+  return { groups: groups, count: n - dp[full], tried: tried, exact: true };
+}
+
+/* 先用 DP 找最佳分組，組內再用貪婪連線；人太多就退回純貪婪。 */
+function settleOptimal(net) {
+  const r = minSettle(net);
+  if (!r.groups) return { transfers: greedySettle(net), tried: 0, exact: false };
+  const out = [];
+  r.groups.forEach(function (g) {
+    const sub = new Array(net.length).fill(0);
+    g.forEach(function (i) { sub[i] = net[i]; });
+    greedySettle(sub).forEach(function (t) { out.push(t); });
+  });
+  return { transfers: out, tried: r.tried, exact: true, count: r.count };
+}
+
+/* 貝爾數 B(n)＝把 n 個人分組的方法數（貝爾三角） */
+function bell(n) {
+  if (n > 20) return Infinity;
+  let row = [1];
+  for (let i = 1; i <= n; i++) {
+    const next = [row[row.length - 1]];
+    for (let j = 0; j < row.length; j++) next.push(next[j] + row[j]);
+    row = next;
+  }
+  return row[0];
+}
+
+/* ══════════════════════════════════════════════════════════════
+   顯示工具
+   ══════════════════════════════════════════════════════════════ */
+const money = function (c) {
+  const neg = c < 0, a = Math.abs(c), y = Math.floor(a / 100), s = a % 100;
+  let t = String(y).replace(/\B(?=(\d{3})+$)/g, ',');
+  if (s) t += '.' + String(s).padStart(2, '0');
+  return (neg ? '−' : '') + t;
+};
+const numfmt = function (n) { return String(n).replace(/\B(?=(\d{3})+$)/g, ','); };
+const el = function (id) { return document.getElementById(id); };
+
+/* 同一個節點只允許一個滾動中的動畫，否則舊的會在結束時把新值蓋回去 */
+function rollTo(node, from, to, ms, fmt) {
+  if (node.__roll) { PK.untick(node.__roll); node.__roll = null; }
+  if (PK.reduced() || from === to) { node.textContent = fmt(to); return; }
+  let t = 0;
+  const step = function (dt) {
+    t += dt * 1000;
+    const k = PK.clamp(t / ms, 0, 1), e = 1 - Math.pow(1 - k, 3);
+    node.textContent = fmt(Math.round(from + (to - from) * e));
+    if (k >= 1) { PK.untick(step); node.__roll = null; }
+  };
+  node.__roll = step;
+  PK.tick(step);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   故事資料：宜蘭那趟（金額以分為單位）
+   ══════════════════════════════════════════════════════════════ */
+const P = ['阿哲', '小K', 'Mei', '老吳', 'Ryan', 'Nana'];
+const HUE = ['#6ed3a3', '#e3b04c', '#c98adf', '#5fb8e0', '#e3714c', '#8ed36e'];
+const A = 0, K = 1, M = 2, W = 3, R = 4, N = 5, ALL = [0, 1, 2, 3, 4, 5];
+
+const MSGS = [
+  { by: A, at: '21:47', text: '民宿刷我的卡了，7,200，六個人分。', bill: { payer: A, amount: 720000, parts: ALL, label: '民宿一晚', split: '六人均分' } },
+  { by: N, at: '21:49', text: '晚餐我先付，3,390。那間真的可以。', bill: { payer: N, amount: 339000, parts: ALL, label: '晚餐', split: '六人均分' } },
+  { by: W, at: '21:52', text: '油錢加過路費 1,800，我加的。', bill: { payer: W, amount: 180000, parts: ALL, label: '油錢＋過路費', split: '六人均分' } },
+  { by: K, at: '21:53', text: '早上超商 480 我刷的，飲料大家都有拿喔。', bill: { payer: K, amount: 48000, parts: ALL, label: '早餐超商', split: '六人均分' } },
+  { by: M, at: '21:55', text: '門票四張 1,200——阿哲跟老吳說要在外面等。', bill: { payer: M, amount: 120000, parts: [K, M, R, N], label: '門票 4 張', split: '小K・Mei・Ryan・Nana' } },
+  { by: R, at: '22:03', text: '鴨賞四份 1,200，阿哲、老吳、Nana 跟我。', bill: { payer: R, amount: 120000, parts: [A, W, R, N], label: '伴手禮', split: '阿哲・老吳・Ryan・Nana' } },
+  { by: A, at: '22:06', text: '@Ryan 還有上個月那杯咖啡 240 是我付的，順便一起算。', bill: { payer: A, amount: 24000, parts: [R], label: '上個月的舊帳', split: 'Ryan 一個人' } },
+  { by: K, at: '22:41', text: '所以…到底誰欠誰？' },
+  { by: M, at: '22:43', text: '我明天算一下。' }
+];
+const BILLS = MSGS.filter(function (m) { return m.bill; }).map(function (m) { return m.bill; });
+const NET = computeNets(6, BILLS);
+let EDGES = 0;
+BILLS.forEach(function (b) { b.parts.forEach(function (p) { if (p !== b.payer) EDGES++; }); });
+
+/* ── 聊天室 ── */
+(function buildChat() {
+  const box = el('chatBox'), tail = box.lastElementChild;
+  MSGS.forEach(function (m, i) {
+    const d = document.createElement('div');
+    d.className = 'msg rv';
+    const av = '<span class="av" style="background:' + HUE[m.by] + '" aria-hidden="true">' + P[m.by].slice(-1) + '</span>';
+    const tag = m.bill
+      ? '<p class="tag"><b>' + m.bill.label + ' ' + money(m.bill.amount) + '</b> ／ ' + P[m.bill.payer] + ' 先付 ／ 分給 ' + m.bill.split + '</p>'
+      : '';
+    d.innerHTML = av + '<div class="body"><p class="who">' + P[m.by] + '<i>' + m.at + '</i></p>' +
+      '<span class="bub">' + m.text + '</span>' + tag + '</div>';
+    box.insertBefore(d, tail);
+    if (i === MSGS.length - 1) {
+      const g = document.createElement('p');
+      g.className = 'gap rv';
+      g.textContent = '三個星期過去了';
+      box.insertBefore(g, tail);
+    }
+  });
+})();
+
+/* ── 線團 ── */
+const svg = el('webSvg');
+const NS = 'http://www.w3.org/2000/svg';
+const CX = 210, CY = 152, RD = 100, LR = 136;
+const PT = P.map(function (_, i) {
+  const a = (-90 + i * 60) * Math.PI / 180;
+  return { x: CX + RD * Math.cos(a), y: CY + RD * Math.sin(a), lx: CX + LR * Math.cos(a), ly: CY + LR * Math.sin(a) };
+});
+const edgeEls = [];
+
+(function buildWeb() {
+  const gEdge = document.createElementNS(NS, 'g');
+  svg.appendChild(gEdge);
+  BILLS.forEach(function (b, bi) {
+    b.parts.forEach(function (p) {
+      if (p === b.payer) return;
+      const s = PT[p], t = PT[b.payer];
+      const dx = t.x - s.x, dy = t.y - s.y, len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len, trim = 15;
+      const x1 = s.x + ux * trim, y1 = s.y + uy * trim, x2 = t.x - ux * trim, y2 = t.y - uy * trim;
+      const off = 9 + bi * 7;
+      const cx = (x1 + x2) / 2 - uy * off, cy = (y1 + y2) / 2 + ux * off;
+      const path = document.createElementNS(NS, 'path');
+      path.setAttribute('class', 'edge');
+      path.setAttribute('d', 'M' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' Q' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + x2.toFixed(1) + ' ' + y2.toFixed(1));
+      gEdge.appendChild(path);
+      edgeEls.push(path);
+    });
+  });
+  PT.forEach(function (pt, i) {
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('class', 'node');
+    c.setAttribute('cx', pt.x); c.setAttribute('cy', pt.y); c.setAttribute('r', 13);
+    svg.appendChild(c);
+    const tx = document.createElementNS(NS, 'text');
+    tx.setAttribute('class', 'nlab');
+    tx.setAttribute('x', pt.lx); tx.setAttribute('y', pt.ly + 5);
+    tx.setAttribute('text-anchor', pt.lx > CX + 6 ? 'start' : (pt.lx < CX - 6 ? 'end' : 'middle'));
+    tx.textContent = P[i];
+    svg.appendChild(tx);
+  });
+})();
+
+/* dasharray 安全畫線：none → 隱藏 → 強制 reflow → 下一個 rAF 才開 transition */
+function drawEdge(path, dur, delay) {
+  const len = path.getTotalLength();
+  path.style.transition = 'none';
+  path.style.strokeDasharray = len;
+  path.style.strokeDashoffset = len;
+  void path.getBoundingClientRect();
+  requestAnimationFrame(function () {
+    path.style.transition = 'stroke-dashoffset ' + dur + 'ms ease ' + delay + 'ms';
+    path.style.strokeDashoffset = 0;
+  });
+}
+
+let drawn = false;
+el('drawBtn').addEventListener('click', function () {
+  if (drawn) return;
+  drawn = true;
+  const btn = this;
+  btn.disabled = true;
+  btn.textContent = '畫好了';
+  const cnum = el('webCount').firstElementChild;
+  if (PK.reduced()) {
+    edgeEls.forEach(function (p) { p.style.strokeDasharray = 'none'; p.style.strokeDashoffset = 0; });
+    cnum.textContent = EDGES;
+  } else {
+    edgeEls.forEach(function (p, i) { drawEdge(p, 620, i * 62); });
+    rollTo(cnum, 0, EDGES, edgeEls.length * 62 + 400, function (v) { return v; });
+  }
+  el('webNote').textContent = EDGES + ' 條。難怪三個星期沒有人想先開口。';
+  el('foldBtn').disabled = false;
+  PK.announce('畫出 ' + EDGES + ' 條欠款線');
+});
+
+/* ── 淨額帳本 ── */
+const MAXN = Math.max.apply(null, NET.map(Math.abs));
+const rows = [];
+let cur = NET.slice();
+
+function buildLedger() {
+  const box = el('ledger');
+  box.innerHTML = '';
+  const order = P.map(function (_, i) { return i; }).sort(function (a, b) { return NET[b] - NET[a]; });
+  order.forEach(function (i) {
+    const r = document.createElement('div');
+    r.className = 'row';
+    r.innerHTML = '<span class="nm">' + P[i] + '</span>' +
+      '<span class="track"><span class="bar ' + (NET[i] >= 0 ? 'pos' : 'neg') + '"></span></span>' +
+      '<span class="amt"></span>';
+    box.appendChild(r);
+    rows[i] = { row: r, bar: r.querySelector('.bar'), amt: r.querySelector('.amt'), val: 0 };
+    rows[i].bar.style.transform = 'scaleX(0)';
+    rows[i].amt.textContent = money(0);
+  });
+}
+function paintRow(i, v, ms) {
+  const o = rows[i];
+  o.bar.style.transform = 'scaleX(' + (Math.abs(v) / MAXN).toFixed(4) + ')';
+  rollTo(o.amt, o.val, v, ms || 700, money);
+  o.val = v;
+  o.amt.style.color = v > 0 ? 'var(--pk-accent)' : (v < 0 ? 'var(--owe)' : 'var(--pk-dim)');
+  o.row.classList.toggle('done', v === 0);
+}
+
+let folded = false;
+el('foldBtn').addEventListener('click', function () {
+  if (folded) return;
+  folded = true;
+  this.disabled = true;
+  this.textContent = '折起來了';
+  /* 線收回去 */
+  edgeEls.forEach(function (p, i) {
+    const len = p.getTotalLength();
+    if (PK.reduced()) { p.style.opacity = 0; return; }
+    p.style.transition = 'stroke-dashoffset 500ms ease ' + (i * 14) + 'ms, opacity 500ms ease ' + (i * 14) + 'ms';
+    p.style.strokeDashoffset = len;
+    p.style.opacity = 0;
+  });
+  const cnum = el('webCount').firstElementChild;
+  rollTo(cnum, EDGES, 0, 900, function (v) { return v; });
+  el('ledger').hidden = false; el('sumline').hidden = false;
+  buildLedger();
+  /* 立刻上數字：延後會和「結清」的動畫搶同一格，舊動畫結束時會把新值蓋回去 */
+  NET.forEach(function (v, i) { paintRow(i, v, 900); });
+  el('sumVal').textContent = money(NET.reduce(function (a, b) { return a + b; }, 0));
+  el('foldNote').textContent = '二十七條線，只剩六個數字。三個正的，三個負的，加起來剛好是 0——永遠是 0。';
+  el('settleBtn').disabled = false;
+  PK.announce('已折疊成六個淨額');
+});
+
+/* ── 結清 ── */
+const PLAN = greedySettle(NET);
+let settled = false;
+el('settleBtn').addEventListener('click', function () {
+  if (settled) return;
+  settled = true;
+  this.disabled = true;
+  this.textContent = '結清中…';
+  const btn = this, list = el('tfList');
+  cur = NET.slice();
+  const gap = PK.reduced() ? 0 : 950;
+  PLAN.forEach(function (t, i) {
+    setTimeout(function () {
+      cur[t.from] += t.amt; cur[t.to] -= t.amt;
+      paintRow(t.from, cur[t.from], 700);
+      paintRow(t.to, cur[t.to], 700);
+      const li = document.createElement('li');
+      li.innerHTML = '<span>' + P[t.from] + '</span><span class="ar">→</span><span>' + P[t.to] + '</span><span class="v">' + money(t.amt) + '</span>';
+      list.appendChild(li);
+      requestAnimationFrame(function () { li.classList.add('in'); });
+      if (i === PLAN.length - 1) finish();
+    }, gap * i);
+  });
+  function finish() {
+    btn.textContent = '清乾淨了';
+    el('bigNum').hidden = false;
+    el('bigA').textContent = EDGES;
+    el('bigB').textContent = PLAN.length;
+    el('proveWrap').hidden = false;
+    el('draftWrap').hidden = false;
+    el('draft').value = draftText(P, PLAN);
+    PK.announce('結清完成，共 ' + PLAN.length + ' 筆轉帳');
+  }
+});
+
+function draftText(names, plan) {
+  const cn = ['零', '一', '兩', '三', '四', '五', '六', '七', '八', '九', '十'];
+  const lines = plan.map(function (t) { return '・' + names[t.from] + ' → ' + names[t.to] + '　' + money(t.amt); });
+  return '好，我算完了。這頓最少' + (cn[plan.length] || plan.length) + '筆就清：\n\n' +
+    lines.join('\n') + '\n\n不用互相轉來轉去，照這幾筆付就好。';
+}
+
+el('proveBtn').addEventListener('click', function () {
+  this.disabled = true;
+  const r = settleOptimal(NET);
+  const nz = NET.filter(function (v) { return v !== 0; }).length;
+  const ways = bell(nz);
+  const note = el('proveNote');
+  const same = r.transfers.length >= PLAN.length;
+  note.textContent = '把六個人拆成 ' + numfmt(ways) + ' 種分組、逐組檢查有沒有剛好互相抵銷（共 ' +
+    numfmt(r.tried) + ' 次比對）——' +
+    (same ? PLAN.length + ' 筆就是最少。沒有更漂亮的解了。'
+          : '找到更少的：' + r.transfers.length + ' 筆。');
+  PK.announce(note.textContent);
+});
+
+el('copyBtn').addEventListener('click', function () { copyText(el('draft'), el('copyNote')); });
+
+function copyText(area, note) {
+  const done = function () { note.textContent = '複製好了。剩下的交給你。'; PK.announce('已複製'); };
+  const fallback = function () {
+    try {
+      area.removeAttribute('readonly');
+      area.focus(); area.setSelectionRange(0, area.value.length);
+      const ok = document.execCommand('copy');
+      area.setAttribute('readonly', '');
+      if (ok) done(); else note.textContent = '複製失敗，請手動選取。';
+    } catch (e) { note.textContent = '複製失敗，請手動選取。'; }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(area.value).then(done, fallback);
+  } else fallback();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   章五：你的那一頓
+   ══════════════════════════════════════════════════════════════ */
+const DEF = { people: ['我', '朋友一', '朋友二'], bills: [] };
+let T = store.get('trip', null);
+if (!T || !Array.isArray(T.people) || T.people.length < 2) T = JSON.parse(JSON.stringify(DEF));
+T.people = T.people.slice(0, EXACT_MAX).map(function (n) { return String(n == null ? '' : n).slice(0, 8); });
+T.bills = (Array.isArray(T.bills) ? T.bills : []).filter(function (b) {
+  if (!b || !(b.amount > 0) || !Array.isArray(b.parts)) return false;
+  b.payer = (b.payer | 0);
+  if (b.payer < 0 || b.payer >= T.people.length) return false;
+  b.amount = Math.round(b.amount);
+  b.label = String(b.label == null ? '一筆帳' : b.label).slice(0, 16);
+  b.parts = b.parts.filter(function (p) { return p >= 0 && p < T.people.length; });
+  return b.parts.length > 0;
+});
+let payerSel = 0, partSel = {};
+
+const save = function () { store.set('trip', T); };
+const clampIdx = function () {
+  if (payerSel >= T.people.length) payerSel = 0;
+  Object.keys(partSel).forEach(function (k) { if (+k >= T.people.length) delete partSel[k]; });
+};
+
+function renderPeople() {
+  const box = el('people');
+  box.innerHTML = '';
+  T.people.forEach(function (nm, i) {
+    const d = document.createElement('span');
+    d.className = 'person';
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.value = nm; inp.maxLength = 8;
+    inp.setAttribute('aria-label', '第 ' + (i + 1) + ' 個人的名字');
+    inp.addEventListener('input', function () { T.people[i] = inp.value; save(); renderPickers(); renderBills(); recalc(); });
+    d.appendChild(inp);
+    if (T.people.length > 2) {
+      const x = document.createElement('button');
+      x.className = 'x'; x.type = 'button'; x.textContent = '×';
+      x.setAttribute('aria-label', '移除 ' + (nm || '這個人'));
+      x.addEventListener('click', function () { removePerson(i); });
+      d.appendChild(x);
+    }
+    box.appendChild(d);
+  });
+}
+function removePerson(i) {
+  T.people.splice(i, 1);
+  T.bills = T.bills.filter(function (b) { return b.payer !== i; });
+  T.bills.forEach(function (b) {
+    if (b.payer > i) b.payer--;
+    b.parts = b.parts.filter(function (p) { return p !== i; }).map(function (p) { return p > i ? p - 1 : p; });
+  });
+  T.bills = T.bills.filter(function (b) { return b.parts.length; });
+  partSel = {}; payerSel = 0;
+  selectAllParts();
+  save(); renderAll();
+}
+function selectAllParts() { T.people.forEach(function (_, i) { partSel[i] = true; }); }
+el('addPerson').addEventListener('click', function () {
+  if (T.people.length >= EXACT_MAX) { flash('十四個人已經是這台電腦能「證明最少」的上限了。'); return; }
+  partSel[T.people.length] = true;
+  T.people.push('朋友' + (T.people.length + 1));
+  save(); renderAll();
+});
+
+function renderPickers() {
+  clampIdx();
+  const pay = el('fPayer'), par = el('fParts');
+  pay.innerHTML = ''; par.innerHTML = '';
+  T.people.forEach(function (nm, i) {
+    const b1 = document.createElement('button');
+    b1.className = 'chip'; b1.type = 'button'; b1.textContent = nm || '？';
+    b1.setAttribute('aria-pressed', payerSel === i ? 'true' : 'false');
+    b1.addEventListener('click', function () { payerSel = i; renderPickers(); });
+    pay.appendChild(b1);
+    const b2 = document.createElement('button');
+    b2.className = 'chip'; b2.type = 'button'; b2.textContent = nm || '？';
+    b2.setAttribute('aria-pressed', partSel[i] ? 'true' : 'false');
+    b2.addEventListener('click', function () { partSel[i] = !partSel[i]; renderPickers(); });
+    par.appendChild(b2);
+  });
+}
+el('fAll').addEventListener('click', function () {
+  const on = T.people.some(function (_, i) { return !partSel[i]; });
+  T.people.forEach(function (_, i) { partSel[i] = on; });
+  renderPickers();
+});
+
+el('addBill').addEventListener('click', function () {
+  const raw = parseFloat(el('fAmt').value);
+  const parts = T.people.map(function (_, i) { return i; }).filter(function (i) { return partSel[i]; });
+  if (!(raw > 0)) { flash('請先填一個大於 0 的金額。'); el('fAmt').focus(); return; }
+  if (!parts.length) { flash('要分給誰？至少選一個人。'); return; }
+  T.bills.push({
+    label: (el('fName').value || '一筆帳').slice(0, 16),
+    amount: Math.round(raw * 100),
+    payer: payerSel,
+    parts: parts
+  });
+  el('fName').value = ''; el('fAmt').value = '';
+  flash('');
+  save(); renderBills(); recalc();
+  PK.announce('已加入一筆帳');
+});
+function flash(msg) { el('toolMsg').textContent = msg; if (msg) PK.announce(msg); }
+
+function renderBills() {
+  const ul = el('billList');
+  ul.innerHTML = '';
+  T.bills.forEach(function (b, i) {
+    const li = document.createElement('li');
+    const names = b.parts.map(function (p) { return T.people[p] || '？'; }).join('、');
+    li.innerHTML = '<span>' + esc(b.label) + '<br><span class="g">' + esc(T.people[b.payer] || '？') + ' 付 ／ 分給 ' + esc(names) + '</span></span>' +
+      '<span class="v">' + money(b.amount) + '</span>';
+    const x = document.createElement('button');
+    x.className = 'x'; x.type = 'button'; x.textContent = '×';
+    x.setAttribute('aria-label', '刪除 ' + b.label);
+    x.addEventListener('click', function () { T.bills.splice(i, 1); save(); renderBills(); recalc(); });
+    li.appendChild(x);
+    ul.appendChild(li);
+  });
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+function recalc() {
+  const out = el('toolOut');
+  if (!T.bills.length) { out.innerHTML = '<p class="empty">加一筆帳，這裡就會有答案。</p>'; return; }
+  const net = computeNets(T.people.length, T.bills);
+  const r = settleOptimal(net);
+  const maxv = Math.max(1, Math.max.apply(null, net.map(Math.abs)));
+  let h = '<div class="ledger">';
+  T.people.map(function (_, i) { return i; }).sort(function (a, b) { return net[b] - net[a]; }).forEach(function (i) {
+    const v = net[i], k = (Math.abs(v) / maxv).toFixed(4);
+    h += '<div class="row"><span class="nm">' + esc(T.people[i] || '？') + '</span>' +
+      '<span class="track"><span class="bar ' + (v >= 0 ? 'pos' : 'neg') + '" style="transform:scaleX(' + k + ')"></span></span>' +
+      '<span class="amt" style="color:' + (v > 0 ? 'var(--pk-accent)' : v < 0 ? 'var(--owe)' : 'var(--pk-dim)') + '">' + money(v) + '</span></div>';
+  });
+  h += '</div>';
+  if (!r.transfers.length) {
+    h += '<p class="hint" style="margin-top:14px">剛剛好，誰也不欠誰。</p>';
+  } else {
+    h += '<ul class="tf">';
+    r.transfers.forEach(function (t) {
+      h += '<li class="in"><span>' + esc(T.people[t.from] || '？') + '</span><span class="ar">→</span><span>' +
+        esc(T.people[t.to] || '？') + '</span><span class="v">' + money(t.amt) + '</span></li>';
+    });
+    h += '</ul>';
+    const nz = net.filter(function (v) { return v !== 0; }).length;
+    h += '<p class="hint">' + r.transfers.length + ' 筆' +
+      (r.exact ? '——' + numfmt(bell(nz)) + ' 種分組都試過了，這就是最少。' : '（人數太多，只給貪婪法的近似解）') + '</p>';
+    h += '<div class="draft"><textarea id="toolDraft" readonly aria-label="可複製的結帳訊息"></textarea>' +
+      '<div class="bar2"><button class="pk-btn" id="toolCopy" type="button" style="font-size:14px;padding:10px 20px">複製這段話</button>' +
+      '<span class="note" id="toolCopyNote" style="margin:0"></span></div></div>';
+  }
+  out.innerHTML = h;
+  const ta = el('toolDraft');
+  if (ta) {
+    ta.value = draftText(T.people.map(function (n) { return n || '？'; }), r.transfers);
+    el('toolCopy').addEventListener('click', function () { copyText(ta, el('toolCopyNote')); });
+  }
+}
+
+function renderAll() { renderPeople(); renderPickers(); renderBills(); recalc(); }
+(function initTool() { selectAllParts(); renderAll(); })();
+
+PK.reveal();
+</script>
+</body>
+</html>

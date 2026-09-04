@@ -166,7 +166,9 @@
     reduced = mq.matches;
     document.body.classList.toggle('no-motion', reduced);
   };
-  mq.addEventListener('change', syncMotion);
+  /* 舊 Safari 沒有 addEventListener：沒有 fallback 會整段拋錯、頁面全死（見 tools/snippets.md (a)） */
+  if (mq.addEventListener) mq.addEventListener('change', syncMotion);
+  else if (mq.addListener) mq.addListener(syncMotion);
   syncMotion();
 
   /* ── 造訪紀錄 ── */

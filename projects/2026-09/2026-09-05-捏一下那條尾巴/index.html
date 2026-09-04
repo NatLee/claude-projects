@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>捏一下那條尾巴｜每日小專案</title>
+<meta name="description" content="1661 年，皇家學會拿鐵鎚敲一顆玻璃珠，敲不破。四百年後，你只要捏一下它的尾巴。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#06070a; --pk-ink:#e7e9ee; --pk-dim:#7f8797; --pk-accent:#7fd0e6;
+  --pk-line:rgba(160,200,220,.14);
+  --hot:#ff6b5e; --cold:#5aa8ff;
+  --pk-maxw:660px;
+}
+body{background:
+  radial-gradient(1200px 700px at 50% -10%, #101728 0%, transparent 62%),
+  radial-gradient(900px 600px at 90% 110%, #0c1520 0%, transparent 60%),
+  var(--pk-bg);}
+
+h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(20px,4.6vw,27px);line-height:1.6;margin:0 0 14px}
+p{margin:0 0 18px;font-size:16.5px}
+.lead{font-size:18px;color:#cfd6e2}
+.dim{color:var(--pk-dim)}
+.ch{padding:11vh 0 2vh}
+.tag{font-size:11.5px;letter-spacing:.34em;color:var(--pk-dim);text-transform:uppercase;margin:0 0 10px}
+.big{font-family:var(--pk-serif);font-size:clamp(30px,7.6vw,46px);line-height:1.35;margin:0 0 18px}
+em{font-style:normal;color:var(--pk-accent)}
+strong{font-weight:600;color:#fff}
+
+/* ── 舞台 ── */
+.stage{position:relative;margin:26px 0 18px;user-select:none;-webkit-user-select:none}
+.stage svg{display:block;width:100%;height:auto;overflow:visible}
+.glasscard{border:1px solid var(--pk-line);border-radius:18px;padding:14px 14px 6px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.008));
+  box-shadow:0 30px 70px -50px #000 inset,0 1px 0 rgba(255,255,255,.05) inset}
+
+/* 鐵鎚（HTML 元素旋轉，避開 SVG 子元素 transform 地雷） */
+.hammer{position:absolute;left:6%;top:-4%;width:26%;max-width:150px;pointer-events:none;
+  transform:rotate(-52deg);transform-origin:22% 88%;
+  transition:transform .16s cubic-bezier(.3,1.6,.5,1);filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}
+.stage.hit .hammer{transform:rotate(6deg);transition:transform .1s cubic-bezier(.2,.9,.3,1)}
+.drop{transition:transform .1s ease}
+.stage.hit .drop{transform:translate(3px,2px) rotate(.5deg)}
+.clang{position:absolute;left:52%;top:6%;font-family:var(--pk-serif);font-size:clamp(20px,5vw,30px);
+  color:#fff;opacity:0;pointer-events:none;text-shadow:0 0 24px rgba(140,215,240,.7)}
+.stage.hit .clang{animation:clang .5s ease-out}
+@keyframes clang{0%{opacity:0;transform:translate(0,6px) scale(.85)}22%{opacity:1;transform:none}100%{opacity:0;transform:translate(0,-16px) scale(1.06)}}
+
+.bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
+.count{font-variant-numeric:tabular-nums;font-size:14px;color:var(--pk-dim);letter-spacing:.04em}
+.count b{color:var(--pk-accent);font-size:22px;font-weight:600;margin:0 3px}
+
+/* ── 猜測時間軸（不是三張卡） ── */
+.line{position:relative;margin:26px 0 8px;padding-left:26px}
+.line::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:linear-gradient(180deg,transparent,var(--pk-line) 12%,var(--pk-line) 88%,transparent)}
+.line>div{position:relative;margin:0 0 26px}
+.line>div::before{content:"";position:absolute;left:-25px;top:9px;width:9px;height:9px;border-radius:50%;
+  background:var(--pk-bg);border:1px solid var(--pk-accent);box-shadow:0 0 12px rgba(127,208,230,.45)}
+.yr{font-family:var(--pk-serif);color:var(--pk-accent);font-size:14px;letter-spacing:.12em;display:block;margin-bottom:2px}
+.line p{margin:0;font-size:15.5px}
+
+/* ── 偏光鏡 ── */
+.polar{display:block;width:100%;aspect-ratio:16/9;min-height:170px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:26px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--pk-line)}
+input[type=range]::-moz-range-track{height:2px;background:var(--pk-line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-9px;border-radius:50%;
+  background:var(--pk-accent);box-shadow:0 0 0 6px rgba(127,208,230,.14)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border:0;border-radius:50%;background:var(--pk-accent)}
+.readout{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--pk-dim);
+  font-variant-numeric:tabular-nums;letter-spacing:.04em;margin-top:2px}
+.readout span b{font-weight:600}
+.mpa-c{color:var(--cold)} .mpa-h{color:var(--hot)}
+
+/* ── 高潮 ── */
+.finale{position:relative}
+#powder{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.tailbtn{position:absolute;right:2%;top:2%;width:34%;height:36%;border:0;background:transparent;cursor:grab;border-radius:14px}
+.tailbtn:focus-visible{outline:2px solid var(--pk-accent);outline-offset:2px}
+.pinchhint{position:absolute;right:3%;top:39%;font-size:12.5px;color:var(--pk-accent);letter-spacing:.1em;
+  pointer-events:none;transition:opacity .4s}
+.pinchhint::before{content:"↑ ";}
+.shattered .pinchhint{opacity:0}
+.shattered .dropwrap{opacity:0;transition:opacity .12s .04s}
+.after{max-height:0;overflow:hidden;opacity:0;transition:max-height .9s ease,opacity .7s ease}
+.after.on{max-height:900px;opacity:1}
+.stat{display:flex;gap:22px;flex-wrap:wrap;margin:14px 0 4px;padding:14px 0;border-top:1px solid var(--pk-line);border-bottom:1px solid var(--pk-line)}
+.stat div{flex:1 1 120px}
+.stat b{display:block;font-family:var(--pk-serif);font-size:clamp(22px,5.4vw,30px);color:#fff;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--pk-dim);letter-spacing:.08em}
+
+.kicker{font-family:var(--pk-serif);font-size:clamp(21px,5vw,29px);line-height:1.62;margin:34px 0 8px}
+.pk-btn{font-size:14.5px}
+@media (max-width:560px){ .ch{padding:8vh 0 2vh} .hammer{left:2%;width:30%} }
+
+@media (prefers-reduced-motion: reduce){
+  .stage.hit .clang{animation:none;opacity:1}
+  .hammer,.drop{transition:none}
+  .after{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="tag rv">1661 · Gresham College</p>
+    <h1 class="rv">有人送了英國王室一顆玻璃珠。<br>皇家學會做的第一件事，<br>是拿鐵鎚敲它。</h1>
+    <p class="lead rv">敲不破。於是他們敲得更用力。這場實驗後來花了他們<em>一個月的辯論</em>，和往後三百五十年。</p>
+    <p class="dim rv" style="font-size:14px">往下捲。鐵鎚在下面等你。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- 章一：你來敲 -->
+  <section class="ch">
+    <p class="tag rv">第一擊</p>
+    <h2 class="rv">先說清楚它是什麼：一滴熔化的玻璃，掉進冷水裡。</h2>
+    <p class="rv">就這樣。沒有配方、沒有添加物。玻璃在水裡從外往內凝固，凝成一隻蝌蚪——圓頭，拖一條細得像頭髮的尾巴。荷蘭人叫它「淚」，英國人後來叫它魯珀特親王之淚。</p>
+    <p class="rv">桌上那把鐵鎚是你的。試試看。</p>
+
+    <div class="stage glasscard rv" id="stageA">
+      <div class="clang" aria-hidden="true">鏗</div>
+      <div class="hammer" aria-hidden="true">
+        <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+          <rect x="44" y="34" width="11" height="82" rx="4" fill="#6b5334"/>
+          <rect x="44" y="34" width="4" height="82" rx="2" fill="#8a6c46"/>
+          <rect x="16" y="10" width="68" height="30" rx="7" fill="#9aa4b2"/>
+          <rect x="16" y="10" width="68" height="12" rx="6" fill="#c3ccd8"/>
+          <rect x="70" y="12" width="14" height="26" rx="5" fill="#727d8c"/>
+        </svg>
+      </div>
+      <div id="dropA"></div>
+      <div class="bar">
+        <button class="pk-btn" id="hitBtn">敲下去</button>
+        <span class="count" id="hitCount">已敲 <b>0</b> 下</span>
+      </div>
+    </div>
+    <p class="dim rv" style="font-size:14px;margin-top:-4px">真實紀錄：頭部承受過 <strong>664.3 千牛頓</strong>的壓力才屈服——相當於在上面停一台約 68 公噸的東西。子彈打上去也只是彈開。</p>
+  </section>
+
+  <!-- 章二：四百年的猜測 -->
+  <section class="ch">
+    <p class="tag rv">中間隔了三百五十年</p>
+    <h2 class="rv">問題不在它為什麼硬。<br>問題在它為什麼一碰尾巴就完蛋。</h2>
+    <p class="rv">這件事當年全歐洲都知道。它是宴會餘興節目：讓客人用鐵鎚敲，敲不破；然後主人用指甲把尾尖一折，整顆在客人手裡化成粉。沒有人解釋得了。</p>
+
+    <div class="line rv">
+      <div><span class="yr">1625</span><p>德國梅克倫堡出現最早的可考紀錄。做法被當成商業機密，玻璃工匠靠賣「淚」賺錢。</p></div>
+      <div><span class="yr">1660s</span><p>紐卡索公爵夫人瑪格麗特·卡文迪許受託實驗，判斷：裡面一定封著某種易揮發的液體。錯了，但這是那個年代最合理的猜測。</p></div>
+      <div><span class="yr">1663</span><p>倫敦流傳一首歌謠嘲笑皇家學會：他們讓國王看玻璃鈕扣化成粉，「只要把尾巴一擰」——然後花了學院整整一個月爭論這是怎麼辦到的。</p></div>
+      <div><span class="yr">1665</span><p>虎克把它寫進《顯微圖譜》第七則觀察。以當時能有的語言，他幾乎全講對了；但「裂縫怎麼跑」這件事，人類要再等兩百五十年才有數學可以講。</p></div>
+      <div><span class="yr">1994</span><p>高速攝影終於拍到瓦解過程。這時大家知道：表面被壓著、裡面被拉著。但壓多深、拉多緊，還是量不出來。</p></div>
+      <div><span class="yr">2016</span><p>有人把一道紅光穿過整顆淚，量它被玻璃扭曲了多少。謎底終於變成一張圖。</p></div>
+    </div>
+  </section>
+
+  <!-- 章三：把光打進去 -->
+  <section class="ch">
+    <p class="tag rv">2016 · 那道紅光</p>
+    <h2 class="rv">玻璃自己會招供，只是要用對的光問。</h2>
+    <p class="rv">被拉扯的玻璃會把穿過它的光扭一下——扭多少，正比於它有多用力。把偏光片轉到對的角度，看不見的力就長出顏色。</p>
+    <p class="rv">下面這片偏光鏡歸你轉。</p>
+
+    <div class="glasscard rv">
+      <canvas class="polar" id="polar" aria-label="偏光鏡下的玻璃淚應力分佈圖"></canvas>
+      <label class="pk-sr" for="ang">偏光片角度</label>
+      <input type="range" id="ang" min="0" max="90" value="0" step="1" aria-describedby="ro">
+      <div class="readout" id="ro">
+        <span>偏光片 <b id="angV">0°</b></span>
+        <span id="probe" class="dim">轉動看看</span>
+      </div>
+    </div>
+    <p class="rv" style="margin-top:16px">看到了：外殼那一圈是<span class="mpa-c">壓縮</span>，最外層被自己壓住 <strong>700 MPa</strong>；而那層薄得離譜，只有頭部直徑的<strong>百分之十</strong>。殼裡面整團是<span class="mpa-h">拉伸</span>——玻璃自己在把自己往外扯，被那層薄殼硬箍著。</p>
+    <p class="rv">所以你的鐵鎚沒有用。表面的裂痕只會沿著表面爬，進不去裡面那團拉力。<em>除非你從尾巴進去。</em></p>
+  </section>
+
+  <!-- 章四：高潮 -->
+  <section class="ch">
+    <p class="tag rv">現在</p>
+    <h2 class="rv">尾巴細到沒有殼可言。那裡就是門。</h2>
+    <p class="rv">你剛剛用鐵鎚敲不動的東西，接下來只需要你兩根手指的一點點力氣。放輕鬆——它不會噴到你。</p>
+
+    <div class="stage glasscard finale rv" id="stageC">
+      <div class="dropwrap" id="dropC"></div>
+      <canvas id="powder" aria-hidden="true"></canvas>
+      <button class="tailbtn" id="snap" aria-label="捏斷玻璃淚的尾巴"></button>
+      <span class="pinchhint" aria-hidden="true">捏這裡</span>
+      <div class="bar"><button class="pk-btn" id="again" hidden>再滴一顆</button></div>
+    </div>
+
+    <div class="after" id="after">
+      <p>裂縫從你指尖那一點出發，沿著尾巴中央那條被拉緊的線往頭部衝。衝到某個速度它就開始分岔，一條變兩條、兩條變四條，像閃電往回長。等它抵達頭部，整顆淚已經不是玻璃了，是粉。</p>
+      <div class="stat">
+        <div><b>1,450–1,900</b><span>裂縫速度 · 公尺／秒</span></div>
+        <div><b id="usec">30</b><span>整顆瓦解耗時 · 微秒</span></div>
+        <div><b>4×</b><span>比空氣中的音速還快</span></div>
+      </div>
+      <p class="dim" style="font-size:14px">意思是：從你捏下去到它變成粉，比你眨一次眼快上一萬倍。所有人在現場看到的都只是結果，沒有人看過過程——直到有了高速攝影機。</p>
+    </div>
+  </section>
+
+  <!-- 尾聲 -->
+  <section class="ch">
+    <p class="tag rv">回馬槍</p>
+    <p class="kicker rv">你今天已經摸過好幾顆魯珀特之淚了。</p>
+    <p class="rv">1874 年，有人把這個把戲寫成專利：讓玻璃急速冷卻，讓表面搶先凝固、把裡面壓住。那叫強化玻璃。它現在是你的手機螢幕、你的浴室門、你的車窗。</p>
+    <p class="rv">它們之所以耐撞，用的正是那顆敲不破的頭。</p>
+    <p class="rv">而它們之所以在被小小一點尖銳物碰到時，會<strong>整片</strong>瞬間變成一地碎粒——不是玻璃品質不好。</p>
+    <p class="kicker rv" style="color:var(--pk-accent)">是因為每一片，都還留著那條尾巴。</p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Aben 等人 2016《Applied Physics Letters》；Brodsley、Frank、Steeds 1986《Notes and Records of the Royal Society》；Hooke《Micrographia》1665。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'prdrop.';
+const store = PK.store(LS);
+
+/* ─────────── PURE:START 核心邏輯（純函式，供 node 斷言） ─────────── */
+/* 殘留應力剖面：r=0 球心、r=1 表面。外殼 10% 為壓應力（負），內部為拉應力（正）。
+   依 Aben et al. 2016：表面壓應力可達 −700 MPa，壓縮層厚度約頭部直徑的 10%。 */
+function stressMPa(r){
+  r = Math.max(0, Math.min(1, r));
+  var SHELL = 0.9;
+  if (r >= SHELL) return -700 * (r - SHELL) / (1 - SHELL);
+  var k = r / SHELL;
+  return 100 * (1 - k * k);
+}
+/* 整顆瓦解所需時間（微秒）＝ 裂縫行走長度 ÷ 裂縫速度 */
+function crackMicros(lengthMm, speedMps){
+  return (lengthMm / 1000) / speedMps * 1e6;
+}
+/* 偏光鏡下的視覺強度：偏光片角度 deg（0=無效果，90=最大），應力越大條紋越亮 */
+function fringe(stress, deg){
+  var g = Math.sin(deg / 90 * Math.PI / 2);          /* 0 → 1 */
+  return Math.min(1, Math.abs(stress) / 700) * g;
+}
+/* ─────────── PURE:END ─────────── */
+
+PK.reveal();
+
+/* ── 共用的玻璃淚 SVG（同一份形狀，三個舞台重複使用） ── */
+function dropSVG(id, opts){
+  opts = opts || {};
+  return '<svg class="drop" viewBox="0 0 360 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一顆玻璃淚：圓頭、細長尾巴">' +
+    '<defs>' +
+      '<radialGradient id="g-' + id + '" cx="38%" cy="32%" r="72%">' +
+        '<stop offset="0%" stop-color="#eaf7ff" stop-opacity=".95"/>' +
+        '<stop offset="42%" stop-color="#9fd4ea" stop-opacity=".55"/>' +
+        '<stop offset="100%" stop-color="#2d5570" stop-opacity=".72"/>' +
+      '</radialGradient>' +
+      '<linearGradient id="t-' + id + '" gradientUnits="userSpaceOnUse" x1="180" y1="130" x2="344" y2="22">' +
+        '<stop offset="0%" stop-color="#9fd4ea" stop-opacity=".7"/>' +
+        '<stop offset="100%" stop-color="#cdeeff" stop-opacity=".28"/>' +
+      '</linearGradient>' +
+      '<linearGradient id="c-' + id + '" gradientUnits="userSpaceOnUse" x1="344" y1="22" x2="186" y2="118">' +
+        '<stop offset="0%" stop-color="#ffffff"/>' +
+        '<stop offset="100%" stop-color="#7fd0e6"/>' +
+      '</linearGradient>' +
+    '</defs>' +
+    '<g filter="drop-shadow(0 10px 26px rgba(90,170,210,.28))">' +
+      '<path d="M188,96 C238,74 296,52 340,20 C346,16 351,23 346,28 C302,66 246,96 196,132 Z" fill="url(#t-' + id + ')"/>' +
+      '<circle cx="130" cy="128" r="62" fill="url(#g-' + id + ')"/>' +
+    '</g>' +
+    '<ellipse cx="108" cy="104" rx="20" ry="12" fill="#fff" opacity=".55" transform="rotate(-28 108 104)"/>' +
+    '<circle cx="163" cy="160" r="5" fill="#fff" opacity=".3"/>' +
+    (opts.crack ? '<path id="crackpath" d="M344,24 C300,58 246,86 190,122" fill="none" stroke="url(#c-' + id + ')" stroke-width="3" stroke-linecap="round" opacity="0"/>' : '') +
+  '</svg>';
+}
+
+/* ── 章一：鐵鎚 ── */
+(function(){
+  var stage = document.getElementById('stageA');
+  var btn = document.getElementById('hitBtn');
+  var out = document.getElementById('hitCount');
+  document.getElementById('dropA').innerHTML = dropSVG('a');
+
+  var n = store.get('hits', 0);
+  var LINES = ['沒有反應。', '一點刮痕都沒有。', '你確定這是玻璃嗎？', '再用力一點也一樣。', '皇家學會當年也是這個表情。', '好了，它贏了。'];
+  function paint(msg){
+    out.innerHTML = '已敲 <b>' + n + '</b> 下' + (msg ? ' — ' + msg : '');
+  }
+  paint(n ? '（上次你留下的紀錄。它還在。）' : '');
+
+  var t = 0;
+  btn.addEventListener('click', function(){
+    n++; store.set('hits', n);
+    stage.classList.remove('hit'); void stage.offsetWidth; stage.classList.add('hit');
+    clearTimeout(t); t = setTimeout(function(){ stage.classList.remove('hit'); }, PK.reduced() ? 60 : 520);
+    var msg = LINES[Math.min(n, LINES.length) - 1];
+    paint(msg);
+    PK.announce('敲了第 ' + n + ' 下：' + msg);
+  });
+})();
+
+/* ── 章三：偏光鏡 ── */
+(function(){
+  var cv = document.getElementById('polar');
+  var slider = document.getElementById('ang');
+  var angV = document.getElementById('angV');
+  var probe = document.getElementById('probe');
+  var deg = 0;
+
+  function color(v, stress){
+    /* 光彈條紋色：壓應力偏藍、拉應力偏紅，強度隨 v */
+    var a = v * 0.92;
+    if (stress < 0) return 'rgba(' + Math.round(70 + 40 * v) + ',' + Math.round(150 + 60 * v) + ',255,' + a.toFixed(3) + ')';
+    return 'rgba(255,' + Math.round(130 - 50 * v) + ',' + Math.round(110 - 40 * v) + ',' + (a * 0.8).toFixed(3) + ')';
+  }
+
+  function draw(){
+    var box = cv.getBoundingClientRect();
+    if (box.width < 80) return;                       /* 隱藏／未布局時不畫 */
+    var m = PK.fitCanvas(cv, box.height);
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+    ctx.clearRect(0, 0, m.w, m.h);
+
+    var cx = m.w * 0.36, cy = m.h * 0.56, R = Math.min(m.w * 0.24, m.h * 0.40);
+
+    /* 尾巴（同樣受應力，但沒有殼） */
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(cx + R * 0.85, cy - R * 0.45);
+    ctx.quadraticCurveTo(m.w * 0.74, m.h * 0.20, m.w * 0.95, m.h * 0.10);
+    ctx.quadraticCurveTo(m.w * 0.74, m.h * 0.33, cx + R * 0.55, cy + R * 0.25);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(150,205,230,' + (0.16 + 0.10 * (deg / 90)).toFixed(3) + ')';
+    ctx.fill();
+    ctx.restore();
+
+    /* 頭部：由內而外一圈圈畫應力 */
+    var STEPS = 46;
+    for (var i = STEPS; i >= 1; i--){
+      var r = i / STEPS;
+      var s = stressMPa(r);
+      var v = fringe(s, deg);
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * r, 0, Math.PI * 2);
+      ctx.fillStyle = color(v, s);
+      ctx.fill();
+    }
+    /* 玻璃本體輪廓與高光 */
+    ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(200,235,250,.45)'; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx - R * 0.34, cy - R * 0.40, R * 0.26, R * 0.15, -0.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,' + (0.42 - 0.22 * (deg / 90)).toFixed(3) + ')'; ctx.fill();
+
+    /* 標註 */
+    if (deg > 34){
+      var a = Math.min(1, (deg - 34) / 30);
+      ctx.font = '500 12px system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(90,168,255,' + a.toFixed(2) + ')';
+      ctx.fillText('外殼 −700 MPa（壓）', cx - R - 4, cy + R + 20);
+      ctx.fillStyle = 'rgba(255,107,94,' + a.toFixed(2) + ')';
+      ctx.fillText('核心 +100 MPa（拉）', cx - R - 4, cy + R + 38);
+    }
+  }
+
+  function update(){
+    deg = +slider.value;
+    angV.textContent = deg + '°';
+    probe.textContent = deg < 10 ? '轉動看看'
+      : deg < 50 ? '有東西浮出來了……'
+      : deg < 85 ? '外圈藍、內部紅——力的地圖' : '這就是四百年來沒人看見的東西';
+    probe.className = deg < 50 ? 'dim' : '';
+    draw();
+  }
+  slider.addEventListener('input', update);
+  window.addEventListener('resize', draw);
+  PK.onMotionChange(draw);
+  update();
+  /* 進入視野時輕輕示意可以轉（reduced 則直接給到底） */
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(es){
+      if (!es[0].isIntersecting) return;
+      io.disconnect();
+      if (PK.reduced()){ slider.value = 90; update(); return; }
+      var target = 26, cur = 0;
+      var f = function(dt){ cur = Math.min(target, cur + dt * 26); slider.value = Math.round(cur); update(); if (cur >= target) PK.untick(f); };
+      PK.tick(f);
+    }, { threshold: .5 });
+    io.observe(cv);
+  }
+})();
+
+/* ── 章四：捏尾巴（高潮） ── */
+(function(){
+  var stage = document.getElementById('stageC');
+  var wrap = document.getElementById('dropC');
+  var snap = document.getElementById('snap');
+  var again = document.getElementById('again');
+  var after = document.getElementById('after');
+  var cv = document.getElementById('powder');
+  var parts = [], anim = null, done = false;
+
+  wrap.innerHTML = dropSVG('c', { crack: true });
+  document.getElementById('usec').textContent = Math.round(crackMicros(50, 1670));
+
+  if (store.get('shattered', false)){
+    document.querySelector('.pinchhint').textContent = '再捏一次';
+  }
+
+  function spawn(){
+    var box = stage.getBoundingClientRect();
+    if (box.width < 80) return;
+    var m = PK.fitCanvas(cv, box.height);
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+    parts = [];
+    var cx = m.w * 0.36, cy = m.h * 0.55, R = Math.min(m.w * 0.19, m.h * 0.33);
+    for (var i = 0; i < 520; i++){
+      var a = Math.random() * Math.PI * 2, rr = Math.sqrt(Math.random()) * R;
+      var sp = 40 + Math.random() * 200;
+      parts.push({ x: cx + Math.cos(a) * rr, y: cy + Math.sin(a) * rr,
+        vx: Math.cos(a) * sp * (0.5 + Math.random()), vy: Math.sin(a) * sp * (0.5 + Math.random()) - 40,
+        s: 0.7 + Math.random() * 2.1, life: 1 });
+    }
+    var t = 0;
+    function frame(dt){
+      t += dt;
+      ctx.clearRect(0, 0, m.w, m.h);
+      var alive = 0;
+      for (var i = 0; i < parts.length; i++){
+        var p = parts[i];
+        p.vy += 340 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        p.vx *= 0.985; p.life -= dt * 0.42;
+        if (p.life <= 0) continue;
+        alive++;
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+        ctx.fillStyle = i % 7 === 0 ? '#dff3ff' : '#9fd4ea';
+        ctx.fillRect(p.x, p.y, p.s, p.s);
+      }
+      ctx.globalAlpha = 1;
+      if (!alive || t > 4){ PK.untick(frame); anim = null; ctx.clearRect(0, 0, m.w, m.h); }
+    }
+    if (PK.reduced()){
+      /* 降級：不跑動畫，只畫一張靜態的粉末殘影 */
+      for (var j = 0; j < parts.length; j++){
+        var q = parts[j];
+        ctx.globalAlpha = .55; ctx.fillStyle = '#9fd4ea';
+        ctx.fillRect(q.x + q.vx * 0.35, q.y + q.vy * 0.35, q.s, q.s);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
+    anim = frame; PK.tick(frame);
+  }
+
+  function shatter(){
+    if (done) return;
+    done = true;
+    store.set('shattered', true);
+    snap.disabled = true;
+    var crack = document.getElementById('crackpath');
+    var run = function(){
+      stage.classList.add('shattered');
+      spawn();
+      after.classList.add('on');
+      again.hidden = false;
+      PK.announce('尾巴斷了。裂縫以每秒約一千七百公尺衝向頭部，整顆玻璃淚在三十微秒內化為粉末。');
+    };
+    if (PK.reduced()){ run(); return; }
+    crack.setAttribute('opacity', '1');
+    PK.replayDash(crack, 620);
+    setTimeout(run, 640);
+  }
+
+  snap.addEventListener('click', shatter);
+  snap.addEventListener('pointerdown', function(){ snap.style.cursor = 'grabbing'; });
+
+  again.addEventListener('click', function(){
+    if (anim){ PK.untick(anim); anim = null; }
+    var ctx = cv.getContext('2d'); ctx.clearRect(0, 0, cv.width, cv.height);
+    var crack = document.getElementById('crackpath');
+    crack.setAttribute('opacity', '0'); crack.style.transition = 'none'; crack.style.strokeDashoffset = '';
+    stage.classList.remove('shattered');
+    snap.disabled = false; done = false;
+    document.querySelector('.pinchhint').textContent = '再捏一次';
+    PK.announce('新的一顆已經滴好了。');
+  });
+})();
+</script>
+</body>
+</html>

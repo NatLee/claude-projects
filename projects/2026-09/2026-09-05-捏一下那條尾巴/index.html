@@ -35,17 +35,25 @@ strong{font-weight:600;color:#fff}
   background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.008));
   box-shadow:0 30px 70px -50px #000 inset,0 1px 0 rgba(255,255,255,.05) inset}
 
-/* 鐵鎚（HTML 元素旋轉，避開 SVG 子元素 transform 地雷） */
-.hammer{position:absolute;left:6%;top:-4%;width:26%;max-width:150px;pointer-events:none;
-  transform:rotate(-52deg);transform-origin:22% 88%;
-  transition:transform .16s cubic-bezier(.3,1.6,.5,1);filter:drop-shadow(0 8px 14px rgba(0,0,0,.55))}
-.stage.hit .hammer{transform:rotate(6deg);transition:transform .1s cubic-bezier(.2,.9,.3,1)}
-.drop{transition:transform .1s ease}
-.stage.hit .drop{transform:translate(3px,2px) rotate(.5deg)}
-.clang{position:absolute;left:52%;top:6%;font-family:var(--pk-serif);font-size:clamp(20px,5vw,30px);
-  color:#fff;opacity:0;pointer-events:none;text-shadow:0 0 24px rgba(140,215,240,.7)}
-.stage.hit .clang{animation:clang .5s ease-out}
-@keyframes clang{0%{opacity:0;transform:translate(0,6px) scale(.85)}22%{opacity:1;transform:none}100%{opacity:0;transform:translate(0,-16px) scale(1.06)}}
+/* 鐵鎚：畫在 SVG 座標系裡，才對得準那顆頭。
+   SVG 子元素做 CSS transform 一律釘死 transform-box + transform-origin（view-box 座標）。 */
+.hmr{transform-box:view-box;transform-origin:130px 0px;
+  transform:translateY(-18px) rotate(-24deg);
+  transition:transform .19s cubic-bezier(.35,.1,.6,1)}
+.stage.hit .hmr{transform:translateY(58px) rotate(4deg);
+  transition:transform .11s cubic-bezier(.3,1.5,.5,1)}
+.ping{transform-box:view-box;transform-origin:130px 62px;opacity:0;transform:scale(.35)}
+.stage.hit .ping{animation:ping .46s ease-out .1s}
+@keyframes ping{0%{opacity:0;transform:scale(.35)}18%{opacity:.95}100%{opacity:0;transform:scale(2.1)}}
+.drop{transition:transform .09s ease}
+.stage.hit .drop{transform:translate(2px,1px)}
+.clang{position:absolute;left:50%;top:24%;z-index:3;font-family:var(--pk-serif);font-weight:600;
+  font-size:clamp(24px,6.4vw,38px);color:#fff;opacity:0;pointer-events:none;
+  text-shadow:0 0 6px #6fc9e2,0 0 26px rgba(140,215,240,.85),0 2px 10px rgba(0,0,0,.9)}
+.stage.hit .clang{animation:clang .72s ease-out .1s}
+@keyframes clang{0%{opacity:0;transform:translate(0,10px) scale(.8)}
+  16%{opacity:1;transform:none}62%{opacity:1;transform:translate(0,-6px)}
+  100%{opacity:0;transform:translate(0,-22px) scale(1.08)}}
 
 .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
 .count{font-variant-numeric:tabular-nums;font-size:14px;color:var(--pk-dim);letter-spacing:.04em}
@@ -96,7 +104,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border:0;border-radiu
 
 @media (prefers-reduced-motion: reduce){
   .stage.hit .clang{animation:none;opacity:1}
-  .hammer,.drop{transition:none}
+  .stage.hit .ping{animation:none;opacity:.9;transform:scale(1.5)}
+  .hmr,.drop{transition:none}
   .after{transition:none}
 }
 </style>
@@ -123,17 +132,8 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border:0;border-radiu
     <p class="rv">桌上那把鐵鎚是你的。試試看。</p>
 
     <div class="stage glasscard rv" id="stageA">
-      <div class="clang" aria-hidden="true">鏗</div>
-      <div class="hammer" aria-hidden="true">
-        <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
-          <rect x="44" y="34" width="11" height="82" rx="4" fill="#6b5334"/>
-          <rect x="44" y="34" width="4" height="82" rx="2" fill="#8a6c46"/>
-          <rect x="16" y="10" width="68" height="30" rx="7" fill="#9aa4b2"/>
-          <rect x="16" y="10" width="68" height="12" rx="6" fill="#c3ccd8"/>
-          <rect x="70" y="12" width="14" height="26" rx="5" fill="#727d8c"/>
-        </svg>
-      </div>
       <div id="dropA"></div>
+      <div class="clang" aria-hidden="true">鏗</div>
       <div class="bar">
         <button class="pk-btn" id="hitBtn">敲下去</button>
         <span class="count" id="hitCount">已敲 <b>0</b> 下</span>
@@ -250,7 +250,9 @@ PK.reveal();
 /* ── 共用的玻璃淚 SVG（同一份形狀，三個舞台重複使用） ── */
 function dropSVG(id, opts){
   opts = opts || {};
-  return '<svg class="drop" viewBox="0 0 360 210" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一顆玻璃淚：圓頭、細長尾巴">' +
+  /* 有鐵鎚時把 viewBox 往上加高，讓舉起的鎚子有地方待，不會溢出去壓到內文 */
+  var vb = opts.hammer ? '0 -105 360 315' : '0 0 360 210';
+  return '<svg class="drop" viewBox="' + vb + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="一顆玻璃淚：圓頭、細長尾巴">' +
     '<defs>' +
       '<radialGradient id="g-' + id + '" cx="38%" cy="32%" r="72%">' +
         '<stop offset="0%" stop-color="#eaf7ff" stop-opacity=".95"/>' +
@@ -273,6 +275,17 @@ function dropSVG(id, opts){
     '<ellipse cx="108" cy="104" rx="20" ry="12" fill="#fff" opacity=".55" transform="rotate(-28 108 104)"/>' +
     '<circle cx="163" cy="160" r="5" fill="#fff" opacity=".3"/>' +
     (opts.crack ? '<path id="crackpath" d="M344,24 C300,58 246,86 190,122" fill="none" stroke="url(#c-' + id + ')" stroke-width="3" stroke-linecap="round" opacity="0"/>' : '') +
+    (opts.hammer ?
+      /* 撞擊漣漪：圓心釘在頭頂 (130,62)，scale 一律配 transform-box/origin */
+      '<circle class="ping" cx="130" cy="62" r="24" fill="none" stroke="#dff3ff" stroke-width="2.5"/>' +
+      /* 鐵鎚：鎚頭中心畫在 (130,0)，旋轉軸心也是 (130,0)＝握把末端上方，落下時正中頭頂 */
+      '<g class="hmr" aria-hidden="true" filter="drop-shadow(0 12px 18px rgba(0,0,0,.6))">' +
+        '<rect x="124.5" y="-2" width="11" height="86" rx="4.5" fill="#6b5334" transform="rotate(-140 130 0)"/>' +
+        '<rect x="124.5" y="-2" width="4" height="86" rx="2" fill="#8a6c46" transform="rotate(-140 130 0)"/>' +
+        '<rect x="95" y="-15" width="70" height="30" rx="8" fill="#9aa4b2"/>' +
+        '<rect x="95" y="-15" width="70" height="12" rx="6" fill="#c3ccd8"/>' +
+        '<rect x="151" y="-13" width="15" height="26" rx="5" fill="#727d8c"/>' +
+      '</g>' : '') +
   '</svg>';
 }
 
@@ -281,7 +294,7 @@ function dropSVG(id, opts){
   var stage = document.getElementById('stageA');
   var btn = document.getElementById('hitBtn');
   var out = document.getElementById('hitCount');
-  document.getElementById('dropA').innerHTML = dropSVG('a');
+  document.getElementById('dropA').innerHTML = dropSVG('a', { hammer: true });
 
   var n = store.get('hits', 0);
   var LINES = ['沒有反應。', '一點刮痕都沒有。', '你確定這是玻璃嗎？', '再用力一點也一樣。', '皇家學會當年也是這個表情。', '好了，它贏了。'];
@@ -294,7 +307,7 @@ function dropSVG(id, opts){
   btn.addEventListener('click', function(){
     n++; store.set('hits', n);
     stage.classList.remove('hit'); void stage.offsetWidth; stage.classList.add('hit');
-    clearTimeout(t); t = setTimeout(function(){ stage.classList.remove('hit'); }, PK.reduced() ? 60 : 520);
+    clearTimeout(t); t = setTimeout(function(){ stage.classList.remove('hit'); }, 900);
     var msg = LINES[Math.min(n, LINES.length) - 1];
     paint(msg);
     PK.announce('敲了第 ' + n + ' 下：' + msg);
@@ -324,7 +337,8 @@ function dropSVG(id, opts){
     ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
     ctx.clearRect(0, 0, m.w, m.h);
 
-    var cx = m.w * 0.36, cy = m.h * 0.56, R = Math.min(m.w * 0.24, m.h * 0.40);
+    /* 半徑留邊：右邊要放尾巴、下面要放兩行標註，否則字會掉出畫布外 */
+    var cx = m.w * 0.34, cy = m.h * 0.46, R = Math.min(m.w * 0.22, m.h * 0.30);
 
     /* 尾巴（同樣受應力，但沒有殼） */
     ctx.save();
@@ -356,13 +370,19 @@ function dropSVG(id, opts){
     ctx.fillStyle = 'rgba(255,255,255,' + (0.42 - 0.22 * (deg / 90)).toFixed(3) + ')'; ctx.fill();
 
     /* 標註 */
+    /* 標註釘在畫布左下角（不跟著圓走），避免半徑一大就把字擠出畫布 */
     if (deg > 34){
       var a = Math.min(1, (deg - 34) / 30);
-      ctx.font = '500 12px system-ui, sans-serif';
+      var y2 = m.h - 14, y1 = y2 - 19, x0 = 14;
+      ctx.font = '500 12.5px system-ui, -apple-system, "PingFang TC", sans-serif';
+      ctx.textBaseline = 'middle';
       ctx.fillStyle = 'rgba(90,168,255,' + a.toFixed(2) + ')';
-      ctx.fillText('外殼 −700 MPa（壓）', cx - R - 4, cy + R + 20);
+      ctx.fillRect(x0, y1 - 4, 8, 8);
+      ctx.fillText('外殼 −700 MPa（壓）', x0 + 14, y1);
       ctx.fillStyle = 'rgba(255,107,94,' + a.toFixed(2) + ')';
-      ctx.fillText('核心 +100 MPa（拉）', cx - R - 4, cy + R + 38);
+      ctx.fillRect(x0, y2 - 4, 8, 8);
+      ctx.fillText('核心 +100 MPa（拉）', x0 + 14, y2);
+      ctx.textBaseline = 'alphabetic';
     }
   }
 

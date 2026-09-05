@@ -105,6 +105,7 @@
 
       const fld = $('fld'), cx = $('cx'), dc = $('dc');
       const layout = () => {
+        if (!fld.isConnected) return;                // 舊畫面已被替換，別再算
         const w = fld.clientWidth || 700;
         const cxp = right ? (w / 2 + gap / 2) : (w / 2 - gap / 2);
         const dcp = right ? (w / 2 - gap / 2) : (w / 2 + gap / 2);
@@ -156,6 +157,7 @@
 
     const fld = $('fld'), cx = $('cx'), hl = $('hl');
     const layout = () => {
+      if (!fld.isConnected) return;                  // 舊畫面已被替換，別再算
       const w = fld.clientWidth || 700;
       cx.style.left = (w / 2 - gap / 2) + 'px';
       hl.style.left = (w / 2 + gap / 2) + 'px';
@@ -272,8 +274,8 @@
           el += dt;
           const phase = (el / 1000) * 34;                  // 每秒往外推 34 px
           g.fillStyle = '#0a0b0e'; g.fillRect(0, 0, W, H);
-          for (let r = 460; r > 0; r -= 26) {
-            const rr = ((r + phase) % 460);
+          for (let r = 468; r > 0; r -= 26) {          // 468 = 18×26，環距與明暗才不會在中央出現接縫
+            const rr = ((r + phase) % 468);
             g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
             g.strokeStyle = ((Math.floor((r + phase) / 26) % 2) ? '#e8e8e8' : '#4a4a4a');
             g.lineWidth = 13; g.stroke();
@@ -293,7 +295,7 @@
         tag('現在看這個');
         const g2 = cv.getContext('2d');
         g2.fillStyle = '#0a0b0e'; g2.fillRect(0, 0, W, H);
-        for (let r = 460; r > 0; r -= 26) {           // 完全靜止的同心環
+        for (let r = 468; r > 0; r -= 26) {           // 完全靜止的同心環（同樣用 468 對齊，中央不壓到注視點）
           g2.beginPath(); g2.arc(cx, cy, r, 0, Math.PI * 2);
           g2.strokeStyle = ((Math.floor(r / 26) % 2) ? '#cfcfcf' : '#3f3f3f');
           g2.lineWidth = 13; g2.stroke();
@@ -344,7 +346,7 @@
 
     const cv = $('cv'), g = cv.getContext('2d');
     const W = cv.width, H = cv.height;
-    let x = 60, dir = 1, flashT = -999;
+    let x = 60, dir = 1, flashT = -999, flashX = 60;
     let lastT = performance.now();
     on('#of', e => { offset = +e.target.value; $('ov').textContent = offset; }, 'input');
 
@@ -355,7 +357,7 @@
         x += dir * SPEED * dt;
         if (x > W - 60) { x = W - 60; dir = -1; }
         if (x < 60) { x = 60; dir = 1; }
-        if (now - flashT > 1400) flashT = now;
+        if (now - flashT > 1400) { flashT = now; flashX = x; }   // 閃光位置在觸發瞬間定住
 
         g.fillStyle = '#0a0b0e'; g.fillRect(0, 0, W, H);
         g.strokeStyle = '#1e2229'; g.lineWidth = 1;
@@ -365,7 +367,7 @@
         // 閃光（顯示 70 ms）
         if (now - flashT < 70) {
           g.fillStyle = '#ff4d6d';
-          g.beginPath(); g.arc(x + offset, H / 2 - 30, 11, 0, Math.PI * 2); g.fill();
+          g.beginPath(); g.arc(flashX + offset, H / 2 - 30, 11, 0, Math.PI * 2); g.fill();
         }
       }
       rafId = requestAnimationFrame(tick);

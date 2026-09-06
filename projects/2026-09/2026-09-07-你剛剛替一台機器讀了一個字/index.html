@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你這輩子點過三千次的那個框｜每日小專案</title>
+<meta name="description" content="那個扭曲的字、那排門牌、那九宮格紅綠燈——它們從來不只是在問你是不是人類。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0b0d; --pk-ink:#e9e6df; --pk-dim:#8a8781;
+  --pk-accent:#7fb3ff;          /* 機器藍 */
+  --paper:#d8b673;              /* 舊紙黃 */
+  --pk-maxw:660px;
+}
+body{background:radial-gradient(120% 80% at 50% -10%,#14171c 0%,#0a0b0d 60%) fixed;}
+
+/* ── 敘事排版 ── */
+.pk-hero h1{font-size:clamp(26px,6.6vw,42px);letter-spacing:.01em}
+main p{font-family:var(--pk-serif);font-size:17px;letter-spacing:.01em}
+main h2{font-family:var(--pk-sans);font-size:12px;font-weight:600;letter-spacing:.34em;
+        color:var(--pk-dim);text-transform:uppercase;margin:74px 0 6px}
+.beat{font-family:var(--pk-serif);font-size:clamp(21px,4.6vw,27px);line-height:1.72;
+      margin:34px 0;color:var(--pk-ink)}
+.beat em{font-style:normal;color:var(--paper);box-shadow:inset 0 -.42em 0 rgba(216,182,115,.14)}
+.aside{font-size:14.5px;color:var(--pk-dim);font-family:var(--pk-sans);line-height:1.95}
+.mach{color:var(--pk-accent)}
+
+/* ── 那個框 ── */
+.box{
+  margin:38px auto;max-width:388px;border:1px solid rgba(255,255,255,.14);border-radius:10px;
+  background:linear-gradient(#15181d,#101317);
+  box-shadow:0 22px 60px -28px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.05);
+  overflow:hidden;
+}
+.box-bar{display:flex;align-items:center;gap:8px;padding:9px 13px;
+  border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.025);
+  font-size:11px;letter-spacing:.2em;color:var(--pk-dim)}
+.box-bar b{font-weight:600;color:#a9a49a;letter-spacing:.16em}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--pk-accent);opacity:.5;
+     animation:blip 2.6s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:.25}50%{opacity:.9}}
+.box-body{padding:18px 16px 16px}
+
+/* 扭曲字 */
+.warp{position:relative;background:#f2ecdd;border-radius:5px;padding:15px 8px 17px;
+      text-align:center;overflow:hidden;
+      box-shadow:inset 0 0 22px rgba(120,95,45,.28)}
+.warp::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(90,70,35,.07) 0 1px,transparent 1px 3px)}
+.warp svg{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.wg{display:inline-block;vertical-align:middle;padding:0 9px}
+.wg span{display:inline-block;font-family:"Times New Roman",Georgia,serif;font-size:29px;
+  color:#2b2318;line-height:1.15;transform-origin:50% 60%}
+.wg.known span{color:#2b2318}
+input[type=text]{
+  width:100%;margin-top:13px;padding:11px 13px;border-radius:6px;
+  background:#0b0d10;color:var(--pk-ink);border:1px solid rgba(255,255,255,.16);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:16px;letter-spacing:.06em}
+input[type=text]:focus{border-color:var(--pk-accent);outline:none;
+  box-shadow:0 0 0 3px rgba(127,179,255,.16)}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px}
+.row .pk-btn{flex:0 0 auto;padding:10px 20px;font-size:14px}
+.hint{font-size:12.5px;color:var(--pk-dim);flex:1;line-height:1.6}
+.hint.bad{color:#e08a72}
+
+/* 九宮格 */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;border-radius:6px;overflow:hidden}
+.tile{position:relative;aspect-ratio:1/1;border:0;padding:0;cursor:pointer;background:#1b1f26;
+  transition:transform .18s cubic-bezier(.2,.7,.3,1),filter .2s}
+.tile svg{display:block;width:100%;height:100%}
+.tile::after{content:"";position:absolute;inset:0;border:0 solid var(--pk-accent);
+  transition:border-width .16s;pointer-events:none}
+.tile[aria-pressed=true]{transform:scale(.9)}
+.tile[aria-pressed=true]::after{border-width:3px}
+.tile:hover{filter:brightness(1.14)}
+
+/* 計分條 */
+.tally{margin:26px 0 8px;border-left:2px solid rgba(255,255,255,.12);padding-left:16px}
+.vote{display:flex;align-items:baseline;gap:10px;font-size:14.5px;color:var(--pk-dim);
+  opacity:0;transform:translateX(-8px);transition:opacity .45s,transform .45s}
+.vote.on{opacity:1;transform:none}
+.vote b{font-family:ui-monospace,Menlo,monospace;color:var(--pk-ink);font-weight:500;min-width:5.2em}
+.vote i{font-style:normal;color:var(--pk-accent);font-family:ui-monospace,Menlo,monospace}
+.meter{height:5px;border-radius:99px;background:rgba(255,255,255,.09);margin:16px 0 6px;overflow:hidden}
+.meter b{display:block;height:100%;width:0;border-radius:99px;
+  background:linear-gradient(90deg,var(--pk-accent),var(--paper));transition:width .5s ease}
+
+/* 揭曉區塊：解開前完全不存在 */
+[hidden]{display:none !important}
+.unlock{border-top:1px solid rgba(255,255,255,.1);margin-top:44px;padding-top:8px}
+
+/* 最後的勾選框 */
+.final{max-width:330px;margin:34px auto;display:flex;align-items:center;gap:14px;
+  padding:15px 17px;border:1px solid rgba(255,255,255,.14);border-radius:8px;
+  background:#101317;cursor:pointer;user-select:none}
+.chk{width:22px;height:22px;border:2px solid #5c6470;border-radius:3px;flex:0 0 auto;position:relative}
+.chk svg{position:absolute;left:2px;top:2px;width:14px;height:14px;overflow:visible}
+.final small{margin-left:auto;font-size:10px;letter-spacing:.14em;color:#555b63}
+.trace{position:relative;height:3px;margin:2px auto 0;max-width:330px}
+.trace svg{position:absolute;left:0;top:-64px;width:100%;height:80px;overflow:visible;pointer-events:none}
+
+.kicker{font-family:var(--pk-serif);font-size:clamp(22px,5vw,30px);line-height:1.7;
+  margin:60px 0 10px;text-wrap:balance}
+.big{font-family:ui-monospace,Menlo,monospace;font-size:clamp(34px,9vw,58px);
+  color:var(--paper);letter-spacing:-.02em;line-height:1.1;display:block;margin:8px 0 2px}
+
+@media (max-width:560px){ .wg span{font-size:24px} .wg{padding:0 5px} }
+@media (prefers-reduced-motion: reduce){
+  .dot{animation:none;opacity:.6}
+  .vote{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <h1 class="rv">你這輩子大概點過三千次那個框。</h1>
+    <p class="rv" style="font-family:var(--pk-serif);font-size:18px;color:#bdb8ae">
+      歪掉的字、模糊的門牌、九宮格裡的紅綠燈。你每次都乖乖照做，然後忘記。<br>
+      它從來沒告訴你，它真正在問什麼。
+    </p>
+    <p class="rv aside" style="margin-top:30px">往下捲。這次它會說。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <h2 class="rv">2000</h2>
+  <p class="beat rv">一個叫 Luis von Ahn 的研究生，替 Yahoo 想出了那串歪字。有效得驚人：機器讀不出來，人一眼就懂。</p>
+  <p class="beat rv">幾年後他坐下來算了一筆帳。一次十秒。一天幾千萬次。<br>
+    他後來說，他不小心造了一台機器，正在<em>以十秒為單位</em>，把全人類的腦力磨成粉。</p>
+  <p class="rv aside">於是他想：那十秒，能不能拿去做點什麼？</p>
+
+  <h2 class="rv">2007 · 5 月 27 日</h2>
+  <p class="beat rv">同一個框，換了內容。<br>從這天起，它一次給你<em>兩個</em>字。</p>
+  <p class="rv aside">下面這個是它當年的樣子。照它說的做——輸入你看到的兩個字，中間空一格。</p>
+
+  <div class="box rv" id="g1">
+    <div class="box-bar"><span class="dot"></span><b>reCAPTCHA</b><span>v1 · 2007</span></div>
+    <div class="box-body">
+      <div class="warp" id="w1">
+        <svg viewBox="0 0 300 76" preserveAspectRatio="none" aria-hidden="true">
+          <path id="sq1" d="M4 52 C 60 34, 96 68, 150 46 S 244 30, 296 50" fill="none"
+                stroke="#6b5834" stroke-width="1.6" opacity=".62"/>
+        </svg>
+        <span class="wg known" id="w1a"></span><span class="wg" id="w1b"></span>
+      </div>
+      <label class="pk-sr" for="i1">輸入圖片中的兩個英文字，以空白分隔</label>
+      <input type="text" id="i1" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="兩個字，空一格">
+      <div class="row">
+        <button class="pk-btn" id="b1">驗證</button>
+        <span class="hint" id="h1">看不清楚？就是要看不清楚。</span>
+      </div>
+    </div>
+  </div>
+
+  <section id="u1" hidden class="unlock">
+    <h2>它剛剛做了兩件事</h2>
+    <p class="beat">左邊那個字，<span class="mach">機器早就知道答案</span>。它是拿來確認你是人的。</p>
+    <p class="beat">右邊那個字，來自一份掃描到一半的舊報紙。兩套 OCR 對它給出不同答案，於是它被標成「可疑」，丟進這個框裡。<br>
+      <em>沒有人知道它是什麼字。直到你打下去。</em></p>
+    <p class="aside">你剛剛替一份你沒讀過的印刷品，認出了一個字。而且你以為你只是在登入。</p>
+
+    <h2>那如果你亂打呢？</h2>
+    <p class="beat">系統不信任何單一個人。它讓大家投票——OCR 的猜測算半票，每個人類算一票，湊滿 <em>2.5 票</em>才定案。</p>
+    <div class="tally" id="tal">
+      <div class="vote"><b>OCR A</b><span>railmay</span><i>+0.5</i></div>
+      <div class="vote"><b>OCR B</b><span>raihvay</span><i>+0.5</i></div>
+      <div class="vote"><b>人類 #1</b><span>railway</span><i>+1.0</i></div>
+      <div class="vote"><b>人類 #2</b><span>railway</span><i>+1.0</i></div>
+    </div>
+    <div class="meter"><b id="mtr"></b></div>
+    <p class="aside" id="mtxt">兩台機器彼此不同意，剩下的交給你們。</p>
+    <p class="beat">六個人都認不出來，這個字就被丟掉，永遠留在模糊裡。<br>
+      三個人打了同一個錯字，它就<em>變成正確答案</em>。</p>
+
+    <h2>2009 · 9 月</h2>
+    <p class="beat">Google 買下它。<br>被餵進那個框的，先是《紐約時報》的百年報紙檔案，然後是整座 Google Books。</p>
+    <p class="aside">一群素不相識的陌生人，每次十秒，把上個世紀重新打了一遍。</p>
+
+    <h2>2012 · 3 月</h2>
+    <p class="beat">然後框裡的東西變了。<br>不再是報紙。是<em>街景車拍回來的門牌</em>。</p>
+    <p class="aside">再一次。輸入你看到的號碼。</p>
+
+    <div class="box" id="g2">
+      <div class="box-bar"><span class="dot"></span><b>reCAPTCHA</b><span>street view · 2012</span></div>
+      <div class="box-body">
+        <div class="warp" id="w2" style="background:#e6e1d6">
+          <svg viewBox="0 0 300 76" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="86" y="10" width="128" height="56" rx="4" fill="#c9c2b2" opacity=".55"/>
+          </svg>
+          <span class="wg" id="w2a"></span>
+        </div>
+        <label class="pk-sr" for="i2">輸入圖片中的門牌號碼</label>
+        <input type="text" id="i2" inputmode="numeric" autocomplete="off" spellcheck="false" placeholder="門牌號碼">
+        <div class="row">
+          <button class="pk-btn" id="b2">驗證</button>
+          <span class="hint" id="h2">某個人家的門口。你不知道在哪一國。</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="u2" hidden class="unlock">
+    <h2>2014 · 12 月</h2>
+    <p class="beat">機器學會讀字了。<br>——是你教的。整整七年，一次一個字。</p>
+    <p class="beat">所以那個框只好改問<em>機器還不會的事</em>。</p>
+    <p class="aside">選出所有有紅綠燈的格子。你當然知道怎麼做，你做過幾百次了。</p>
+
+    <div class="box" id="g3">
+      <div class="box-bar"><span class="dot"></span><b>reCAPTCHA</b><span>v2 · 2014</span></div>
+      <div class="box-body">
+        <p style="margin:0 0 12px;font-size:14px;color:#b9b4aa;font-family:var(--pk-sans)">
+          請選取所有<b style="color:var(--pk-ink)">紅綠燈</b>。</p>
+        <div class="grid" id="grid" role="group" aria-label="九宮格圖片，選取所有含紅綠燈的格子"></div>
+        <div class="row">
+          <button class="pk-btn" id="b3">驗證</button>
+          <span class="hint" id="h3">慢慢來，它在計時。</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="u3" hidden class="unlock">
+    <h2>你剛剛做的事</h2>
+    <p class="beat">紅綠燈。人行道。公車。消防栓。<br>你有沒有想過，為什麼永遠是這幾樣？</p>
+    <p class="beat">因為那不是「人類才認得的東西」的清單。<br><em>那是一台車在路口需要認得的東西的清單。</em></p>
+    <p class="aside">Google 說這些標註是拿去改進地圖。至於還去了哪裡，他們沒有再說。</p>
+
+    <h2>帳單</h2>
+    <p class="beat">2023 年，加州大學爾灣分校做了十三個月的實地研究，把全世界花在這個框上的時間加總起來：</p>
+    <p class="rv"><span class="big" id="cnt">0</span>
+      <span class="aside" style="display:block">小時的無償人力。研究者估算，若照工資計，約值 61 億美元。</span></p>
+    <p class="beat">同一份研究還說：這個框其實<span class="mach">擋不太住機器人</span>。</p>
+
+    <h2>今天</h2>
+    <p class="beat">現在多數時候，它什麼都不問你了。<br>只剩一個勾選框。</p>
+
+    <div class="final" id="fin" role="checkbox" tabindex="0" aria-checked="false" aria-label="我不是機器人">
+      <span class="chk"><svg viewBox="0 0 14 14" aria-hidden="true"><path id="tick" d="M1.5 7.4 L5.4 11 L12.5 2.6"
+        fill="none" stroke="#7fb3ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+        style="opacity:0"/></svg></span>
+      <span style="font-size:14px;font-family:var(--pk-sans)">我不是機器人</span>
+      <small>reCAPTCHA</small>
+    </div>
+    <div class="trace"><svg viewBox="0 0 330 80" preserveAspectRatio="none" aria-hidden="true">
+      <path id="tr" d="M8 74 C 70 66, 96 20, 158 34 S 250 62, 300 40" fill="none"
+            stroke="#7fb3ff" stroke-width="1.2" opacity=".45"/></svg></div>
+    <p class="aside" id="ftxt" style="text-align:center;min-height:3.4em">它沒有在看你打了什麼。它在看你的游標怎麼走過來。</p>
+
+    <p class="kicker">那個框從來不是在問「你是不是人類」。</p>
+    <p class="kicker" style="margin-top:0">它是在問：<em style="font-style:normal;color:var(--paper)">你還能做什麼，是機器還做不到的？</em></p>
+    <p class="beat">而每一次你答對，那份清單就短一項。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：von Ahn 等人〈reCAPTCHA: Human-Based Character Recognition via Web Security Measures〉（Science, 2008）、Searles 等人〈Dazed &amp; Confused〉（2023）、Google 官方部落格。<br>
+  頁面中的驗證框為示意重製，非真實驗證服務。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'cap07.';
+const store = PK.store(LS);
+PK.reveal();
+
+/* ══ 純函式（可用 node 斷言） ══════════════════════════ */
+/* reCAPTCHA v1 判定：只驗證控制字；可疑字照單全收 */
+function judgeWords(input, control){
+  const parts = String(input).trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return { ok:false, why:'short' };
+  return { ok: parts[0] === String(control).toLowerCase(), why:'', guess: parts.slice(1).join(' ') };
+}
+/* 投票計分：OCR 0.5、人類 1.0，滿 2.5 定案 */
+function tally(votes){
+  let s = 0;
+  for (const v of votes) s += (v.kind === 'ocr' ? 0.5 : 1);
+  return { score: Math.round(s * 10) / 10, settled: s >= 2.5 };
+}
+/* 九宮格：選集必須與答案完全相同 */
+function judgeGrid(sel, ans){
+  const a = [...sel].sort().join(','), b = [...ans].sort().join(',');
+  return a === b && a.length > 0;
+}
+if (typeof module !== 'undefined' && module.exports)
+  module.exports = { judgeWords, tally, judgeGrid };
+
+/* ══ 扭曲字渲染（每字元固定抖動，不會每次載入亂跳） ══ */
+function warp(el, word, seed){
+  el.textContent = '';
+  [...word].forEach((ch, i) => {
+    const h1 = PK.hash(seed + ':r' + i), h2 = PK.hash(seed + ':y' + i), h3 = PK.hash(seed + ':s' + i);
+    const s = document.createElement('span');
+    s.textContent = ch;
+    s.style.transform = 'rotate(' + ((h1 - .5) * 34).toFixed(1) + 'deg) translateY(' +
+      ((h2 - .5) * 11).toFixed(1) + 'px) skewX(' + ((h3 - .5) * 22).toFixed(1) + 'deg)';
+    el.appendChild(s);
+  });
+}
+const CTRL = 'overhead', MYST = 'railway', HOUSE = '1451';
+warp(document.getElementById('w1a'), CTRL, 'a');
+warp(document.getElementById('w1b'), MYST, 'b');
+warp(document.getElementById('w2a'), HOUSE, 'h');
+
+/* ══ 關卡一 ══════════════════════════════════════════ */
+const i1 = document.getElementById('i1'), h1 = document.getElementById('h1');
+let tries = 0;
+function pass1(){
+  const r = judgeWords(i1.value, CTRL);
+  if (r.ok){
+    h1.classList.remove('bad');
+    h1.textContent = '✓ 通過。';
+    store.set('g1', r.guess || 1);
+    unlockSec(document.getElementById('u1'), runTally);
+  } else {
+    tries++;
+    h1.classList.add('bad');
+    h1.textContent = r.why === 'short' ? '兩個字，中間空一格。'
+      : (tries >= 3 ? '提示：左邊那個字是 overhead。' : '第一個字不對。再看一次。');
+    PK.announce(h1.textContent);
+  }
+}
+document.getElementById('b1').addEventListener('click', pass1);
+i1.addEventListener('keydown', e => { if (e.key === 'Enter') pass1(); });
+
+/* 揭曉：顯示、進場、捲過去 */
+function unlockSec(sec, after){
+  if (!sec.hidden) return;
+  sec.hidden = false;
+  PK.reveal('#' + sec.id + ' .rv');
+  if (after) setTimeout(after, PK.reduced() ? 0 : 700);
+  requestAnimationFrame(() => { PK.scrollTo(sec); });
+}
+
+/* ══ 計分條 ══════════════════════════════════════════ */
+const VOTES = [{kind:'ocr'},{kind:'ocr'},{kind:'human'},{kind:'human'}];
+let tallyRun = false;
+function runTally(){
+  if (tallyRun) return; tallyRun = true;
+  const rows = document.querySelectorAll('#tal .vote');
+  const mtr = document.getElementById('mtr'), mtxt = document.getElementById('mtxt');
+  let n = 0;
+  (function step(){
+    if (n >= rows.length) return;
+    rows[n].classList.add('on');
+    n++;
+    const t = tally(VOTES.slice(0, n));
+    mtr.style.width = Math.min(100, t.score / 2.5 * 100) + '%';
+    if (t.settled){
+      mtxt.innerHTML = '滿 2.5 票。<b style="color:var(--paper);font-weight:500">railway</b> 就此成為這個字的答案，寫回那份檔案裡。';
+      PK.announce('計分完成：railway 定案。');
+    } else {
+      mtxt.textContent = '目前 ' + t.score.toFixed(1) + ' 票，還不算數。';
+    }
+    setTimeout(step, PK.reduced() ? 0 : 620);
+  })();
+}
+
+/* ══ 關卡二 ══════════════════════════════════════════ */
+const i2 = document.getElementById('i2'), h2 = document.getElementById('h2');
+function pass2(){
+  const v = i2.value.replace(/\D/g, '');
+  if (v === HOUSE){
+    h2.classList.remove('bad'); h2.textContent = '✓ 通過。';
+    unlockSec(document.getElementById('u2'), buildGrid);
+  } else {
+    h2.classList.add('bad');
+    h2.textContent = v ? '不對。它比你想的更模糊。' : '請輸入數字。';
+    PK.announce(h2.textContent);
+  }
+}
+document.getElementById('b2').addEventListener('click', pass2);
+i2.addEventListener('keydown', e => { if (e.key === 'Enter') pass2(); });
+
+/* ══ 關卡三：九宮格 ══════════════════════════════════ */
+const LIGHT = [1, 3, 6, 7];                       /* 有紅綠燈的格子 */
+const picked = new Set();
+function scene(i){
+  const sky = ['#2b3440','#33404e','#3a3f46','#2f3a45','#38414c','#2c343d','#39424d','#303a44','#353d47'][i];
+  const lamp = LIGHT.indexOf(i) >= 0;
+  let s = '<svg viewBox="0 0 60 60" aria-hidden="true"><rect width="60" height="60" fill="' + sky + '"/>';
+  s += '<rect y="42" width="60" height="18" fill="#20262d"/>';
+  s += '<rect x="' + (4 + (i % 3) * 6) + '" y="' + (18 + (i % 2) * 5) + '" width="13" height="26" fill="#252c34"/>';
+  if (lamp){
+    const x = 34 + (i % 3) * 4;
+    s += '<rect x="' + (x + 3) + '" y="26" width="2" height="18" fill="#4a525c"/>';
+    s += '<rect x="' + x + '" y="12" width="8" height="16" rx="2" fill="#161b21"/>';
+    s += '<circle cx="' + (x + 4) + '" cy="16.5" r="2.2" fill="#e0503c"/>';
+    s += '<circle cx="' + (x + 4) + '" cy="21.5" r="2.2" fill="#6b6250"/>';
+    s += '<circle cx="' + (x + 4) + '" cy="26" r="2.2" fill="#4d6b52"/>';
+  } else if (i % 2 === 0){
+    s += '<circle cx="42" cy="34" r="7" fill="#2f4438"/><rect x="41" y="38" width="2" height="8" fill="#3a3228"/>';
+  } else {
+    s += '<rect x="38" y="34" width="7" height="10" rx="2" fill="#4a3b34"/>';
+  }
+  return s + '</svg>';
+}
+let gridBuilt = false;
+function buildGrid(){
+  if (gridBuilt) return; gridBuilt = true;
+  const g = document.getElementById('grid');
+  for (let i = 0; i < 9; i++){
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tile';
+    b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 格');
+    b.innerHTML = scene(i);
+    b.addEventListener('click', () => {
+      const on = !picked.has(i);
+      on ? picked.add(i) : picked.delete(i);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    g.appendChild(b);
+  }
+}
+const h3 = document.getElementById('h3');
+document.getElementById('b3').addEventListener('click', () => {
+  if (judgeGrid(picked, LIGHT)){
+    h3.classList.remove('bad'); h3.textContent = '✓ 通過。四個，全中。';
+    store.set('g3', 1);
+    unlockSec(document.getElementById('u3'), () => { countUp(); traceIn(); });
+  } else {
+    h3.classList.add('bad');
+    h3.textContent = picked.size ? '再看一次。有一個你漏了，或多選了。' : '至少選一個。';
+    PK.announce(h3.textContent);
+  }
+});
+
+/* ══ 尾聲：數字滾動 ══════════════════════════════════ */
+const TARGET = 819000000;
+let counted = false;
+function countUp(){
+  if (counted) return; counted = true;
+  const el = document.getElementById('cnt');
+  const fmt = n => Math.round(n).toLocaleString('en-US');
+  if (PK.reduced()){ el.textContent = fmt(TARGET); return; }
+  let t = 0;
+  function f(dt){
+    t += dt / 2.2;
+    if (t >= 1){ t = 1; PK.untick(f); }
+    el.textContent = fmt(TARGET * (1 - Math.pow(1 - t, 3)));
+  }
+  PK.tick(f);
+}
+
+/* ══ 尾聲：滑鼠軌跡與勾選 ════════════════════════════ */
+function traceIn(){ PK.replayDash(document.getElementById('tr'), 1500); }
+const fin = document.getElementById('fin'), tick = document.getElementById('tick'), ftxt = document.getElementById('ftxt');
+let checked = false;
+function doCheck(){
+  if (checked) return; checked = true;
+  fin.setAttribute('aria-checked', 'true');
+  tick.style.opacity = '1';
+  PK.replayDash(tick, PK.reduced() ? 1 : 420);
+  store.set('done', 1);
+  ftxt.textContent = '';
+  const line = '你通過了。這一次，你什麼也沒教它——因為它已經學會了看你。';
+  PK.type(ftxt, line, 42);
+  PK.announce(line);
+}
+fin.addEventListener('click', doCheck);
+fin.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); doCheck(); }
+});
+
+/* 回訪者：安靜地認出你 */
+if (store.get('done', 0)) document.querySelector('.pk-hero .aside').textContent = '往下捲。你上次走到最後了——這次它從頭再說一次。';
+</script>
+</body>
+</html>

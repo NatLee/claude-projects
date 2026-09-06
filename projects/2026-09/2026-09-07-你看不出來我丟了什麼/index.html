@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你看不出來我丟了什麼｜每日小專案</title>
+<meta name="description" content="上傳失敗：檔案不得超過 2 MB。接下來你會親手丟掉這張照片九成的資料，然後認不出被丟掉的是什麼——最後我們把它撈回來給你看。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b0d11; --pk-ink:#e9ecf2; --pk-dim:#8b93a3; --pk-accent:#5fd3c4;
+  --pk-line:rgba(255,255,255,.10);
+  --red:#ff5f49; --pk-maxw:680px;
+}
+body{ background:
+  radial-gradient(120% 70% at 50% -10%, #131826 0%, transparent 60%),
+  var(--pk-bg); }
+
+h2{ font-family:var(--pk-serif); font-weight:600; font-size:clamp(20px,4.4vw,26px);
+    line-height:1.55; margin:0 0 14px; letter-spacing:.01em; }
+p{ margin:0 0 18px; }
+main section{ margin:0 0 78px; }
+.lead{ font-size:17px; }
+.dim{ color:var(--pk-dim); }
+.big{ font-family:var(--pk-serif); font-size:clamp(22px,5.2vw,30px); line-height:1.6; }
+.mono{ font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; font-variant-numeric:tabular-nums; }
+
+/* ── 第一屏：那個失敗的上傳框 ── */
+.pk-hero{ text-align:left; }
+.dlg{
+  border:1px solid var(--pk-line); border-radius:14px; padding:20px 20px 18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  box-shadow:0 24px 60px rgba(0,0,0,.5); max-width:420px; margin:0 0 34px;
+}
+.dlg-row{ display:flex; align-items:center; gap:11px; font-size:14px; }
+.dlg-thumb{ width:38px; height:38px; border-radius:7px; flex:0 0 auto;
+  background:linear-gradient(150deg,#f0a24a,#c2496b 55%,#2b3f7a); }
+.dlg-name{ min-width:0; }
+.dlg-name b{ font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar{ height:5px; border-radius:99px; background:rgba(255,255,255,.10); margin:15px 0 9px; overflow:hidden; }
+.bar i{ display:block; height:100%; width:0; border-radius:99px; background:var(--pk-accent);
+  transform-origin:left; transition:background .3s; }
+.dlg.fail .bar i{ background:var(--red); }
+.dlg-msg{ font-size:13px; color:var(--pk-dim); min-height:1.6em; }
+.dlg.fail .dlg-msg{ color:var(--red); }
+.dlg.done .bar i{ background:var(--pk-accent); }
+.dlg.done .dlg-msg{ color:var(--pk-accent); }
+
+/* ── 泛用小元件 ── */
+.panel{ border:1px solid var(--pk-line); border-radius:14px; padding:16px;
+  background:rgba(255,255,255,.025); }
+.ctl{ display:flex; align-items:center; gap:12px; margin:12px 0; flex-wrap:wrap; }
+.ctl label{ font-size:13.5px; color:var(--pk-dim); flex:0 0 auto; }
+input[type=range]{ -webkit-appearance:none; appearance:none; flex:1 1 150px; min-width:130px;
+  height:22px; background:transparent; cursor:pointer; }
+input[type=range]::-webkit-slider-runnable-track{ height:3px; border-radius:99px; background:rgba(255,255,255,.16); }
+input[type=range]::-moz-range-track{ height:3px; border-radius:99px; background:rgba(255,255,255,.16); }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:17px; height:17px; margin-top:-7px;
+  border-radius:50%; background:var(--pk-accent); border:0; box-shadow:0 0 0 4px rgba(95,211,196,.16); }
+input[type=range]::-moz-range-thumb{ width:17px; height:17px; border:0; border-radius:50%;
+  background:var(--pk-accent); box-shadow:0 0 0 4px rgba(95,211,196,.16); }
+select{ font:inherit; font-size:13.5px; color:var(--pk-ink); background:#151a23;
+  border:1px solid var(--pk-line); border-radius:8px; padding:6px 9px; }
+.seg{ display:inline-flex; border:1px solid var(--pk-line); border-radius:999px; overflow:hidden; }
+.seg button{ appearance:none; border:0; background:transparent; color:var(--pk-dim); font:inherit;
+  font-size:13.5px; padding:7px 15px; cursor:pointer; transition:background .2s,color .2s; }
+.seg button[aria-pressed=true]{ background:var(--pk-accent); color:#08131a; }
+.stage{ position:relative; border-radius:11px; overflow:hidden; background:#05070a;
+  border:1px solid var(--pk-line); line-height:0; }
+.stage canvas{ display:block; width:100%; height:auto; }
+.stage .over{ position:absolute; inset:0; }
+.tagline{ font-size:13px; color:var(--pk-dim); margin:9px 0 0; line-height:1.7; }
+.verdict{ font-size:15px; margin:12px 0 0; min-height:1.7em; }
+.verdict b{ color:var(--pk-accent); font-weight:600; }
+.verdict.bad b{ color:var(--red); }
+
+/* ── 比較滑桿 ── */
+.cmp{ position:relative; }
+.cmp .top{ position:absolute; inset:0; clip-path:inset(0 var(--cut,50%) 0 0); }
+.cmp .handle{ position:absolute; top:0; bottom:0; left:calc(100% - var(--cut,50%)); width:2px;
+  background:rgba(255,255,255,.85); transform:translateX(-1px); pointer-events:none; }
+.cmp .handle::after{ content:""; position:absolute; top:50%; left:50%; width:34px; height:34px;
+  margin:-17px 0 0 -17px; border-radius:50%; border:2px solid rgba(255,255,255,.85);
+  background:rgba(0,0,0,.35); }
+.cmp .lab{ position:absolute; top:8px; font-size:11px; letter-spacing:.1em; color:rgba(255,255,255,.8);
+  background:rgba(0,0,0,.45); padding:3px 8px; border-radius:99px; line-height:1.6; }
+.cmp .lab.l{ left:8px } .cmp .lab.r{ right:8px }
+
+/* ── 拖放區 ── */
+.drop{ border:1px dashed rgba(255,255,255,.22); border-radius:12px; padding:18px;
+  text-align:center; font-size:14px; color:var(--pk-dim); transition:border-color .2s,background .2s; }
+.drop.hot{ border-color:var(--pk-accent); background:rgba(95,211,196,.07); }
+.drop button{ margin-top:10px }
+
+/* ── 數字 ── */
+.nums{ display:flex; gap:22px; flex-wrap:wrap; margin:14px 0 0; }
+.num{ flex:1 1 110px }
+.num span{ display:block; font-size:11.5px; letter-spacing:.1em; color:var(--pk-dim) }
+.num b{ font-weight:600; font-size:clamp(19px,4.6vw,23px) }
+
+/* ── 鬼影段 ── */
+#ghost{ transition:opacity .6s ease }
+#ghost[hidden]{ display:none }
+.pull{ font-family:var(--pk-serif); font-size:clamp(19px,4.6vw,25px); line-height:1.7;
+  border-left:2px solid var(--pk-accent); padding-left:18px; margin:34px 0; }
+
+@media (max-width:560px){ .dlg{ padding:16px } .nums{ gap:14px } }
+
+@media (prefers-reduced-motion:reduce){
+  .bar i{ transition:none !important }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <div class="dlg" id="dlg" aria-hidden="true">
+      <div class="dlg-row">
+        <div class="dlg-thumb"></div>
+        <div class="dlg-name"><b>IMG_4417.jpg</b><span class="dim mono" style="font-size:12.5px">4.7 MB</span></div>
+      </div>
+      <div class="bar"><i id="bar"></i></div>
+      <div class="dlg-msg mono" id="dlgmsg">上傳中…</div>
+    </div>
+    <h1 class="rv">你只要丟掉九成，<br>就沒有人會發現。</h1>
+    <p class="rv lead dim">1986 年有一群工程師開了一個會，賭的是你的眼睛沒有你以為的那麼好。
+      這一頁請你親手贏一次那場賭局——然後，我們把你丟掉的東西撈回來給你看。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <h2>他們押的不是壓縮，是知覺</h2>
+    <p>把照片存成檔案，笨方法是老實記下每一個點的紅綠藍。一張一千兩百萬畫素的相片，老實記要三十幾 MB。
+      沒有人在一九九〇年代想寄一張三十幾 MB 的檔案。</p>
+    <p>那群人想的不是「怎麼記得更精簡」，而是一個近乎作弊的問題：
+      <b>哪些東西可以直接不要，而你不會發現？</b></p>
+    <p class="dim">他們翻的是眼球的規格書。視網膜上負責感光暗弱與細節的細胞，數量遠遠多過負責辨色的；
+      換句話說，你對「明暗的邊界」極度敏感，對「顏色的邊界」則相當隨便。
+      於是他們把照片拆成兩層：一層亮度，一層顏色——然後只對其中一層下手。</p>
+    <p class="big" style="margin-top:26px">先確認一下你的眼睛，是不是真的那麼好騙。</p>
+  </section>
+
+  <!-- ══ 互動一：亮度 vs 顏色 ══ -->
+  <section class="rv" id="s-sep">
+    <div class="panel">
+      <div class="stage"><canvas id="cvA" width="640" height="400" role="img"
+           aria-label="示範照片：黃昏海邊，畫面左側有彩色細條紋與黑白細條紋各一塊"></canvas></div>
+      <div class="ctl">
+        <label id="lb-which">把哪一層打糊</label>
+        <div class="seg" role="group" aria-labelledby="lb-which">
+          <button id="bChroma" aria-pressed="true">顏色</button>
+          <button id="bLuma" aria-pressed="false">亮度</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label for="rBlock">解析度砍到</label>
+        <input type="range" id="rBlock" min="1" max="16" step="1" value="1"
+               aria-describedby="sepOut">
+        <span class="mono" id="sepOut" style="flex:0 0 auto">1 ⁄ 1</span>
+      </div>
+      <p class="verdict" id="sepSay">拉拉看。左邊那條彩色細紋是重點。</p>
+    </div>
+    <p class="tagline">示範圖為本頁即時繪製，非外部素材。</p>
+  </section>
+
+  <section class="rv">
+    <p>你大概已經看到了：<b>顏色</b>那一層可以糊到八分之一、十六分之一，遠看幾乎沒事，
+      只有那幾條彩色細紋開始滲血；換成<b>亮度</b>，砍到二分之一你就受不了了。</p>
+    <p>所以規格書就這樣寫了。最普遍的那個模式叫 <span class="mono">4:2:0</span>：
+      每一個 16×16 的區塊裡，亮度全部保留，顏色橫豎各砍一半——
+      <b>四分之三的色彩資訊，在你打開檔案之前就已經不在了。</b></p>
+    <p class="dim">剩下的部分再切成 8×8 的小方塊，把每一塊拆成「粗輪廓」到「細紋路」的一疊圖樣，
+      然後按著一張表，把最細的那些一路歸零。那張表可以調鬆調緊——鬆一點檔案小一點，
+      而你要親手決定鬆到哪裡。</p>
+  </section>
+
+  <!-- ══ 互動二（高潮）：你的照片 ══ -->
+  <section class="rv" id="s-lab">
+    <h2>換你動手：把那 4.7 MB 塞進去</h2>
+    <p>下面這張是剛剛那張示範圖。也可以放你自己的照片進來——
+      它不會離開這台電腦，只是被讀進畫布裡。</p>
+
+    <div class="panel">
+      <div class="drop" id="drop">
+        把照片拖進來，或
+        <br><button class="pk-btn" id="pick" type="button">選一張照片</button>
+        <input type="file" id="file" accept="image/*" class="pk-sr">
+      </div>
+
+      <div class="stage cmp" id="cmp" style="margin-top:16px">
+        <canvas id="cvOut" width="1280" height="800" role="img" aria-label="壓縮後的照片"></canvas>
+        <div class="over top"><canvas id="cvSrc" width="1280" height="800" role="img" aria-label="原始照片"></canvas></div>
+        <div class="handle" aria-hidden="true"></div>
+        <span class="lab l" aria-hidden="true">原圖</span>
+        <span class="lab r" aria-hidden="true">壓縮後</span>
+      </div>
+      <div class="ctl">
+        <label for="rCut">左右比較</label>
+        <input type="range" id="rCut" min="0" max="100" step="1" value="50" aria-label="左右比較分界線位置">
+      </div>
+
+      <div class="ctl">
+        <label for="rQ">品質</label>
+        <input type="range" id="rQ" min="5" max="96" step="1" value="80" aria-describedby="qOut">
+        <span class="mono" id="qOut" style="flex:0 0 auto">80</span>
+      </div>
+      <div class="ctl">
+        <label for="selMax">最長邊</label>
+        <select id="selMax">
+          <option value="0">原尺寸</option>
+          <option value="2048">2048 px</option>
+          <option value="1600">1600 px</option>
+          <option value="1080">1080 px</option>
+        </select>
+        <label for="selLim" style="margin-left:6px">上限</label>
+        <select id="selLim">
+          <option value="1048576">1 MB</option>
+          <option value="2097152" selected>2 MB</option>
+          <option value="5242880">5 MB</option>
+        </select>
+        <button class="pk-btn" id="bAuto" type="button" style="padding:8px 16px;font-size:13.5px">自動壓到剛好</button>
+      </div>
+
+      <div class="nums">
+        <div class="num"><span>原始</span><b class="mono" id="nSrc">—</b></div>
+        <div class="num"><span>壓縮後</span><b class="mono" id="nOut">—</b></div>
+        <div class="num"><span>丟掉了</span><b class="mono" id="nCut">—</b></div>
+      </div>
+      <p class="verdict" id="labSay">拉「品質」看看檔案掉多快，再拉一下上面那條分界線找差別。</p>
+      <div class="ctl" style="margin-top:14px">
+        <button class="pk-btn" id="bSend" type="button" disabled>重新上傳</button>
+        <button class="pk-btn" id="bDl" type="button" disabled>下載壓好的檔案</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ 回馬槍 ══ -->
+  <section class="rv" id="s-ghost">
+    <p class="big">寄出去了。收信的人看到的，和你眼前這張，在你看來是同一張照片。</p>
+    <p>但它們不是同一張。剛才那幾百萬個被歸零的數字，去了某個地方。
+      把兩張圖逐點相減，差值放大——那些消失的東西，會自己浮出來。</p>
+    <p><button class="pk-btn" id="bGhost" type="button">看看你丟掉了什麼</button></p>
+
+    <div id="ghost" hidden>
+      <div class="panel">
+        <div class="stage"><canvas id="cvGhost" width="1280" height="800" role="img"
+             aria-label="原圖與壓縮圖的差值影像，放大後呈現輪廓鬼影"></canvas></div>
+        <div class="ctl">
+          <label for="rAmp">放大</label>
+          <input type="range" id="rAmp" min="2" max="40" step="1" value="14" aria-describedby="ampOut">
+          <span class="mono" id="ampOut" style="flex:0 0 auto">×14</span>
+        </div>
+        <p class="tagline" id="ghostSay">幾乎全黑的地方，是它完整保留下來的；越亮，代表那裡被改得越多。</p>
+      </div>
+      <p class="pull">它沒有平均地偷。它專挑邊緣、皺褶、細紋——
+        專挑那些你眼睛掃過去，來不及停下來的地方。</p>
+      <p>一九九二年九月十八日，這套辦法成為標準，編號 T.81。
+        三十幾年來，它安靜地待在你每一張自拍、每一張截圖、每一次「已讀」上面的大頭貼裡，
+        每天替全世界丟掉幾兆個你沒打算看的細節。</p>
+      <p class="big" style="margin-top:26px">你剛剛才第一次，看見它偷走的東西。<br>
+        <span class="dim">而你到現在都還沒想把它要回來。</span></p>
+    </div>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  規格與時間依 ITU-T T.81／ISO/IEC 10918-1。壓縮由你的瀏覽器內建編碼器完成，品質對應各家實作略有差異。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+var LS = 'jpegq.';
+var store = PK.store(LS);
+
+/* ═══════════ 純函式區（可用 node 斷言）PURE-START ═══════════ */
+
+/* RGB → YCbCr（BT.601，JPEG/JFIF 用的那組） */
+function rgb2ycc(r, g, b) {
+  return [
+    0.299 * r + 0.587 * g + 0.114 * b,
+    128 - 0.168736 * r - 0.331264 * g + 0.5 * b,
+    128 + 0.5 * r - 0.418688 * g - 0.081312 * b
+  ];
+}
+function ycc2rgb(y, cb, cr) {
+  return [
+    y + 1.402 * (cr - 128),
+    y - 0.344136 * (cb - 128) - 0.714136 * (cr - 128),
+    y + 1.772 * (cb - 128)
+  ];
+}
+function clamp255(v) { return v < 0 ? 0 : v > 255 ? 255 : v; }
+
+/* 對 RGBA 緩衝區做「盒狀降取樣再放大」：which='chroma' 只動 CbCr，'luma' 只動 Y。
+   factor=1 為恆等。回傳新的 Uint8ClampedArray／Array。 */
+function subsampleRGBA(src, w, h, factor, which) {
+  var n = w * h, out = (typeof Uint8ClampedArray !== 'undefined')
+    ? new Uint8ClampedArray(src.length) : new Array(src.length);
+  var Y = new Float32Array(n), Cb = new Float32Array(n), Cr = new Float32Array(n), i, p;
+  for (i = 0; i < n; i++) {
+    p = i * 4;
+    var c = rgb2ycc(src[p], src[p + 1], src[p + 2]);
+    Y[i] = c[0]; Cb[i] = c[1]; Cr[i] = c[2];
+  }
+  var f = Math.max(1, factor | 0);
+  if (f > 1) {
+    var targets = which === 'luma' ? [Y] : [Cb, Cr];
+    for (var t = 0; t < targets.length; t++) boxify(targets[t], w, h, f);
+  }
+  for (i = 0; i < n; i++) {
+    p = i * 4;
+    var rgb = ycc2rgb(Y[i], Cb[i], Cr[i]);
+    out[p] = clamp255(rgb[0]); out[p + 1] = clamp255(rgb[1]);
+    out[p + 2] = clamp255(rgb[2]); out[p + 3] = src[p + 3];
+  }
+  return out;
+}
+/* 就地把平面切成 f×f 方塊、每塊填該塊平均值 */
+function boxify(plane, w, h, f) {
+  for (var by = 0; by < h; by += f) {
+    for (var bx = 0; bx < w; bx += f) {
+      var x1 = Math.min(bx + f, w), y1 = Math.min(by + f, h), sum = 0, cnt = 0, x, y;
+      for (y = by; y < y1; y++) for (x = bx; x < x1; x++) { sum += plane[y * w + x]; cnt++; }
+      var avg = sum / cnt;
+      for (y = by; y < y1; y++) for (x = bx; x < x1; x++) plane[y * w + x] = avg;
+    }
+  }
+  return plane;
+}
+
+/* data:URL 的實際位元組數（base64 去頭去 padding） */
+function dataUrlBytes(url) {
+  var i = url.indexOf(',');
+  if (i < 0) return 0;
+  var b64 = url.slice(i + 1), pad = 0;
+  if (b64.charAt(b64.length - 1) === '=') pad++;
+  if (b64.charAt(b64.length - 2) === '=') pad++;
+  return Math.floor(b64.length * 3 / 4) - pad;
+}
+
+function fmtBytes(n) {
+  if (!(n > 0)) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(n < 10240 ? 1 : 0) + ' KB';
+  return (n / 1048576).toFixed(2) + ' MB';
+}
+
+/* 等比縮到最長邊 max（max=0 或已較小則不動） */
+function fitSize(w, h, max) {
+  if (!max || (w <= max && h <= max)) return { w: w, h: h };
+  var k = max / Math.max(w, h);
+  return { w: Math.max(1, Math.round(w * k)), h: Math.max(1, Math.round(h * k)) };
+}
+
+/* 差值影像：|a−b| × amp，寫成灰階偏冷色的 RGBA */
+function diffRGBA(a, b, amp) {
+  var out = (typeof Uint8ClampedArray !== 'undefined')
+    ? new Uint8ClampedArray(a.length) : new Array(a.length);
+  for (var p = 0; p < a.length; p += 4) {
+    var dr = Math.abs(a[p] - b[p]), dg = Math.abs(a[p + 1] - b[p + 1]), db = Math.abs(a[p + 2] - b[p + 2]);
+    out[p] = clamp255(dr * amp);
+    out[p + 1] = clamp255(dg * amp);
+    out[p + 2] = clamp255(db * amp);
+    out[p + 3] = 255;
+  }
+  return out;
+}
+
+/* 二分搜尋：找出「不超過 limit」的最高品質。probe(q)→bytes（q 越大 bytes 越大） */
+function bestQuality(probe, limit, lo, hi) {
+  lo = lo === undefined ? 5 : lo; hi = hi === undefined ? 96 : hi;
+  var best = lo, guard = 0;
+  if (probe(lo) > limit) return lo;
+  while (lo <= hi && guard++ < 40) {
+    var mid = (lo + hi) >> 1;
+    if (probe(mid) <= limit) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+  }
+  return best;
+}
+
+/* ═══════════ PURE-END ═══════════ */
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { rgb2ycc: rgb2ycc, ycc2rgb: ycc2rgb, subsampleRGBA: subsampleRGBA,
+    boxify: boxify, dataUrlBytes: dataUrlBytes, fmtBytes: fmtBytes, fitSize: fitSize,
+    diffRGBA: diffRGBA, bestQuality: bestQuality };
+}
+
+/* ═══════════════════ 以下為頁面接線 ═══════════════════ */
+(function () {
+  if (typeof document === 'undefined') return;
+
+  PK.reveal();
+
+  /* ── 第一屏：失敗的上傳 ── */
+  var dlg = document.getElementById('dlg'), bar = document.getElementById('bar'),
+      dlgmsg = document.getElementById('dlgmsg');
+  function failUpload() {
+    dlg.classList.remove('done'); dlg.classList.add('fail');
+    bar.style.width = '97%';
+    dlgmsg.textContent = '上傳失敗：檔案不得超過 2 MB';
+  }
+  if (PK.reduced()) { failUpload(); }
+  else {
+    bar.style.transition = 'width 1.5s cubic-bezier(.2,.8,.3,1), background .3s';
+    requestAnimationFrame(function () { bar.style.width = '97%'; });
+    setTimeout(failUpload, 1750);
+  }
+
+  /* ── 共用：畫一張程序生成的「照片」 ── */
+  function paintDemo(cv, grain) {
+    var w = cv.width, h = cv.height, g = cv.getContext('2d'), x, y;
+    var sky = g.createLinearGradient(0, 0, 0, h * 0.62);
+    sky.addColorStop(0, '#1b2350'); sky.addColorStop(.55, '#8d4a63'); sky.addColorStop(1, '#f0a24a');
+    g.fillStyle = sky; g.fillRect(0, 0, w, h * 0.62);
+    /* 太陽 */
+    var sx = w * 0.30, sy = h * 0.52;
+    var glow = g.createRadialGradient(sx, sy, 0, sx, sy, h * 0.34);
+    glow.addColorStop(0, 'rgba(255,236,190,.95)'); glow.addColorStop(.25, 'rgba(255,190,110,.55)');
+    glow.addColorStop(1, 'rgba(255,150,80,0)');
+    g.fillStyle = glow; g.fillRect(0, 0, w, h * 0.62);
+    g.fillStyle = '#ffeec2'; g.beginPath(); g.arc(sx, sy, h * 0.055, 0, 6.284); g.fill();
+    /* 遠山 */
+    g.fillStyle = '#3a2340'; g.beginPath(); g.moveTo(0, h * 0.62);
+    for (x = 0; x <= w; x += 8) {
+      var k = x / w;
+      g.lineTo(x, h * (0.62 - 0.10 * Math.abs(Math.sin(k * 5.2 + 1)) - 0.03 * Math.sin(k * 17)));
+    }
+    g.lineTo(w, h * 0.62); g.closePath(); g.fill();
+    /* 海 */
+    var sea = g.createLinearGradient(0, h * 0.62, 0, h);
+    sea.addColorStop(0, '#22304e'); sea.addColorStop(1, '#0d1526');
+    g.fillStyle = sea; g.fillRect(0, h * 0.62, w, h * 0.38);
+    for (y = h * 0.63; y < h; y += 3) {
+      var t = (y - h * 0.62) / (h * 0.38);
+      g.fillStyle = 'rgba(255,205,150,' + (0.30 * (1 - t) * (1 - t)).toFixed(3) + ')';
+      var ww = 10 + t * 70, cx = sx + Math.sin(y * 0.7) * (6 + t * 40);
+      g.fillRect(cx - ww / 2, y, ww, 1.4);
+    }
+    /* 前景剪影：小船 */
+    g.fillStyle = '#0a0f1a';
+    g.beginPath(); g.moveTo(w * .62, h * .90); g.lineTo(w * .78, h * .90);
+    g.lineTo(w * .755, h * .945); g.lineTo(w * .645, h * .945); g.closePath(); g.fill();
+    g.fillRect(w * .698, h * .74, 3, h * .16);
+    g.beginPath(); g.moveTo(w * .706, h * .745); g.lineTo(w * .775, h * .895);
+    g.lineTo(w * .706, h * .895); g.closePath(); g.fill();
+    /* 測試條：彩色細紋（色度殺手）＋黑白細紋（亮度殺手） */
+    var bx = w * 0.035, bw = w * 0.10, by = h * 0.10, bh = h * 0.30;
+    for (x = 0; x < bw; x += 4) {
+      g.fillStyle = (x / 4) % 2 ? '#ff2d2d' : '#00c8ff';
+      g.fillRect(bx + x, by, 2, bh);
+    }
+    for (x = 0; x < bw; x += 4) {
+      g.fillStyle = (x / 4) % 2 ? '#ffffff' : '#101010';
+      g.fillRect(bx + x, by + bh + h * 0.03, 2, bh * 0.62);
+    }
+    g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1;
+    g.strokeRect(bx - .5, by - .5, bw + 1, bh + 1);
+    g.strokeRect(bx - .5, by + bh + h * 0.03 - .5, bw + 1, bh * 0.62 + 1);
+    /* 底片顆粒：真照片都有，也讓「丟掉了什麼」看得更清楚 */
+    if (grain) {
+      var im = g.getImageData(0, 0, w, h), dt = im.data, seed = 1;
+      for (var i = 0; i < dt.length; i += 4) {
+        seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+        var n = ((seed >> 8) % 512 / 511 - .5) * 2 * grain;
+        dt[i] = clamp255(dt[i] + n); dt[i + 1] = clamp255(dt[i + 1] + n * .92);
+        dt[i + 2] = clamp255(dt[i + 2] + n * 1.06);
+      }
+      g.putImageData(im, 0, 0);
+    }
+    return g;
+  }
+
+  /* ── 互動一：亮度 vs 顏色 ── */
+  var cvA = document.getElementById('cvA'), gA = paintDemo(cvA);
+  var baseA = gA.getImageData(0, 0, cvA.width, cvA.height);
+  var origA = new Uint8ClampedArray(baseA.data);
+  var which = 'chroma', pend = 0;
+  var rBlock = document.getElementById('rBlock'), sepOut = document.getElementById('sepOut'),
+      sepSay = document.getElementById('sepSay'),
+      bChroma = document.getElementById('bChroma'), bLuma = document.getElementById('bLuma');
+
+  function drawSep() {
+    var f = +rBlock.value;
+    sepOut.textContent = '1 ⁄ ' + f;
+    var d = subsampleRGBA(origA, cvA.width, cvA.height, f, which);
+    baseA.data.set(d);
+    gA.putImageData(baseA, 0, 0);
+    var msg;
+    if (f === 1) msg = '原圖。兩層都完整。';
+    else if (which === 'chroma')
+      msg = f <= 4 ? '顏色砍到 1⁄' + f + '——除了那條彩紋在滲色，你幾乎看不出來。'
+        : (f <= 10 ? '顏色砍到 1⁄' + f + '。彩紋糊成一團，但海和天空？照樣好看。'
+          : '顏色砍到 1⁄' + f + '。連這樣，整張照片還是「認得出來」的。');
+    else msg = f <= 2 ? '亮度只砍到 1⁄2——馬上就髒了。'
+      : '亮度砍到 1⁄' + f + '。照片直接毀了。你的眼睛在這一層上一點都不好騙。';
+    sepSay.textContent = msg;
+    sepSay.classList.toggle('bad', which === 'luma' && f > 1);
+  }
+  function queueSep() {
+    if (pend) return;
+    pend = requestAnimationFrame(function () { pend = 0; drawSep(); });
+  }
+  rBlock.addEventListener('input', queueSep);
+  function setWhich(v) {
+    which = v;
+    bChroma.setAttribute('aria-pressed', String(v === 'chroma'));
+    bLuma.setAttribute('aria-pressed', String(v === 'luma'));
+    drawSep();
+    PK.announce(v === 'chroma' ? '現在打糊顏色層' : '現在打糊亮度層');
+  }
+  bChroma.addEventListener('click', function () { setWhich('chroma'); });
+  bLuma.addEventListener('click', function () { setWhich('luma'); });
+  drawSep();
+
+  /* ── 互動二：壓縮實驗室 ── */
+  var cvSrc = document.getElementById('cvSrc'), cvOut = document.getElementById('cvOut'),
+      cvGhost = document.getElementById('cvGhost');
+  var gSrc = cvSrc.getContext('2d'), gOut = cvOut.getContext('2d');
+  var rQ = document.getElementById('rQ'), qOut = document.getElementById('qOut'),
+      selMax = document.getElementById('selMax'), selLim = document.getElementById('selLim'),
+      nSrc = document.getElementById('nSrc'), nOut = document.getElementById('nOut'),
+      nCut = document.getElementById('nCut'), labSay = document.getElementById('labSay'),
+      bSend = document.getElementById('bSend'), bDl = document.getElementById('bDl'),
+      bAuto = document.getElementById('bAuto'), cmp = document.getElementById('cmp'),
+      rCut = document.getElementById('rCut');
+
+  /* 工作用離屏畫布 */
+  var work = document.createElement('canvas'), gw = work.getContext('2d');
+  var DEMO_W = 1280, DEMO_H = 800, demoCv = null;
+  var srcImg = null;          /* HTMLImageElement 或 null（null＝用程序圖） */
+  var srcBytes = 0, srcLabel = '未壓縮';
+  var lastUrl = '', lastBytes = 0, lastName = 'compressed.jpg';
+
+  /* 還原記憶 */
+  rQ.value = store.get('q', 80);
+  selLim.value = store.get('lim', '2097152');
+  selMax.value = store.get('max', '0');
+  rCut.value = store.get('cut', 50);
+
+  function renderSource() {
+    var W, H;
+    if (srcImg) {
+      var s = fitSize(srcImg.naturalWidth, srcImg.naturalHeight, +selMax.value);
+      W = s.w; H = s.h;
+    } else {
+      var s2 = fitSize(DEMO_W, DEMO_H, +selMax.value); W = s2.w; H = s2.h;
+    }
+    work.width = W; work.height = H;
+    if (srcImg) gw.drawImage(srcImg, 0, 0, W, H);
+    else {
+      if (!demoCv) {
+        demoCv = document.createElement('canvas');
+        demoCv.width = DEMO_W; demoCv.height = DEMO_H;
+        paintDemo(demoCv, 16);
+      }
+      gw.drawImage(demoCv, 0, 0, W, H);
+    }
+    cvSrc.width = W; cvSrc.height = H; cvOut.width = W; cvOut.height = H;
+    gSrc.drawImage(work, 0, 0);
+    if (!srcImg) { srcBytes = W * H * 3; srcLabel = '未壓縮'; }
+    nSrc.textContent = fmtBytes(srcBytes);
+  }
+
+  function encode(q) {
+    return work.toDataURL('image/jpeg', PK.clamp(q, 1, 100) / 100);
+  }
+
+  var busy = 0;
+  function update(announce) {
+    var q = +rQ.value;
+    qOut.textContent = q;
+    var url = encode(q);
+    lastUrl = url; lastBytes = dataUrlBytes(url);
+    nOut.textContent = fmtBytes(lastBytes);
+    var save = srcBytes > 0 ? Math.round((1 - lastBytes / srcBytes) * 100) : 0;
+    nCut.textContent = srcBytes > 0 ? save + '%' : '—';
+    var lim = +selLim.value, ok = lastBytes <= lim;
+    bSend.disabled = !ok; bDl.disabled = false;
+    labSay.classList.toggle('bad', !ok);
+    labSay.innerHTML = ok
+      ? '過了。<b>' + fmtBytes(lastBytes) + '</b>，比' + srcLabel + '少了 <b>' + save + '%</b>——'
+        + (srcImg ? '拉一下上面那條線，找找看少在哪。'
+                  : '把上面那條線左右拉拉看，找得出差別嗎？找不到的話，換你自己的照片來試。')
+      : '還是太大：<b>' + fmtBytes(lastBytes) + '</b>，上限 ' + fmtBytes(lim) + '。品質再往左一點。';
+    var img = new Image();
+    img.onload = function () {
+      gOut.clearRect(0, 0, cvOut.width, cvOut.height);
+      gOut.drawImage(img, 0, 0, cvOut.width, cvOut.height);
+      if (ghostShown) drawGhost();
+    };
+    img.src = url;
+    store.set('q', q);
+    if (announce) PK.announce('壓縮後 ' + fmtBytes(lastBytes) + (ok ? '，符合上限' : '，仍超過上限'));
+  }
+  /* 拖曳時節流：大圖編碼較慢，最多每 110ms 算一次，放開再補算一次 */
+  var qPend = 0, qLast = 0, qTail = 0;
+  function queueUpdate() {
+    var now = Date.now();
+    clearTimeout(qTail);
+    qTail = setTimeout(function () { qLast = Date.now(); update(false); }, 140);
+    if (qPend || now - qLast < 110) return;
+    qPend = requestAnimationFrame(function () {
+      qPend = 0; qLast = Date.now(); update(false);
+    });
+  }
+  rQ.addEventListener('input', queueUpdate);
+  rQ.addEventListener('change', function () { update(true); });
+  selLim.addEventListener('change', function () { store.set('lim', selLim.value); update(true); });
+  selMax.addEventListener('change', function () {
+    store.set('max', selMax.value); renderSource(); update(true);
+  });
+
+  bAuto.addEventListener('click', function () {
+    var lim = +selLim.value;
+    var q = bestQuality(function (qq) { return dataUrlBytes(encode(qq)); }, lim, 5, 96);
+    rQ.value = q; update(true);
+    labSay.innerHTML = '剛剛好：品質 <b>' + q + '</b>，' + fmtBytes(lastBytes) + '。再高一格就超過了。';
+  });
+
+  bSend.addEventListener('click', function () {
+    dlg.classList.remove('fail'); dlg.classList.add('done');
+    bar.style.width = '100%';
+    dlgmsg.textContent = '上傳完成 · ' + fmtBytes(lastBytes);
+    PK.announce('上傳完成');
+    var g2 = document.getElementById('s-ghost');
+    if (g2) PK.scrollTo(g2);
+  });
+
+  bDl.addEventListener('click', function () {
+    var a = document.createElement('a');
+    a.href = lastUrl;
+    a.download = lastName.replace(/\.[^.]+$/, '') + '-q' + rQ.value + '.jpg';
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  /* 檔案輸入 */
+  var drop = document.getElementById('drop'), fileEl = document.getElementById('file');
+  document.getElementById('pick').addEventListener('click', function () { fileEl.click(); });
+  fileEl.addEventListener('change', function () { if (fileEl.files[0]) loadFile(fileEl.files[0]); });
+  ['dragenter', 'dragover'].forEach(function (e) {
+    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add('hot'); });
+  });
+  ['dragleave', 'drop'].forEach(function (e) {
+    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove('hot'); });
+  });
+  drop.addEventListener('drop', function (ev) {
+    var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  function loadFile(f) {
+    if (!/^image\//.test(f.type)) { labSay.textContent = '這不是圖片檔。'; return; }
+    var fr = new FileReader();
+    fr.onload = function () {
+      var im = new Image();
+      im.onload = function () {
+        srcImg = im; srcBytes = f.size; srcLabel = '原檔'; lastName = f.name || 'photo.jpg';
+        renderSource(); update(true);
+        labSay.textContent = '你的照片進來了：' + im.naturalWidth + '×' + im.naturalHeight +
+          '，' + fmtBytes(f.size) + '。現在拉品質。';
+      };
+      im.onerror = function () { labSay.textContent = '這張圖讀不進來，換一張試試。'; };
+      im.src = fr.result;
+    };
+    fr.readAsDataURL(f);
+  }
+
+  /* 比較滑桿 */
+  function setCut(v) {
+    cmp.style.setProperty('--cut', (100 - v) + '%');
+    store.set('cut', v);
+  }
+  rCut.addEventListener('input', function () { setCut(+rCut.value); });
+  setCut(+rCut.value);
+
+  /* ── 鬼影 ── */
+  var ghostShown = false;
+  var rAmp = document.getElementById('rAmp'), ampOut = document.getElementById('ampOut'),
+      ghostBox = document.getElementById('ghost'), gG = cvGhost.getContext('2d');
+  function drawGhost() {
+    var W = cvSrc.width, H = cvSrc.height;
+    cvGhost.width = W; cvGhost.height = H;
+    var a = gSrc.getImageData(0, 0, W, H), b = gOut.getImageData(0, 0, W, H);
+    var d = gG.createImageData(W, H);
+    d.data.set(diffRGBA(a.data, b.data, +rAmp.value));
+    gG.putImageData(d, 0, 0);
+    ampOut.textContent = '×' + rAmp.value;
+  }
+  var gPend = 0;
+  rAmp.addEventListener('input', function () {
+    if (gPend) return;
+    gPend = requestAnimationFrame(function () { gPend = 0; drawGhost(); });
+  });
+  document.getElementById('bGhost').addEventListener('click', function () {
+    ghostShown = true;
+    ghostBox.hidden = false;
+    drawGhost();
+    this.textContent = '再看一次';
+    PK.announce('差值影像已顯示');
+    PK.scrollTo(ghostBox);
+  });
+
+  /* 啟動 */
+  renderSource();
+  update(false);
+})();
+</script>
+</body>
+</html>

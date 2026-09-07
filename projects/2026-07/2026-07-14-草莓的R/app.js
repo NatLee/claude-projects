@@ -222,8 +222,11 @@
    *  以下為瀏覽器 UI
    * ================================================================ */
 
-  /* reduced-motion：動態監聽 change */
-  var mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  /* reduced-motion：動態監聽 change（matchMedia 缺席時退回「不減少動態」，
+     否則這行會拋錯，後面整段 UI 接線都不會執行——比照 assets/page-kit.js 的寫法） */
+  var mqReduce = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : { matches: false };
   var reduce = mqReduce.matches;
   function applyReduce() { document.documentElement.classList.toggle('reduce-motion', reduce); }
   function onReduceChange(e) { reduce = e.matches; applyReduce(); }

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>那顆球是死的｜每日小專案</title>
+<meta name="description" content="動作沒錯，但它是死的。三支鉛筆救不了它——救活它的是你沒想到的那一個。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#100e0c;
+  --pk-ink:#efe7d7;
+  --pk-dim:#8b8375;
+  --pk-accent:#e8b04b;
+  --pk-line:rgba(239,231,215,.13);
+  --red:#cf4b34;
+  --paper:#e9e0cc;
+  --pk-maxw:660px;
+}
+body{background:
+  radial-gradient(120% 70% at 50% -10%, #1c1814 0%, rgba(28,24,20,0) 60%),
+  var(--pk-bg);}
+
+/* ── 桌燈：只在第一屏之後亮起來 ── */
+.lamp{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;
+  background:radial-gradient(58% 42% at 50% 34%, rgba(232,176,75,.10) 0%, rgba(232,176,75,0) 70%);
+  transition:opacity 1.6s ease}
+body.lit .lamp{opacity:1}
+.pk-wrap,.pk-hero{z-index:1}
+
+/* ── 紙條 ── */
+.note{background:var(--paper);color:#2a241c;border-radius:2px;
+  padding:20px 22px 16px;max-width:280px;
+  font-family:var(--pk-serif);line-height:1.75;
+  box-shadow:0 18px 40px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.25) inset;
+  transform:rotate(-1.4deg)}
+.note b{display:block;font-weight:600;font-size:19px;color:var(--red);letter-spacing:.02em}
+.note .sig{margin-top:12px;text-align:right;font-size:13px;color:#8a7a63;font-style:italic}
+.note.pass b{font-size:34px;line-height:1.2}
+
+/* ── 章節牌 ── */
+.chap{margin:0 0 6px;font-size:12px;letter-spacing:.24em;color:var(--pk-dim);text-transform:uppercase}
+h2{font-family:var(--pk-serif);font-size:clamp(22px,5.2vw,30px);font-weight:600;
+  margin:0 0 4px;line-height:1.35}
+.en{font-size:11.5px;letter-spacing:.26em;color:var(--pk-accent);opacity:.8;margin:0 0 22px}
+section{margin:0 0 96px}
+p{margin:0 0 18px;font-size:16.5px}
+strong{color:#fff;font-weight:600}
+
+/* ── 主任的紅筆 ── */
+.red{border-left:2px solid var(--red);padding:2px 0 2px 16px;margin:26px 0 0;
+  font-family:var(--pk-serif);font-size:18px;color:#e79582;font-style:italic;
+  visibility:hidden;opacity:0;transform:translateX(-6px);
+  transition:opacity .7s ease,transform .7s ease,visibility 0s .7s}
+.red.on{visibility:visible;opacity:1;transform:none;
+  transition:opacity .7s ease,transform .7s ease,visibility 0s}
+.red small{display:block;font-style:normal;font-size:13px;color:var(--pk-dim);margin-top:8px}
+
+/* ── 試拍台 ── */
+.rig{border:1px solid var(--pk-line);border-radius:6px;background:rgba(255,255,255,.022);
+  padding:14px 14px 6px;margin:26px 0 0;position:relative}
+.rig::before{content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:112px;height:7px;
+  background:radial-gradient(circle at 12px 50%,rgba(0,0,0,.55) 0 4px,transparent 4.5px),
+             radial-gradient(circle at 56px 50%,rgba(0,0,0,.55) 0 4px,transparent 4.5px),
+             radial-gradient(circle at 100px 50%,rgba(0,0,0,.55) 0 4px,transparent 4.5px)}
+.stage{display:block;width:100%;height:230px}
+.stage.tall{height:270px}
+.rig .cap{display:flex;justify-content:space-between;gap:12px;
+  font-size:11.5px;letter-spacing:.1em;color:var(--pk-dim);
+  border-top:1px solid var(--pk-line);padding:9px 2px 8px;margin-top:6px}
+.rig .cap b{color:var(--pk-accent);font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ── 旋鈕 ── */
+.knob{margin:18px 0 4px}
+.knob label{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  font-size:13px;letter-spacing:.06em;color:var(--pk-dim);margin-bottom:9px}
+.knob label b{color:var(--pk-ink);font-weight:500;font-variant-numeric:tabular-nums}
+input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:22px;
+  background:transparent;cursor:grab;display:block}
+input[type=range]:active{cursor:grabbing}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--pk-line);border-radius:2px}
+input[type=range]::-moz-range-track{height:2px;background:var(--pk-line);border-radius:2px}
+input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;
+  width:16px;height:16px;border-radius:50%;background:var(--pk-accent);margin-top:-7px;
+  box-shadow:0 0 0 0 rgba(232,176,75,.28);transition:box-shadow .2s,transform .12s}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;
+  background:var(--pk-accent)}
+input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 0 7px rgba(232,176,75,.14)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(.9)}
+
+/* ── 讀數表（間距那一章） ── */
+.meter{display:grid;grid-template-columns:1fr 1fr auto;gap:2px 14px;align-items:end;
+  margin:20px 0 0;padding:16px 0 0;border-top:1px solid var(--pk-line)}
+.meter div{font-size:11.5px;letter-spacing:.1em;color:var(--pk-dim);line-height:1.6}
+.meter b{display:block;font-family:var(--pk-serif);font-size:27px;color:var(--pk-ink);
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.meter .hi b{color:var(--pk-accent)}
+.meter .ratio{text-align:right}
+.meter .ratio b{font-size:20px}
+
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 0}
+.pk-btn{font-size:14px;padding:11px 20px}
+.pk-btn[aria-pressed=true]{background:var(--pk-accent);color:var(--pk-bg)}
+
+/* ── 回馬槍的假按鈕 ── */
+.demo{display:flex;justify-content:center;margin:34px 0 8px}
+.fake{appearance:none;border:0;cursor:pointer;font-family:inherit;font-size:15px;
+  letter-spacing:.08em;color:#151210;background:var(--pk-ink);
+  border-radius:10px;padding:15px 34px;box-shadow:0 8px 22px rgba(0,0,0,.5);
+  transition:transform .44s cubic-bezier(.34,1.56,.64,1)}
+.fake.push{transform:scale(.9,.86)}
+.fake.pop{transform:none}
+
+.quiet{color:var(--pk-dim);font-size:14.5px}
+.big{font-family:var(--pk-serif);font-size:clamp(21px,4.8vw,27px);line-height:1.6;
+  margin:0 0 22px}
+hr{border:0;border-top:1px solid var(--pk-line);margin:0 0 42px}
+
+@media (max-width:560px){
+  .stage{height:200px}
+  .stage.tall{height:230px}
+  .meter{grid-template-columns:1fr 1fr;gap:14px}
+  .meter .ratio{grid-column:1/-1;text-align:left}
+  section{margin-bottom:76px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .lamp{transition:none}
+  .red{opacity:1;transform:none;transition:none}
+  .fake{transition:none}
+  .fake.push{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+<div class="lamp" aria-hidden="true"></div>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <h1 class="rv">那顆球是死的。</h1>
+    <p class="rv">你畫了十六格。地心引力對，落點對，秒數對。<br>
+      早上桌上多了一張紙條，紅筆，你認得那個字跡。</p>
+    <div class="rv" style="margin:26px 0 30px">
+      <div class="note" id="note">
+        <b>動作沒錯。<br>但它是死的。<br>重畫。</b>
+        <div class="sig">— F.&nbsp;T.</div>
+      </div>
+    </div>
+    <div class="rv rig" style="max-width:420px">
+      <canvas class="stage" id="cv0" role="img"
+        aria-label="一顆球在原地等速彈跳，每一格的距離都一樣，看起來像機械零件。"></canvas>
+      <div class="cap"><span>你交出去的那一版</span><b>16 格</b></div>
+    </div>
+    <p class="rv quiet" style="margin-top:26px">他沒說哪裡錯。他只是把三支鉛筆放在你桌上。↓</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- ── 第一支 ───────────────────────────────── -->
+  <section class="rv">
+    <p class="chap">第一支鉛筆</p>
+    <h2>它可以變形，但不能變多</h2>
+    <p class="en">SQUASH AND STRETCH</p>
+    <p>橡皮球撞到地板會扁，離開地板會拉長。這件事你知道。你不知道的是那條鐵律：<strong>擠壓的時候變寬多少，就得從高度上還回去多少。</strong>一顆球被拉成一根麵條，體積不准多出來一絲——多出來，它就變成氣球了。</p>
+    <div class="rig">
+      <canvas class="stage" id="cv1" role="img" aria-label="彈跳球示範，可調整擠壓與伸展的幅度。"></canvas>
+      <div class="cap"><span>寬 × 高（永遠等於 1）</span><b id="vol">1.000</b></div>
+    </div>
+    <div class="knob">
+      <label for="k1">擠壓與伸展 <b id="v1">0%</b></label>
+      <input type="range" id="k1" min="0" max="100" value="0" aria-describedby="d1">
+    </div>
+    <p id="d1" class="pk-sr">拉高數值，球在落地時被壓扁、在空中被拉長，但寬高相乘永遠是 1。</p>
+    <p class="red" id="r1">「有重量了。還是死的。」</p>
+  </section>
+
+  <!-- ── 第二支 ───────────────────────────────── -->
+  <section class="rv">
+    <p class="chap">第二支鉛筆</p>
+    <h2>所有向前，都得先向後</h2>
+    <p class="en">ANTICIPATION</p>
+    <p>舞者不會憑空跳起來，他先屈膝。要把高爾夫球打出去，桿子得先往反方向拉。投手、拳手、要開口說話的人——<strong>動作真正開始之前，都有一個朝著相反方向的動作。</strong>觀眾看不見它，但少了它，什麼都不會發生。</p>
+    <div class="rig">
+      <canvas class="stage" id="cv2" role="img" aria-label="彈跳球示範，可調整起跳前蹲在地上的格數。"></canvas>
+      <div class="cap"><span>貼在地上蓄力</span><b id="hold">2 格</b></div>
+    </div>
+    <div class="knob">
+      <label for="k2">預備動作 <b id="v2">0%</b></label>
+      <input type="range" id="k2" min="0" max="100" value="0">
+    </div>
+    <p class="red" id="r2">「它想跳了。還是死的。」</p>
+  </section>
+
+  <!-- ── 第三支 ───────────────────────────────── -->
+  <section class="rv">
+    <p class="chap">第三支鉛筆</p>
+    <h2>沒有一樣東西是同時停下來的</h2>
+    <p class="en">FOLLOW THROUGH &amp; OVERLAPPING ACTION</p>
+    <p>人停下來的時候，頭髮不會停。裙子不會停。狗停下來的時候，耳朵還要再甩兩下。<strong>身體是核心，掛在身上的東西都遲到。</strong>它們會超過該停的位置，再被拉回來，晃兩下才安分。</p>
+    <p>所以我們替這顆球接了一根天線。</p>
+    <div class="rig">
+      <canvas class="stage" id="cv3" role="img" aria-label="裝了天線的彈跳球，可調整天線跟隨球體的鬆緊。"></canvas>
+      <div class="cap"><span>天線比球晚停</span><b id="lagv">0 格</b></div>
+    </div>
+    <div class="knob">
+      <label for="k3">跟隨與重疊 <b id="v3">0%</b></label>
+      <input type="range" id="k3" min="0" max="100" value="0">
+    </div>
+    <p class="red" id="r3">「你在替一具屍體梳頭。」</p>
+  </section>
+
+  <hr>
+
+  <!-- ── 轉折 ───────────────────────────────── -->
+  <section class="rv">
+    <p class="chap">他把三支鉛筆收回去了</p>
+    <p class="big">桌上只留下一張影印紙。上面是 Norman McLaren 一九五六年寫的一句話，被人用紅筆圈了兩次：</p>
+    <p class="big" style="color:var(--pk-accent)">「每兩格之間發生的事，<br>比每一格裡有什麼更重要。」</p>
+    <p>你數過那十六格。你檢查過每一格的形狀、每一格的方向、每一格上面的灰塵。</p>
+    <p><strong>你從來沒有量過它們之間的距離。</strong></p>
+  </section>
+
+  <section class="rv">
+    <p class="chap">第四件事（不是鉛筆）</p>
+    <h2>把十六格重新放一次</h2>
+    <p class="en">SLOW IN AND SLOW OUT ／ SPACING</p>
+    <p>右邊那把尺，是動畫師真正在畫的東西：十六格的落點，全部投影到同一條線上。一格都不會多，一格都不會少——<strong>你只是換了它們站的位置。</strong></p>
+    <div class="rig">
+      <canvas class="stage tall" id="cv4" role="img" aria-label="只調整間距的彈跳球，右側是十六格落點的間距尺。"></canvas>
+      <div class="cap"><span>擠壓 0　預備 0　跟隨 0</span><b>總格數 16（不變）</b></div>
+    </div>
+    <div class="knob">
+      <label for="k4">間距 <b id="v4">等速</b></label>
+      <input type="range" id="k4" min="0" max="100" value="0" aria-describedby="d4">
+    </div>
+    <p id="d4" class="pk-sr">往右拉，最高點附近的格子會擠在一起、落地前的格子會拉開，總格數不變。</p>
+    <div class="meter" aria-live="polite">
+      <div class="hi">最高點那三格<b id="mTop">14%</b>佔全高</div>
+      <div>落地前那三格<b id="mBot">28%</b>佔全高</div>
+      <div class="ratio">相差<b id="mRat">2.0 倍</b></div>
+    </div>
+    <p class="red" id="r4">「對了。」</p>
+  </section>
+
+  <!-- ── 試拍 ───────────────────────────────── -->
+  <section class="rv">
+    <p class="chap">試拍</p>
+    <h2>三支鉛筆，加上那把尺</h2>
+    <p class="en">PENCIL TEST</p>
+    <p>現在把你調過的每一格放回去。同樣十六格，同樣一秒又四分之一，同樣一顆球。</p>
+    <div class="rig">
+      <canvas class="stage tall" id="cv5" role="img" aria-label="完整的彈跳球試拍，含天線與間距尺。"></canvas>
+      <div class="cap"><span id="cap5">你的版本</span><b id="cap5b">16 格</b></div>
+    </div>
+    <div class="bar">
+      <button class="pk-btn" id="btnPlay" type="button">重新試拍</button>
+      <button class="pk-btn" id="btnAB" type="button" aria-pressed="false">看回原本那顆</button>
+    </div>
+    <p class="red" id="r5" style="font-size:20px">「過。」<small>你桌上那張紙條，翻面了。</small></p>
+  </section>
+
+  <hr>
+
+  <!-- ── 回馬槍 ───────────────────────────────── -->
+  <section class="rv">
+    <p>把這些寫下來的那兩個人，動筆的時候已經從迪士尼退休三年了。書出在一九八一年，書名叫《The Illusion of Life》——生命的錯覺。十二條原則裡面，<strong>沒有一條在教你怎麼畫畫。</strong></p>
+    <p>華特叫他們「九個老人」。被這樣叫的那一年，他們三十幾歲。</p>
+    <p>紙條右下角那兩個字母，是 Frank Thomas。</p>
+    <p class="big" style="margin-top:44px">而你今天已經看過那條曲線幾百次了。</p>
+    <div class="demo">
+      <button class="fake" id="fake" type="button">按我</button>
+    </div>
+    <p class="quiet" style="text-align:center">按下去凹一下，是擠壓與伸展。<br>回彈的時候過頭一點點，是跟隨。<br>起步慢、停下來也慢，是間距。</p>
+    <p class="big" style="margin-top:40px">你手機上每一個彈出來的東西，<br>都在對你屈膝。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Frank Thomas &amp; Ollie Johnston《The Illusion of Life》（1981）；Norman McLaren, British Film Academy Journal（1956）；John Lasseter, SIGGRAPH（1987）。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'anim12.';
+const store = PK.store(LS);
+
+/* ══════════════════════════════════════════════════════
+ * 核心：純函式（可用 node 斷言）
+ * 一個週期 = N 格。t∈[0,1)。回傳球「底部離地高度」h（0..1）與
+ * 體積守恆的形變 sx、sy（sx*sy 恆為 1）。
+ * ═════════════════════════════════════════════════════ */
+const N = 16;          /* 一個週期十六格 */
+const T = 1.25;        /* 一個週期一秒又四分之一 */
+
+function hAt(q, e){                       /* 飛行高度：等速三角波 ↔ 重力拋物線 */
+  const tri = 1 - Math.abs(2*q - 1);
+  const par = 1 - (2*q - 1)*(2*q - 1);
+  return tri + (par - tri)*e;
+}
+function vAt(q, e){                       /* 上式的解析導數（決定拉伸量） */
+  const tri = q < 0.5 ? 2 : -2;
+  const par = -4*(2*q - 1);
+  return tri + (par - tri)*e;
+}
+function contactSy(u, amt){               /* 貼地期：吸收 → 蓄力 → 釋放 */
+  let k;
+  if (u < 0.25) k = u/0.25;
+  else if (u < 0.82) k = 1;
+  else k = (1 - u)/0.18;
+  return 1 - 0.45*amt*k;
+}
+function poseAt(t, o){
+  t = t - Math.floor(t);
+  const sq = o.squash || 0, an = o.antic || 0, ea = o.ease || 0;
+  const c = 0.12 + 0.30*an, f = 1 - c;    /* 貼地佔比隨「預備」變長，總長不變 */
+  if (t < f){
+    const q = t/f, h = hAt(q, ea), v = vAt(q, ea);
+    const sy = 1 + 0.45*sq*Math.min(Math.abs(v)/3.6, 1);
+    return { h:h, sy:sy, sx:1/sy, air:true };
+  }
+  const sy = contactSy((t - f)/c, sq);
+  return { h:0, sy:sy, sx:1/sy, air:false };
+}
+function heights(o){                      /* 十六格的落點 */
+  const a = [];
+  for (let i = 0; i < N; i++) a.push(poseAt(i/N, o).h);
+  return a;
+}
+function peakIdx(o){
+  const a = heights(o); let bi = 0;
+  for (let i = 1; i < N; i++) if (a[i] > a[bi]) bi = i;
+  return bi;
+}
+function landIdx(o){                      /* 最後一格還在空中的 */
+  const a = heights(o); let li = 0;
+  for (let i = 0; i < N; i++) if (a[i] > 1e-9) li = i;
+  return li;
+}
+function bandSpan(o, i0){                 /* 連續三格的落點跨距（佔全高比例） */
+  const a = heights(o);
+  let mn = 1, mx = 0;
+  for (let i = i0; i < i0 + 3; i++){
+    const v = a[(i + N) % N];
+    if (v < mn) mn = v;
+    if (v > mx) mx = v;
+  }
+  return mx - mn;
+}
+function holdFrames(o){                   /* 貼在地上的格數 */
+  return heights(o).filter(function(v){ return v <= 1e-9; }).length;
+}
+
+/* ══════════════════════════════════════════════════════
+ * 試拍台
+ * ═════════════════════════════════════════════════════ */
+const DEAD = { squash:0, antic:0, follow:0, ease:0 };
+const rig = { squash:0, antic:0, follow:0, ease:0 };
+(function restore(){
+  const saved = store.get('rig', null);
+  if (!saved || typeof saved !== 'object') return;
+  Object.keys(rig).forEach(function(k){
+    const v = +saved[k];
+    if (isFinite(v)) rig[k] = Math.max(0, Math.min(1, v));
+  });
+})();
+let ab = false, booted = false, flipped = false;
+
+const stages = [];
+function mkStage(id, optsFn, opt){
+  const cv = document.getElementById(id);
+  if (!cv) return null;
+  const st = {
+    cv:cv, ctx:cv.getContext('2d'), opts:optsFn,
+    ruler:!!(opt && opt.ruler), tail:!!(opt && opt.tail),
+    t:0, hy:0, hv:0, vis:false, dirty:true, play:false, left:Infinity
+  };
+  stages.push(st);
+  return st;
+}
+mkStage('cv0', function(){ return DEAD; });
+mkStage('cv1', function(){ return { squash:rig.squash, antic:0, follow:0, ease:0 }; });
+mkStage('cv2', function(){ return { squash:rig.squash, antic:rig.antic, follow:0, ease:0 }; });
+mkStage('cv3', function(){ return { squash:rig.squash, antic:rig.antic, follow:rig.follow, ease:0 }; }, { tail:true });
+mkStage('cv4', function(){ return { squash:0, antic:0, follow:0, ease:rig.ease }; }, { ruler:true });
+const stFinal = mkStage('cv5', function(){ return ab ? DEAD : rig; }, { ruler:true, tail:true });
+
+const INK = '239,231,215';
+
+function draw(st, dt){
+  const m = PK.fitCanvas(st.cv);
+  const ctx = st.ctx, w = m.w, h = m.h;
+  ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const o = st.opts();
+  const ground = h - 26, top = 20;
+  const r = Math.max(10, Math.min(17, h*0.072));
+  const span = ground - top - 2*r;
+  const bx = st.ruler ? Math.round(w*0.33) : Math.round(w*0.5);
+  const fr = Math.floor(st.t*N)/N;            /* 離散到十六格＝真正的試拍手感 */
+  const p = poseAt(fr, o);
+  const cy = ground - r*p.sy - p.h*span;
+
+  /* 地面 */
+  ctx.strokeStyle = 'rgba(' + INK + ',.22)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(16, ground + .5); ctx.lineTo(w - 16, ground + .5); ctx.stroke();
+
+  /* 間距尺 */
+  if (st.ruler){
+    const rx = Math.round(w*0.66) + .5;
+    ctx.strokeStyle = 'rgba(' + INK + ',.14)';
+    ctx.beginPath(); ctx.moveTo(rx, top); ctx.lineTo(rx, ground); ctx.stroke();
+    const hs = heights(o);
+    for (let i = 0; i < N; i++){
+      const y = Math.round(ground - hs[i]*span) + .5;
+      const cur = Math.abs(i/N - fr) < 1e-9;
+      ctx.strokeStyle = cur ? '#e8b04b' : 'rgba(' + INK + ',.5)';
+      ctx.lineWidth = cur ? 2 : 1;
+      ctx.beginPath(); ctx.moveTo(rx - 10, y); ctx.lineTo(rx + 10, y); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(' + INK + ',.34)';
+    ctx.font = '10px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('十六格的落點', rx + 18, top + 10);
+  }
+
+  /* 影子（隨高度縮小變淡，撐出重量） */
+  const k = 1 - p.h*0.78;
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.16 + 0.34*k).toFixed(3) + ')';
+  ctx.beginPath();
+  ctx.ellipse(bx, ground + 3, r*1.2*k*p.sx, 3.4*k, 0, 0, 6.2832);
+  ctx.fill();
+
+  /* 天線（跟隨與重疊） */
+  if (st.tail){
+    const topY = cy - r*p.sy;
+    if (o.follow > 0.02 && !PK.reduced()){
+      const wn = 30 - 15*o.follow, z = 0.30;
+      const steps = Math.max(1, Math.ceil(dt/0.008)), sd = dt/steps;
+      for (let i = 0; i < steps; i++){
+        st.hv += (-wn*wn*(st.hy - topY) - 2*z*wn*st.hv)*sd;
+        st.hy += st.hv*sd;
+      }
+      if (!isFinite(st.hy) || Math.abs(st.hy - topY) > span){ st.hy = topY; st.hv = 0; }
+    } else { st.hy = topY; st.hv = 0; }
+    const alen = r*1.55, lag = st.hy - topY;
+    const ex = bx + lag*1.15;
+    const ey = topY - alen + Math.max(-alen*0.6, Math.min(lag*0.55, alen*0.85));
+    ctx.strokeStyle = 'rgba(' + INK + ',.7)';
+    ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(bx, topY);
+    ctx.quadraticCurveTo(bx + lag*0.5, topY - alen*0.55, ex, ey);
+    ctx.stroke();
+    ctx.fillStyle = '#e8b04b';
+    ctx.beginPath(); ctx.arc(ex, ey, 3, 0, 6.2832); ctx.fill();
+  }
+
+  /* 球 */
+  const g = ctx.createLinearGradient(bx, cy - r*p.sy, bx, cy + r*p.sy);
+  g.addColorStop(0, '#f7f0e2');
+  g.addColorStop(1, '#b3a68d');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(bx, cy, r*p.sx, r*p.sy, 0, 0, 6.2832);
+  ctx.fill();
+}
+
+function loop(dt){
+  for (let i = 0; i < stages.length; i++){
+    const st = stages[i];
+    if (!st.vis) continue;
+    if (st.play){
+      const nt = st.t + dt/T;
+      if (nt >= 1 && st.left !== Infinity && --st.left <= 0){ st.t = 0; st.play = false; }
+      else st.t = nt % 1;
+      draw(st, dt);
+    } else if (st.dirty){
+      st.dirty = false;
+      draw(st, dt);
+    }
+  }
+}
+PK.tick(loop);
+
+function setPlayMode(){
+  const auto = !PK.reduced();
+  for (let i = 0; i < stages.length; i++){
+    stages[i].play = auto;
+    stages[i].left = Infinity;
+    stages[i].dirty = true;
+  }
+}
+setPlayMode();
+PK.onMotionChange(setPlayMode);
+
+if ('IntersectionObserver' in window){
+  const io = new IntersectionObserver(function(es){
+    for (let i = 0; i < es.length; i++){
+      const st = stages.filter(function(s){ return s.cv === es[i].target; })[0];
+      if (st){ st.vis = es[i].isIntersecting; st.dirty = true; }
+    }
+  }, { rootMargin: '80px 0px' });
+  stages.forEach(function(s){ io.observe(s.cv); });
+} else {
+  stages.forEach(function(s){ s.vis = true; });
+}
+window.addEventListener('resize', function(){
+  stages.forEach(function(s){ s.dirty = true; });
+});
+
+/* ══════════════════════════════════════════════════════
+ * 旋鈕
+ * ═════════════════════════════════════════════════════ */
+const $ = function(id){ return document.getElementById(id); };
+function markDirty(){ stages.forEach(function(s){ s.dirty = true; }); }
+function show(el, on){ if (el) el.classList.toggle('on', !!on); }
+
+function refresh(){
+  $('v1').textContent = Math.round(rig.squash*100) + '%';
+  $('v2').textContent = Math.round(rig.antic*100) + '%';
+  $('v3').textContent = Math.round(rig.follow*100) + '%';
+  $('v4').textContent = rig.ease < 0.04 ? '等速'
+    : (rig.ease > 0.96 ? '完全重力' : Math.round(rig.ease*100) + '%');
+
+  /* 體積守恆讀數：拉到最扁那一格，寬 × 高 永遠是 1.000 */
+  const pk = poseAt((1 - 0.06), { squash:rig.squash, antic:rig.antic, ease:0 });
+  $('vol').textContent = (pk.sx*pk.sy).toFixed(3);
+
+  const o2 = { squash:rig.squash, antic:rig.antic, follow:0, ease:0 };
+  $('hold').textContent = holdFrames(o2) + ' 格';
+
+  const lag = Math.round(rig.follow*3*10)/10;
+  $('lagv').textContent = (rig.follow < 0.02 ? '0' : lag.toFixed(1)) + ' 格';
+
+  const o4 = { squash:0, antic:0, follow:0, ease:rig.ease };
+  const tp = bandSpan(o4, peakIdx(o4) - 1);
+  const bt = bandSpan(o4, landIdx(o4) - 2);
+  $('mTop').textContent = Math.round(tp*100) + '%';
+  $('mBot').textContent = Math.round(bt*100) + '%';
+  $('mRat').textContent = (tp > 0.001 ? (bt/tp).toFixed(1) : '∞') + ' 倍';
+
+  show($('r1'), rig.squash > 0.28);
+  show($('r2'), rig.antic > 0.28);
+  show($('r3'), rig.follow > 0.28);
+  show($('r4'), rig.ease > 0.62);
+
+  const done = rig.squash > 0.28 && rig.antic > 0.28 && rig.follow > 0.28 && rig.ease > 0.62;
+  show($('r5'), done);
+  /* 紙條只在「這一輪由你調到過關」時翻面——回訪的人仍然從那張退件紙條開始 */
+  if (done && booted && !flipped){
+    flipped = true;
+    store.set('passed', true);
+    const note = $('note');
+    if (note){
+      note.classList.add('pass');
+      note.innerHTML = '<b>過。</b><div class="sig">— F.&nbsp;T.</div>';
+    }
+    PK.announce('試拍通過了。第一屏那張紙條翻面了。');
+  }
+  markDirty();
+}
+
+const KNOBS = [['k1','squash'], ['k2','antic'], ['k3','follow'], ['k4','ease']];
+KNOBS.forEach(function(pair){
+  const el = $(pair[0]), key = pair[1];
+  if (!el) return;
+  el.value = Math.round(rig[key]*100);
+  el.addEventListener('input', function(){
+    rig[key] = (+el.value)/100;
+    store.set('rig', rig);
+    refresh();
+  });
+});
+
+if ($('btnPlay')) $('btnPlay').addEventListener('click', function(){
+  if (!stFinal) return;
+  stFinal.t = 0; stFinal.hv = 0;
+  stFinal.play = true;
+  stFinal.left = PK.reduced() ? 3 : Infinity;
+  stFinal.dirty = true;
+  PK.announce('重新試拍。');
+});
+if ($('btnAB')) $('btnAB').addEventListener('click', function(){
+  ab = !ab;
+  this.setAttribute('aria-pressed', ab ? 'true' : 'false');
+  this.textContent = ab ? '看回你的版本' : '看回原本那顆';
+  $('cap5').textContent = ab ? '你交出去的那一版' : '你的版本';
+  markDirty();
+  PK.announce(ab ? '換成一開始那顆等速的球。' : '換回你調整過的版本。');
+});
+
+/* 回馬槍的假按鈕 */
+const fake = $('fake');
+if (fake){
+  const bounce = function(){
+    fake.classList.add('push');
+    setTimeout(function(){ fake.classList.remove('push'); }, PK.reduced() ? 1 : 110);
+  };
+  fake.addEventListener('pointerdown', bounce);
+  fake.addEventListener('keydown', function(e){
+    if (e.key === 'Enter' || e.key === ' ') bounce();
+  });
+}
+
+/* 桌燈：離開第一屏才亮 */
+if ('IntersectionObserver' in window){
+  const hero = document.querySelector('.pk-hero');
+  if (hero){
+    new IntersectionObserver(function(es){
+      document.body.classList.toggle('lit', !es[0].isIntersecting);
+    }, { threshold: 0.15 }).observe(hero);
+  }
+} else {
+  document.body.classList.add('lit');
+}
+
+PK.reveal();
+refresh();
+booted = true;
+</script>
+</body>
+</html>

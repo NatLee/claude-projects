@@ -118,9 +118,16 @@
 
   function layoutChart() {
     const r = chartCv.getBoundingClientRect();
+    // 還沒排版好（寬高量到 0）就別碰畫布：寫進 0 之後不會再有第二次 resize 把它救回來
+    if (r.width < 80 || r.height < 40) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    chartCv.width = Math.round(r.width * dpr);
-    chartCv.height = Math.round(r.height * dpr);
+    const w = Math.round(r.width * dpr), h = Math.round(r.height * dpr);
+    // 尺寸沒變就不重設（同 layout()：重設 width/height 會清空畫布，
+    // 手機網址列收放每次都會觸發 resize）
+    if (chartCv.width !== w || chartCv.height !== h) {
+      chartCv.width = w;
+      chartCv.height = h;
+    }
     cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawChart();
   }

@@ -5,14 +5,37 @@
 ## 省 token 工作流（每日流程請照此）
 
 ```
-node tools/brief.js        # 偵察一次到位：近14天題材/emoji/LS前綴/保養對象（取代讀 data.js、名冊、grep）
+node tools/brief.js        # 偵察一次到位：近14天六軸/emoji/LS前綴/保養對象＋「★ 今天禁止用」
 node tools/new-page.js --slug 專案名 --ls 前綴.   # 鷹架：樣板+不變量一次到位，只填故事與互動
-node tools/add.js --title … --emoji … --dir … --category … --desc …   # 掛上首頁（含驗證，勿手改 data.js）
+node tools/add.js --title … --emoji … --dir … --category … --desc … \
+     --genre … --container … --verb … --era … --region …    # 掛上首頁（含防重複硬擋，勿手改 data.js）
 node tools/check.js        # 交付門檻：全過才算完成（pre-commit 也會跑，約 40 秒）
 ```
 
 - 只在需要時讀單一檔案的特定段落（grep/sed），不要通讀 195 個舊頁面。
 - 舊頁保養：brief.js 會指名今日對象；只讀那一個資料夾。
+
+## 防重複：題材六軸（2026-09-09 起，硬規則）
+
+盤點 206 件後確認：類別／emoji／LS 前綴從來沒撞過，真正在重複的是沒人記錄的四件事——
+**體裁**（近 40 件 37 件是「歷史揭曉」）、**標題句型**（「你／牠／請／那」開頭 13%→58%）、
+**年代與地理**（58% 在 1900 年前、歐美佔九成）、**主互動**（點擊揭曉 100%）。
+
+每件作品在 `tools/題材檔案.json` 申報六軸，`brief.js` 每天算出禁用值，`add.js` 撞到就擋：
+
+| 軸 | 不重複窗口 | 可選值 |
+|---|---|---|
+| 體裁 genre | 軟性提醒 | 歷史揭曉／科學機制／能用的工具／遊戲玩具／當代觀察／語言文字 |
+| 敘事容器 container | 5 天 | 捲動敘事／分章旅程／假介面／假文件／逐步揭曉／實驗台／可玩故事／沉浸全螢幕／前後對照／倒數解謎 |
+| 主互動 verb | 4 天 | 點擊揭曉／拖曳／滑桿／輸入文字／按住／選分支／繪製／聆聽／餵自己的資料／計時反應 |
+| 年代 era | 3 天 | 古代／1500s／1600s／1700s／1800s／1900前半／1900後半／2000後／當代／無年代 |
+| 地理 region | 3 天 | 歐洲／美國／日本／華語圈／其他地區／全球／無 |
+| 標題句型 | 5 天 | 由標題自動推導，不用申報 |
+
+- **先跑 `node tools/brief.js` 看「★ 今天禁止用」再構思**，不要想完故事才發現被擋。
+- 口頭禪：brief.js 每天點名近 12 件裡最氾濫的幾個詞（「只是」「沒有人」「答案」「你以為」「親手」…），
+  當天盡量一次都別用；單頁命中超過 8 個或同一詞出現 4 次以上，check.js 會警告。
+- 真的有理由撞車：`--允許撞車`，並在 說明.md 交代原因。
 
 ## 硬底線（違反即失敗）
 
@@ -31,6 +54,9 @@ node tools/check.js        # 交付門檻：全過才算完成（pre-commit 也�
 | `index.html`、`assets/app.js`、`assets/style.css` | 首頁（星座圖＋三分頁）；平常不動 |
 | `tools/check.js` | 全站健檢（也是 pre-commit hook） |
 | `tools/brief.js`、`tools/new-page.js`、`tools/add.js` | 偵察／鷹架／掛首頁 |
+| `tools/題材軸.js` | ★ 防重複六軸的共用定義（brief／add／check 都 require 它） |
+| `tools/題材檔案.json` | 每件作品的六軸申報；add.js 自動寫入，別手改 |
+| `tools/題材回填.js` | 從舊頁推導六軸（`--write` 才寫檔；`by:"人工"` 的列不會被蓋） |
 | `tools/snippets.md` | 舊頁（自包含）行為片段正典；保養舊頁時照它修 |
 | `tools/保養名冊.json` | 保養輪替（新作補一筆 `{dir,created,lastMaintained:null,result:null}`） |
 | `tools/maintain.js` | git gc（只能在使用者本機跑，掛載環境禁 unlink） |

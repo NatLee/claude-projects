@@ -1,11 +1,17 @@
 #!/usr/bin/env node
 /*
  * 掛上首頁：node tools/add.js --title "專案名" --emoji "✦" --dir "projects/YYYY-MM/YYYY-MM-DD-專案名" \
- *                             --category "六大類之一" --desc "≤120 字的一句話介紹" [--date YYYY-MM-DD]
+ *                             --category "六大類之一" --desc "≤120 字的一句話介紹" \
+ *                             --genre … --container … --verb … --era … --region … [--date YYYY-MM-DD]
  *
  * 取代「手動編輯 assets/data.js 頂端」：先驗證欄位、實體資料夾、desc 長度與
  * 重複疑慮，再對 anchor 做最小插入（不重排全檔，降低與並行 session 互相覆蓋
  * 的機會），寫完自動跑 tools/check.js 收尾。驗證不過就不動檔案。
+ *
+ * 2026-09-09 起還要申報「題材六軸」（見 tools/題材軸.js）：體裁／敘事容器／
+ * 主互動／年代／地理，加上從標題自動推導的句型。撞到最近幾天用過的值就直接
+ * 擋下——今天能用哪些值，跑 node tools/brief.js 看「★ 今天禁止用」那一段。
+ * 真的有理由撞車就加 --允許撞車，並在 說明.md 交代原因。
  */
 'use strict';
 const fs = require('fs');
@@ -21,7 +27,8 @@ const chars = (s) => [...String(s)].length;
 const argv = process.argv.slice(2);
 const opts = {};
 for (let i = 0; i < argv.length; i++) {
-  const m = argv[i].match(/^--(date|title|emoji|dir|category|desc)$/);
+  if (argv[i] === '--允許撞車') { opts.force = true; continue; }
+  const m = argv[i].match(/^--(date|title|emoji|dir|category|desc|genre|container|verb|era|region)$/);
   if (!m) { console.error(`不認得的參數：${argv[i]}`); process.exit(1); }
   opts[m[1]] = argv[++i];
 }
@@ -87,6 +94,60 @@ if (PROJECTS.length) {
   }
 }
 
+/* ---- 六軸申報與撞車檢查（2026-09-09 加）----
+ * 為什麼：類別／emoji／LS 前綴從來沒撞過，真正在重複的是體裁、容器、互動、
+ * 年代、地理、標題句型。這一段把「和最近幾天不同」從自覺變成硬規則。
+ * 真的有理由撞就加 --允許撞車，但請在 說明.md 交代為什麼。
+ */
+const T = require('./題材軸.js');
+const AXKEYS = Object.keys(T.AXES);
+for (const k of AXKEYS) {
+  const ax = T.AXES[k];
+  if (!opts[k]) { errors.push(`缺 --${k}（${ax.label}），可選：${ax.values.join('、')}`); continue; }
+  if (!ax.values.includes(opts[k])) {
+    errors.push(`--${k}「${opts[k]}」不在${ax.label}清單中，可選：${ax.values.join('、')}`);
+  }
+}
+if (!errors.length && PROJECTS.length) {
+  const dossier = T.loadDossier();
+  const byDirP = Object.fromEntries(PROJECTS.map((p) => [p.dir, p]));
+  byDirP[opts.dir] = { title: opts.title };
+  const B = T.bans(dossier, byDirP, opts.date);
+  const clash = [];
+  for (const k of AXKEYS) {
+    const a = B.axes[k];
+    if (a && a.banned.has(opts[k])) {
+      clash.push(`${a.axis.label}「${opts[k]}」${a.axis.window} 天內用過了（${a.banned.get(opts[k])}）` +
+                 `——沒用過的：${a.free.join('、')}`);
+    }
+  }
+  const tf = T.titleForm(opts.title);
+  if (B.title.banned.has(tf)) {
+    clash.push(`標題句型「${tf}」${B.title.window} 天內用過了（${B.title.banned.get(tf)}）` +
+               `——沒用過的：${B.title.free.join('、')}`);
+  }
+  if (clash.length) {
+    if (opts.force) clash.forEach((c) => warnings.push(`（--允許撞車）${c}`));
+    else clash.forEach((c) => errors.push(c));
+  }
+  for (const s of B.soft) {
+    if (opts[s.axis.key] === s.value) {
+      warnings.push(`${s.axis.label}：最近 ${s.of} 件已有 ${s.streak} 件是「${s.value}」，今天又是同一種`);
+    }
+  }
+  /* 口頭禪密度（只看讀者看得到的文案） */
+  const pageFile = path.join(ROOT, opts.dir, 'index.html');
+  if (fs.existsSync(pageFile)) {
+    const rep = T.ticReport(T.visibleText(fs.readFileSync(pageFile, 'utf8')));
+    if (rep.distinct > T.TIC_PAGE_BUDGET) {
+      warnings.push(`頁面命中 ${rep.distinct} 個口頭禪（上限 ${T.TIC_PAGE_BUDGET}）：` +
+        rep.hits.slice(0, 10).map((h) => `${h.tic}×${h.n}`).join('、'));
+    } else if (rep.worst && rep.worst.n > T.TIC_REPEAT_MAX) {
+      warnings.push(`「${rep.worst.tic}」在同一頁出現 ${rep.worst.n} 次，換句話說`);
+    }
+  }
+}
+
 for (const w of warnings) console.warn(`⚠️  ${w}`);
 if (errors.length) {
   errors.forEach((e) => console.error(`❌ ${e}`));
@@ -114,6 +175,21 @@ try {
 }
 fs.writeFileSync(dataPath, next);
 console.log(`✅ 已掛上首頁：${opts.date}「${opts.title}」（${opts.category}）→ PROJECTS 最上方`);
+
+/* ---- 同步寫入題材檔案（六軸），供明天的 brief.js 算禁用組合 ---- */
+try {
+  const rows = T.loadDossier().filter((r) => r.dir !== opts.dir);
+  rows.unshift({
+    dir: opts.dir, date: opts.date,
+    genre: opts.genre, container: opts.container, verb: opts.verb,
+    era: opts.era, region: opts.region, by: '人工',
+  });
+  rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  T.saveDossier(rows);
+  console.log(`✅ 已記錄題材六軸：${opts.genre}｜${opts.container}｜${opts.verb}｜${opts.era}｜${opts.region}｜${T.titleForm(opts.title)}`);
+} catch (e) {
+  console.warn(`⚠️  題材檔案寫入失敗（data.js 已寫好）：${e.message}`);
+}
 
 /* ---- 收尾：跑全站健檢 ---- */
 const r = spawnSync(process.execPath, [path.join(__dirname, 'check.js')], { stdio: 'inherit' });

@@ -417,6 +417,57 @@ if (fs.existsSync(rosterPath)) {
   warn('tools/保養名冊.json 不存在——每日保養將無法輪替（見 PROMPT.md 步驟 8）');
 }
 
+/* 題材檔案：六軸完整性、與最近幾天撞車、單頁口頭禪密度（2026-09-09 加）
+ * 這一段不擋（都是 warn）——擋人的位置在 add.js，掛上首頁之前。這裡只負責
+ * 讓既有頁面的漂移持續被看見。 */
+try {
+  const T = require('./題材軸.js');
+  const dossier = T.loadDossier();
+  const byDirD = Object.fromEntries(dossier.map((r) => [r.dir, r]));
+  const missingD = PROJECTS.filter((p) => !byDirD[p.dir]);
+  if (missingD.length) {
+    warn(`tools/題材檔案.json 少了 ${missingD.length} 筆（${missingD.slice(0, 3).map((p) => p.title).join('、')}${missingD.length > 3 ? '…' : ''}）` +
+         `——跑 node tools/題材回填.js --write 補上`);
+  }
+  const byDirP = Object.fromEntries(PROJECTS.map((p) => [p.dir, p]));
+  const newest = PROJECTS[0];
+  const d0 = newest && byDirD[newest.dir];
+  if (d0) {
+    /* 拿「最新這一筆」跟它之前的紀錄比，看有沒有撞到當時的窗口 */
+    const B = T.bans(dossier.filter((r) => r.date < newest.date), byDirP, newest.date);
+    for (const k of Object.keys(T.AXES)) {
+      const a = B.axes[k];
+      if (a && d0[k] && a.banned.has(d0[k])) {
+        warn(`最新一筆「${newest.title}」的${a.axis.label}「${d0[k]}」在前 ${a.axis.window} 天用過（${a.banned.get(d0[k])}）`);
+      }
+    }
+    const tf = T.titleForm(newest.title);
+    if (B.title.banned.has(tf)) {
+      warn(`最新一筆「${newest.title}」的標題句型「${tf}」在前 ${B.title.window} 天用過（${B.title.banned.get(tf)}）`);
+    }
+    for (const s of B.soft) {
+      if (d0[s.axis.key] === s.value) {
+        warn(`${s.axis.label}連續偏食：最近 ${s.of} 件有 ${s.streak} 件是「${s.value}」，最新這件也是`);
+      }
+    }
+  }
+  /* 口頭禪：只看最新一筆，避免每天洗 200 條舊警告 */
+  if (newest) {
+    const f = path.join(ROOT, newest.dir, 'index.html');
+    if (fs.existsSync(f)) {
+      const rep = T.ticReport(T.visibleText(fs.readFileSync(f, 'utf8')));
+      if (rep.distinct > T.TIC_PAGE_BUDGET) {
+        warn(`「${newest.title}」命中 ${rep.distinct} 個口頭禪（上限 ${T.TIC_PAGE_BUDGET}）：` +
+             rep.hits.slice(0, 8).map((h) => `${h.tic}×${h.n}`).join('、'));
+      } else if (rep.worst && rep.worst.n > T.TIC_REPEAT_MAX) {
+        warn(`「${newest.title}」裡「${rep.worst.tic}」出現 ${rep.worst.n} 次（上限 ${T.TIC_REPEAT_MAX}）`);
+      }
+    }
+  }
+} catch (e) {
+  warn(`題材檔案檢查失敗：${e.message}`);
+}
+
 /* 近 14 天題材摘要：給每日流程步驟 1 做去重（取代「讀 data.js 前 60 行」） */
 if (PROJECTS[0] && PROJECTS[0].date) {
   const cut = new Date(PROJECTS[0].date + 'T00:00:00Z');

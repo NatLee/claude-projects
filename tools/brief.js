@@ -28,14 +28,47 @@ P.forEach(p => { cats[p.category] = (cats[p.category] || 0) + 1; });
 console.log(`作品 ${P.length} 件｜今日之星 ${P[0].date}「${P[0].title}」${P[0].emoji}`);
 console.log('類別 ' + Object.entries(cats).map(([c, n]) => `${c} ${n}`).join('｜'));
 
-/* 近 14 天：去重對照（類別／題材／emoji） */
+/* 近 14 天：去重對照（類別／題材／emoji／六軸） */
 const cut = new Date(P[0].date + 'T00:00:00Z');
 cut.setUTCDate(cut.getUTCDate() - 13);
 const cutStr = cut.toISOString().slice(0, 10);
+const T = require('./題材軸.js');
+const dossier = T.loadDossier();
+const byDirD = Object.fromEntries(dossier.map(r => [r.dir, r]));
 console.log(line);
-console.log('近 14 天（構思新題目時避開這些類別輪次、題材與容器）');
+console.log('近 14 天（類別｜體裁｜容器｜互動｜年代｜地理｜標題句型）');
 for (const p of P.filter(p => p.date >= cutStr)) {
-  console.log(` ${p.date}｜${p.emoji} ${p.title}｜${p.category}`);
+  const d = byDirD[p.dir] || {};
+  console.log(` ${p.date}｜${p.emoji} ${p.title}`);
+  console.log(`   ${p.category}｜${d.genre || '?'}｜${d.container || '?'}｜${d.verb || '?'}` +
+              `｜${d.era || '?'}｜${d.region || '?'}｜${T.titleForm(p.title)}`);
+}
+
+/* ── 今天禁止用（硬規則：撞到就別做，換一個） ── */
+const todayForBans = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' });
+const byDirP = Object.fromEntries(P.map(p => [p.dir, p]));
+const B = T.bans(dossier, byDirP, todayForBans);
+console.log(line);
+console.log('★ 今天禁止用（這些是「最近幾天已經用過」的，換一個沒用過的）');
+const show = (label, banned, free, win) => {
+  const b = [...banned.keys()].filter(v => v !== '未標註');
+  console.log(`  ${label}（${win} 天內不重複）`);
+  console.log(`    ✗ ${b.length ? b.join('、') : '（無）'}`);
+  console.log(`    ✓ 可選：${free.join('、')}`);
+};
+for (const k of ['container', 'verb', 'era', 'region']) {
+  const a = B.axes[k];
+  show(a.axis.label, a.banned, a.free, a.axis.window);
+}
+show('標題句型', B.title.banned, B.title.free, B.title.window);
+for (const s of B.soft) {
+  console.log(`  ⚠ ${s.axis.label}：最近 ${s.of} 件有 ${s.streak} 件是「${s.value}」——` +
+              `不擋，但今天很值得換一種：${s.axis.values.filter(v => v !== s.value).join('、')}`);
+}
+const hot = T.hotTics(dossier);
+if (hot.length) {
+  console.log(`  口頭禪：近 ${hot[0].of} 件裡最氾濫的是 ` +
+    hot.map(h => `「${h.tic}」${h.seen}次`).join('、') + '——今天這幾個詞盡量一次都別用');
 }
 
 /* 已用 emoji（新作品要挑不在此列的） */

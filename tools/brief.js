@@ -36,12 +36,12 @@ const T = require('./題材軸.js');
 const dossier = T.loadDossier();
 const byDirD = Object.fromEntries(dossier.map(r => [r.dir, r]));
 console.log(line);
-console.log('近 14 天（類別｜體裁｜容器｜互動｜年代｜地理｜標題句型）');
+console.log('近 14 天（類別｜體裁｜領域｜容器｜互動｜年代｜地理｜標題句型／長度）');
 for (const p of P.filter(p => p.date >= cutStr)) {
   const d = byDirD[p.dir] || {};
   console.log(` ${p.date}｜${p.emoji} ${p.title}`);
-  console.log(`   ${p.category}｜${d.genre || '?'}｜${d.container || '?'}｜${d.verb || '?'}` +
-              `｜${d.era || '?'}｜${d.region || '?'}｜${T.titleForm(p.title)}`);
+  console.log(`   ${p.category}｜${d.genre || '?'}｜${d.domain || '?'}｜${d.container || '?'}｜${d.verb || '?'}` +
+              `｜${d.era || '?'}｜${d.region || '?'}｜${T.titleForm(p.title)}／${T.titleBand(p.title)}`);
 }
 
 /* ── 今天禁止用（硬規則：撞到就別做，換一個） ── */
@@ -50,20 +50,31 @@ const byDirP = Object.fromEntries(P.map(p => [p.dir, p]));
 const B = T.bans(dossier, byDirP, todayForBans);
 console.log(line);
 console.log('★ 今天禁止用（這些是「最近幾天已經用過」的，換一個沒用過的）');
-const show = (label, banned, free, win) => {
+const show = (label, banned, free, note) => {
   const b = [...banned.keys()].filter(v => v !== '未標註');
-  console.log(`  ${label}（${win} 天內不重複）`);
+  console.log(`  ${label}（${note}）`);
   console.log(`    ✗ ${b.length ? b.join('、') : '（無）'}`);
   console.log(`    ✓ 可選：${free.join('、')}`);
 };
-for (const k of ['container', 'verb', 'era', 'region']) {
+for (const k of Object.keys(T.AXES)) {
   const a = B.axes[k];
-  show(a.axis.label, a.banned, a.free, a.axis.window);
+  show(a.axis.label, a.banned,
+       a.free, a.axis.quota ? `近 ${a.of} 件同一種最多 ${a.axis.quota.max} 件` : `${a.axis.window} 天內不重複`);
+  if (a.axis.quota && a.tally.size) {
+    console.log(`      近況：${[...a.tally.entries()].sort((x, y) => y[1] - x[1]).map(([v, n]) => `${v}${n}`).join('、')}`);
+  }
 }
-show('標題句型', B.title.banned, B.title.free, B.title.window);
-for (const s of B.soft) {
-  console.log(`  ⚠ ${s.axis.label}：最近 ${s.of} 件有 ${s.streak} 件是「${s.value}」——` +
-              `不擋，但今天很值得換一種：${s.axis.values.filter(v => v !== s.value).join('、')}`);
+show('標題句型', B.title.banned, B.title.free, `${B.title.window} 天內不重複`);
+show('標題長度', B.band.banned, B.band.free, '不得與上一件同帶／短≤6字、中7–10、長≥11');
+for (const m of B.mix) {
+  console.log(m.starved
+    ? `      ✗ 近 ${m.of} 件一件「${m.band}」標題都沒有——今天必須寫這一帶`
+    : `      ⚠ 近 ${m.of} 件只有 ${m.n} 件是「${m.band}」標題——今天優先寫這一帶`);
+}
+if (B.recentTitles.length) {
+  console.log(`  標題用字：不得與近 ${B.recentTitles.length} 件任一標題的實詞重疊超過 ` +
+              `${Math.round(T.TITLE_OVERLAP_BLOCK * 100)}%（超過 ${Math.round(T.TITLE_OVERLAP_WARN * 100)}% 會提醒）`);
+  console.log(`    近期標題：${B.recentTitles.join('、')}`);
 }
 const hot = T.hotTics(dossier);
 if (hot.length) {

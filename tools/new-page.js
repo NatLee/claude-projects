@@ -142,6 +142,7 @@ console.log('1. 填入故事與互動（規範速查：CLAUDE.md；行為片段�
 console.log('2. 掛上首頁（含驗證與健檢，勿手改 data.js）：\n');
 console.log(`   node tools/add.js --title "【標題】" --emoji "【emoji】" --dir "${dirRel}" \\`);
 console.log(`        --category "【六大類之一】" --desc "【一句話，≤120 字，帶故事鉤子】" --date ${date} \\`);
-console.log(`        --genre 【體裁】 --container 【敘事容器】 --verb 【主互動】 --era 【年代】 --region 【地理】\n`);
+console.log(`        --genre 【體裁】 --domain 【題材領域】 --container 【敘事容器】 \\`);
+console.log(`        --verb 【主互動】 --era 【年代】 --region 【地理】\n`);
 console.log('   （六軸能填什麼、今天哪些被擋：node tools/brief.js 的「★ 今天禁止用」）');
 console.log('3. tools/保養名冊.json 補一筆 {dir, created, lastMaintained:null, result:null}');

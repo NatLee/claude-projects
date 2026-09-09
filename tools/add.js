@@ -2,7 +2,7 @@
 /*
  * 掛上首頁：node tools/add.js --title "專案名" --emoji "✦" --dir "projects/YYYY-MM/YYYY-MM-DD-專案名" \
  *                             --category "六大類之一" --desc "≤120 字的一句話介紹" \
- *                             --genre … --container … --verb … --era … --region … [--date YYYY-MM-DD]
+ *                             --genre … --domain … --container … --verb … --era … --region … [--date YYYY-MM-DD]
  *
  * 取代「手動編輯 assets/data.js 頂端」：先驗證欄位、實體資料夾、desc 長度與
  * 重複疑慮，再對 anchor 做最小插入（不重排全檔，降低與並行 session 互相覆蓋
@@ -28,7 +28,7 @@ const argv = process.argv.slice(2);
 const opts = {};
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--允許撞車') { opts.force = true; continue; }
-  const m = argv[i].match(/^--(date|title|emoji|dir|category|desc|genre|container|verb|era|region)$/);
+  const m = argv[i].match(/^--(date|title|emoji|dir|category|desc|genre|domain|container|verb|era|region)$/);
   if (!m) { console.error(`不認得的參數：${argv[i]}`); process.exit(1); }
   opts[m[1]] = argv[++i];
 }
@@ -116,23 +116,43 @@ if (!errors.length && PROJECTS.length) {
   const clash = [];
   for (const k of AXKEYS) {
     const a = B.axes[k];
-    if (a && a.banned.has(opts[k])) {
-      clash.push(`${a.axis.label}「${opts[k]}」${a.axis.window} 天內用過了（${a.banned.get(opts[k])}）` +
-                 `——沒用過的：${a.free.join('、')}`);
-    }
+    if (!a || !a.banned.has(opts[k])) continue;
+    const why = a.axis.quota
+      ? a.banned.get(opts[k])
+      : `${a.axis.window} 天內用過了（${a.banned.get(opts[k])}）`;
+    clash.push(`${a.axis.label}「${opts[k]}」${why}——沒用過的：${a.free.join('、')}`);
   }
   const tf = T.titleForm(opts.title);
   if (B.title.banned.has(tf)) {
     clash.push(`標題句型「${tf}」${B.title.window} 天內用過了（${B.title.banned.get(tf)}）` +
                `——沒用過的：${B.title.free.join('、')}`);
   }
+  const tb = T.titleBand(opts.title);
+  if (B.band.banned.has(tb)) {
+    clash.push(`標題長度「${tb}」上一件就是（${B.band.banned.get(tb)}）` +
+               `——改成：${B.band.free.join('、')}（短≤6字、中7–10、長≥11）`);
+  }
+  /* 某一帶在近 9 件裡整個消失時，今天就得補它 */
+  const starved = B.mix.filter((m) => m.starved);
+  if (starved.length && !starved.some((m) => m.band === tb)) {
+    clash.push(`近 ${starved[0].of} 件一件「${starved.map((m) => m.band).join('／')}」標題都沒有` +
+               `——今天的標題請寫成這一帶（短≤6字、中7–10、長≥11）`);
+  }
+  /* 用字重疊：「RAG 實驗室」↔「指令注入實驗室」這種同家族命名，句型軸抓不到 */
+  const ov = T.titleOverlap(opts.title, B.recentTitles);
+  if (ov.ratio >= T.TITLE_OVERLAP_BLOCK) {
+    clash.push(`標題用字與「${ov.against}」重疊 ${Math.round(ov.ratio * 100)}%` +
+               `（上限 ${Math.round(T.TITLE_OVERLAP_BLOCK * 100)}%）——換一組字`);
+  } else if (ov.ratio >= T.TITLE_OVERLAP_WARN) {
+    warnings.push(`標題用字與「${ov.against}」重疊 ${Math.round(ov.ratio * 100)}%，讀起來會有點像`);
+  }
   if (clash.length) {
     if (opts.force) clash.forEach((c) => warnings.push(`（--允許撞車）${c}`));
     else clash.forEach((c) => errors.push(c));
   }
-  for (const s of B.soft) {
-    if (opts[s.axis.key] === s.value) {
-      warnings.push(`${s.axis.label}：最近 ${s.of} 件已有 ${s.streak} 件是「${s.value}」，今天又是同一種`);
+  for (const m of B.mix) {
+    if (!m.starved && tb !== m.band) {
+      warnings.push(`近 ${m.of} 件只有 ${m.n} 件是「${m.band}」標題，今天這件也不是`);
     }
   }
   /* 口頭禪密度（只看讀者看得到的文案） */
@@ -179,14 +199,14 @@ console.log(`✅ 已掛上首頁：${opts.date}「${opts.title}」（${opts.cate
 /* ---- 同步寫入題材檔案（六軸），供明天的 brief.js 算禁用組合 ---- */
 try {
   const rows = T.loadDossier().filter((r) => r.dir !== opts.dir);
-  rows.unshift({
-    dir: opts.dir, date: opts.date,
-    genre: opts.genre, container: opts.container, verb: opts.verb,
-    era: opts.era, region: opts.region, by: '人工',
-  });
+  const row = { dir: opts.dir, date: opts.date };
+  for (const k of AXKEYS) row[k] = opts[k];
+  row.by = '人工';
+  rows.unshift(row);
   rows.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   T.saveDossier(rows);
-  console.log(`✅ 已記錄題材六軸：${opts.genre}｜${opts.container}｜${opts.verb}｜${opts.era}｜${opts.region}｜${T.titleForm(opts.title)}`);
+  console.log(`✅ 已記錄題材軸：${AXKEYS.map((k) => opts[k]).join('｜')}` +
+              `｜${T.titleForm(opts.title)}／${T.titleBand(opts.title)}`);
 } catch (e) {
   console.warn(`⚠️  題材檔案寫入失敗（data.js 已寫好）：${e.message}`);
 }

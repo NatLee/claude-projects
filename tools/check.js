@@ -437,18 +437,24 @@ try {
     const B = T.bans(dossier.filter((r) => r.date < newest.date), byDirP, newest.date);
     for (const k of Object.keys(T.AXES)) {
       const a = B.axes[k];
-      if (a && d0[k] && a.banned.has(d0[k])) {
-        warn(`最新一筆「${newest.title}」的${a.axis.label}「${d0[k]}」在前 ${a.axis.window} 天用過（${a.banned.get(d0[k])}）`);
-      }
+      if (!a || !d0[k] || !a.banned.has(d0[k])) continue;
+      warn(`最新一筆「${newest.title}」的${a.axis.label}「${d0[k]}」` +
+           (a.axis.quota ? a.banned.get(d0[k]) : `在前 ${a.axis.window} 天用過（${a.banned.get(d0[k])}）`));
     }
     const tf = T.titleForm(newest.title);
     if (B.title.banned.has(tf)) {
       warn(`最新一筆「${newest.title}」的標題句型「${tf}」在前 ${B.title.window} 天用過（${B.title.banned.get(tf)}）`);
     }
-    for (const s of B.soft) {
-      if (d0[s.axis.key] === s.value) {
-        warn(`${s.axis.label}連續偏食：最近 ${s.of} 件有 ${s.streak} 件是「${s.value}」，最新這件也是`);
-      }
+    const tb = T.titleBand(newest.title);
+    if (B.band.banned.has(tb)) {
+      warn(`最新一筆「${newest.title}」的標題長度「${tb}」與上一件同帶（${B.band.banned.get(tb)}）`);
+    }
+    const ov = T.titleOverlap(newest.title, B.recentTitles);
+    if (ov.ratio >= T.TITLE_OVERLAP_WARN) {
+      warn(`最新一筆「${newest.title}」的用字與「${ov.against}」重疊 ${Math.round(ov.ratio * 100)}%`);
+    }
+    for (const m of B.mix) {
+      warn(`標題長度偏食：近 ${m.of} 件${m.starved ? `一件「${m.band}」都沒有` : `只有 ${m.n} 件是「${m.band}」`}`);
     }
   }
   /* 口頭禪：只看最新一筆，避免每天洗 200 條舊警告 */

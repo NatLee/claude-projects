@@ -160,22 +160,43 @@ function guessContainer(md) {
 const cnt = (s, re) => (s.match(re) || []).length;
 function guessGenre(p, prose, code, era) {
   const ownData = /type="file"|FileReader|<textarea|contenteditable="true"|貼上你的|你的照片|你的檔案|你自己的|輸入你的|拖進你/.test(code + prose);
-  const reusable = /再算一次|存起來|你的清單|每次都|下次|複製結果|匯出/.test(prose);
   const isGame = cnt(prose, /關卡|分數|過關|得分|再玩一次|排行|挑戰你|你贏|你輸/g) >= 3;
   const historical = ['古代', '1500s', '1600s', '1700s', '1800s', '1900前半', '1900後半'].includes(era);
-  const langHits = cnt(prose, /字母|拼字|詞源|文法|標點|注音|漢字|語系|發音|翻譯/g);
+  /* 「動手實驗」＝拿讀者自己當受試者：測反應、測感知、測記憶 */
+  const selfTest = cnt(prose, /測測你|你的反應|閉上眼|你聽得到|你看得出|你的答案是|再試一次你/g) >= 2;
   const mechHits = cnt(prose, /模擬|公式|參數|模型|定律|方程|係數|演算法|實驗條件/g);
 
   /* 「能用的工具」門檻要高：得是這一類、又真的吃使用者自己的資料，而且
      故事不是掛在某段歷史上——否則每篇提到「你的手機」的歷史故事都會被誤判 */
   if (ownData && p.category === '生活痛點小工具' && !historical) return '能用的工具';
   if (isGame && !historical) return '遊戲玩具';
-  if (langHits >= 6 && langHits > mechHits) return '語言文字';
+  if (selfTest && !historical) return '動手實驗';
   if (historical) return '歷史揭曉';
   if (mechHits >= 4) return '科學機制';
   if (era === '當代' || era === '2000後') return '當代觀察';
   if (ownData) return '能用的工具';
   return '科學機制';
+}
+
+/* ---- 題材領域：這一頁在談哪個知識圈（2026-09-09 第二版新增） ---- */
+const DOMAIN_KW = [
+  ['語言文字', /字母|拼字|詞源|文法|標點|注音|漢字|語系|發音|翻譯|字體|排版|方言|語言/g],
+  ['心理認知', /記憶|注意力|錯覺|認知|心理|大腦|直覺|偏誤|情緒|知覺|意識|睡眠/g],
+  ['生物醫學', /細胞|基因|病毒|細菌|演化|物種|醫學|疾病|藥|解剖|神經元|生態|animal|鳥|昆蟲/g],
+  ['物理化學', /重力|光|波|頻率|溫度|壓力|分子|原子|元素|化學|物理|能量|熱|電磁|折射/g],
+  ['工程建築', /橋|建築|結構|工程|機械|引擎|材料|鋼|水泥|電路|管線|隧道|工廠|製造/g],
+  ['藝術設計', /繪畫|音樂|旋律|和弦|色彩|設計|字型|攝影|電影|動畫|雕塑|美術|舞|樂器/g],
+  ['社會制度', /法律|制度|政府|郵政|選舉|條約|警察|法院|規定|政策|城市|人口|經濟|貨幣/g],
+  /* 這兩類的關鍵字最容易吃掉別人：「資料」「程式」「遊戲」「球」在任何一頁都可能出現，
+     所以只留專有到不會誤傷的詞。 */
+  ['數學資訊', /機率|統計|演算法|壓縮率|加密|雜湊|網路協定|封包|數列|幾何|矩陣|位元|編碼|進位|質數/g],
+  ['飲食日常', /咖啡|泡茶|麵|食物|烹飪|味覺|餐廳|冰箱|洗衣|家事|通勤|購物|食譜/g],
+  ['運動遊戲', /籃球|足球|棒球|田徑|撲克牌|西洋棋|圍棋|骰子|奧運|賽事|選手|球員|球隊/g],
+];
+function guessDomain(prose) {
+  const scored = DOMAIN_KW.map(([v, re]) => [v, cnt(prose, re)])
+    .filter(x => x[1]).sort((a, b) => b[1] - a[1]);
+  return scored.length ? scored[0][0] : '社會制度';
 }
 
 /* ---- 推導 ---- */
@@ -194,6 +215,7 @@ for (const p of PROJECTS) {
     dir: p.dir,
     date: p.date,
     genre: guessGenre(p, prose, code, era),
+    domain: guessDomain(prose),
     container: guessContainer(md),
     verb: guessVerb(code),
     era,
@@ -211,21 +233,23 @@ const tally = (k) => {
     .map(([v, n]) => `${v} ${n}`).join('｜');
 };
 console.log(`推導 ${rows.length} 件（人工列保留 ${rows.filter(r => r.by === '人工').length} 筆）\n`);
-for (const k of ['genre', 'container', 'verb', 'era', 'region']) {
+for (const k of ['genre', 'domain', 'container', 'verb', 'era', 'region']) {
   console.log(`  ${T.AXES[k].label.padEnd(5)}：${tally(k)}`);
 }
-console.log(`  標題句型 ：${(() => {
+for (const [lbl, fn] of [['標題句型', T.titleForm], ['標題長度', T.titleBand]]) {
   const m = new Map();
-  for (const p of PROJECTS) { const f = T.titleForm(p.title); m.set(f, (m.get(f) || 0) + 1); }
-  return [...m.entries()].sort((a, b) => b[1] - a[1]).map(([v, n]) => `${v} ${n}`).join('｜');
-})()}`);
+  for (const p of PROJECTS) { const f = fn(p.title); m.set(f, (m.get(f) || 0) + 1); }
+  console.log(`  ${lbl.padEnd(5)}：` +
+    [...m.entries()].sort((a, b) => b[1] - a[1]).map(([v, n]) => `${v} ${n}`).join('｜'));
+}
 
 console.log('\n最近 12 件的推導結果（請人工掃一眼）：');
 const byDir = Object.fromEntries(PROJECTS.map(p => [p.dir, p]));
 for (const r of rows.slice(0, 12)) {
   const p = byDir[r.dir];
   console.log(`  ${r.date} ${(p.title + '　　　　　　').slice(0, 12)} ` +
-    `｜${r.genre}｜${r.container}｜${r.verb}｜${r.era}｜${r.region}｜${T.titleForm(p.title)}`);
+    `｜${r.genre}｜${r.domain}｜${r.container}｜${r.verb}｜${r.era}｜${r.region}` +
+    `｜${T.titleForm(p.title)}／${T.titleBand(p.title)}`);
 }
 
 if (WRITE) { T.saveDossier(rows); console.log(`\n✅ 已寫入 tools/題材檔案.json`); }

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>兩個人的哨聲｜每日小專案</title>
+<meta name="description" content="籃球有哨子，田徑有槍聲，相撲兩樣都不給。蹲下去，讀對面那個人的呼吸。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0a0c; --pk-ink:#eae3d4; --pk-accent:#d9a441;
+  --pk-dim:#8e8676; --pk-line:#221f1c;
+  --clay:#c07a3e; --blood:#a8382a; --chalk:#f2ede1;
+}
+body{ background:
+  radial-gradient(120% 70% at 50% -10%, #16130f 0%, transparent 60%),
+  radial-gradient(90% 60% at 50% 108%, #14100c 0%, transparent 62%),
+  var(--pk-bg); }
+
+/* ── 第一屏 ───────────────────────────────────────────── */
+.pk-hero{ min-height:88vh; display:flex; align-items:center; position:relative; }
+.kicker{ font:600 .74rem/1.6 var(--pk-sans); letter-spacing:.22em;
+  color:var(--pk-dim); text-transform:none; margin:0 0 1.6rem; }
+.pk-hero h1{ font-family:var(--pk-serif); font-weight:700;
+  font-size:clamp(2rem,6.4vw,3.7rem); line-height:1.24; letter-spacing:.01em; margin:0; }
+.pk-hero h1 em{ font-style:normal; color:var(--pk-accent); }
+.lede{ font-family:var(--pk-serif); font-size:clamp(1.02rem,2.5vw,1.32rem);
+  line-height:1.85; max-width:30em; margin:1.9rem 0 0; }
+.cue{ font:500 .86rem/1.7 var(--pk-sans); color:var(--pk-dim); margin:2.6rem 0 0; }
+.cue::before{ content:"↓"; display:inline-block; margin-right:.6em; color:var(--pk-accent); }
+/* 第一屏底部的兩條仕切り線 */
+.shikiri{ position:absolute; left:0; right:0; bottom:6vh; height:1px;
+  display:flex; justify-content:center; gap:46px; pointer-events:none; }
+.shikiri i{ display:block; width:58px; height:2px; background:var(--chalk); opacity:.5; }
+
+/* ── 敘事 ─────────────────────────────────────────────── */
+main section{ margin:0 0 5.5rem; }
+.act{ font:600 .72rem/1 var(--pk-sans); letter-spacing:.24em; color:var(--pk-accent);
+  display:block; margin:0 0 .85rem; }
+main h2{ font-family:var(--pk-serif); font-size:clamp(1.35rem,3.5vw,1.9rem);
+  line-height:1.4; margin:0 0 1.15rem; font-weight:700; }
+main p{ font-family:var(--pk-serif); font-size:1.03rem; line-height:1.95;
+  max-width:34em; margin:0 0 1.1rem; color:#dcd5c6; }
+main p.beat{ font-size:clamp(1.1rem,3vw,1.42rem); line-height:1.7; color:var(--pk-ink);
+  margin:1.8rem 0; padding-left:1rem; border-left:2px solid var(--pk-accent); }
+.jp{ font-style:normal; color:var(--pk-accent); white-space:nowrap; }
+.yr{ font:600 .78rem/1 var(--pk-sans); letter-spacing:.12em; color:var(--pk-dim);
+  display:block; margin:0 0 .5rem; }
+
+/* ── 土俵舞台 ─────────────────────────────────────────── */
+.stage{ position:relative; margin:2.2rem 0 1.2rem; border:1px solid var(--pk-line);
+  border-radius:14px; overflow:hidden;
+  background:linear-gradient(180deg,#0e0c0a 0%,#151009 62%,#1b1309 100%); }
+.breath{ display:block; width:100%; height:92px; }
+.dohyo{ display:block; width:100%; height:auto; overflow:visible; }
+.fig{ transform-box:view-box; transform-origin:0 0; }
+.flash{ position:absolute; inset:0; background:radial-gradient(50% 60% at 50% 62%,
+  rgba(255,246,225,.92), rgba(255,246,225,0) 70%); opacity:0; pointer-events:none; }
+.tag{ position:absolute; top:.7rem; font:600 .68rem/1 var(--pk-sans);
+  letter-spacing:.18em; color:var(--pk-dim); }
+.tag.l{ left:.9rem } .tag.r{ right:.9rem }
+
+/* ── 操作 ─────────────────────────────────────────────── */
+.hold{ display:block; width:100%; margin:0; padding:1.15rem 1rem;
+  font:700 1.05rem/1.3 var(--pk-sans); letter-spacing:.06em;
+  color:#1a1206; background:linear-gradient(180deg,#e0b25c,#c98a3c);
+  border:0; border-radius:12px; cursor:pointer; touch-action:none;
+  -webkit-user-select:none; user-select:none;
+  transition:transform .12s ease, filter .12s ease; }
+.hold:hover{ filter:brightness(1.06) }
+.hold.down{ transform:translateY(3px); filter:brightness(.86) }
+.hold[disabled]{ opacity:.42; cursor:default }
+.verdict{ font-family:var(--pk-serif); font-size:1.05rem; line-height:1.8;
+  min-height:3.6em; margin:1.1rem 0 0; color:var(--pk-ink); }
+.verdict b{ color:var(--pk-accent); font-weight:700 }
+.verdict .ms{ font:600 .82rem/1 var(--pk-sans); color:var(--pk-dim); letter-spacing:.06em }
+.meta{ display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+  font:600 .78rem/1 var(--pk-sans); letter-spacing:.1em; color:var(--pk-dim);
+  margin:1.2rem 0 0; }
+.lamps{ display:flex; gap:.5rem; list-style:none; padding:0; margin:0 }
+.lamps li{ width:11px; height:11px; border-radius:50%;
+  border:1.5px solid #4a4238; transition:background .3s ease, border-color .3s ease }
+.lamps li.on{ background:var(--pk-accent); border-color:var(--pk-accent) }
+.skip{ background:none; border:0; padding:0; color:var(--pk-dim); cursor:pointer;
+  font:600 .78rem/1 var(--pk-sans); letter-spacing:.08em;
+  text-decoration:underline; text-underline-offset:4px }
+.skip:hover{ color:var(--pk-ink) }
+[hidden]{ display:none !important }
+
+/* ── 結局 ─────────────────────────────────────────────── */
+#finale{ border-top:1px solid var(--pk-line); padding-top:3.2rem }
+.kicker-end{ font-family:var(--pk-serif); font-size:clamp(1.2rem,3.4vw,1.66rem);
+  line-height:1.72; color:var(--pk-ink); max-width:26em; margin:2.4rem 0 0 }
+.kicker-end b{ color:var(--pk-accent); font-weight:700 }
+
+@media (max-width:560px){
+  main p{ font-size:1rem }
+  .breath{ height:74px }
+}
+@media (prefers-reduced-motion: reduce){
+  .hold{ transition:none }
+  .flash{ display:none }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">兩國國技館・土俵中央</p>
+    <h1 class="rv">籃球有哨子。<br>田徑有槍聲。<br><em>相撲兩樣都不給。</em></h1>
+    <p class="lede rv">兩個加起來三百公斤上下的人，蹲在一條白線後面，等一個不會響的信號。</p>
+    <p class="cue rv">往下捲。等一下你會需要一隻手。</p>
+  </div>
+  <div class="shikiri" aria-hidden="true"><i></i><i></i></div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <span class="act">壹</span>
+    <h2>你記錯的那一聲</h2>
+    <p><span class="jp">「はっけよい、のこった！」</span>——很多人把這句聽成開賽令。它不是。</p>
+    <p>行司喊出那句話的時候，兩個人早就撞在一起了。<span class="jp">のこった（殘った）</span>的意思是「還在場上」，喊給已經開打的力士聽；<span class="jp">はっけよい</span>則是催促僵住不動的兩人動起來。</p>
+    <p>行司在開賽前唯一做的動作，是把軍配翻過來。那不是命令，是許可：從現在起，你們可以。</p>
+    <p class="beat">至於什麼時候開始，他不管。</p>
+  </section>
+
+  <section class="rv">
+    <span class="act">貳</span>
+    <span class="yr">1972 年 5 月場所・第四天</span>
+    <h2>一次忘了翻的軍配</h2>
+    <p>前頭四枚目大受對九枚目朝登。制限時間到了，行司十四代木村庄太郎維持著半側身的姿勢，軍配舉在那裡——沒有翻。</p>
+    <p>兩個力士照樣站了起來，撞在一起，比賽開始。</p>
+    <p>這一場被寫進相撲史，當成一件珍事。它也順便說明了：開賽的權力，本來就不在行司手上。</p>
+  </section>
+
+  <section class="rv">
+    <span class="act">參</span>
+    <h2>那要用什麼開始</h2>
+    <p class="beat">呼吸。</p>
+    <p><span class="jp">立合い</span>兩個字的字面是「站起來、相遇」；語源講得更直接——兩個人把呼吸合在一起，然後一起站。</p>
+    <p>蹲下、腰沉到底、雙掌落到土上，這一整套叫<span class="jp">仕切り</span>。仕切り不是熱身，是談判：兩人一邊擺架式一邊讀對方的節奏，氣合上了就起，合不上就退回去重來一次，日文叫<span class="jp">仕切り直し</span>。</p>
+    <p>1928 年以前，這場談判想重來幾次都行。</p>
+  </section>
+
+  <section class="rv">
+    <span class="act">肆</span>
+    <h2>談判可以有多久</h2>
+    <p><span class="yr">慶應元年（1865）11 月場所</span>新大關鬼面山谷五郎對前頭六枚目兩國梶之助。兩國待った 六十幾次，鬼面山三十幾次，兩個多小時過去，天都黑了；最後其中一人牙齒滲血，這場判成「預り」——不分勝負。</p>
+    <p><span class="yr">1912 年 5 月 19 日・五月場所第三天</span>橫綱太刀山對千年山。千年山重來五十四次，耗掉一小時三十七分。</p>
+    <p class="beat">那場相撲本身，兩秒鐘結束。</p>
+    <p>那天觀眾席上坐著三個小男孩，最大的那個日後成為昭和天皇。他們等到散場也沒看完當天的賽程；當晚，其中一個弟弟替哥哥打了通電話到相撲協會，問後面幾場誰贏了。</p>
+  </section>
+
+  <section class="rv">
+    <span class="act">伍</span>
+    <h2>廣播沒有耐心</h2>
+    <p>1928 年 1 月場所，電台開始轉播大相撲。收音機不能等兩個人談判兩小時。</p>
+    <p>相撲史上第一次出現「制限時間」：最初幕內十分鐘，之後越砍越短——1942 年七分、1945 年五分、1950 年 9 月定在今天的數字：<b>幕內四分、十兩三分、幕下以下兩分</b>。</p>
+    <p>時間到，行司會喊<span class="jp">「待ったなし」</span>。</p>
+    <p>讀一下那句話的措辭：它說的是「不准再重來」，不是「開始」。四分鐘燒完之後，決定何時起身的，仍然是那兩個人。</p>
+  </section>
+
+  <section class="rv" id="play">
+    <span class="act">陸</span>
+    <h2>換你蹲下去</h2>
+    <p>按住下面那塊土（或聚焦後按住空白鍵）＝ 腰沉、雙掌落地。</p>
+    <p>對面那個人在呼吸。看他的胸口——他會在某一刻起來，你要在同一刻放開。<br>太早，待った，重來。太晚，他已經進來了，你出去。</p>
+
+    <div class="stage" id="stage">
+      <span class="tag l">你</span><span class="tag r">對手</span>
+      <canvas class="breath" id="breath" aria-hidden="true"></canvas>
+      <svg class="dohyo" viewBox="0 0 640 300" role="img"
+           aria-label="土俵側視圖：左右兩名力士蹲踞相對，中間兩條仕切り線。">
+        <!-- 土俵面 -->
+        <rect x="0" y="252" width="640" height="48" fill="#3a2a17"/>
+        <rect x="0" y="250" width="640" height="3" fill="#6b4d2a"/>
+        <!-- 仕切り線 -->
+        <rect x="286" y="244" width="26" height="4" rx="2" fill="#f2ede1" opacity=".62"/>
+        <rect x="328" y="244" width="26" height="4" rx="2" fill="#f2ede1" opacity=".62"/>
+
+        <!-- 左：你 -->
+        <g class="fig" id="figL">
+          <g transform="translate(150,130)" fill="#e6dccb">
+            <ellipse cx="36" cy="96" rx="31" ry="24"/>
+            <ellipse cx="58" cy="74" rx="30" ry="22" transform="rotate(-13 58 74)"/>
+            <ellipse cx="78" cy="70" rx="16" ry="14"/>
+            <circle cx="92" cy="60" r="12"/>
+            <path d="M82 49 q9 -8 18 -3 q-7 3 -9 9 z"/>
+            <path d="M86 76 q11 17 12 36 l-12 2 q-4 -21 -13 -34 z"/>
+            <path d="M16 90 q-9 17 -3 28 l28 0 q-7 -15 -5 -28 z"/>
+            <path d="M56 90 q4 17 15 28 l-24 0 q-8 -13 -8 -28 z"/>
+            <path d="M18 88 q22 12 46 6 l3 11 q-26 7 -51 -6 z" fill="#a8382a"/>
+          </g>
+        </g>
+
+        <!-- 右：對手（鏡射） -->
+        <g class="fig" id="figR">
+          <g transform="translate(640,0) scale(-1,1)">
+            <g transform="translate(150,126)" fill="#cfc4b0">
+              <ellipse cx="34" cy="98" rx="33" ry="26"/>
+              <ellipse cx="58" cy="74" rx="32" ry="24" transform="rotate(-10 58 74)"/>
+              <ellipse cx="80" cy="70" rx="17" ry="15"/>
+              <circle cx="94" cy="59" r="12.5"/>
+              <path d="M84 48 q9 -8 18 -3 q-7 3 -9 9 z"/>
+              <path d="M88 76 q11 18 12 38 l-12 2 q-4 -22 -13 -36 z"/>
+              <path d="M14 92 q-9 17 -3 28 l29 0 q-7 -15 -5 -28 z"/>
+              <path d="M56 92 q4 17 15 28 l-24 0 q-8 -13 -8 -28 z"/>
+              <path d="M16 90 q23 12 48 6 l3 11 q-27 7 -53 -6 z" fill="#2f5d7a"/>
+            </g>
+          </g>
+        </g>
+      </svg>
+      <div class="flash" id="flash" aria-hidden="true"></div>
+    </div>
+
+    <button class="hold" id="hold" type="button">按住　—　腰を割る</button>
+    <p class="verdict" id="verdict" aria-live="polite">蹲下去，把手放到土上。他會等你。</p>
+    <div class="meta">
+      <span>立合成立</span>
+      <ol class="lamps" id="lamps" aria-label="立合成立次數"><li></li><li></li><li></li></ol>
+      <span id="best"></span>
+      <button class="skip" id="skip" type="button" hidden>跳過，直接看結局</button>
+    </div>
+  </section>
+
+  <section class="rv" id="finale" hidden>
+    <span class="act">柒</span>
+    <h2>沒有碼表的那一邊</h2>
+    <p>你剛剛合上的那幾次，我們沒有給對面那個人任何碼表。</p>
+    <p>他等的是你。你按住之後、呼吸穩下來的第一個谷底，他才起身——你在讀他，他在等你。開始的時刻，是你們兩個一起挑的。</p>
+    <p>直徑 15 尺、4.55 公尺的圓，兩個巨人，通常幾秒內分勝負。相撲有句老話：<span class="jp">立合いで八割が決まる</span>，立合決定八成勝負。把這麼重的一個瞬間交給沒有裁判的合意，聽起來像個管理漏洞。</p>
+    <p>可是在對打的運動裡，這幾乎是孤例：比賽不由第三個人宣布開始，而是由要打架的那兩個人同意開始。法國詩人考克多看過一場之後，叫它「平衡的奇蹟」。</p>
+    <p class="kicker-end">所以下次你看到兩個力士蹲在那裡遲遲不動，別催。<br>他們在等一件很難的事：<b>兩個人，同一口氣。</b></p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：日本相撲協會「寄附行為細則・勝負規定」第五條；ベースボール・マガジン社《日本の大相撲》；高永武敏・原田宏《激動の相撲昭和史》；朝日新聞「角界余話」。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="logic.js"></script>
+<script>
+'use strict';
+var LS = 'tachi.';
+var store = PK.store(LS);
+var T = TACHIAI;
+
+PK.reveal();
+
+/* ── DOM ── */
+var cv = document.getElementById('breath');
+var ctx = cv.getContext('2d');
+var figL = document.getElementById('figL');
+var figR = document.getElementById('figR');
+var flash = document.getElementById('flash');
+var holdBtn = document.getElementById('hold');
+var verdict = document.getElementById('verdict');
+var lamps = document.getElementById('lamps').children;
+var bestEl = document.getElementById('best');
+var skipBtn = document.getElementById('skip');
+var finale = document.getElementById('finale');
+
+/* ── 狀態 ── */
+var S = {
+  mode: 'idle',      /* idle | holding | anim */
+  holdStart: 0, phase: 0, riseT: Infinity, deadline: Infinity,
+  told: false,       /* 這一輪是否已宣告「他吸得比較深」 */
+  anim: null,        /* {kind,t0,dur} */
+  wins: 0, tries: 0, hinted: false, finished: false
+};
+var NEED = 3;
+var best = store.get('best', null);
+if (best != null) bestEl.textContent = '最佳誤差 ' + best + ' ms';
+if (store.get('cleared', false)) unlock(true);
+
+function win() { return PK.reduced() ? T.WIN_REDUCED : T.WIN; }
+function now() { return performance.now(); }
+
+/* ── 對手的呼吸（畫面與判定共用 logic.js 的同一條線） ── */
+function chestNow(t) { return T.chest(t, S.riseT, T.PERIOD, S.phase); }
+
+/* ── 繪製 ───────────────────────────────────────────── */
+var MS_PER_PX = 6;
+function drawBreath(t) {
+  var box = PK.fitCanvas(cv);
+  if (box.w < 80) return;                       /* 尺寸沒撐開就不畫 */
+  var w = box.w, h = box.h, d = box.dpr;
+  ctx.setTransform(d, 0, 0, d, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  var mid = h * 0.5, span = (h * 0.5 - 9) / T.AMP_MAX;
+  var live = (S.mode === 'holding');
+
+  /* 谷底參考線 */
+  ctx.strokeStyle = 'rgba(242,237,225,.13)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, mid + span); ctx.lineTo(w, mid + span); ctx.stroke();
+
+  var deep = live && isFinite(S.riseT) && (S.riseT - t) <= T.PERIOD * T.TELL && (S.riseT - t) >= -200;
+  ctx.strokeStyle = deep ? '#f0c877' : (live ? 'rgba(217,164,65,.85)' : 'rgba(142,134,118,.45)');
+  ctx.lineWidth = deep ? 2.6 : 2;
+  ctx.lineJoin = 'round';
+
+  if (PK.reduced()) {
+    /* 降級：不畫捲動軌跡，只留一個沿縱軸移動的點 */
+    ctx.beginPath();
+    ctx.arc(w - 22, mid - chestNow(t) * span, deep ? 7 : 5, 0, Math.PI * 2);
+    ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+    return;
+  }
+  ctx.beginPath();
+  for (var px = 0; px <= w; px++) {
+    var tt = t - (w - px) * MS_PER_PX;
+    var y = mid - T.chest(tt, S.riseT, T.PERIOD, S.phase) * span;
+    if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+  }
+  ctx.stroke();
+  /* 現在的位置 */
+  ctx.beginPath();
+  ctx.arc(w - 1, mid - chestNow(t) * span, deep ? 5 : 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = ctx.strokeStyle; ctx.fill();
+}
+
+function place(el, x, y) { el.style.transform = 'translate(' + x + 'px,' + y + 'px)'; }
+
+function drawFigures(t) {
+  var reduced = PK.reduced();
+  var oppY = reduced ? 0 : -chestNow(t) * 6;
+  var meY = 0, meX = 0, oppX = 0;
+
+  if (S.mode === 'holding') meY = 9;                     /* 腰沉到底、穩住 */
+  else if (S.mode !== 'anim' && !reduced) meY = -T.wave(t, T.PERIOD * 1.3, 0.2) * 4;
+
+  /* 動畫結束後保持定格，等下一次 grab() 才復位——避免中途瞬移 */
+  if (S.anim) {
+    var p = Math.min(1, (t - S.anim.t0) / S.anim.dur);
+    var e = reduced ? (p < 1 ? 0 : 1) : 1 - Math.pow(1 - p, 3);
+    if (S.anim.kind === 'match') {          /* 兩人同時離地，撞在仕切り線上 */
+      meX = 118 * e; oppX = 118 * e; meY = 9 - 26 * e; oppY = -26 * e;
+    } else if (S.anim.kind === 'late') {    /* 對手已經進來，把你往後推 */
+      oppX = 196 * e; meX = -104 * e; meY = 9 - 10 * e;
+    } else {                                /* matta：你自己先彈起來，對面沒動 */
+      meY = 9 - 30 * e; meX = 26 * e;
+    }
+  }
+  place(figL, meX, meY);
+  place(figR, -oppX, oppY);
+}
+
+function frame(dt, t) {
+  var tt = now();
+  drawBreath(tt);
+  drawFigures(tt);
+  if (S.mode === 'holding') {
+    if (!S.told && isFinite(S.riseT) && S.riseT - tt <= T.PERIOD * T.TELL) {
+      S.told = true;
+      if (PK.reduced()) PK.announce('他吸得比剛才深。');
+    }
+    if (tt > S.deadline) release(true);
+  }
+}
+PK.tick(frame);
+PK.onMotionChange(function () { S.told = false; });
+
+/* ── 一輪立合 ────────────────────────────────────────── */
+function grab() {
+  if (S.mode !== 'idle') return;
+  S.mode = 'holding';
+  S.anim = null;
+  S.told = false;
+  S.holdStart = now();
+  S.phase = Math.random();
+  var settle = 2200 + Math.random() * 2200;            /* 仕切りの長さ：不固定 */
+  S.riseT = T.riseAt(S.holdStart, settle, T.PERIOD, S.phase);
+  S.deadline = S.riseT + win() + 320;
+  holdBtn.classList.add('down');
+  holdBtn.textContent = '……押さえて（放開＝立つ）';
+  verdict.textContent = '你的手在土上了。看他的胸口。';
+}
+
+function release(auto) {
+  if (S.mode !== 'holding') return;
+  var res = T.judge(auto ? S.deadline : now(), S.riseT, win());
+  S.mode = 'anim';
+  holdBtn.classList.remove('down');
+  holdBtn.textContent = '再來一次';
+  S.tries++;
+  var g = T.gradeOf(res);
+  var ms = Math.round(Math.abs(res.d));
+
+  if (res.r === 'match') {
+    S.wins++;
+    S.anim = { kind: 'match', t0: now(), dur: 420 };
+    bang();
+    verdict.innerHTML = (res.perfect
+      ? '<b>気が合った。</b>兩個人在同一個瞬間離地。'
+      : '<b>立合成立。</b>撞上了，勉強算合。')
+      + ' <span class="ms">誤差 ' + ms + ' ms</span>';
+    if (best == null || ms < best) { best = ms; store.set('best', ms); bestEl.textContent = '最佳誤差 ' + ms + ' ms'; }
+  } else if (res.r === 'matta') {
+    S.anim = { kind: 'matta', t0: now(), dur: 380 };
+    verdict.innerHTML = '<b>待った。</b>你自己站起來的，那不算開始，那叫突っ掛け。'
+      + ' <span class="ms">早了 ' + ms + ' ms</span>';
+  } else {
+    S.anim = { kind: 'late', t0: now(), dur: 520 };
+    verdict.innerHTML = '<b>出局。</b>他已經進來了，你還蹲著。'
+      + ' <span class="ms">晚了 ' + ms + ' ms</span>';
+  }
+  S.riseT = Infinity;
+  S.deadline = Infinity;
+
+  for (var i = 0; i < lamps.length; i++) lamps[i].classList.toggle('on', i < S.wins);
+  PK.announce(verdict.textContent);
+
+  if (res.r !== 'match' && !S.hinted && S.tries >= 1) {
+    S.hinted = true;
+    setTimeout(function () {
+      if (S.mode === 'idle') verdict.innerHTML += '<br><span class="ms">提示：他起身前的最後一口氣，比前面幾口都深。</span>';
+    }, 900);
+  }
+  if (S.tries >= 5 && S.wins < NEED) skipBtn.hidden = false;
+
+  setTimeout(function () {
+    if (S.mode === 'anim') S.mode = 'idle';       /* 過關之後也還能再蹲一次 */
+    if (S.wins >= NEED) finish();
+  }, 640);
+}
+
+function bang() {
+  if (PK.reduced()) return;
+  flash.style.transition = 'none';
+  flash.style.opacity = '.85';
+  flash.getBoundingClientRect();
+  requestAnimationFrame(function () {
+    flash.style.transition = 'opacity .55s ease-out';
+    flash.style.opacity = '0';
+  });
+}
+
+function finish() {
+  if (S.finished) return;
+  S.finished = true;
+  skipBtn.hidden = true;
+  store.set('cleared', true);
+  unlock(false);
+}
+
+function unlock(silent) {
+  if (!finale.hidden) return;
+  finale.hidden = false;
+  setTimeout(function () { finale.classList.add('in'); }, 60);   /* 不倚賴 IO 一定會補觸發 */
+  if (!silent) {
+    PK.announce('結局解鎖。');
+    setTimeout(function () { PK.scrollTo(finale); }, 260);
+  }
+}
+
+/* ── 輸入：指標＋鍵盤，離開焦點視同放開 ── */
+holdBtn.addEventListener('pointerdown', function (e) { e.preventDefault(); holdBtn.focus(); grab(); });
+window.addEventListener('pointerup', function () { release(false); });
+window.addEventListener('pointercancel', function () { release(false); });
+holdBtn.addEventListener('keydown', function (e) {
+  if (e.key !== ' ' && e.key !== 'Enter' && e.key !== 'Spacebar') return;
+  e.preventDefault();
+  if (e.repeat) return;
+  grab();
+});
+holdBtn.addEventListener('keyup', function (e) {
+  if (e.key !== ' ' && e.key !== 'Enter' && e.key !== 'Spacebar') return;
+  e.preventDefault();
+  release(false);
+});
+holdBtn.addEventListener('blur', function () { release(false); });
+holdBtn.addEventListener('click', function (e) { e.preventDefault(); });
+skipBtn.addEventListener('click', function () { skipBtn.hidden = true; unlock(false); });
+</script>
+</body>
+</html>

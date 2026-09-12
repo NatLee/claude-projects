@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>倒過來就不會倒｜每日小專案</title>
+<meta name="description" content="畫一條鏈子，重力會把它改成唯一正確的那條。再把它倒過來，你就有了一個一千五百年不塌的屋頂。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0a0c; --pk-ink:#ece4d6; --pk-dim:#8a8378; --pk-accent:#d08a4e;
+  --steel:#8fa7bd; --brick:#c9793f; --brick-hi:#e8a463; --bad:#e05a4a;
+  --pk-maxw:720px;
+}
+body{background:
+  radial-gradient(120% 80% at 50% -10%, #17161b 0%, #0a0a0c 60%) fixed,
+  var(--pk-bg);}
+
+h1{letter-spacing:.01em}
+.lede{color:#c9c1b4;font-size:clamp(16px,3.6vw,18px);max-width:30em}
+.pk-hero{position:relative}
+.hero-chain{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:.5}
+
+/* ── 章節 ───────────────────────────────────── */
+.ch{margin:0;padding:64px 0 8px;position:relative}
+.ch[hidden]{display:none}
+.ch-no{display:flex;align-items:center;gap:12px;margin:0 0 10px;
+  font-size:12px;letter-spacing:.34em;color:var(--pk-dim);text-transform:none}
+.ch-no i{font-style:normal;display:inline-grid;place-items:center;width:26px;height:26px;
+  border:1px solid var(--pk-line);border-radius:50%;font-size:12px;letter-spacing:0;color:var(--pk-accent)}
+.ch h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(21px,5vw,28px);
+  line-height:1.55;margin:0 0 14px}
+.ch p{margin:0 0 16px;color:#ded6c8}
+.ch p.q{border-left:2px solid var(--pk-accent);padding-left:16px;color:#c9c1b4;font-style:normal}
+em.hl{font-style:normal;color:var(--pk-brick,var(--brick-hi));font-weight:600}
+
+/* ── 舞台 ───────────────────────────────────── */
+.stage{position:relative;margin:22px 0 18px;border:1px solid var(--pk-line);border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(0,0,0,.22));overflow:hidden}
+.stage canvas{display:block;width:100%;height:clamp(300px,52vw,400px);touch-action:none;cursor:crosshair}
+.stage.wide canvas{height:clamp(280px,44vw,360px);cursor:default}
+.hint{position:absolute;left:0;right:0;bottom:0;padding:12px 16px;font-size:13px;line-height:1.7;
+  color:#a89f92;background:linear-gradient(0deg,rgba(10,10,12,.92),transparent);
+  transition:opacity .45s;pointer-events:none}
+.hint b{color:var(--pk-ink);font-weight:600}
+.hint.gone{opacity:0}
+
+.tools{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 8px}
+.tools label{font-size:12.5px;color:var(--pk-dim);letter-spacing:.04em}
+.tools input[type=range]{accent-color:var(--brick);width:170px;vertical-align:middle}
+.linkish{background:none;border:0;color:var(--pk-dim);font:inherit;font-size:12.5px;
+  cursor:pointer;padding:4px 2px;border-bottom:1px dotted var(--pk-line)}
+.linkish:hover{color:var(--pk-ink)}
+
+/* ── 讀數 ───────────────────────────────────── */
+.readout{display:flex;flex-wrap:wrap;gap:4px 26px;margin:2px 0 20px;
+  font-variant-numeric:tabular-nums;font-size:13px;color:var(--pk-dim)}
+.readout b{display:block;color:var(--pk-ink);font-size:19px;font-weight:600;line-height:1.35}
+.readout span em{font-style:normal;color:var(--brick-hi)}
+
+/* ── 結語數字 ───────────────────────────────── */
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:22px 20px;margin:26px 0 30px}
+.facts div b{display:block;font-family:var(--pk-serif);font-size:clamp(26px,7vw,36px);
+  color:var(--brick-hi);line-height:1.15;font-variant-numeric:tabular-nums}
+.facts div span{font-size:12.5px;color:var(--pk-dim);line-height:1.6;display:block;margin-top:4px}
+.kasra{width:100%;height:auto;display:block;margin:6px 0 4px;overflow:visible}
+.kasra .draw{stroke-linecap:round;stroke-linejoin:round;fill:none}
+.coda{font-family:var(--pk-serif);font-size:clamp(19px,4.6vw,24px);line-height:1.85;
+  color:var(--pk-ink);margin:34px 0 8px}
+.coda span{color:var(--brick-hi)}
+
+@media (max-width:560px){
+  .readout{gap:4px 20px}
+  .tools input[type=range]{width:140px}
+  .stage.wide canvas{height:380px}   /* 兩個拱改成上下排，要留高度 */
+}
+@media (prefers-reduced-motion: reduce){
+  .hint{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <canvas class="hero-chain" id="hero" aria-hidden="true"></canvas>
+  <div class="pk-wrap">
+    <h1 class="rv">給你兩根釘子和一條鏈子，你就能蓋出一個一千五百年不塌的屋頂。</h1>
+    <p class="rv lede">先別信。往下捲，我打算先讓你畫錯一次。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- ── 壹：垂 ───────────────────────────────── -->
+  <section class="ch" id="ch1">
+    <p class="ch-no"><i>壹</i>垂</p>
+    <h2>兩根釘子之間，你覺得鏈子會垂成什麼形狀？</h2>
+    <p>不要用想的。把它畫出來——從左邊那根釘子，一路拖到右邊。畫醜沒關係，等一下就不是你說了算。</p>
+
+    <div class="stage">
+      <canvas id="c1" tabindex="0" role="img"
+        aria-label="兩根釘子之間的繪圖區。用滑鼠或手指從左釘拖曳到右釘畫出一條線；也可以用下方的鏈子長度滑桿，按 Enter 放手。"></canvas>
+      <p class="hint" id="hint1">按住 <b>左邊的釘子</b>，畫一條線到右邊的釘子。</p>
+    </div>
+    <div class="tools">
+      <label for="lenR">用鍵盤也行 · 鏈子長度</label>
+      <input id="lenR" type="range" min="103" max="235" value="150" step="1"
+             aria-label="鏈子長度（跨距的百分比）">
+      <button class="linkish" id="drop">放手</button>
+      <button class="linkish" id="again" hidden>重畫一次</button>
+    </div>
+
+    <div class="readout" id="ro1" hidden>
+      <span><b id="roLen">—</b>你畫的長度</span>
+      <span><b id="roSag">—</b>它垂下去的深度</span>
+      <span><b id="roErr">—</b>與 cosh 公式的差距</span>
+    </div>
+
+    <div id="say1" hidden>
+      <p>你畫的<em class="hl">形狀</em>沒有被留下來。被留下來的只有<em class="hl">長度</em>。</p>
+      <p>一條鏈子除了自己的重量什麼都不扛，它會停在唯一一個不再想動的姿勢上。那條曲線叫<em class="hl">懸鏈線</em>——不是圓弧，也不是拋物線，是 cosh。上面那個誤差，是這頁真的拿質點鏈鬆弛出來的結果，跟公式對帳的差。</p>
+    </div>
+  </section>
+
+  <!-- ── 貳：倒 ───────────────────────────────── -->
+  <section class="ch" id="ch2" hidden>
+    <p class="ch-no"><i>貳</i>倒</p>
+    <h2>現在把整條鏈子，乘上負一。</h2>
+    <p>鏈子只能被拉。石頭只能被壓。這兩件事在數學上是同一條線，差一個正負號。</p>
+    <p style="margin-bottom:22px"><button class="pk-btn" id="flip">把它倒過來</button></p>
+    <div id="say2" hidden>
+      <p class="q">「柔索如何垂懸，剛拱便如何倒立而站。」<br>—— Robert Hooke，1675 年，把這句話藏在一串字母亂碼裡發表</p>
+      <p>每一塊磚都只在推它的鄰居，誰也不拉誰。所以它不需要黏著劑，也不需要鋼筋。它只需要<em class="hl">形狀是對的</em>。</p>
+      <p>那，形狀不對會怎樣？</p>
+    </div>
+  </section>
+
+  <!-- ── 參：試 ───────────────────────────────── -->
+  <section class="ch" id="ch3" hidden>
+    <p class="ch-no"><i>參</i>試</p>
+    <h2>左邊是你的拱。右邊是人類蓋了兩千年的半圓拱。</h2>
+    <p>同樣的跨距、同樣的厚度、同樣的磚。現在把重量放進去，看它往哪裡走。</p>
+
+    <div class="stage wide">
+      <canvas id="c2" role="img"
+        aria-label="兩個拱的比較：左邊是你畫出來的懸鏈拱，右邊是同跨距同厚度的半圓拱，按下按鈕會畫出各自的推力線。"></canvas>
+      <p class="hint" id="hint2">推力線＝重量在磚裡面走的那條路。</p>
+    </div>
+    <p style="margin-bottom:22px"><button class="pk-btn" id="load">放上重量</button></p>
+
+    <div id="say3" hidden>
+      <div class="readout">
+        <span><b id="roThin">—</b>半圓拱至少要多胖才站得住</span>
+        <span><b id="roYours">—</b>你的拱至少要多胖</span>
+        <span><b id="roH">—</b>你的拱往外踹的力（相對自重）</span>
+      </div>
+      <p>推力線碰到磚的邊緣，那一點就變成一個轉軸。湊滿三個轉軸，拱就不再是拱，而是一台機器——機器會動。半圓拱的三個轉軸永遠出現在同樣的位置：頂上、腰部五十幾度、還有腳底。</p>
+      <p>半圓不是不能站，它得胖到半徑的十分之一才行。你的拱不必：推力線就長在它正中央，理論上你可以把它削到紙一樣薄。</p>
+      <p>代價寫在腳上。<em class="hl">你的鏈子垂得越淺，兩隻腳往外踹得越用力</em>——垮掉的通常不是拱，是撐不住它的牆。</p>
+    </div>
+  </section>
+
+  <!-- ── 肆：站 ───────────────────────────────── -->
+  <section class="ch" id="ch4" hidden>
+    <p class="ch-no"><i>肆</i>站</p>
+    <h2>有人在西元六世紀前後，用泥磚把這條曲線蓋成了真的。</h2>
+
+    <svg class="kasra rv" viewBox="0 0 720 430" role="img"
+      aria-label="泰西封大拱（Taq Kasra）簡化剪影：一個跨距 26 公尺、高 37 公尺的懸鏈形磚拱，右側殘存一片有連續拱龕的牆，左側在 1888 年的洪水中沖毀。">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="430" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#14131a"/><stop offset="1" stop-color="#2a2119"/>
+        </linearGradient>
+        <linearGradient id="wall" x1="0" y1="60" x2="0" y2="400" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#7d5436"/><stop offset="1" stop-color="#4a3221"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="720" height="430" fill="url(#sky)"/>
+      <g id="kg"></g>
+    </svg>
+
+    <div class="facts" id="facts">
+      <div><b data-n="26" data-suf=" m">0 m</b><span>拱的跨距</span></div>
+      <div><b data-n="37" data-suf=" m">0 m</b><span>拱頂離地</span></div>
+      <div><b data-n="1" data-suf=" m">0 m</b><span>拱頂的磚只有這麼厚</span></div>
+      <div><b data-n="18" data-suf="°">0°</b><span>磚是斜著砌的，好讓它們自己黏住</span></div>
+      <div><b data-n="0" data-pre="" data-lit="0">0</b><span>蓋的時候用掉幾根鷹架</span></div>
+      <div><b data-n="1888" data-plain="1">0</b><span>一場洪水沖走大半的那一年</span></div>
+    </div>
+
+    <p>它叫泰西封大拱，在今天的伊拉克。薩珊王朝的宮殿只剩這一片門面，是世界上數一數二大的無筋磚砌單拱。頂上那圈磚只有一公尺厚——不到跨距的四十分之一。牆腳倒是厚達七公尺：他們很清楚力氣最後會往哪裡跑。</p>
+    <p>沒有微積分，沒有 cosh，比 Hooke 早了一千年。</p>
+
+    <p class="coda">重力從來沒有教過他們公式。<br><span>它把答案垂在那裡，等人把它倒過來看。</span></p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Encyclopædia Iranica「AYVĀN-E KESRĀ」、Julian Reade《The Seventy Wonders of the Ancient World》、Jacques Heyman《The Stone Skeleton》。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="arch.js"></script>
+<script>
+'use strict';
+const LS = 'arch6.';
+const store = PK.store(LS);
+const $ = (s) => document.querySelector(s);
+
+PK.reveal();
+
+/* ══ 共用繪圖小工具 ═════════════════════════════════ */
+function ctxOf(cv, hMin) {
+  const r = cv.getBoundingClientRect();
+  if (r.width < 80) return null;                 /* 隱藏面板裡的 canvas 尺寸為 0 */
+  const m = PK.fitCanvas(cv);
+  const g = cv.getContext('2d');
+  g.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+  g.clearRect(0, 0, m.w, m.h);
+  return { g, w: m.w, h: m.h };
+}
+function stroke(g, pts, col, wd, dash) {
+  if (pts.length < 2) return;
+  g.save(); g.beginPath();
+  g.setLineDash(dash || []);
+  g.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+  g.strokeStyle = col; g.lineWidth = wd; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.stroke(); g.restore();
+}
+function pin(g, x, y) {
+  g.save();
+  g.fillStyle = '#6b6257'; g.beginPath(); g.arc(x, y, 5.5, 0, 7); g.fill();
+  g.fillStyle = '#0a0a0c'; g.beginPath(); g.arc(x, y, 2, 0, 7); g.fill();
+  g.restore();
+}
+
+/* ══ 第一屏：背景那條慢慢晃的鏈子 ═══════════════════ */
+(function heroChain() {
+  const cv = $('#hero');
+  let pts = null, rest = 0, t0 = 0;
+  function frame(dt, t) {
+    const m = ctxOf(cv);
+    if (!m) return;
+    const { g, w, h } = m;
+    const ax = w * 0.06, bx = w * 0.94, ay = h * 0.2, by = h * 0.28;
+    if (!pts || Math.abs(pts[0].x - ax) > 1) {
+      const L = (bx - ax) * 1.42;
+      pts = ARCH.relaxChain(ax, ay, bx, by, L, 40, 260);   /* 裝飾用，不需要收到很緊 */
+      rest = L / 40; t0 = t;
+    }
+    if (!PK.reduced()) {
+      /* 極輕微的風：只推中段，幅度一個像素以內 */
+      const k = Math.sin((t - t0) / 1400) * 0.35;
+      for (let i = 10; i < 31; i++) pts[i].x += k * Math.sin(Math.PI * (i - 10) / 21);
+      ARCH.stepChain(pts, rest, { passes: 12 });
+    }
+    stroke(g, pts, 'rgba(143,167,189,.34)', 1.6);
+    pin(g, ax, ay); pin(g, bx, by);
+  }
+  PK.tick(frame);
+})();
+
+/* ══ 壹 ＋ 貳：畫鏈子、鬆弛、倒過來 ══════════════════ */
+const C1 = (function () {
+  const cv = $('#c1'), hint = $('#hint1');
+  const N = 72;
+  let mode = 'idle';          /* idle → drawing → settling → still → flipping → arch */
+  let raw = [], chain = null, rest = 0, target = null, flipT = 0, still = 0;
+  let geo = null, result = null;
+
+  function layout() {
+    const r = cv.getBoundingClientRect();
+    if (r.width < 80) return null;
+    const w = r.width, h = r.height;
+    const padX = Math.max(30, w * 0.1);
+    return { w, h, ax: padX, bx: w - padX, pinY: Math.round(h * 0.17),
+             baseY: h - 26, maxSag: h - Math.round(h * 0.17) - 46 };
+  }
+  /* 鏈長上限：垂到舞台底部為止（用解析解反解） */
+  function maxLen(S, sag) {
+    let lo = S * 1.0001, hi = S * 6;
+    for (let i = 0; i < 80; i++) {
+      const m = (lo + hi) / 2;
+      if (ARCH.catenarySag(S, m) > sag) hi = m; else lo = m;
+    }
+    return (lo + hi) / 2;
+  }
+  /* 把使用者畫的折線依弧長重新取樣成 N+1 點，兩端釘死 */
+  function resample(pts, n, a, b) {
+    const cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    const L = cum[cum.length - 1], out = [];
+    for (let k = 0; k <= n; k++) {
+      const s = L * k / n;
+      let i = 1; while (i < cum.length - 1 && cum[i] < s) i++;
+      const t = (s - cum[i - 1]) / Math.max(1e-9, cum[i] - cum[i - 1]);
+      out.push({ x: PK.lerp(pts[i - 1].x, pts[i].x, t), y: PK.lerp(pts[i - 1].y, pts[i].y, t) });
+    }
+    out[0] = { x: a.x, y: a.y }; out[n] = { x: b.x, y: b.y };
+    return out.map((p) => ({ x: p.x, y: p.y, px: p.x, py: p.y }));
+  }
+
+  function release(pts) {
+    geo = layout(); if (!geo) return;
+    const S = geo.bx - geo.ax;
+    const drawn = ARCH.pathLength(pts);
+    const L = PK.clamp(drawn, S * 1.03, maxLen(S, geo.maxSag));
+    chain = resample(pts, N, { x: geo.ax, y: geo.pinY }, { x: geo.bx, y: geo.pinY });
+    rest = L / N;
+    mode = 'settling'; still = 0;
+    result = { drawn, L, S };
+    hint.classList.add('gone');
+    $('#again').hidden = false;
+    if (PK.reduced()) {                          /* 不動版：直接鬆弛到底 */
+      chain = ARCH.relaxChain(geo.ax, geo.pinY, geo.bx, geo.pinY, L, N);
+      settled();
+    }
+  }
+  function settled() {
+    mode = 'still';
+    const sag = Math.max.apply(null, chain.map((p) => p.y)) - geo.pinY;
+    const ana = ARCH.catenarySag(result.S, result.L);
+    result.sag = sag; result.ana = ana;
+    result.err = ana > 0 ? Math.abs(sag - ana) / ana : 0;
+    $('#roLen').textContent = Math.round(result.drawn) + ' px';
+    $('#roSag').textContent = Math.round(sag) + ' px';
+    $('#roErr').textContent = (result.err * 100 < 0.05 ? '<0.05' : (result.err * 100).toFixed(2)) + '%';
+    $('#ro1').hidden = false; $('#say1').hidden = false;
+    $('#ch2').hidden = false;
+    store.set('len', +(result.L / result.S).toFixed(4));
+    PK.reveal();
+    PK.announce('鏈子停下來了，形狀是懸鏈線。與公式的差距 ' + (result.err * 100).toFixed(2) + '%。');
+  }
+
+  /* 拱的目標位置：把鏈子沿水平線鏡射，再放到舞台底部 */
+  function archPt(p) { return { x: p.x, y: geo.baseY - (p.y - geo.pinY) }; }
+
+  function drawVoussoirs(g, pts, k) {
+    const R = (geo.bx - geo.ax) / 2, t = R * 0.06;
+    const step = 2;
+    for (let i = 0; i < pts.length - step; i += step) {
+      const a = pts[i], b = pts[i + step];
+      const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+      const nx = -dy / len * t / 2, ny = dx / len * t / 2;
+      g.beginPath();
+      g.moveTo(a.x + nx, a.y + ny); g.lineTo(b.x + nx, b.y + ny);
+      g.lineTo(b.x - nx, b.y - ny); g.lineTo(a.x - nx, a.y - ny);
+      g.closePath();
+      const sh = 0.72 + 0.28 * Math.sin(i * 0.9);
+      g.fillStyle = 'rgba(' + Math.round(201 * sh) + ',' + Math.round(121 * sh) + ',' + Math.round(63 * sh) + ',' + k + ')';
+      g.fill();
+      g.strokeStyle = 'rgba(10,10,12,' + (0.55 * k) + ')'; g.lineWidth = 1; g.stroke();
+    }
+  }
+
+  function frame(dt, t) {
+    const m = ctxOf(cv); if (!m) return;
+    const { g, w, h } = m;
+    geo = layout(); if (!geo) return;
+
+    /* 地面 / 釘子 */
+    if (mode === 'flipping' || mode === 'arch') {
+      g.fillStyle = 'rgba(255,255,255,.06)';
+      g.fillRect(0, geo.baseY + 1, w, 1);
+    } else {
+      stroke(g, [{ x: geo.ax, y: geo.pinY }, { x: geo.bx, y: geo.pinY }], 'rgba(255,255,255,.08)', 1, [3, 6]);
+      pin(g, geo.ax, geo.pinY); pin(g, geo.bx, geo.pinY);
+    }
+
+    if (mode === 'drawing') { stroke(g, raw, 'rgba(236,228,214,.85)', 2.4); return; }
+    if (!chain) return;
+
+    if (mode === 'settling') {
+      let move = 0;
+      const sub = PK.reduced() ? 1 : ARCH.SIM.substeps;
+      for (let s = 0; s < sub; s++) {
+        const y0 = chain[N >> 1].y;
+        ARCH.stepChain(chain, rest);
+        move += Math.abs(chain[N >> 1].y - y0);
+      }
+      still = move < 0.02 ? still + dt : 0;
+      if (still > 0.25) settled();
+    }
+
+    if (mode === 'flipping' || mode === 'arch') {
+      const k = mode === 'arch' ? 1 : flipT;
+      const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+      const pts = chain.map((p) => {
+        const a = archPt(p);
+        return { x: p.x, y: PK.lerp(p.y, a.y, e) };
+      });
+      if (e < 0.98) stroke(g, pts, 'rgba(143,167,189,' + (0.75 * (1 - e)) + ')', 2.6);
+      if (e > 0.12) drawVoussoirs(g, pts, Math.min(1, (e - 0.12) / 0.6));
+      if (mode === 'flipping') {
+        flipT += dt / (PK.reduced() ? 0.12 : 1.05);
+        if (flipT >= 1) { mode = 'arch'; onFlipped(); }
+      }
+      return;
+    }
+    stroke(g, chain, mode === 'still' ? 'rgba(143,167,189,.95)' : 'rgba(143,167,189,.8)', 2.6);
+  }
+
+  /* ── 輸入 ── */
+  function pos(ev) {
+    const r = cv.getBoundingClientRect();
+    return { x: PK.clamp(ev.clientX - r.left, 0, r.width), y: PK.clamp(ev.clientY - r.top, 0, r.height) };
+  }
+  cv.addEventListener('pointerdown', (ev) => {
+    if (mode !== 'idle') return;
+    geo = layout(); if (!geo) return;
+    cv.setPointerCapture(ev.pointerId);
+    mode = 'drawing'; raw = [{ x: geo.ax, y: geo.pinY }, pos(ev)];
+    hint.textContent = '一路畫到右邊那根釘子，然後放手。';
+  });
+  cv.addEventListener('pointermove', (ev) => {
+    if (mode !== 'drawing') return;
+    const p = pos(ev), last = raw[raw.length - 1];
+    if (Math.hypot(p.x - last.x, p.y - last.y) > 3) raw.push(p);
+  });
+  function endDraw() {
+    if (mode !== 'drawing') return;
+    raw.push({ x: geo.bx, y: geo.pinY });
+    release(raw);
+  }
+  cv.addEventListener('pointerup', endDraw);
+  cv.addEventListener('pointercancel', endDraw);
+
+  /* 鍵盤／滑桿替代路徑：用長度直接生一條鏈 */
+  function fromSlider() {
+    if (mode !== 'idle') return;
+    geo = layout(); if (!geo) return;
+    const S = geo.bx - geo.ax;
+    const L = PK.clamp(S * (+$('#lenR').value) / 100, S * 1.03, maxLen(S, geo.maxSag));
+    const a = { x: geo.ax, y: geo.pinY }, b = { x: geo.bx, y: geo.pinY };
+    const sag = ARCH.catenarySag(S, L), mid = [];
+    for (let i = 0; i <= 24; i++) {                 /* 拿一條粗糙的拋物線當初始猜測 */
+      const u = i / 24;
+      mid.push({ x: a.x + S * u, y: geo.pinY + 4 * sag * u * (1 - u) * 0.9 });
+    }
+    release(mid.map((p) => p));
+  }
+  $('#drop').addEventListener('click', fromSlider);
+  cv.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fromSlider(); }
+  });
+  $('#again').addEventListener('click', () => {
+    mode = 'idle'; chain = null; raw = []; result = null; flipT = 0;
+    hint.textContent = '再畫一條。這次試試畫得很淺，或者很深。';
+    hint.classList.remove('gone');
+    $('#ro1').hidden = true; $('#say1').hidden = true; $('#say2').hidden = true;
+    $('#ch2').hidden = true; $('#ch3').hidden = true; $('#ch4').hidden = true;
+    $('#flip').disabled = false;
+    cv.focus();
+  });
+
+  function onFlipped() {
+    $('#say2').hidden = false; $('#ch3').hidden = false;
+    PK.reveal();
+    C2.build(result.S, result.sag);
+    PK.announce('鏈子倒過來了，變成一排互相推的磚。');
+  }
+  $('#flip').addEventListener('click', () => {
+    if (mode !== 'still') return;
+    mode = 'flipping'; flipT = 0; $('#flip').disabled = true;
+  });
+
+  PK.tick(frame);
+  return { get mode() { return mode; } };
+})();
+
+/* ══ 參：兩個拱、推力線、倒塌 ═══════════════════════ */
+const C2 = (function () {
+  const cv = $('#c2'), hint = $('#hint2');
+  let slots = null, arches = null, phase = 'rest', anim = 0, lineT = 0;
+
+  function layout() {
+    const r = cv.getBoundingClientRect();
+    if (r.width < 80) return null;
+    const w = r.width, h = r.height;
+    if (w < 520) {                                  /* 窄螢幕：上下排 */
+      return [{ cx: w / 2, by: h * 0.45 - 6, wd: w * 0.78, ht: h * 0.38 },
+              { cx: w / 2, by: h - 20, wd: w * 0.78, ht: h * 0.38 }];
+    }
+    return [{ cx: w * 0.26, by: h - 22, wd: w * 0.42, ht: h - 46 },
+            { cx: w * 0.74, by: h - 22, wd: w * 0.42, ht: h - 46 }];
+  }
+
+  /* 由半邊中心線（x 由拱頂向外、d 為低於拱頂）造出整座拱的磚塊與畫面座標 */
+  function buildArch(half, t, slot, scale) {
+    const full = [];
+    for (let i = half.length - 1; i > 0; i--) full.push({ x: -half[i].x, d: half[i].d });
+    for (let i = 0; i < half.length; i++) full.push({ x: half[i].x, d: half[i].d });
+    const rise = half[half.length - 1].d;
+    const P = full.map((p) => ({ x: slot.cx + p.x * scale, y: slot.by - (rise - p.d) * scale }));
+    /* 磚塊：把中心線切成塊，每塊四個角 */
+    const blocks = [], step = Math.max(2, Math.round(full.length / 34));
+    for (let i = 0; i + step < P.length; i += step) {
+      const a = P[i], b = P[i + step];
+      const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1;
+      const nx = -dy / L * t * scale / 2, ny = dx / L * t * scale / 2;
+      const c = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      blocks.push({
+        cx: c.x, cy: c.y, ang: 0, vx: 0, vy: 0, va: 0,
+        mid: (full[i].x + full[i + step].x) / 2,
+        local: [[a.x + nx - c.x, a.y + ny - c.y], [b.x + nx - c.x, b.y + ny - c.y],
+                [b.x - nx - c.x, b.y - ny - c.y], [a.x - nx - c.x, a.y - ny - c.y]],
+        home: { cx: c.x, cy: c.y }
+      });
+    }
+    return { full, P, blocks, rise, scale, slot };
+  }
+
+  function build(S, sagPx) {
+    const lay = layout(); if (!lay) return;
+    const nHalf = 160;
+    const riseRatio = PK.clamp(sagPx / S, 0.08, 1.3);
+    const yourHalf = ARCH.catenaryHalf(2, riseRatio * 2, nHalf);   /* 單位跨距＝2（半跨 1） */
+    const semiHalf = ARCH.semicircleHalf(2, nHalf);
+    const t = 0.06;                                                /* 厚度＝半跨的 6% */
+    arches = [
+      { name: '你的拱', half: yourHalf, t, fit: ARCH.thrustFeasible(yourHalf, t) },
+      { name: '半圓拱', half: semiHalf, t, fit: ARCH.thrustFeasible(semiHalf, t) }
+    ];
+    slots = lay;
+    for (let i = 0; i < 2; i++) {
+      const a = arches[i], s = lay[i];
+      const sc = Math.min(s.wd / 2, s.ht / Math.max(a.half[a.half.length - 1].d, 1e-6));
+      a.geom = buildArch(a.half, t, s, sc);
+      a.hinges = a.fit.ok ? [] : ARCH.hingesOf(a.half, t, a.fit);
+    }
+    phase = 'rest'; anim = 0; lineT = 0;
+    $('#load').disabled = false;
+    $('#roThin').textContent = 'R × ' + ARCH.minThickness(semiHalf).toFixed(3);
+    $('#roYours').textContent = '～0';
+    $('#roH').textContent = '×' + (arches[0].fit.H / arches[0].fit.weight).toFixed(2);
+  }
+
+  function drawBlocks(g, a, col, edge) {
+    for (const b of a.geom.blocks) {
+      const c = Math.cos(b.ang), s = Math.sin(b.ang);
+      g.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const X = b.cx + b.local[i][0] * c - b.local[i][1] * s;
+        const Y = b.cy + b.local[i][0] * s + b.local[i][1] * c;
+        i ? g.lineTo(X, Y) : g.moveTo(X, Y);
+      }
+      g.closePath();
+      const sh = 0.74 + 0.26 * Math.sin(b.mid * 9);
+      g.fillStyle = typeof col === 'function' ? col(b, sh) : col;
+      g.fill();
+      g.strokeStyle = edge; g.lineWidth = 1; g.stroke();
+    }
+  }
+
+  function thrustPts(a, frac) {
+    const g0 = a.geom, rise = g0.rise, sc = g0.scale, s = g0.slot;
+    const half = a.half, line = a.fit.line, out = [];
+    const n = Math.max(2, Math.round(half.length * frac));
+    for (let i = n - 1; i >= 0; i--) out.push({ x: s.cx - half[i].x * sc, y: s.by - (rise - line[i].d) * sc });
+    for (let i = 0; i < n; i++) out.push({ x: s.cx + half[i].x * sc, y: s.by - (rise - line[i].d) * sc });
+    return out;
+  }
+
+  /* 倒塌：先讓四塊剛體繞鉸鏈轉，再放手變碎塊自由落體 */
+  function mechanism(a, phi) {
+    const g0 = a.geom, sc = g0.scale, s = g0.slot, rise = g0.rise;
+    const hg = a.hinges;
+    if (hg.length < 2) return;
+    const haunch = hg[1].x, spring = a.half[a.half.length - 1].x;
+    const px = (X) => s.cx + X * sc, py = (D) => s.by - (rise - D) * sc;
+    const springPt = (sgn) => ({ x: px(sgn * spring), y: py(a.half[a.half.length - 1].d) });
+    for (const b of g0.blocks) {
+      const sgn = b.mid < 0 ? -1 : 1, am = Math.abs(b.mid);
+      let piv, ang;
+      if (am > haunch) { piv = springPt(sgn); ang = -sgn * phi; }
+      else {
+        /* 上段：先跟著下段的腰部鉸鏈走，再繞它多轉一點，拱頂因此下沉 */
+        const hp = { x: px(sgn * haunch), y: py(hingeD(a, haunch)) };
+        const sp = springPt(sgn);
+        const c = Math.cos(-sgn * phi), sn = Math.sin(-sgn * phi);
+        const mx = sp.x + (hp.x - sp.x) * c - (hp.y - sp.y) * sn;
+        const my = sp.y + (hp.x - sp.x) * sn + (hp.y - sp.y) * c;
+        piv = { x: mx, y: my }; ang = sgn * phi * 1.9;
+        b.cx = b.home.cx + (mx - hp.x); b.cy = b.home.cy + (my - hp.y);
+        rot(b, piv, ang); continue;
+      }
+      b.cx = b.home.cx; b.cy = b.home.cy;
+      rot(b, piv, ang);
+    }
+  }
+  function hingeD(a, x) {
+    for (let i = 0; i < a.half.length; i++) if (a.half[i].x >= x) return a.half[i].d;
+    return a.half[a.half.length - 1].d;
+  }
+  function rot(b, piv, ang) {
+    const c = Math.cos(ang), s = Math.sin(ang);
+    const dx = b.cx - piv.x, dy = b.cy - piv.y;
+    b.cx = piv.x + dx * c - dy * s; b.cy = piv.y + dx * s + dy * c; b.ang = ang;
+  }
+
+  function frame(dt) {
+    const m = ctxOf(cv); if (!m) return;
+    const { g, w, h } = m;
+    if (!arches) return;
+    const lay = layout();
+    if (!lay || !slots || Math.abs(lay[0].cx - slots[0].cx) > 1 || Math.abs(lay[0].by - slots[0].by) > 1) {
+      /* 視窗改變尺寸：幾何重算，但別把使用者已經按下的進度洗掉 */
+      const keep = phase, kept = anim, keptL = lineT;
+      const a0 = arches[0];
+      build(2, a0.half[a0.half.length - 1].d);
+      if (keep !== 'rest') { phase = keep; anim = kept; lineT = keptL; $('#load').disabled = true; }
+      return;
+    }
+    g.fillStyle = 'rgba(255,255,255,.06)';
+    for (const s of lay) g.fillRect(s.cx - s.wd / 2 - 12, s.by + 1, s.wd + 24, 1);
+
+    if (phase === 'load' || phase === 'done' || phase === 'fall') { anim += dt; lineT += dt; }
+
+    for (let i = 0; i < 2; i++) {
+      const a = arches[i];
+      const broken = i === 1 && (phase === 'fall' || phase === 'done') && !a.fit.ok;
+      if (broken) {
+        for (const b of a.geom.blocks) {
+          b.vy += 900 * dt; b.cx += b.vx * dt; b.cy += b.vy * dt; b.ang += b.va * dt;
+          const floor = a.geom.slot.by;
+          if (b.cy > floor) { b.cy = floor; b.vy *= -0.24; b.vx *= 0.72; b.va *= 0.6; }
+        }
+      } else if (i === 1 && phase === 'fall') { /* 可行的話不倒 */ }
+
+      drawBlocks(g, a,
+        (b, sh) => 'rgba(' + Math.round(201 * sh) + ',' + Math.round(121 * sh) + ',' + Math.round(63 * sh) + ',1)',
+        'rgba(10,10,12,.55)');
+
+      /* 推力線 */
+      if (phase === 'load' || phase === 'fall' || phase === 'done') {
+        const frac = PK.clamp(lineT / (PK.reduced() ? 0.05 : 1.1), 0.02, 1);
+        if (!broken) {
+          const pts = thrustPts(a, frac);
+          stroke(g, pts, a.fit.ok ? 'rgba(255,241,214,.95)' : 'rgba(224,90,74,.95)', 2);
+          if (a.fit.ok && frac > 0.99) {
+            stroke(g, pts, 'rgba(255,225,170,.28)', 8);
+          }
+        }
+        if (!a.fit.ok && !broken && frac > 0.55) {
+          for (const hgp of a.hinges) {
+            for (const sgn of [-1, 1]) {
+              const X = a.geom.slot.cx + sgn * hgp.x * a.geom.scale;
+              const Y = a.geom.slot.by - (a.geom.rise - hgp.d) * a.geom.scale
+                        + hgp.side * a.t * a.geom.scale / 2;
+              g.beginPath(); g.arc(X, Y, 4.5, 0, 7);
+              g.fillStyle = 'rgba(224,90,74,.95)'; g.fill();
+              g.strokeStyle = 'rgba(255,220,210,.9)'; g.lineWidth = 1.4; g.stroke();
+            }
+          }
+        }
+      }
+      /* 標籤 */
+      g.save();
+      g.font = '12px system-ui, sans-serif'; g.textAlign = 'center';
+      g.fillStyle = 'rgba(180,172,160,.9)';
+      g.fillText(a.name, a.geom.slot.cx, a.geom.slot.by + 16);
+      g.restore();
+    }
+
+    /* 機構階段：半圓拱轉成機器 */
+    if (phase === 'load' && anim > (PK.reduced() ? 0.06 : 1.25)) { phase = 'fall'; anim = 0; onBroke(); }
+    if (phase === 'fall') {
+      const a = arches[1];
+      if (!a.fit.ok) {
+        const phi = Math.min(0.26, anim * 0.9);
+        if (anim < 0.32) {
+          const prev = a.geom.blocks.map((b) => ({ x: b.cx, y: b.cy, a: b.ang }));
+          mechanism(a, phi);
+          for (let k = 0; k < a.geom.blocks.length; k++) {
+            const b = a.geom.blocks[k];
+            b.vx = (b.cx - prev[k].x) / Math.max(dt, 1e-3);
+            b.vy = (b.cy - prev[k].y) / Math.max(dt, 1e-3);
+            b.va = (b.ang - prev[k].a) / Math.max(dt, 1e-3);
+          }
+        } else if (phase !== 'done') { phase = 'done'; anim = 0; }
+      }
+    }
+    void w; void h;
+  }
+
+  function onBroke() {
+    hint.textContent = '紅點＝推力線碰到磚的邊緣。那裡從此只能轉，不能扛。';
+    $('#say3').hidden = false; $('#ch4').hidden = false;
+    PK.reveal(); KASRA.go();
+    PK.announce('半圓拱的推力線跑出磚外，形成鉸鏈後垮掉；你的拱的推力線落在正中央。');
+  }
+
+  $('#load').addEventListener('click', () => {
+    if (phase !== 'rest') return;
+    phase = 'load'; anim = 0; $('#load').disabled = true;
+    hint.classList.add('gone');
+  });
+
+  PK.tick(frame);
+  return { build };
+})();
+
+/* ══ 肆：泰西封大拱的剪影與數字 ═════════════════════ */
+const KASRA = (function () {
+  let drawn = false;
+  const SVG = 'http://www.w3.org/2000/svg';
+  function el(n, at) { const e = document.createElementNS(SVG, n); for (const k in at) e.setAttribute(k, at[k]); return e; }
+
+  function build() {
+    const g = document.getElementById('kg');
+    if (!g || g.childNodes.length) return;
+    /* 真實比例：跨距 26 m、拱頂 37 m。畫面以 1 m = 9 px。 */
+    const M = 9, gx = 300, gy = 392;
+    const half = ARCH.catenaryHalf(26, 37, 90);
+    const pt = (sgn, i) => [gx + sgn * half[i].x * M, gy - (37 - half[i].d) * M];
+    let d = 'M ' + pt(-1, half.length - 1).join(' ');
+    for (let i = half.length - 1; i >= 0; i--) d += ' L ' + pt(-1, i).join(' ');
+    for (let i = 1; i < half.length; i++) d += ' L ' + pt(1, i).join(' ');
+    /* 牆體：右翼完整（連續拱龕），左翼在 1888 年被洪水帶走 */
+    g.appendChild(el('path', { d: 'M ' + (gx - 13 * M - 62) + ' ' + gy + ' L ' + (gx - 13 * M - 62) + ' ' + (gy - 21 * M) +
+      ' L ' + (gx - 13 * M - 20) + ' ' + (gy - 25 * M) + ' L ' + (gx - 13 * M) + ' ' + (gy - 20 * M) +
+      ' L ' + (gx - 13 * M) + ' ' + gy + ' Z', fill: 'url(#wall)', opacity: '.75' }));
+    g.appendChild(el('path', { d: 'M ' + (gx + 13 * M) + ' ' + gy + ' L ' + (gx + 13 * M) + ' ' + (gy - 34 * M) +
+      ' L ' + (gx + 13 * M + 230) + ' ' + (gy - 34 * M) + ' L ' + (gx + 13 * M + 230) + ' ' + gy + ' Z', fill: 'url(#wall)' }));
+    for (let row = 0; row < 4; row++) {
+      for (let col = 0; col < 5; col++) {
+        const x = gx + 13 * M + 22 + col * 42, y = gy - 30 * M + row * 68;
+        g.appendChild(el('path', {
+          d: 'M ' + x + ' ' + (y + 44) + ' L ' + x + ' ' + (y + 16) +
+             ' Q ' + (x + 13) + ' ' + (y - 6) + ' ' + (x + 26) + ' ' + (y + 16) + ' L ' + (x + 26) + ' ' + (y + 44) + ' Z',
+          fill: 'rgba(10,9,8,.42)'
+        }));
+      }
+    }
+    g.appendChild(el('path', { d: d + ' Z', fill: '#0b0a0c' }));
+    g.appendChild(el('path', { class: 'draw', d: d, stroke: '#e8a463', 'stroke-width': '2.5', opacity: '.95' }));
+    /* 地面與比例尺人形 */
+    g.appendChild(el('rect', { x: 0, y: gy, width: 720, height: 430 - gy, fill: '#241b13' }));
+    const hx = gx + 40, hh = 1.7 * M;
+    g.appendChild(el('path', { class: 'draw', d: 'M ' + hx + ' ' + gy + ' L ' + hx + ' ' + (gy - hh * 0.55) +
+      ' M ' + (hx - 3.5) + ' ' + (gy - hh * 0.52) + ' L ' + (hx + 3.5) + ' ' + (gy - hh * 0.52),
+      stroke: '#d8cbb8', 'stroke-width': '1.6', opacity: '.8' }));
+    g.appendChild(el('circle', { cx: hx, cy: gy - hh * 0.78, r: hh * 0.2, fill: '#d8cbb8', opacity: '.8' }));
+    const lbl = el('text', { x: hx + 12, y: gy - 4, fill: '#8a8378', 'font-size': '11' });
+    lbl.textContent = '一個人';
+    g.appendChild(lbl);
+  }
+
+  function countUp() {
+    const els = document.querySelectorAll('#facts b');
+    els.forEach((b) => {
+      const n = +b.dataset.n, suf = b.dataset.suf || '';
+      if (b.dataset.plain) { b.textContent = '1888'; return; }
+      if (n === 0) { b.textContent = '0' + suf; return; }
+      if (PK.reduced()) { b.textContent = n + suf; return; }
+      let v = 0;
+      const f = (dt) => {
+        v = Math.min(n, v + n * dt / 1.1);
+        b.textContent = (n < 10 ? v.toFixed(0) : Math.round(v)) + suf;
+        if (v >= n) PK.untick(f);
+      };
+      PK.tick(f);
+    });
+  }
+
+  function go() {
+    if (drawn) return; drawn = true;
+    build();
+    if (PK.reduced() || !('IntersectionObserver' in window)) { countUp(); return; }
+    const io = new IntersectionObserver((es) => {
+      es.forEach((e) => { if (e.isIntersecting) { countUp(); io.disconnect(); } });
+    }, { rootMargin: '0px 0px -20% 0px' });
+    io.observe(document.getElementById('facts'));
+  }
+  return { go: go };
+})();
+
+/* 回訪：把上次畫的鏈長放進滑桿，開場就是你自己的那條 */
+(function () {
+  const r = store.get('len', null);
+  if (r && r > 1.02 && r < 2.4) $('#lenR').value = Math.round(r * 100);
+})();
+
+PK.onMotionChange(() => { /* 之後的動畫各自查 PK.reduced()；此處僅確保切換會被收到 */ });
+</script>
+</body>
+</html>

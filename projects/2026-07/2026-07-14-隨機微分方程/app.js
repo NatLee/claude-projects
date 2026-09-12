@@ -498,6 +498,9 @@
   function fitCanvas(cv, cssH) {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var w = cv.clientWidth || cv.parentNode.clientWidth;
+    /* 面板還藏著時量到的寬度是 0，寫回去會把 canvas 縮成 0×0、之後整張圖消失；
+       保養 2026-09-13：量不到就直接跳過，留住上一次的有效尺寸。 */
+    if (!(w > 80)) return;
     var h = cssH || w;
     var W = Math.round(w * dpr), H = Math.round(h * dpr);
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
@@ -951,7 +954,9 @@
     segClick(el.stepsSeg, stepsKey, function (v) { stepsKey = v; store('steps', v); resetForward(); resetGen(); });
     segClick(el.particleSeg, particlesKey, function (v) { particlesKey = v; store('particles', v); resetForward(); resetGen(); });
     segClick(el.speedSeg, speed, function (v) { speed = v; store('speed', v); });
-    segClick(el.genModeSeg, genMode, function (v) { genMode = v; store('genMode', v); resetGen(); layoutGen(); });
+    /* 保養 2026-09-13：切成「兩邊一起看」時，另一欄的 canvas 是第一次現身，
+       原本沒有重新量尺寸，要等到使用者調整視窗才會正常。 */
+    segClick(el.genModeSeg, genMode, function (v) { genMode = v; store('genMode', v); resetGen(); layoutGen(); fitGenCanvases(); });
 
     el.trainBtn.addEventListener('click', startTraining);
     el.fwdPlay.addEventListener('click', function () {

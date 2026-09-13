@@ -132,10 +132,17 @@
   if (typeof document === 'undefined') return;
 
   /* ---------------- 減少動態 ---------------- */
-  var motionMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
-  var prefersReduced = motionMQ.matches;
-  motionMQ.addEventListener('change', function (e) {
-    prefersReduced = e.matches;
+  var motionMQ = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : { matches: false };
+  var prefersReduced = !!motionMQ.matches;
+  /* 舊版 Safari 的 MediaQueryList 沒有 addEventListener，直接呼叫會在這裡拋錯，
+     而這段在 IIFE 最上面——一throw 整頁互動全滅。改成三段式偵測。 */
+  (function (fn) {
+    if (motionMQ.addEventListener) motionMQ.addEventListener('change', fn);
+    else if (motionMQ.addListener) motionMQ.addListener(fn);
+  })(function (e) {
+    prefersReduced = !!(e && e.matches !== undefined ? e.matches : motionMQ.matches);
     if (prefersReduced) MirrorFX.stop(); else MirrorFX.maybeStart();
   });
 

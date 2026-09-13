@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>別眨眼｜每日小專案</title>
+<meta name="description" content="螢幕上沒有綠色。盯住十字三十秒，一顆綠點會繞著圈跑起來——它出廠於你的視網膜。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#08070b; --pk-ink:#ece8f2; --pk-accent:#c98ad6; --pk-dim:#877f92;
+  --lc-grey:#7f7f7f;            /* 舞台底色：中性灰，後像才乾淨 */
+  --lc-lilac:#e878e8;           /* 紫點：紅藍高、綠低 */
+  --lc-blur:9px;
+  --lc-field:min(74vmin,470px,50svh);
+  --lc-disc:13%;
+}
+
+/* ── 第一屏 ── */
+.pk-hero h1{ font-size:clamp(30px,8.2vw,52px); letter-spacing:.01em; margin-bottom:26px }
+.lead{ font-size:clamp(16px,4.2vw,18.5px); color:#c9c2d6; margin:0 0 14px; max-width:30em }
+.hero-glow{
+  position:fixed; inset:auto auto 0 50%; width:min(90vw,620px); height:min(90vw,620px);
+  transform:translate(-50%,38%); border-radius:50%; pointer-events:none; z-index:0;
+  background:radial-gradient(circle,rgba(201,138,214,.16),rgba(201,138,214,0) 66%);
+}
+.pk-hero .pk-wrap{ z-index:1 }
+.cue{ margin-top:34px; display:flex; align-items:center; gap:13px; flex-wrap:wrap }
+.caution{ font-size:12.5px; color:var(--pk-dim); line-height:1.7; max-width:26em; margin:20px 0 0 }
+
+/* ── 舞台（沉浸全螢幕） ── */
+.stage{
+  position:fixed; inset:0; z-index:30; display:none;
+  background:var(--lc-grey); color:#1a1a1a;
+  overflow-y:auto; overscroll-behavior:contain;
+}
+.stage.open{ display:block }
+/* margin:auto —— 有空間就置中，內容太高就正常捲，不會被裁掉頂端 */
+.stage-in{
+  min-height:100%; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; padding:16px;
+}
+body.locked{ overflow:hidden }
+
+.field{ position:relative; width:var(--lc-field); height:var(--lc-field); flex:0 0 auto }
+.disc{
+  position:absolute; width:var(--lc-disc); height:var(--lc-disc);
+  margin:calc(var(--lc-disc) / -2) 0 0 calc(var(--lc-disc) / -2);
+  border-radius:50%; filter:blur(var(--lc-blur));
+  background:radial-gradient(circle closest-side,var(--lc-lilac) 0 46%,rgba(232,120,232,0) 100%);
+}
+.disc.off{ opacity:0 }
+.cross{ position:absolute; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px }
+.cross::before,.cross::after{
+  content:""; position:absolute; left:50%; top:50%; background:#191919; border-radius:1px;
+}
+.cross::before{ width:2px; height:22px; margin:-11px 0 0 -1px }
+.cross::after{ width:22px; height:2px; margin:-1px 0 0 -11px }
+
+.cap{
+  height:4.6em; margin:18px 0 0; display:flex; align-items:center; justify-content:center;
+  text-align:center; font-family:var(--pk-serif); font-size:clamp(16px,4.4vw,20px);
+  line-height:1.6; color:#1c1c1c; max-width:24em; padding:0 8px;
+}
+.cap span{ transition:opacity .5s }
+.clock{
+  font-variant-numeric:tabular-nums; font-size:12px; letter-spacing:.16em; color:#4a4a4a;
+  min-height:1.4em; text-align:center;
+}
+.clock b{ font-weight:600 }
+
+/* 舞台控制列 */
+.bar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:14px }
+.s-btn{
+  appearance:none; cursor:pointer; font-family:inherit; font-size:13.5px; letter-spacing:.06em;
+  color:#1f1f1f; background:rgba(255,255,255,.26); border:1px solid rgba(0,0,0,.22);
+  border-radius:999px; padding:9px 17px; transition:background .2s,transform .12s;
+}
+.s-btn:hover{ background:rgba(255,255,255,.5) }
+.s-btn:active{ transform:translateY(1px) }
+.s-btn[aria-pressed="true"]{ background:rgba(0,0,0,.16) }
+.stage :focus-visible{ outline:2px solid #2b2b2b; outline-offset:3px }
+
+.knobs{
+  width:min(94vw,430px); margin:16px auto 0; display:none;
+  border-top:1px solid rgba(0,0,0,.18); padding-top:14px;
+}
+.knobs.on{ display:block }
+.knob{ display:grid; grid-template-columns:5.2em 1fr; gap:12px; align-items:center; margin:0 0 11px }
+.knob label{ font-size:12.5px; letter-spacing:.06em; color:#2a2a2a }
+.knob input[type=range]{ width:100%; accent-color:#3b2b46; height:22px }
+.verdict{ font-size:13px; line-height:1.7; color:#242424; min-height:3.4em; margin:4px 0 0 }
+.verdict b{ font-weight:600; border-bottom:1.5px solid rgba(0,0,0,.35) }
+
+/* 畫素證據面板 */
+/* 固定定位：舞台可捲動時，證據面板不能跟著捲走 */
+.proof{
+  position:fixed; inset:0; z-index:2; display:none; align-items:center; justify-content:center;
+  background:rgba(18,16,22,.93); color:#ece8f2; padding:24px;
+}
+.proof.on{ display:flex }
+.proof-in{ max-width:min(92vw,430px) }
+.proof h3{ font-family:var(--pk-serif); font-size:19px; margin:0 0 14px; font-weight:600 }
+.tally{ list-style:none; margin:0 0 16px; padding:0; font-size:14px }
+.tally li{ display:flex; align-items:center; gap:11px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.1) }
+.sw{ width:17px; height:17px; border-radius:4px; flex:0 0 auto; border:1px solid rgba(255,255,255,.22) }
+.tally .n{ margin-left:auto; font-variant-numeric:tabular-nums; letter-spacing:.02em }
+.tally .zero{ color:#7de2a8; font-weight:600 }
+.proof p{ font-size:13.5px; line-height:1.85; color:#c3bcd0; margin:0 0 16px }
+
+/* ── 舞台之後的長文 ── */
+main h2{ font-family:var(--pk-serif); font-size:clamp(21px,5.4vw,27px); font-weight:600; line-height:1.5; margin:0 0 16px }
+main p{ margin:0 0 17px; font-size:16px }
+main section{ margin:0 0 76px }
+.beat{ color:#b9b1c6 }
+.kicker{ font-size:12px; letter-spacing:.2em; color:var(--pk-accent); margin:0 0 10px }
+.pull{
+  font-family:var(--pk-serif); font-size:clamp(19px,5vw,25px); line-height:1.62;
+  border-left:2px solid var(--pk-accent); padding:2px 0 2px 20px; margin:34px 0;
+}
+.end{ font-family:var(--pk-serif); font-size:clamp(19px,5vw,24px); line-height:1.7 }
+main{ padding-top:54px }
+
+@media (max-width:560px){
+  :root{ --lc-field:min(80vmin,360px) }
+  .knob{ grid-template-columns:4.4em 1fr; gap:9px }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .hero-glow{ display:none }
+  .cap span{ transition:none }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+<div class="hero-glow" aria-hidden="true"></div>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <h1 class="rv">螢幕上沒有綠色。</h1>
+    <p class="lead rv">再過一分鐘，你會看見一顆綠色的點，繞著圈跑。</p>
+    <p class="lead rv">它不在畫面上。它出廠於你的視網膜，保存期限半秒。</p>
+    <div class="cue rv">
+      <button class="pk-btn" id="enter" type="button">把燈打開</button>
+    </div>
+    <p class="caution rv">畫面會有低速閃爍（每秒約八次）。對閃光敏感的人請跳過，或按下舞台裡的「停」。</p>
+  </div>
+</header>
+
+<div class="stage" id="stage" role="dialog" aria-modal="true" aria-label="紫點舞台">
+ <div class="stage-in">
+  <div class="field" id="field">
+    <div class="cross" aria-hidden="true"></div>
+  </div>
+
+  <p class="cap"><span id="cap">十二個紫點，一個十字。整座舞台只有兩種顏色：灰，和紫。</span></p>
+  <p class="clock" id="clock">按下「開始」，然後盯住十字</p>
+
+  <div class="bar">
+    <button class="s-btn" id="run" type="button" aria-pressed="false">開始</button>
+    <button class="s-btn" id="skip" type="button">我看到了</button>
+    <button class="s-btn" id="scan" type="button">數一遍畫素</button>
+    <button class="s-btn" id="quit" type="button">離開舞台</button>
+  </div>
+
+  <div class="knobs" id="knobs">
+    <div class="knob">
+      <label for="step">停留</label>
+      <input type="range" id="step" min="20" max="600" step="5" value="125"
+             aria-describedby="verdict">
+    </div>
+    <div class="knob">
+      <label for="blur">模糊</label>
+      <input type="range" id="blur" min="0" max="18" step="1" value="9"
+             aria-describedby="verdict">
+    </div>
+    <div class="knob" id="manualRow" style="display:none">
+      <label for="manual">位置</label>
+      <input type="range" id="manual" min="0" max="11" step="1" value="0">
+    </div>
+    <p class="verdict" id="verdict"></p>
+  </div>
+ </div>
+
+  <div class="proof" id="proof">
+    <div class="proof-in">
+      <h3>把這一格畫面拆成畫素，一個一個數</h3>
+      <ul class="tally" id="tally"></ul>
+      <p id="proofNote"></p>
+      <button class="s-btn" id="closeProof" type="button">回到舞台</button>
+    </div>
+  </div>
+</div>
+
+<main class="pk-wrap" id="after">
+
+  <section class="rv">
+    <p class="kicker">剛剛發生的三件事</p>
+    <h2>缺口會跑，是因為你的腦補了中間那一段</h2>
+    <p>畫面上從頭到尾沒有任何東西在移動。每 0.125 秒有一顆紫點熄掉、下一顆接著熄，像走馬燈。你的視覺系統看到「這裡不見了、旁邊接著不見」，就把兩件事縫成一件：一個東西跑過去了。韋特海默 1912 年替這個縫合動作取了名字，叫 phi 現象——電影能動，靠的也是它。</p>
+  </section>
+
+  <section class="rv">
+    <h2>綠色是疲乏的收據</h2>
+    <p>視網膜用「紅對綠、藍對黃」的方式記帳。一顆紫點在你視野的同一個位置連續亮了一秒多，負責紅和藍的細胞被壓久了會累。點一熄，那一小塊灰色送進來的訊號少了紅少了藍，帳就記到另一邊——綠。</p>
+    <p class="beat">所以你看到的不是顏色，是一張欠條。它半秒就過期，剛好在下一顆紫點亮起來之前。</p>
+  </section>
+
+  <section class="rv">
+    <h2>紫點後來去哪了</h2>
+    <p>盯住十字久一點，那一圈紫會自己淡掉，剩綠點在空的灰上面繞。1804 年，瑞士醫師 Ignaz Paul Vital Troxler 在維也納記下這個毛病：眼睛不動的時候，視野邊緣一個不變的東西會從知覺裡消失。模糊的、低對比的、離視線中心遠的，消失得最快——紫點三個條件全中，本來就是照著它的口味做的。</p>
+    <p class="beat">你的眼睛平常靠每秒好幾次的微顫維持畫面。不眨眼、不移動，等於把訊號凍住；凍住的東西，大腦會當成背景丟掉。</p>
+  </section>
+
+  <section class="rv">
+    <p class="kicker">2005 年，一個沒擦乾淨的迴圈</p>
+    <h2>他本來要做的東西壞掉了</h2>
+    <p>Jeremy Hinton 在替一組視覺運動實驗寫刺激畫面，程式讓一顆圓點繞著中心跑。他忘了把上一格的圓點擦掉，於是十二個位置全亮著，唯一在動的變成一個缺口。</p>
+    <p>他盯著那個壞掉的版本，看見缺口裡有綠色。接下來他做的事跟修 bug 相反：調前景和背景的灰、調點的數量、調節奏，把那個綠調到最亮。2005 年他又把點加上模糊，紫點才會在人盯著十字時整圈退場。</p>
+    <p>他拿去投歐洲視覺研討會的錯覺比賽，因為當年沒報名而被取消資格。後來是視覺科學家 Michael Bach 把它放上自己的錯覺網站，替它取了名字：Lilac Chaser，紫丁香追逐者。</p>
+  </section>
+
+  <section class="rv">
+    <div class="pull">Hinton 自己提過一件麻煩事：那顆綠點的顏色，可能落在螢幕做得出來的範圍之外。</div>
+    <p>螢幕沒辦法被檢查，因為它從來沒畫過那個綠。它整場只發紫光和灰光——你按下「數一遍畫素」時，數字就是這麼說的。綠是在光進到你眼睛之後才被配出來的，配它的是一批剛好累了的細胞。</p>
+    <p class="end">所以嚴格說起來，剛才那顆綠點沒有被看見過第二次。你是它唯一的觀眾，也是它的產地。</p>
+  </section>
+
+  <section class="rv">
+    <button class="pk-btn" id="again" type="button">再進去一次</button>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：維基百科「Lilac chaser」與「Troxler's fading」、Michael Bach 視錯覺網站、Martinez-Conde 等人 2004 年關於注視微動的回顧。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'lilac.';
+const store = PK.store(LS);
+
+PK.reveal();
+
+/* ===== 純函式開始 ===== */
+/* 第 i 顆點在圓上的位置（百分比座標，12 點鐘方向為 0） */
+function discPos(i, n, radius){
+  var a = (i / n) * Math.PI * 2 - Math.PI / 2;
+  return { x: 50 + Math.cos(a) * radius, y: 50 + Math.sin(a) * radius };
+}
+/* 累積 elapsedMs 之後，哪一顆點是熄的 */
+function gapAt(elapsedMs, stepMs, n){
+  if (!(stepMs > 0) || !(n > 0)) return 0;
+  var k = Math.floor(elapsedMs / stepMs) % n;
+  return k < 0 ? k + n : k;
+}
+/* 節奏滑桿的判詞：後像要活著，需要「壓得夠久」又「換得夠快」 */
+function rhythmVerdict(stepMs){
+  var cycle = Math.round(stepMs * 12);
+  if (stepMs < 55) return { key:'fast', cycle:cycle,
+    text:'太快了。同一顆點被壓住的時間不夠長，細胞還沒累就換人——綠色來不及生出來，你看到的比較像十二顆點一起在抖。' };
+  if (stepMs > 240) return { key:'slow', cycle:cycle,
+    text:'太慢了。後像半秒就退，缺口還沒跑到下一格，綠色已經死在原地——剩一個洞繞著圈，沒有顏色。' };
+  return { key:'good', cycle:cycle,
+    text:'就是這一帶。每顆點被壓住一秒多，剛好累；缺口走一格的時間又短過後像的壽命，綠色一顆接一顆亮，接成一顆在跑的。' };
+}
+/* 注視第 sec 秒該講哪一句 */
+function beatAt(sec){
+  var beats = [
+    { t:0,  s:'盯住十字。從現在起，別移動視線。' },
+    { t:5,  s:'缺口在跑。它是唯一在動的東西——其他十一顆點都沒挪過位置。' },
+    { t:13, s:'現在看那個缺口裡面。它有顏色了嗎？' },
+    { t:22, s:'紫點開始退場了。別追它們，繼續盯十字。' },
+    { t:31, s:'一顆綠點，在空的灰上面繞圈。畫面上沒有綠色。' }
+  ];
+  var k = 0;
+  for (var i = 0; i < beats.length; i++) if (sec >= beats[i].t) k = i;
+  return { index:k, text:beats[k].s, last:k === beats.length - 1 };
+}
+/* 把畫素分成紫（紅藍都高於綠）、綠（綠最高）、灰（其餘） */
+function tallyPixels(data){
+  var green = 0, lilac = 0, grey = 0;
+  for (var i = 0; i < data.length; i += 4){
+    var r = data[i], g = data[i+1], b = data[i+2];
+    if (g > r && g > b) green++;
+    else if (r > g && b > g) lilac++;
+    else grey++;
+  }
+  return { green:green, lilac:lilac, grey:grey, total:(data.length / 4) | 0 };
+}
+function comma(n){ return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+/* ===== 純函式結束 ===== */
+
+var N = 12;
+var GREY = '#7f7f7f', LILAC = '#e878e8';
+
+var field   = document.getElementById('field');
+var stage   = document.getElementById('stage');
+var capEl   = document.getElementById('cap');
+var clockEl = document.getElementById('clock');
+var runBtn  = document.getElementById('run');
+var skipBtn = document.getElementById('skip');
+var scanBtn = document.getElementById('scan');
+var quitBtn = document.getElementById('quit');
+var knobs   = document.getElementById('knobs');
+var stepEl  = document.getElementById('step');
+var blurEl  = document.getElementById('blur');
+var manualEl= document.getElementById('manual');
+var manualRow = document.getElementById('manualRow');
+var verdictEl = document.getElementById('verdict');
+var proof   = document.getElementById('proof');
+var tallyEl = document.getElementById('tally');
+var proofNote = document.getElementById('proofNote');
+
+/* 十二顆點 */
+var discs = [];
+for (var i = 0; i < N; i++){
+  var d = document.createElement('div');
+  var p = discPos(i, N, 38);
+  d.className = 'disc';
+  d.style.left = p.x + '%';
+  d.style.top  = p.y + '%';
+  field.appendChild(d);
+  discs.push(d);
+}
+
+var running = false, elapsed = 0, gaze = 0, gap = -1, beatIdx = -1, unlocked = false;
+var stepMs = PK.clamp(store.get('step', 125), 20, 600);
+var blurPx = PK.clamp(store.get('blur', 9), 0, 18);
+stepEl.value = stepMs;
+blurEl.value = blurPx;
+document.documentElement.style.setProperty('--lc-blur', blurPx + 'px');
+
+function paintGap(k){
+  if (k === gap) return;
+  if (gap >= 0) discs[gap].classList.remove('off');
+  if (k >= 0) discs[k].classList.add('off');
+  gap = k;
+}
+
+function frame(dt){
+  elapsed += dt * 1000;
+  gaze += dt;
+  paintGap(gapAt(elapsed, stepMs, N));
+  var b = beatAt(gaze);
+  if (b.index !== beatIdx){
+    beatIdx = b.index;
+    capEl.textContent = b.text;
+    PK.announce(b.text);
+    if (b.last) unlock();
+  }
+  var s = Math.floor(gaze);
+  var want = unlocked ? '注視 ' + s + ' 秒' : '注視 <b>' + s + '</b> 秒　／　紫點退場約需 30 秒';
+  if (clockEl.getAttribute('data-s') !== String(s)){
+    clockEl.setAttribute('data-s', String(s));
+    clockEl.innerHTML = want;
+  }
+}
+
+function unlock(){
+  if (unlocked) return;
+  unlocked = true;
+  knobs.classList.add('on');
+  store.set('been', true);
+  showVerdict();
+  PK.announce('節奏與模糊兩個滑桿已經解鎖。');
+}
+
+function setRunning(on){
+  if (on === running) return;
+  running = on;
+  runBtn.textContent = on ? '停' : '開始';
+  runBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  if (on){ PK.tick(frame); }
+  else {
+    PK.untick(frame);
+    gaze = 0; beatIdx = -1;
+    clockEl.removeAttribute('data-s');
+    clockEl.textContent = '停住了。紫點全部亮著——這就是畫面真正的樣子。';
+    paintGap(-1);
+  }
+}
+
+function showVerdict(){
+  var v = rhythmVerdict(stepMs);
+  verdictEl.innerHTML = '<b>每格停留 ' + stepMs + ' 毫秒</b>（繞一圈 ' +
+    (v.cycle / 1000).toFixed(2) + ' 秒）。' + v.text;
+}
+
+stepEl.addEventListener('input', function(){
+  stepMs = +stepEl.value;
+  store.set('step', stepMs);
+  showVerdict();
+});
+blurEl.addEventListener('input', function(){
+  blurPx = +blurEl.value;
+  store.set('blur', blurPx);
+  document.documentElement.style.setProperty('--lc-blur', blurPx + 'px');
+});
+manualEl.addEventListener('input', function(){ paintGap(+manualEl.value); });
+
+runBtn.addEventListener('click', function(){ setRunning(!running); });
+skipBtn.addEventListener('click', function(){
+  gaze = Math.max(gaze, 31);
+  capEl.textContent = beatAt(31).text;
+  unlock();
+});
+
+/* ── 畫素證據：用同一組顏色把這一圈重畫進 canvas，再一顆一顆數 ── */
+function runScan(){
+  var cv = document.createElement('canvas');
+  var S = 260;
+  cv.width = S; cv.height = S;
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = GREY;
+  ctx.fillRect(0, 0, S, S);
+  var R = S * 0.38, rad = S * 0.085;
+  for (var i = 0; i < N; i++){
+    if (i === gap) continue;
+    var p = discPos(i, N, 38);
+    var cx = p.x / 100 * S, cy = p.y / 100 * S;
+    var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+    g.addColorStop(0, LILAC);
+    g.addColorStop(0.46, LILAC);
+    g.addColorStop(1, 'rgba(232,120,232,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  void R;
+  var t = tallyPixels(ctx.getImageData(0, 0, S, S).data);
+  tallyEl.innerHTML =
+    row(LILAC, '紫（紅藍高過綠）', t.lilac, false) +
+    row(GREY,  '灰（三色打平）',   t.grey,  false) +
+    row('#2f8f5b', '綠（綠高過紅藍）', t.green, t.green === 0);
+  proofNote.textContent = '這張是用畫面上同一組顏色重畫的：一塊灰底，十一顆紫。' +
+    comma(t.total) + ' 個畫素裡，綠色畫素 ' + t.green + ' 個。' +
+    '紫和灰之間怎麼混，紅和藍都不會低於綠——綠色沒有地方生出來。';
+  proof.classList.add('on');
+  document.getElementById('closeProof').focus();
+  PK.announce('掃描完成，綠色畫素 ' + t.green + ' 個。');
+}
+function row(color, name, n, zero){
+  return '<li><span class="sw" style="background:' + color + '"></span>' + name +
+         '<span class="n' + (zero ? ' zero' : '') + '">' + comma(n) + '</span></li>';
+}
+scanBtn.addEventListener('click', runScan);
+document.getElementById('closeProof').addEventListener('click', function(){
+  proof.classList.remove('on');
+  scanBtn.focus();
+});
+
+/* ── 開關舞台 ── */
+function openStage(){
+  stage.classList.add('open');
+  document.body.classList.add('locked');
+  if (store.get('been', false)) unlock();
+  if (PK.reduced()) enterReduced();
+  else setRunning(true);
+  runBtn.focus();
+}
+function closeStage(){
+  setRunning(false);
+  proof.classList.remove('on');
+  stage.classList.remove('open');
+  document.body.classList.remove('locked');
+  document.getElementById('after').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth' });
+}
+document.getElementById('enter').addEventListener('click', openStage);
+document.getElementById('again').addEventListener('click', openStage);
+quitBtn.addEventListener('click', closeStage);
+document.addEventListener('keydown', function(e){
+  if (e.key !== 'Escape' || !stage.classList.contains('open')) return;
+  if (proof.classList.contains('on')) { proof.classList.remove('on'); scanBtn.focus(); }
+  else closeStage();
+});
+
+/* ── 減少動態：不自動閃，改用「位置」滑桿手動把缺口推過去 ── */
+function enterReduced(){
+  setRunning(false);
+  manualRow.style.display = '';
+  knobs.classList.add('on');
+  showVerdict();
+  paintGap(0);
+  manualEl.value = 0;
+  capEl.textContent = '你的系統要求減少動態，所以舞台不會自己閃。拖「位置」把缺口一格一格推過去——後像需要真的節奏才長得出來。';
+  clockEl.textContent = '手動模式';
+}
+PK.onMotionChange(function(reduced){
+  if (!stage.classList.contains('open')) return;
+  if (reduced) enterReduced();
+  else { manualRow.style.display = 'none'; setRunning(true); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你丟掉的電池，有一半還是滿的｜每日小專案</title>
+<meta name="description" content="彈得高就是沒電了？普林斯頓把這個網路把戲搬進實驗室，量出一條在半路就躺平的曲線。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0d0e; --pk-ink:#e6ebe8; --pk-dim:#7f8a86;
+  --pk-accent:#4dd6a0; --pk-line:rgba(180,255,225,.12);
+  --pk-maxw:660px;
+  --cu:#d9964e;      /* 銅／電池外殼 */
+  --zn:#9aa3a6;      /* 鋅 */
+  --zno:#f2f6f4;     /* 氧化鋅 */
+  --glass:rgba(160,230,205,.16);
+}
+body{ background:
+  radial-gradient(120% 70% at 50% -10%, #12181a 0%, var(--pk-bg) 62%) no-repeat;
+  background-attachment:fixed; }
+
+h2{ font-family:var(--pk-serif); font-weight:600; font-size:clamp(20px,4.6vw,27px);
+    line-height:1.55; margin:0 0 14px; letter-spacing:.01em; }
+p{ margin:0 0 18px; }
+section{ margin:0 0 76px; }
+.lead{ font-size:17.5px; }
+.dim{ color:var(--pk-dim); }
+.num{ font-variant-numeric:tabular-nums; font-feature-settings:"tnum";
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+
+/* ── 第一屏 ── */
+.pk-hero{ min-height:100svh; }
+.hero-in{ width:100%; }
+.hero-stage{ display:block; width:min(300px,72vw); margin:0 auto 26px; overflow:visible; }
+.pk-hero h1{ letter-spacing:.005em; }
+.kicker{ font-size:12.5px; letter-spacing:.22em; color:var(--pk-accent);
+         margin:0 0 16px; text-transform:uppercase; }
+.cue{ margin-top:34px; font-size:12.5px; letter-spacing:.14em; color:var(--pk-dim); }
+.cue span{ display:inline-block; animation:bob 2.4s ease-in-out infinite; }
+@keyframes bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+
+/* ── 實驗台 ── */
+.bench{ border:1px solid var(--pk-line); border-radius:14px;
+        background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));
+        padding:18px 16px 20px; }
+.bench-head{ display:flex; justify-content:space-between; align-items:baseline;
+             gap:12px; margin-bottom:12px; font-size:12px; letter-spacing:.16em;
+             color:var(--pk-dim); }
+.stage{ display:block; width:100%; overflow:visible; touch-action:none; }
+.rack{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+.chip{ appearance:none; font:inherit; cursor:grab; position:relative;
+       display:flex; flex-direction:column; align-items:center; gap:5px;
+       padding:9px 7px 7px; border-radius:11px; min-width:60px;
+       border:1px solid var(--pk-line); background:rgba(255,255,255,.03);
+       color:var(--pk-ink); transition:border-color .2s,background .2s,opacity .3s,transform .12s; }
+.chip:hover:not(:disabled){ border-color:var(--pk-accent); background:rgba(77,214,160,.08); }
+.chip:active:not(:disabled){ cursor:grabbing; transform:scale(.97); }
+.chip:disabled{ opacity:.3; cursor:default; }
+.chip b{ font-size:12px; font-weight:600; letter-spacing:.04em; }
+.chip i{ font-style:normal; font-size:10.5px; color:var(--pk-dim); letter-spacing:.06em; }
+.chip.ghost{ position:fixed; z-index:50; pointer-events:none; opacity:.92;
+             box-shadow:0 12px 30px rgba(0,0,0,.5); border-color:var(--pk-accent);
+             background:#11181a; }
+.zone-hot{ filter:drop-shadow(0 0 10px rgba(77,214,160,.55)); }
+.readout{ margin-top:13px; font-size:13.5px; min-height:2.6em; color:var(--pk-dim);
+          border-top:1px solid var(--pk-line); padding-top:11px; }
+.readout b{ color:var(--pk-accent); font-weight:600; }
+.hint{ font-size:12.5px; color:var(--pk-dim); margin:10px 0 0; }
+
+/* ── 轉折／機制 ── */
+.locked{ display:none; }
+.locked.open{ display:block; }
+.beat{ font-family:var(--pk-serif); font-size:clamp(21px,5.2vw,30px); line-height:1.5;
+       margin:0 0 20px; }
+.mech-wrap{ display:grid; grid-template-columns:200px 1fr; gap:22px; align-items:center;
+            border:1px solid var(--pk-line); border-radius:14px; padding:18px; }
+.anode{ display:block; width:100%; overflow:visible; }
+.mech-cap{ font-size:13.5px; color:var(--pk-dim); margin:0; }
+.mech-cap b{ color:var(--pk-ink); font-weight:600; }
+.dod-bar{ height:3px; background:var(--pk-line); border-radius:2px; margin:12px 0 9px;
+          position:relative; overflow:hidden; }
+.dod-fill{ position:absolute; inset:0 auto 0 0; width:0%; background:var(--pk-accent); }
+
+/* ── 抽屜工具 ── */
+.drawer{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:18px 0 0; }
+.bin{ border:1px dashed var(--pk-line); border-radius:12px; padding:13px 12px 15px;
+      min-height:132px; transition:border-color .2s,background .2s; }
+.bin.hot{ border-color:var(--pk-accent); background:rgba(77,214,160,.07); border-style:solid; }
+.bin h3{ margin:0 0 3px; font-size:14px; letter-spacing:.03em; }
+.bin p{ margin:0 0 9px; font-size:12px; line-height:1.7; color:var(--pk-dim); }
+.bin .cnt{ font-size:26px; letter-spacing:.02em; color:var(--pk-accent); }
+.pile{ display:flex; gap:7px; align-items:center; flex-wrap:wrap; margin-top:16px; }
+.tools{ display:flex; gap:9px; flex-wrap:wrap; margin-top:16px; }
+.pk-btn.mini{ font-size:13px; padding:8px 16px; letter-spacing:.06em; }
+.pk-btn.ghostbtn{ color:var(--pk-dim); border-color:var(--pk-line); }
+.pk-btn.ghostbtn:hover{ background:var(--pk-line); color:var(--pk-ink); }
+
+@media (max-width:560px){
+  .mech-wrap{ grid-template-columns:1fr; }
+  .anode{ width:66%; margin:0 auto; }
+  .drawer{ grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion: reduce){
+  .cue span{ animation:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap hero-in">
+    <svg class="hero-stage" viewBox="0 0 300 210" role="img"
+         aria-label="兩支電池從同樣高度落到桌面，左邊那支幾乎不彈，右邊那支彈得很高。">
+      <defs>
+        <g id="bat">
+          <rect x="-9" y="-21" width="18" height="42" rx="3" fill="var(--cu)"/>
+          <rect x="-9" y="-21" width="18" height="42" rx="3" fill="none" stroke="rgba(0,0,0,.35)"/>
+          <rect x="-9" y="3" width="18" height="18" rx="3" fill="#24282a"/>
+          <rect x="-3.5" y="-25" width="7" height="4" rx="1.4" fill="#cfd6d4"/>
+          <rect x="-9" y="-4" width="18" height="2.4" fill="rgba(255,255,255,.28)"/>
+        </g>
+      </defs>
+      <line x1="18" y1="182" x2="282" y2="182" stroke="var(--pk-line)" stroke-width="1.5"/>
+      <g id="heroTrails" stroke-linecap="round" fill="none" opacity=".55"></g>
+      <use id="heroA" href="#bat" transform="translate(96,161)"/>
+      <use id="heroB" href="#bat" transform="translate(204,161)"/>
+      <text x="96" y="203" text-anchor="middle" font-size="10.5" letter-spacing="1"
+            fill="var(--pk-dim)">新的</text>
+      <text x="204" y="203" text-anchor="middle" font-size="10.5" letter-spacing="1"
+            fill="var(--pk-dim)">用過的</text>
+    </svg>
+
+    <p class="kicker rv">Princeton, 2015</p>
+    <h1 class="rv">你丟掉的電池，有一半還是滿的</h1>
+    <p class="rv lead">把 AA 從幾公分高丟到桌面。新的「咚」一聲就趴著不動，用過的會蹦好幾下——網路影片說，蹦得越高代表電越少，拿這招就能把抽屜裡那堆分好。<br><br>一位研究電池的教授收到朋友傳來的影片，順手把桌上的電池全丟了一次。是真的。於是他把這個把戲搬進實驗室，架了一根壓克力管、一支麥克風，想知道電池到底在彈什麼。</p>
+    <p class="cue rv">往下 <span>↓</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <h2>他們沒有用尺，用的是聲音</h2>
+    <p>電池從管子裡落下，撞桌面、彈起、再撞。麥克風收下每一次「叩」。兩聲之間隔多久，就能反推它彈了多高——空中飛行的時間只跟高度有關，這是伽利略那一輩就寫死的東西。</p>
+    <p>量出來的數字叫<strong>恢復係數</strong>：彈回的高度開根號。0 是黏土，1 是永動的夢。下面這根管子是他們的複製品，五支電池已經先放到不同的電量。<strong>把一支拖進管口，放手。</strong></p>
+  </section>
+
+  <section>
+    <div class="bench rv">
+      <div class="bench-head"><span>落球管 · 3 CM</span><span id="benchCount">0 / 5</span></div>
+
+      <svg class="stage" id="stage" viewBox="0 0 560 300" role="img"
+           aria-label="落球管實驗台：電池落下後的彈跳軌跡與峰值高度。">
+        <defs>
+          <linearGradient id="tubeG" gradientUnits="userSpaceOnUse" x1="252" y1="0" x2="308" y2="0">
+            <stop offset="0" stop-color="rgba(255,255,255,.14)"/>
+            <stop offset=".45" stop-color="rgba(255,255,255,.03)"/>
+            <stop offset="1" stop-color="rgba(255,255,255,.12)"/>
+          </linearGradient>
+        </defs>
+
+        <!-- 刻度 -->
+        <g stroke="var(--pk-line)" stroke-width="1" font-size="9.5" fill="var(--pk-dim)"
+           letter-spacing=".08em">
+          <line x1="200" y1="228" x2="330" y2="228"/><text x="192" y="231" text-anchor="end">1</text>
+          <line x1="200" y1="176" x2="330" y2="176"/><text x="192" y="179" text-anchor="end">2</text>
+          <line x1="200" y1="124" x2="330" y2="124"/><text x="192" y="127" text-anchor="end">3</text>
+          <line x1="200" y1="72"  x2="330" y2="72"/><text x="192" y="75"  text-anchor="end">4 cm</text>
+        </g>
+
+        <!-- 壓克力管 -->
+        <g id="tube">
+          <rect x="252" y="28" width="56" height="252" fill="url(#tubeG)"/>
+          <line x1="252" y1="28" x2="252" y2="280" stroke="rgba(180,230,215,.45)" stroke-width="1.2"/>
+          <line x1="308" y1="28" x2="308" y2="280" stroke="rgba(180,230,215,.45)" stroke-width="1.2"/>
+          <ellipse cx="280" cy="28" rx="28" ry="5.5" fill="none"
+                   stroke="rgba(180,230,215,.5)" stroke-width="1.2"/>
+        </g>
+
+        <!-- 桌面 -->
+        <line x1="120" y1="280" x2="540" y2="280" stroke="var(--pk-ink)" stroke-width="2" opacity=".55"/>
+        <!-- 麥克風 -->
+        <g opacity=".6">
+          <line x1="360" y1="280" x2="360" y2="262" stroke="var(--pk-dim)" stroke-width="1.5"/>
+          <circle cx="360" cy="258" r="5" fill="none" stroke="var(--pk-dim)" stroke-width="1.5"/>
+          <text x="372" y="262" font-size="9.5" fill="var(--pk-dim)" letter-spacing=".1em">MIC</text>
+        </g>
+
+        <g id="peaks" stroke="var(--pk-accent)" stroke-width="1" stroke-dasharray="3 4" opacity=".55"></g>
+        <use id="faller" href="#bat" transform="translate(280,-80)" opacity="0"/>
+
+        <!-- 曲線圖 -->
+        <g id="chart" transform="translate(0,0)">
+          <line x1="404" y1="60" x2="404" y2="240" stroke="var(--pk-line)"/>
+          <line x1="404" y1="240" x2="540" y2="240" stroke="var(--pk-line)"/>
+          <text x="404" y="50" font-size="9.5" fill="var(--pk-dim)" letter-spacing=".08em">彈跳高度</text>
+          <text x="404" y="256" font-size="9.5" fill="var(--pk-dim)">滿</text>
+          <text x="540" y="256" font-size="9.5" fill="var(--pk-dim)" text-anchor="end">空</text>
+          <path id="curve" fill="none" stroke="var(--pk-accent)" stroke-width="1.6"
+                stroke-linejoin="round" opacity=".85"/>
+          <g id="dots"></g>
+        </g>
+      </svg>
+
+      <div class="rack" id="rack"></div>
+      <p class="readout" id="readout" role="status" aria-live="polite">拖一支電池到管口，或直接按它。</p>
+      <p class="hint">提示：五支都測完，圖才看得出形狀。</p>
+    </div>
+  </section>
+
+  <section class="locked" id="turn">
+    <p class="beat">前三支，曲線像被人往上拉。<br>後兩支……疊在同一個點上。</p>
+    <p>電量剩一半的、剩四分之一的、完全放光的——三支彈得一樣高。恢復係數卡在 <b class="num" style="color:var(--pk-accent)">0.66</b> 就不動了，誤差不到 0.02。曲線的後半段是一條水平線。</p>
+    <p>也就是說，那支蹦得老高、被你判死刑丟掉的電池，可能還剩一半的電，也可能真的空了。它彈起來的樣子完全一樣。</p>
+  </section>
+
+  <section class="locked" id="mech">
+    <h2>電池裡面在長一張彈簧網</h2>
+    <p>拆開一支鹼性電池，中間是一根黃銅釘，外面裹著一圈鋅粉——像甜甜圈包著那個洞。放電就是鋅變成氧化鋅的過程，從外圈開始，一路往核心啃進去。</p>
+
+    <div class="mech-wrap rv">
+      <svg class="anode" id="anode" viewBox="0 0 200 200" role="img"
+           aria-label="電池陽極剖面：鋅顆粒由外向內氧化成氧化鋅，顆粒之間長出橋接。">
+        <circle cx="100" cy="100" r="82" fill="none" stroke="var(--pk-line)"/>
+        <g id="bridges" stroke="var(--zno)" stroke-width="2.2" stroke-linecap="round" opacity=".9"></g>
+        <g id="grains"></g>
+        <circle cx="100" cy="100" r="24" fill="#8a6a34"/>
+        <circle cx="100" cy="100" r="24" fill="none" stroke="rgba(0,0,0,.4)"/>
+        <circle id="percRing" cx="100" cy="100" r="60" fill="none"
+                stroke="var(--pk-accent)" stroke-width="2" opacity="0"/>
+      </svg>
+      <div>
+        <p class="mech-cap" id="mechCap">鋅顆粒像一袋沙，彼此能滑動——撞擊的能量被磨掉了。</p>
+        <div class="dod-bar"><div class="dod-fill" id="dodFill"></div></div>
+        <p class="mech-cap dim"><span class="num" id="dodNum">0</span>% 已放電</p>
+      </div>
+    </div>
+
+    <p style="margin-top:22px">氧化鋅在顆粒之間搭起細橋。橋越多，那袋沙越像一張連在一起的彈簧網，撞擊的能量不再被互相摩擦吃掉，而是被存起來、再吐回去——電池就彈了。</p>
+    <p>關鍵在於：<strong>橋只需要接通一次。</strong>當氧化鋅的路徑第一次貫穿整圈陽極，網就成形了。那一刻大約落在電量剩一半的地方。之後你繼續放電，氧化鋅繼續長，但網已經接通，彈性再也升不上去。</p>
+    <p class="dim">順帶一提，研究者說這結果不算意外：氧化鋅本來就出現在許多高爾夫球的專利裡，用途正是——增加彈性。</p>
+  </section>
+
+  <section class="locked" id="ending">
+    <p class="beat">彈跳測試不是電量計。<br>它是一個新舊偵測器。</p>
+    <p>它只會回答一個是非題：這支是不是全新的。「不彈」很可靠，代表幾乎沒用過。「彈」則什麼都沒說死——電量在一半以下的某個位置，可能 49%，也可能 0。</p>
+    <p>而「一半以下」對很多東西來說綽綽有餘。遙控器、掛鐘、無線滑鼠這種細水長流的裝置，吃的電流小到能把剩下那點榨到見底，再撐上好幾個月。被丟掉的不是垃圾，是放錯地方的電。</p>
+
+    <h2 style="margin-top:40px">那就別丟，分兩格</h2>
+    <p>把抽屜倒出來，一支一支丟到桌上。不彈的留給相機和玩具，會彈的拖進右邊那格。</p>
+
+    <div class="drawer">
+      <div class="bin" id="binA" data-bin="a">
+        <h3>幾乎不彈</h3>
+        <p>幾乎全新。留給吃電兇的：閃燈、玩具、無線鍵鼠。</p>
+        <div class="cnt num" id="cntA">0</div>
+      </div>
+      <div class="bin" id="binB" data-bin="b">
+        <h3>會彈</h3>
+        <p>一半以下，深淺不明。丟給遙控器、掛鐘，讓它自己用到死。</p>
+        <div class="cnt num" id="cntB">0</div>
+      </div>
+    </div>
+    <div class="pile" id="pile" aria-label="待分類的電池"></div>
+    <div class="tools">
+      <button class="pk-btn mini" id="addBat" type="button">再倒一支出來</button>
+      <button class="pk-btn mini ghostbtn" id="resetBat" type="button">清空抽屜</button>
+    </div>
+    <p class="hint" id="drawerMsg">把下面的電池拖進上面兩格；用鍵盤的話，按電池後再按一次左右鍵選格子。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Bhadra 等人，《Journal of Materials Chemistry A》2015；普林斯頓大學工學院。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'bnc15.';
+const store = PK.store(LS);
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+/* ══════════════════════════════════════════════════════════════
+   核心（純函式，可用 node 斷言）
+   ══════════════════════════════════════════════════════════════ */
+
+/* 恢復係數 vs 電量（SOC 0–100）。
+   依 Bhadra et al. 2015：隨放電上升，於 SOC 50% 停在 0.66±0.02。
+   滿電端取該研究曲線起點約 0.30。 */
+function corForSoc(soc){
+  var s = Math.max(0, Math.min(100, soc));
+  if (s <= 50) return 0.66;
+  var k = (100 - s) / 50;                       /* 100%→0，50%→1 */
+  return 0.30 + (0.66 - 0.30) * Math.pow(k, 0.75);
+}
+/* 彈跳高度佔落下高度的比例 = e² */
+function bounceFraction(e){ return e * e; }
+/* 連續彈跳的峰值高度序列（公分） */
+function peakHeights(h0, e, n){
+  var out = [], h = h0;
+  for (var i = 0; i < n; i++){ h *= e * e; if (h < h0 * 0.004) break; out.push(h); }
+  return out;
+}
+
+if (typeof module !== 'undefined' && module.exports){
+  module.exports = { corForSoc: corForSoc, bounceFraction: bounceFraction, peakHeights: peakHeights };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   以下僅在瀏覽器執行
+   ══════════════════════════════════════════════════════════════ */
+if (typeof document !== 'undefined') (function(){
+
+PK.reveal();
+
+var $ = function(id){ return document.getElementById(id); };
+var GRAV = 980;                       /* cm/s² → 用 px 當 cm，視覺尺度 */
+var FLOOR = 280, TOP = 28;            /* stage 座標 */
+var PX_PER_CM = 52;                   /* 刻度：1cm = 52px，對齊 stage 上的刻度線 */
+var DROP_CM = 3;                      /* 落下高度，與管身標示一致 */
+var DROP_PX = DROP_CM * PX_PER_CM;    /* = 156px，電池停在 3cm 刻度上 */
+
+/* ── 第一屏：兩支電池無限對照 ── */
+(function heroLoop(){
+  var a = $('heroA'), b = $('heroB'), trails = $('heroTrails');
+  if (!a || !b) return;
+  var GY = 182, H0 = 122, eA = corForSoc(100), eB = 0.66;
+  function drawTrail(x, e, color){
+    var hs = peakHeights(H0, e, 4), d = 'M ' + (x + 16) + ' ' + GY, cur = x + 16;
+    for (var i = 0; i < hs.length; i++){
+      var w = 13 - i * 2.4;
+      d += ' q ' + (w / 2) + ' ' + (-hs[i] * 2) + ' ' + w + ' 0';
+      cur += w;
+    }
+    var p = document.createElementNS(SVGNS, 'path');
+    p.setAttribute('d', d); p.setAttribute('stroke', color); p.setAttribute('stroke-width', '1.1');
+    trails.appendChild(p);
+  }
+  drawTrail(96, eA, 'var(--pk-dim)');
+  drawTrail(204, eB, 'var(--pk-accent)');
+
+  if (PK.reduced()){
+    a.setAttribute('transform', 'translate(96,' + (GY - 21 - H0 * bounceFraction(eA)) + ')');
+    b.setAttribute('transform', 'translate(204,' + (GY - 21 - H0 * bounceFraction(eB)) + ')');
+    return;
+  }
+  var sA = { y: H0, v: 0, e: eA }, sB = { y: H0, v: 0, e: eB }, rest = 0;
+  function step(st, dt){
+    st.v -= GRAV * dt;
+    st.y += st.v * dt;
+    if (st.y <= 0){ st.y = 0; st.v = -st.v * st.e; if (Math.abs(st.v) < 24) st.v = 0; }
+  }
+  PK.tick(function(dt){
+    step(sA, dt); step(sB, dt);
+    a.setAttribute('transform', 'translate(96,' + (GY - 21 - sA.y) + ')');
+    b.setAttribute('transform', 'translate(204,' + (GY - 21 - sB.y) + ')');
+    if (sA.v === 0 && sB.v === 0 && sA.y === 0 && sB.y === 0){
+      rest += dt;
+      if (rest > 1.1){ rest = 0; sA.y = sB.y = H0; sA.v = sB.v = 0; }
+    }
+  });
+})();
+
+/* ── 實驗台 ── */
+var SPECS = [
+  { soc:100, label:'滿電',   note:'全新' },
+  { soc:75,  label:'75%',   note:'用一點' },
+  { soc:50,  label:'50%',   note:'剩一半' },
+  { soc:25,  label:'25%',   note:'快沒了' },
+  { soc:0,   label:'0%',    note:'放光' }
+];
+var tested = {}, busy = false;
+var rack = $('rack'), readout = $('readout'), faller = $('faller');
+
+SPECS.forEach(function(sp){
+  var b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.dataset.soc = sp.soc;
+  b.setAttribute('aria-label', '測試電量 ' + sp.label + ' 的電池');
+  b.innerHTML = '<b>' + sp.label + '</b><i>' + sp.note + '</i>';
+  b.addEventListener('click', function(){ if (!b.disabled) runDrop(sp.soc); });
+  makeDraggable(b, function(){ return [{ el:$('tube'), on:function(){ runDrop(sp.soc); } }]; });
+  rack.appendChild(b);
+});
+
+function runDrop(soc){
+  if (tested[soc] !== undefined) return;
+  if (busy){ readout.textContent = '等管子裡那支彈完。'; return; }
+  busy = true;
+  var e = corForSoc(soc), h0 = DROP_PX;
+  $('peaks').innerHTML = '';
+  faller.setAttribute('opacity', '1');
+
+  function finish(){
+    tested[soc] = e;
+    busy = false;
+    var chip = rack.querySelector('[data-soc="' + soc + '"]');
+    if (chip) chip.disabled = true;
+    var cm = (DROP_CM * bounceFraction(e)).toFixed(1);
+    readout.innerHTML = '電量 <b>' + (soc === 100 ? '滿' : soc + '%') + '</b>　' +
+      '第一次彈到 <b class="num">' + cm + ' cm</b>　' +
+      '恢復係數 <b class="num">' + e.toFixed(2) + '</b>';
+    $('benchCount').textContent = Object.keys(tested).length + ' / 5';
+    drawChart();
+    if (Object.keys(tested).length === 5) unlock();
+  }
+
+  var hs = peakHeights(h0, e, 6);
+  hs.forEach(function(h){
+    var ln = document.createElementNS(SVGNS, 'line');
+    ln.setAttribute('x1', 252); ln.setAttribute('x2', 340);
+    ln.setAttribute('y1', FLOOR - h); ln.setAttribute('y2', FLOOR - h);
+    $('peaks').appendChild(ln);
+  });
+
+  if (PK.reduced()){
+    faller.setAttribute('transform', 'translate(280,' + (FLOOR - 21 - (hs[0] || 0)) + ')');
+    finish(); return;
+  }
+  var y = h0, v = 0, hits = 0;
+  function tick(dt){
+    v -= GRAV * dt; y += v * dt;
+    if (y <= 0){
+      y = 0; v = -v * e; hits++;
+      if (hits >= 6 || Math.abs(v) < 26){
+        faller.setAttribute('transform', 'translate(280,' + (FLOOR - 21) + ')');
+        PK.untick(tick); finish(); return;
+      }
+    }
+    faller.setAttribute('transform', 'translate(280,' + (FLOOR - 21 - y) + ')');
+  }
+  PK.tick(tick);
+}
+
+function drawChart(){
+  var socs = Object.keys(tested).map(Number).sort(function(a, b){ return b - a; });
+  var X = function(s){ return 404 + (100 - s) / 100 * 136; };
+  var Y = function(e){ return 240 - bounceFraction(e) / 0.5 * 170; };
+  var dots = $('dots'); dots.innerHTML = '';
+  var d = '';
+  socs.forEach(function(s, i){
+    var x = X(s), y = Y(tested[s]);
+    d += (i ? ' L ' : 'M ') + x + ' ' + y;
+    var c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 3.4);
+    c.setAttribute('fill', 'var(--pk-accent)');
+    dots.appendChild(c);
+  });
+  $('curve').setAttribute('d', socs.length > 1 ? d : '');
+}
+
+function unlock(){
+  ['turn', 'mech', 'ending'].forEach(function(id){ $(id).classList.add('open'); });
+  PK.reveal();
+  PK.announce('五支都測完了，曲線在一半的地方躺平。');
+  setTimeout(function(){ PK.scrollTo($('turn')); }, 420);
+  startAnode();
+}
+
+/* ── 陽極剖面：氧化由外向內，橋接在 50% 貫穿 ── */
+var anodeStarted = false;
+function startAnode(){
+  if (anodeStarted) return; anodeStarted = true;
+  var grainsG = $('grains'), bridgesG = $('bridges');
+  var grains = [], N = 74;
+  for (var i = 0; i < N; i++){
+    var ang = PK.hash('a' + i) * Math.PI * 2;
+    var rr = 30 + PK.hash('r' + i) * 48;                 /* 30–78 */
+    var g = { x: 100 + Math.cos(ang) * rr, y: 100 + Math.sin(ang) * rr, r: rr,
+              t: (78 - rr) / 48 * 0.92 + PK.hash('t' + i) * 0.1 };
+    var c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('cx', g.x.toFixed(1)); c.setAttribute('cy', g.y.toFixed(1));
+    c.setAttribute('r', (3.4 + PK.hash('s' + i) * 1.6).toFixed(1));
+    c.setAttribute('fill', 'var(--zn)');
+    grainsG.appendChild(c); g.el = c; grains.push(g);
+  }
+  var bridges = [];
+  for (var a = 0; a < N; a++) for (var b = a + 1; b < N; b++){
+    var dx = grains[a].x - grains[b].x, dy = grains[a].y - grains[b].y;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 2 && dist < 19){
+      var ln = document.createElementNS(SVGNS, 'line');
+      ln.setAttribute('x1', grains[a].x.toFixed(1)); ln.setAttribute('y1', grains[a].y.toFixed(1));
+      ln.setAttribute('x2', grains[b].x.toFixed(1)); ln.setAttribute('y2', grains[b].y.toFixed(1));
+      ln.setAttribute('opacity', '0');
+      bridgesG.appendChild(ln);
+      bridges.push({ el: ln, t: Math.max(grains[a].t, grains[b].t) });
+    }
+  }
+
+  var CAPS = [
+    [0,  '鋅顆粒像一袋沙，彼此能滑動——撞擊的能量被磨掉了。'],
+    [22, '外圈先氧化。白色的氧化鋅開始在顆粒之間搭橋。'],
+    [50, '橋接貫穿整圈。一袋沙變成一張彈簧網——這裡就是 0.66。'],
+    [78, '氧化繼續往核心走，但網早就接通了，彈性不再改變。']
+  ];
+  function paint(dod){
+    for (var i = 0; i < grains.length; i++)
+      grains[i].el.setAttribute('fill', dod / 100 >= grains[i].t ? 'var(--zno)' : 'var(--zn)');
+    for (var j = 0; j < bridges.length; j++)
+      bridges[j].el.setAttribute('opacity', dod / 100 >= bridges[j].t ? '.85' : '0');
+    $('dodFill').style.width = dod + '%';
+    $('dodNum').textContent = Math.round(dod);
+    $('percRing').setAttribute('opacity', dod >= 48 && dod <= 58 ? '.75' : '0');
+    var cap = CAPS[0][1];
+    for (var k = 0; k < CAPS.length; k++) if (dod >= CAPS[k][0]) cap = CAPS[k][1];
+    if ($('mechCap').textContent !== cap) $('mechCap').textContent = cap;
+  }
+  if (PK.reduced()){ paint(100); $('mechCap').textContent = CAPS[2][1]; return; }
+  var dod = 0;
+  function tick(dt){
+    dod += dt * 17;
+    if (dod >= 100){ dod = 100; paint(100); PK.untick(tick); return; }
+    paint(dod);
+  }
+  paint(0);
+  PK.tick(tick);
+}
+
+/* ── 通用拖曳：拖到某個區塊就觸發（滑鼠／觸控）；點擊與鍵盤另有路徑 ── */
+function makeDraggable(el, zonesFn){
+  var ghost = null, zones = null, moved = false, sx = 0, sy = 0;
+  el.addEventListener('pointerdown', function(ev){
+    if (el.disabled || ev.button === 1 || ev.button === 2) return;
+    moved = false; sx = ev.clientX; sy = ev.clientY;
+    if (el.setPointerCapture) try { el.setPointerCapture(ev.pointerId); } catch (e2) {}
+  });
+  el.addEventListener('pointermove', function(ev){
+    if (!el.hasPointerCapture || !el.hasPointerCapture(ev.pointerId)) return;
+    if (!moved){
+      if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 8) return;
+      moved = true;
+      zones = zonesFn();
+      ghost = el.cloneNode(true);
+      ghost.classList.add('ghost'); ghost.disabled = true;
+      ghost.style.width = el.offsetWidth + 'px';
+      document.body.appendChild(ghost);
+      el.style.opacity = '.25';
+    }
+    ev.preventDefault();
+    ghost.style.left = (ev.clientX - el.offsetWidth / 2) + 'px';
+    ghost.style.top = (ev.clientY - 24) + 'px';
+    var hit = zoneAt(zones, ev.clientX, ev.clientY);
+    zones.forEach(function(z){
+      z.el.classList.toggle(z.el.classList.contains('bin') ? 'hot' : 'zone-hot', z === hit);
+    });
+  });
+  function end(ev){
+    if (!moved){ zones = null; return; }
+    moved = false;
+    if (ghost){ ghost.remove(); ghost = null; }
+    el.style.opacity = '';
+    var hit = zoneAt(zones, ev.clientX, ev.clientY);
+    zones.forEach(function(z){ z.el.classList.remove('hot', 'zone-hot'); });
+    zones = null;
+    if (hit) hit.on();
+  }
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', function(){
+    moved = false;
+    if (ghost){ ghost.remove(); ghost = null; }
+    el.style.opacity = '';
+    if (zones) zones.forEach(function(z){ z.el.classList.remove('hot', 'zone-hot'); });
+    zones = null;
+  });
+}
+function zoneAt(zones, x, y){
+  if (!zones) return null;
+  for (var i = 0; i < zones.length; i++){
+    var r = zones[i].el.getBoundingClientRect();
+    var pad = 26;
+    if (x >= r.left - pad && x <= r.right + pad && y >= r.top - pad && y <= r.bottom + pad)
+      return zones[i];
+  }
+  return null;
+}
+
+/* ── 抽屜：把電池分兩格 ── */
+(function drawer(){
+  var counts = { a: store.get('a', 0), b: store.get('b', 0) };
+  var loose = store.get('loose', 4);
+  var pile = $('pile'), msg = $('drawerMsg');
+
+  function save(){ store.set('a', counts.a); store.set('b', counts.b); store.set('loose', loose); }
+  function render(){
+    $('cntA').textContent = counts.a;
+    $('cntB').textContent = counts.b;
+    pile.innerHTML = '';
+    for (var i = 0; i < loose; i++) pile.appendChild(makeLoose(i));
+    if (loose === 0 && counts.a + counts.b > 0){
+      msg.textContent = '分完了。會彈的那 ' + counts.b + ' 支別丟——它們的電還沒用完。';
+    }
+  }
+  function makeLoose(i){
+    var b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button';
+    b.setAttribute('aria-label', '第 ' + (i + 1) + ' 支待分類電池');
+    b.innerHTML = '<b>AA</b><i>？</i>';
+    function put(bin){
+      if (loose <= 0) return;
+      counts[bin]++; loose--; save(); render();
+      PK.announce('放進' + (bin === 'a' ? '「幾乎不彈」' : '「會彈」') + '，剩 ' + loose + ' 支。');
+    }
+    b.addEventListener('keydown', function(ev){
+      if (ev.key === 'ArrowLeft'){ ev.preventDefault(); put('a'); }
+      if (ev.key === 'ArrowRight'){ ev.preventDefault(); put('b'); }
+    });
+    b.addEventListener('click', function(){
+      msg.textContent = '用左右方向鍵決定丟哪一格，或直接拖上去。';
+    });
+    makeDraggable(b, function(){
+      return [{ el: $('binA'), on: function(){ put('a'); } },
+              { el: $('binB'), on: function(){ put('b'); } }];
+    });
+    return b;
+  }
+  $('addBat').addEventListener('click', function(){ loose++; save(); render(); });
+  $('resetBat').addEventListener('click', function(){
+    counts.a = counts.b = 0; loose = 4; save(); render();
+    msg.textContent = '抽屜倒乾淨了。再來一次。';
+  });
+  render();
+})();
+
+})();
+</script>
+</body>
+</html>

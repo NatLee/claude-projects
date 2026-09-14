@@ -372,10 +372,12 @@
   var mql = window.matchMedia('(prefers-reduced-motion: reduce)');
   var reduceMotion = mql.matches;
   function applyMotion() { document.documentElement.classList.toggle('reduce-motion', reduceMotion); }
-  if (mql.addEventListener) mql.addEventListener('change', function (e) {
+  function onMotionChange(e) {
     reduceMotion = e.matches; applyMotion();
     if (reduceMotion) stopHero(); else startHero();
-  });
+  }
+  if (mql.addEventListener) mql.addEventListener('change', onMotionChange);
+  else if (mql.addListener) mql.addListener(onMotionChange); /* 舊 Safari */
   applyMotion();
 
   function animateNumber(node, from, to, dur, fmt) {

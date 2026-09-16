@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>這三個方塊在數黑白｜每日小專案</title>
+<meta name="description" content="1994 年名古屋，有人翻遍印刷品，只為找一組最少見的黑白比例。寫幾個字，看它長成一張只屬於你的圖案。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0b0d; --pk-ink:#eae7e0; --pk-dim:#8b867d;
+  --pk-accent:#f2594b;          /* 掃描線的紅 */
+  --paper:#e9e5db;              /* 印刷品的紙 */
+  --jade:#6fd3b4;               /* 棋盤的綠 */
+  --pk-maxw:660px;
+}
+body{ background:
+  radial-gradient(120% 70% at 50% -10%, #14161a 0%, transparent 60%),
+  var(--pk-bg); }
+
+h2{ font-family:var(--pk-serif); font-weight:600;
+    font-size:clamp(20px,4.6vw,27px); line-height:1.6; margin:0 0 14px; }
+p{ margin:0 0 18px; }
+main section{ margin:0 0 15vh; }
+.lead{ font-size:clamp(17px,3.6vw,19px); }
+.dim{ color:var(--pk-dim); }
+.hl{ color:var(--pk-accent); }
+.jade{ color:var(--jade); }
+
+/* 第一屏 */
+.pk-hero h1 em{ font-style:normal; color:var(--pk-accent); }
+.kicker{ font-size:12.5px; letter-spacing:.22em; color:var(--pk-dim);
+         margin:0 0 22px; text-transform:uppercase; }
+.scrollcue{ margin-top:34px; font-size:12.5px; letter-spacing:.14em; color:var(--pk-dim); }
+.scrollcue span{ display:inline-block; animation:bob 2.4s ease-in-out infinite; }
+@keyframes bob{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(5px)} }
+
+/* 條碼小圖 */
+.strip{ margin:26px 0 8px; }
+.cap{ font-size:12.5px; color:var(--pk-dim); line-height:1.8; margin:8px 0 0; }
+
+/* 比例長條（統計示意） */
+.bars{ margin:24px 0 6px; display:grid; gap:9px; }
+.bar{ display:grid; grid-template-columns:76px 1fr auto; align-items:center;
+      gap:12px; font-size:13px; }
+.bar b{ font-weight:500; font-variant-numeric:tabular-nums; letter-spacing:.04em; color:var(--pk-dim); }
+.bar i{ display:block; height:9px; border-radius:99px; background:var(--paper);
+        transform:scaleX(var(--w,0)); transform-origin:left center;
+        transition:transform 1.1s cubic-bezier(.2,.8,.3,1); }
+.rv.in .bar i{ transform:scaleX(var(--w,0)); }
+.bar.rare i{ background:var(--pk-accent); }
+.bar.rare b{ color:var(--pk-accent); }
+.bar em{ font-style:normal; font-size:12px; color:var(--pk-dim); min-width:34px; text-align:right; }
+
+/* ── 實驗台 ── */
+.lab{ margin:0 0 15vh; padding:28px 0 0; border-top:1px solid var(--pk-line); }
+.field{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 20px; }
+.field label{ font-size:13px; letter-spacing:.08em; color:var(--pk-dim); width:100%; }
+.field input{
+  flex:1 1 220px; min-width:0; font:inherit; font-size:15.5px; color:var(--pk-ink);
+  background:#15171b; border:1px solid var(--pk-line); border-radius:10px;
+  padding:12px 14px; transition:border-color .25s;
+}
+.field input:focus{ border-color:var(--pk-accent); outline:none; }
+.field .count{ font-size:12px; color:var(--pk-dim); font-variant-numeric:tabular-nums; }
+
+.stage{ position:relative; }
+canvas#cv{ display:block; width:100%; height:auto; aspect-ratio:1/1;
+           background:#101216; border-radius:14px; }
+.controls{ display:flex; gap:10px; flex-wrap:wrap; margin:18px 0 0; }
+.pk-btn{ font-size:14px; padding:10px 20px; }
+
+/* 讀數面板 */
+.readout{ margin:22px 0 0; padding:16px 18px; border:1px solid var(--pk-line);
+          border-radius:12px; background:#0e1013; }
+.readout .head{ display:flex; justify-content:space-between; align-items:baseline;
+                gap:12px; font-size:12.5px; letter-spacing:.1em; color:var(--pk-dim); }
+.runs{ display:flex; align-items:flex-end; gap:4px; height:46px; margin:14px 0 10px; }
+.runs .seg{ border-radius:3px 3px 0 0; min-width:3px; height:100%;
+            transition:flex-grow .18s linear, opacity .25s; opacity:.42; }
+.runs .seg.d{ background:var(--paper); }
+.runs .seg.w{ background:#2a2e35; }
+.runs .seg.on{ opacity:1; }
+.runs .seg.on.d{ background:var(--pk-accent); }
+.runs .seg.on.w{ background:#4a3a38; }
+.verdict{ font-size:14px; min-height:1.9em; line-height:1.9; color:var(--pk-dim); }
+.verdict.hit{ color:var(--pk-accent); }
+.verdict b{ font-weight:600; letter-spacing:.06em; font-variant-numeric:tabular-nums; }
+
+.meta{ margin:12px 0 0; font-size:12px; color:var(--pk-dim); line-height:1.9;
+       font-variant-numeric:tabular-nums; }
+.warn{ color:var(--pk-accent); font-size:13px; min-height:1.6em; }
+
+/* 結尾 */
+.finale{ margin:0 0 8vh; }
+.finale .beat{ font-family:var(--pk-serif); font-size:clamp(19px,4.4vw,25px);
+               line-height:1.75; margin:0 0 10px; }
+.finale .beat.q{ color:var(--pk-accent); }
+.pins{ display:flex; gap:9px; margin:20px 0 0; }
+.pins i{ width:13px; height:13px; border:3px solid var(--paper); border-radius:2px;
+         display:block; animation:blip 2.8s ease-in-out infinite; }
+.pins i:nth-child(2){ animation-delay:.28s }
+.pins i:nth-child(3){ animation-delay:.56s }
+@keyframes blip{ 0%,72%,100%{opacity:.25} 12%,40%{opacity:1} }
+
+@media (max-width:560px){
+  .bar{ grid-template-columns:66px 1fr auto; gap:9px; font-size:12px; }
+  .runs{ height:38px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .scrollcue span{ animation:none }
+  .pins i{ animation:none; opacity:1 }
+  .bar i{ transition:none }
+  .runs .seg{ transition:none }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">1994 · 名古屋</p>
+    <h1 class="rv">一群工程師把印刷品攤開，逐條量寬度。<br>他們要找一種<em>從來沒被印出來過</em>的黑白節奏。</h1>
+    <p class="lead rv">找到之後，它被印了幾千億次——多半就貼在你手邊那張紙上。</p>
+    <p class="scrollcue rv"><span>↓ 往下</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <h2>先講他們想解決的麻煩。</h2>
+    <p>豐田體系的零件箱上，那時候貼滿了一維條碼。倉庫的人得把掃描槍對準、擺正、一個箱子刷上十幾次。條碼有個先天限制：它得有人告訴它「我在這裡、我是橫的」。</p>
+    <div class="strip" aria-hidden="true">
+      <svg viewBox="0 0 620 96" role="img" style="width:100%;height:auto">
+        <defs>
+          <linearGradient id="beam" gradientUnits="userSpaceOnUse" x1="40" y1="0" x2="580" y2="0">
+            <stop offset="0" stop-color="#f2594b" stop-opacity="0"/>
+            <stop offset=".5" stop-color="#f2594b" stop-opacity=".95"/>
+            <stop offset="1" stop-color="#f2594b" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g fill="#e9e5db" id="barcode"></g>
+        <line x1="40" y1="70" x2="580" y2="34" stroke="url(#beam)" stroke-width="2"/>
+        <text x="40" y="92" fill="#8b867d" font-size="12" font-family="system-ui">歪 4 度，這一趟就白掃了</text>
+      </svg>
+    </div>
+    <p class="cap">於是原昌宏想要一個相反的東西：一個記號，機器自己找得到，而且不在乎紙被轉了幾度。</p>
+  </section>
+
+  <section class="rv">
+    <h2>靈感來自他午休時盯著的那盤棋。</h2>
+    <p>黑子白子鋪在縱橫線上，資訊往兩個方向長。把一維拉成二維，容量的問題解決了——中文、假名、數字可以塞進同一張標籤。</p>
+    <p>但最難的一關還卡在那裡：機器怎麼知道，鏡頭裡這團黑白格子是一張碼，而不是一段文字、一張照片、一件格子襯衫？</p>
+  </section>
+
+  <section class="rv">
+    <h2>他們的做法笨得很漂亮。</h2>
+    <p>團隊蒐集大量印刷品，把上面所有「黑白黑白黑」的寬度比例通通量一遍，統計哪一種比例最常出現、哪一種幾乎不出現。既然要當路標，就該挑一個印刷世界裡最不會被誤認的節奏。</p>
+    <div class="bars rv" role="img" aria-label="印刷品上各種黑白寬度比例的出現頻率示意圖，1:1:3:1:1 明顯最罕見">
+      <div class="bar"><b>1:1:1:1:1</b><span><i style="--w:.96"></i></span><em>很多</em></div>
+      <div class="bar"><b>1:2:1:2:1</b><span><i style="--w:.71"></i></span><em>不少</em></div>
+      <div class="bar"><b>2:1:2:1:2</b><span><i style="--w:.5"></i></span><em>還有</em></div>
+      <div class="bar"><b>1:1:2:1:1</b><span><i style="--w:.3"></i></span><em>偶爾</em></div>
+      <div class="bar rare"><b>1:1:3:1:1</b><span><i style="--w:.035"></i></span><em>幾乎沒有</em></div>
+    </div>
+    <p class="cap">示意圖，非原始統計數值；原論文的頻率表未公開，比例名次依 Denso Wave 的沿革說明繪製。</p>
+    <p>最罕見的那一組是 <span class="hl">1：1：3：1：1</span>。它後來被畫成一個回字形的方塊，放在碼的三個角落。你每天都會看到它三次，卻從來不會多看它一眼。</p>
+  </section>
+
+  <section class="lab rv" id="lab">
+    <h2>換你。寫幾個字，看它長成什麼。</h2>
+    <p>底下會即時編一張真的 QR 碼——版本、遮罩、Reed-Solomon 糾錯碼都照 ISO 規格算完。然後放一條掃描線過去，把它讀到的黑白寬度攤在旁邊。</p>
+
+    <div class="field">
+      <label for="txt">寫點什麼（中文、英數、網址都行）</label>
+      <input id="txt" type="text" maxlength="96" value="這三個方塊在數黑白"
+             autocomplete="off" spellcheck="false" aria-describedby="meta">
+      <span class="count" id="count"></span>
+    </div>
+    <p class="warn" id="warn" role="status" aria-live="polite"></p>
+
+    <div class="stage">
+      <canvas id="cv" width="640" height="640"
+              aria-label="即時產生的 QR 碼，一條掃描線正橫過它"></canvas>
+    </div>
+
+    <div class="controls">
+      <button class="pk-btn" id="btnScan" type="button">暫停掃描</button>
+      <button class="pk-btn" id="btnStep" type="button" hidden>下一條掃描線</button>
+      <button class="pk-btn" id="btnRot" type="button">把碼轉 37°</button>
+    </div>
+
+    <div class="readout">
+      <div class="head"><span>掃描線讀到的寬度</span><span id="rowLab">—</span></div>
+      <div class="runs" id="runs" aria-hidden="true"></div>
+      <p class="verdict" id="verdict">—</p>
+    </div>
+    <p class="meta" id="meta"></p>
+    <p class="cap">碼轉了，掃描線沒轉。比例不會因為旋轉而改變——這正是那三個方塊被挑中的原因。</p>
+  </section>
+
+  <section class="rv">
+    <h2>剩下那件事，才是它能長到今天的原因。</h2>
+    <p>Denso Wave 替這套編碼申請了專利，然後宣布：只要照標準走，不收授權費。美國那件專利在 2015 年 3 月到期，日本的在 2014 年。它從一開始就沒打算靠收錢長大。</p>
+    <p>於是它跑進了車票、菜單、發票、電子支付、疫苗證明、街角的貼紙。一個為了讓倉庫少刷幾次槍而生的圖案，最後變成大家共用的公共設施。</p>
+  </section>
+
+  <section class="finale rv">
+    <p class="beat">你剛剛做的那張圖，大概是第一次被印出來。</p>
+    <p class="beat">但它開頭那句招呼，和其他幾千億張一模一樣。</p>
+    <p class="beat q">我在這裡。我在這裡。我在這裡。</p>
+    <div class="pins" aria-hidden="true"><i></i><i></i><i></i></div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：ISO/IEC 18004、Denso Wave「QR コード開発秘話」、維基百科 QR code 條目。
+</footer>
+
+<script src="qr.js"></script>
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'qr94.';
+const store = PK.store(LS);
+
+PK.reveal();
+
+/* ── 第一屏那排條碼（隨機但固定寬度） ── */
+(function () {
+  const g = document.getElementById('barcode');
+  if (!g) return;
+  let x = 40, i = 0, out = '';
+  while (x < 578) {
+    const w = 2 + Math.round(PK.hash('bar' + i) * 5);
+    if (i % 2 === 0) out += '<rect x="' + x + '" y="14" width="' + w + '" height="46" rx="1"/>';
+    x += w; i++;
+  }
+  g.innerHTML = out;
+})();
+
+/* ══════════════════════════════════════════════════════════
+ * 實驗台：編碼 → 依角度畫 → 沿螢幕水平線取樣 → 算寬度比例
+ * 幾何全部走同一組參數，畫面看到的與讀數算的是同一件事。
+ * ══════════════════════════════════════════════════════════ */
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const inp = document.getElementById('txt');
+const elCount = document.getElementById('count');
+const elWarn = document.getElementById('warn');
+const elRuns = document.getElementById('runs');
+const elVerdict = document.getElementById('verdict');
+const elRowLab = document.getElementById('rowLab');
+const elMeta = document.getElementById('meta');
+const btnScan = document.getElementById('btnScan');
+const btnStep = document.getElementById('btnStep');
+const btnRot = document.getElementById('btnRot');
+
+const MAXCAP = QRLAB.capacity(9);
+let code = null;          /* QRLAB.encode 的結果 */
+let angle = 0;            /* 弧度 */
+let targetAngle = 0;
+let sweep = 0.06;         /* 掃描線位置 0..1（相對 stage 高） */
+let hold = 0;             /* 命中後停留秒數 */
+let armed = true;         /* 離開命中區才會再次觸發 */
+let playing = true;
+let lastHitKey = '';
+
+/* ── 純函式：沿一條水平線取樣，回傳連續同色的段落（單位：畫布 px） ── */
+function scanRow(geo, yPx, stepPx) {
+  const runs = [];
+  let cur = -1, start = 0;
+  for (let x = 0; x <= geo.W; x += stepPx) {
+    const v = geo.sample(x, yPx);
+    if (v !== cur) {
+      if (cur !== -1) runs.push({ v: cur, len: x - start, x0: start, x1: x });
+      cur = v; start = x;
+    }
+  }
+  runs.push({ v: cur, len: geo.W - start, x0: start, x1: geo.W });
+  return runs;
+}
+
+/* ── 純函式：在一串段落裡找出第一個 1:1:3:1:1（黑白黑白黑，容差 ±40%） ── */
+function findFinder(runs) {
+  const want = [1, 1, 3, 1, 1];
+  for (let i = 0; i + 5 <= runs.length; i++) {
+    const five = runs.slice(i, i + 5);
+    if (five[0].v !== 1 || five[1].v !== 0 || five[2].v !== 1 || five[3].v !== 0 || five[4].v !== 1) continue;
+    const total = five.reduce((s, r) => s + r.len, 0);
+    if (total < 12) continue;
+    const unit = total / 7;
+    let ok = true;
+    const ratio = five.map((r, k) => {
+      const v = r.len / unit;
+      if (Math.abs(v - want[k]) > want[k] * 0.4) ok = false;
+      return v;
+    });
+    if (ok) return { at: i, five: five, ratio: ratio, unit: unit };
+  }
+  return null;
+}
+
+/* ── 幾何：把螢幕座標反轉回模組座標 ── */
+function geometry(W) {
+  const n = code.size;
+  const cell = (W * 0.76) / n;          /* 留白給旋轉後的四角 */
+  const cx = W / 2, cy = W / 2;
+  const cos = Math.cos(-angle), sin = Math.sin(-angle);
+  return {
+    W: W, n: n, cell: cell, cx: cx, cy: cy,
+    sample: function (sx, sy) {
+      const dx = sx - cx, dy = sy - cy;
+      const u = dx * cos - dy * sin, v = dx * sin + dy * cos;
+      const c = Math.floor(u / cell + n / 2), r = Math.floor(v / cell + n / 2);
+      if (r < 0 || c < 0 || r >= n || c >= n) return 0;
+      return code.modules[r * n + c];
+    }
+  };
+}
+
+function draw(geo, yPx, hit) {
+  const W = geo.W, n = geo.n, cell = geo.cell;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, W, W);
+  ctx.fillStyle = '#101216';
+  ctx.fillRect(0, 0, W, W);
+
+  /* 碼本體（含安靜區的紙色底） */
+  ctx.save();
+  ctx.translate(geo.cx, geo.cy);
+  ctx.rotate(angle);
+  const half = (n * cell) / 2, q = cell * 2;
+  ctx.fillStyle = '#e9e5db';
+  ctx.fillRect(-half - q, -half - q, n * cell + q * 2, n * cell + q * 2);
+  ctx.fillStyle = '#0a0b0d';
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (code.modules[r * n + c]) {
+        ctx.fillRect(-half + c * cell, -half + r * cell, cell + 0.6, cell + 0.6);
+      }
+    }
+  }
+  ctx.restore();
+
+  /* 命中時，把那五段疊上紅光 */
+  if (hit) {
+    const f = hit.five;
+    ctx.fillStyle = 'rgba(242,89,75,.30)';
+    ctx.fillRect(f[0].x0, yPx - geo.cell * 0.5, f[4].x1 - f[0].x0, geo.cell);
+    ctx.strokeStyle = 'rgba(242,89,75,.9)';
+    ctx.lineWidth = 1.5;
+    for (let k = 0; k < 5; k++) {
+      ctx.beginPath();
+      ctx.moveTo(f[k].x0, yPx - geo.cell * 1.5);
+      ctx.lineTo(f[k].x0, yPx + geo.cell * 1.5);
+      ctx.stroke();
+    }
+  }
+
+  /* 掃描線 */
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, 'rgba(242,89,75,0)');
+  grad.addColorStop(0.5, 'rgba(242,89,75,.95)');
+  grad.addColorStop(1, 'rgba(242,89,75,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, yPx - 1, W, 2);
+}
+
+/* ── 讀數面板 ── */
+function paint(runs, hit) {
+  const show = runs.filter((r) => r.len > 0.4);
+  const on = hit ? { from: hit.at, to: hit.at + 5 } : null;
+  let html = '';
+  for (let i = 0; i < show.length; i++) {
+    const r = show[i];
+    const idx = runs.indexOf(r);
+    const lit = on && idx >= on.from && idx < on.to;
+    html += '<span class="seg ' + (r.v ? 'd' : 'w') + (lit ? ' on' : '') +
+            '" style="flex-grow:' + r.len.toFixed(2) + '"></span>';
+  }
+  elRuns.innerHTML = html;
+  elRuns.style.display = 'flex';
+
+  if (hit) {
+    const txt = hit.ratio.map((v) => v.toFixed(1)).join('：');
+    elVerdict.className = 'verdict hit';
+    elVerdict.innerHTML = '找到了：<b>' + txt + '</b>　≈　<b>1：1：3：1：1</b>　這一刀切過了一個定位圖案。';
+    const key = hit.at + '|' + Math.round(hit.unit);
+    if (key !== lastHitKey) { lastHitKey = key; PK.announce('掃描線讀到 1比1比3比1比1，命中定位圖案'); }
+  } else {
+    elVerdict.className = 'verdict';
+    elVerdict.textContent = show.length > 1
+      ? '一串沒有意義的黑白寬度，機器會跳過去。'
+      : '空白。掃描線還沒碰到碼。';
+    lastHitKey = '';
+  }
+}
+
+function frameOnce(yNorm) {
+  const box = PK.fitCanvas(cv);
+  const W = cv.width;
+  const geo = geometry(W);
+  const yPx = yNorm * W;
+  const step = Math.max(1, geo.cell / 4);
+  const runs = scanRow(geo, yPx, step);
+  const hit = findFinder(runs);
+  draw(geo, yPx, hit);
+  paint(runs, hit);
+  elRowLab.textContent = '第 ' + Math.round(yNorm * 100) + '% 高度';
+  void box;
+  return hit;
+}
+
+/* ── 重新編碼 ── */
+function rebuild() {
+  const raw = inp.value;
+  const nBytes = QRLAB.utf8Bytes(raw).length;
+  elCount.textContent = nBytes + '/' + MAXCAP + ' 位元組';
+  if (nBytes === 0) { elWarn.textContent = '寫點什麼，它才有東西可以說。'; return; }
+  if (nBytes > MAXCAP) {
+    elWarn.textContent = '太長了（' + nBytes + ' 位元組）。這一頁的編碼器做到版本 9，上限 ' + MAXCAP + '。';
+    return;
+  }
+  elWarn.textContent = '';
+  const res = QRLAB.encode(raw);
+  if (!res) { elWarn.textContent = '編不出來，換短一點的內容。'; return; }
+  code = res;
+  elMeta.textContent = '版本 ' + res.version + '（' + res.size + '×' + res.size +
+    ' 格）　糾錯等級 M，可還原約 15%　遮罩 #' + res.mask +
+    '（八種裡罰分最低）　資料 ' + res.bytes + ' 位元組';
+  store.set('last', raw);
+  if (!playing) frameOnce(sweep);
+}
+
+/* ── 動畫迴圈 ── */
+function tickFn(dt) {
+  if (!code) return;
+  if (hold > 0) { hold -= dt; }
+  else {
+    sweep += dt * 0.19;
+    if (sweep > 1) { sweep = 0; armed = true; }
+  }
+  /* 角度平滑靠近目標 */
+  if (Math.abs(angle - targetAngle) > 0.0015) angle = PK.lerp(angle, targetAngle, Math.min(1, dt * 7));
+  else angle = targetAngle;
+
+  const hit = frameOnce(sweep);
+  if (hit && armed && hold <= 0) { hold = 1.05; armed = false; }
+  if (!hit) armed = true;
+}
+
+function setPlaying(on) {
+  playing = on && !PK.reduced();
+  if (playing) { PK.tick(tickFn); btnScan.textContent = '暫停掃描'; }
+  else { PK.untick(tickFn); btnScan.textContent = '繼續掃描'; }
+}
+
+/* ── 事件 ── */
+let typing = 0;
+inp.addEventListener('input', function () {
+  clearTimeout(typing);
+  typing = setTimeout(rebuild, 160);
+});
+
+btnScan.addEventListener('click', function () { setPlaying(!playing); });
+
+btnRot.addEventListener('click', function () {
+  targetAngle = targetAngle === 0 ? 37 * Math.PI / 180 : 0;
+  btnRot.textContent = targetAngle === 0 ? '把碼轉 37°' : '轉回來';
+  PK.announce(targetAngle === 0 ? '碼轉正了' : '碼轉了 37 度，掃描線沒有跟著轉');
+  if (PK.reduced()) { angle = targetAngle; frameOnce(sweep); }
+});
+
+/* reduced-motion：不跑動畫，改成一條一條手動推進 */
+const ROWS = [0.06, 0.13, 0.19, 0.28, 0.42, 0.5, 0.63, 0.78, 0.87, 0.94];
+let rowAt = 2;
+btnStep.addEventListener('click', function () {
+  rowAt = (rowAt + 1) % ROWS.length;
+  sweep = ROWS[rowAt];
+  frameOnce(sweep);
+});
+
+function applyMotionMode() {
+  const red = PK.reduced();
+  btnStep.hidden = !red;
+  btnScan.hidden = red;
+  if (red) {
+    PK.untick(tickFn);
+    playing = false;
+    angle = targetAngle;
+    sweep = ROWS[rowAt];
+    if (code) frameOnce(sweep);
+  } else {
+    setPlaying(true);
+  }
+}
+PK.onMotionChange(applyMotionMode);
+
+let ro = null;
+if ('ResizeObserver' in window) {
+  ro = new ResizeObserver(function () { if (code && !playing) frameOnce(sweep); });
+  ro.observe(cv);
+}
+
+/* 捲到實驗台才開始跑，離開就停 */
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver(function (es) {
+    for (const e of es) {
+      if (PK.reduced()) continue;
+      if (e.isIntersecting) setPlaying(true); else setPlaying(false);
+    }
+  }, { threshold: 0.08 }).observe(document.getElementById('lab'));
+}
+
+/* 起手：記得上次寫過什麼 */
+const saved = store.get('last', null);
+if (typeof saved === 'string' && saved.trim()) inp.value = saved;
+rebuild();
+applyMotionMode();
+frameOnce(sweep);
+</script>
+</body>
+</html>

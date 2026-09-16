@@ -476,7 +476,10 @@
     var yTop = btns[0].getBoundingClientRect().top - wrapRect.top;
     function cx(idx) { var r = btns[idx].getBoundingClientRect(); return r.left - wrapRect.left + r.width / 2; }
     var qi = state.queryIdx, W = curHead.weights[qi];
-    var parts = ['<defs><linearGradient id="arcgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5ee7d0"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>'];
+    /* 漸層描邊一律 userSpaceOnUse ＋實座標：預設的 objectBoundingBox 會依「每一條路徑
+       自己的 bbox」取樣，遇到近乎水平／垂直（bbox 某一邊為 0）的弧線整條不繪製。 */
+    var gw = Math.max(1, Math.round(wrapRect.width));
+    var parts = ['<defs><linearGradient id="arcgrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + gw + '" y2="0"><stop offset="0" stop-color="#5ee7d0"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>'];
     var order = W.map(function (v, j) { return { v: v, j: j }; }).sort(function (a, b) { return a.v - b.v; });
     order.forEach(function (o) {
       if (o.v < 0.04) return;
@@ -568,7 +571,8 @@
     var yTop = chips[0].getBoundingClientRect().top - wrapRect.top;
     function cx(idx) { var rr = chips[idx].getBoundingClientRect(); return rr.left - wrapRect.left + rr.width / 2; }
     var r = curInd, qi = r.queryPos, W = r.A2[qi];
-    var parts = ['<defs><linearGradient id="indgrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff7a9c"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>'];
+    var gw = Math.max(1, Math.round(wrapRect.width));   /* 同上：實座標漸層，避開零寬 bbox */
+    var parts = ['<defs><linearGradient id="indgrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + gw + '" y2="0"><stop offset="0" stop-color="#ff7a9c"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>'];
     var order = W.map(function (v, j) { return { v: v, j: j }; }).sort(function (a, b) { return a.v - b.v; });
     order.forEach(function (o) {
       if (o.v < 0.05) return;

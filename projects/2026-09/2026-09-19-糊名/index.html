@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>把名字糊掉｜每日小專案</title>
+<meta name="description" content="一○五七年，主考官讀到一篇好文章，想給它第一——然後他認出了那個文風。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#100e0b; --pk-ink:#e7e0cf; --pk-dim:#8c8372;
+  --pk-accent:#c0483a;          /* 硃砂 */
+  --paper:#e3dac2; --paper-2:#d6cbae; --paper-ink:#241f18;
+  --pk-maxw:660px;
+}
+body{ background:
+  radial-gradient(120% 70% at 50% -10%, #1b1712 0%, transparent 60%),
+  var(--pk-bg); }
+
+/* ── 通用排版 ── */
+.pk-hero h1{ font-size:clamp(34px,10vw,62px); letter-spacing:.14em; margin:0 0 30px; }
+.kicker{ font-size:12px; letter-spacing:.34em; color:var(--pk-accent); margin:0 0 6px; }
+h2{ font-family:var(--pk-serif); font-weight:600; font-size:clamp(21px,4.6vw,27px);
+    line-height:1.55; margin:0 0 18px; letter-spacing:.03em; }
+p{ margin:0 0 18px; }
+.lead{ font-size:clamp(15px,3.6vw,17px); color:#cfc7b5; }
+.em{ color:var(--pk-ink); font-family:var(--pk-serif); font-size:clamp(17px,4.4vw,21px); letter-spacing:.06em; }
+.act{ margin:15vh auto; }
+.dim{ color:var(--pk-dim); font-size:14px; }
+.scrolltip{ color:var(--pk-dim); letter-spacing:.4em; margin-top:34px; }
+
+/* ── 卷子 ── */
+.juan{
+  position:relative; background:
+    repeating-linear-gradient(90deg, transparent 0 39px, rgba(36,31,24,.10) 39px 40px),
+    linear-gradient(160deg, var(--paper), var(--paper-2));
+  color:var(--paper-ink); border-radius:2px;
+  padding:16px 14px 14px; margin:0 auto 30px; max-width:380px;
+  box-shadow:0 18px 44px rgba(0,0,0,.55), inset 0 0 0 1px rgba(36,31,24,.18);
+  overflow:hidden;
+}
+.juan-top{ display:flex; justify-content:space-between; align-items:baseline;
+  font-size:10.5px; letter-spacing:.22em; color:rgba(36,31,24,.55); margin-bottom:8px; }
+.juan-hao{ color:var(--pk-accent); font-weight:700; letter-spacing:.14em;
+  opacity:0; transform:scale(.86); transition:opacity .5s, transform .5s; }
+.juan-hao.on{ opacity:1; transform:none; }
+/* vertical-rl 下主軸＝直向（height 就是主尺寸），交叉軸＝橫向。
+   align-items 必須是 flex-start：預設的 stretch 會把姓名欄撐成和正文一樣寬，
+   蓋在上面的彌封紙就會糊掉整張卷子。 */
+.juan-col{ writing-mode:vertical-rl; height:220px; font-family:var(--pk-serif);
+  display:flex; align-items:flex-start; gap:10px; overflow:hidden; }
+/* min/max-width 是保險：彌封紙靠 .juan-name 的實際footprint 定位，
+   姓名欄若因字體差異量出異常寬度，封紙就會蓋錯範圍。 */
+.juan-name{ position:relative; flex:0 0 auto; font-size:17px; letter-spacing:.12em;
+  line-height:2.1; font-weight:600; min-width:60px; max-width:100px; }
+.juan-name small{ font-size:12.5px; font-weight:400; color:rgba(36,31,24,.7); }
+.juan-text{ position:relative; flex:1 1 auto; font-size:14.5px; line-height:2.25; }
+/* 第一層留在流裡撐出版心；第二層疊上去做交叉淡入（別讓兩層都 absolute，
+   否則在 vertical-rl 的 flex 裡 .juan-text 的橫向尺寸會塌成 0） */
+.juan-text > .layer{ position:relative; transition:opacity .9s ease; }
+.juan-text > .layer + .layer{ position:absolute; inset:0; }
+.hand span{ display:inline-block; }
+/* 謄錄本：同一批字，但工整、勻稱、偏濃——與手稿的抖動形成對照。
+   letter-spacing 要與 .hand 一致，否則疊上去會多佔一欄被裁掉。 */
+.copy{ opacity:0; letter-spacing:0; color:#1b1710; font-weight:500; }
+.juan.copied .hand{ opacity:0; }
+.juan.copied .copy{ opacity:1; }
+
+/* 彌封（糊名紙） */
+.veil{ position:absolute; inset:-7px -6px; background:
+    linear-gradient(200deg,#efe7d2,#ddd2b6); border:1px solid rgba(36,31,24,.3);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; letter-spacing:.3em; color:rgba(36,31,24,.45);
+  transform:scaleY(0); transform-origin:top; transition:transform .55s cubic-bezier(.2,.8,.25,1);
+  box-shadow:0 3px 10px rgba(0,0,0,.2); }
+.juan.sealed .veil{ transform:none; }
+.veil::after{ content:"封"; position:absolute; top:6px; left:50%; margin-left:-13px;
+  width:26px; height:26px; border:1.6px solid var(--pk-accent); border-radius:3px;
+  color:var(--pk-accent); font-size:13px; letter-spacing:0; line-height:23px; text-align:center;
+  writing-mode:horizontal-tb; opacity:0; transform:scale(2.1) rotate(-9deg); }
+.juan.sealed .veil::after{ animation:stamp .5s .35s forwards; }
+@keyframes stamp{ to{ opacity:.85; transform:scale(1) rotate(-9deg); } }
+.juan.unsealed .veil{ transform:scaleY(0); }
+
+/* 隔離：院牆封條 */
+.juan-tape{ position:absolute; top:-1px; right:-1px; width:132px; height:22px;
+  background:rgba(224,216,194,.93); border:1px solid rgba(36,31,24,.35);
+  transform:rotate(-38deg) translate(34px,20px) scaleX(0); transform-origin:right center;
+  transition:transform .5s cubic-bezier(.2,.8,.25,1);
+  font-size:10px; letter-spacing:.2em; color:var(--pk-accent);
+  text-align:center; line-height:20px; pointer-events:none; }
+.juan.isolated .juan-tape{ transform:rotate(-38deg) translate(34px,20px) scaleX(1); }
+
+/* ── 工序台（假介面） ── */
+.bench{ border:1px solid var(--pk-line); border-radius:6px; padding:20px 18px 8px;
+  background:linear-gradient(180deg, rgba(255,255,255,.035), transparent 40%); }
+.bench-bar{ display:flex; justify-content:space-between; align-items:center;
+  font-size:11px; letter-spacing:.24em; color:var(--pk-dim); margin-bottom:16px; }
+.meter{ margin:0 0 20px; }
+.meter-lab{ display:flex; justify-content:space-between; font-size:11.5px;
+  letter-spacing:.14em; color:var(--pk-dim); margin-bottom:7px; }
+.meter-lab b{ color:var(--pk-accent); font-size:15px; letter-spacing:0; font-variant-numeric:tabular-nums; }
+.meter-bar{ height:4px; background:rgba(255,255,255,.09); border-radius:3px; overflow:hidden; }
+.meter-fill{ height:100%; background:linear-gradient(90deg,#c0483a,#e0a458);
+  transform:scaleX(1); transform-origin:left; transition:transform .8s cubic-bezier(.2,.8,.25,1); }
+.steps{ list-style:none; margin:0; padding:0; counter-reset:s; }
+.steps li{ border-top:1px solid var(--pk-line); padding:14px 0; }
+.step-btn{ appearance:none; width:100%; text-align:left; cursor:pointer; font-family:inherit;
+  background:transparent; border:0; padding:0; color:var(--pk-ink); display:flex;
+  align-items:baseline; gap:12px; transition:color .25s, opacity .25s; }
+.step-btn::before{ counter-increment:s; content:counter(s); flex:0 0 auto;
+  width:23px; height:23px; border:1px solid var(--pk-line); border-radius:50%;
+  font-size:11px; line-height:21px; text-align:center; color:var(--pk-dim); transition:.3s; }
+.step-btn b{ font-weight:600; letter-spacing:.1em; font-family:var(--pk-serif); font-size:16.5px; }
+.step-btn i{ font-style:normal; color:var(--pk-dim); font-size:11.5px; letter-spacing:.1em; margin-left:auto; }
+.step-btn:not(:disabled):hover{ color:var(--pk-accent); }
+.step-btn:not(:disabled):hover::before{ border-color:var(--pk-accent); color:var(--pk-accent); }
+.step-btn:disabled{ cursor:default; opacity:.34; }
+li.done .step-btn{ opacity:.6; cursor:default; }
+li.done .step-btn::before{ content:"✓"; border-color:var(--pk-accent); color:var(--pk-accent); }
+li.live .step-btn::before{ box-shadow:0 0 0 4px rgba(192,72,58,.14); }
+.note{ margin:11px 0 0 35px; font-size:13.5px; line-height:1.95; color:#c2baa8;
+  max-height:0; opacity:0; overflow:hidden; transition:max-height .6s ease, opacity .5s ease; }
+li.done .note{ max-height:260px; opacity:1; }
+.note em{ font-style:normal; color:var(--pk-accent); }
+.rest{ margin:6px 0 24px; padding:16px 0 0; border-top:1px solid var(--pk-line);
+  opacity:0; transform:translateY(8px); transition:opacity .7s, transform .7s; }
+.rest.on{ opacity:1; transform:none; }
+
+/* ── 高潮 ── */
+.stage{ border-left:2px solid var(--pk-accent); padding-left:20px; }
+.quote{ font-family:var(--pk-serif); font-size:clamp(16px,4.2vw,19px); line-height:2.1;
+  letter-spacing:.06em; color:#efe6d2; margin:0 0 6px; }
+.choices{ display:flex; flex-wrap:wrap; gap:12px; margin:26px 0 0; }
+.pk-btn{ font-size:14px; letter-spacing:.1em; }
+.ghost{ color:var(--pk-dim); border-color:var(--pk-line); }
+.ghost:hover{ background:transparent; color:var(--pk-ink); border-color:var(--pk-dim); }
+.ghost.shake{ animation:shake .42s; }
+@keyframes shake{ 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+  45%{transform:translateX(5px)} 70%{transform:translateX(-3px)} }
+.refuse{ margin:14px 0 0; font-size:13px; color:var(--pk-accent); min-height:1.6em; }
+
+.reveal-box{ display:none; }
+.reveal-box.on{ display:block; }
+.name-big{ font-family:var(--pk-serif); font-size:clamp(38px,12vw,74px); letter-spacing:.2em;
+  margin:6px 0 4px; color:#f3ead6; }
+.name-big span{ opacity:0; display:inline-block; transform:translateY(12px);
+  transition:opacity .6s, transform .6s; }
+.name-big span.on{ opacity:1; transform:none; }
+.beat{ opacity:0; transform:translateY(10px); transition:opacity .8s, transform .8s; }
+.beat.on{ opacity:1; transform:none; }
+
+.back{ display:inline-block; margin-top:6px; background:none; border:0; padding:0;
+  font-family:var(--pk-serif); font-size:clamp(18px,5vw,24px); letter-spacing:.14em;
+  color:var(--pk-accent); cursor:pointer; border-bottom:1px solid rgba(192,72,58,.45); }
+.back:hover{ color:#e0a458; border-color:#e0a458; }
+.hint{ font-size:12px; color:var(--pk-dim); letter-spacing:.08em; }
+
+@media (max-width:560px){
+  .juan-col{ height:176px; }
+  .juan-text{ font-size:13px; }
+  .juan-name{ font-size:15.5px; }
+  .stage{ padding-left:14px; }
+  .note{ margin-left:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .juan.sealed .veil::after{ animation:none; opacity:.85; transform:scale(1) rotate(-9deg); }
+  .ghost.shake{ animation:none; }
+  .note{ transition:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero" id="hero">
+  <div class="pk-wrap">
+    <h1 class="rv">把名字糊掉</h1>
+
+    <div class="juan rv" id="heroJuan">
+      <div class="juan-top"><span>禮部貢院・試卷</span><span class="juan-hao">天字第一號</span></div>
+      <div class="juan-col">
+        <div class="juan-name">蘇　軾<br><small>眉州眉山　年二十</small>
+          <span class="veil" aria-hidden="true">彌封</span>
+        </div>
+        <div class="juan-text"><div class="layer hand" data-src="堯舜禹湯文武成康之際，何其愛民之深，憂民之切，而待天下以君子長者之道也。有一善，從而賞之，又從而詠歌嗟嘆之，所以樂其始而勉其終。有一不善，從而罰之，又從而哀矜懲創之，所以棄其舊而開其新。"></div></div>
+      </div>
+    </div>
+
+    <p class="lead rv">一○五七年春，禮部貢院。你是主考官。<br>
+      這張卷子的右上角，寫著他的姓名、籍貫、年歲。</p>
+    <p class="em rv">這就是麻煩。</p>
+    <p class="hint rv" id="revisit" hidden>（你上回來過。那張卷子後來被你糊掉了。）</p>
+    <p class="scrolltip rv" aria-hidden="true">↓</p>
+  </div>
+</header>
+
+<main>
+
+<section class="pk-wrap act rv">
+  <p class="kicker">工序</p>
+  <h2>一個帝國花了四百年，想辦法讓考官不知道自己在讀誰</h2>
+  <p class="lead">科場作弊最早的形式不是夾帶小抄，是打招呼。考官認得考生的姓氏、籍貫、筆跡，
+    甚至認得他爹。於是朝廷開始一層一層，把你能知道的事情從桌上拿走。</p>
+  <p class="lead">下面四道工序，按順序來。每動一次，看一次那條線。</p>
+</section>
+
+<section class="pk-wrap rv">
+  <div class="bench" id="bench">
+    <div class="bench-bar"><span>貢院・封彌謄錄所</span><span id="benchState">待啟封</span></div>
+
+    <div class="juan" id="benchJuan">
+      <div class="juan-top"><span>禮部貢院・試卷</span><span class="juan-hao" id="benchHao">—</span></div>
+      <div class="juan-col">
+        <div class="juan-name">蘇　軾<br><small>眉州眉山　年二十</small>
+          <span class="veil" aria-hidden="true">彌封</span>
+        </div>
+        <div class="juan-text">
+          <div class="layer hand" data-src="堯舜禹湯文武成康之際，何其愛民之深，憂民之切，而待天下以君子長者之道也。有一善，從而賞之，又從而詠歌嗟嘆之，所以樂其始而勉其終。有一不善，從而罰之，又從而哀矜懲創之，所以棄其舊而開其新。"></div>
+          <div class="layer copy" data-src="堯舜禹湯文武成康之際，何其愛民之深，憂民之切，而待天下以君子長者之道也。有一善，從而賞之，又從而詠歌嗟嘆之，所以樂其始而勉其終。有一不善，從而罰之，又從而哀矜懲創之，所以棄其舊而開其新。"></div>
+        </div>
+      </div>
+      <span class="juan-tape" aria-hidden="true">鎖　院</span>
+    </div>
+
+    <div class="meter">
+      <div class="meter-lab"><span>這張卷子還剩多少「認得出是誰」</span><b id="meterNum">100%</b></div>
+      <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+    </div>
+
+    <ol class="steps" id="steps">
+      <li class="live">
+        <button class="step-btn" data-step="seal"><b>糊名</b><i>淳化三年・992</i></button>
+        <p class="note">把姓名、籍貫、年歲那一欄摺起來，糊上紙，蓋印。先在<em>殿試</em>試行，
+          十五年後推到省試，四十年後連州縣的初試也照辦。<br>
+          拿走的是：他是誰、他爹是誰、他從哪個州來。</p>
+      </li>
+      <li>
+        <button class="step-btn" data-step="copy" disabled><b>謄錄</b><i>大中祥符八年・1015</i></button>
+        <p class="note">糊了名還是沒用——考官認得學生的字。朝廷索性設<em>謄錄院</em>：
+          每張卷子交給書吏重抄一遍，考官讀的是副本，原卷鎖在櫃子裡。
+          到了明清，同一張卷子要被抄上三遍。<br>
+          拿走的是：筆跡、塗改、卷面上一切習慣性的小動作。</p>
+      </li>
+      <li>
+        <button class="step-btn" data-step="number" disabled><b>編號</b><i>與謄錄同時</i></button>
+        <p class="note">副本不掛名字，掛一個號。號從《千字文》起頭數下去，天、地、玄、黃……
+          你手上那一疊紙，是一疊號。<br>
+          拿走的是：卷子的順序、位置，以及任何可以拿來對暗號的東西。</p>
+      </li>
+      <li>
+        <button class="step-btn" data-step="isolate" disabled><b>隔離</b><i>景祐四年・1037</i></button>
+        <p class="note">最後一層不是對考生做的，是對<em>你</em>做的：考官不得主持自己家鄉的考試；
+          接了知貢舉的命令就直接進貢院，考完之前不准回家、不准與朝中往來。<br>
+          拿走的是：你的人脈。</p>
+      </li>
+    </ol>
+
+    <div class="rest" id="rest">
+      <p class="lead" style="margin-bottom:4px">紙糊得住姓名，抄得掉筆跡，編號蓋得過次序。
+        有一樣東西四道工序都拿不走——</p>
+      <p class="em">一個人寫文章的腔口。</p>
+      <p class="dim">那 8%，就是這個故事發生的地方。</p>
+    </div>
+  </div>
+</section>
+
+<section class="pk-wrap act stage rv" id="climax">
+  <p class="kicker">嘉祐二年・1057</p>
+  <h2>梅堯臣從那疊號裡抽出一張，遞到你手上</h2>
+  <p class="lead">那年知貢舉的是歐陽修——就是你。你厭倦了滿場堆砌辭藻的文章，
+    這一科你要以古文取士。你低頭讀這張沒有名字的卷子：</p>
+  <p class="quote">「賞疑從與，所以廣恩也；<br>　罰疑從去，所以慎刑也。」</p>
+  <p class="dim">——〈刑賞忠厚之至論〉，第幾號不詳，字是書吏抄的。</p>
+  <p class="lead">你讀完，抬頭。你想給它第一。</p>
+  <p class="lead">然後你停住了。這個腔口——硬、直、不繞路、敢下判斷——
+    這是曾鞏。他在你門下讀了三年。</p>
+  <p class="em">你若點他第一，明天滿城都會說：歐陽修取自己人。</p>
+
+  <div class="choices">
+    <button class="pk-btn ghost" id="btnPeek">拆封看看是誰</button>
+    <button class="pk-btn" id="btnSecond">避嫌，置第二</button>
+  </div>
+  <p class="refuse" id="refuse" role="status" aria-live="polite"></p>
+</section>
+
+<section class="pk-wrap act reveal-box" id="revealBox">
+  <p class="kicker">放榜・拆封</p>
+  <div class="juan" id="finalJuan">
+    <div class="juan-top"><span>禮部貢院・試卷</span><span class="juan-hao on">天字第一號</span></div>
+    <div class="juan-col">
+      <div class="juan-name">蘇　軾<br><small>眉州眉山　年二十</small>
+        <span class="veil" aria-hidden="true">彌封</span>
+      </div>
+      <div class="juan-text">
+        <div class="layer copy" style="opacity:1" data-src="堯舜禹湯文武成康之際，何其愛民之深，憂民之切，而待天下以君子長者之道也。有一善，從而賞之，又從而詠歌嗟嘆之，所以樂其始而勉其終。有一不善，從而罰之，又從而哀矜懲創之，所以棄其舊而開其新。"></div>
+      </div>
+    </div>
+  </div>
+  <p class="name-big" id="nameBig" aria-label="蘇軾"></p>
+  <p class="beat" id="b1">不是曾鞏。是一個二十歲的四川人，那年第一次進京。</p>
+  <p class="beat dim" id="b2">曾鞏也在同一張榜上。他考上了。他沒有被壓到第二。</p>
+</section>
+
+<section class="pk-wrap act rv" id="coda">
+  <p class="kicker">回頭</p>
+  <h2>制度贏了。贏到把寫規矩的人自己也蒙住了</h2>
+  <p class="lead">歐陽修沒有徇私。他是為了避免被說成徇私，親手把一篇他認為最好的文章壓下一名。
+    這套系統要防的是賄賂，公平是它的副作用；而副作用不挑對象，連善意一起攔。</p>
+  <p class="lead">剝到最後剩下的那 8%，是誤判住的地方。他確實認得出那個腔口——他認錯了人。</p>
+  <p class="lead">宋人筆記還記了一段後話。歐陽修事後問蘇軾：你文章裡那個「皋陶三次要殺、
+    堯三次赦免」的典故，出自哪本書？<br>
+    蘇軾說：想當然耳。</p>
+  <p class="lead">一千年過去，我們還在糊名。期刊雙盲審稿抹掉作者，
+    匿名履歷抹掉姓名與年齡，樂團招考在琴師和評審之間拉一道幕。
+    每一次都是同一個動作：把那張紙再糊一遍，然後假裝剩下的 8% 不存在。</p>
+  <p class="em">現在回頭看第一屏那張卷子。名字還在上面。</p>
+  <button class="back" id="btnSeal">把它糊掉 ↑</button>
+</section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  史料掛名：《宋史・蘇軾傳》、《續資治通鑑長編》；制度年份採通行記述。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'mifeng.';
+const store = PK.store(LS);
+
+/* ───────── 純函式（可 node 斷言） ───────── */
+/* 《千字文》起頭的卷號 */
+function hao(n){
+  const Q = '天地玄黃宇宙洪荒日月盈昃辰宿列張';
+  if (!(n >= 1) || n !== Math.floor(n)) return '—';
+  const i = (n - 1) % Q.length, r = Math.floor((n - 1) / Q.length) + 1;
+  return Q[i] + '字第' + r + '號';
+}
+/* 四道工序各自拿走多少「認得出是誰」；全做完剩 8 */
+const CUT = { seal:30, copy:40, number:12, isolate:10 };
+function remaining(done){
+  let r = 100;
+  for (let i = 0; i < done.length; i++) r -= (CUT[done[i]] || 0);
+  return Math.max(0, r);
+}
+if (typeof module !== 'undefined' && module.exports) module.exports = { hao, remaining, CUT };
+
+/* ───────── 卷面文字：手稿抖動／謄錄工整 ───────── */
+function layout(el){
+  const txt = el.getAttribute('data-src') || '';
+  const jitter = el.classList.contains('hand');
+  let out = '';
+  for (let i = 0; i < txt.length; i++){
+    if (jitter){
+      const a = (PK.hash(txt[i] + i) - .5) * 5.2;      /* 固定抖動，不會每次載入亂跳 */
+      const d = (PK.hash('d' + i) - .5) * 2.4;
+      out += '<span style="transform:rotate(' + a.toFixed(2) + 'deg) translateX(' + d.toFixed(2) + 'px)">' + txt[i] + '</span>';
+    } else {
+      out += txt[i];
+    }
+  }
+  el.innerHTML = out;
+}
+document.querySelectorAll('.layer').forEach(layout);
+
+/* ───────── 第一屏：回訪招呼 ───────── */
+if (store.get('sealed', 0)) document.getElementById('revisit').hidden = false;
+
+PK.reveal();
+
+/* ───────── 工序台 ───────── */
+const benchJuan  = document.getElementById('benchJuan');
+const benchHao   = document.getElementById('benchHao');
+const benchState = document.getElementById('benchState');
+const meterNum   = document.getElementById('meterNum');
+const meterFill  = document.getElementById('meterFill');
+const stepsEl    = document.getElementById('steps');
+const restEl     = document.getElementById('rest');
+const ORDER = ['seal', 'copy', 'number', 'isolate'];
+const LABEL = { seal:'已彌封', copy:'已謄錄', number:'已編號', isolate:'已鎖院' };
+const done = [];
+
+function paint(){
+  const r = remaining(done);
+  meterNum.textContent = r + '%';
+  meterFill.style.transform = 'scaleX(' + (r / 100) + ')';
+}
+paint();
+
+stepsEl.addEventListener('click', function(e){
+  const btn = e.target.closest('.step-btn');
+  if (!btn || btn.disabled) return;
+  const id = btn.getAttribute('data-step');
+  if (done.indexOf(id) >= 0) return;
+
+  done.push(id);
+  const li = btn.parentNode;
+  li.classList.remove('live');
+  li.classList.add('done');
+  btn.disabled = true;
+
+  if (id === 'seal')    benchJuan.classList.add('sealed');
+  if (id === 'copy')    benchJuan.classList.add('copied');
+  if (id === 'number'){ benchHao.textContent = hao(1 + Math.floor(PK.hash('hao') * 16)); benchHao.classList.add('on'); }
+  if (id === 'isolate') benchJuan.classList.add('isolated');
+
+  benchState.textContent = LABEL[id];
+  paint();
+  PK.announce(btn.querySelector('b').textContent + '完成，還剩 ' + remaining(done) + '% 認得出是誰');
+
+  const next = ORDER[done.length];
+  if (next){
+    const nb = stepsEl.querySelector('[data-step="' + next + '"]');
+    nb.disabled = false;
+    nb.parentNode.classList.add('live');
+  } else {
+    restEl.classList.add('on');
+  }
+});
+
+/* ───────── 高潮：拆封（被制度擋下）／置第二 ───────── */
+const btnPeek   = document.getElementById('btnPeek');
+const btnSecond = document.getElementById('btnSecond');
+const refuse    = document.getElementById('refuse');
+const PEEK = [
+  '封彌未拆，不得先閱。',
+  '封彌未拆，不得先閱。——這條是你自己批准的。',
+  '你設的規矩，正擋著你。'
+];
+let peeks = 0;
+
+btnPeek.addEventListener('click', function(){
+  refuse.textContent = PEEK[Math.min(peeks, PEEK.length - 1)];
+  peeks++;
+  btnPeek.classList.remove('shake');
+  void btnPeek.getBoundingClientRect();
+  btnPeek.classList.add('shake');
+});
+
+const revealBox = document.getElementById('revealBox');
+const nameBig   = document.getElementById('nameBig');
+const finalJuan = document.getElementById('finalJuan');
+let opened = false;
+
+btnSecond.addEventListener('click', function(){
+  if (opened) return;
+  opened = true;
+  btnSecond.disabled = true;
+  btnPeek.disabled = true;
+  refuse.textContent = '——你把它排在第二。榜貼出去了。';
+
+  revealBox.classList.add('on');
+  finalJuan.classList.add('sealed');        /* 先是封著的 */
+  PK.announce('放榜，拆封');
+
+  const slow = PK.reduced();
+  setTimeout(function(){ PK.scrollTo(revealBox); }, 60);
+  setTimeout(function(){
+    finalJuan.classList.add('unsealed');     /* 揭起糊名紙 */
+    PK.announce('拆封：蘇軾，眉州眉山，年二十');
+  }, slow ? 20 : 900);
+
+  const chars = ['蘇', '　', '軾'];
+  nameBig.innerHTML = chars.map(function(c){ return '<span>' + c + '</span>'; }).join('');
+  const spans = nameBig.querySelectorAll('span');
+  spans.forEach(function(s, i){
+    setTimeout(function(){ s.classList.add('on'); }, slow ? 30 : 1500 + i * 260);
+  });
+  setTimeout(function(){ document.getElementById('b1').classList.add('on'); }, slow ? 40 : 2700);
+  setTimeout(function(){ document.getElementById('b2').classList.add('on'); }, slow ? 50 : 3900);
+});
+
+/* ───────── 回馬槍：把第一屏那張卷子糊掉 ───────── */
+const heroJuan = document.getElementById('heroJuan');
+document.getElementById('btnSeal').addEventListener('click', function(){
+  heroJuan.classList.add('sealed');
+  store.set('sealed', 1);
+  PK.scrollTo(document.getElementById('hero'));
+  PK.announce('第一屏的卷子已彌封');
+  setTimeout(function(){
+    const p = heroJuan.parentNode.querySelector('.lead');
+    p.innerHTML = '現在你不知道他是誰了。<br>剩下的，是他寫字的樣子——還有你怎麼讀它。';
+  }, PK.reduced() ? 10 : 900);
+});
+</script>
+</body>
+</html>

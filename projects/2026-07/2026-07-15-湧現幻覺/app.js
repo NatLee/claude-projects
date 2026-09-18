@@ -112,11 +112,15 @@
 
   // ---------- 幾何 / DPI ----------
   var dpr = 1, W = 0, H = 0, pad = { l: 46, r: 14, t: 16, b: 30 };
-  function resize() {
+  function resize(force) {
     var box = canvas.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = Math.max(1, Math.round(box.width));
-    H = Math.max(1, Math.round(box.height));
+    var d = Math.min(window.devicePixelRatio || 1, 2);
+    var w = Math.max(1, Math.round(box.width));
+    var h = Math.max(1, Math.round(box.height));
+    // 尺寸與 dpr 都沒變就短路：ResizeObserver 每幀回寫 canvas.width 會清畫布，
+    // 在 dpr≠1 的螢幕上可能翻倍成回饋迴圈（見 PROMPT.md 渲染地雷 4）。
+    if (!force && w === W && h === H && d === dpr) return;
+    dpr = d; W = w; H = h;
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -436,7 +440,7 @@
   // ---------- 開機 ----------
   (function boot() {
     els.kRange.value = state.k; els.kOut.textContent = state.k;
-    resize();
+    resize(true);
     setMode(state.mode, false);
     applyK(state.k, false);
     updateChain();

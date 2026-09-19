@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>槍響之後的十分之一秒，不算你的｜每日小專案</title>
+<meta name="description" content="起跑架裡有一條畫在時間上的線。按住、等槍響、鬆手——看看那條線會怎麼判你。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#08090c;
+  --pk-ink:#edeae3;
+  --pk-dim:#8a857c;
+  --pk-accent:#ff6a3d;
+  --pk-line:rgba(255,255,255,.1);
+  --pk-maxw:660px;
+  --red:#ff3b30;
+  --lane:#c4472c;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+
+/* ── 第一屏：一條起跑線橫過黑暗 ── */
+.pk-hero{position:relative;overflow:hidden}
+.startline{
+  position:absolute;left:0;right:0;top:50%;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55) 18%,rgba(255,255,255,.55) 82%,transparent);
+  opacity:0;transform:scaleX(.2);transform-origin:50% 50%;
+  animation:draw 2.2s cubic-bezier(.2,.8,.2,1) .25s forwards;
+}
+.startline::after{
+  content:"";position:absolute;left:0;right:0;top:-1px;height:3px;
+  background:linear-gradient(90deg,transparent,rgba(255,106,61,.4),transparent);
+  filter:blur(3px);
+}
+@keyframes draw{to{opacity:1;transform:scaleX(1)}}
+.pk-hero .pk-wrap{position:relative;z-index:1}
+.pk-hero h1{letter-spacing:.01em}
+.lead{color:var(--pk-dim);font-size:16px;max-width:30em}
+.lead b{color:var(--pk-ink);font-weight:600}
+.cue{margin-top:38px;font-size:12px;letter-spacing:.3em;color:var(--pk-dim)}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0);opacity:.45}50%{transform:translateY(5px);opacity:1}}
+
+/* ── 卷宗總體 ── */
+h2{font-family:var(--pk-serif);font-size:clamp(20px,4.6vw,26px);line-height:1.6;margin:0 0 14px}
+p{margin:0 0 17px}
+section{margin:0 0 76px}
+.kicker{
+  font-size:11.5px;letter-spacing:.26em;color:var(--pk-accent);
+  margin:0 0 12px;text-transform:uppercase;font-family:var(--mono);
+}
+
+/* ── 起跑架面板 ── */
+.rig{
+  border:1px solid var(--pk-line);border-radius:16px;padding:22px 20px 24px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  position:relative;overflow:hidden;
+}
+.rig::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
+  background:#fff;transition:opacity .09s linear;
+}
+.rig.flash::before{opacity:.82;transition:none}
+.rig-head{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.16em;color:var(--pk-dim);
+  margin-bottom:18px;
+}
+.rig-head b{color:var(--pk-accent);font-weight:600}
+
+.stage{
+  text-align:center;min-height:118px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:6px;
+}
+.cmd{
+  font-family:var(--pk-serif);font-size:clamp(26px,7.5vw,42px);line-height:1.2;
+  letter-spacing:.1em;transition:color .2s,opacity .2s;
+}
+.cmd.set{color:#ffd9a0}
+.cmd.bang{color:#fff}
+.cmd.foul{color:var(--red)}
+.sub{font-size:13.5px;color:var(--pk-dim);min-height:1.6em}
+.rt{font-family:var(--mono);font-size:clamp(30px,9vw,46px);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.rt.ok{color:#8ce0a8}
+.rt.foul{color:var(--red)}
+
+.pad{
+  display:block;width:100%;margin:18px 0 0;padding:26px 18px;
+  font-family:inherit;font-size:15.5px;letter-spacing:.1em;
+  color:var(--pk-ink);background:rgba(255,255,255,.05);
+  border:1px dashed rgba(255,255,255,.28);border-radius:12px;
+  cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;
+  transition:background .18s,border-color .18s,transform .08s,color .18s;
+}
+.pad:hover{background:rgba(255,255,255,.085)}
+.pad.down{
+  background:rgba(255,106,61,.14);border-style:solid;border-color:var(--pk-accent);
+  color:#ffd0bd;transform:translateY(1px);
+}
+.pad.armed{border-color:#ffd9a0;background:rgba(255,217,160,.16);color:#fff2dd}
+
+/* ── 反應尺 ── */
+.ruler{margin:24px 0 4px}
+.bar{
+  position:relative;height:42px;border-radius:8px;overflow:hidden;
+  background:linear-gradient(90deg,rgba(255,59,48,.30) 0 25%,rgba(255,255,255,.055) 25% 100%);
+  border:1px solid var(--pk-line);
+}
+.bar .edge{position:absolute;top:0;bottom:0;left:25%;width:2px;background:var(--red);opacity:.85}
+.bar .band{position:absolute;top:0;bottom:0;left:32.5%;width:7.5%;background:rgba(140,224,168,.16)}
+.bar .tick{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.3)}
+.bar .you{
+  position:absolute;top:-4px;bottom:-4px;width:3px;left:0;background:var(--pk-accent);
+  box-shadow:0 0 14px rgba(255,106,61,.9);opacity:0;
+  transform:translateX(-1.5px);transition:transform .5s cubic-bezier(.2,.8,.2,1),opacity .3s;
+}
+.bar .you.on{opacity:1}
+.axis{
+  position:relative;height:34px;margin-top:6px;font-family:var(--mono);font-size:10.5px;color:var(--pk-dim);
+}
+.axis span{position:absolute;transform:translateX(-50%);white-space:nowrap;line-height:1.35;text-align:center}
+.axis .hi{color:#8ce0a8}
+.axis .dg{color:#ff8a80}
+
+.log{
+  margin:18px 0 0;padding:0;list-style:none;font-family:var(--mono);font-size:12.5px;
+  color:var(--pk-dim);display:flex;flex-wrap:wrap;gap:6px;min-height:1px;
+}
+.log li{border:1px solid var(--pk-line);border-radius:999px;padding:3px 11px}
+.log li.ok{color:#8ce0a8;border-color:rgba(140,224,168,.35)}
+.log li.foul{color:#ff8a80;border-color:rgba(255,59,48,.35)}
+.tools{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center}
+.tools .pk-btn{font-size:13px;padding:8px 16px;letter-spacing:.06em}
+.note{font-size:12.5px;color:var(--pk-dim);margin:14px 0 0;line-height:1.75}
+
+/* ── 卷宗（封存／解封）── */
+.file{border-left:2px solid var(--pk-line);padding:2px 0 2px 20px;margin:0 0 40px;transition:border-color .5s}
+.file.open{border-color:var(--pk-accent)}
+.file h3{font-family:var(--pk-serif);font-size:19px;margin:0 0 12px;font-weight:600;line-height:1.55}
+.file h3 .no{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;color:var(--pk-dim);display:block;margin-bottom:6px}
+.seal{display:flex;flex-direction:column;gap:9px;padding:4px 0 6px}
+.seal i{display:block;height:11px;border-radius:2px;background:rgba(255,255,255,.1)}
+.seal i:nth-child(1){width:62%}
+.seal i:nth-child(2){width:88%}
+.seal i:nth-child(3){width:41%}
+.seal em{font-style:normal;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--pk-dim);margin-top:4px}
+.file p:last-child{margin-bottom:0}
+.verdict{
+  border:1px solid rgba(255,106,61,.35);border-radius:16px;padding:24px 22px;
+  background:radial-gradient(120% 140% at 50% 0%,rgba(255,106,61,.09),transparent 70%);
+}
+.verdict h2{margin-bottom:16px}
+.punch{font-family:var(--pk-serif);font-size:clamp(19px,5vw,25px);line-height:1.65;margin:26px 0 0}
+.punch b{color:var(--pk-accent);font-weight:600}
+.src{font-size:12.5px;color:var(--pk-dim)}
+
+@media (max-width:560px){
+  .rig{padding:18px 15px 20px}
+  .pad{padding:30px 14px}
+  .file{padding-left:15px}
+  .axis{height:42px}
+}
+
+/* ── 減少動態：頁內動畫各自降級 ── */
+@media (prefers-reduced-motion: reduce){
+  .startline{animation:none;opacity:1;transform:none}
+  .cue span{animation:none;opacity:.7}
+  .bar .you{transition:none}
+  .rig.flash::before{opacity:.35}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="startline" aria-hidden="true"></div>
+  <div class="pk-wrap">
+    <h1 class="rv">起跑線後面還有一條線。它不畫在跑道上。</h1>
+    <p class="lead rv">它畫在時間裡，位置是 <b>0.100 秒</b>。槍響之後的那一小格，跑道不承認任何人的反應——踩進去的人，當場出局。</p>
+    <p class="cue rv"><span>往下 ↓</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <p class="kicker">Daegu · 2011.08.28 · 20:45</p>
+    <h2>世界紀錄保持人一步都還沒跑，就被請出了場。</h2>
+    <p>南韓大邱，男子一百公尺決賽。八個人趴在起跑架上，槍響，其中一個離開了架子——然後被判出局，連跑都沒跑。</p>
+    <p>做出這個判決的不是誰的眼睛。是他腳底下那塊金屬。</p>
+    <p>這一頁封了三份卷宗。想看，得自己上一次起跑架。</p>
+  </section>
+
+  <section class="rv">
+    <p class="kicker">Lane 4 · 你的起跑架</p>
+    <div class="rig" id="rig">
+      <div class="rig-head">
+        <span>反應計時器</span>
+        <span>卷宗 <b id="prog">0 / 3</b></span>
+      </div>
+
+      <div class="stage">
+        <div class="cmd" id="cmd">各就位？</div>
+        <div class="sub" id="sub">按住下面那塊踏板，別放。</div>
+        <div class="rt" id="rt" aria-hidden="true"></div>
+      </div>
+
+      <button class="pad" id="pad" type="button"
+              aria-describedby="padhelp">按住這裡＝腳踩上起跑架</button>
+      <p id="padhelp" class="pk-sr">按住滑鼠、手指或空白鍵代表雙腳踩在起跑架上。聽到槍響（畫面閃白）立刻放開。放開得比槍響早、或早於槍響後 0.100 秒，判起跑犯規。</p>
+
+      <div class="ruler">
+        <div class="bar" id="bar">
+          <div class="band" title="世界級決賽常見區間"></div>
+          <div class="edge"></div>
+          <div class="tick" style="left:27.25%"></div>
+          <div class="tick" style="left:30.25%"></div>
+          <div class="you" id="you"></div>
+        </div>
+        <div class="axis" aria-hidden="true">
+          <span class="dg" style="left:25%">0.100<br>判犯規</span>
+          <span class="hi" style="left:36.2%">0.13–0.16<br>決賽常見</span>
+          <span style="left:75%">0.300</span>
+        </div>
+      </div>
+
+      <ul class="log" id="log"></ul>
+
+      <div class="tools">
+        <button class="pk-btn" id="snd" type="button" aria-pressed="false">開槍聲</button>
+        <button class="pk-btn" id="rst" type="button">清掉成績</button>
+        <span class="src" id="best"></span>
+      </div>
+
+      <p class="note">用眼睛接槍比用耳朵慢幾十毫秒——真正的起跑架旁邊裝喇叭，就是為了讓聲音同時到每個人耳邊。想要公平一點的數字，把槍聲打開。</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="kicker rv">封存卷宗</p>
+
+    <article class="file rv" id="f1">
+      <h3><span class="no">卷宗 一</span><span class="ft" hidden>那塊金屬，一開始被當成作弊</span></h3>
+      <div class="seal" aria-hidden="true"><i></i><i></i><i></i><em>尚未解封</em></div>
+      <div class="fb" hidden>
+        <p>起跑架是 1929 年才有的東西，澳洲人 Charlie Booth 和他父親做出來的。在那之前，短跑選手蹲下之前要先拿小鏟子，在煤渣跑道上挖兩個洞當支點——起跑線旁邊真的擺著鏟子供人取用。</p>
+        <p>1930 年，美國人 George Simpson 跑出一百碼 9.4 秒，人類第一次。成績被判不算。理由：他踩了起跑架。</p>
+        <p>被兩塊固定的木頭撐著往前推，當年看起來像作弊。</p>
+      </div>
+    </article>
+
+    <article class="file rv" id="f2">
+      <h3><span class="no">卷宗 二</span><span class="ft" hidden>後來，那塊木頭變成了裁判</span></h3>
+      <div class="seal" aria-hidden="true"><i></i><i></i><i></i><em>尚未解封</em></div>
+      <div class="fb" hidden>
+        <p>現在的頂級起跑架裡裝著測力計，直接連到發令槍。它不管你動了沒有——它盯的是腳掌壓上踏板的力量，什麼時候越過門檻。你的起跑在機器眼裡不是一個動作，是一條往上衝的曲線。</p>
+        <p>曲線越線的時間如果不到槍響後 0.100 秒，系統直接判起跑犯規，整場召回。依據是：大腦來不及在十分之一秒內把槍聲收進來、想清楚、再把指令送到腿上。低於這個數，規則不當它是反應，當它是賭。</p>
+        <p>而這套設備只裝在高規格賽會。世界上絕大多數的比賽，起跑犯規還是靠裁判的一雙眼睛。</p>
+      </div>
+    </article>
+
+    <article class="file rv" id="f3">
+      <h3><span class="no">卷宗 三</span><span class="ft" hidden>那條線，可能畫錯了位置</span></h3>
+      <div class="seal" aria-hidden="true"><i></i><i></i><i></i><em>尚未解封</em></div>
+      <div class="fb" hidden>
+        <p>2009 年，國際田總自己出錢做了一份研究，標題直接就問：100 毫秒這條界線還站得住嗎。結論是頂尖短跑選手有時候能在 0.08 秒內反應。比規則認定的人類極限還快兩格。</p>
+        <p>2011 年另一組人把北京奧運所有起跑資料翻了一遍：男選手一千次起跑裡，只有一次能低到 0.109 秒；女選手是 0.121 秒。看起來女生慢一點。</p>
+        <p>但作者指出，男女的起跑架用的是同一個力量門檻，而女性肌肉推起力量的速度較慢，同樣的動作要多花一點時間才壓過那條線。把女子的門檻調低 22%，兩邊的反應時間和犯規次數就疊在一起了。</p>
+        <p>被機器抓到的，不全是搶跑的人。有些人的腿，不過是推得慢了一點。</p>
+      </div>
+    </article>
+  </section>
+
+  <section class="rv" id="end" hidden>
+    <div class="verdict">
+      <p class="kicker">判決</p>
+      <h2>大邱那一槍，出局的是 Usain Bolt。</h2>
+      <p>2011 年世錦賽男子一百公尺決賽，他在槍響時離開起跑架，當場取消資格。金牌由 21 歲的 Yohan Blake 以 9.92 秒拿走，成為史上最年輕的百米世界冠軍。那是「一次犯規就出局」新制上路後的第一場全球決賽——2010 年之前，每個人都還有第二次機會。</p>
+      <p>八十年前，那塊踩在腳下的東西是作弊。現在，它決定誰在作弊。</p>
+      <p class="punch" id="punch"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：World Athletics 競賽規則、New Studies in Athletics（2009，IAAF 起跑研究計畫）、PLOS ONE（2011，北京奧運起跑反應分析）、Athletics Australia、維基百科。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+(function(){
+  'use strict';
+  var LS = 'fstart.';
+  var store = PK.store(LS);
+
+  /* ── 純邏輯（可單獨斷言）───────────────────────────── */
+  /* judge：ms 為「放開時刻 − 槍響時刻」的毫秒數，null 代表槍還沒響就放開 */
+  function judge(ms){
+    if (ms === null || ms < 0) return { kind:'jump', ok:false, label:'搶跑', why:'槍還沒響，腳就離開了架子。' };
+    if (ms < 100)              return { kind:'foul', ok:false, label:'判犯規', why:'不到 0.100 秒。機器不認為那是聽到槍才動的。' };
+    if (ms > 1000)            return { kind:'slow', ok:true,  label:'太慢了', why:'這一槍你大概在想別的事。' };
+    if (ms < 130)              return { kind:'elite',ok:true,  label:'合格·極快', why:'這個數字擠得進世界級決賽的前段。' };
+    if (ms < 200)              return { kind:'good', ok:true,  label:'合格', why:'決賽選手大多落在這一帶。' };
+    return                            { kind:'ok',   ok:true,  label:'合格', why:'安全過關，慢了一點。' };
+  }
+  /* posPct：把毫秒換成反應尺上的百分比位置（尺的滿格 max 毫秒） */
+  function posPct(ms, max){
+    var m = Math.max(0, Math.min(max, ms));
+    return m / max * 100;
+  }
+  var RULER_MAX = 400;
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { judge: judge, posPct: posPct, RULER_MAX: RULER_MAX }; }
+
+  /* ── DOM ────────────────────────────────────────────── */
+  var rig = document.getElementById('rig'), pad = document.getElementById('pad');
+  var cmd = document.getElementById('cmd'), sub = document.getElementById('sub');
+  var rtEl = document.getElementById('rt'), you = document.getElementById('you');
+  var logEl = document.getElementById('log'), progEl = document.getElementById('prog');
+  var bestEl = document.getElementById('best'), endEl = document.getElementById('end');
+  var punchEl = document.getElementById('punch');
+  var sndBtn = document.getElementById('snd'), rstBtn = document.getElementById('rst');
+  var files = [document.getElementById('f1'), document.getElementById('f2'), document.getElementById('f3')];
+
+  var NEED = 3;
+  var state = 'idle';       /* idle | marks | set | live | done */
+  var timer = 0, gunAt = 0, held = false, flashT = 0;
+  var cleared = store.get('cleared', 0);
+  var best = store.get('best', null);
+  var tries = [];
+  var soundOn = false, actx = null;
+
+  /* ── 音效（使用者手勢後才建 AudioContext）── */
+  function bang(){
+    if (!soundOn) return;
+    try{
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; actx = new AC(); }
+      if (actx.state === 'suspended') actx.resume();
+      var t = actx.currentTime, g = actx.createGain(), o = actx.createOscillator();
+      o.type = 'square'; o.frequency.setValueAtTime(880, t);
+      o.frequency.exponentialRampToValueAtTime(120, t + 0.06);
+      g.gain.setValueAtTime(0.28, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+      o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.14);
+    }catch(e){}
+  }
+  sndBtn.addEventListener('click', function(){
+    soundOn = !soundOn;
+    sndBtn.textContent = soundOn ? '關槍聲' : '開槍聲';
+    sndBtn.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
+    if (soundOn) { try{ var AC = window.AudioContext || window.webkitAudioContext; if (AC && !actx) actx = new AC(); if (actx && actx.state === 'suspended') actx.resume(); }catch(e){} }
+  });
+
+  /* ── 畫面 ── */
+  function say(c, s, cls){
+    cmd.textContent = c; cmd.className = 'cmd' + (cls ? ' ' + cls : '');
+    sub.textContent = s;
+  }
+  function flash(){
+    rig.classList.add('flash');
+    clearTimeout(flashT);
+    flashT = setTimeout(function(){ rig.classList.remove('flash'); }, PK.reduced() ? 160 : 70);
+  }
+  var bar = document.getElementById('bar');
+  var markedMs = null;
+  /* 只用 transform 位移（不動 left／width），視窗改變尺寸時重算一次 */
+  function place(){
+    if (markedMs === null) return;
+    var w = bar.clientWidth || 0;
+    if (w < 40) return;                    /* 面板還沒量到寬度就先不畫 */
+    var x = posPct(markedMs, RULER_MAX) / 100 * w - 1.5;
+    you.style.transform = 'translateX(' + x.toFixed(1) + 'px)';
+  }
+  function mark(ms){
+    if (ms === null) { markedMs = null; you.classList.remove('on'); return; }
+    markedMs = ms; place(); you.classList.add('on');
+  }
+  window.addEventListener('resize', place);
+  function renderLog(){
+    logEl.innerHTML = '';
+    for (var i = 0; i < tries.length; i++){
+      var t = tries[i], li = document.createElement('li');
+      li.className = t.v.ok ? 'ok' : 'foul';
+      li.textContent = (t.ms === null ? '搶跑' : (t.ms / 1000).toFixed(3) + 's');
+      logEl.appendChild(li);
+    }
+    progEl.textContent = Math.min(cleared, NEED) + ' / ' + NEED;
+    bestEl.textContent = best === null ? '' : '最快 ' + (best / 1000).toFixed(3) + ' 秒';
+  }
+  function openFile(i){
+    var f = files[i]; if (!f || f.classList.contains('open')) return;
+    f.classList.add('open');
+    f.querySelector('.seal').remove();
+    f.querySelector('.ft').hidden = false;
+    f.querySelector('.fb').hidden = false;
+    PK.announce('卷宗 ' + (i + 1) + ' 已解封');
+  }
+  function syncFiles(){
+    for (var i = 0; i < Math.min(cleared, NEED); i++) openFile(i);
+    if (cleared >= NEED) {
+      endEl.hidden = false;
+      endEl.classList.add('in');
+      punchEl.innerHTML = best === null
+        ? '你今天沒留下數字。那條線還在那裡等著。'
+        : (best < 100
+            ? '你今天最快的一次是 <b>' + (best / 1000).toFixed(3) + ' 秒</b>。在真正的跑道上，那不叫快，那叫出局——機器不會說你偷跑，它會說：人不可能這麼快。'
+            : '你今天最快的一次是 <b>' + (best / 1000).toFixed(3) + ' 秒</b>。少掉 ' + Math.round(best - 100) + ' 毫秒，跑道就不承認它是反應了。機器不會說你偷跑，它會說：人不可能這麼快。');
+    }
+  }
+
+  /* ── 流程 ── */
+  function reset(soft){
+    clearTimeout(timer); state = 'idle'; gunAt = 0; held = false;
+    pad.classList.remove('down', 'armed');
+    pad.textContent = '按住這裡＝腳踩上起跑架';
+    if (!soft) { rtEl.textContent = ''; rtEl.className = 'rt'; }
+    say('各就位？', '按住下面那塊踏板，別放。');
+  }
+  function begin(){
+    if (state !== 'idle') return;
+    state = 'marks'; held = true;
+    rtEl.textContent = ''; rtEl.className = 'rt';
+    you.classList.remove('on');
+    pad.classList.add('down');
+    pad.textContent = '按住不放……';
+    say('各就位', '穩住。');
+    timer = setTimeout(function(){
+      if (state !== 'marks') return;
+      state = 'set'; pad.classList.add('armed');
+      say('預備', '槍隨時會響。', 'set');
+      timer = setTimeout(fire, 900 + Math.random() * 2300);
+    }, 800);
+  }
+  function fire(){
+    if (state !== 'set') return;
+    state = 'live'; gunAt = performance.now();
+    flash(); bang();
+    say('砰', '放開！', 'bang');
+    pad.textContent = '放開！';
+    timer = setTimeout(function(){
+      if (state === 'live') finish(performance.now());
+    }, 3000);
+  }
+  function finish(at){
+    if (state === 'idle' || state === 'done') return;
+    clearTimeout(timer);
+    var ms = (state === 'live') ? (at - gunAt) : null;
+    var v = judge(ms);
+    state = 'done'; held = false;
+    pad.classList.remove('down', 'armed');
+    pad.textContent = '再來一次';
+
+    rtEl.textContent = (ms === null ? '—' : (ms / 1000).toFixed(3));
+    rtEl.className = 'rt ' + (v.ok ? 'ok' : 'foul');
+    say(v.label, v.why, v.ok ? '' : 'foul');
+    mark(ms);
+    tries.push({ ms: ms, v: v });
+    if (tries.length > 8) tries.shift();
+
+    if (v.ok && ms !== null){
+      if (best === null || ms < best) { best = ms; store.set('best', best); }
+      if (cleared < NEED) { cleared++; store.set('cleared', cleared); }
+    }
+    renderLog();
+    syncFiles();
+    PK.announce(v.label + '，' + (ms === null ? '槍還沒響' : (ms / 1000).toFixed(3) + ' 秒'));
+    state = 'idle';
+  }
+
+  /* ── 輸入：指標 ── */
+  pad.addEventListener('pointerdown', function(e){
+    e.preventDefault();
+    if (pad.setPointerCapture && e.pointerId !== undefined) { try{ pad.setPointerCapture(e.pointerId); }catch(err){} }
+    begin();
+  });
+  pad.addEventListener('pointerup', function(e){ e.preventDefault(); if (state !== 'idle') finish(performance.now()); });
+  pad.addEventListener('pointercancel', function(){ if (state !== 'idle') { reset(); PK.announce('已取消'); } });
+  pad.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+  pad.addEventListener('click', function(e){ e.preventDefault(); });
+
+  /* ── 輸入：空白鍵（keydown 會連發，用 held 擋）── */
+  pad.addEventListener('keydown', function(e){
+    if (e.key !== ' ' && e.key !== 'Spacebar' && e.code !== 'Space') return;
+    e.preventDefault();
+    if (e.repeat || held) return;
+    begin();
+  });
+  pad.addEventListener('keyup', function(e){
+    if (e.key !== ' ' && e.key !== 'Spacebar' && e.code !== 'Space') return;
+    e.preventDefault();
+    if (state !== 'idle') finish(performance.now());
+  });
+  pad.addEventListener('blur', function(){ if (state !== 'idle' && state !== 'done') { reset(); } });
+
+  /* 只清成績，不把卷宗鎖回去——看過的東西沒有理由收回 */
+  rstBtn.addEventListener('click', function(){
+    best = null; tries = [];
+    store.del('best');
+    renderLog(); syncFiles(); reset();
+    PK.announce('成績已清除，卷宗留著。');
+  });
+
+  /* ── 起手 ── */
+  renderLog();
+  syncFiles();
+  reset();
+  PK.reveal('.rv');
+})();
+</script>
+</body>
+</html>

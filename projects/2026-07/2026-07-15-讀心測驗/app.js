@@ -654,9 +654,13 @@
       }, { threshold: 0 });
       io.observe(hero);
     }
-    mq.addEventListener('change', function () {
+    /* 舊 Safari 只有 addListener；直接呼叫 addEventListener 會丟例外，
+       連帶把後面的 resize()／start() 一起打斷，畫布會整片空白。（2026-09-20 保養） */
+    var onMotion = function () {
       if (mq.matches) { stop(); drawStatic(); } else start();
-    });
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onMotion);
+    else if (mq.addListener) mq.addListener(onMotion);
     window.addEventListener('resize', debounce(function () {
       resize(); if (!running) drawStatic();
     }, 200));

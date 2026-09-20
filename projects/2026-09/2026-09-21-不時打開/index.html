@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>攪的人不在紙上｜每日小專案</title>
+<meta name="description" content="國會圖書館裡一張長條紙，寫著十八世紀的冰淇淋做法。二十二行只有三行標了時間，最花力氣的那一行寫的是「不時」——那一行要你按住不放。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0e13;
+  --pk-ink:#dfe4e8;
+  --pk-dim:#7d8790;
+  --pk-accent:#e8c46a;
+  --pk-line:rgba(255,255,255,.12);
+  --pk-maxw:720px;
+  --paper:#efe7d4;
+  --paper2:#e4ded0;
+  --inkc:#2f2822;
+  --pencil:#79705f;
+  --cold:#8ed3ec;
+}
+body{
+  background:
+    radial-gradient(120% 80% at 50% -10%, #16202b 0%, rgba(10,14,19,0) 60%),
+    var(--pk-bg);
+}
+
+/* ── 第一屏 ── */
+.pk-hero h1{ letter-spacing:.02em; }
+.eyebrow{
+  font-size:11.5px; letter-spacing:.24em; color:var(--pk-dim);
+  text-transform:uppercase; margin:0 0 20px; line-height:2.2;
+}
+.lede{ font-size:16.5px; color:#a9b2b9; margin:0 0 6px; max-width:30em; }
+.down{ font-size:12px; letter-spacing:.22em; color:var(--pk-dim); margin-top:38px; }
+
+/* ── 紙 ── */
+.paper{
+  position:relative; width:100%; max-width:480px; margin:0 auto 10px;
+  background:var(--paper); color:var(--inkc);
+  padding:40px 30px 44px;
+  box-shadow:0 26px 70px rgba(0,0,0,.6), 0 2px 0 rgba(255,255,255,.05);
+  font-family:var(--pk-serif);
+}
+.paper::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(120,95,50,.10), transparent 70%),
+    radial-gradient(70% 50% at 10% 100%, rgba(120,95,50,.10), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(50,35,10,.020) 0 2px, transparent 2px 5px);
+}
+.paper.two{ background:var(--paper2); color:#32362e; margin-top:46px; }
+
+.doc-h{
+  font-family:var(--pk-serif); font-size:19px; letter-spacing:.06em;
+  margin:0 0 4px; font-weight:600;
+}
+.stamp{
+  font-family:var(--pk-sans); font-size:10.5px; letter-spacing:.2em;
+  color:#8b8270; border:1px solid rgba(60,45,20,.28); border-radius:3px;
+  display:inline-block; padding:4px 9px; margin-bottom:22px;
+}
+.hr{ border:0; border-top:1px solid rgba(60,45,20,.24); margin:22px 0; }
+.hr.dbl{ border-top:3px double rgba(60,45,20,.26); }
+
+/* 原文行 */
+.ln{ margin:0 0 15px; }
+.ln .en{
+  display:block; font-size:16.5px; line-height:1.78; color:var(--inkc);
+  letter-spacing:.005em;
+}
+.ln .zh{
+  display:block; font-family:var(--pk-sans); font-size:13px; line-height:1.9;
+  color:#8b8270; margin-top:1px;
+}
+.ln.amt .en{ font-variant-numeric:tabular-nums; }
+.ln.key{ margin:26px 0 20px; }
+.ln.key .en{ font-size:21px; line-height:1.62; color:#7a2f22; }
+.ln.key .zh{ font-size:14px; color:#7d6a52; }
+
+/* 鉛筆註記（後人加的） */
+.pen{
+  font-family:var(--pk-sans); font-size:13.5px; line-height:1.95;
+  color:var(--pencil); border-left:2px solid rgba(90,80,60,.3);
+  padding-left:13px; margin:18px 0 22px;
+}
+.pen b{ color:#5d5547; font-weight:600; }
+.pen.big{ font-size:15px; color:#5a5244; }
+
+/* ── 破紙而出的實驗台 ── */
+.lab{
+  position:relative; z-index:2;
+  margin:34px -30px; padding:26px 20px 24px;
+  background:linear-gradient(180deg,#0c1218,#0a0f14);
+  color:#dde5ea; font-family:var(--pk-sans);
+  box-shadow:inset 0 14px 26px rgba(0,0,0,.55), inset 0 -14px 26px rgba(0,0,0,.55);
+}
+.lab .tag{
+  font-size:10.5px; letter-spacing:.22em; color:#6f7c85; text-align:center;
+  margin:0 0 4px;
+}
+.lab .how{ font-size:13.5px; color:#93a0a8; text-align:center; margin:0 auto 18px; max-width:26em; line-height:1.85; }
+.potwrap{ width:min(240px,66vw); margin:0 auto; }
+canvas#pot{ display:block; width:100%; aspect-ratio:1/1; height:auto; border-radius:50%; }
+.dials{ display:flex; justify-content:center; gap:14px; margin:16px 0 4px; flex-wrap:wrap; }
+.dial{ text-align:center; min-width:74px; }
+.dial b{ display:block; font-size:21px; font-weight:600; font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+.dial span{ display:block; font-size:10px; letter-spacing:.16em; color:#6f7c85; margin-top:2px; }
+.dial.cold b{ color:var(--cold); }
+.dial.grit b{ color:#e8c46a; }
+.bar{ position:relative; height:5px; border-radius:3px; background:rgba(255,255,255,.1); margin:14px auto 18px; max-width:260px; overflow:hidden; }
+.bar i{ position:absolute; left:0; top:0; bottom:0; width:100%; background:linear-gradient(90deg,#4f7f95,var(--cold)); transform-origin:0 50%; transform:scaleX(0); }
+.churn{
+  display:block; margin:0 auto; font-family:inherit; font-size:15.5px; letter-spacing:.2em;
+  padding:16px 34px; border-radius:999px; cursor:pointer;
+  color:#0b1016; background:var(--cold); border:1px solid var(--cold);
+  touch-action:none; -webkit-user-select:none; user-select:none;
+  transition:transform .12s ease, box-shadow .2s ease, background .2s ease;
+}
+.churn:hover{ box-shadow:0 0 0 6px rgba(142,211,236,.14); }
+.churn.on{ background:#fff; border-color:#fff; transform:scale(.97); box-shadow:0 0 0 12px rgba(142,211,236,.1); }
+.churn:disabled{ opacity:.4; cursor:default; box-shadow:none; }
+.say{ text-align:center; font-size:13.5px; color:#93a0a8; margin:16px auto 0; min-height:1.9em; max-width:28em; line-height:1.85; }
+.out{ display:none; margin:18px auto 0; max-width:30em; border-top:1px solid rgba(255,255,255,.14); padding-top:18px; }
+.out.show{ display:block; }
+.out h3{ font-family:var(--pk-serif); font-size:24px; margin:0 0 6px; text-align:center; color:#fff; }
+.out p{ font-size:13.5px; color:#93a0a8; line-height:1.95; margin:0 0 10px; text-align:center; }
+.out .num{ color:#e8c46a; font-variant-numeric:tabular-nums; }
+.again{ display:block; margin:14px auto 0; background:transparent; color:#93a0a8; border:1px solid rgba(255,255,255,.22); border-radius:999px; padding:9px 20px; font-family:inherit; font-size:12.5px; letter-spacing:.14em; cursor:pointer; }
+.again:hover{ color:#fff; border-color:#fff; }
+
+/* ── 收束 ── */
+.close{ max-width:26em; margin:40px auto 0; color:#a9b2b9; font-size:16px; line-height:2; }
+.close .last{ font-family:var(--pk-serif); font-size:20px; color:#fff; line-height:1.8; margin-top:26px; }
+
+@media (max-width:560px){
+  .paper{ padding:30px 20px 34px; }
+  .lab{ margin:30px -20px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .churn{ transition:none; }
+  .bar i{ transition:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="eyebrow rv">美國國會圖書館 · 傑佛遜文件<br>未註明日期 · 一張長條紙</p>
+    <h1 class="rv">攪的人不在紙上</h1>
+    <p class="lede rv">那張紙比手掌寬一點，從頭到尾同一個筆跡，寫的是冰淇淋。</p>
+    <p class="lede rv">二十二行，從打蛋黃寫到怎麼把模子倒扣出來。只有三行標了時間。</p>
+    <p class="lede rv">最花力氣的那一行，寫的是「不時」。</p>
+    <p class="down rv">往下讀 ↓</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+<article class="paper rv">
+
+  <p class="stamp">Thomas Jefferson Papers</p>
+  <h2 class="doc-h">Ice Cream.</h2>
+  <hr class="hr dbl">
+
+  <p class="ln amt"><span class="en">2. bottles of good cream.</span><span class="zh">好奶油兩瓶</span></p>
+  <p class="ln amt"><span class="en">6. yolks of eggs.</span><span class="zh">蛋黃六顆</span></p>
+  <p class="ln amt"><span class="en">1/2 lb. sugar</span><span class="zh">糖半磅</span></p>
+
+  <p class="pen">份量以外沒有任何說明。這種紙不是寫給新手的——它假設拿到的人已經站在爐子前面了。</p>
+
+  <p class="ln"><span class="en">mix the yolks &amp; sugar</span><span class="zh">蛋黃和糖先拌開</span></p>
+  <p class="ln"><span class="en">put the cream on a fire in a casserole, first putting in a stick of Vanilla.</span><span class="zh">奶油下鍋加熱，先丟一根香草莢進去</span></p>
+  <p class="ln"><span class="en">when near boiling take it off &amp; pour it gently into the mixture of eggs &amp; sugar.</span><span class="zh">快滾就離火，慢慢沖進蛋糖裡</span></p>
+  <p class="ln"><span class="en">stir it well.</span><span class="zh">攪勻</span></p>
+  <p class="ln"><span class="en">put it on the fire again stirring it thoroughly with a spoon to prevent it's sticking to the casserole.</span><span class="zh">回鍋，拿湯匙攪到底，別讓它黏鍋</span></p>
+  <p class="ln"><span class="en">when near boiling take it off and strain it thro' a towel.</span><span class="zh">再次快滾時離火，用一條布濾過</span></p>
+
+  <p class="pen">到這裡為止，都還是一鍋英式蛋奶醬。下一行開始，這張紙換了語言。</p>
+
+  <p class="ln"><span class="en">put it in the <b>Sabottiere</b></span><span class="zh">倒進 sabottiere</span></p>
+
+  <p class="pen"><b>Sabottiere。</b>法文 sorbetière，冰桶。這個字在紙上出現四次，被拼成兩種樣子——Sabottiere 和 Sabotiere，交替出現。寫的人是照著耳朵拼的：他在抄一個他聽過、但沒讀過的字。</p>
+
+  <p class="ln"><span class="en">then set it in ice an hour before it is to be served. put into the ice <b>a handful of salt</b>.</span><span class="zh">上桌前一小時埋進冰裡，冰裡撒一把鹽</span></p>
+
+  <p class="pen">一把鹽。純冰最低就是 0°C，凍不出冰淇淋。撒鹽之後冰開始融，融化要吸熱，那桶鹽冰水可以掉到零下十幾度（理論下限約 −21°C）。十八世紀的冷凍庫，就是一桶加了鹽的碎冰。</p>
+
+  <p class="ln"><span class="en">put salt on the coverlid of the Sabotiere &amp; cover the whole with ice.</span><span class="zh">桶蓋上也撒鹽，整個埋起來</span></p>
+  <p class="ln"><span class="en">leave it still half a quarter of an hour.</span><span class="zh">靜置一刻鐘的一半</span></p>
+  <p class="ln"><span class="en">then turn the Sabottiere in the ice 10 minutes</span><span class="zh">然後在冰裡轉十分鐘</span></p>
+
+  <p class="pen">一小時。七分半。十分鐘。全紙的數字就這三個，都在這一段。</p>
+
+  <p class="ln"><span class="en">open it to loosen with a spatula the ice from the inner sides of the Sabotiere.</span><span class="zh">打開，用抹刀把內壁的冰鬆下來</span></p>
+  <p class="ln"><span class="en">shut it &amp; replace it in the ice</span><span class="zh">蓋回去，放回冰裡</span></p>
+
+  <hr class="hr">
+
+  <p class="ln key"><span class="en">open it from time to time to detach the ice from the sides</span><span class="zh">不時打開，把黏在桶壁上的冰刮下來</span></p>
+
+  <p class="pen big">前面兩行交代得清清楚楚：開蓋、刮壁、蓋回去。<br>然後這一行說：<b>再來一次。</b><br>幾次？多久一次？刮到什麼程度？——from time to time。</p>
+
+  <p class="pen">桶壁最冷，冰先在那裡結。那層殼有兩個麻煩：它自己會愈長愈大，而且冰導熱很差，殼一厚，裡面的熱就出不去。所以要刮。刮下來、攪散，一層殼就變成幾萬顆各自獨立的小結晶。冰晶大約超過 50 微米，舌頭就嚐得到砂。而放著不動的冰晶會互相吞併，只會愈長愈粗。</p>
+
+  <!-- ── 高潮：你的手臂 ── -->
+  <section class="lab" aria-labelledby="labh">
+    <p class="tag" id="labh">一七九〇年代 · 一桶鹽冰 · 你的手臂</p>
+    <p class="how">按住＝開蓋、刮壁、轉桶。放開，桶壁三秒就開始結殼。</p>
+
+    <div class="potwrap">
+      <canvas id="pot" aria-hidden="true"></canvas>
+    </div>
+
+    <div class="dials">
+      <div class="dial cold"><b id="dT">+4.0</b><span>桶內 °C</span></div>
+      <div class="dial"><b id="dF">0</b><span>凝固 %</span></div>
+      <div class="dial grit"><b id="dR">—</b><span>冰晶 µm</span></div>
+    </div>
+    <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+
+    <button class="churn" id="churn" type="button" aria-describedby="say">按 住 不 放</button>
+    <p class="say" id="say" role="status" aria-live="polite">鍋還是溫的。按住開始。</p>
+
+    <div class="out" id="out">
+      <h3 id="outT">—</h3>
+      <p id="outD"></p>
+      <p id="outS"></p>
+      <button class="again" id="again" type="button">再做一桶</button>
+    </div>
+  </section>
+
+  <p class="ln"><span class="en">when well taken (prise) stir it well with the Spatula.</span><span class="zh">凝好了，用抹刀再攪透一次</span></p>
+  <p class="ln"><span class="en">put it in moulds, justling it well down <b>on the knee</b>.</span><span class="zh">填進模子，在膝蓋上頓實</span></p>
+
+  <p class="pen">on the knee——在膝蓋上頓。這是整張紙上唯一出現的身體部位。誰的膝蓋，沒有寫。</p>
+
+  <p class="ln"><span class="en">then put the mould into the same bucket of ice.</span><span class="zh">模子放回同一桶冰</span></p>
+  <p class="ln"><span class="en">leave it there to the moment of serving it.</span><span class="zh">放到上桌那一刻</span></p>
+  <p class="ln"><span class="en">to withdraw it, immerse the mould in warm water, turning it well till it will come out &amp; turn it into a plate.</span><span class="zh">要脫模，把模子泡進溫水，轉一轉，倒扣到盤子上</span></p>
+
+</article>
+
+<article class="paper two rv">
+  <p class="stamp">同一批檔案 · 1796.02.20 · 另一個筆跡</p>
+  <h2 class="doc-h">Inventory of Kitchen Furniture</h2>
+  <hr class="hr dbl">
+  <p class="ln"><span class="en">…&nbsp;&nbsp;2 Freising moulds</span><span class="zh">冷凍模，兩個</span></p>
+  <hr class="hr">
+
+  <p class="pen big">寫這張清單的人叫 <b>James Hemings</b>。</p>
+
+  <p class="pen">他九歲被帶進蒙蒂塞洛，十九歲被帶去巴黎。傑佛遜在信上說要帶他去，是為了「一個特別的目的」——學廚藝。他學了三年，當上那棟房子的主廚，月薪二十四里弗，還自己掏錢請家教學法文。他在巴黎的身分，是奴隸。</p>
+
+  <p class="pen">第一張紙上的做法，多半就是那幾年帶回來的。傑佛遜的孫女後來抄過幾乎一模一樣的一份，註明來源是「Petit」——同一棟房子的法國管家。至於誰蹲在冰桶旁邊開蓋、刮壁、轉桶，配方沒有寫。</p>
+
+  <p class="pen">Hemings 一七九六年二月五日拿到解放文書。這張廚房清單，是十五天以後寫的。他自由了五年，一八〇一年過世，三十六歲。</p>
+</article>
+
+<div class="close rv">
+  <p>兩張紙如今收在同一批檔案裡。一張教你攪到什麼程度；另一張告訴你，那兩個冷凍模擺在誰的廚房。</p>
+  <p class="last">攪的人不在第一張紙上。<br>他在第二張。</p>
+</div>
+
+<footer class="pk-foot">
+  資料來源：Monticello「Thomas Jefferson Encyclopedia」、美國國會圖書館 Thomas Jefferson Papers。
+</footer>
+</main>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+var LS = 'sabot.';
+var store = PK.store(LS);
+
+PK.reveal();
+
+/*__CORE__*/
+/* 一桶鹽冰裡的蛋奶醬：溫度、凝固度、平均冰晶直徑（µm）。
+   物理精神：刮壁＝桶壁熱阻消失；靜置＝冰殼隔熱兼結晶長大。 */
+var POT = {
+  Tb: -13,        /* 鹽冰槽溫度 °C */
+  Tf: -2.5,       /* 含糖蛋奶醬的凝固點 */
+  kOn: 0.055,     /* 刮乾淨的桶壁：熱出得去 */
+  kOff: 0.013,    /* 結了冰殼：冰是壞導體 */
+  kFreeze: 0.019, /* 凝固速率 */
+  idleFreeze: .2, /* 沒攪時凝固效率 */
+  grow: 0.46,     /* 靜置時結晶長大係數 */
+  shear: 0.55,    /* 攪動時碎成小結晶 */
+  scar: 0.6,      /* 長過的大結晶碎掉以後，碎片仍比原生冰晶粗（不可逆的那一半） */
+  rMin: 9, rMax: 420
+};
+function startPot() { return { T: 4, F: 0, R: POT.rMin, peak: POT.rMin, held: 0, t: 0, lets: 0 }; }
+function stepPot(s, dt, hold, P) {
+  P = P || POT;
+  if (dt > 0.1) dt = 0.1;
+  var k = hold ? P.kOn : P.kOff;
+  var T = s.T - k * (s.T - P.Tb) * (1 - 0.7 * s.F) * dt;
+  var F = s.F;
+  if (T < P.Tf) F = s.F + P.kFreeze * (P.Tf - T) * (hold ? 1 : P.idleFreeze) * dt;
+  if (F > 1) F = 1; if (F < 0) F = 0;
+  var R = hold ? s.R + (P.rMin - s.R) * P.shear * dt
+               : s.R + (1.5 + 46 * s.F) * P.grow * dt;
+  if (R > P.rMax) R = P.rMax;
+  var peak = R > s.peak ? R : s.peak;
+  var floor = P.rMin + P.scar * (peak - P.rMin);   /* 刮得再勤也回不去的底 */
+  if (R < floor) R = floor;
+  if (R < P.rMin) R = P.rMin;
+  return { T: T, F: F, R: R, peak: peak, held: s.held + (hold ? dt : 0), t: s.t + dt, lets: s.lets };
+}
+function verdict(R) {
+  if (R <= 34) return { s: '綿密', d: '舌頭找不到一顆冰晶。十八世紀的規格，你達到了。' };
+  if (R <= 62) return { s: '吃得出細砂', d: '不算難吃，但每一口你都知道它在那裡。' };
+  if (R <= 120) return { s: '冰渣', d: '比較像在咬一杯剉冰。' };
+  return { s: '一桶冰塊', d: '桶壁的殼贏了。這已經不能叫冰淇淋。' };
+}
+/* 幾顆結晶：總冰量固定時，愈粗的結晶顆數愈少 */
+function grainCount(F, R) {
+  var n = Math.round(F * 2400 / Math.pow(R, 1.1));
+  return Math.max(F > 0.02 ? 5 : 0, Math.min(520, n));
+}
+/*__/CORE__*/
+
+/* ── 畫面 ── */
+var cv = document.getElementById('pot'), ctx = cv.getContext('2d');
+var elT = document.getElementById('dT'), elF = document.getElementById('dF'),
+    elR = document.getElementById('dR'), bar = document.getElementById('bar'),
+    btn = document.getElementById('churn'), say = document.getElementById('say'),
+    out = document.getElementById('out'), outT = document.getElementById('outT'),
+    outD = document.getElementById('outD'), outS = document.getElementById('outS'),
+    again = document.getElementById('again');
+
+var st = startPot(), holding = false, done = false, ang = 0, acc = 0, mark = 0;
+
+/* 固定的結晶座標（不會每次載入亂跳） */
+var SEEDS = [];
+for (var i = 0; i < 520; i++) {
+  var a = PK.hash('a' + i) * Math.PI * 2, rr = Math.sqrt(PK.hash('r' + i)) * 0.9;
+  SEEDS.push({ a: a, r: rr, w: 0.7 + PK.hash('w' + i) * 0.6 });
+}
+
+function draw() {
+  var m = PK.fitCanvas(cv, cv.clientWidth);
+  if (m.w < 60) return;
+  ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+  ctx.clearRect(0, 0, m.w, m.h);
+  var cx = m.w / 2, cy = m.h / 2, rad = Math.min(m.w, m.h) / 2 - 7;
+
+  /* 蛋奶醬：愈冷愈白、愈不透 */
+  var chill = PK.clamp((4 - st.T) / 17, 0, 1);
+  var g = ctx.createRadialGradient(cx - rad * .3, cy - rad * .35, rad * .1, cx, cy, rad);
+  g.addColorStop(0, 'rgba(255,250,232,' + (0.55 + chill * 0.45).toFixed(3) + ')');
+  g.addColorStop(1, 'rgba(216,203,170,' + (0.5 + chill * 0.45).toFixed(3) + ')');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(cx, cy, rad, 0, 6.2832); ctx.fill();
+
+  /* 桶壁冰殼：沒攪的時候長出來 */
+  var crust = PK.clamp((st.R - POT.rMin) / 90, 0, 1) * PK.clamp(st.F * 3, 0, 1);
+  if (crust > 0.01) {
+    ctx.strokeStyle = 'rgba(255,255,255,' + (crust * 0.55).toFixed(3) + ')';
+    ctx.lineWidth = 3 + crust * 9;
+    ctx.beginPath(); ctx.arc(cx, cy, rad - (1.5 + crust * 4.5), 0, 6.2832); ctx.stroke();
+  }
+
+  /* 冰晶 */
+  var n = grainCount(st.F, st.R);
+  var px = 0.9 + st.R * 0.05;
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  for (var j = 0; j < n; j++) {
+    var s = SEEDS[j], aa = s.a + ang * (0.6 + s.r * 0.8);
+    var x = cx + Math.cos(aa) * s.r * (rad - px * 1.6);
+    var y = cy + Math.sin(aa) * s.r * (rad - px * 1.6);
+    ctx.beginPath(); ctx.arc(x, y, px * s.w, 0, 6.2832); ctx.fill();
+  }
+
+  /* 桶緣 */
+  ctx.strokeStyle = 'rgba(150,166,178,.85)'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(cx, cy, rad + 2, 0, 6.2832); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(cx, cy, rad - 1, 0, 6.2832); ctx.stroke();
+
+  /* 抹刀：按住時貼著桶壁刮 */
+  if (holding && !done) {
+    ctx.save();
+    ctx.translate(cx, cy); ctx.rotate(ang);
+    ctx.strokeStyle = 'rgba(70,60,48,.92)'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(rad * .18, 0); ctx.lineTo(rad * .9, 0); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, 0, rad * .9, -0.5, 0.06); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function dials() {
+  elT.textContent = (st.T >= 0 ? '+' : '') + st.T.toFixed(1);
+  elF.textContent = Math.round(st.F * 100);
+  elR.textContent = st.F < 0.02 ? '—' : Math.round(st.R);
+  bar.style.transform = 'scaleX(' + st.F.toFixed(3) + ')';
+}
+
+var LINES = [
+  [0.001, '溫度在掉。還沒有任何東西在結。'],
+  [0.06, '桶壁開始有東西了。別停。'],
+  [0.35, '三分之一。抹刀刮得到阻力了。'],
+  [0.7, '快了。手臂現在大概在抗議。'],
+  [0.95, '最後一點。']
+];
+function talk() {
+  if (done) return;
+  for (var i = LINES.length - 1; i >= 0; i--) {
+    if (st.F >= LINES[i][0] && mark < i + 1) { mark = i + 1; say.textContent = LINES[i][1]; return; }
+  }
+  if (!holding && st.F > 0.05 && st.R > 45) say.textContent = '你放手了。桶壁正在結殼。';
+}
+
+function finish() {
+  done = true; holding = false; btn.classList.remove('on');
+  btn.disabled = true; btn.textContent = '凝 好 了';
+  var v = verdict(st.R);
+  outT.textContent = v.s;
+  outD.textContent = v.d + '（平均冰晶 ' + Math.round(st.R) + ' µm）';
+  var held = st.held.toFixed(0);
+  var best = store.get('best', null);
+  var line = '你按住了 <span class="num">' + held + '</span> 秒';
+  line += st.lets === 0 ? '，一次都沒放手。' : '，中間放手 ' + st.lets + ' 次。';
+  line += '紙上有數字的步驟是一小時、七分半、十分鐘；沒有數字的那一行，你做了 ' + held + ' 秒。';
+  if (best !== null) line += '<br>你最好的一桶：' + Math.round(best) + ' µm。';
+  outS.innerHTML = line;
+  if (best === null || st.R < best) store.set('best', st.R);
+  out.classList.add('show');
+  say.textContent = '';
+  PK.announce('凝固完成，' + v.s + '，平均冰晶 ' + Math.round(st.R) + ' 微米。');
+}
+
+function frame(dt) {
+  if (!done) {
+    st = stepPot(st, dt, holding);
+    if (st.F >= 1) { dials(); draw(); finish(); return; }
+  }
+  ang += dt * (PK.reduced() ? 0 : (holding && !done ? 2.4 : 0.12));
+  acc += dt;
+  if (acc > 0.1) { acc = 0; dials(); talk(); }
+  draw();
+}
+PK.tick(frame);
+
+/* ── 按住（滑鼠／觸控／鍵盤都要能用） ── */
+function grab(e) {
+  if (done || holding) return;
+  holding = true; btn.classList.add('on'); btn.textContent = '刮 · 轉 · 別 停';
+  if (e && e.preventDefault) e.preventDefault();
+}
+function drop() {
+  if (!holding) return;
+  holding = false; st.lets++; btn.classList.remove('on'); btn.textContent = '按 住 不 放';
+  if (!done && st.F > 0.05) say.textContent = '你放手了。桶壁正在結殼。';
+}
+btn.addEventListener('pointerdown', grab);
+window.addEventListener('pointerup', drop);
+window.addEventListener('pointercancel', drop);
+btn.addEventListener('keydown', function (e) {
+  if (e.key === ' ' || e.key === 'Enter' || e.key === 'Spacebar') { e.preventDefault(); grab(); }
+});
+btn.addEventListener('keyup', function (e) {
+  if (e.key === ' ' || e.key === 'Enter' || e.key === 'Spacebar') { e.preventDefault(); drop(); }
+});
+btn.addEventListener('blur', drop);
+document.addEventListener('visibilitychange', function () { if (document.hidden) drop(); });
+
+again.addEventListener('click', function () {
+  st = startPot(); done = false; mark = 0; ang = 0;
+  btn.disabled = false; btn.textContent = '按 住 不 放';
+  out.classList.remove('show');
+  say.textContent = '新的一桶。鍋還是溫的。';
+  dials(); draw();
+});
+
+dials(); draw();
+window.addEventListener('resize', draw);
+</script>
+</body>
+</html>

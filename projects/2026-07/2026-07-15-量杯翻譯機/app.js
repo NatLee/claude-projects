@@ -126,6 +126,9 @@ var gaugeRAF = 0;
 function tweenGrams(from, to){
   if (gaugeRAF) cancelAnimationFrame(gaugeRAF);
   if (reduce || document.hidden){ els.gVal.textContent = fmtGrams(to); return; }
+  /* 2026-09-21 保養：#gVal 是 aria-live 區，滾動途中每幀改字會讓螢幕閱讀器
+     連播數十次中間值。動畫期間關掉播報，落定前再開回 polite，只報最後的數字。 */
+  els.gVal.setAttribute("aria-live", "off");
   var t0 = 0, dur = 620;
   function step(ts){
     if (!t0) t0 = ts;
@@ -133,7 +136,7 @@ function tweenGrams(from, to){
     var e = 1 - Math.pow(1 - p, 3);
     els.gVal.textContent = fmtGrams(from + (to - from) * e);
     if (p < 1) gaugeRAF = requestAnimationFrame(step);
-    else els.gVal.textContent = fmtGrams(to);
+    else { els.gVal.setAttribute("aria-live", "polite"); els.gVal.textContent = fmtGrams(to); }
   }
   gaugeRAF = requestAnimationFrame(step);
 }

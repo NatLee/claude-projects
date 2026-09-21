@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我不在名詞裡｜每日小專案</title>
+<meta name="description" content="換個筆名、換個口氣、換個題目，你換不掉的是那些不起眼的字。寫兩段話，讓它們指認你。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0b0f; --pk-ink:#ece6da; --pk-dim:#7e7a72;
+  --pk-accent:#6fd3c7;          /* 虛詞＝骨架，冷色 */
+  --flesh:#f3ead9;              /* 實詞＝肉，暖白 */
+  --pk-line:rgba(255,255,255,.1);
+  --pk-maxw:660px;
+}
+body{background:
+  radial-gradient(900px 620px at 78% -8%, rgba(111,211,199,.075), transparent 62%),
+  radial-gradient(700px 520px at 6% 104%, rgba(224,164,88,.05), transparent 60%),
+  var(--pk-bg);
+}
+
+/* ── 第一屏 ── */
+.pk-hero h1{font-size:clamp(26px,6.6vw,42px);line-height:1.55;margin-bottom:26px}
+.t2{display:block;color:var(--pk-accent)}
+.lede{color:var(--pk-dim);font-size:15px;max-width:34em}
+.caret{display:inline-block;width:.55em;border-bottom:2px solid var(--pk-accent);
+  transform:translateY(-.12em);animation:bl 1.05s steps(1,end) infinite}
+@keyframes bl{50%{opacity:0}}
+
+/* ── 章節 ── */
+.ch{margin:0 0 10vh;scroll-margin-top:24px}
+.chn{font-size:11.5px;letter-spacing:.34em;color:var(--pk-accent);opacity:.75;margin-bottom:6px}
+.ch h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(20px,4.6vw,27px);
+  line-height:1.55;margin:0 0 18px}
+.ch p{font-size:16.5px;margin:0 0 18px}
+.q{font-family:var(--pk-serif);font-size:clamp(19px,4.4vw,25px);line-height:1.7;
+  color:var(--flesh);margin:30px 0;padding-left:18px;border-left:2px solid var(--pk-accent)}
+.locked{display:none}
+
+/* ── 輸入 ── */
+.box{border:1px solid var(--pk-line);border-radius:14px;padding:18px;
+  background:rgba(255,255,255,.022)}
+.box label{display:block;font-size:12.5px;letter-spacing:.14em;color:var(--pk-accent);margin-bottom:10px}
+textarea{width:100%;min-height:150px;resize:vertical;background:rgba(0,0,0,.28);
+  color:var(--pk-ink);border:1px solid var(--pk-line);border-radius:9px;padding:13px 14px;
+  font-family:var(--pk-serif);font-size:16px;line-height:1.95}
+textarea::placeholder{color:#565349}
+.row{display:flex;flex-wrap:wrap;gap:11px;align-items:center;margin-top:13px}
+.cnt{font-size:12.5px;color:var(--pk-dim);margin-left:auto;font-variant-numeric:tabular-nums}
+.cnt.ok{color:var(--pk-accent)}
+.ghost{border-color:var(--pk-line);color:var(--pk-dim);font-size:13.5px;padding:10px 17px}
+.ghost:hover{background:rgba(255,255,255,.07);color:var(--pk-ink)}
+
+/* ── 文本舞台：實詞／虛詞兩層 ── */
+.stage{font-family:var(--pk-serif);font-size:17.5px;line-height:2.35;letter-spacing:.02em;
+  border:1px solid var(--pk-line);border-radius:14px;padding:22px 20px;
+  background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0));
+  word-break:break-word}
+.tk{transition:opacity .55s ease var(--d)}
+.cw{color:var(--flesh)}
+.fw{color:var(--pk-accent)}
+.pu{color:var(--pk-dim);opacity:.55}
+.stage1.in .cw{opacity:.07}
+.stage2.in .fw{opacity:.09}
+.cap{font-size:12.5px;color:var(--pk-dim);margin-top:11px}
+
+/* ── 指紋長條 ── */
+.bars{margin:26px 0 8px;display:grid;gap:9px}
+.bar{display:grid;grid-template-columns:3.4em 1fr 4.1em;align-items:center;gap:11px;font-size:14px}
+.bw{background:hsla(0,0%,100%,.06);border-radius:4px;height:9px;overflow:hidden}
+.bf{height:100%;background:linear-gradient(90deg,var(--pk-accent),#9ae6c9);
+  border-radius:4px;transform:scaleX(0);transform-origin:left center;
+  transition:transform .95s cubic-bezier(.2,.75,.25,1) var(--d)}
+.bars.in .bf{transform:scaleX(var(--v))}
+.bk{font-family:var(--pk-serif);font-size:16px;color:var(--flesh)}
+.bv{font-size:12px;color:var(--pk-dim);text-align:right;font-variant-numeric:tabular-nums}
+
+/* ── 比對結果 ── */
+.rank{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:8px}
+.rank li{display:grid;grid-template-columns:1.6em 1fr auto;gap:11px;align-items:center;
+  padding:11px 13px;border:1px solid var(--pk-line);border-radius:11px;font-size:14.5px;
+  background:rgba(255,255,255,.02)}
+.rank li.you{border-color:var(--pk-accent);background:rgba(111,211,199,.1)}
+.rk{color:var(--pk-dim);font-variant-numeric:tabular-nums;font-size:13px}
+.nm{color:var(--flesh)}
+.nm small{display:block;color:var(--pk-dim);font-size:12px;letter-spacing:.02em}
+.dv{font-size:12.5px;color:var(--pk-dim);font-variant-numeric:tabular-nums}
+.verdict{margin-top:24px}
+.verdict .big{font-family:var(--pk-serif);font-size:clamp(20px,4.8vw,27px);
+  line-height:1.6;color:var(--flesh);margin:0 0 14px}
+.note{font-size:13.5px;color:var(--pk-dim);border-top:1px solid var(--pk-line);padding-top:14px;margin-top:22px}
+.warn{color:#e0a458;font-size:13.5px;margin-top:10px;min-height:1.2em}
+
+/* ── 尾聲 ── */
+.coda{margin:12vh 0 0;padding:30px 0 0;border-top:1px solid var(--pk-line)}
+.coda .big{font-family:var(--pk-serif);font-size:clamp(21px,5.2vw,30px);line-height:1.65;
+  color:var(--flesh);margin:26px 0 0}
+.coda .big em{font-style:normal;color:var(--pk-accent)}
+
+@media (max-width:560px){
+  .stage{font-size:16.5px;line-height:2.2;padding:18px 15px}
+  .bar{grid-template-columns:3em 1fr 3.6em;font-size:13px}
+  .cnt{width:100%;margin-left:0;text-align:right}
+}
+@media (prefers-reduced-motion:reduce){
+  .caret{animation:none}
+  .tk{transition:none}
+  .bf{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <h1><span id="t1">換個筆名，換個口氣，換個題目。</span><span class="t2" id="t2">有一樣東西你換不掉。</span></h1>
+    <p class="lede rv">往下走之前，先寫幾句話。今天吃了什麼、昨天在氣什麼、隨便什麼都行。八十個字以上，後面用得到。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- 序章：餵自己的資料 -->
+  <section class="ch rv" id="ch0">
+    <div class="box">
+      <label for="ta">你的第一段</label>
+      <textarea id="ta" placeholder="隨便寫。寫給誰都可以。"></textarea>
+      <div class="row">
+        <button class="pk-btn" id="go">拆開它</button>
+        <button class="pk-btn ghost" id="demo">沒空寫？用示範文字</button>
+        <span class="cnt" id="cnt">0 字</span>
+      </div>
+      <div class="warn" id="warn"></div>
+    </div>
+  </section>
+
+  <!-- 第一章 -->
+  <section class="ch locked" id="ch1">
+    <div class="chn">第一章</div>
+    <h2>先把肉拿掉</h2>
+    <p>我把你句子裡所有「有意思」的字調暗了。留在亮處的，是你從來沒注意過的那幾十個。</p>
+    <div class="stage stage1" id="st1" aria-hidden="true"></div>
+    <p class="cap">同一段文字，實詞調暗。</p>
+    <p class="q">留下來的字，沒有一個是你想說的。它們不指涉東西，不描述畫面。它們是關節。</p>
+  </section>
+
+  <!-- 第二章 -->
+  <section class="ch locked" id="ch2">
+    <div class="chn">第二章</div>
+    <h2>再把骨頭拿掉</h2>
+    <p>反過來。關節調暗，只留肉。</p>
+    <div class="stage stage2" id="st2" aria-hidden="true"></div>
+    <p class="cap">同一段文字，虛詞調暗。</p>
+    <p>讀起來像電報。意思幾乎全在——發電報的年代按字計費，被刪掉的正好都是關節。</p>
+    <p class="q">所以第一章那副骨架，可以丟了嗎？</p>
+  </section>
+
+  <!-- 第三章 -->
+  <section class="ch locked" id="ch3">
+    <div class="chn">第三章</div>
+    <h2>丟不得</h2>
+    <p>肉是題目給你的。你寫貓，貓就出現；你寫離職，離職就出現。換一個題目，肉整批換掉。</p>
+    <p>骨架不是。沒有人在寫作時決定今天要用幾個「的」、要不要在句尾加「而已」、該用「但是」還是「不過」。這些字高頻、無意識、與內容幾乎無關——三個條件加起來，剛好就是指紋的定義。</p>
+    <p>從十九世紀起，就有人在數這些字。這門手藝叫計量文體學。</p>
+    <div class="bars" id="bars" aria-label="你最常用的虛詞"></div>
+    <p class="cap" id="barcap"></p>
+    <p style="margin-top:34px">2013 年 4 月，一本偵探小說在英國上市。作者 Robert Galbraith，前皇家憲兵，沒人聽過。三個月賣掉一千五百本。</p>
+    <p>《星期日泰晤士報》的記者盯上它：一個新人不該寫得這麼熟練。他把書交給牛津的 Peter Millican 和杜肯大學的 Patrick Juola。兩套程式都不讀劇情，只數詞。</p>
+    <p class="q">跑出來離得最近的那個人，是 J.K. 羅琳。</p>
+  </section>
+
+  <!-- 第四章：高潮 -->
+  <section class="ch locked" id="ch4">
+    <div class="chn">第四章</div>
+    <h2>換一個人寫</h2>
+    <p>輪到你了。再寫一段，但這次不要當你自己。換題目、換語氣，學你最討厭的那種人講話，怎麼偽裝都行。</p>
+    <div class="box">
+      <label for="tb">你的第二段（偽裝過的）</label>
+      <textarea id="tb" placeholder="假裝你是別人。越不像你越好。"></textarea>
+      <div class="row">
+        <button class="pk-btn" id="go2">比對</button>
+        <button class="pk-btn ghost" id="again">清空重來</button>
+        <span class="cnt" id="cnt2">0 字</span>
+      </div>
+      <div class="warn" id="warn2"></div>
+    </div>
+    <div id="result" aria-live="polite"></div>
+  </section>
+
+  <!-- 尾聲 -->
+  <section class="ch coda locked" id="ch5">
+    <div class="chn">尾聲</div>
+    <p>Galbraith 的故事還有最後一段，而且不在程式裡。</p>
+    <p>羅琳的律師事務所有位合夥人，對一個朋友提了一句。那位朋友在推特上跟記者說了出去。報社收到風聲在先，把書送去做詞頻分析，是為了確認。事後羅琳提告，對方公開道歉、賠償了事。</p>
+    <p class="big">機器要讀完你幾萬個「的」。<br><em>人只需要一頓飯。</em></p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：BBC News、Pittsburgh Post-Gazette、維基百科 Stylometry 條目。比對方法：Burrows's Delta。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'fnwd.';
+const store = PK.store(LS);
+
+/*<<CORE>>*/
+/* ── 虛詞表（顯示用；含代詞） ───────────────────────────── */
+var ZH_MULTI = ['因為','所以','如果','雖然','但是','而且','還是','可是','不過','其實','已經',
+'正在','應該','可能','也許','就是','什麼','這樣','那樣','這麼','那麼','怎麼','於是','然後',
+'然而','因此','除了','對於','關於','根據','透過','以及','或者','並且','甚至','竟然','居然',
+'當然','其中','之後','之前','的話','一直','總是','常常','非常','十分','終於','沒有','不是',
+'那些','這些','一些','所有','任何','幾乎','大概','似乎','好像','而已','起來','下去','出來',
+'一樣','一定','必須','可以','能夠','由於','此外','是否','以免','我們','你們','他們','她們','自己'];
+var ZH_SINGLE = ['的','了','是','在','就','也','都','而','但','卻','又','還','很','太','更','最',
+'不','沒','把','被','讓','給','對','從','跟','和','與','或','只','才','會','要','能','有','這','那',
+'之','其','於','以','為','嗎','呢','吧','啊','喔','呀','麼','得','地','著','過','個','上','下','裡',
+'中','些','再','便','即','且','若','則','由','向','至','到','去','來','各','每','並','如','此','乃',
+'已','曾','將','正','剛','另','亦','啦','嘛','哦','耶','欸','唷','咧','囉','哩','呵',
+'我','你','妳','他','她','它','牠','們','誰'];
+var ZH_PRON = ['我','你','妳','他','她','它','牠','們','誰','我們','你們','他們','她們','自己'];
+
+var EN_FUNC = ('the of and to a in that it is was for on you he be with as by at have are this not '
++'but had his they from or an she which we there been has were their if would all will so no when do '
++'my one me what who more about up out them can than into only some could other then its over after '
++'our just also very any how such most these those being because while though although upon whilst '
++'shall may might must should did does am her him us your thus hence however therefore indeed rather '
++'quite yet still even much many few both each either neither nor per via within without between '
++'among against through during before down off again once here where why own same too under further').split(' ');
+var EN_PRON = ('i you he she it we they me him her us them my your his its our their myself yourself '
++'himself herself itself ourselves themselves one who').split(' ');
+
+var MULTI_SET = new Set(ZH_MULTI), SINGLE_SET = new Set(ZH_SINGLE);
+var PRON_SET = new Set(ZH_PRON.concat(EN_PRON));
+var ENF_SET = new Set(EN_FUNC);
+/* 指紋維度＝虛詞扣掉代詞（代詞跟著題目與人稱跑，不跟著習慣跑） */
+var DIM_ZH = ZH_MULTI.concat(ZH_SINGLE).filter(function (w) { return !PRON_SET.has(w); });
+var DIM_EN = EN_FUNC.filter(function (w) { return !PRON_SET.has(w); });
+
+function detectMode(t) {
+  var lat = (t.match(/[A-Za-z]/g) || []).length;
+  var cjk = (t.match(/[㐀-鿿]/g) || []).length;
+  return lat > cjk ? 'en' : 'zh';
+}
+
+/* 斷詞：回傳 [{s:字串, k:'f'虛詞|'c'實詞|'p'標點空白}] */
+function tokenize(text, mode) {
+  var out = [];
+  if (mode === 'en') {
+    var parts = text.split(/([A-Za-z']+)/);
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i];
+      if (!p) continue;
+      if (/^[A-Za-z']+$/.test(p)) out.push({ s: p, k: ENF_SET.has(p.toLowerCase()) ? 'f' : 'c' });
+      else out.push({ s: p, k: 'p' });
+    }
+    return out;
+  }
+  var i2 = 0;
+  while (i2 < text.length) {
+    var two = text.substr(i2, 2);
+    if (two.length === 2 && MULTI_SET.has(two)) { out.push({ s: two, k: 'f' }); i2 += 2; continue; }
+    var one = text.charAt(i2);
+    if (SINGLE_SET.has(one)) out.push({ s: one, k: 'f' });
+    else if (/[㐀-鿿A-Za-z0-9]/.test(one)) out.push({ s: one, k: 'c' });
+    else out.push({ s: one, k: 'p' });
+    i2 += 1;
+  }
+  return out;
+}
+
+/* 詞頻剖面：每千詞出現次數，維度固定 */
+function profile(text) {
+  var mode = detectMode(text);
+  var toks = tokenize(text, mode);
+  var dims = mode === 'zh' ? DIM_ZH : DIM_EN;
+  var total = 0, tally = Object.create(null);
+  for (var i = 0; i < toks.length; i++) {
+    if (toks[i].k === 'p') continue;
+    total++;
+    var key = mode === 'en' ? toks[i].s.toLowerCase() : toks[i].s;
+    tally[key] = (tally[key] || 0) + 1;
+  }
+  var vec = dims.map(function (d) { return total ? (tally[d] || 0) / total * 1000 : 0; });
+  return { mode: mode, dims: dims, vec: vec, tally: tally, total: total, tokens: toks };
+}
+
+/* Burrows's Delta：全語料 z 標準化後，維度平均絕對差；越小越像 */
+function zScores(profs) {
+  var n = profs.length, m = profs[0].vec.length, z = [], d;
+  for (var i = 0; i < n; i++) z.push(new Array(m).fill(0));
+  for (d = 0; d < m; d++) {
+    var sum = 0, k;
+    for (k = 0; k < n; k++) sum += profs[k].vec[d];
+    var mean = sum / n, v = 0;
+    for (k = 0; k < n; k++) v += Math.pow(profs[k].vec[d] - mean, 2);
+    var sd = Math.sqrt(v / n);
+    if (sd < 1e-9) continue;
+    for (k = 0; k < n; k++) z[k][d] = (profs[k].vec[d] - mean) / sd;
+  }
+  return z;
+}
+function deltaOf(za, zb) {
+  var s = 0;
+  for (var d = 0; d < za.length; d++) s += Math.abs(za[d] - zb[d]);
+  return s / za.length;
+}
+/* 把 target 對所有候選排名（升冪＝最像在前） */
+function rankAgainst(targetText, candidateTexts) {
+  var profs = [profile(targetText)].concat(candidateTexts.map(profile));
+  var z = zScores(profs);
+  var out = [];
+  for (var i = 1; i < profs.length; i++) out.push({ i: i - 1, delta: deltaOf(z[0], z[i]) });
+  out.sort(function (a, b) { return a.delta - b.delta; });
+  return out;
+}
+/* 前 N 名虛詞（扣代詞），回傳 [{w, n, per1000}] */
+function topFunctionWords(text, n) {
+  var p = profile(text), rows = [];
+  for (var i = 0; i < p.dims.length; i++) {
+    var w = p.dims[i], c = p.tally[w] || 0;
+    if (c > 0) rows.push({ w: w, n: c, per: p.total ? c / p.total * 1000 : 0 });
+  }
+  rows.sort(function (a, b) { return b.n - a.n || (a.w < b.w ? -1 : 1); });
+  return rows.slice(0, n || 8);
+}
+/*<</CORE>>*/
+
+/* ── 五位陌生人（本頁自寫的參考文本，風格各異） ── */
+var REFS = [
+  { name: '陌生人 甲', tag: '合約條款',
+    t: '甲方應於本合約生效之日起三十日內，將前條所列之文件備齊並送交乙方。如因不可歸責於甲方之事由致生遲延者，得於事由消滅後七日內補正，並不因此視為違約。乙方對於前項補正之文件，應於收受後十四日內完成審查；逾期未為通知者，視為同意。本合約未盡事宜，依相關法令及雙方另行議定之附件辦理。' },
+  { name: '陌生人 乙', tag: '深夜留言',
+    t: '欸不是，我真的笑死，那家店的排隊人潮也太誇張了吧。我昨天就說不要去了，結果還是被拖去，站在門口站了快一個小時，腿都麻了。東西其實還好啦，沒有到難吃，但也沒有好吃到要站一小時那種。反正下次誰再約我去我一定不要，真的，我發誓，不要再叫我了喔。' },
+  { name: '陌生人 丙', tag: '期刊論文',
+    t: '本研究以近十年之調查資料為基礎，檢驗前述假設是否成立。結果顯示，在控制年齡與教育程度之後，兩組之間的差異仍具統計顯著性。然而，由於樣本取得方式受限，此一結論是否能推廣至其他族群，仍有待後續研究加以驗證。此外，量測工具的信度雖在可接受範圍，但部分題項的鑑別力偏低，可能對於估計結果造成影響。' },
+  { name: '陌生人 丁', tag: '散文',
+    t: '那年冬天很長。窗外的樹一整排都禿了，只剩幾片葉子掛在枝頭上，風一來就抖，抖了很久也還是沒掉下來。我常常坐在那裡看它們，看到天黑，看到樓下的燈一盞一盞亮起來。後來葉子還是掉了，我卻已經想不起來是哪一天的事。或許早就掉了，而我看著別的地方。' },
+  { name: '陌生人 戊', tag: '使用說明書',
+    t: '使用前請先確認電源已關閉，並將主機置於平坦且通風的表面上。安裝時，請依照下列順序進行：先接上訊號線，再接電源線，最後開啟開關。若指示燈未亮起，請檢查插頭是否確實插入，並確認插座供電正常。清潔本機時，請使用乾布擦拭外殼，勿使用含酒精之清潔劑，以免損傷表面塗層。' }
+];
+
+var DEMO = '早上出門前又把鑰匙放到外套口袋裡，結果穿了另一件。走到巷口才發現，只好折回去，電梯剛好在十二樓。等的時候我一直在想，這種事一個月大概會發生兩次，而我每次都覺得下次不會了。後來還是遲到了八分鐘，沒有人問我為什麼。';
+
+/* ── DOM ── */
+var $ = function (id) { return document.getElementById(id); };
+var ta = $('ta'), tb = $('tb');
+
+function nchars(s) { return [...s.replace(/\s/g, '')].length; }
+function bindCount(el, out, min) {
+  function u() {
+    var n = nchars(el.value);
+    out.textContent = n + ' 字';
+    out.classList.toggle('ok', n >= min);
+  }
+  el.addEventListener('input', u); u();
+}
+bindCount(ta, $('cnt'), 80);
+bindCount(tb, $('cnt2'), 80);
+
+function unlock(id) {
+  var el = $(id);
+  if (el.classList.contains('locked')) { el.classList.remove('locked'); return true; }
+  return false;
+}
+
+function paint(stage, tokens) {
+  stage.textContent = '';
+  var frag = document.createDocumentFragment();
+  for (var i = 0; i < tokens.length; i++) {
+    var sp = document.createElement('span');
+    sp.className = 'tk ' + (tokens[i].k === 'f' ? 'fw' : tokens[i].k === 'c' ? 'cw' : 'pu');
+    sp.style.setProperty('--d', Math.min(i * 5, 1100) + 'ms');
+    sp.textContent = tokens[i].s;
+    frag.appendChild(sp);
+  }
+  stage.appendChild(frag);
+}
+
+function drawBars(text) {
+  var rows = topFunctionWords(text, 8), box = $('bars');
+  box.textContent = '';
+  if (!rows.length) { $('barcap').textContent = ''; return; }
+  var max = rows[0].n;
+  rows.forEach(function (r, i) {
+    var d = document.createElement('div'); d.className = 'bar';
+    var k = document.createElement('span'); k.className = 'bk'; k.textContent = r.w;
+    var w = document.createElement('span'); w.className = 'bw';
+    var f = document.createElement('span'); f.className = 'bf';
+    f.style.setProperty('--v', (r.n / max).toFixed(3));
+    f.style.setProperty('--d', (120 + i * 70) + 'ms');
+    w.appendChild(f);
+    var v = document.createElement('span'); v.className = 'bv'; v.textContent = r.n + ' 次';
+    d.appendChild(k); d.appendChild(w); d.appendChild(v);
+    box.appendChild(d);
+  });
+  $('barcap').textContent = '你這段話裡最常出現的八個虛詞。這串排名，比你寫了什麼更難改掉。';
+  PK.reveal('.bars');
+}
+
+/* 第一次拆解 */
+function analyse() {
+  var t = ta.value.trim();
+  if (nchars(t) < 40) { $('warn').textContent = '再多寫一點，至少四十個字，拆開來才看得出東西。'; ta.focus(); return; }
+  $('warn').textContent = '';
+  store.set('a', t);
+  var toks = tokenize(t, detectMode(t));
+  paint($('st1'), toks);
+  paint($('st2'), toks.map(function (x) { return x; }));
+  unlock('ch1'); unlock('ch2'); unlock('ch3');
+  drawBars(t);
+  PK.reveal('.stage1'); PK.reveal('.stage2'); PK.reveal('.rv');
+  PK.announce('拆解完成，往下捲動看第一章。');
+  setTimeout(function () { PK.scrollTo($('ch1')); }, 60);
+}
+
+/* 高潮：偽裝比對 */
+function compare() {
+  var a = (store.get('a', '') || ta.value).trim(), b = tb.value.trim();
+  if (nchars(b) < 40) { $('warn2').textContent = '偽裝也要寫滿四十個字，不然比不出來。'; tb.focus(); return; }
+  $('warn2').textContent = '';
+  store.set('b', b);
+  var cands = [{ name: '你的第一段', tag: '沒有偽裝的你', t: a, you: true }]
+    .concat(REFS.map(function (r) { return { name: r.name, tag: r.tag, t: r.t, you: false }; }));
+  var ranked = rankAgainst(b, cands.map(function (c) { return c.t; }));
+
+  var box = $('result');
+  box.textContent = '';
+  var ol = document.createElement('ol'); ol.className = 'rank';
+  ranked.forEach(function (r, idx) {
+    var c = cands[r.i];
+    var li = document.createElement('li');
+    if (c.you) li.className = 'you';
+    var rk = document.createElement('span'); rk.className = 'rk'; rk.textContent = (idx + 1);
+    var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = c.name;
+    var sm = document.createElement('small'); sm.textContent = c.tag; nm.appendChild(sm);
+    var dv = document.createElement('span'); dv.className = 'dv'; dv.textContent = 'Δ ' + r.delta.toFixed(3);
+    li.appendChild(rk); li.appendChild(nm); li.appendChild(dv);
+    ol.appendChild(li);
+  });
+  var head = document.createElement('p');
+  head.className = 'cap';
+  head.textContent = '把偽裝過的第二段，拿去跟六個人比對。Δ 越小越像同一雙手。';
+  box.appendChild(head); box.appendChild(ol);
+
+  var caught = cands[ranked[0].i].you;
+  var myRank = 1; ranked.forEach(function (r, i) { if (cands[r.i].you) myRank = i + 1; });
+
+  var v = document.createElement('div'); v.className = 'verdict';
+  var big = document.createElement('p'); big.className = 'big';
+  var sub = document.createElement('p');
+  if (caught) {
+    big.textContent = '排第一的，是你自己。';
+    sub.textContent = '你換掉了題目、語氣、也許還換了人稱。換掉的全是肉。那副骨架原封不動跟著搬了過來——一邊想事情，一邊管住自己的「的」，這件事做不到。';
+  } else {
+    big.textContent = '你溜出去了——你的第一段排第 ' + myRank + '。';
+    sub.textContent = '這件事會發生，通常有兩種原因：文本太短（幾百字撐不住這種統計），或者你真的換了一套語法習慣。Millican 和 Juola 手上有整本長篇小說。要不要寫長一點，或換個偽裝，再試一次？';
+  }
+  v.appendChild(big); v.appendChild(sub);
+  var note = document.createElement('p'); note.className = 'note';
+  note.textContent = 'Δ 是 Burrows’s Delta：把每個虛詞的出現率放在這六段文本裡做標準化，再取差距的平均。這正是 2013 年那兩套程式的核心想法，只是它們的維度與語料大得多。';
+  v.appendChild(note);
+  box.appendChild(v);
+
+  unlock('ch5');
+  PK.reveal('.rv');
+  PK.announce(caught ? '比對完成：最接近的是你自己的第一段。' : '比對完成：你的第一段排第 ' + myRank + '。');
+  setTimeout(function () { PK.scrollTo($('ch5')); }, 900);
+}
+
+$('go').addEventListener('click', analyse);
+$('demo').addEventListener('click', function () {
+  ta.value = DEMO; ta.dispatchEvent(new Event('input')); ta.focus();
+});
+$('go2').addEventListener('click', compare);
+$('again').addEventListener('click', function () {
+  tb.value = ''; tb.dispatchEvent(new Event('input')); $('result').textContent = ''; tb.focus();
+});
+
+/* 回到頁面時把草稿接回來 */
+var savedA = store.get('a', ''), savedB = store.get('b', '');
+if (savedA) { ta.value = savedA; ta.dispatchEvent(new Event('input')); }
+if (savedB) { tb.value = savedB; tb.dispatchEvent(new Event('input')); }
+
+/* 第一屏打字 */
+(function () {
+  var e1 = $('t1'), e2 = $('t2');
+  var s1 = e1.textContent, s2 = e2.textContent;
+  e1.textContent = ''; e2.textContent = '';
+  var caret = document.createElement('span'); caret.className = 'caret'; caret.setAttribute('aria-hidden', 'true');
+  e2.appendChild(caret);
+  PK.type(e1, s1, 52, function () {
+    setTimeout(function () {
+      var holder = document.createElement('span');
+      e2.insertBefore(holder, caret);
+      PK.type(holder, s2, 62, function () { caret.remove(); });
+    }, PK.reduced() ? 0 : 420);
+  });
+})();
+
+PK.reveal();
+</script>
+</body>
+</html>

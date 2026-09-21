@@ -163,10 +163,12 @@
   }
 
   function layout() {
-    var cssW = canvas.clientWidth || 480;
+    var measured = canvas.clientWidth;
+    var usable = measured >= 80;          // 量不到（例如還沒排版完）就別把假尺寸快取起來
+    var cssW = usable ? measured : 480;
     var d = Math.min(window.devicePixelRatio || 1, 2);
-    if (cssW === SIZE && d === DPR) return; // 尺寸沒變就不重設
-    SIZE = cssW;
+    if (usable && cssW === SIZE && d === DPR) return; // 尺寸沒變就不重設
+    SIZE = usable ? cssW : 0;
     DPR = d;
     canvas.width = Math.round(cssW * DPR);
     canvas.height = Math.round(cssW * DPR);
@@ -480,7 +482,11 @@
     logList.appendChild(li);
   }
 
-  function announce(msg) { live.textContent = msg; }
+  /* 先清空再於下一幀寫入：連續兩則相同文字時，螢幕閱讀器才會重新播報 */
+  function announce(msg) {
+    live.textContent = '';
+    requestAnimationFrame(function () { live.textContent = msg; });
+  }
 
   function updateLogCount() {
     var n = Object.keys(reached).length;

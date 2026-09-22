@@ -297,7 +297,11 @@
   canvas.addEventListener('pointermove', function(e){ if(!drag) return; var dy=e.clientY-drag.y; setDepth(drag.d + dy*(MAXD/(H*1.15)),true); });
   canvas.addEventListener('pointerup', function(){ drag=null; });
   canvas.addEventListener('pointercancel', function(){ drag=null; });
-  canvas.addEventListener('wheel', function(e){ e.preventDefault(); setDepth(depth+e.deltaY*4,true); }, {passive:false});
+  canvas.addEventListener('wheel', function(e){
+    // 已經到海面／到底就把滾動還給頁面，不然游標停在畫面上會整個卡住捲不動
+    if((e.deltaY<0 && depth<=0) || (e.deltaY>0 && depth>=MAXD)) return;
+    e.preventDefault(); setDepth(depth+e.deltaY*4,true);
+  }, {passive:false});
 
   var rzTimer=null;
   window.addEventListener('resize', function(){ clearTimeout(rzTimer); rzTimer=setTimeout(layout,120); });

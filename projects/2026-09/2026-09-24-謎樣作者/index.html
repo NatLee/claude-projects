@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>那張圖被引用了三十年，作者是個謎｜每日小專案</title>
+<meta name="description" content="一九七七年一本免版稅圖案集裡的圓盤，成了視覺科學的經典圖形。推一下它，再看看量出來的數字。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#08080a; --pk-ink:#ece8df; --pk-dim:#7e7a73; --pk-accent:#c8b18a;
+  --paper:#f4f1ea; --pk-maxw:600px;
+}
+html{ scroll-snap-type:y proximity; }
+body{ line-height:1.95; }
+
+section.scene{
+  min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+  scroll-snap-align:start; padding:72px 0;
+}
+h2{
+  font-family:var(--pk-serif); font-weight:600; font-size:clamp(20px,4.6vw,27px);
+  line-height:1.6; margin:0 0 22px; letter-spacing:.01em;
+}
+p{ margin:0 0 20px; font-size:clamp(15px,3.6vw,16.5px); }
+.lead{ font-size:clamp(16.5px,4vw,19px); font-family:var(--pk-serif); }
+.dim{ color:var(--pk-dim); }
+.kicker{
+  font-size:12px; letter-spacing:.26em; color:var(--pk-accent);
+  margin:0 0 18px; text-transform:uppercase;
+}
+.sig{
+  font-family:var(--pk-serif); font-size:clamp(19px,5vw,25px);
+  letter-spacing:.34em; color:var(--pk-accent); margin:26px 0 0;
+}
+
+/* ── 第一屏的格紋暗底 ── */
+.veil{
+  position:fixed; inset:0; z-index:-1; opacity:.16;
+  background-image:
+    repeating-linear-gradient(90deg, #fff 0 26px, transparent 26px 52px),
+    repeating-linear-gradient(0deg, #fff 0 9px, transparent 9px 18px);
+  background-blend-mode:multiply;
+  mask-image:radial-gradient(120% 70% at 50% 0%, #000 0%, transparent 72%);
+  -webkit-mask-image:radial-gradient(120% 70% at 50% 0%, #000 0%, transparent 72%);
+}
+
+/* ── 互動台：一張紙 ── */
+.plate{
+  background:var(--paper); border-radius:3px; padding:18px;
+  box-shadow:0 24px 60px rgba(0,0,0,.6), 0 2px 0 rgba(255,255,255,.06) inset;
+}
+canvas#fig{
+  display:block; width:100%; height:400px; border-radius:2px;
+  touch-action:none; cursor:grab; background:#fff;
+}
+canvas#fig:active{ cursor:grabbing; }
+.bar{
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center;
+  justify-content:space-between; margin-top:16px;
+}
+.readout{
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size:13px; color:#3a3733; letter-spacing:.02em;
+}
+.readout b{ color:#111; font-weight:600; }
+#toggle{ font-size:13.5px; padding:9px 18px; color:#5a4a33; border-color:#b9ab93; }
+#toggle:hover, #toggle:focus-visible{ background:#5a4a33; color:var(--paper); }
+.verdict{
+  min-height:1.9em; margin:20px 0 0; font-size:15px; color:var(--pk-accent);
+  opacity:0; transition:opacity .6s ease;
+}
+.verdict.on{ opacity:1; }
+.hint{ font-size:13px; color:var(--pk-dim); margin:14px 0 0; }
+
+/* ── 孔徑小圖 ── */
+.slit{ display:block; margin:6px auto 24px; max-width:260px; }
+.slit .win{ fill:none; stroke:#57534c; stroke-width:1.5; }
+.slit .bar1{ stroke:var(--pk-accent); stroke-width:6; stroke-linecap:round; }
+.slit .ghost{ stroke:var(--pk-dim); stroke-width:1.2; stroke-dasharray:4 4; }
+.slitmove{ animation:slide 3.4s ease-in-out infinite alternate; }
+@keyframes slide{ from{ transform:translate(-14px,-14px) } to{ transform:translate(14px,14px) } }
+
+.date{
+  font-family:ui-monospace, SFMono-Regular, Menlo, monospace;
+  color:var(--pk-accent); font-size:13px; letter-spacing:.08em;
+}
+.timeline{ list-style:none; padding:0; margin:0; }
+.timeline li{ margin:0 0 26px; padding-left:16px; border-left:1px solid var(--pk-line); }
+.timeline p{ margin:6px 0 0; }
+
+.last{ font-family:var(--pk-serif); font-size:clamp(17px,4.4vw,21px); line-height:1.8; }
+
+@media (max-width:560px){
+  canvas#fig{ height:320px; }
+  section.scene{ padding:56px 0; }
+}
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-snap-type:none; }
+  .slitmove{ animation:none; transform:translate(0,0); }
+  .verdict{ transition:none; }
+}
+</style>
+</head>
+<body>
+<div class="veil" aria-hidden="true"></div>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">Perception, 1986–2016</p>
+    <h1 class="rv">這個名字被視覺科學引用了三十年，期間查無此人。</h1>
+    <p class="rv lead dim">他不是心理學家，沒發表過論文。他印了一本給設計師照描的圖案集，然後從紀錄裡消失。</p>
+    <p class="sig rv">大內　朔</p>
+  </div>
+</header>
+
+<main>
+  <section class="scene pk-wrap rv">
+    <h2>一本不收錢的書</h2>
+    <p>一九七七年，紐約的 Dover 出版社發行《Japanese Optical and Geometrical Art》，收錄七百四十六張黑白幾何圖案，全部免版稅——設計師、印刷廠、招牌師傅愛怎麼用就怎麼用。署名 Hajime Ouchi。</p>
+    <p>書裡有一張，是一個圓盤嵌在一片格紋上。背景的方塊橫著躺，圓盤裡的方塊豎著站。沒有標題，沒有說明，沒有一行註解。</p>
+    <p class="dim">它被排在七百四十六張的某個位置，和旁邊那些圖看起來沒什麼兩樣。</p>
+  </section>
+
+  <section class="scene pk-wrap rv">
+    <h2>推一下那張紙</h2>
+    <p>按住圖，往任何方向拖。慢一點，別一次拖到底。</p>
+
+    <div class="plate">
+      <canvas id="fig" tabindex="0" role="img"
+        aria-label="黑白格紋圖：橫長方塊構成的背景中央，嵌著一個由豎長方塊構成的圓盤。可用滑鼠拖曳或方向鍵移動整張圖。"></canvas>
+      <div class="bar">
+        <span class="readout">圓盤與背景的相對位移　<b id="rel">0.00</b> px</span>
+        <button id="toggle" class="pk-btn" type="button">把圓盤裡的格子轉正</button>
+      </div>
+    </div>
+
+    <p class="verdict" id="verdict"></p>
+    <p class="hint">鍵盤：聚焦圖片後用方向鍵移動。</p>
+  </section>
+
+  <section class="scene pk-wrap rv">
+    <h2>你的眼睛在猜方向</h2>
+    <p>把一根斜槓放進一個小窗口，只露出中間一小段。它往右下滑，你看到的卻可以解釋成往右、往下、或任何介於其間的方向——窗口把兩端的線索切掉了，剩下的資訊不足以決定答案。視覺研究把這個困境叫作<strong>孔徑問題</strong>。</p>
+
+    <svg class="slit" viewBox="0 0 220 120" aria-hidden="true">
+      <g class="slitmove">
+        <line class="bar1" x1="40" y1="20" x2="180" y2="100"/>
+      </g>
+      <rect class="win" x="70" y="30" width="80" height="60" rx="3"/>
+      <line class="ghost" x1="110" y1="60" x2="160" y2="60"/>
+      <line class="ghost" x1="110" y1="60" x2="110" y2="100"/>
+    </svg>
+
+    <p>格紋的每一條邊，都是這樣的小窗口。背景那些橫躺的方塊，邊緣給出的線索偏向水平；圓盤裡豎立的方塊，偏向垂直。你的眼球每秒漂移幾十次，兩邊收到的是同一份抖動，算出來的方向卻不一樣。</p>
+    <p>不一樣的方向，只能用不一樣的深度來收拾。於是圓盤浮起來，像壓在另一層玻璃底下。</p>
+    <p class="dim">按下那顆按鈕，把圓盤裡的格子轉成跟背景同向——差別消失的瞬間，圓盤也跟著不見了。它從頭到尾只是一個方向差。</p>
+  </section>
+
+  <section class="scene pk-wrap rv">
+    <h2>三十年後，有人去找他</h2>
+    <ul class="timeline">
+      <li>
+        <span class="date">1986</span>
+        <p>Lothar Spillmann 在德國巴特瑙海姆的歐洲視覺研討會上，把這張圖放上螢幕。之後它以「Ouchi illusion」的名字寫進論文、教科書、演講投影片。</p>
+      </li>
+      <li>
+        <span class="date">1986–2014</span>
+        <p>引用的人愈來愈多。想見作者本人的研究者，一個也沒找著——書上只有四個字，沒有單位、沒有生平、沒有下落。</p>
+      </li>
+      <li>
+        <span class="date">2014</span>
+        <p>日本當代藝術家斉と公平太把他挖了出來。畫那張圖的人一直都在，只是沒人往設計圈裡找。</p>
+      </li>
+      <li>
+        <span class="date">2016</span>
+        <p>Spillmann、齋藤、小松在《Perception》發表一則短文，標題四個詞就把三十年結案：<em>Hajime Ōuchi — a mystery resolved</em>。</p>
+      </li>
+      <li>
+        <span class="date">2024.12.13</span>
+        <p>大內朔過世。</p>
+      </li>
+    </ul>
+  </section>
+
+  <section class="scene pk-wrap rv">
+    <p class="last">他做的是一張給人照著描的圖案。四十年後，它成了教科書裡講大腦怎麼處理運動的證據。</p>
+    <p class="last">而剛才那塊圓盤——你量過了，相對位移 0.00 px。它一毫米都沒離開過紙面。</p>
+    <p class="last" style="color:var(--pk-accent)">會滑動的，是坐在螢幕前的那個人。</p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Spillmann、齋藤、小松〈Hajime Ōuchi – a mystery resolved〉（Perception, 2016）；北岡明佳「Akiyoshi's illusion pages」。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'ouchi77.';
+const store = PK.store(LS);
+
+/* ──────────────────────────────────────────────────────────────
+ * 核心：Ouchi 圖形的幾何。全部純函式，可在 node 下斷言。
+ * 背景＝橫長方塊（寬 BW×高 BH）；圓盤＝同樣的方塊轉九十度。
+ * 關鍵不變量：圖上任何一點與圓盤圓心的相對位置，不隨拖曳改變。
+ * ────────────────────────────────────────────────────────────── */
+const BW = 26, BH = 9;          /* 背景格：橫躺 */
+const LIMIT = 46;               /* 拖曳位移上限（px） */
+
+/* 第 (i,j) 格是黑是白（1＝黑）：棋盤奇偶 */
+function inkIJ(i, j){
+  return (((i % 2) + (j % 2) + 2) % 2) === 0 ? 1 : 0;
+}
+
+/* 點 (x,y) 落在哪一格、該格是黑是白。ox/oy 是整張圖的位移。 */
+function cellInk(x, y, cw, ch, ox, oy){
+  return inkIJ(Math.floor((x - ox) / cw), Math.floor((y - oy) / ch));
+}
+
+/* 拖曳位移夾在圓形範圍內，避免圓盤被推出紙外 */
+function clampOffset(dx, dy, lim){
+  const r = Math.hypot(dx, dy);
+  if (r <= lim) return { x: dx, y: dy };
+  const k = lim / r;
+  return { x: dx * k, y: dy * k };
+}
+
+/* 圓盤圓心：基準點加上同一份位移——所以它跟背景是焊死的 */
+function discCenter(baseX, baseY, off){
+  return { x: baseX + off.x, y: baseY + off.y };
+}
+
+/* 圓盤相對背景的位移。這個數字永遠是 0，整頁的梗就在這裡。 */
+function relativeShift(baseX, baseY, off){
+  const c = discCenter(baseX, baseY, off);
+  return Math.hypot((c.x - off.x) - baseX, (c.y - off.y) - baseY);
+}
+
+/* 圓盤內的格子尺寸：aligned 為真時與背景同向（圓盤等於消失） */
+function insetCell(aligned){
+  return aligned ? { w: BW, h: BH } : { w: BH, h: BW };
+}
+
+if (typeof module !== 'undefined' && module.exports){
+  module.exports = { inkIJ, cellInk, clampOffset, discCenter, relativeShift, insetCell, BW, BH, LIMIT };
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 繪製與互動
+ * ────────────────────────────────────────────────────────────── */
+(function(){
+  const cv = document.getElementById('fig');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  const relEl = document.getElementById('rel');
+  const btn = document.getElementById('toggle');
+  const verdict = document.getElementById('verdict');
+
+  let off = { x:0, y:0 };
+  let aligned = store.get('aligned', false);
+  let dragged = store.get('dragged', false);
+  let W = 0, H = 0;
+
+  function paintRegion(cw, ch, ox, oy, x0, y0, w, h){
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x0, y0, w, h);
+    ctx.fillStyle = '#000000';
+    const i0 = Math.floor((x0 - ox) / cw), i1 = Math.ceil((x0 + w - ox) / cw);
+    const j0 = Math.floor((y0 - oy) / ch), j1 = Math.ceil((y0 + h - oy) / ch);
+    for (let j = j0; j <= j1; j++){
+      for (let i = i0; i <= i1; i++){
+        if (!inkIJ(i, j)) continue;
+        ctx.fillRect(ox + i * cw, oy + j * ch, cw, ch);
+      }
+    }
+  }
+
+  function draw(){
+    const m = PK.fitCanvas(cv);
+    W = m.w; H = m.h;
+    ctx.setTransform(m.dpr, 0, 0, m.dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    /* 背景 */
+    paintRegion(BW, BH, off.x, off.y, 0, 0, W, H);
+
+    /* 圓盤 */
+    const base = { x: W / 2, y: H / 2 };
+    const c = discCenter(base.x, base.y, off);
+    const R = Math.min(W, H) * 0.27;
+    const cell = insetCell(aligned);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, R, 0, Math.PI * 2);
+    ctx.clip();
+    paintRegion(cell.w, cell.h, off.x, off.y, c.x - R - cell.w, c.y - R - cell.h, 2 * (R + cell.w), 2 * (R + cell.h));
+    ctx.restore();
+
+    const d = relativeShift(base.x, base.y, off);
+    relEl.textContent = d.toFixed(2);
+  }
+
+  function say(msg){
+    verdict.textContent = msg;
+    verdict.classList.add('on');
+    PK.announce(msg);
+  }
+
+  function move(dx, dy){
+    off = clampOffset(off.x + dx, off.y + dy, LIMIT);
+    draw();
+    if (!dragged && Math.hypot(off.x, off.y) > 16){
+      dragged = true;
+      store.set('dragged', true);
+      say('圓盤剛才滑開了一下。量到的位移：0.00 px。');
+    }
+  }
+
+  /* 拖曳（指標事件，滑鼠／觸控／手寫筆通吃） */
+  let id = null, last = null;
+  cv.addEventListener('pointerdown', function(e){
+    id = e.pointerId; last = { x:e.clientX, y:e.clientY };
+    cv.setPointerCapture(id); e.preventDefault();
+  });
+  cv.addEventListener('pointermove', function(e){
+    if (e.pointerId !== id || !last) return;
+    move(e.clientX - last.x, e.clientY - last.y);
+    last = { x:e.clientX, y:e.clientY };
+  });
+  function release(e){
+    if (e.pointerId !== id) return;
+    try { cv.releasePointerCapture(id); } catch (err) {}
+    id = null; last = null;
+  }
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', release);
+
+  /* 鍵盤 */
+  const KEYS = { ArrowLeft:[-8,0], ArrowRight:[8,0], ArrowUp:[0,-8], ArrowDown:[0,8] };
+  cv.addEventListener('keydown', function(e){
+    const k = KEYS[e.key];
+    if (!k) return;
+    e.preventDefault();
+    move(k[0], k[1]);
+  });
+
+  function syncBtn(){
+    btn.textContent = aligned ? '把格子轉回去' : '把圓盤裡的格子轉正';
+    btn.setAttribute('aria-pressed', String(aligned));
+  }
+  btn.addEventListener('click', function(){
+    aligned = !aligned;
+    store.set('aligned', aligned);
+    syncBtn();
+    draw();
+    say(aligned ? '圓盤不見了。剛才那一整塊，差別只在方向。' : '方向一岔開，它又浮回來了。');
+  });
+
+  syncBtn();
+  draw();
+  window.addEventListener('resize', draw);
+  PK.onMotionChange(draw);
+})();
+
+PK.reveal();
+</script>
+</body>
+</html>

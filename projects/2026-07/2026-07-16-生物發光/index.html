@@ -115,13 +115,16 @@
   litCountEl.textContent=lit.toLocaleString();
 
   function layout(){
-    var r=canvas.getBoundingClientRect(); W=r.width; H=r.height;
+    var r=canvas.getBoundingClientRect();
+    if(r.width<80||r.height<80) return false; // 尺寸還沒算出來（隱藏／剛載入）就別重生粒子
+    W=r.width; H=r.height;
     DPR=Math.min(window.devicePixelRatio||1,2);
     canvas.width=Math.round(W*DPR); canvas.height=Math.round(H*DPR);
     ctx.setTransform(DPR,0,0,DPR,0,0);
     N=Math.round(Math.min(1600, Math.max(600, W*H/620)));
     P=new Float32Array(N*4); // x,y,charge,jit
     for(var i=0;i<N;i++){ P[i*4]=Math.random()*W; P[i*4+1]=Math.random()*H; P[i*4+2]=0; P[i*4+3]=Math.random(); }
+    return true;
   }
 
   var ptr={x:0,y:0,px:0,py:0,active:false,speed:0,moved:false};
@@ -195,7 +198,9 @@
     ctx.globalCompositeOperation='source-over';
     rafId=requestAnimationFrame(frame);
   }
-  function start(){ if(!running){ running=true; last=performance.now(); rafId=requestAnimationFrame(frame); } }
+  function start(){ if(!P) layout(); // 首次載入時尺寸為 0 的話，等看得見了再補算一次
+    if(!P) return;
+    if(!running){ running=true; last=performance.now(); rafId=requestAnimationFrame(frame); } }
   function stop(){ running=false; if(rafId)cancelAnimationFrame(rafId); rafId=null; saveLit(); }
 
   var rzT=null;

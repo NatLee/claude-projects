@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>「太大了，再查一次」｜每日小專案</title>
+<meta name="description" content="電子的電荷花了二十四年才爬到正確的位置。輪到你坐上那五張椅子，決定要不要把量到的數字照實送印。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b0c0e; --pk-ink:#ece7dc; --pk-dim:#8b867c; --pk-accent:#e3b23c;
+  --paper:#f2ead8; --ink2:#2a2620; --red:#c4553c; --true:#6fb2a0;
+  --pk-maxw:680px;
+}
+body{ background:
+  radial-gradient(90vw 60vh at 50% -10%, #16181d 0%, transparent 70%),
+  var(--pk-bg); }
+
+h2{ font-family:var(--pk-serif); font-weight:600; font-size:clamp(19px,4.4vw,25px);
+    line-height:1.6; margin:0 0 14px; letter-spacing:.01em }
+p{ margin:0 0 17px }
+section{ margin:0 0 76px }
+.lede{ color:var(--pk-dim) }
+.big{ font-family:var(--pk-serif); font-size:clamp(28px,7vw,44px); line-height:1.35;
+      margin:34px 0; letter-spacing:.01em }
+em{ font-style:normal; color:var(--pk-accent) }
+.num{ font-variant-numeric:tabular-nums; letter-spacing:.02em }
+
+/* ── 第一屏 ── */
+.pk-hero h1{ margin-bottom:26px }
+.hint{ font-size:12.5px; letter-spacing:.14em; color:var(--pk-dim); margin-top:44px }
+.hint span{ display:inline-block; animation:bob 2.6s ease-in-out infinite }
+@keyframes bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(5px) } }
+
+/* ── 油滴裝飾 ── */
+.drops{ position:absolute; inset:0; pointer-events:none; overflow:hidden; z-index:-1 }
+.drops i{ position:absolute; width:5px; height:5px; border-radius:50%;
+  background:radial-gradient(circle at 32% 30%, #fff8e6, #b9903a 60%, rgba(0,0,0,0) 72%);
+  opacity:.5; will-change:transform }
+
+/* ── 實驗台卡片 ── */
+.bench{ border:1px solid var(--pk-line); border-radius:14px; padding:22px 20px 20px;
+  background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.012)); }
+.slug{ font-size:11.5px; letter-spacing:.2em; color:var(--pk-dim); margin:0 0 10px }
+.bench h3{ font-family:var(--pk-serif); font-weight:600; font-size:20px; margin:0 0 6px; line-height:1.5 }
+.method{ font-size:14px; color:var(--pk-dim); margin:0 0 20px; line-height:1.8 }
+.readout{ display:flex; flex-wrap:wrap; gap:10px 30px; align-items:flex-end;
+  padding:16px 0 4px; border-top:1px dashed var(--pk-line); border-bottom:1px dashed var(--pk-line); margin-bottom:20px }
+.readout div{ min-width:120px }
+.readout b{ display:block; font-size:11.5px; letter-spacing:.14em; color:var(--pk-dim); font-weight:400 }
+.readout .v{ font-family:var(--pk-serif); font-size:clamp(21px,5.2vw,27px); line-height:1.5 }
+.v.mine{ color:var(--pk-accent) }
+.v.them{ color:var(--pk-ink); opacity:.65 }
+.gap{ font-size:13px; color:var(--red); letter-spacing:.02em }
+.acts{ display:flex; flex-wrap:wrap; gap:12px }
+.acts .pk-btn{ flex:1 1 210px; font-size:14.5px; padding:14px 18px; letter-spacing:.04em; line-height:1.5 }
+.acts .pk-btn.quiet{ color:var(--pk-dim); border-color:var(--pk-line) }
+.acts .pk-btn.quiet:hover{ background:var(--pk-dim); color:var(--pk-bg); border-color:var(--pk-dim) }
+.verdict{ margin:18px 0 0; font-size:14.5px; line-height:1.9; color:var(--pk-dim);
+  border-left:2px solid var(--pk-accent); padding:2px 0 2px 14px }
+.verdict.hid{ display:none }
+.verdict q{ color:var(--pk-ink); font-style:italic }
+
+/* ── 圖 ── */
+.chart{ margin:26px 0 8px }
+.chart svg{ display:block; width:100%; height:auto; overflow:visible }
+.axis{ stroke:rgba(255,255,255,.16); stroke-width:1 }
+.glab{ fill:var(--pk-dim); font-size:10px; letter-spacing:.08em; font-family:system-ui,sans-serif }
+.truth{ stroke:var(--true); stroke-width:1.2; stroke-dasharray:4 5; opacity:0; transition:opacity .9s ease }
+.truth.on{ opacity:.95 }
+.tlab{ fill:var(--true); font-size:10.5px; opacity:0; transition:opacity .9s ease }
+.tlab.on{ opacity:1 }
+.hist{ fill:none; stroke:var(--pk-dim); stroke-width:1.6; opacity:0; transition:opacity 1s ease }
+.hist.on{ opacity:.85 }
+.hlab{ fill:var(--pk-dim); font-size:10.5px; opacity:0; transition:opacity 1s ease }
+.hlab.on{ opacity:1 }
+.mine{ fill:none; stroke:var(--pk-accent); stroke-width:2.2; stroke-linejoin:round; stroke-linecap:round }
+.dot{ fill:var(--pk-accent) }
+.dot.seed{ fill:var(--pk-dim) }
+.caption{ font-size:12.5px; color:var(--pk-dim); line-height:1.9; margin:6px 0 0 }
+
+/* ── 結局 ── */
+.end{ opacity:0; max-height:0; overflow:hidden; transition:opacity .9s ease }
+.end.on{ opacity:1; max-height:none; overflow:visible }
+.tale{ border-top:1px solid var(--pk-line); padding-top:24px; margin-top:8px }
+.score{ font-family:var(--pk-serif); font-size:clamp(22px,5.6vw,30px); line-height:1.6; margin:0 0 18px }
+.again{ margin-top:10px }
+
+@media (max-width:560px){
+  .readout{ gap:14px 20px }
+  .acts .pk-btn{ flex:1 1 100% }
+}
+@media (prefers-reduced-motion: reduce){
+  .hint span{ animation:none }
+  .drops{ display:none }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="drops" id="drops" aria-hidden="true"></div>
+  <div class="pk-wrap">
+    <h1 class="rv">一九一三年，有人盯著一滴油看了四年，量出了宇宙的零錢。</h1>
+    <p class="rv lede">他量出來的數字低了千分之六。真正難看的，是接下來那二十四年——<br>
+      後面每一個人都量得比他準，然後每一個人都把自己的數字改小。</p>
+    <p class="rv hint"><span>↓ 往下，換你坐上那張椅子</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+<section class="rv">
+  <h2>先說清楚那滴油</h2>
+  <p>密立根在芝加哥的地下室裡，把油霧噴進兩片水平金屬板之間，調電壓讓一滴油懸在半空。
+    電力剛好抵住重力的那一刻，那滴油身上帶多少電，就可以算出來。</p>
+  <p>他一滴一滴量，發現所有的電荷都是同一個小數字的整數倍。<strong>電，是一顆一顆的。</strong>
+    他把那顆的大小定在 <span class="num">1.5924×10⁻¹⁹</span> 庫侖，誤差宣稱小於千分之五，一九二三年拿了諾貝爾獎。</p>
+  <p class="lede">他不知道自己手上那份空氣黏度的數值抄錯了。真正的值是 <span class="num">1.602177×10⁻¹⁹</span>。
+    差距很小——小到剛好可以躲過所有人二十四年。</p>
+</section>
+
+<section class="rv" id="game">
+  <h2>五張椅子</h2>
+  <p>接下來的五輪，你是那個年份裡拿到新儀器的人。你會看到自己量出來的原始數字，
+    也會看到當時手冊上的公認值。你只要決定一件事：<em>照實送印，還是先回去再查一次。</em></p>
+  <p class="lede">「再查一次」不是作弊。實驗室裡永遠有東西沒校準，你一定找得到一個。</p>
+
+  <div class="bench" id="bench">
+    <p class="slug" id="slug">第 1 輪 · 共 5 輪</p>
+    <h3 id="who">—</h3>
+    <p class="method" id="method">—</p>
+    <div class="readout">
+      <div><b>你量到的</b><span class="v mine num" id="raw">—</span></div>
+      <div><b>手冊上的公認值</b><span class="v them num" id="cons">—</span></div>
+      <div><b>你高出</b><span class="gap num" id="gapv">—</span></div>
+    </div>
+    <div class="acts">
+      <button class="pk-btn" id="btnPub" type="button">照實送印</button>
+      <button class="pk-btn quiet" id="btnFix" type="button">先擱著，再查一次</button>
+    </div>
+    <p class="verdict hid" id="verdict"></p>
+  </div>
+
+  <div class="chart">
+    <svg viewBox="0 0 560 330" role="img" aria-labelledby="chartTitle">
+      <title id="chartTitle">電子電荷測量值隨年份變化的折線圖</title>
+      <line class="axis" x1="58" y1="14" x2="58" y2="286"></line>
+      <line class="axis" x1="58" y1="286" x2="546" y2="286"></line>
+      <g id="yticks"></g>
+      <g id="xticks"></g>
+      <line class="truth" id="truthLine" x1="58" y1="0" x2="546" y2="0"></line>
+      <text class="tlab" id="truthLab" x="60" y="0">今天知道的真值 1.602177</text>
+      <polyline class="hist" id="histLine" points=""></polyline>
+      <text class="hlab" id="histLab" x="0" y="0">真實的歷史</text>
+      <polyline class="mine" id="myLine" points=""></polyline>
+      <g id="myDots"></g>
+    </svg>
+  </div>
+  <p class="caption" id="caption">金色是你送印的值。手冊上的公認值，是你們幾個人的平均——密立根那一筆的份量最重，因為他的誤差條最漂亮。</p>
+</section>
+
+<section class="end" id="end" aria-live="polite">
+  <div class="tale">
+    <p class="score" id="score">—</p>
+    <p id="ending">—</p>
+    <p id="ending2" class="lede">—</p>
+  </div>
+</section>
+
+<section class="end" id="coda">
+  <h2>費曼在一九七四年講過這件事</h2>
+  <p>他在加州理工的畢業典禮上把這段歷史攤開來講：密立根之後的測量值，是一點一點往上爬的——
+    先高一點點，再高一點點，最後才停在該停的地方。</p>
+  <p>他說科學家為這段歷史感到難堪。倒不是誰造假。是每當有人量到離密立根太遠的數字，
+    就會回頭去找哪裡出了錯——而且總找得到；量到接近的，就不找了。</p>
+  <p class="big">真值從第一天起就畫在那條線上。<br>擋住它的不是儀器，<br>是每個人心裡那句<em>「太大了，再查一次」</em>。</p>
+  <p class="lede">順帶一提，密立根那篇論文還有另一個人的手印。哈維·弗萊徹做了大量的觀測，
+    署名的只有密立根一個。這件事要等到弗萊徹死後、他的遺稿被打開，才有人知道。</p>
+  <p class="again"><button class="pk-btn" id="btnAgain" type="button">再坐一次那五張椅子</button></p>
+</section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Millikan (1913, Physical Review)、Bäcklin (1928)、Birge (1929, Reviews of Modern Physics)、von Friesen (1937)、Goodstein (2001)、Feynman《Cargo Cult Science》、NIST CODATA。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'oil13.';
+const store = PK.store(LS);
+
+/* ═══ CORE-START（純函式，可在 node 裡斷言） ═══ */
+var TRUE_E = 1.602177;          /* ×10⁻¹⁹ C，2019 年起的 SI 定義值，取六位 */
+var MILLIKAN = 1.5924;          /* 密立根 1923 諾貝爾演說值換算 */
+var WIN = 3;                    /* 手冊取最近幾筆的平均；一開始三筆都是密立根 */
+
+var ROUNDS = [
+  { year:1928, who:'烏普薩拉，艾瑞克·貝克林',
+    method:'X 光繞射。完全不碰油、不碰空氣黏度——換一條路走到同一個數字。',
+    raw:1.5987,
+    excuse:'晶體的晶格常數是抄文獻的，而那份文獻沒寫清楚量測時的溫度。' },
+  { year:1929, who:'柏克萊，雷蒙·伯奇',
+    method:'你不量東西。你在編物理常數手冊——決定哪些值進得了那本書。',
+    raw:1.6002,
+    excuse:'貝克林那是開路的工作，第一次做，難免藏著沒人想到的系統誤差。' },
+  { year:1931, who:'帕薩迪納，某間地下室',
+    method:'X 光晶體，第二次。這回連腔體溫度都控住了。',
+    raw:1.6014,
+    excuse:'板間距量了三次，你決定只採信中間那一次。' },
+  { year:1935, who:'隆德，斯坦·馮·弗里森',
+    method:'電子繞射。第三條完全不同的路，跟前兩條毫無關係。',
+    raw:1.6020,
+    excuse:'底片沖洗的時間比標準多了二十秒，條紋可能被撐開了一點。' },
+  { year:1937, who:'回到那兩片金屬板',
+    method:'重做油滴。這一次，用的是修正過的空氣黏度。',
+    raw:1.6018,
+    excuse:'油的密度取的是常溫值，但那顆燈泡一直在烤著腔體。' }
+];
+
+/* 真實發生過的手冊值：1928 貝克林量高了，1929 被伯奇剔除，手冊退回原點 */
+var HISTORY = [[1913,1.5924],[1928,1.5987],[1929,1.5924],[1937,1.6011],[1941,1.6019]];
+
+/* 手冊上的公認值＝最近 WIN 筆的平均，序列開頭用密立根填滿 */
+function consensusOf(pubs){
+  var seq = [];
+  for (var i=0;i<WIN;i++) seq.push(MILLIKAN);
+  for (var j=0;j<pubs.length;j++) seq.push(pubs[j]);
+  var tail = seq.slice(seq.length - WIN), s = 0;
+  for (var k=0;k<tail.length;k++) s += tail[k];
+  return s / WIN;
+}
+/* 「再查一次」：你找到一個理由，把值往公認值拉回 65% */
+function nudge(raw, cons){ return raw - (raw - cons) * 0.65; }
+
+/* 最終手冊值落在歷史的哪個位置 */
+function eraOf(v){
+  if (v >= 1.6015) return 'ahead';   /* 歷史要到 1941 年才站上這裡 */
+  if (v >= 1.6005) return 'even';    /* 約當歷史上的 1937 年 */
+  return 'behind';                   /* 還在 1930 年代初期 */
+}
+if (typeof module !== 'undefined' && module.exports){
+  module.exports = { consensusOf:consensusOf, nudge:nudge, eraOf:eraOf,
+                     ROUNDS:ROUNDS, HISTORY:HISTORY, TRUE_E:TRUE_E, MILLIKAN:MILLIKAN, WIN:WIN };
+}
+/* ═══ CORE-END ═══ */
+
+(function(){
+  if (typeof document === 'undefined') return;
+
+  PK.reveal();
+
+  /* ── 第一屏的油滴 ── */
+  var dropBox = document.getElementById('drops'), drips = [];
+  if (dropBox && !PK.reduced()){
+    for (var d=0; d<14; d++){
+      var el = document.createElement('i');
+      var x = PK.hash('x'+d) * 100, sp = 8 + PK.hash('s'+d) * 26, y0 = PK.hash('y'+d) * 100;
+      el.style.left = x.toFixed(2) + '%';
+      el.style.top = '0';
+      dropBox.appendChild(el);
+      drips.push({ el:el, y:y0, sp:sp });
+    }
+    PK.tick(function(dt){
+      for (var i=0;i<drips.length;i++){
+        var o = drips[i];
+        o.y += o.sp * dt;
+        if (o.y > 105) o.y = -5;
+        o.el.style.transform = 'translateY(' + o.y.toFixed(2) + 'vh)';
+      }
+    });
+  }
+
+  /* ── 圖的座標系 ── */
+  var X0=58, X1=546, Y0=14, Y1=286, YMIN=1.5895, YMAX=1.6045, XMIN=1911, XMAX=1943;
+  function px(y){ return X0 + (X1-X0) * (y-XMIN)/(XMAX-XMIN); }
+  function py(v){ return Y1 - (Y1-Y0) * (v-YMIN)/(YMAX-YMIN); }
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  (function drawAxes(){
+    var yg = document.getElementById('yticks'), xg = document.getElementById('xticks');
+    [1.590,1.594,1.598,1.602].forEach(function(v){
+      var t = document.createElementNS(SVGNS,'text');
+      t.setAttribute('class','glab'); t.setAttribute('x', X0-8);
+      t.setAttribute('y', py(v)+3.5); t.setAttribute('text-anchor','end');
+      t.textContent = v.toFixed(3); yg.appendChild(t);
+      var l = document.createElementNS(SVGNS,'line');
+      l.setAttribute('class','axis'); l.setAttribute('x1',X0); l.setAttribute('x2',X0+5);
+      l.setAttribute('y1',py(v)); l.setAttribute('y2',py(v)); yg.appendChild(l);
+    });
+    [1913,1920,1930,1940].forEach(function(y){
+      var t = document.createElementNS(SVGNS,'text');
+      t.setAttribute('class','glab'); t.setAttribute('x', px(y));
+      t.setAttribute('y', Y1+17); t.setAttribute('text-anchor','middle');
+      t.textContent = y; xg.appendChild(t);
+    });
+    var tl = document.getElementById('truthLine');
+    tl.setAttribute('y1', py(TRUE_E)); tl.setAttribute('y2', py(TRUE_E));
+    document.getElementById('truthLab').setAttribute('y', py(TRUE_E) - 7);
+  })();
+
+  /* ── 狀態 ── */
+  var idx = 0, pubs = [], pts = [], fixedCount = 0;
+  var el = {
+    slug:document.getElementById('slug'), who:document.getElementById('who'),
+    method:document.getElementById('method'), raw:document.getElementById('raw'),
+    cons:document.getElementById('cons'), gapv:document.getElementById('gapv'),
+    pub:document.getElementById('btnPub'), fix:document.getElementById('btnFix'),
+    verdict:document.getElementById('verdict'), bench:document.getElementById('bench'),
+    myLine:document.getElementById('myLine'), myDots:document.getElementById('myDots'),
+    end:document.getElementById('end'), coda:document.getElementById('coda'),
+    score:document.getElementById('score'), ending:document.getElementById('ending'),
+    ending2:document.getElementById('ending2'), caption:document.getElementById('caption')
+  };
+
+  function fmt(v){ return v.toFixed(4); }
+
+  function plot(){
+    var poly = [px(1913) + ',' + py(MILLIKAN)];
+    for (var i=0;i<pts.length;i++) poly.push(px(pts[i][0]) + ',' + py(pts[i][1]));
+    el.myLine.setAttribute('points', poly.join(' '));
+    el.myDots.textContent = '';
+    var seed = document.createElementNS(SVGNS,'circle');
+    seed.setAttribute('class','dot seed'); seed.setAttribute('cx', px(1913));
+    seed.setAttribute('cy', py(MILLIKAN)); seed.setAttribute('r', 3.2);
+    el.myDots.appendChild(seed);
+    for (var j=0;j<pts.length;j++){
+      var c = document.createElementNS(SVGNS,'circle');
+      c.setAttribute('class','dot'); c.setAttribute('cx', px(pts[j][0]));
+      c.setAttribute('cy', py(pts[j][1])); c.setAttribute('r', 3.6);
+      el.myDots.appendChild(c);
+    }
+  }
+
+  function render(){
+    var r = ROUNDS[idx], cons = consensusOf(pubs);
+    el.slug.textContent = '第 ' + (idx+1) + ' 輪 · 共 ' + ROUNDS.length + ' 輪 · ' + r.year;
+    el.who.textContent = r.who;
+    el.method.textContent = r.method;
+    el.raw.textContent = fmt(r.raw);
+    el.cons.textContent = fmt(cons);
+    var pct = (r.raw - cons) / cons * 100;
+    el.gapv.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '％';
+    el.verdict.className = 'verdict hid';
+    el.pub.disabled = el.fix.disabled = false;
+    el.pub.textContent = idx === 1 ? '寫進手冊' : '照實送印';
+    el.fix.textContent = idx === 1 ? '加註存疑，先不採用' : '先擱著，再查一次';
+  }
+
+  function choose(fixIt){
+    var r = ROUNDS[idx], cons = consensusOf(pubs);
+    var val = fixIt ? nudge(r.raw, cons) : r.raw;
+    pubs.push(val); pts.push([r.year, val]);
+    if (fixIt) fixedCount++;
+    plot();
+    el.pub.disabled = el.fix.disabled = true;
+    el.verdict.className = 'verdict';
+    el.verdict.innerHTML = fixIt
+      ? '你回去查了。<q>' + r.excuse + '</q> 修正之後送印：<span class="num">' + fmt(val) + '</span>。沒有人會質疑一個更接近公認值的數字。'
+      : '你把 <span class="num">' + fmt(val) + '</span> 原封不動送了出去。審稿人會問你為什麼跟密立根差這麼多——你得準備好回答。';
+    PK.announce('第 ' + (idx+1) + ' 輪已發表 ' + fmt(val));
+
+    idx++;
+    if (idx < ROUNDS.length){
+      setTimeout(function(){ render(); }, PK.reduced() ? 0 : 1100);
+    } else {
+      setTimeout(finale, PK.reduced() ? 0 : 1300);
+    }
+  }
+
+  function finale(){
+    el.bench.style.display = 'none';
+    var cons = consensusOf(pubs), era = eraOf(cons);
+    var eraText = era === 'ahead'
+      ? '真實的歷史，要走到<em>一九四一年</em>才站上這個位置。'
+      : era === 'even'
+      ? '約當真實歷史上<em>一九三七年</em>的水準。'
+      : '這還停在<em>一九三〇年代初</em>。密立根的影子比你以為的長。';
+
+    /* 真值線與歷史曲線登場 */
+    document.getElementById('truthLine').classList.add('on');
+    document.getElementById('truthLab').classList.add('on');
+    var hp = HISTORY.map(function(h){ return px(h[0]) + ',' + py(h[1]); }).join(' ');
+    var hl = document.getElementById('histLine');
+    hl.setAttribute('points', hp); hl.classList.add('on');
+    var hlab = document.getElementById('histLab');
+    hlab.setAttribute('x', px(1937) - 4); hlab.setAttribute('y', py(1.6011) + 16);
+    hlab.setAttribute('text-anchor','end'); hlab.classList.add('on');
+    el.caption.textContent = '金色是你走出來的那條線。灰色是真實發生過的：一九一三、一九二八、一九二九被退回、一九三七、一九四一。綠色虛線是今天的定義值。';
+
+    var off = (cons - TRUE_E) / TRUE_E * 10000;
+    el.score.innerHTML = '五輪走完，手冊上寫的是 <span class="num" style="color:var(--pk-accent)">' +
+      fmt(cons) + '</span>，離真值差 <span class="num">' + Math.abs(off).toFixed(1) + '</span> 個萬分點。<br>' + eraText;
+
+    if (fixedCount === 0){
+      el.ending.innerHTML = '你五次都沒有低頭。每一次審稿人都問你同一句話，你每一次都把原始紀錄推回去。';
+      el.ending2.textContent = '代價是你得在五場研討會上被當成那個不懂謙虛的年輕人。這種人通常拿不到第二筆經費——而這正是為什麼真實世界裡沒幾個人這樣做。';
+    } else if (fixedCount >= 4){
+      el.ending.innerHTML = '你五次裡有 ' + fixedCount + ' 次回頭查，而且每一次都查到了東西。' +
+        '你沒有捏造任何數字——你只是在該收手的時候多查了一次，在不該收手的時候收了手。';
+      el.ending2.textContent = '這就是真實發生過的版本。沒有壞人，每一步都說得通，二十四年就這樣過去了。';
+    } else {
+      el.ending.innerHTML = '你 ' + fixedCount + ' 次低頭、' + (ROUNDS.length - fixedCount) +
+        ' 次硬送。你的線比歷史那條快，但還是在密立根的影子裡繞了幾年。';
+      el.ending2.textContent = '值得留意的是：你低頭的那幾次，抓出來的理由全都是真的。實驗室裡永遠有東西沒校準。';
+    }
+    el.end.classList.add('on');
+    el.coda.classList.add('on');
+
+    var best = store.get('best', null);
+    if (best === null || Math.abs(cons - TRUE_E) < Math.abs(best - TRUE_E)) store.set('best', cons);
+    PK.scrollTo(el.end);
+  }
+
+  el.pub.addEventListener('click', function(){ choose(false); });
+  el.fix.addEventListener('click', function(){ choose(true); });
+  document.getElementById('btnAgain').addEventListener('click', function(){
+    idx = 0; pubs = []; pts = []; fixedCount = 0;
+    el.bench.style.display = '';
+    el.end.classList.remove('on'); el.coda.classList.remove('on');
+    document.getElementById('truthLine').classList.remove('on');
+    document.getElementById('truthLab').classList.remove('on');
+    document.getElementById('histLine').classList.remove('on');
+    document.getElementById('histLab').classList.remove('on');
+    el.caption.textContent = '金色是你送印的值。手冊上的公認值，是你們幾個人的平均——密立根那一筆的份量最重，因為他的誤差條最漂亮。';
+    plot(); render();
+    PK.scrollTo(document.getElementById('game'));
+  });
+
+  plot(); render();
+})();
+</script>
+</body>
+</html>

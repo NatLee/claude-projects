@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三個三個數，五個五個數，我就知道你有幾個｜每日小專案</title>
+<meta name="description" content="一千五百年前的點兵法：不必數人頭，只問三次「剩幾個」，就能把你藏起來的數字叫出名字。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#100e0b; --pk-ink:#ece2cd; --pk-dim:#8d8067; --pk-accent:#c9a227;
+  --pk-line:rgba(236,226,205,.14);
+  --zhu:#c8462f;          /* 朱砂 */
+  --bamboo:#1b1712;
+  --pk-maxw:660px;
+}
+body{
+  background:
+    radial-gradient(120% 70% at 50% -10%, #1d1812 0%, transparent 60%),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.018) 0 1px, transparent 1px 13px),
+    var(--pk-bg);
+}
+h1,h2,.serif{font-family:var(--pk-serif);}
+
+.pk-hero h1{letter-spacing:.02em;}
+.lead{color:var(--pk-dim);font-size:15.5px;}
+.kicker{
+  font-size:12px;letter-spacing:.34em;color:var(--pk-accent);
+  text-transform:none;margin:0 0 18px;
+}
+
+section{margin:78px 0;}
+h2{font-size:clamp(19px,4.4vw,24px);line-height:1.6;margin:0 0 14px;font-weight:600;}
+p{margin:0 0 16px;}
+.dim{color:var(--pk-dim);}
+.zhu{color:var(--zhu);}
+.gold{color:var(--pk-accent);}
+
+/* ── 藏數面板 ── */
+.slip{
+  border:1px solid var(--pk-line);border-radius:14px;padding:22px 20px;
+  background:linear-gradient(180deg,rgba(236,226,205,.045),rgba(236,226,205,.015));
+}
+.slip label{display:block;font-size:13.5px;color:var(--pk-dim);margin-bottom:10px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+input[type=number]{
+  flex:1 1 150px;min-width:0;background:#0b0907;color:var(--pk-ink);
+  border:1px solid var(--pk-line);border-radius:10px;padding:13px 15px;
+  font:inherit;font-size:20px;font-family:var(--pk-serif);letter-spacing:.14em;
+}
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
+.hint{font-size:12.5px;color:var(--pk-dim);margin-top:10px;min-height:1.6em;}
+.err{color:var(--zhu);}
+
+/* 封起來的紙條 */
+.sealed{
+  display:none;align-items:center;justify-content:space-between;gap:12px;
+  border:1px dashed var(--zhu);border-radius:12px;padding:16px 18px;
+  background:rgba(200,70,47,.07);
+}
+.sealed.on{display:flex;}
+.sealed .mask{font-size:26px;letter-spacing:.35em;color:var(--zhu);font-family:var(--pk-serif);}
+.sealed .note{font-size:12.5px;color:var(--pk-dim);text-align:right;line-height:1.7;}
+
+/* ── 校場 ── */
+.field{
+  position:relative;height:250px;margin:22px 0 6px;border-radius:14px;
+  background:linear-gradient(180deg,rgba(236,226,205,.04),transparent 70%),var(--bamboo);
+  border:1px solid var(--pk-line);overflow:hidden;
+}
+.dot{
+  position:absolute;left:0;top:0;border-radius:50%;
+  background:#b9ad92;
+  transition:transform .75s cubic-bezier(.2,.75,.25,1),background .4s,box-shadow .4s,opacity .4s;
+  will-change:transform;
+}
+.dot.left{background:var(--zhu);box-shadow:0 0 12px rgba(200,70,47,.75);}
+.tally{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  font-size:13.5px;color:var(--pk-dim);min-height:1.9em;
+}
+.tally b{font-family:var(--pk-serif);font-size:22px;color:var(--pk-ink);font-weight:600;}
+.counts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.chip{
+  border:1px solid var(--pk-line);border-radius:999px;padding:7px 14px;
+  font-size:13px;color:var(--pk-dim);opacity:.28;
+  transition:opacity .5s,border-color .5s,color .5s;
+}
+.chip.on{opacity:1;border-color:var(--pk-accent);color:var(--pk-ink);}
+.chip b{color:var(--zhu);font-family:var(--pk-serif);font-size:16px;}
+
+/* ── 歌訣 ── */
+.song{margin:26px 0 8px;}
+.line{
+  display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:baseline;
+  padding:13px 2px;border-bottom:1px solid var(--pk-line);
+  opacity:.2;transform:translateY(8px);
+  transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.3,1);
+}
+.line.on{opacity:1;transform:none;}
+.line .txt{font-family:var(--pk-serif);font-size:clamp(16px,4vw,19px);letter-spacing:.04em;}
+.line .calc{font-size:14px;color:var(--pk-dim);white-space:nowrap;}
+.line .calc em{font-style:normal;color:var(--pk-accent);}
+.sum{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  margin-top:16px;font-size:14px;color:var(--pk-dim);
+}
+.sum b{font-family:var(--pk-serif);font-size:clamp(26px,7vw,38px);color:var(--pk-ink);font-weight:600;}
+
+/* ── 掀牌 ── */
+.reveal{
+  margin-top:26px;border:1px solid var(--pk-accent);border-radius:16px;
+  padding:26px 20px;text-align:center;
+  background:radial-gradient(120% 140% at 50% 0%,rgba(201,162,39,.14),transparent 70%);
+  opacity:0;transform:scale(.97);transition:opacity .7s,transform .7s cubic-bezier(.2,.7,.3,1);
+}
+.reveal.on{opacity:1;transform:none;}
+.reveal .big{
+  font-family:var(--pk-serif);font-size:clamp(46px,15vw,78px);line-height:1.1;
+  color:var(--pk-accent);display:block;margin:6px 0 10px;
+}
+.reveal .small{font-size:13.5px;color:var(--pk-dim);}
+
+.keys{margin:20px 0;}
+.key{
+  display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:center;
+  padding:14px 0;border-bottom:1px solid var(--pk-line);
+}
+.key .n{font-family:var(--pk-serif);font-size:30px;color:var(--pk-accent);grid-row:span 2;}
+.key .t{font-size:14.5px;}
+.key .s{font-size:12.5px;color:var(--pk-dim);grid-column:2;}
+
+.steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px;}
+blockquote{
+  margin:0;padding:14px 0 14px 18px;border-left:2px solid var(--zhu);
+  font-family:var(--pk-serif);font-size:16.5px;line-height:2;color:var(--pk-ink);
+}
+blockquote cite{display:block;font-style:normal;font-size:12.5px;color:var(--pk-dim);margin-top:8px;letter-spacing:.08em;}
+
+@media (max-width:560px){
+  .field{height:210px;}
+  .line{grid-template-columns:1fr;}
+  .line .calc{white-space:normal;}
+}
+@media (prefers-reduced-motion: reduce){
+  .dot{transition:background .01s,box-shadow .01s;}
+  .line,.reveal{transition:none;}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">南北朝 · 某座校場</p>
+    <h1 class="rv">校場上站滿了人。<br>將軍下令：不准數人頭。</h1>
+    <p class="lead rv">他只讓隊伍重排三次，看每次剩下幾個落單的。<br>一千五百年後，換你把一個數字藏進口袋——我照樣把它叫出名字。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <h2>先把數字藏起來</h2>
+    <p>心裡想一個 1 到 105 之間的整數。寫進去、封好，接下來沒人會再看它一眼。</p>
+    <div class="slip">
+      <label for="num">你的數（1–105）</label>
+      <div class="row">
+        <input id="num" type="number" min="1" max="105" step="1" inputmode="numeric" placeholder="例如 23" aria-describedby="hint">
+        <button class="pk-btn" id="seal">封起來</button>
+      </div>
+      <p class="hint" id="hint">封好之後，畫面只會拿到三個「剩幾個」，拿不到數字本身。</p>
+    </div>
+
+    <div class="sealed" id="sealed" aria-hidden="true">
+      <span class="mask" id="mask">●●●</span>
+      <span class="note">已封緘<br>接下來只問三個問題</span>
+    </div>
+  </section>
+
+  <section id="parade" hidden>
+    <h2>三次重排</h2>
+    <p class="dim">隊伍照命令改成三人一排、五人一排、七人一排。看的不是隊伍，是最後那一排站不滿的幾個。</p>
+    <div class="field" id="field" aria-hidden="true"></div>
+    <div class="tally"><span id="tallyTxt">列隊中……</span><b id="tallyNum"></b></div>
+    <div class="counts">
+      <span class="chip" id="c3">三三數之，剩 <b id="v3">—</b></span>
+      <span class="chip" id="c5">五五數之，剩 <b id="v5">—</b></span>
+      <span class="chip" id="c7">七七數之，剩 <b id="v7">—</b></span>
+    </div>
+    <div class="steps"><button class="pk-btn" id="toSong" hidden>那又怎樣？</button></div>
+  </section>
+
+  <section id="songSec" hidden>
+    <h2>一首歌，把三個零頭變回一個數</h2>
+    <p class="dim">明朝人把解法編成四句順口溜，七個字一句，背起來就能當場報數。</p>
+    <div class="song" id="song">
+      <div class="line" id="L1"><span class="txt">三人同行七十稀</span><span class="calc" id="K1"></span></div>
+      <div class="line" id="L2"><span class="txt">五樹梅花廿一支</span><span class="calc" id="K2"></span></div>
+      <div class="line" id="L3"><span class="txt">七子團圓正半月</span><span class="calc" id="K3"></span></div>
+      <div class="line" id="L4"><span class="txt">除百零五便得知</span><span class="calc" id="K4"></span></div>
+    </div>
+    <div class="sum"><span id="sumTxt"></span><b id="sumNum"></b></div>
+    <div class="steps"><button class="pk-btn" id="toOpen" hidden>掀開紙條</button></div>
+  </section>
+
+  <section id="openSec" hidden>
+    <div class="reveal" id="reveal">
+      <span class="small">你封起來的那個數</span>
+      <span class="big" id="bigNum">—</span>
+      <span class="small" id="verdict"></span>
+    </div>
+    <p class="dim" style="margin-top:22px" id="afterword"></p>
+    <div class="steps"><button class="pk-btn" id="toWhy" hidden>為什麼躲不掉</button></div>
+  </section>
+
+  <section id="whySec" hidden>
+    <h2>70、21、15 是三把鑰匙</h2>
+    <p>順口溜裡的三個數不是湊出來的。每一把只認得一個除數，對另外兩個完全沒反應——所以三個零頭永遠不會互相干擾。</p>
+    <div class="keys">
+      <div class="key"><span class="n">70</span><span class="t">除以 3 剩 <b class="zhu">1</b>，除以 5 剩 0，除以 7 剩 0</span><span class="s">只替「三三數之」的零頭發聲</span></div>
+      <div class="key"><span class="n">21</span><span class="t">除以 5 剩 <b class="zhu">1</b>，除以 3 剩 0，除以 7 剩 0</span><span class="s">只替「五五數之」的零頭發聲</span></div>
+      <div class="key"><span class="n">15</span><span class="t">除以 7 剩 <b class="zhu">1</b>，除以 3 剩 0，除以 5 剩 0</span><span class="s">只替「七七數之」的零頭發聲</span></div>
+    </div>
+    <p>把零頭各自乘上自己那把鑰匙、加起來，再減掉 3×5×7＝105 的倍數，剩下的必定落在 1 到 105 之間，而且只有一個。105 個位子，三個零頭剛好指定一個——沒有第二種可能。</p>
+    <blockquote>
+      有物不知其數，三三數之剩二，五五數之剩三，七七數之剩二。問物幾何？
+      <cite>《孫子算經》卷下 · 第二十六題</cite>
+    </blockquote>
+    <p class="dim">原書只留了題目和一個答數：二十三。系統性的解法要等到 1247 年，秦九韶在《數書九章》裡把它寫成「大衍求一術」；歐洲那邊，高斯 1801 年才補上同一塊拼圖。</p>
+    <div class="steps"><button class="pk-btn" id="toEnd" hidden>那現在呢</button></div>
+  </section>
+
+  <section id="endSec" hidden>
+    <h2 id="endH">它今天早上才替你點過一次兵</h2>
+    <p>你打開這個網頁的那零點幾秒，瀏覽器和伺服器交換了一串加密簽章。多數 RSA 實作在解密與簽章時，不會硬碰那個幾百位數的大數——它把大數拆成兩個小數各算一次，再用同一條定理把兩半拼回去，速度快上好幾倍。</p>
+    <p>拆開、分別問餘數、拼回唯一解。校場上那三次重排，和你螢幕右上角那把鎖，用的是同一個念頭。</p>
+    <p class="dim" style="margin-top:26px">那位將軍其實從頭到尾沒數過人頭。他只是讓隊伍站到「非它不可」的位置上，然後念出那個數字。</p>
+    <div class="steps"><button class="pk-btn" id="again">再藏一個數</button></div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：《孫子算經》卷下、秦九韶《數書九章》、程大位《算法統宗》〈孫子歌訣〉、維基百科「中國剩餘定理」。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'sunzi.';
+const store = PK.store(LS);
+
+PK.reveal();
+
+/* ───────── 核心邏輯（純函式，供 node 斷言） ───────── */
+function 點兵(n){
+  const r3 = n % 3, r5 = n % 5, r7 = n % 7;
+  const t3 = 70 * r3, t5 = 21 * r5, t7 = 15 * r7;
+  const sum = t3 + t5 + t7;
+  const k = Math.floor((sum - 1) / 105);          // 減掉幾個 105 才落進 1–105
+  const ans = sum - k * 105;
+  return { r3, r5, r7, t3, t5, t7, sum, k, ans };
+}
+
+/* ───────── DOM ───────── */
+const $ = id => document.getElementById(id);
+const field = $('field');
+let dots = [], N = 0, cur = 0, timers = [];
+
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+
+function buildDots(n){
+  field.innerHTML = '';
+  dots = [];
+  for (let i = 0; i < n; i++){
+    const d = document.createElement('i');
+    d.className = 'dot';
+    field.appendChild(d);
+    dots.push(d);
+  }
+}
+
+/* cols＝每一「排」站幾人；排由左往右堆 */
+function layout(cols){
+  const rect = field.getBoundingClientRect();
+  if (rect.width < 80) return;
+  const files = Math.ceil(N / cols);
+  const cell = Math.max(5, Math.min(22, (rect.width - 28) / files, (rect.height - 28) / cols));
+  const size = Math.max(3, cell * 0.62);
+  const ox = (rect.width - files * cell) / 2 + (cell - size) / 2;
+  const oy = (rect.height - cols * cell) / 2 + (cell - size) / 2;
+  const full = Math.floor(N / cols) * cols;
+  dots.forEach((d, i) => {
+    const f = Math.floor(i / cols), r = i % cols;
+    d.style.width = d.style.height = size + 'px';
+    d.style.transitionDelay = (PK.reduced() ? 0 : (i % 17) * 14) + 'ms';
+    d.style.transform = 'translate(' + (ox + f * cell) + 'px,' + (oy + r * cell) + 'px)';
+    d.classList.toggle('left', i >= full);
+  });
+}
+
+function parade(n){
+  N = n;
+  buildDots(n);
+  cur = 1;
+  layout(1);
+  const p = 點兵(n);
+  const steps = [
+    [3, p.r3, 'c3', 'v3', '三人一排'],
+    [5, p.r5, 'c5', 'v5', '五人一排'],
+    [7, p.r7, 'c7', 'v7', '七人一排']
+  ];
+  const gap = PK.reduced() ? 300 : 1700;
+  steps.forEach(([c, r, chip, val, name], idx) => {
+    later(() => {
+      cur = c;
+      layout(c);
+      $('tallyTxt').textContent = name + '，排到最後——';
+      $('tallyNum').textContent = r === 0 ? '剛好排滿' : '剩 ' + r + ' 個';
+      $(chip).classList.add('on');
+      $(val).textContent = r;
+      PK.announce(name + '，剩 ' + r + ' 個');
+    }, 500 + idx * gap);
+  });
+  later(() => {
+    $('tallyTxt').textContent = '三個零頭到手了。將軍連一次人頭都沒數。';
+    $('tallyNum').textContent = '';
+    const b = $('toSong'); b.hidden = false; b.focus();
+  }, 500 + 3 * gap);
+}
+
+/* ───────── 流程 ───────── */
+let P = null;
+
+function seal(){
+  const raw = $('num').value.trim();
+  const n = Number(raw);
+  const hint = $('hint');
+  if (!raw || !Number.isInteger(n) || n < 1 || n > 105){
+    hint.textContent = '要一個 1 到 105 之間的整數才點得了兵。';
+    hint.classList.add('err');
+    $('num').focus();
+    return;
+  }
+  hint.classList.remove('err');
+  hint.textContent = '封好了。數字留在紙條裡，下面只會用到三個零頭。';
+  P = 點兵(n);
+  store.set('last', n);
+  $('mask').textContent = '●'.repeat(String(n).length);
+  $('sealed').classList.add('on');
+  $('num').value = '';
+  $('num').disabled = true;
+  $('seal').disabled = true;
+  $('parade').hidden = false;
+  PK.announce('已封緘，開始點兵');
+  requestAnimationFrame(() => {
+    $('parade').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'start' });
+    later(() => parade(n), PK.reduced() ? 0 : 500);
+  });
+}
+
+function song(){
+  $('toSong').hidden = true;
+  $('songSec').hidden = false;
+  $('songSec').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'start' });
+  const rows = [
+    ['L1', 'K1', '三三的零頭 <em>' + P.r3 + '</em> × 70 ＝ <em>' + P.t3 + '</em>'],
+    ['L2', 'K2', '五五的零頭 <em>' + P.r5 + '</em> × 21 ＝ <em>' + P.t5 + '</em>'],
+    ['L3', 'K3', '七七的零頭 <em>' + P.r7 + '</em> × 15 ＝ <em>' + P.t7 + '</em>'],
+    ['L4', 'K4', '合計 <em>' + P.sum + '</em>，' + (
+      P.k > 0 ? '減掉 ' + P.k + ' 個 105' :
+      P.k === 0 ? '不滿 105，不用減' : '三排都排滿了，補回一個 105')]
+  ];
+  const gap = PK.reduced() ? 120 : 900;
+  rows.forEach(([l, k, html], i) => later(() => {
+    $(k).innerHTML = html;
+    $(l).classList.add('on');
+  }, 350 + i * gap));
+  later(() => {
+    $('sumTxt').textContent = '歌訣念完，手上只剩一個數：';
+    $('sumNum').textContent = P.ans;
+    const b = $('toOpen'); b.hidden = false; b.focus();
+    PK.announce('歌訣算出 ' + P.ans);
+  }, 350 + 4 * gap);
+}
+
+function openSlip(){
+  $('toOpen').hidden = true;
+  $('openSec').hidden = false;
+  $('openSec').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'center' });
+  $('bigNum').textContent = P.ans;
+  $('verdict').textContent = '紙條打開了。一模一樣。';
+  $('mask').textContent = String(P.ans);
+  $('sealed').style.borderStyle = 'solid';
+  later(() => $('reveal').classList.add('on'), 200);
+  $('afterword').textContent =
+    '從頭到尾，畫面知道的只有「剩 ' + P.r3 + '」「剩 ' + P.r5 + '」「剩 ' + P.r7 + '」三句話。' +
+    '1 到 105 裡面，符合這三句話的整數就只有 ' + P.ans + ' 一個——它無處可躲。';
+  later(() => { const b = $('toWhy'); b.hidden = false; }, 900);
+  PK.announce('你的數是 ' + P.ans);
+}
+
+function why(){
+  $('toWhy').hidden = true;
+  $('whySec').hidden = false;
+  $('whySec').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'start' });
+  later(() => { $('toEnd').hidden = false; }, 600);
+}
+
+function end(){
+  $('toEnd').hidden = true;
+  $('endSec').hidden = false;
+  $('endSec').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'start' });
+}
+
+function again(){
+  clearTimers();
+  P = null;
+  ['parade', 'songSec', 'openSec', 'whySec', 'endSec'].forEach(id => $(id).hidden = true);
+  ['L1', 'L2', 'L3', 'L4'].forEach(id => $(id).classList.remove('on'));
+  ['K1', 'K2', 'K3', 'K4'].forEach(id => $(id).textContent = '');
+  ['c3', 'c5', 'c7'].forEach(id => $(id).classList.remove('on'));
+  ['v3', 'v5', 'v7'].forEach(id => $(id).textContent = '—');
+  ['toSong', 'toOpen', 'toWhy', 'toEnd'].forEach(id => $(id).hidden = true);
+  $('reveal').classList.remove('on');
+  $('sumTxt').textContent = ''; $('sumNum').textContent = '';
+  $('sealed').classList.remove('on');
+  $('sealed').style.borderStyle = 'dashed';
+  $('num').disabled = false; $('seal').disabled = false; $('num').value = '';
+  $('hint').classList.remove('err');
+  $('hint').textContent = '封好之後，畫面只會拿到三個「剩幾個」，拿不到數字本身。';
+  field.innerHTML = ''; dots = []; N = 0;
+  document.querySelector('.pk-hero').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth' });
+  later(() => $('num').focus(), 500);
+}
+
+$('seal').addEventListener('click', seal);
+$('num').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); seal(); } });
+$('toSong').addEventListener('click', song);
+$('toOpen').addEventListener('click', openSlip);
+$('toWhy').addEventListener('click', why);
+$('toEnd').addEventListener('click', end);
+$('again').addEventListener('click', again);
+
+addEventListener('resize', () => { if (N && cur) layout(cur); });
+PK.onMotionChange(() => { if (N && cur) layout(cur); });
+</script>
+</body>
+</html>

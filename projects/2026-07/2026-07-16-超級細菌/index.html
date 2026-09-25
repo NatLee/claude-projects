@@ -165,7 +165,7 @@
   function reset(){
     grid.fill(-1);
     for(var y=0;y<ROWS;y++){ grid[y*COLS+0]=0; grid[y*COLS+1]=0; grid[y*COLS+COLS-1]=0; grid[y*COLS+COLS-2]=0; }
-    tick=0; day=0; maxRes=0; conquered=false; coverage=0;
+    tick=0; day=0; maxRes=0; conquered=false; coverage=0; dirty=true;
     banner.classList.remove('show');
   }
 
@@ -209,7 +209,7 @@
   }
 
   function onConquer(){
-    playing=false; updatePlayBtn();
+    playing=false; updatePlayBtn(); dirty=true;
     var msg='第 '+day+' 天：細菌攻下中央——它們現在能在 <b>1000 倍</b>致死劑量下生長。';
     banner.innerHTML=msg; banner.classList.add('show');
     live.textContent='細菌已演化出對 1000 倍致死劑量的抗藥性。';
@@ -254,14 +254,16 @@
   }
 
   // 主迴圈
-  var running=false, rafId=null, lastTs=0;
+  var running=false, rafId=null, lastTs=0, dirty=true;
   function loop(ts){
     if(!running){ return; }
     if(playing && !conquered){
       var n=+speedEl.value;
       for(var s=0;s<n;s++){ if(!conquered) step(); }
+      render();
+    } else if(dirty){          // 暫停／已攻陷時畫面是靜止的，不必每幀重畫整張培養皿
+      dirty=false; render();
     }
-    render();
     rafId=requestAnimationFrame(loop);
   }
   function startRAF(){ if(!running){ running=true; rafId=requestAnimationFrame(loop); } }
@@ -279,7 +281,7 @@
       banner.innerHTML='已接種。按「繼續」推進演化。'; banner.classList.add('show');
     }
   });
-  playBtn.addEventListener('click', function(){ if(conquered) return; playing=!playing; updatePlayBtn(); startRAF(); });
+  playBtn.addEventListener('click', function(){ if(conquered) return; playing=!playing; dirty=true; updatePlayBtn(); startRAF(); });
   resetBtn.addEventListener('click', function(){ reset(); playing=!REDUCE; updatePlayBtn(); startRAF(); });
 
   var rzT=null;
@@ -288,7 +290,7 @@
     rzT=setTimeout(function(){
       var w=canvas.clientWidth||600, h=Math.round(w*ROWS/COLS), dpr=Math.min(window.devicePixelRatio||1,2);
       if(canvas.width===Math.round(w*dpr) && canvas.height===Math.round(h*dpr)) return; // 尺寸沒變就不重設
-      sizeCanvas(); render();
+      sizeCanvas(); dirty=true; render();
     },120);
   });
   document.addEventListener('visibilitychange', function(){ if(document.hidden) stopRAF(); else if(started) startRAF(); });

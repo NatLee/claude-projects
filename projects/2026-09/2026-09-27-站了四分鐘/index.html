@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>他站了四分鐘｜每日小專案</title>
+<meta name="description" content="1838 年春天早上八點，巴黎最吵的一條街被拍成一座空城。按住快門，自己把人抹掉一次。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0a0c;
+  --pk-ink:#e6e2d8;
+  --pk-dim:#8c867c;
+  --pk-accent:#c9a227;
+  --pk-line:rgba(255,255,255,.1);
+  --pk-maxw:680px;
+  --silver:#b9bcc0;
+  --plate:#1b1d21;
+}
+body{ background:
+  radial-gradient(120% 70% at 50% -10%, #17181d 0%, #0a0a0c 62%) no-repeat, var(--pk-bg); }
+
+/* ── 第一屏 ── */
+.pk-hero h1{ font-size:clamp(34px,10vw,64px); letter-spacing:.06em; line-height:1.28; margin-bottom:26px }
+.hero-sub{ color:var(--pk-dim); font-size:clamp(15px,3.6vw,17px); max-width:30em; margin:0 0 10px }
+.stamp{ font-family:var(--pk-serif); font-size:12.5px; letter-spacing:.32em; color:var(--pk-accent);
+  text-transform:uppercase; margin:0 0 22px; opacity:.85 }
+.scrollcue{ margin-top:46px; color:var(--pk-dim); font-size:12px; letter-spacing:.25em }
+.scrollcue span{ display:inline-block; animation:bob 2.4s ease-in-out infinite }
+@keyframes bob{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(5px) } }
+
+/* ── 內文節奏 ── */
+main section{ margin:0 0 96px }
+main h2{ font-family:var(--pk-serif); font-size:clamp(20px,4.8vw,26px); font-weight:600;
+  letter-spacing:.03em; margin:0 0 16px; line-height:1.55 }
+main p{ margin:0 0 17px; font-size:clamp(15px,3.7vw,16.5px) }
+.lead{ font-family:var(--pk-serif); font-size:clamp(18px,4.6vw,22px); line-height:1.8; color:#f2eee3 }
+.dim{ color:var(--pk-dim) }
+.gold{ color:var(--pk-accent) }
+.beat{ margin:44px 0; padding-left:16px; border-left:2px solid var(--pk-accent);
+  font-family:var(--pk-serif); font-size:clamp(17px,4.4vw,20px); line-height:1.75; color:#f2eee3 }
+
+/* ── 前後對照：街上有的／板子上有的 ── */
+.vs{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:34px 0 }
+.vs > div{ border:1px solid var(--pk-line); border-radius:10px; padding:16px 16px 18px;
+  background:rgba(255,255,255,.017) }
+.vs h3{ margin:0 0 12px; font-size:12px; letter-spacing:.2em; color:var(--pk-dim); font-weight:600 }
+.vs ul{ margin:0; padding:0; list-style:none; font-size:14.5px; line-height:2.05 }
+.vs li::before{ content:"·"; color:var(--pk-accent); margin-right:9px }
+.vs .right li::before{ content:"·"; color:#4a4e55 }
+.vs .right{ color:var(--pk-dim) }
+.vs .right .solo{ color:var(--pk-ink) }
+@media (max-width:560px){ .vs{ grid-template-columns:1fr } }
+
+/* ── 相機台 ── */
+.rig{ margin:38px 0 0 }
+.plate-frame{ position:relative; border-radius:6px; padding:12px;
+  background:linear-gradient(160deg,#2a2c31,#141518 55%,#25272c);
+  box-shadow:0 22px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.07) }
+.stage{ position:relative; width:100%; aspect-ratio:4/3; border-radius:3px; overflow:hidden;
+  background:#0f1012 }
+.stage canvas{ position:absolute; inset:0; width:100%; height:100%; display:block }
+#cvPlate{ opacity:0; transition:opacity .45s ease }
+.vignette{ position:absolute; inset:0; pointer-events:none;
+  box-shadow:inset 0 0 70px 14px rgba(0,0,0,.55) }
+.flip{ position:absolute; inset:0; transition:transform .9s cubic-bezier(.65,0,.35,1) }
+.flip.mirrored{ transform:scaleX(-1) }
+
+/* 放大鏡圈選 */
+.loupe{ position:absolute; width:22%; aspect-ratio:1; border-radius:50%;
+  border:1px solid var(--pk-accent); box-shadow:0 0 0 1px rgba(0,0,0,.5), 0 0 24px rgba(201,162,39,.35);
+  left:9%; bottom:3%; opacity:0; transform:scale(1.7); pointer-events:none;
+  transition:opacity .6s ease, transform .9s cubic-bezier(.2,.8,.3,1),
+             left .9s cubic-bezier(.65,0,.35,1), right .9s cubic-bezier(.65,0,.35,1) }
+.loupe.on{ opacity:1; transform:scale(1) }
+.loupe.flipped{ left:70% }
+.loupe::after{ content:"這兩位"; position:absolute; left:50%; bottom:calc(100% + 7px); transform:translateX(-50%);
+  font-size:11.5px; letter-spacing:.18em; color:var(--pk-accent); white-space:nowrap }
+
+/* 曝光計 */
+.meter{ display:flex; align-items:center; gap:12px; margin:16px 2px 0 }
+.bar{ position:relative; flex:1; height:4px; border-radius:99px; background:rgba(255,255,255,.1); overflow:hidden }
+.bar i{ position:absolute; inset:0 auto 0 0; width:0%; background:var(--pk-accent); border-radius:99px }
+.bar u{ position:absolute; top:-4px; bottom:-4px; width:1px; background:rgba(255,255,255,.34) }
+.clock{ font-variant-numeric:tabular-nums; font-size:13px; letter-spacing:.1em; color:var(--pk-dim); min-width:5.4em }
+
+.controls{ display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin:20px 0 0 }
+#shutter{ flex:1 1 220px; padding:16px 20px; font-size:15.5px; letter-spacing:.16em;
+  border-radius:8px; touch-action:none; user-select:none; -webkit-user-select:none }
+#shutter.holding{ background:var(--pk-accent); color:#0a0a0c }
+#again{ border-color:var(--pk-line); color:var(--pk-dim); padding:14px 18px; font-size:13.5px }
+#again:hover{ background:transparent; color:var(--pk-ink); border-color:var(--pk-dim) }
+.verdict{ margin:20px 2px 0; min-height:3.4em; font-size:15px; line-height:1.8 }
+.verdict b{ color:var(--pk-accent); font-weight:600 }
+.hint{ font-size:12.5px; color:var(--pk-dim); letter-spacing:.04em; margin:10px 2px 0 }
+
+.caption{ font-size:12.5px; color:var(--pk-dim); margin:12px 2px 0; line-height:1.9 }
+
+.pk-foot{ margin-top:92px }
+
+@media (prefers-reduced-motion: reduce){
+  .scrollcue span{ animation:none }
+  .loupe{ transition:opacity .01s }
+  .flip{ transition:none }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="stamp rv">Paris · 1838 · 8h du matin</p>
+    <h1 class="rv">他站了四分鐘</h1>
+    <p class="hero-sub rv">一八三八年春天，早上八點整。有人從五樓的窗口，對著巴黎最吵的一條街按下快門。</p>
+    <p class="hero-sub rv">拍出來，街上一個人也沒有。</p>
+    <p class="scrollcue rv"><span>往下 ↓</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="rv">
+    <p class="lead">那條街叫神廟大道。巴黎人給它另一個名字：<span class="gold">犯罪大道</span>。</p>
+    <p>不是因為治安，是因為劇目。路的一側擠了七八間劇院——快活劇院、曖昧劇院、走索者劇院——整天在台上演兇殺、復仇、下毒。散場的人從這家門口流到那家門口，中間插滿咖啡館。三年前，一個叫費耶斯基的男人在這條街的四十二號租了間房，架起二十五根槍管等國王經過，當場炸死十八個人。</p>
+    <p>清晨八點，這裡是馬車、送貨的、掃街的、開店的。空城是它最不可能的樣子。</p>
+  </section>
+
+  <section class="rv">
+    <h2>可是板子上什麼都沒有</h2>
+    <div class="vs">
+      <div>
+        <h3>那天早上街上有的</h3>
+        <ul>
+          <li>出租馬車</li>
+          <li>拉貨的馬</li>
+          <li>趕路的人</li>
+          <li>掃街的人</li>
+          <li>開門的店家</li>
+          <li>一個擦鞋匠</li>
+          <li>一位客人</li>
+        </ul>
+      </div>
+      <div class="right">
+        <h3>銀版上留下的</h3>
+        <ul>
+          <li>房子</li>
+          <li>樹</li>
+          <li>路面</li>
+          <li>屋頂</li>
+          <li>煙囪</li>
+          <li class="solo">一個擦鞋匠</li>
+          <li class="solo">一位客人</li>
+        </ul>
+      </div>
+    </div>
+    <p>差別不在街上，在快門。達蓋爾那塊鍍銀銅板要曬上<span class="gold">四到五分鐘</span>才夠亮——在此之前，尼埃普斯的版本要曬八個小時。四分鐘已經是當時的奇蹟。</p>
+    <p>而四分鐘，剛好是一個活人不可能站著不動的長度。</p>
+  </section>
+
+  <section class="rv">
+    <div class="beat">走過去的東西，不會在版子上留下自己。<br>它只會把自己攤平，變成路面的一部分。</div>
+    <p>相機不是沒拍到那些人。它把他們全部拍下來了——每個人只在自己經過的那幾秒裡壓上一點點光，四分鐘一平均，就淡成了空氣。</p>
+    <p class="dim">底下這台相機架在同一個窗口。按住不放，你就是那四分鐘。</p>
+  </section>
+
+  <section class="rv rig" aria-labelledby="rigTitle">
+    <h2 id="rigTitle">五樓的窗口</h2>
+    <div class="plate-frame">
+      <div class="stage" id="stage">
+        <div class="flip" id="flip">
+          <canvas id="cvLive" aria-hidden="true"></canvas>
+          <canvas id="cvPlate" aria-hidden="true"></canvas>
+        </div>
+        <div class="vignette"></div>
+        <div class="loupe" id="loupe" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <div class="meter">
+      <div class="bar" aria-hidden="true"><i id="fill"></i><u id="markA" style="left:26%"></u><u id="markB" style="left:78%"></u></div>
+      <span class="clock" id="clock">0 分 00 秒</span>
+    </div>
+
+    <div class="controls">
+      <button class="pk-btn" id="shutter" aria-describedby="hint">按住不放＝開著快門</button>
+      <button class="pk-btn" id="again" hidden>換一塊板子</button>
+    </div>
+    <p class="hint" id="hint">滑鼠、觸控、或用鍵盤聚焦後按住空白鍵都可以。標記處是曝光足夠的門檻。</p>
+    <p class="verdict" id="verdict" role="status" aria-live="polite">板子已經上藥，街上照常在動。</p>
+    <p class="caption">畫面是依當年構圖重繪的示意，不是原版銀版翻拍。</p>
+  </section>
+
+  <section class="rv" id="after">
+    <h2>那兩個小點</h2>
+    <p>左下角街角那兩坨深色，是一個擦鞋匠和他的客人。要擦一雙靴子，客人得把腳踩在箱子上，站著別動好幾分鐘。整條大街只有他們慢得夠久。</p>
+    <p>一八三九年十月，達蓋爾把這張板子當作禮物送給巴伐利亞國王，在慕尼黑公開展出。當地一份週刊寫下大概是史上第一句「照片人物評論」：</p>
+    <div class="beat">「那裡似乎有個人在讓人擦靴子，他一定站得極其安靜。」</div>
+    <p>人類第一次被相機記下來，不是因為長得好看、有功績、或剛好在場。是因為他<span class="gold">夠慢</span>。</p>
+  </section>
+
+  <section class="rv">
+    <h2>三個壞消息</h2>
+    <p><b>一、</b>那天同一個窗口拍了三張：早上八點、中午、傍晚。傍晚那張，弄丟了。</p>
+    <p><b>二、</b>銀版成的是鏡像。你剛剛看到的街，左右是反的——巴黎人自己走過那條街時，看到的不是這個方向。</p>
+    <p><b>三、</b>原版後來在皇家倉庫裡慢慢劣化，一九七〇年送去修復，修壞了。今天全世界看到的每一張「人類第一張有人的照片」，都是一九三〇年代一位美國史學家搶拍下來的翻拍複製品。</p>
+    <p>還有一個更難受的可能：有人仔細看過那兩個小點，認為那根本不是人，是街角的一座<span class="gold">抽水泵</span>。</p>
+    <div class="beat">所以我們手上有的是：一張複製品、一個反的方向、一個可能不是人的人。<br>他站了四分鐘，換來一百八十年的存在——名字沒留下，連他是不是人都還在吵。</div>
+    <p class="dim">而那條街本身，一八六二年被奧斯曼男爵拆光了。劇院全數消失，只剩一間還在營業。你剛剛替它曝的那四分鐘，是它留給世界的樣子之一。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia「Boulevard du Temple (photograph)」／「Boulevard du Temple」、Sylvia Ballhause《The Munich Daguerre-Triptych》。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+var LS = 'btemple.';
+var store = PK.store(LS);
+
+PK.reveal();
+
+/* ══════════════════════════════════════════════════════════════
+   核心純函式（可在 node 下直接斷言）
+   ══════════════════════════════════════════════════════════════ */
+
+/* 曝光評級：真實秒 → 等效分鐘（1 秒 ≒ 1 分鐘）。門檻取自史實 4–5 分鐘 */
+var NEED = 4.0;            /* 成功門檻（秒＝等效分鐘） */
+var GHOST = 1.3;           /* 低於此連影子都成不了形 */
+function exposureGrade(sec){
+  if (sec < GHOST) return { tier:0, key:'blank' };
+  if (sec < NEED)  return { tier:1, key:'ghost' };
+  return { tier:2, key:'plate' };
+}
+
+/* 累積平均：第 n 張樣本的混合權重（n 從 0 起算）。
+   設下限是因為 8 位元畫布再細的權重也會被捨去——低於 floor 就退成指數移動平均。 */
+function meanAlpha(n, floor){
+  var a = 1 / (n + 1);
+  return a < floor ? floor : a;
+}
+
+/* 跑者在寬 W 的畫面上、時間 t 時的位置（會環繞） */
+function wrapX(x0, v, t, W){
+  var x = (x0 + v * t) % W;
+  return x < 0 ? x + W : x;
+}
+
+/* 顯影：比路面「只暗一點點」的淡影（＝被平均掉的路人）直接抹平成路面；
+   夠暗或夠亮的結構則拉高對比。v/pivot 為 0..1 亮度，knee 是容忍帶。 */
+function develop(v, pivot, knee, gain){
+  var d = v - pivot, y;
+  if (d >= 0) y = pivot + d * gain;
+  else if (-d <= knee) y = pivot;
+  else y = pivot - (-d - knee) * gain;
+  return y < 0 ? 0 : (y > 1 ? 1 : y);
+}
+
+/* 一個等速通過的物體，在曝光 dur 秒後於某個像素上留下的「佔比」
+   ＝ 它自己的寬度 ÷ 它掃過的距離（都以畫面寬為 1）。佔比越低越淡。 */
+function coverage(bodyW, speed, dur){
+  var travel = Math.abs(speed) * dur;
+  if (travel <= bodyW) return 1;
+  return bodyW / travel;
+}
+
+/* 曝光不足的面紗：光沒收夠，銀版就還是一塊暗鏡子。
+   隨秒數線性退去，四分鐘剛好退光——所以三種結果之間沒有突兀的跳階。 */
+function veil(sec, need){
+  var k = 1 - sec / need;
+  return (k < 0 ? 0 : k) * 0.72;
+}
+
+/* 容忍帶只在路面上全開（人是走在路上的），往地平線方向線性收掉，
+   免得在天空與屋頂之間切出一條水平接縫。yFrac 為 0（頂）到 1（底）。 */
+function kneeAt(yFrac, knee){
+  var k = (yFrac - 0.50) / 0.12;
+  if (k < 0) k = 0; else if (k > 1) k = 1;
+  return k * knee;
+}
+
+if (typeof module !== 'undefined' && module.exports){
+  module.exports = {
+    exposureGrade:exposureGrade, meanAlpha:meanAlpha, wrapX:wrapX,
+    develop:develop, coverage:coverage, kneeAt:kneeAt, veil:veil, NEED:NEED, GHOST:GHOST
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════
+   場景（只在瀏覽器裡跑）
+   ══════════════════════════════════════════════════════════════ */
+if (typeof document !== 'undefined') (function(){
+
+var cvLive = document.getElementById('cvLive');
+var cvPlate = document.getElementById('cvPlate');
+if (!cvLive) return;
+var live = cvLive.getContext('2d');
+var plate = cvPlate.getContext('2d');
+var stage = document.getElementById('stage');
+var btn = document.getElementById('shutter');
+var again = document.getElementById('again');
+var fill = document.getElementById('fill');
+var clockEl = document.getElementById('clock');
+var verdict = document.getElementById('verdict');
+var loupe = document.getElementById('loupe');
+var markA = document.getElementById('markA');
+var markB = document.getElementById('markB');
+
+var MAXSEC = 5.6;                       /* 計量條滿格 */
+markA.style.left = (NEED / MAXSEC * 100) + '%';
+markB.style.left = (5.0 / MAXSEC * 100) + '%';
+
+/* ── 街上的人 ── */
+/* 速度下限是算出來的，不是調出來的：
+   車馬體積大，必須跑得夠快，四分鐘一平均才會淡到看不見（見 coverage／develop）。 */
+var V_WALK = [0.07, 0.17];
+var V_CART = [0.40, 0.62];
+function makeCrowd(){
+  var a = [], i;
+  for (i = 0; i < 24; i++){
+    var r = PK.hash('walker' + i);
+    var cart = r > 0.80;
+    var rng = cart ? V_CART : V_WALK;
+    a.push({
+      kind: cart ? 'cart' : 'walk',
+      x0: PK.hash('x' + i),
+      v: (PK.hash('d' + i) > 0.5 ? 1 : -1) * (rng[0] + PK.hash('v' + i) * (rng[1] - rng[0])),
+      lane: 0.70 + PK.hash('lane' + i) * 0.25,   /* 縱深：越大越近 */
+      bob: PK.hash('b' + i) * 6.28,
+      tone: 0.12 + PK.hash('t' + i) * 0.22
+    });
+  }
+  return a;
+}
+var crowd = makeCrowd();
+
+/* 靜止的兩位：擦鞋匠與客人（畫面左下街角） */
+var STILL = [
+  { x:0.135, lane:0.965, tone:0.10, pose:'sit' },
+  { x:0.172, lane:0.975, tone:0.09, pose:'stand' }
+];
+
+function laneY(h, lane){ return h * (0.53 + lane * 0.41); }
+function laneScale(lane){ return 0.22 + lane * 0.88; }
+
+/* 一個人形／馬車，畫在 (x,y)，s 為高度像素 */
+function figure(c, x, y, s, tone, kind, phase){
+  c.save();
+  c.fillStyle = 'rgba(' + Math.round(tone*255) + ',' + Math.round(tone*255+6) + ',' + Math.round(tone*255+10) + ',.92)';
+  if (kind === 'cart'){
+    c.fillRect(x - s*0.62, y - s*0.62, s*1.24, s*0.46);
+    c.beginPath(); c.arc(x - s*0.38, y - s*0.08, s*0.16, 0, 6.2832); c.fill();
+    c.beginPath(); c.arc(x + s*0.40, y - s*0.08, s*0.16, 0, 6.2832); c.fill();
+    /* 馬 */
+    c.fillRect(x + s*0.70, y - s*0.70, s*0.62, s*0.34);
+    c.fillRect(x + s*0.78, y - s*0.40, s*0.09, s*0.40);
+    c.fillRect(x + s*1.18, y - s*0.40, s*0.09, s*0.40);
+  } else if (kind === 'sit'){
+    c.beginPath(); c.arc(x, y - s*0.72, s*0.15, 0, 6.2832); c.fill();
+    c.fillRect(x - s*0.20, y - s*0.60, s*0.40, s*0.34);
+    c.fillRect(x - s*0.05, y - s*0.28, s*0.34, s*0.14);   /* 蹲著伸手 */
+    c.fillRect(x + s*0.22, y - s*0.16, s*0.16, s*0.16);   /* 擦鞋箱 */
+  } else {
+    var sway = kind === 'walk' ? Math.sin(phase) * s * 0.10 : 0;
+    c.beginPath(); c.arc(x, y - s*0.86, s*0.15, 0, 6.2832); c.fill();
+    c.beginPath();
+    c.moveTo(x - s*0.19, y - s*0.70);
+    c.lineTo(x + s*0.19, y - s*0.70);
+    c.lineTo(x + s*0.15, y - s*0.26);
+    c.lineTo(x - s*0.15, y - s*0.26);
+    c.closePath(); c.fill();
+    c.fillRect(x - s*0.15 + sway, y - s*0.28, s*0.10, s*0.28);
+    c.fillRect(x + s*0.05 - sway, y - s*0.28, s*0.10, s*0.28);
+  }
+  c.restore();
+}
+
+/* ── 靜態背景（不動的部分，只重畫在尺寸改變時） ── */
+var bg = document.createElement('canvas');
+function paintBg(w, h, dpr){
+  bg.width = Math.round(w * dpr); bg.height = Math.round(h * dpr);
+  var c = bg.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  /* 天空 */
+  var sky = c.createLinearGradient(0, 0, 0, h * 0.62);
+  sky.addColorStop(0, '#cfd3d6'); sky.addColorStop(1, '#e7e6e0');
+  c.fillStyle = sky; c.fillRect(0, 0, w, h);
+
+  /* 路面 */
+  var road = c.createLinearGradient(0, h * 0.48, 0, h);
+  road.addColorStop(0, '#b6b3ab'); road.addColorStop(1, '#8e8b84');
+  c.fillStyle = road; c.fillRect(0, h * 0.48, w, h * 0.52);
+
+  /* 遠處消失點的街 */
+  c.fillStyle = 'rgba(120,120,118,.28)';
+  c.beginPath(); c.moveTo(w*0.42, h*0.50); c.lineTo(w*0.58, h*0.50);
+  c.lineTo(w*1.25, h); c.lineTo(-w*0.25, h); c.closePath(); c.fill();
+
+  /* 左側連棟房屋（近→遠） */
+  var i, x = -w*0.04, depth = 0;
+  while (x < w * 0.52 && depth < 9){
+    var bw = w * (0.20 - depth * 0.019);
+    var bh = h * (0.62 - depth * 0.055);
+    var top = h * 0.52 - bh;
+    var g = c.createLinearGradient(x, top, x + bw, top);
+    var k = 210 - depth * 9;
+    g.addColorStop(0, 'rgb(' + k + ',' + (k-4) + ',' + (k-12) + ')');
+    g.addColorStop(1, 'rgb(' + (k-26) + ',' + (k-30) + ',' + (k-36) + ')');
+    c.fillStyle = g;
+    c.fillRect(x, top, bw, bh + h * 0.02);
+    /* 屋頂 */
+    c.fillStyle = 'rgba(70,68,66,.55)';
+    c.fillRect(x, top - h * 0.018, bw, h * 0.018);
+    /* 窗 */
+    c.fillStyle = 'rgba(58,56,56,.5)';
+    var rows = 4, cols = 3, r2, c2;
+    for (r2 = 0; r2 < rows; r2++) for (c2 = 0; c2 < cols; c2++){
+      var ww = bw * 0.14, wh = bh * 0.10;
+      c.fillRect(x + bw * (0.14 + c2 * 0.30), top + bh * (0.14 + r2 * 0.20), ww, wh);
+    }
+    x += bw * 1.02; depth++;
+  }
+
+  /* 右側行道樹 */
+  for (i = 0; i < 7; i++){
+    var tx = w * (1.02 - i * 0.135);
+    var ts = h * (0.40 - i * 0.043);
+    if (ts < h * 0.08) break;
+    var ty = h * (0.60 + i * -0.012);
+    c.fillStyle = 'rgba(86,84,78,.85)';
+    c.fillRect(tx - ts * 0.045, ty - ts, ts * 0.09, ts);
+    c.fillStyle = 'rgba(104,104,92,.7)';
+    c.beginPath(); c.ellipse(tx, ty - ts * 1.06, ts * 0.30, ts * 0.34, 0, 0, 6.2832); c.fill();
+  }
+
+  /* 路面紋理（固定抖動，不閃爍） */
+  c.fillStyle = 'rgba(255,255,255,.05)';
+  for (i = 0; i < 160; i++){
+    var px = PK.hash('px' + i) * w, py = h * 0.52 + PK.hash('py' + i) * h * 0.48;
+    c.fillRect(px, py, 2, 1);
+  }
+}
+
+/* ── 逐幀場景 ── */
+function paintCrowd(c, w, h, t){
+  for (var i = 0; i < crowd.length; i++){
+    var a = crowd[i];
+    var x = wrapX(a.x0 * 1.3 - 0.15, a.v, t, 1.3) * w - w * 0.15;
+    var y = laneY(h, a.lane);
+    var s = h * 0.14 * laneScale(a.lane);
+    figure(c, x, y, s, a.tone, a.kind, t * 7 + a.bob);
+  }
+}
+function paintStill(c, w, h){
+  for (var i = 0; i < STILL.length; i++){
+    var a = STILL[i];
+    var y = laneY(h, a.lane);
+    var s = h * 0.14 * laneScale(a.lane);
+    figure(c, a.x * w, y, s, a.tone, a.pose === 'sit' ? 'sit' : 'still', 0);
+  }
+}
+function paintScene(c, w, h, t){
+  c.drawImage(bg, 0, 0, w, h);
+  paintCrowd(c, w, h, t);
+  paintStill(c, w, h);
+}
+
+/* 定影用：把整段曝光時間「積分」起來一次畫完（比逐幀累積精準得多，
+   8 位元捨去誤差不會把後半段的貢獻吃掉）。 */
+function paintIntegrated(c, w, h, t0, dur){
+  var SAMPLES = 72, k;
+  c.globalAlpha = 1;
+  c.drawImage(bg, 0, 0, w, h);
+  c.globalAlpha = 1 / SAMPLES;
+  for (k = 0; k < SAMPLES; k++) paintCrowd(c, w, h, t0 + dur * k / SAMPLES);
+  c.globalAlpha = 1;
+  paintStill(c, w, h);
+}
+
+/* ── 狀態 ── */
+var W = 0, H = 0, DPR = 1;
+var t = 0;                 /* 場景時間 */
+var holding = false, expo = 0, n = 0, sealed = false, tStart = 0;
+var EMA_FLOOR = 1 / 48;     /* 逐幀預覽的權重下限 */
+var REDUCED = PK.reduced(), needsLive = true;
+PK.onMotionChange(function(on){ REDUCED = on; needsLive = true; });
+
+function resize(){
+  var m = PK.fitCanvas(cvLive);
+  var m2 = PK.fitCanvas(cvPlate);
+  if (m.w !== W || m.h !== H || m.dpr !== DPR){
+    W = m.w; H = m.h; DPR = m.dpr;
+    paintBg(W, H, DPR);
+    live.setTransform(DPR, 0, 0, DPR, 0, 0);
+    plate.setTransform(DPR, 0, 0, DPR, 0, 0);
+    if (!sealed) resetPlate();
+  }
+  if (m2.w !== m.w) { /* 兩張同容器，理應一致 */ }
+}
+
+function resetPlate(){
+  plate.setTransform(1, 0, 0, 1, 0, 0);
+  plate.clearRect(0, 0, cvPlate.width, cvPlate.height);
+  plate.setTransform(DPR, 0, 0, DPR, 0, 0);
+  n = 0;
+}
+
+function fmt(sec){
+  var m = Math.floor(sec), s = Math.round((sec - m) * 60);
+  if (s === 60){ m++; s = 0; }
+  return m + ' 分 ' + (s < 10 ? '0' : '') + s + ' 秒';
+}
+
+/* 主迴圈 */
+function frame(dt){
+  if (!W) { resize(); if (!W) return; }
+  if (W < 80) return;                        /* 隱藏面板地雷 */
+  /* 減少動態：街不持續跑，只在曝光當下推進時間（不然曝光就成了假的） */
+  if (!REDUCED || holding){ t += dt; paintScene(live, W, H, t); needsLive = true; }
+  else if (needsLive){ paintScene(live, W, H, t); needsLive = false; }
+
+  if (holding && !sealed){
+    expo += dt;
+    if (!REDUCED){
+      plate.globalAlpha = meanAlpha(n, EMA_FLOOR);
+      paintScene(plate, W, H, t);
+      plate.globalAlpha = 1;
+      n++;
+      cvPlate.style.opacity = String(Math.min(1, expo / 0.7));
+    }
+    var p = Math.min(1, expo / MAXSEC);
+    fill.style.width = (p * 100) + '%';
+    clockEl.textContent = fmt(expo);
+    if (expo >= MAXSEC) release();
+  }
+}
+
+/* 顯影：先用積分重畫一次精準的曝光，再把淡影壓掉 */
+function developPlate(){
+  paintIntegrated(plate, W, H, tStart, expo);
+  var iw = cvPlate.width, ih = cvPlate.height;
+  if (!iw || !ih) return;
+  var img;
+  try { img = plate.getImageData(0, 0, iw, ih); }
+  catch (e) { return; }                       /* file:// 下同源，正常不會進來 */
+  var d = img.data, i, v;
+  /* 路面基準亮度：取畫面下半中央一塊的平均 */
+  var sum = 0, cnt = 0, px, py;
+  for (py = Math.floor(ih * 0.72); py < ih * 0.88; py += 3){
+    for (px = Math.floor(iw * 0.40); px < iw * 0.70; px += 3){
+      i = (py * iw + px) * 4;
+      sum += (d[i] + d[i+1] + d[i+2]) / 3; cnt++;
+    }
+  }
+  var pivot = cnt ? (sum / cnt) / 255 : 0.6;
+  var KNEE = 0.115, GAIN = 1.7, knee;
+  for (py = 0; py < ih; py++){
+    knee = kneeAt(py / ih, KNEE);
+    for (px = 0; px < iw; px++){
+      i = (py * iw + px) * 4;
+      v = (d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114) / 255;
+      v = develop(v, pivot, knee, GAIN);
+      /* 銀版的冷調 */
+      d[i]   = Math.round(v * 236 + 4);
+      d[i+1] = Math.round(v * 240 + 6);
+      d[i+2] = Math.round(v * 244 + 11);
+      d[i+3] = 255;
+    }
+  }
+  plate.setTransform(1, 0, 0, 1, 0, 0);
+  plate.putImageData(img, 0, 0);
+  plate.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+
+var VERDICT = {
+  blank: '<b>曝光不足。</b>板子幾乎沒收到光，只有一片灰。當年這樣的失敗品，達蓋爾一天要丟掉好幾塊。',
+  ghost: '<b>四分鐘不到。</b>你看到那些半透明的影子了嗎——每個人都被拍到了，只是誰都沒站夠久，全糊成了一層霧。再按久一點。',
+  plate: '<b>成了。</b>整條大街被抹平成路面，只剩左下角那兩坨。人類史上第一次，一個路人的身影留在了金屬上。'
+};
+
+function release(){
+  if (!holding) return;
+  holding = false;
+  btn.classList.remove('holding');
+  var g = exposureGrade(expo);
+  cvPlate.style.opacity = '1';
+  if (g.tier === 2){
+    sealed = true;
+    developPlate();
+    btn.disabled = true;
+    btn.textContent = '這塊板子已經定影';
+    loupe.classList.add('on');
+    setTimeout(function(){
+      document.getElementById('flip').classList.add('mirrored');
+      loupe.classList.add('flipped');
+      verdict.innerHTML = VERDICT.plate +
+        ' <span class="dim">……順帶一提，銀版成的是鏡像。剛剛畫面翻了一次，這才是巴黎人當年看到的方向。</span>';
+    }, PK.reduced() ? 60 : 2600);
+    store.set('done', true);
+  } else {
+    /* 沒成的板子也照實算一次積分：按得越久，霧就越勻、面紗就越薄 */
+    paintIntegrated(plate, W, H, tStart, expo);
+    plate.fillStyle = 'rgba(19,21,25,' + veil(expo, NEED) + ')';
+    plate.fillRect(0, 0, W, H);
+    btn.textContent = '再按住一次';
+  }
+  again.hidden = false;
+  verdict.innerHTML = VERDICT[g.key];
+  PK.announce(g.tier === 2 ? '曝光完成，影像定影' : '曝光' + fmt(expo) + '，' + (g.tier ? '影像模糊' : '幾乎空白'));
+}
+
+function press(e){
+  if (sealed || holding) return;
+  if (e) e.preventDefault();
+  holding = true;
+  tStart = t;
+  btn.classList.add('holding');
+  btn.textContent = '正在曝光……別放手';
+  verdict.textContent = '快門開著。街照樣在動，板子只記得平均值。';
+  again.hidden = true;
+}
+
+btn.addEventListener('pointerdown', press);
+window.addEventListener('pointerup', release);
+window.addEventListener('pointercancel', release);
+btn.addEventListener('keydown', function(e){
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ press(e); }
+});
+btn.addEventListener('keyup', function(e){
+  if (e.key === ' ' || e.key === 'Enter') release();
+});
+btn.addEventListener('blur', release);
+btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+
+again.addEventListener('click', function(){
+  sealed = false; holding = false; expo = 0;
+  resetPlate();
+  cvPlate.style.opacity = '0';
+  fill.style.width = '0%';
+  clockEl.textContent = '0 分 00 秒';
+  btn.disabled = false;
+  btn.textContent = '按住不放＝開著快門';
+  verdict.textContent = '新的一塊板子，已經上藥。';
+  loupe.classList.remove('on');
+  loupe.classList.remove('flipped');
+  document.getElementById('flip').classList.remove('mirrored');
+  again.hidden = true;
+  btn.focus();
+});
+
+if (store.get('done', false)){
+  document.getElementById('hint').textContent =
+    '上次你已經曝成過一塊。再來一次也行——每塊板子都不一樣。滑鼠、觸控、或聚焦後按住空白鍵。';
+}
+
+/* 尺寸與迴圈 */
+if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
+window.addEventListener('resize', resize);
+resize();
+PK.tick(frame);
+
+})();
+</script>
+</body>
+</html>

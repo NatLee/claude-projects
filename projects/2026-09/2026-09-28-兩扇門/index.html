@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>兩扇門關上的聲音｜每日小專案</title>
+<meta name="description" content="一捲聽診教學帶的四軌。戴上耳機，用耳朵把「撲通」拆開，最後一軌請你親自找出那個多出來的聲音。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b0a09; --pk-ink:#ece5d8; --pk-dim:#8b8377; --pk-accent:#d9a441;
+  --pk-line:rgba(217,164,65,.18);
+  --tape:#1a1613; --tape2:#241d18;
+  --pk-maxw:660px;
+}
+body{ background:
+  radial-gradient(120% 60% at 50% -10%, #171310 0%, transparent 60%),
+  var(--pk-bg); }
+
+/* ── 卡帶封套質感 ── */
+.card{
+  background:linear-gradient(180deg,var(--tape2),var(--tape));
+  border:1px solid var(--pk-line); border-radius:3px;
+  padding:22px 20px 20px; margin:0 0 30px;
+  box-shadow:0 18px 40px -28px #000 inset, 0 1px 0 rgba(255,255,255,.03) inset;
+}
+.stamp{
+  font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  font-size:11.5px; letter-spacing:.22em; color:var(--pk-accent);
+  text-transform:uppercase; margin:0 0 4px;
+}
+.slug{ font-family:var(--pk-serif); font-size:20px; margin:0 0 14px; line-height:1.5; }
+h2{ font-family:var(--pk-serif); font-weight:600; font-size:21px; line-height:1.55; margin:44px 0 12px; }
+p{ margin:0 0 15px; }
+.dim{ color:var(--pk-dim); }
+.big{ font-family:var(--pk-serif); font-size:clamp(19px,4.6vw,24px); line-height:1.75; }
+.mono{ font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; }
+
+/* ── 封套上的手寫標籤 ── */
+.inlay{
+  border:1px dashed var(--pk-line); border-radius:3px; padding:14px 16px;
+  margin:26px 0; color:var(--pk-dim); font-size:14px; line-height:2;
+}
+.inlay b{ color:var(--pk-ink); font-weight:600; }
+
+/* ── 心音紙帶 ── */
+.strip{ position:relative; margin:16px 0 14px;
+  background:#080706; border:1px solid var(--pk-line); border-radius:2px; overflow:hidden; }
+.strip canvas{ display:block; width:100%; height:96px; }
+.marks{ display:flex; gap:12px; flex-wrap:wrap; font-size:12px; letter-spacing:.06em;
+  color:var(--pk-dim); font-family:ui-monospace,Menlo,Consolas,monospace; min-height:18px; }
+.marks span{ opacity:0; transition:opacity .5s; }
+.marks span.on{ opacity:1; color:var(--pk-accent); }
+
+.row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0 2px; }
+.pk-btn{ font-size:14px; padding:10px 20px; }
+.pk-btn.playing{ background:var(--pk-accent); color:var(--pk-bg); }
+.hint{ font-size:13px; color:var(--pk-dim); }
+
+/* ── 呼吸圈（軌三）── */
+.breath{ display:flex; align-items:center; gap:16px; margin:18px 0 6px; }
+.lung{ width:66px; height:66px; flex:none; border-radius:50%;
+  border:1px solid var(--pk-accent); transform:scale(.62); opacity:.45;
+  transition:transform .2s linear, opacity .2s linear; }
+.breath-label{ font-size:14px; color:var(--pk-dim); letter-spacing:.1em; }
+
+/* ── 軌四：三段錄音 ── */
+.clips{ display:grid; gap:10px; margin:18px 0 6px; }
+@media (min-width:560px){ .clips{ grid-template-columns:repeat(3,1fr); } }
+.clip{
+  appearance:none; cursor:pointer; font-family:inherit; text-align:left;
+  background:#0f0d0b; border:1px solid var(--pk-line); border-radius:3px;
+  color:var(--pk-ink); padding:14px 14px 12px; transition:border-color .25s, background .25s;
+}
+.clip:hover{ border-color:var(--pk-accent); }
+.clip .n{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11.5px;
+  letter-spacing:.22em; color:var(--pk-accent); display:block; margin-bottom:5px; }
+.clip .st{ font-size:13px; color:var(--pk-dim); }
+.clip[data-state="wrong"]{ border-color:rgba(255,255,255,.22); opacity:.5; }
+.clip[data-state="right"]{ border-color:var(--pk-accent); background:#191309; }
+.verdict{ min-height:26px; margin:10px 0 0; font-size:15px; }
+
+.reveal-box{ display:none; }
+.reveal-box.on{ display:block; }
+
+.end{ margin:64px 0 10px; }
+.end .big{ margin-bottom:22px; }
+
+@media (prefers-reduced-motion: reduce){
+  .lung{ transition:none; }
+  .marks span{ transition:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="stamp rv">Side A ／ 28 min ／ 教學用・請勿轉錄</p>
+    <h1 class="rv">這捲帶子沒有音樂。<br>二十八分鐘，全是別人的胸口。</h1>
+    <p class="rv dim">戴上耳機，音量開到你聽得見自己呼吸。<br>待會兒有一個聲音，比呼吸還小。</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- 軌一 -->
+  <section class="rv">
+    <div class="card">
+      <p class="stamp">Track 1</p>
+      <p class="slug">你以為你知道它的聲音</p>
+      <div class="strip"><canvas id="cv1" aria-hidden="true"></canvas></div>
+      <div class="marks" id="mk1"><span data-k="S1">▲ 撲</span><span data-k="S2">▲ 通</span></div>
+      <div class="row">
+        <button class="pk-btn" id="b1" aria-describedby="h1h">聽一次</button>
+        <span class="hint" id="h1h">六下心跳，每分鐘七十。</span>
+      </div>
+    </div>
+    <div class="reveal-box" id="r1">
+      <p class="big">瓣膜是軟的。它關上的時候不會「啪」。</p>
+      <p>你剛剛聽見的那兩聲，不是兩片組織撞在一起。是血往回衝、被擋住、整團在心室裡晃了一下——聲音來自血，不是門。門只是突然停住了它。</p>
+      <p class="dim">所以聽診器貼的位置，也不在瓣膜正上方，而在震動傳到胸壁最清楚的地方。醫生聽的是回音。</p>
+    </div>
+  </section>
+
+  <!-- 軌二 -->
+  <section class="rv">
+    <h2>而且門不只兩扇。</h2>
+    <p>心臟有四個房間，中間夾著四片瓣膜。左邊兩片、右邊兩片，同一時間關上——幾乎。</p>
+    <div class="card">
+      <p class="stamp">Track 2</p>
+      <p class="slug">把第一聲拉開</p>
+      <div class="strip"><canvas id="cv2" aria-hidden="true"></canvas></div>
+      <div class="marks" id="mk2"><span data-k="M1">▲ 二尖瓣 M1</span><span data-k="T1">▲ 三尖瓣 T1</span><span data-k="S2">▲ 第二聲</span></div>
+      <div class="row">
+        <button class="pk-btn" id="b2">聽慢動作</button>
+        <span class="hint">這一軌把兩扇門之間的空隙撐到平常的十倍。</span>
+      </div>
+    </div>
+    <p>真實的間隔只有零點零二秒。人耳把它黏成一聲，叫第一心音。第二心音也一樣，是主動脈瓣跟肺動脈瓣兩扇門。</p>
+  </section>
+
+  <!-- 軌三 -->
+  <section class="rv">
+    <h2>然後你吸一口氣，門就走散了。</h2>
+    <p>吸氣時胸腔裡的壓力下降，右心多吸進一點血——右邊那扇門要多花一點時間才關得起來。</p>
+    <div class="card">
+      <p class="stamp">Track 3</p>
+      <p class="slug">跟著圈圈呼吸</p>
+      <div class="breath">
+        <div class="lung" id="lung" aria-hidden="true"></div>
+        <div class="breath-label" id="blab">—</div>
+      </div>
+      <div class="strip"><canvas id="cv3" aria-hidden="true"></canvas></div>
+      <div class="marks" id="mk3"><span data-k="sp">▲ 第二聲裂成兩半</span></div>
+      <div class="row">
+        <button class="pk-btn" id="b3">跟著呼吸聽</button>
+        <span class="hint">圈圈脹大時吸氣。注意第二聲。</span>
+      </div>
+    </div>
+    <p>「通」變成「特—魯」，吐氣時又合回去。這叫生理性分裂，是心臟正常的證據。<span class="dim">裂得太開、或者呼吸怎麼換都不合起來，才是問題。</span></p>
+  </section>
+
+  <!-- 軌四：高潮 -->
+  <section class="rv">
+    <h2>最後一軌，帶子上只寫了三個字：找找看。</h2>
+    <p>下面三段，其中一段的心跳多了第三下。它落在第二聲之後不到零點二秒，低沉、鬆軟、不像敲擊，比較像一聲悶悶的踏步。</p>
+    <p class="dim">醫學生平均要聽幾百次才抓得到。你有三次機會，想聽幾遍都行。</p>
+    <div class="card">
+      <p class="stamp">Track 4</p>
+      <p class="slug">多出來的那一下</p>
+      <div class="clips" id="clips">
+        <button class="clip" data-i="0"><span class="n">A</span>播放 <span class="st"></span></button>
+        <button class="clip" data-i="1"><span class="n">B</span>播放 <span class="st"></span></button>
+        <button class="clip" data-i="2"><span class="n">C</span>播放 <span class="st"></span></button>
+      </div>
+      <div class="row">
+        <span class="hint" id="q-hint">先各聽一遍，再點你認為多了一下的那一段旁邊的按鈕。</span>
+      </div>
+      <div class="row" id="answer-row" style="display:none">
+        <span class="hint">你的答案是：</span>
+        <button class="pk-btn" data-ans="0">A</button>
+        <button class="pk-btn" data-ans="1">B</button>
+        <button class="pk-btn" data-ans="2">C</button>
+      </div>
+      <p class="verdict mono" id="verdict" aria-live="polite"></p>
+    </div>
+
+    <div class="reveal-box" id="r4">
+      <p class="big">那一下叫第三心音。它不是門關上的聲音——它根本不是門發出來的。</p>
+      <p>心室在舒張早期被血灌滿，血撞上還在鬆開的室壁，整個心室顫了一下。低頻，所以要用聽診器的鐘面去貼；小聲，所以要屏息。</p>
+    </div>
+  </section>
+
+  <!-- 結尾回馬槍 -->
+  <section class="rv end" id="coda">
+    <p class="big">你剛剛找出來的聲音，在二十歲的胸口裡是健康的——心室年輕、有彈性，裝滿血的時候本來就會晃。運動員有，孕婦也常有。</p>
+    <p class="big">同一個聲音，在六十歲的胸口裡，通常代表心室已經裝不下了。</p>
+    <p>四十歲上下是那條線。過了線，這一下多半是心臟衰竭最早的提醒之一——早在喘、早在腫之前。</p>
+    <p class="dim">帶子轉到這裡，A 面就結束了。教這門課的人在最後留了一句：你聽見的從來不是聲音，是誰的身體發出這個聲音。</p>
+    <div class="inlay">
+      <b>再聽一次那三段</b>，現在你知道要等哪個空隙了。<br>
+      <span class="mono" id="replay-line">——</span>
+    </div>
+    <div class="row"><button class="pk-btn" id="b5">回到 Track 4</button></div>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  本頁心音為程式合成的教學示意，不是任何人的錄音，也不能拿來判斷自己的心臟。<br>
+  資料來源：Leng 等《BioMedical Engineering OnLine》、華盛頓大學醫學院 Physical Diagnosis Skills。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'hb70.';
+const store = PK.store(LS);
+
+PK.reveal();
+
+/* ══════════════════════════════════════════════════════════
+   核心（純函式）：一段心音的事件表
+   kind: 'plain' | 'slow' | 'breath' | 'clip'
+   回傳 [{t, type, gain, split}]，t 為相對秒數
+   ══════════════════════════════════════════════════════════ */
+function buildSchedule(kind, opt){
+  opt = opt || {};
+  const bpm = opt.bpm || 70;
+  const cyc = 60 / bpm;
+  const sysDur = 0.30;             /* 收縮期：S1→S2 */
+  const beats = opt.beats || 6;
+  const ev = [];
+  for (let i = 0; i < beats; i++){
+    const t0 = i * cyc;
+    if (kind === 'slow'){
+      /* 把 M1/T1 的 0.02 秒撐到 0.20 秒 */
+      ev.push({ t: t0,        type: 'M1', gain: 1.00 });
+      ev.push({ t: t0 + 0.20, type: 'T1', gain: 0.70 });
+      ev.push({ t: t0 + sysDur + 0.20, type: 'S2', gain: 0.85 });
+    } else if (kind === 'breath'){
+      /* 呼吸週期 8 秒：吸氣半段 A2/P2 分裂變寬 */
+      const ph  = (t0 % 8) / 8;                     /* 0~1 */
+      const insp = ph < 0.5;                        /* 前半吸氣 */
+      const k = insp ? Math.sin(ph * 2 * Math.PI) : 0;
+      ev.push({ t: t0, type: 'S1', gain: 1.0 });
+      ev.push({ t: t0 + sysDur, type: 'A2', gain: 0.85 });
+      ev.push({ t: t0 + sysDur + 0.022 + 0.055 * k, type: 'P2', gain: 0.55, split: k });
+    } else {
+      ev.push({ t: t0, type: 'S1', gain: 1.0 });
+      ev.push({ t: t0 + sysDur, type: 'S2', gain: 0.85 });
+      if (opt.s3) ev.push({ t: t0 + sysDur + 0.155, type: 'S3', gain: 0.30 });
+    }
+  }
+  return ev;
+}
+function scheduleDuration(ev){
+  return ev.length ? ev[ev.length - 1].t + 0.6 : 0;
+}
+/* 三選一：哪一段有 S3（0/1/2） */
+function pickTarget(seed){ return Math.abs(seed | 0) % 3; }
+
+/* ══════════════════════════════════════════════════════════
+   聲音
+   ══════════════════════════════════════════════════════════ */
+const TONE = {
+  S1:{ f0:62, f1:34, dur:0.135, noise:0.30 },
+  M1:{ f0:64, f1:36, dur:0.115, noise:0.28 },
+  T1:{ f0:72, f1:42, dur:0.090, noise:0.30 },
+  S2:{ f0:92, f1:52, dur:0.090, noise:0.34 },
+  A2:{ f0:92, f1:52, dur:0.085, noise:0.34 },
+  P2:{ f0:104, f1:62, dur:0.070, noise:0.34 },
+  S3:{ f0:34, f1:21, dur:0.155, noise:0.12 }
+};
+let AC = null, master = null;
+const bufs = {};
+
+function audio(){
+  if (AC) return AC;
+  const C = window.AudioContext || window.webkitAudioContext;
+  if (!C) return null;
+  AC = new C();
+  master = AC.createGain();
+  master.gain.value = 0.85;
+  master.connect(AC.destination);
+  for (const k in TONE) bufs[k] = render(AC, TONE[k]);
+  return AC;
+}
+function render(ac, s){
+  const sr = ac.sampleRate, n = Math.max(1, Math.ceil(s.dur * sr));
+  const buf = ac.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  let ph = 0, lp = 0;
+  for (let i = 0; i < n; i++){
+    const t = i / sr, k = t / s.dur;
+    const f = s.f0 + (s.f1 - s.f0) * k;
+    ph += 2 * Math.PI * f / sr;
+    const atk = Math.min(1, t / 0.004);
+    const env = atk * Math.exp(-t * (4.2 / s.dur));
+    lp += ((Math.random() * 2 - 1) - lp) * 0.10;
+    d[i] = (Math.sin(ph) * (1 - s.noise) + lp * s.noise * 2.6) * env * 0.9;
+  }
+  return buf;
+}
+
+/* 播一組事件；回傳 {t0, dur} */
+function play(ev, vol){
+  const ac = audio(); if (!ac) return null;
+  if (ac.state === 'suspended') ac.resume();
+  const t0 = ac.currentTime + 0.12;
+  for (const e of ev){
+    const b = bufs[e.type]; if (!b) continue;
+    const src = ac.createBufferSource(); src.buffer = b;
+    const g = ac.createGain(); g.gain.value = e.gain * (vol == null ? 1 : vol);
+    src.connect(g); g.connect(master);
+    src.start(t0 + e.t);
+    live.push(src);
+  }
+  return { t0: t0, dur: scheduleDuration(ev) };
+}
+let live = [];
+function stopAll(){
+  for (const s of live){ try { s.stop(); } catch (e) {} }
+  live = [];
+}
+
+/* ══════════════════════════════════════════════════════════
+   紙帶繪製
+   ══════════════════════════════════════════════════════════ */
+function envelope(ev, t){
+  let v = 0;
+  for (const e of ev){
+    const dt = t - e.t;
+    const s = TONE[e.type]; if (!s) continue;
+    if (dt < 0 || dt > s.dur) continue;
+    v += Math.sin(dt / s.dur * Math.PI) * e.gain;
+  }
+  return Math.min(1, v);
+}
+function drawStrip(cv, ev, progress){
+  const fit = PK.fitCanvas(cv);
+  if (fit.w < 80) return;                     /* 版面還沒算出來就別畫 */
+  const ctx = cv.getContext && cv.getContext('2d');
+  if (!ctx) return;                           /* 沒有 2d context 就安靜跳過 */
+  ctx.setTransform(fit.dpr, 0, 0, fit.dpr, 0, 0);
+  const w = fit.w, h = fit.h, mid = h / 2, amp = h * 0.40;
+  const total = scheduleDuration(ev) || 1;
+  ctx.clearRect(0, 0, w, h);
+  /* 基線 */
+  ctx.fillStyle = 'rgba(217,164,65,.12)';
+  ctx.fillRect(0, Math.round(mid), w, 1);
+  /* 聲音塊：每個像素取該時間窗的包絡峰值，畫成上下對稱的條 */
+  const upto = Math.max(0, Math.min(1, progress)) * w;
+  ctx.fillStyle = '#d9a441';
+  const dt = total / w;
+  for (let x = 0; x < upto; x++){
+    let a = 0;
+    for (let s = 0; s < 4; s++) a = Math.max(a, envelope(ev, (x + s / 4) * dt));
+    if (a < 0.015) continue;
+    const bar = a * amp;
+    ctx.fillRect(x, mid - bar, 1, bar * 2);
+  }
+  /* 播放頭 */
+  if (progress > 0 && progress < 1){
+    ctx.fillStyle = 'rgba(236,229,216,.55)';
+    ctx.fillRect(Math.round(upto), 4, 1, h - 8);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   單軌控制器
+   ══════════════════════════════════════════════════════════ */
+function track(btnId, cvId, ev, opts){
+  opts = opts || {};
+  const btn = document.getElementById(btnId);
+  const cv = document.getElementById(cvId);
+  const label = btn.textContent;
+  let run = null, ticker = null;
+
+  drawStrip(cv, ev, PK.reduced() ? 1 : 0);
+  window.addEventListener('resize', function(){ drawStrip(cv, ev, run ? cur() : (PK.reduced() ? 1 : 0)); });
+
+  function cur(){
+    if (!run) return 0;
+    return (run.now() - run.t0) / run.dur;
+  }
+  function stop(){
+    if (ticker){ PK.untick(ticker); ticker = null; }
+    run = null; btn.classList.remove('playing'); btn.textContent = label;
+    if (opts.onStop) opts.onStop();
+    drawStrip(cv, ev, 1);
+  }
+  btn.addEventListener('click', function(){
+    if (run){ stopAll(); stop(); return; }
+    stopAll();
+    run = play(ev);
+    if (run){
+      run.now = function(){ return AC.currentTime; };
+    } else {
+      /* 沒有 Web Audio：改用牆鐘跑一次無聲版，故事仍然走得完 */
+      PK.announce('這個瀏覽器不支援音訊播放，改為無聲示意。');
+      const w0 = Date.now();
+      run = { t0: 0, dur: scheduleDuration(ev), now: function(){ return (Date.now() - w0) / 1000; } };
+    }
+    btn.classList.add('playing'); btn.textContent = '停止';
+    if (opts.onStart) opts.onStart();
+    ticker = function(){
+      const p = cur();
+      drawStrip(cv, ev, p);
+      if (opts.onTick) opts.onTick(p * run.dur);
+      if (p >= 1) stop();
+    };
+    PK.tick(ticker);
+  });
+  return { stop: stop };
+}
+function markOn(wrapId, key){
+  const el = document.querySelector('#' + wrapId + ' [data-k="' + key + '"]');
+  if (el) el.classList.add('on');
+}
+
+/* ── 軌一 ── */
+const ev1 = buildSchedule('plain', { beats: 6 });
+track('b1', 'cv1', ev1, {
+  onTick: function(t){
+    const c = t % (60 / 70);
+    if (c > 0.02) markOn('mk1', 'S1');
+    if (c > 0.32) markOn('mk1', 'S2');
+  },
+  onStop: function(){
+    document.getElementById('r1').classList.add('on');
+    markOn('mk1', 'S1'); markOn('mk1', 'S2');
+  }
+});
+
+/* ── 軌二 ── */
+const ev2 = buildSchedule('slow', { beats: 5, bpm: 52 });
+track('b2', 'cv2', ev2, {
+  onTick: function(t){
+    const c = t % (60 / 52);
+    if (c > 0.02) markOn('mk2', 'M1');
+    if (c > 0.21) markOn('mk2', 'T1');
+    if (c > 0.51) markOn('mk2', 'S2');
+  }
+});
+
+/* ── 軌三 ── */
+const ev3 = buildSchedule('breath', { beats: 20 });
+const lung = document.getElementById('lung'), blab = document.getElementById('blab');
+track('b3', 'cv3', ev3, {
+  onTick: function(t){
+    const ph = (t % 8) / 8;
+    const insp = ph < 0.5;
+    const k = insp ? Math.sin(ph * 2 * Math.PI) : 0;
+    if (!PK.reduced()){
+      lung.style.transform = 'scale(' + (0.62 + k * 0.38).toFixed(3) + ')';
+      lung.style.opacity = (0.45 + k * 0.5).toFixed(2);
+    }
+    blab.textContent = insp ? '吸氣 —— 第二聲正在裂開' : '吐氣 —— 又合起來了';
+    if (k > 0.5) markOn('mk3', 'sp');
+  },
+  onStop: function(){ blab.textContent = '—'; lung.style.transform = 'scale(.62)'; lung.style.opacity = '.45'; }
+});
+
+/* ── 軌四：找出 S3 ── */
+const TARGET = pickTarget(store.get('seed', null) != null
+  ? store.get('seed', 0)
+  : (function(){ const s = (Date.now() ^ PK.hash(location.pathname)) & 0x7fffffff; store.set('seed', s); return s; })());
+
+const clipEv = [0, 1, 2].map(function(i){
+  return buildSchedule('plain', { beats: 5, bpm: i === TARGET ? 74 : (i === 0 ? 68 : 76), s3: i === TARGET });
+});
+let heard = [false, false, false], answered = false;
+
+document.querySelectorAll('.clip').forEach(function(b){
+  b.addEventListener('click', function(){
+    const i = +b.dataset.i;
+    stopAll();
+    play(clipEv[i]);
+    heard[i] = true;
+    b.querySelector('.st').textContent = '已聽';
+    if (heard[0] && heard[1] && heard[2] && !answered){
+      document.getElementById('answer-row').style.display = '';
+      document.getElementById('q-hint').textContent = '三段都聽過了。哪一段多了一下？';
+    }
+  });
+});
+
+document.querySelectorAll('[data-ans]').forEach(function(b){
+  b.addEventListener('click', function(){
+    if (answered) return;
+    answered = true;
+    const pick = +b.dataset.ans;
+    const v = document.getElementById('verdict');
+    const names = ['A', 'B', 'C'];
+    document.querySelectorAll('.clip').forEach(function(c){
+      const i = +c.dataset.i;
+      c.dataset.state = (i === TARGET) ? 'right' : (i === pick ? 'wrong' : '');
+    });
+    if (pick === TARGET){
+      v.textContent = '對了。' + names[TARGET] + ' 多了一下。';
+      store.set('got', (store.get('got', 0) | 0) + 1);
+    } else {
+      v.textContent = '不是 ' + names[pick] + '，是 ' + names[TARGET] + '。再聽一次 ' + names[TARGET] + '，等第二聲之後那個空隙。';
+    }
+    PK.announce(v.textContent);
+    document.getElementById('r4').classList.add('on');
+    document.getElementById('answer-row').style.display = 'none';
+    const got = store.get('got', 0) | 0;
+    document.getElementById('replay-line').textContent =
+      got > 0 ? ('你已經抓到過 ' + got + ' 次。' + names[TARGET] + ' 就是那一段。')
+              : (names[TARGET] + ' 就是那一段。');
+    stopAll();
+  });
+});
+
+document.getElementById('b5').addEventListener('click', function(){
+  PK.scrollTo(document.getElementById('clips'));
+});
+
+/* 分頁切走就停聲 */
+document.addEventListener('visibilitychange', function(){ if (document.hidden) stopAll(); });
+
+PK.onMotionChange(function(){ /* 降級由各 onTick 內判斷 */ });
+</script>
+</body>
+</html>

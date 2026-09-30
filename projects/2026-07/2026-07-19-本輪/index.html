@@ -591,6 +591,7 @@ footer.foot{text-align:center;padding:38px 0 10px;color:var(--faint);font-size:1
     t: 0, trace: [], raf: 0, lastTime: 0, drawingActive: false
   };
   var cssW=0, cssH=0, dpr=1, refUnit=1;
+  var stageOnscreen = true; /* 離屏暫停（2026-09-30 保養補上） */
 
   /* ============ 尺寸 ============ */
   function sizeStage(){
@@ -783,7 +784,7 @@ footer.foot{text-align:center;padding:38px 0 10px;color:var(--faint);font-size:1
   /* ============ 動畫迴圈（rAF；隱藏分頁必停） ============ */
   function resetTrace(){ state.t=0; state.trace.length=0; state.lastTime=0; renderFrame(); }
   function shouldRun(){
-    return state.playing && !reduced && !document.hidden && !state.drawingActive && state.coeffs.length>0;
+    return state.playing && !reduced && !document.hidden && stageOnscreen && !state.drawingActive && state.coeffs.length>0;
   }
   function stepPoint(){
     var p = reconstructAt(state.coeffs, state.M, state.t);
@@ -825,6 +826,11 @@ footer.foot{text-align:center;padding:38px 0 10px;color:var(--faint);font-size:1
     else if (motionMQ.addListener) motionMQ.addListener(onMotionChange);
   }
   document.addEventListener("visibilitychange", function(){ syncLoop(); });
+  if ("IntersectionObserver" in window){
+    new IntersectionObserver(function(es){
+      stageOnscreen = es[es.length-1].isIntersecting; syncLoop();
+    }).observe(stage);
+  }
 
   /* ============ 圖形切換 ============ */
   function updateShapePickerUI(){

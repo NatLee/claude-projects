@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你的紅包，有人在記｜每日小專案</title>
+<meta name="description" content="喜帖來了，要包多少？把鈔票一張張拖進紅包，看它過不過得了成雙、避四、行情這幾關——然後看收禮台怎麼把你寫進簿子。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#140809; --pk-ink:#f1e7d8; --pk-dim:#a8948a; --pk-accent:#d9a84e;
+  --pk-line:rgba(241,231,216,.12);
+  --red:#b8141f; --red2:#8e0d16; --gold:#e2b45a; --paper:#efe5d0; --paper-ink:#2b211d;
+  --ok:#c9b36a; --warn:#e3a13f; --bad:#e2574c;
+  --kai:"BiauKai","DFKai-SB","TW-Kai","Kaiti TC","STKaiti","KaiTi",var(--pk-serif);
+}
+[hidden]{display:none!important}
+.pk-foot{margin-left:auto;margin-right:auto}
+body{background:var(--pk-bg)}
+.hero{background:radial-gradient(120% 85% at 50% 0%, rgba(184,20,31,.26), transparent 70%)}
+
+/* ── 第一屏 ── */
+.hero .pk-wrap{padding-top:40px;padding-bottom:40px}
+.hero .kick{font-size:14px;letter-spacing:.2em;color:var(--pk-accent);margin:0 0 22px}
+.hero h1 b{color:var(--gold);font-weight:600}
+.hero .dim{color:var(--pk-dim);font-size:17px;margin:0}
+.cue{margin-top:56px;font-size:12.5px;letter-spacing:.3em;color:var(--pk-dim)}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(6px)}}
+.rv.d1{transition-delay:.25s}.rv.d2{transition-delay:.5s}.rv.d3{transition-delay:.9s}
+
+/* ── 紅包元件（以 em 縮放） ── */
+.env{position:relative;width:20em;height:30em;font-size:10px}
+.env .flap{position:absolute;left:0;right:0;top:0;height:9.5em;z-index:1;
+  background:linear-gradient(#7d0b13,#9c1019);clip-path:polygon(0 0,100% 0,50% 100%);
+  transform-origin:50% 0;transform:scaleY(-1);transition:transform .6s cubic-bezier(.5,0,.2,1)}
+.env .fan{position:absolute;left:0;right:0;top:0;height:0;z-index:2}
+.env .body{position:absolute;inset:0;z-index:3;border-radius:.9em;
+  background:linear-gradient(160deg,#cf1a25 0%,var(--red) 45%,var(--red2) 100%);
+  box-shadow:0 1.8em 3.6em rgba(0,0,0,.45), inset 0 0 0 .12em rgba(226,180,90,.45), inset 0 0 0 .7em rgba(0,0,0,.06);
+  display:grid;place-items:center;padding-top:3.2em;overflow:hidden;transition:background .5s}
+.env .body::before{content:"";position:absolute;inset:1.1em;border:.1em solid rgba(226,180,90,.35);border-radius:.4em}
+.env .mark{font-family:var(--pk-serif);font-size:7.4em;line-height:1;color:var(--gold);
+  text-shadow:0 .03em 0 rgba(0,0,0,.25);transition:color .5s,opacity .3s}
+.env .band{position:absolute;left:0;right:0;top:56%;height:2.2em;opacity:0;transition:opacity .4s;
+  background:repeating-linear-gradient(0deg,#c8162a 0 .32em,#f5efe4 .32em .44em,#d6a94c .44em .76em,#f5efe4 .76em .88em)}
+.env .shut{position:absolute;left:0;right:0;top:0;height:9.5em;z-index:4;pointer-events:none;
+  background:linear-gradient(#a3121c,#b8141f);clip-path:polygon(0 0,100% 0,50% 100%);
+  transform-origin:50% 0;transform:scaleY(0);opacity:0;transition:transform .55s cubic-bezier(.5,0,.2,1) .25s,opacity .1s .25s}
+.env .seal{position:absolute;left:50%;top:7.2em;z-index:5;width:4.6em;height:4.6em;margin-left:-2.3em;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#f3cf7c,#c08a2c 70%);color:#7a0a11;display:grid;place-items:center;
+  font-family:var(--pk-serif);font-size:1em;font-weight:700;opacity:0;transform:scale(1.6);
+  transition:opacity .3s .75s,transform .45s cubic-bezier(.3,1.6,.5,1) .75s;box-shadow:0 .3em .8em rgba(0,0,0,.35)}
+.env .seal b{font-size:2.3em;line-height:1}
+.env.sealed .flap{transform:scaleY(0)}
+.env.sealed .shut{transform:scaleY(1);opacity:1}
+.env.sealed .seal{opacity:1;transform:none}
+.env.sealed .fb{transform:translate(var(--x),6em) rotate(0deg);transition:transform .45s ease-in}
+
+/* 白包、ご祝儀 */
+.env[data-kind="white"] .body{background:linear-gradient(160deg,#fbf9f4,#e9e5dc);box-shadow:0 1.8em 3.6em rgba(0,0,0,.45),inset 0 0 0 .12em rgba(0,0,0,.18)}
+.env[data-kind="white"] .body::before{border-color:rgba(0,0,0,.18)}
+.env[data-kind="white"] .mark{color:#2a2322}
+.env[data-kind="white"] .flap{background:linear-gradient(#cfcac0,#dcd7cd)}
+.env[data-kind="white"] .shut{background:linear-gradient(#e2ddd3,#f1eee7)}
+.env[data-kind="jp"] .body{background:linear-gradient(160deg,#fbf9f4,#ebe6db);box-shadow:0 1.8em 3.6em rgba(0,0,0,.45),inset 0 0 0 .12em rgba(0,0,0,.14)}
+.env[data-kind="jp"] .body::before{opacity:0}
+.env[data-kind="jp"] .mark{color:#b3141f;font-size:5.4em;transform:translateY(-.9em)}
+.env[data-kind="jp"] .band{opacity:1}
+.env[data-kind="jp"] .flap{background:linear-gradient(#d7d1c5,#e4dfd5)}
+
+/* 扇形鈔票 */
+.fb{position:absolute;left:50%;bottom:-3.2em;width:15em;height:7.4em;margin-left:-7.5em;border-radius:.35em;
+  transform-origin:50% 100%;transform:translate(var(--x),var(--y)) rotate(var(--r));
+  display:flex;align-items:flex-start;justify-content:flex-end;padding:.5em .8em;
+  font:700 1em/1 var(--pk-sans);letter-spacing:.02em;color:rgba(255,255,255,.9);
+  box-shadow:0 -.1em .5em rgba(0,0,0,.25), inset 0 0 0 .08em rgba(255,255,255,.25)}
+.fb::before{content:attr(data-t);font-size:1.5em;font-weight:700}
+.fb::after{content:"";position:absolute;left:1em;top:1.1em;width:3.2em;height:3.2em;border-radius:50%;
+  border:.12em solid rgba(255,255,255,.35)}
+.b1000{background:linear-gradient(135deg,#4c7fc0,#2f5a93)}
+.b500{background:linear-gradient(135deg,#a8784a,#7b5230)}
+.b100{background:linear-gradient(135deg,#d0564c,#a33a33)}
+.bj{background:linear-gradient(135deg,#cdbf98,#a69770);color:#3b3322}
+.br{background:linear-gradient(135deg,#d85e58,#b13a3a)}
+.coin{width:3em;height:3em;margin-left:-1.5em;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f0e1a8,#b39343);
+  bottom:-1.6em;padding:0;align-items:center;justify-content:center;color:#5a4717}
+.coin::before{font-size:1.4em}.coin::after{display:none}
+.fb.drop{animation:drop .42s cubic-bezier(.2,.9,.3,1.15)}
+@keyframes drop{from{transform:translate(var(--x),-7em) rotate(calc(var(--r) * -2));opacity:0}to{transform:translate(var(--x),var(--y)) rotate(var(--r));opacity:1}}
+
+/* ── 捲動敘事 ── */
+.scrolly{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);max-width:1080px;margin:0 auto;padding:0 22px}
+.stage{position:sticky;top:0;align-self:start;height:100vh;height:100svh;display:grid;place-items:center;z-index:2}
+.stage-in{display:grid;justify-items:center;gap:26px;transition:opacity .22s,transform .22s}
+.stage-in.swap{opacity:0;transform:translateY(8px)}
+.stage .env{font-size:10px}
+.tag{font:600 15px/1 var(--pk-sans);letter-spacing:.14em;color:var(--pk-dim)}
+.tag b{font-family:var(--pk-serif);font-size:30px;color:var(--pk-ink);letter-spacing:.02em;margin-left:6px}
+.stamp{position:absolute;right:-1.6em;top:8.6em;z-index:6;min-width:3.4em;padding:.4em .6em;border:.22em solid currentColor;border-radius:.5em;
+  font:700 2.4em/1 var(--pk-serif);text-align:center;transform:rotate(-12deg);background:rgba(20,8,9,.82);
+  animation:stampIn .4s cubic-bezier(.3,1.6,.5,1) both;white-space:nowrap}
+.stamp[data-tone="ok"]{color:var(--ok)}.stamp[data-tone="bad"]{color:var(--bad)}.stamp[data-tone="warn"]{color:var(--warn)}
+@keyframes stampIn{from{opacity:0;transform:rotate(-12deg) scale(1.7)}}
+.steps{position:relative;z-index:1;padding:30vh 0 40vh}
+.step{min-height:88vh;display:flex;align-items:center}
+.step .txt{max-width:30em;opacity:.28;transition:opacity .5s}
+.step.on .txt{opacity:1}
+.step h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(22px,3.4vw,30px);line-height:1.45;margin:0 0 16px}
+.step p{margin:0 0 14px;font-size:17px}
+.step p.big{font-family:var(--pk-serif);font-size:21px;line-height:1.7;color:var(--gold)}
+.step em{font-style:normal;color:var(--gold)}
+.step .aside{color:var(--pk-dim);font-size:14.5px}
+
+/* ── 桌上 ── */
+.desk{max-width:980px;margin:0 auto;padding:12vh 22px 40px}
+.desk-head h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(24px,4.2vw,34px);margin:0 0 8px}
+.desk-head p{color:var(--pk-dim);margin:0 0 26px}
+.opts{display:grid;gap:14px;margin:0 0 20px}
+.grp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;border:0;padding:0;margin:0}
+.grp legend{float:left;width:4.2em;font-size:13px;letter-spacing:.14em;color:var(--pk-dim);padding:0}
+.chip{position:relative;cursor:pointer}
+.chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.chip span{display:inline-block;padding:7px 14px;border:1px solid var(--pk-line);border-radius:999px;font-size:14.5px;
+  transition:background .2s,border-color .2s,color .2s,transform .12s}
+.chip:hover span{border-color:rgba(226,180,90,.5)}
+.chip input:checked + span{background:var(--gold);border-color:var(--gold);color:#241012}
+.chip input:focus-visible + span{outline:2px solid var(--pk-accent);outline-offset:3px}
+.chip:active span{transform:scale(.97)}
+.baseline{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin:6px 0 0;padding:14px 18px;border:1px dashed rgba(226,180,90,.35);border-radius:12px}
+.baseline .k{font-size:13px;letter-spacing:.14em;color:var(--pk-dim)}
+.baseline b{font-family:var(--pk-serif);font-size:26px;color:var(--gold)}
+.baseline small{color:var(--pk-dim);font-size:13px;flex-basis:100%}
+.table{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center;margin-top:30px;
+  padding:34px 26px;border-radius:22px;background:radial-gradient(100% 90% at 30% 30%,rgba(120,40,30,.35),rgba(40,16,14,.6));
+  box-shadow:inset 0 0 0 1px var(--pk-line)}
+.env-slot{display:grid;justify-items:center;gap:18px;padding-top:70px}
+.desk .env{font-size:11px;transition:transform .18s}
+.desk .env.hot{transform:scale(1.04)}
+.desk .env.hot .body{box-shadow:0 0 0 .3em rgba(226,180,90,.6),0 1.8em 3.6em rgba(0,0,0,.45)}
+.desk .env.bump{animation:bump .3s ease}
+@keyframes bump{40%{transform:scale(1.035) translateY(2px)}}
+.amt{font:600 13px/1 var(--pk-sans);letter-spacing:.16em;color:var(--pk-dim)}
+.amt b{font-family:var(--pk-serif);font-size:40px;color:var(--pk-ink);letter-spacing:.02em;margin-left:6px;font-variant-numeric:tabular-nums}
+.tray{display:grid;gap:14px}
+.tray-h{font-size:13px;letter-spacing:.14em;color:var(--pk-dim);margin:0}
+.tb{appearance:none;border:0;cursor:grab;position:relative;width:100%;max-width:260px;height:74px;border-radius:8px;
+  font:700 26px/1 var(--pk-sans);color:rgba(255,255,255,.92);text-align:right;padding:0 18px;touch-action:none;user-select:none;-webkit-user-select:none;
+  box-shadow:0 2px 0 rgba(0,0,0,.25),4px 5px 0 -1px rgba(255,255,255,.08),8px 10px 0 -2px rgba(255,255,255,.05);
+  transition:transform .15s,box-shadow .15s}
+.tb::after{content:"";position:absolute;left:18px;top:50%;width:34px;height:34px;margin-top:-17px;border-radius:50%;border:2px solid rgba(255,255,255,.35)}
+.tb small{position:absolute;left:62px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:500;letter-spacing:.12em;opacity:.8}
+.tb:hover{transform:translateY(-2px) rotate(-1deg)}
+.tb:active{cursor:grabbing}
+.tb:focus-visible{outline:2px solid var(--pk-accent);outline-offset:4px}
+.tb:disabled{opacity:.35;cursor:default;transform:none}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.lnk{appearance:none;background:none;border:1px solid var(--pk-line);color:var(--pk-ink);border-radius:999px;padding:7px 14px;font:inherit;font-size:13.5px;cursor:pointer;transition:border-color .2s,background .2s}
+.lnk:hover{border-color:rgba(226,180,90,.5);background:rgba(226,180,90,.07)}
+.lnk:disabled{opacity:.4;cursor:default}
+.ghost{position:fixed;left:0;top:0;z-index:50;pointer-events:none;border-radius:8px;opacity:.95;box-shadow:0 18px 30px rgba(0,0,0,.45);
+  font:700 26px/74px var(--pk-sans);color:#fff;text-align:right;padding:0 18px;will-change:transform}
+.ghost.back{transition:transform .28s ease,opacity .28s}
+.verdict{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:8px}
+.verdict li{display:flex;gap:10px;align-items:baseline;font-size:15.5px;animation:vin .35s ease both}
+.verdict i{font-style:normal;flex:0 0 1.4em;text-align:center;font-weight:700}
+.verdict .ok i{color:var(--ok)}.verdict .warn i{color:var(--warn)}.verdict .bad i{color:var(--bad)}
+.verdict .bad{color:#f4c9c4}
+@keyframes vin{from{opacity:0;transform:translateX(-6px)}}
+.seal-row{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:24px}
+.seal-row label{font-size:13px;letter-spacing:.12em;color:var(--pk-dim)}
+.seal-row input,.mb input,.mb select{background:rgba(255,255,255,.05);border:1px solid var(--pk-line);color:var(--pk-ink);border-radius:8px;padding:8px 10px;font:inherit;font-size:15px}
+.seal-row input{width:9em;margin-left:8px}
+#seal{border-color:var(--gold);color:var(--gold)}
+#seal:not(:disabled){background:var(--gold);color:#241012;box-shadow:0 0 0 0 rgba(226,180,90,.5);animation:glow 2.2s ease-in-out infinite}
+@keyframes glow{50%{box-shadow:0 0 0 8px rgba(226,180,90,0)}}
+.hint{color:var(--pk-dim);font-size:13.5px;margin:10px 0 0}
+
+/* ── 禮金簿 ── */
+.ledger{max-width:760px;margin:0 auto;padding:14vh 22px 0}
+.scene{font-size:18px;margin:0 0 22px}
+.book{position:relative;background:var(--paper);color:var(--paper-ink);border-radius:6px;padding:26px 26px 18px 64px;
+  box-shadow:0 24px 50px rgba(0,0,0,.5),inset 0 0 60px rgba(120,80,30,.12);transform:rotate(-.6deg)}
+.book::before{content:"禮金簿";position:absolute;left:14px;top:22px;writing-mode:vertical-rl;font-family:var(--kai);font-size:22px;letter-spacing:.4em;color:#9b1b1f}
+.book::after{content:"";position:absolute;left:50px;top:0;bottom:0;width:1px;background:rgba(155,27,31,.35)}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 8.5em;gap:12px;align-items:end;min-height:46px;border-bottom:1px solid rgba(43,33,29,.18);
+  font-family:var(--kai);font-size:21px;padding:6px 0}
+.row .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .a{text-align:right;font-variant-numeric:tabular-nums}
+.row.head{font-family:var(--pk-sans);font-size:12px;letter-spacing:.2em;color:#8a7768;min-height:0;padding-bottom:8px}
+.row.me{color:#8e0d16}
+.row.me .n::after{content:"";display:inline-block;width:1px;height:1em;background:currentColor;margin-left:2px;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+.row.me.done .n::after{display:none}
+@keyframes blink{50%{opacity:0}}
+.coda{padding:12vh 0 4vh}
+.coda p{font-size:18px;margin:0 0 18px}
+.coda .big{font-family:var(--pk-serif);font-size:clamp(23px,4vw,31px);line-height:1.6;color:var(--gold);margin:40px 0}
+.coda .last{color:var(--pk-dim)}
+
+/* 我的禮金簿 */
+.mb{margin-top:40px;padding:24px;border-radius:18px;box-shadow:inset 0 0 0 1px var(--pk-line);background:rgba(255,255,255,.02)}
+.mb h3{font-family:var(--pk-serif);font-weight:600;font-size:22px;margin:0 0 6px}
+.mb .sub{color:var(--pk-dim);font-size:14px;margin:0 0 18px}
+.mb form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.mb form label{display:grid;gap:4px;font-size:12px;letter-spacing:.12em;color:var(--pk-dim)}
+.mb form .wide{grid-column:span 2}
+.mb form .go{grid-column:span 2;justify-self:start}
+.mb .sum{margin:18px 0 10px;font-size:14.5px;color:var(--pk-dim)}
+.mb .sum b{color:var(--pk-ink);font-weight:600}
+.mb ul{list-style:none;margin:0;padding:0}
+.mb li{display:grid;grid-template-columns:5.2em minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--pk-line);font-size:15px;animation:vin .3s ease both}
+.mb li .d{color:var(--pk-dim);font-size:13px}
+.mb li .who small{display:block;color:var(--pk-dim);font-size:12.5px}
+.mb li .v{font-family:var(--pk-serif);font-size:18px;text-align:right}
+.mb li .v small{display:block;font-family:var(--pk-sans);font-size:12px;color:var(--gold)}
+.mb .dir{font-size:11.5px;letter-spacing:.1em;padding:2px 8px;border-radius:999px;margin-right:6px;vertical-align:1px}
+.mb .dir.out{background:rgba(226,87,76,.16);color:#f0a79f}
+.mb .dir.in{background:rgba(201,179,106,.18);color:var(--ok)}
+.x{appearance:none;background:none;border:0;color:var(--pk-dim);cursor:pointer;font-size:16px;width:32px;height:32px;border-radius:50%}
+.x:hover{color:var(--bad);background:rgba(226,87,76,.1)}
+.empty{color:var(--pk-dim);font-size:14px;padding:12px 0;border-top:1px solid var(--pk-line)}
+
+/* ── 手機 ── */
+@media (max-width:760px){
+  .scrolly{grid-template-columns:minmax(0,1fr);padding:0 16px}
+  .stage{height:46svh;background:linear-gradient(var(--pk-bg) 80%,rgba(20,8,9,0));align-items:end;padding-bottom:10px}
+  .stage-in{gap:12px}
+  .stage .env{font-size:6px}
+  .stamp{font-size:3em;right:-2em;top:6.4em}
+  .tag b{font-size:22px}
+  .steps{padding:12vh 0 30vh}
+  .step{min-height:74svh;align-items:flex-start}
+  .table{grid-template-columns:minmax(0,1fr);padding:26px 16px;gap:22px}
+  .desk .env{font-size:8.5px}
+  .tray{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .tray-h{grid-column:1/-1}
+  .tb{height:58px;font-size:19px;padding:0 10px}
+  .tb::after,.tb small{display:none}
+  .acts{grid-column:1/-1}
+}
+@media (max-width:560px){
+  .desk,.ledger{padding-left:16px;padding-right:16px}
+  .book{padding:20px 14px 14px 50px}
+  .book::before{left:10px;font-size:18px}.book::after{left:38px}
+  .row{font-size:18px;grid-template-columns:minmax(0,1fr) 6.8em}
+  .mb{padding:18px 14px}
+  .mb form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .mb li{grid-template-columns:minmax(0,1fr) auto auto}
+  .mb li .d{display:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .cue span,#seal:not(:disabled),.row.me .n::after{animation:none}
+  .fb.drop,.stamp,.verdict li,.mb li,.desk .env.bump{animation:none}
+  .env .flap,.env .shut,.env .seal,.stage-in,.env.sealed .fb{transition:none}
+}
+.rm .cue span,.rm #seal:not(:disabled),.rm .fb.drop,.rm .stamp,.rm .verdict li,.rm .mb li,.rm .desk .env.bump{animation:none}
+.rm .env .flap,.rm .env .shut,.rm .env .seal,.rm .stage-in,.rm .env.sealed .fb{transition:none}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero hero">
+  <div class="pk-wrap">
+    <p class="kick rv">週二・信箱裡多了一個紅信封</p>
+    <h1 class="rv d1">你拆開喜帖，先看日期，<br>再看地點，<br>然後開始<b>心算</b>。</h1>
+    <p class="dim rv d2">不是算你們認識幾年。是算這一包，要放幾張。</p>
+    <p class="cue rv d3" aria-hidden="true">往下捲 <span>↓</span></p>
+  </div>
+</header>
+
+<section class="scrolly" aria-label="紅包的規矩">
+  <div class="stage" aria-hidden="true">
+    <div class="stage-in" id="stageIn">
+      <div class="env" id="sEnv" data-kind="red">
+        <div class="flap"></div><div class="fan" id="sFan"></div>
+        <div class="body"><div class="band"></div><span class="mark" id="sMark">囍</span></div>
+        <div id="sStampHost"></div>
+      </div>
+      <p class="tag" id="sTag">內裝<b>NT$ 2,000</b></p>
+    </div>
+  </div>
+
+  <div class="steps">
+    <article class="step" data-bills="1000,1000" data-cur="NT$" data-amt="2,000" data-kind="red" data-mark="囍" data-stamp="成雙" data-tone="ok">
+      <div class="txt">
+        <h2>第一條，人人會背。</h2>
+        <p>喜事成雙。兩千、兩千二、兩千六——好事要成對，數字也要成對。</p>
+      </div>
+    </article>
+    <article class="step" data-bills="1000,1000,100,100,100,100" data-cur="NT$" data-amt="2,400" data-kind="red" data-mark="囍" data-stamp="死" data-tone="bad">
+      <div class="txt">
+        <p>第二條：看到 <em>4</em> 就縮手。</p>
+        <p>兩千四，是雙數沒錯。你唸快一點，自己也聽得出來。</p>
+      </div>
+    </article>
+    <article class="step" data-bills="1000,500,100,100,100" data-cur="NT$" data-amt="1,800" data-kind="red" data-mark="囍" data-stamp="發？別？" data-tone="warn">
+      <div class="txt">
+        <p>然後是 <em>8</em>。</p>
+        <p>有人聽成「發」，包得很得意；有人聽成「別」，收得很彆扭。同一張鈔票，兩家人兩種耳朵。</p>
+      </div>
+    </article>
+    <article class="step" data-bills="1000,100" data-cur="NT$" data-amt="1,100" data-kind="white" data-mark="奠" data-stamp="十一" data-tone="ok">
+      <div class="txt">
+        <p>同一個月，你還得去一場告別式。白包的規矩倒過來：取單、忌雙。常見的是一千一、一千五。</p>
+        <p>等一下。1,100 除以 2，除得盡。它明明是偶數。</p>
+        <p class="big">民間算單雙，不看整數，看「幾百」。1,100 是十一，1,200 是十二。</p>
+        <p class="aside">所以白包包 1,200，錯的不是金額，是那個「十二」。</p>
+      </div>
+    </article>
+    <article class="step" data-bills="r100,r100,r100,r100,r100,r100,r100,r100,r100,r100,r1" data-cur="人民幣" data-amt="1,001" data-kind="red" data-mark="囍" data-stamp="千里挑一" data-tone="ok">
+      <div class="txt">
+        <p>過了海峽，又翻一次。</p>
+        <p>有些地方的婆婆給新媳婦的改口紅包，偏要 <em>1,001</em>：千里挑一。再闊氣一點，10,001，萬里挑一。喜事、帶零頭、尾數是 1。</p>
+        <p class="aside">照台灣「看幾百」的算法，1,001 是十，竟然也算雙。</p>
+      </div>
+    </article>
+    <article class="step" data-bills="j10000,j10000,j10000" data-cur="¥" data-amt="30,000" data-kind="jp" data-mark="寿" data-stamp="三" data-tone="ok">
+      <div class="txt">
+        <p>再往東，日本的婚禮禮金叫ご祝儀，裝在白底、綁水引繩結的袋子裡，常見三萬日圓。</p>
+        <p>它偏偏要<em>單數</em>。偶數「割り切れる」——除得開，聽起來像兩個人會被分開。</p>
+        <p>中文的 9 是「久」，長長久久；日文的 9 唸起來像「苦」，碰都別碰。</p>
+      </div>
+    </article>
+    <article class="step" data-bills="1000,1000,500,100" data-cur="NT$" data-amt="2,600" data-kind="red" data-mark="囍" data-stamp="？" data-tone="warn">
+      <div class="txt">
+        <h2>所以規矩不是數學。<br>是耳朵。</h2>
+        <p>每一條都是諧音，是某位長輩皺眉的樣子。它沒道理，但它有效——因為收紅包的人也在聽。</p>
+        <p>好。喜帖還在桌上。輪到你了。</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section class="desk" id="desk" aria-labelledby="deskH">
+  <div class="desk-head">
+    <h2 id="deskH" class="rv">一個空紅包，三疊鈔票。</h2>
+    <p class="rv">先告訴它是誰的喜事，再把鈔票一張張拖進去（或按一下）。規矩會一條條跳出來審你。</p>
+  </div>
+
+  <div class="opts rv" id="opts">
+    <fieldset class="grp"><legend>場合</legend>
+      <label class="chip"><input type="radio" name="occ" value="xi" checked><span>婚禮・紅包</span></label>
+      <label class="chip"><input type="radio" name="occ" value="bai"><span>告別式・白包</span></label>
+    </fieldset>
+    <fieldset class="grp xi-only"><legend>交情</legend>
+      <label class="chip"><input type="radio" name="rel" value="nod"><span>點頭之交</span></label>
+      <label class="chip"><input type="radio" name="rel" value="work" checked><span>同事、長官</span></label>
+      <label class="chip"><input type="radio" name="rel" value="friend"><span>同學、朋友</span></label>
+      <label class="chip"><input type="radio" name="rel" value="close"><span>至交、親戚</span></label>
+    </fieldset>
+    <fieldset class="grp xi-only"><legend>場地</legend>
+      <label class="chip"><input type="radio" name="venue" value="rest"><span>餐廳、流水席</span></label>
+      <label class="chip"><input type="radio" name="venue" value="hall" checked><span>婚宴會館</span></label>
+      <label class="chip"><input type="radio" name="venue" value="five"><span>五星飯店</span></label>
+    </fieldset>
+    <fieldset class="grp xi-only"><legend>出席</legend>
+      <label class="chip"><input type="radio" name="attend" value="absent"><span>禮到人不到</span></label>
+      <label class="chip"><input type="radio" name="attend" value="solo" checked><span>自己去</span></label>
+      <label class="chip"><input type="radio" name="attend" value="pair"><span>攜伴</span></label>
+    </fieldset>
+    <div class="baseline" id="baseBox" aria-live="polite">
+      <span class="k">行情起跳</span><b id="base">NT$ 2,600</b>
+      <small id="baseNote">未含喜餅；女方親友收過喜餅，要再加上一盒的錢。</small>
+    </div>
+  </div>
+
+  <div class="table rv">
+    <div class="env-slot">
+      <div class="env" id="env" data-kind="red" role="img" aria-label="紅包，目前空的">
+        <div class="flap"></div><div class="fan" id="fan"></div>
+        <div class="body"><div class="band"></div><span class="mark" id="mark">囍</span></div>
+        <div class="shut"></div><div class="seal"><b id="sealMark">囍</b></div>
+      </div>
+      <p class="amt">內裝<b id="amt">0</b></p>
+    </div>
+    <div class="tray" id="tray" role="group" aria-label="鈔票：拖進紅包，或按一下放入">
+      <p class="tray-h">拖一張進紅包</p>
+      <button type="button" class="tb b1000" data-v="1000" aria-label="放入一張一千元">1000<small>千元・藍</small></button>
+      <button type="button" class="tb b500" data-v="500" aria-label="放入一張五百元">500<small>五百・棕</small></button>
+      <button type="button" class="tb b100" data-v="100" aria-label="放入一張一百元">100<small>百元・紅</small></button>
+      <div class="acts">
+        <button type="button" class="lnk" id="undo">抽一張出來</button>
+        <button type="button" class="lnk" id="clear">全部倒出</button>
+        <button type="button" class="lnk" id="auto">湊到最近的吉數</button>
+      </div>
+    </div>
+  </div>
+
+  <ul class="verdict" id="verdict" aria-live="polite"></ul>
+  <div class="seal-row">
+    <label>署名<input id="sign" maxlength="10" placeholder="你的名字" autocomplete="off"></label>
+    <button type="button" class="pk-btn" id="seal" disabled>封口，交給收禮台</button>
+    <button type="button" class="lnk" id="again" hidden>再包一包</button>
+  </div>
+  <p class="hint"><button type="button" class="lnk" id="jump">直接翻我的禮金簿</button></p>
+</section>
+
+<section class="ledger" id="ledger" hidden aria-labelledby="ledH">
+  <h2 id="ledH" class="pk-sr">收禮台</h2>
+  <p class="scene" id="scene">收禮台的阿姨接過去，當著你的面拆開，數了兩遍。然後拿起筆。</p>
+  <div class="book" aria-live="polite">
+    <div class="row head"><span>賀客</span><span class="a">金額</span></div>
+    <div class="row"><span class="n" id="r1n">林〇〇（新郎大學同學）</span><span class="a" id="r1a">3,600</span></div>
+    <div class="row"><span class="n" id="r2n">陳〇〇 闔家</span><span class="a" id="r2a">6,600</span></div>
+    <div class="row"><span class="n" id="r3n">周〇〇（公司）</span><span class="a" id="r3a">2,000</span></div>
+    <div class="row me" id="meRow"><span class="n" id="meN"></span><span class="a" id="meA"></span></div>
+  </div>
+
+  <div class="coda">
+    <p class="rv" id="c1">這本簿子會跟著新人回家，收進抽屜。</p>
+    <p class="rv" id="c2">等到哪天換你發喜帖，他們會把它翻出來，找到你這一行，照著數字再往上加個六百、一千二，包回來給你。</p>
+    <p class="big rv">你放進去的不是禮金，<br>是一張沒寫日期的借據。</p>
+    <p class="rv last">對方有記。你呢？</p>
+  </div>
+
+  <div class="mb rv" id="mb">
+    <h3>我的禮金簿</h3>
+    <p class="sub">包出去的、收進來的，都記一筆。收到的喜事，會替你算好回包至少要多少。</p>
+    <form id="mbForm" autocomplete="off">
+      <label class="wide">對象<input id="fWho" required maxlength="24" placeholder="例如：阿哲（大學室友）"></label>
+      <label>事由<select id="fWhy"><option>婚禮</option><option>告別式</option><option>滿月</option><option>其他</option></select></label>
+      <label>方向<select id="fDir"><option value="out">我包出去</option><option value="in">我收到</option></select></label>
+      <label>金額<input id="fAmt" type="number" inputmode="numeric" min="100" step="100" required placeholder="2600"></label>
+      <label>日期<input id="fDate" type="date"></label>
+      <div class="go"><button class="pk-btn" type="submit">記一筆</button> <button type="button" class="lnk" id="prefill" hidden>把剛剛那包記進來</button></div>
+    </form>
+    <p class="sum" id="sum"></p>
+    <ul id="list"></ul>
+  </div>
+</section>
+
+<footer class="pk-foot pk-wrap">
+  行情與禮俗：104 職場力、風傳媒、龍巖、台灣仁本；改口費吉數：搜狐、網易等整理。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="lijin.js"></script>
+<script>
+'use strict';
+const LS = 'lijin.';
+const store = PK.store(LS);
+const L = window.LIJIN;
+const $ = id => document.getElementById(id);
+let RM = PK.reduced();
+document.documentElement.classList.toggle('rm', RM);
+PK.onMotionChange(v => { RM = v; document.documentElement.classList.toggle('rm', v); });
+PK.reveal();
+
+/* ───────── 鈔票扇形 ───────── */
+const BILL = { '1000':'b1000', '500':'b500', '100':'b100', j10000:'bj', r100:'br', r1:'coin' };
+const LABEL = { j10000:'10000', r100:'100', r1:'1' };
+function renderFan(host, keys, animLast){
+  host.textContent = '';
+  const show = keys.slice(-16), m = show.length, tight = m > 7;
+  show.forEach((k, i) => {
+    const b = document.createElement('span');
+    b.className = 'fb ' + BILL[k];
+    b.dataset.t = LABEL[k] || k;
+    const off = i - (m - 1) / 2;
+    b.style.setProperty('--r', (off * (tight ? 2.2 : 4.5)).toFixed(2) + 'deg');
+    b.style.setProperty('--x', (off * (tight ? .45 : 1)).toFixed(2) + 'em');
+    b.style.setProperty('--y', (Math.abs(off) * (tight ? .12 : .3)).toFixed(2) + 'em');
+    if (animLast && i === m - 1 && !RM) b.classList.add('drop');
+    host.appendChild(b);
+  });
+}
+
+/* ───────── 捲動敘事：舞台跟著段落換 ───────── */
+const steps = [...document.querySelectorAll('.step')];
+const sEnv = $('sEnv'), stageIn = $('stageIn');
+let curStep = -1, swapT = 0;
+function paintStep(i){
+  const d = steps[i].dataset;
+  sEnv.dataset.kind = d.kind;
+  $('sMark').textContent = d.mark;
+  renderFan($('sFan'), d.bills.split(','), false);
+  $('sTag').innerHTML = '內裝<b>' + d.cur + ' ' + d.amt + '</b>';
+  const host = $('sStampHost'); host.textContent = '';
+  const s = document.createElement('div');
+  s.className = 'stamp'; s.dataset.tone = d.tone; s.textContent = d.stamp;
+  host.appendChild(s);
+}
+function goStep(i){
+  if (i === curStep) return;
+  curStep = i;
+  steps.forEach((s, j) => s.classList.toggle('on', j === i));
+  clearTimeout(swapT);
+  if (RM) { paintStep(i); return; }
+  stageIn.classList.add('swap');
+  swapT = setTimeout(() => { paintStep(i); stageIn.classList.remove('swap'); }, 200);
+}
+paintStep(0); steps[0].classList.add('on'); curStep = 0;
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => { if (e.isIntersecting) goStep(steps.indexOf(e.target)); });
+  }, { rootMargin: '-52% 0px -38% 0px' });
+  steps.forEach(s => io.observe(s));
+} else steps.forEach(s => s.classList.add('on'));
+
+/* ───────── 桌上：選項 ───────── */
+const saved = store.get('opts', null);
+if (saved) for (const k of ['occ','rel','venue','attend']) {
+  const r = document.querySelector(`input[name="${k}"][value="${saved[k]}"]`); if (r) r.checked = true;
+}
+function opt(k){ return document.querySelector(`input[name="${k}"]:checked`).value; }
+function state(){ return { occ: opt('occ'), rel: opt('rel'), venue: opt('venue'), attend: opt('attend') }; }
+function baseNow(){ const s = state(); return s.occ === 'bai' ? 0 : L.baseline(s.rel, s.venue, s.attend); }
+$('opts').addEventListener('change', () => { store.set('opts', state()); syncOpts(); update(false); });
+function syncOpts(){
+  const s = state(), bai = s.occ === 'bai';
+  document.querySelectorAll('.xi-only').forEach(f => { f.hidden = bai; });
+  const env = $('env');
+  env.dataset.kind = bai ? 'white' : 'red';
+  $('mark').textContent = bai ? '奠' : '囍';
+  $('sealMark').textContent = bai ? '奠' : '囍';
+  if (bai) {
+    $('base').textContent = '看心意';
+    $('baseNote').textContent = '白包沒有行情表：取單忌雙、避開 4，常見 1,100、1,500、2,100、3,100。禮俗上也不宜包太多，免得喪家難回。';
+  } else {
+    $('base').textContent = 'NT$ ' + L.fmt(baseNow());
+    $('baseNote').textContent = '未含喜餅；女方親友收過喜餅，要再加上一盒的錢。';
+  }
+}
+
+/* ───────── 桌上：鈔票進出 ───────── */
+let bills = [], sealed = false, shown = 0, lastPass = false;
+const env = $('env');
+function addBill(v){
+  if (sealed) return;
+  if (bills.length >= 60) { PK.announce('塞不下了。'); return; }
+  bills.push(v); update(true);
+  if (!RM) { env.classList.remove('bump'); void env.offsetWidth; env.classList.add('bump'); }
+}
+$('undo').onclick = () => { if (!sealed && bills.length) { bills.pop(); update(false); } };
+$('clear').onclick = () => { if (!sealed) { bills = []; update(false); } };
+$('auto').onclick = () => {
+  if (sealed) return;
+  const s = state(), now = L.sum(bills);
+  const target = L.nextLucky(Math.max(now, baseNow(), 100), s.occ);
+  const add = L.toBills(target - now);
+  if (!add.length) { PK.announce('已經是吉數了。'); return; }
+  if (RM) { bills.push(...add); update(false); return; }
+  add.forEach((v, i) => setTimeout(() => addBill(v), i * 110));
+};
+
+function countTo(to){
+  const from = shown, t0 = performance.now(), el = $('amt');
+  if (RM || document.hidden || from === to) { shown = to; el.textContent = L.fmt(to); return; }
+  function f(){
+    const k = Math.min((performance.now() - t0) / 320, 1), e = 1 - Math.pow(1 - k, 3);
+    shown = Math.round(from + (to - from) * e);
+    el.textContent = L.fmt(shown);
+    if (k >= 1) PK.untick(f);
+  }
+  PK.untick(countTo._f || (() => {})); countTo._f = f; PK.tick(f);
+}
+
+const ICON = { ok: '✓', warn: '△', bad: '✕' };
+function update(anim){
+  const s = state(), amount = L.sum(bills);
+  renderFan($('fan'), bills.map(String), anim);
+  countTo(amount);
+  const j = L.judge(amount, s.occ, baseNow());
+  const ul = $('verdict'); ul.textContent = '';
+  if (amount > 0) j.checks.forEach(c => {
+    const li = document.createElement('li'); li.className = c.level;
+    li.innerHTML = '<i aria-hidden="true">' + ICON[c.level] + '</i><span></span>';
+    li.lastChild.textContent = c.msg; ul.appendChild(li);
+  });
+  $('seal').disabled = sealed || !j.pass;
+  env.setAttribute('aria-label', (s.occ === 'bai' ? '白包' : '紅包') + '，目前 ' + (amount ? L.fmt(amount) + ' 元，' + bills.length + ' 張' : '空的'));
+  if (j.pass && !lastPass && amount > 0) PK.announce('這一包可以封口了。');
+  lastPass = j.pass;
+}
+
+/* 拖曳（pointer）＋按一下；鍵盤 Enter/Space 走 click（detail===0） */
+const tray = $('tray');
+let drag = null;
+tray.addEventListener('pointerdown', e => {
+  const btn = e.target.closest('.tb'); if (!btn || btn.disabled || e.button > 0) return;
+  e.preventDefault();
+  try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+  const r = btn.getBoundingClientRect();
+  drag = { btn, v: +btn.dataset.v, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+           dx: e.clientX - r.left, dy: e.clientY - r.top, r, ghost: null, moved: false, raf: 0, over: false };
+});
+tray.addEventListener('pointermove', e => {
+  if (!drag) return;
+  drag.x = e.clientX; drag.y = e.clientY;
+  if (!drag.moved && Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 6) {
+    drag.moved = true;
+    const g = document.createElement('div');
+    g.className = 'ghost ' + BILL[drag.v];
+    g.style.width = drag.r.width + 'px'; g.style.height = drag.r.height + 'px'; g.style.lineHeight = drag.r.height + 'px';
+    g.textContent = drag.v;
+    document.body.appendChild(g); drag.ghost = g;
+  }
+  if (drag.moved && !drag.raf) drag.raf = requestAnimationFrame(moveGhost);
+});
+function overEnv(x, y){
+  const r = env.querySelector('.body').getBoundingClientRect(), pad = 30;
+  return x > r.left - pad && x < r.right + pad && y > r.top - pad * 3 && y < r.bottom + pad;
+}
+function moveGhost(){
+  if (!drag || !drag.ghost) return;
+  drag.raf = 0;
+  drag.ghost.style.transform = `translate(${drag.x - drag.dx}px,${drag.y - drag.dy}px) rotate(-6deg)`;
+  drag.over = overEnv(drag.x, drag.y);
+  env.classList.toggle('hot', drag.over);
+}
+function endDrag(e, cancel){
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.raf) cancelAnimationFrame(d.raf);
+  env.classList.remove('hot');
+  if (!d.moved) { if (!cancel) addBill(d.v); return; }
+  const hit = !cancel && overEnv(e.clientX, e.clientY);
+  if (hit) { d.ghost.remove(); addBill(d.v); return; }
+  if (RM) { d.ghost.remove(); return; }
+  d.ghost.classList.add('back');
+  d.ghost.style.transform = `translate(${d.r.left}px,${d.r.top}px) rotate(0deg)`;
+  d.ghost.style.opacity = '0';
+  setTimeout(() => d.ghost.remove(), 300);
+}
+tray.addEventListener('pointerup', e => endDrag(e, false));
+tray.addEventListener('pointercancel', e => endDrag(e, true));
+tray.addEventListener('click', e => { const b = e.target.closest('.tb'); if (b && e.detail === 0) addBill(+b.dataset.v); });
+
+/* ───────── 封口 → 收禮台 ───────── */
+let lastSealed = null;
+$('seal').onclick = () => {
+  const s = state(), amount = L.sum(bills);
+  if (!L.judge(amount, s.occ, baseNow()).pass) return;
+  sealed = true; lastSealed = { amt: amount, occ: s.occ };
+  env.classList.add('sealed');
+  document.querySelectorAll('.tb,#undo,#clear,#auto').forEach(b => { b.disabled = true; });
+  $('seal').disabled = true; $('again').hidden = false;
+  PK.announce('封口了。');
+  store.set('sealed', true);
+  setTimeout(() => openLedger(true), RM ? 0 : 1300);
+};
+$('again').onclick = () => {
+  sealed = false; bills = []; env.classList.remove('sealed');
+  document.querySelectorAll('.tb,#undo,#clear,#auto').forEach(b => { b.disabled = false; });
+  $('again').hidden = true; update(false);
+};
+$('jump').onclick = () => openLedger(false);
+
+function openLedger(withEntry){
+  const led = $('ledger');
+  led.hidden = false;
+  const bai = lastSealed && lastSealed.occ === 'bai';
+  $('scene').textContent = bai
+    ? '治喪處的桌上也攤著一本簿子。收禮的人接過白包，點了點，拿起筆。'
+    : '收禮台的阿姨接過去，當著你的面拆開，數了兩遍。然後拿起筆。';
+  $('c1').textContent = bai ? '喪家事後會照著這本，一戶一戶回禮、道謝。' : '這本簿子會跟著新人回家，收進抽屜。';
+  $('c2').textContent = bai
+    ? '等到哪天輪到你家辦事，他們也會翻出這一本，找到你這一行。'
+    : '等到哪天換你發喜帖，他們會把它翻出來，找到你這一行，照著數字再往上加個六百、一千二，包回來給你。';
+  document.querySelector('.book .row.head span').textContent = bai ? '奠儀' : '賀客';
+  if (bai) { $('r1n').textContent = '林〇〇（鄰長）'; $('r1a').textContent = '1,100';
+             $('r2n').textContent = '陳〇〇 闔家'; $('r2a').textContent = '3,100';
+             $('r3n').textContent = '周〇〇（公司同仁）'; $('r3a').textContent = '1,500'; }
+  const row = $('meRow');
+  if (withEntry && lastSealed) {
+    row.hidden = false; row.classList.remove('done');
+    $('meN').textContent = ''; $('meA').textContent = '';
+    const name = ($('sign').value.trim() || '我') + (bai ? '　敬輓' : '　敬賀');
+    PK.scrollTo(led);
+    setTimeout(() => PK.type($('meN'), name, 110, () =>
+      PK.type($('meA'), L.fmt(lastSealed.amt), 90, () => { row.classList.add('done'); })), RM ? 0 : 700);
+    $('prefill').hidden = false;
+  } else {
+    row.hidden = true;
+    PK.scrollTo($('mb'));
+  }
+}
+if (store.get('sealed', false) || store.get('book', []).length) { /* 回訪者：簿子直接攤開 */
+  $('ledger').hidden = false; $('meRow').hidden = true;
+}
+
+/* ───────── 我的禮金簿 ───────── */
+let book = store.get('book', []);
+const today = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
+$('fDate').value = today();
+$('mbForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const amt = Math.round(+$('fAmt').value);
+  const who = $('fWho').value.trim();
+  if (!who || !(amt > 0)) return;
+  book.unshift({ id: Date.now().toString(36), d: $('fDate').value || today(), who, why: $('fWhy').value, dir: $('fDir').value, amt });
+  store.set('book', book);
+  $('fWho').value = ''; $('fAmt').value = '';
+  renderBook();
+  PK.announce('記下了：' + who + '，' + L.fmt(amt) + ' 元。');
+});
+$('prefill').onclick = () => {
+  if (!lastSealed) return;
+  $('fAmt').value = lastSealed.amt; $('fDir').value = 'out';
+  $('fWhy').value = lastSealed.occ === 'bai' ? '告別式' : '婚禮';
+  $('fWho').focus();
+};
+function renderBook(){
+  const ul = $('list'); ul.textContent = '';
+  let outN = 0, outS = 0, inN = 0, inS = 0;
+  book.forEach(b => { if (b.dir === 'out') { outN++; outS += b.amt; } else { inN++; inS += b.amt; } });
+  $('sum').innerHTML = book.length
+    ? `包出去 <b>${outN}</b> 包、共 <b>NT$ ${L.fmt(outS)}</b>　｜　收進來 <b>${inN}</b> 包、共 <b>NT$ ${L.fmt(inS)}</b>`
+    : '';
+  if (!book.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = '還沒有任何一筆。第一筆通常是最記不得的那一筆。'; ul.appendChild(li); return; }
+  book.forEach(b => {
+    const li = document.createElement('li');
+    const ret = b.dir === 'in' && b.why === '婚禮' ? `<small>回包至少 ${L.fmt(L.returnGift(b.amt))}</small>` : '';
+    li.innerHTML = `<span class="d"></span><span class="who"><span class="dir ${b.dir}">${b.dir === 'out' ? '包出' : '收到'}</span><span class="nm"></span><small></small></span>` +
+      `<span class="v">${L.fmt(b.amt)}${ret}</span><button type="button" class="x" aria-label="刪除這一筆">✕</button>`;
+    li.querySelector('.d').textContent = b.d;
+    li.querySelector('.nm').textContent = b.who;
+    li.querySelector('.who small').textContent = b.why;
+    li.querySelector('.x').onclick = () => {
+      if (!confirm('刪掉「' + b.who + '」這一筆？')) return;
+      book = book.filter(x => x.id !== b.id); store.set('book', book); renderBook();
+    };
+    ul.appendChild(li);
+  });
+}
+
+syncOpts(); update(false); renderBook();
+</script>
+</body>
+</html>

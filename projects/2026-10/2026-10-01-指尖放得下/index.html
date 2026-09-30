@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>指尖放得下嗎｜每日小專案</title>
+<meta name="description" content="一八二一年，一位炮兵上尉把十二個點的密碼送進巴黎盲童學院。一個十二歲的學生摸完，把它切成一半。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#15110c; --pk-ink:#efe6d4; --pk-dim:#9a8f7d; --pk-accent:#d8a25e;
+  --pk-line:rgba(239,230,212,.12);
+  --paper:#eadcc2; --paper-edge:#cdbb99; --dot:#f6ecd8; --dot-sh:#8c7753;
+  --brass:#b8874a; --finger:#e59a82;
+  --pk-maxw:680px;
+}
+body{
+  background:
+    radial-gradient(120% 70% at 50% -10%, #2a2016 0%, transparent 60%),
+    repeating-linear-gradient(92deg, rgba(255,255,255,.012) 0 3px, transparent 3px 11px),
+    var(--pk-bg);
+}
+p{margin:0 0 1.1em}
+em{font-style:normal;color:var(--pk-accent)}
+.serif{font-family:var(--pk-serif)}
+.kicker{font-size:12px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 22px;text-transform:uppercase}
+
+/* ── 第一屏 ── */
+.pk-hero{position:relative;overflow:hidden}
+.pk-hero h1{max-width:15em}
+.hero-sub{font-family:var(--pk-serif);font-size:clamp(17px,4.2vw,21px);color:#d9cdb6;max-width:26em}
+.hero-dots{position:absolute;right:-10px;top:50%;width:min(34vw,220px);transform:translateY(-50%);opacity:.5;pointer-events:none}
+.hero-dots circle{fill:var(--pk-accent);opacity:.08}
+.hero-dots circle.on{animation:pulse 5.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.08}40%,60%{opacity:.55}}
+.scroll-cue{margin-top:46px;font-size:13px;color:var(--pk-dim);letter-spacing:.2em}
+
+/* ── 敘事段落 ── */
+.beat{margin:0 0 88px}
+.beat h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(21px,5vw,27px);line-height:1.55;margin:0 0 18px}
+.beat .year{display:inline-block;font-size:12px;letter-spacing:.24em;color:var(--pk-accent);border:1px solid rgba(216,162,94,.35);border-radius:999px;padding:2px 12px;margin-bottom:14px}
+.aside{color:var(--pk-dim);font-size:14.5px;border-left:2px solid var(--pk-line);padding-left:14px}
+
+/* ── 工作台 ── */
+.bench{
+  position:relative;margin:0 -8px 88px;padding:26px 22px 24px;border-radius:14px;
+  background:linear-gradient(180deg,#2a2118,#211a13);
+  border:1px solid rgba(216,162,94,.18);
+  box-shadow:0 20px 50px -20px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.plate{
+  display:inline-flex;gap:10px;align-items:center;font-size:12px;letter-spacing:.2em;color:#20170e;
+  background:linear-gradient(180deg,#e2b77a,#a97c43);padding:4px 12px;border-radius:3px;margin-bottom:16px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 1px 2px rgba(0,0,0,.4)
+}
+.plate b{font-weight:700}
+.bench h3{font-family:var(--pk-serif);font-weight:600;font-size:19px;margin:0 0 6px}
+.bench .note{color:var(--pk-dim);font-size:14px;margin:0 0 16px}
+.field{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+.field label{font-size:13.5px;color:#d3c6ae}
+.field input{
+  flex:1 1 200px;min-width:0;font:inherit;font-size:18px;letter-spacing:.14em;color:var(--pk-ink);
+  background:#120e0a;border:1px solid rgba(216,162,94,.3);border-radius:8px;padding:10px 14px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.field input:focus{outline:none;border-color:var(--pk-accent);box-shadow:0 0 0 3px rgba(216,162,94,.18)}
+.warn{font-size:13px;color:#e8b07a;min-height:1.4em;margin:-6px 0 10px}
+
+.strip-wrap{position:relative;margin:4px 0 14px}
+svg.strip{display:block;width:100%;height:auto;overflow:visible}
+.paper{fill:var(--paper)}
+.paper-edge{fill:none;stroke:var(--paper-edge);stroke-width:.25}
+.dotg{filter:drop-shadow(0 .5px .4px rgba(70,50,20,.55))}
+.bdot{fill:url(#emboss)}
+.lbl{font:600 2.3px var(--pk-sans);fill:#5d4a2c;text-anchor:middle;letter-spacing:.1px}
+.lbl.below{fill:#bfae8f}
+.finger{fill:url(#fingerg);stroke:var(--finger);stroke-width:.25;stroke-dasharray:.8 .6;opacity:0;transition:opacity .3s}
+.finger.show{opacity:1}
+.blade{stroke:#fff6e6;stroke-width:.3;opacity:.95}
+.hl rect{fill:none}
+.tokhl{fill:rgba(216,162,94,.18);opacity:0;transition:opacity .25s}
+.tokhl.on{opacity:1}
+
+/* 切一刀的動畫 */
+.offcut{transform-box:view-box;transform-origin:0 10.25px;transition:transform 1.1s cubic-bezier(.5,0,.8,.4),opacity 1.1s ease}
+.offcut.fall{transform:translate(4px,34px) rotate(5deg);opacity:0}
+.fadeaway{transition:opacity .5s ease}
+.fadeaway.gone{opacity:0}
+.bcell circle{transform-box:fill-box;transform-origin:center;transition:transform .45s cubic-bezier(.3,1.6,.5,1),opacity .3s}
+.bcell.pre circle{transform:scale(.1);opacity:0}
+.blbl{transition:opacity .5s}
+.blbl.pre{opacity:0}
+.instant, .instant *{transition:none !important}
+
+.readout{
+  font-family:var(--pk-serif);font-size:15.5px;color:#e9dcc3;min-height:3.4em;
+  background:#120e0a;border-radius:8px;padding:10px 14px;margin:0 0 14px;border:1px solid var(--pk-line)
+}
+.readout .big{color:var(--pk-accent);font-weight:600}
+.row-btn{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.pk-btn.ghost{border-color:rgba(216,162,94,.4);color:#d6c3a2;padding:9px 18px;font-size:14px}
+.pk-btn.hot{background:var(--pk-accent);color:#1a130c;font-weight:600}
+.pk-btn.hot:hover{background:#f0bd7a}
+
+/* 巴比耶的表 */
+details.table{margin:14px 0 0;font-size:13.5px}
+details.table summary{cursor:pointer;color:#cdbb99;letter-spacing:.06em}
+.tgrid{display:grid;grid-template-columns:auto repeat(6,1fr);gap:3px;margin-top:10px;font-family:var(--pk-serif)}
+.tgrid span{text-align:center;padding:5px 0;border-radius:4px;background:#171109;color:#d9cbb1;transition:background .25s,color .25s}
+.tgrid span.h{background:transparent;color:var(--pk-dim);font-size:11.5px}
+.tgrid span.on{background:var(--pk-accent);color:#1a130c}
+
+/* 數字對照 */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 4px}
+.stat{background:#120e0a;border:1px solid var(--pk-line);border-radius:10px;padding:10px 12px}
+.stat .k{font-size:12px;color:var(--pk-dim);letter-spacing:.08em}
+.stat .v{font-family:var(--pk-serif);font-size:24px;color:var(--pk-ink);font-variant-numeric:tabular-nums}
+.stat .v small{font-size:13px;color:var(--pk-dim);margin-left:4px}
+.stat.cutdone .v{color:var(--pk-accent)}
+
+.twist{margin:18px 0 16px;padding:16px 16px 4px;border-radius:10px;background:rgba(216,162,94,.06);border:1px dashed rgba(216,162,94,.28);
+  opacity:0;transform:translateY(10px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1);pointer-events:none}
+.twist.show{opacity:1;transform:none;pointer-events:auto}
+.twist p{font-size:15px;color:#e2d5bc}
+.twist .t-h{font-family:var(--pk-serif);font-size:18px;color:var(--pk-ink);font-weight:600}
+.uni{font-size:26px;letter-spacing:.2em;color:#e7d7b8;word-break:break-all;margin:10px 0 0;min-height:1.2em}
+
+/* 工作台 C */
+.key{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;margin:6px 0 10px}
+.key figure{margin:0;text-align:center}
+.key svg{width:100%;height:auto;display:block}
+.key figcaption{font-size:13px;color:#d9cbb1;font-family:var(--pk-serif)}
+.rule{font-size:14.5px;color:#d9cbb1}
+.mystery{display:block;width:100%;max-width:440px;margin:18px auto 14px;height:auto;overflow:visible}
+.hint{font-size:14px;color:#e8b07a;min-height:1.4em}
+.solved-mark{color:var(--pk-accent);font-family:var(--pk-serif)}
+
+/* 結尾 */
+.finale{margin:0 0 40px}
+.finale[hidden]{display:none}
+.finale .word{font-family:var(--pk-serif);font-size:clamp(34px,9vw,54px);letter-spacing:.2em;color:var(--pk-accent);margin:0 0 6px}
+.finale .last{font-family:var(--pk-serif);font-size:clamp(19px,4.8vw,24px);line-height:1.7;margin-top:36px}
+.hands{display:block;margin:34px auto 0;width:120px;opacity:.9}
+
+@media (max-width:560px){
+  .bench{margin:0 -6px 72px;padding:22px 14px 18px}
+  .stats{gap:6px}
+  .stat{padding:8px}
+  .stat .v{font-size:19px}
+  .key{grid-template-columns:repeat(5,1fr)}
+  .hero-dots{opacity:.25}
+}
+@media (prefers-reduced-motion: reduce){
+  .hero-dots circle.on{animation:none;opacity:.35}
+  .twist{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <svg class="hero-dots" viewBox="0 0 40 110" aria-hidden="true" id="heroDots"></svg>
+  <div class="pk-wrap">
+    <p class="kicker rv">庫普夫雷　1812</p>
+    <h1 class="rv">三歲的男孩，想在一塊硬皮革上戳一個洞。</h1>
+    <p class="hero-sub rv">他把臉湊得很近，雙手壓住父親的錐子往下用力。錐尖從皮面上滑開了。</p>
+    <p class="hero-sub rv" style="color:var(--pk-dim)">兩年後，他兩隻眼睛都看不見了。他叫路易·布萊葉。</p>
+    <p class="scroll-cue rv" aria-hidden="true">↓　往下，到巴黎</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="beat rv">
+    <span class="year">巴黎　1821</span>
+    <h2>皇家盲童學院的書，是寫給眼睛看的。</h2>
+    <p>字母是用濕紙壓在銅線上凸出來的，一個字母要夠大，手指才摸得出輪廓。學校剛開辦時，全校只有三本書。學生讀得很慢，而且誰也沒辦法自己寫。</p>
+    <p>十二歲的路易在這裡。這一年，學校收到一封信。寫信的是炮兵軍官<em>夏爾·巴比耶</em>，他寄來一套用錐子在厚紙上戳凸點的寫法——手指一摸就能讀，不用點燈。</p>
+    <p class="aside">常聽到的說法是：這套寫法是為了讓士兵在夜裡讀命令。流傳很廣，不過他 1815 年那本小冊子裡，並沒有「夜間書寫」這個詞。</p>
+  </section>
+
+  <section class="beat rv">
+    <h2>巴比耶的規則：先數左邊，再數右邊。</h2>
+    <p>他把法語拆成 36 個音，排進一張 6×6 的表。左排有幾點＝第幾列，右排有幾點＝第幾欄。所以一個音最多可以用到十二個點，排成兩直排、每排六格高。</p>
+    <p>聽起來很聰明。你試試看。</p>
+  </section>
+
+  <!-- 工作台 A -->
+  <section class="bench rv" id="benchA" aria-labelledby="hA">
+    <div class="plate"><b>工作台 A</b>巴比耶的尺</div>
+    <h3 id="hA">寫一個字，讓它變成凸點</h3>
+    <p class="note">1821 年的巴黎只有拉丁字母——英文名字、法文、拼音都行，最多 12 個字母。</p>
+    <div class="field">
+      <label for="word">你的字</label>
+      <input id="word" type="text" maxlength="14" autocomplete="off" spellcheck="false" placeholder="例如 merci" value="merci">
+    </div>
+    <p class="warn" id="warn" aria-live="polite"></p>
+
+    <div class="strip-wrap">
+      <svg class="strip" id="strip" role="img" aria-label="凸點紙條"></svg>
+    </div>
+
+    <div class="readout" id="readout" aria-live="polite">指尖放上去，從左邊開始摸。</div>
+
+
+    <div class="stats" aria-live="polite">
+      <div class="stat" id="stDots"><div class="k">凸點</div><div class="v"><span>0</span><small>個</small></div></div>
+      <div class="stat" id="stStops"><div class="k">指尖停下</div><div class="v"><span>0</span><small>次</small></div></div>
+      <div class="stat" id="stRows"><div class="k">一格高</div><div class="v"><span>6</span><small>排</small></div></div>
+    </div>
+    <p class="uni" id="uni" aria-label="Unicode 點字"></p>
+
+    <div class="twist" id="twist">
+      <p class="t-h">指腹一次只蓋得住三排。</p>
+      <p>巴比耶的一個音有六排高。讀的人得把手指往下挪，一邊數、一邊記住兩個數字，再回頭想它對到表上哪一格。它記的是聲音，不是字母——沒辦法拼字，沒有標點，沒有數字，也寫不了樂譜。</p>
+      <p>布萊葉摸了好幾年。十五歲時，他拿出自己的版本給同學看。他沒有去改那張表——</p>
+      <p class="t-h">他把格子切掉一半。</p>
+    </div>
+    <div class="row-btn">
+      <button class="pk-btn hot" id="cut" type="button" disabled>✂ 從中間切開</button>
+      <button class="pk-btn ghost" id="undo" type="button" hidden>接回去</button>
+      <button class="pk-btn ghost" id="rescan" type="button">再摸一遍</button>
+    </div>
+
+    <details class="table">
+      <summary>巴比耶的 6×6 表（摸完還得查它）</summary>
+      <div class="tgrid" id="tgrid"></div>
+    </details>
+  </section>
+
+
+  <section class="beat rv" id="beatCut">
+    <span class="year">1829 → 1837</span>
+    <h2>六個點，兩排三列，一碰就是一個字母。</h2>
+    <p>六個點排得出 63 種花樣，足夠放下全部字母、重音字母、標點，後來還有數字和樂譜——布萊葉自己是管風琴手，他最早出版的那本書，書名裡就寫著「文字、音樂與素歌」。</p>
+    <p>1829 年的第一版還混著短橫線，摸起來太容易混淆，1837 年的第二版把橫線全拿掉，只剩點。今天電梯按鈕上的那幾顆，跟那一版幾乎沒有差別。</p>
+  </section>
+
+  <!-- 工作台 C -->
+  <section class="bench rv" id="benchC" aria-labelledby="hC">
+    <div class="plate"><b>工作台 C</b>換你讀</div>
+    <h3 id="hC">布萊葉的字母表，是一條規律</h3>
+    <p class="note">不用背 26 個。先看最上面這十個——它們只用到上面四個點：</p>
+    <div class="key" id="key"></div>
+    <p class="rule">k 到 t：把 a 到 j 各加上<em>左下那一點</em>。<br>u、v、x、y、z：a 到 e 再加上<em>左下和右下</em>。<br>w 呢？1829 年的法文用不到 w，它是後來才補在最後面的。</p>
+    <p class="note" style="margin-top:18px">下面這五格，是一個法文字。讀讀看。</p>
+    <svg class="mystery" id="mystery" role="img" aria-label="五格點字：一個待解讀的法文字"></svg>
+    <div class="field">
+      <label for="guess">它寫的是</label>
+      <input id="guess" type="text" maxlength="12" autocomplete="off" spellcheck="false" placeholder="五個字母">
+      <button class="pk-btn" id="check" type="button">對對看</button>
+    </div>
+    <p class="hint" id="hint" aria-live="polite"></p>
+    <button class="pk-btn ghost" id="reveal" type="button" hidden>直接告訴我</button>
+  </section>
+
+  <!-- 結尾 -->
+  <section class="finale" id="finale" hidden tabindex="-1" aria-labelledby="fw">
+    <p class="word" id="fw">MAINS</p>
+    <p class="serif" style="color:var(--pk-dim);font-size:18px">法文的「手」。</p>
+
+    <div class="beat">
+      <p>1840 年，新校長杜佛上任，禁止在學校教點字。據說學生們照樣私下用它寫字。1844 年，學校搬進新校舍，另一位老師替它說話，點字跟著回來了。</p>
+      <p>布萊葉 1852 年一月過世，剛滿 43 歲兩天。學校在兩年後，才正式把他的點字定為全校的讀寫系統——是學生們一再堅持的結果。</p>
+      <p>1952 年，他逝世一百週年，法國把他的遺骨遷進巴黎的先賢祠。</p>
+    </div>
+
+    <p class="last">但他的雙手沒有去。<br>它們留在庫普夫雷，埋在老家附近。<br>就是那支錐子滑開的村子。</p>
+    <p class="aside" style="margin-top:28px">今天寫點字的工具叫點字筆：一個木頭把手，接一根鈍鈍的尖錐。跟他父親店裡那支，長得差不多。</p>
+    <svg class="hands" id="endCell" viewBox="0 0 30 40" role="img" aria-label="點字：六個點全亮"></svg>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia〈Louis Braille〉〈Night writing〉；C. M. Mellor《Louis Braille: A Touch of Genius》。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'awl1809.';
+const store = PK.store(LS);
+
+/* ═══════════ 純函式（node 斷言用） ═══════════ */
+const B_TABLE = [
+  ['a','i','o','u','é','è'],
+  ['an','in','on','un','eu','ou'],
+  ['b','d','g','j','v','z'],
+  ['p','t','q','ch','f','s'],
+  ['l','m','n','r','gn','ll'],
+  ['oi','oin','ian','ien','ion','ieu']
+];
+function bPos(sym){
+  for (let r = 0; r < 6; r++){ const c = B_TABLE[r].indexOf(sym); if (c >= 0) return { r: r + 1, c: c + 1 }; }
+  return null;
+}
+function normWord(s){
+  return String(s || '').toLowerCase()
+    .replace(/[àâä]/g,'a').replace(/[îï]/g,'i').replace(/[ôö]/g,'o').replace(/[ùûü]/g,'u')
+    .replace(/[êë]/g,'è').replace(/ç/g,'s').replace(/œ/g,'eu').replace(/æ/g,'é')
+    .replace(/[^a-zéè0-9 ]/g,'');
+}
+const VOW = 'aeiouyéè';
+/* 法語近似拼讀 → 巴比耶的音 */
+function barbier(text){
+  const s = normWord(text).replace(/[0-9]/g,'');
+  const out = [];
+  const push = sym => { const p = bPos(sym); if (p) out.push({ s: sym, r: p.r, c: p.c }); };
+  let i = 0;
+  const at = k => s[i + k] || '';
+  const nasalOK = k => { const n = at(k); return !(VOW.includes(n) || n === 'n' || n === 'm'); };
+  while (i < s.length){
+    const ch = s[i];
+    if (ch === ' '){ if (out.length && !out[out.length-1].gap) out.push({ gap: true }); i++; continue; }
+    const three = s.substr(i,3), two = s.substr(i,2);
+    if (three === 'eau'){ push('o'); i += 3; continue; }
+    if (['ieu','ion','ien','ian'].includes(three) && nasalOK(3)){ push(three); i += 3; continue; }
+    if (three === 'ieu'){ push('ieu'); i += 3; continue; }
+    if (three === 'oin' && nasalOK(3)){ push('oin'); i += 3; continue; }
+    if ((three === 'ain' || three === 'ein') && nasalOK(3)){ push('in'); i += 3; continue; }
+    if (two === 'oi'){ push('oi'); i += 2; continue; }
+    if (two === 'ou'){ push('ou'); i += 2; continue; }
+    if (two === 'eu'){ push('eu'); i += 2; continue; }
+    if (two === 'au'){ push('o'); i += 2; continue; }
+    if (two === 'ai' || two === 'ei'){ push('è'); i += 2; continue; }
+    if (two === 'ch'){ push('ch'); i += 2; continue; }
+    if (two === 'gn'){ push('gn'); i += 2; continue; }
+    if (two === 'll'){ push('ll'); i += 2; continue; }
+    if (two === 'ph'){ push('f'); i += 2; continue; }
+    if (two === 'qu'){ push('q'); i += 2; continue; }
+    if (/^(an|am|en|em)$/.test(two) && nasalOK(2)){ push('an'); i += 2; continue; }
+    if (/^(in|im)$/.test(two) && nasalOK(2)){ push('in'); i += 2; continue; }
+    if (/^(on|om)$/.test(two) && nasalOK(2)){ push('on'); i += 2; continue; }
+    if (/^(un|um)$/.test(two) && nasalOK(2)){ push('un'); i += 2; continue; }
+    /* 單字母 */
+    const prev = s[i-1] || '';
+    if (ch === prev && !VOW.includes(ch)){ i++; continue; }          /* 疊寫子音只念一次 */
+    const nx = at(1);
+    const wordEnd = !nx || nx === ' ';
+    switch (ch){
+      case 'a': push('a'); break;
+      case 'e': if (!(wordEnd && i > 1)) push('é'); break;              /* 字尾 e 不發音 */
+      case 'é': push('é'); break;
+      case 'è': push('è'); break;
+      case 'i': case 'y': push('i'); break;
+      case 'o': push('o'); break;
+      case 'u': push('u'); break;
+      case 'c': push('eiyéè'.includes(nx) && nx ? 's' : 'q'); break;
+      case 'g': push('eiyéè'.includes(nx) && nx ? 'j' : 'g'); break;
+      case 'k': push('q'); break;
+      case 'x': push('q'); push('s'); break;
+      case 'w': push('ou'); break;
+      case 'h': break;
+      default: push(ch);
+    }
+    i++;
+  }
+  while (out.length && out[out.length-1].gap) out.pop();
+  return out;
+}
+
+const BR = {
+  a:[1],b:[1,2],c:[1,4],d:[1,4,5],e:[1,5],f:[1,2,4],g:[1,2,4,5],h:[1,2,5],i:[2,4],j:[2,4,5]
+};
+'klmnopqrst'.split('').forEach((ch, k) => { BR[ch] = BR['abcdefghij'[k]].concat(3).sort(); });
+'uvxyz'.split('').forEach((ch, k) => { BR[ch] = BR['abcde'[k]].concat(3, 6).sort(); });
+BR.w = [2,4,5,6];
+const DIGIT = { '1':'a','2':'b','3':'c','4':'d','5':'e','6':'f','7':'g','8':'h','9':'i','0':'j' };
+function braille(text){
+  const s = normWord(text).replace(/[éè]/g,'e');
+  const out = []; let inNum = false;
+  for (const ch of s){
+    if (ch === ' '){ inNum = false; if (out.length && !out[out.length-1].gap) out.push({ gap: true }); continue; }
+    if (DIGIT[ch]){
+      if (!inNum){ out.push({ s: '#', dots: [3,4,5,6] }); inNum = true; }
+      out.push({ s: ch, dots: BR[DIGIT[ch]] }); continue;
+    }
+    inNum = false;
+    if (BR[ch]) out.push({ s: ch, dots: BR[ch] });
+  }
+  while (out.length && out[out.length-1].gap) out.pop();
+  return out;
+}
+function uniBraille(dots){ return String.fromCharCode(0x2800 + dots.reduce((a, d) => a + (1 << (d - 1)), 0)); }
+function statsB(toks){
+  const t = toks.filter(x => !x.gap);
+  return { n: t.length, dots: t.reduce((a, x) => a + x.r + x.c, 0), stops: t.reduce((a, x) => a + (Math.max(x.r, x.c) > 3 ? 2 : 1), 0) };
+}
+function statsL(cells){
+  const t = cells.filter(x => !x.gap);
+  return { n: t.length, dots: t.reduce((a, x) => a + x.dots.length, 0), stops: t.length };
+}
+function checkGuess(g){ return normWord(g).replace(/\s/g,'') === 'mains'; }
+
+/* 幾何（單位：毫米；viewBox 就用毫米） */
+const G = { pitch: 2.5, sym: 7, gap: 4, margin: 5, rowTop: 4, cutY: 10.25, paperH: 20.5, bRowTop: 2.9, r: .8 };
+function layoutX(toks){
+  const xs = []; let x = G.margin;
+  toks.forEach(t => { if (t.gap){ xs.push(null); x += G.gap; } else { xs.push(x); x += G.sym; } });
+  const w = toks.length ? x - G.sym + G.pitch + G.margin : 2 * G.margin;
+  return { xs, w };
+}
+
+if (typeof module !== 'undefined'){ module.exports = { barbier, braille, statsB, statsL, uniBraille, checkGuess, bPos, layoutX, BR, G }; }
+
+/* ═══════════ DOM ═══════════ */
+if (typeof document !== 'undefined') (function(){
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
+  const mk = (tag, attrs, parent) => { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); if (parent) parent.appendChild(el); return el; };
+
+  PK.reveal();
+
+  /* 第一屏：十二個點的格子裡，六個慢慢亮 */
+  (function heroDots(){
+    const svg = $('heroDots');
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 2; c++){
+      const on = r < 3;
+      const el = mk('circle', { cx: 10 + c * 20, cy: 8 + r * 19, r: 6 }, svg);
+      if (on){ el.classList.add('on'); el.style.animationDelay = (r * 2 + c) * .5 + 's'; }
+    }
+  })();
+
+  /* 巴比耶表 */
+  const tgrid = $('tgrid'); const tcells = {};
+  (function buildTable(){
+    tgrid.appendChild(Object.assign(document.createElement('span'), { className: 'h', textContent: '' }));
+    for (let c = 1; c <= 6; c++) tgrid.appendChild(Object.assign(document.createElement('span'), { className: 'h', textContent: '右' + c }));
+    for (let r = 1; r <= 6; r++){
+      tgrid.appendChild(Object.assign(document.createElement('span'), { className: 'h', textContent: '左' + r }));
+      for (let c = 1; c <= 6; c++){
+        const sp = document.createElement('span'); sp.textContent = B_TABLE[r-1][c-1];
+        tcells[r + ',' + c] = sp; tgrid.appendChild(sp);
+      }
+    }
+  })();
+  function tableHL(r, c){
+    for (const k in tcells) tcells[k].classList.toggle('on', k === r + ',' + c);
+  }
+
+  const strip = $('strip'), readout = $('readout');
+  const input = $('word'), warn = $('warn');
+  const btnCut = $('cut'), btnUndo = $('undo'), btnRescan = $('rescan');
+  let state = { word: '', bt: [], lt: [], cut: false, busy: false }, scannedOnce = false;
+  let finger, fingerPos = { x: 0, y: 0 }, bHL = [], lHL = [];
+
+  let defsDone = false;
+  function defs(){
+    if (defsDone) return; defsDone = true;
+    const host = mk('svg', { width: 0, height: 0, 'aria-hidden': 'true', style: 'position:absolute;width:0;height:0;overflow:hidden' });
+    document.body.insertBefore(host, document.body.firstChild);
+    const d = mk('defs', {}, host);
+    const em = mk('radialGradient', { id: 'emboss', cx: '38%', cy: '34%', r: '70%' }, d);
+    mk('stop', { offset: '0', 'stop-color': '#fffaf0' }, em);
+    mk('stop', { offset: '.55', 'stop-color': '#efe1c4' }, em);
+    mk('stop', { offset: '1', 'stop-color': '#b69c70' }, em);
+    const fg = mk('radialGradient', { id: 'fingerg', cx: '50%', cy: '45%', r: '60%' }, d);
+    mk('stop', { offset: '0', 'stop-color': '#f4b39c', 'stop-opacity': '.42' }, fg);
+    mk('stop', { offset: '1', 'stop-color': '#e59a82', 'stop-opacity': '.12' }, fg);
+  }
+
+  function build(){
+    const bt = state.bt, lt = state.lt;
+    const LA = layoutX(bt), LB = layoutX(lt);
+    const W = Math.max(56, LA.w, LB.w);
+    const H = G.paperH + 5;
+    strip.setAttribute('viewBox', `0 0 ${W.toFixed(2)} ${H}`);
+    strip.innerHTML = '';
+    strip.classList.add('instant');
+    defs(strip);
+
+    /* 上半張紙（留下來的那一半） */
+    mk('rect', { class: 'paper', x: 0, y: 0, width: W, height: G.cutY, rx: .6 }, strip);
+    /* 下半張紙＋下三排的點＝會掉下去的那塊 */
+    const off = mk('g', { class: 'offcut', id: 'offcut' }, strip);
+    mk('rect', { class: 'paper', x: 0, y: G.cutY, width: W, height: G.paperH - G.cutY, rx: .6 }, off);
+    const offDots = mk('g', { class: 'dotg' }, off);
+    const offLbl = mk('g', {}, off);
+
+    const hlG = mk('g', {}, strip);
+    const topDots = mk('g', { class: 'dotg fadeaway', id: 'topDots' }, strip);
+    bHL = []; lHL = [];
+
+    bt.forEach((t, i) => {
+      const x = LA.xs[i]; if (x == null){ bHL.push(null); return; }
+      bHL.push(mk('rect', { class: 'tokhl', x: x - 1.6, y: .8, width: G.pitch + 3.2, height: G.paperH - 1.6, rx: .8 }, hlG));
+      for (let k = 0; k < t.r; k++) mk('circle', { class: 'bdot', cx: x, cy: G.rowTop + k * G.pitch, r: G.r }, k < 3 ? topDots : offDots);
+      for (let k = 0; k < t.c; k++) mk('circle', { class: 'bdot', cx: x + G.pitch, cy: G.rowTop + k * G.pitch, r: G.r }, k < 3 ? topDots : offDots);
+      const lb = mk('text', { class: 'lbl below', x: x + G.pitch / 2, y: G.paperH + 3.2 }, offLbl);
+      lb.textContent = t.s;
+    });
+
+    /* 布萊葉的格子（先藏著） */
+    const bl = mk('g', { class: 'dotg', id: 'bl' }, strip);
+    const blLbl = mk('g', { class: 'blbl' + (state.cut ? '' : ' pre'), id: 'blLbl' }, strip);
+    lt.forEach((t, i) => {
+      const x = LB.xs[i]; if (x == null){ lHL.push(null); return; }
+      lHL.push(x);
+      const g = mk('g', { class: 'bcell' + (state.cut ? '' : ' pre') }, bl);
+      t.dots.forEach(d => {
+        const col = d <= 3 ? 0 : 1, row = (d - 1) % 3;
+        mk('circle', { class: 'bdot', cx: x + col * G.pitch, cy: G.bRowTop + row * G.pitch, r: G.r }, g);
+      });
+      const lb = mk('text', { class: 'lbl below', x: x + G.pitch / 2, y: G.cutY + 3.6 }, blLbl);
+      lb.textContent = t.s === '#' ? '數' : t.s;
+    });
+
+    /* 切線 */
+    mk('line', { class: 'blade', id: 'blade', x1: 0, y1: G.cutY, x2: W, y2: G.cutY, 'stroke-dasharray': W, 'stroke-dashoffset': W }, strip);
+
+    /* 指尖 */
+    finger = mk('ellipse', { class: 'finger', rx: 4.6, ry: 4.1, cx: 0, cy: 0 }, strip);
+
+    if (state.cut){ off.classList.add('fall'); topDots.classList.add('gone'); off.style.display = 'none'; }
+    strip.getBoundingClientRect();
+    requestAnimationFrame(() => strip.classList.remove('instant'));
+
+    const letters = lt.filter(x => !x.gap).map(x => x.s).join('');
+    strip.setAttribute('aria-label', state.cut
+      ? `布萊葉點字：${lt.filter(x => !x.gap).length} 格，每格最多六點`
+      : `巴比耶凸點：${bt.filter(x => !x.gap).length} 個音，${statsB(bt).dots} 個點，每個音最高六排`);
+    $('uni').textContent = state.cut ? lt.map(t => t.gap ? ' ' : uniBraille(t.dots)).join('') : '';
+    $('uni').setAttribute('aria-label', state.cut ? '同一個字的 Unicode 點字：' + letters : '');
+  }
+
+  function setFinger(x, y){ fingerPos = { x, y }; finger.setAttribute('cx', x.toFixed(2)); finger.setAttribute('cy', y.toFixed(2)); }
+
+  /* ── 摸讀時間軸 ── */
+  let scanFn = null;
+  function stopScan(){ if (scanFn){ PK.untick(scanFn); scanFn = null; } }
+  function runScan(stops, done){
+    stopScan();
+    if (!stops.length){ done && done(); return; }
+    finger.classList.add('show');
+    if (PK.reduced()){
+      const last = stops[stops.length - 1];
+      setFinger(last.x, last.y); stops.forEach(s => s.enter && s.enter()); done && done(); return;
+    }
+    let idx = -1, t = 0, from = { x: stops[0].x - 8, y: stops[0].y };
+    const MOVE = 260;
+    scanFn = function(dt){
+      t += dt * 1000;
+      if (idx < 0 || t >= stops[idx].dur){
+        if (idx >= 0) from = { x: stops[idx].x, y: stops[idx].y };
+        idx++; t = 0;
+        if (idx >= stops.length){ stopScan(); done && done(); return; }
+        stops[idx].enter && stops[idx].enter();
+      }
+      const s = stops[idx], k = Math.min(1, t / MOVE), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      setFinger(PK.lerp(from.x, s.x, e), PK.lerp(from.y, s.y, e));
+    };
+    PK.tick(scanFn);
+  }
+
+  function hlOnly(i){ bHL.forEach((r, k) => r && r.classList.toggle('on', k === i)); }
+
+  function scanBarbier(){
+    const LA = layoutX(state.bt); const stops = [];
+    const topY = G.rowTop + G.pitch, botY = G.rowTop + 4 * G.pitch;
+    const total = statsB(state.bt);
+    let stopCount = 0;
+    state.bt.forEach((t, i) => {
+      if (t.gap) return;
+      const cx = LA.xs[i] + G.pitch / 2;
+      const tall = Math.max(t.r, t.c) > 3;
+      stops.push({ x: cx, y: topY, dur: tall ? 560 : 820, enter(){
+        stopCount++; hlOnly(i); tableHL(0, 0); setStat('stStops', stopCount);
+        readout.innerHTML = tall
+          ? `上半截：左邊 ${Math.min(t.r,3)} 點、右邊 ${Math.min(t.c,3)} 點……還沒完，<span class="big">往下挪</span>。`
+          : `左邊 ${t.r} 點、右邊 ${t.c} 點 → 第 ${t.r} 列第 ${t.c} 欄 → 「<span class="big">${t.s}</span>」`;
+        if (!tall) tableHL(t.r, t.c);
+      }});
+      if (tall) stops.push({ x: cx, y: botY, dur: 820, enter(){
+        stopCount++; setStat('stStops', stopCount);
+        readout.innerHTML = `一共：左邊 ${t.r} 點、右邊 ${t.c} 點 → 第 ${t.r} 列第 ${t.c} 欄 → 「<span class="big">${t.s}</span>」`;
+        tableHL(t.r, t.c);
+      }});
+    });
+    btnCut.disabled = !scannedOnce;
+    setStat('stStops', 0);
+    runScan(stops, () => {
+      hlOnly(-1); tableHL(0, 0); scannedOnce = true;
+      $('twist').classList.add('show');
+      setStat('stStops', total.stops);
+      readout.innerHTML = total.n
+        ? `摸完了：<span class="big">${total.n}</span> 個音、<span class="big">${total.dots}</span> 個點，手指停了 <span class="big">${total.stops}</span> 次——每一次都要記住兩個數字，再去查表。`
+        : '這裡沒有巴比耶認得的音。';
+      PK.announce(`巴比耶版：${total.n} 個音，${total.dots} 個點，指尖停 ${total.stops} 次。`);
+      btnCut.disabled = !total.n;
+    });
+  }
+
+  function scanBraille(){
+    const LB = layoutX(state.lt); const stops = [];
+    const y = G.bRowTop + G.pitch;
+    let n = 0;
+    state.lt.forEach((t, i) => {
+      if (t.gap) return;
+      stops.push({ x: LB.xs[i] + G.pitch / 2, y, dur: 520, enter(){
+        n++; setStat('stStops', n);
+        readout.innerHTML = `一碰：「<span class="big">${t.s === '#' ? '數字記號' : t.s}</span>」`;
+      }});
+    });
+    const st = statsL(state.lt);
+    runScan(stops, () => {
+      setStat('stStops', st.stops);
+      const b = statsB(state.bt);
+      readout.innerHTML = `同一個字：<span class="big">${st.n}</span> 格、<span class="big">${st.dots}</span> 個點。手指停 <span class="big">${st.stops}</span> 次，每次都整格落在指腹底下（巴比耶那版要 ${b.stops} 次）。`;
+      PK.announce(`布萊葉版：${st.n} 格，${st.dots} 個點，指尖停 ${st.stops} 次。`);
+    });
+  }
+
+  /* ── 數字滾動 ── */
+  const statVal = {};
+  function setStat(id, v, roll){
+    const el = $(id).querySelector('.v span');
+    const from = statVal[id] == null ? v : statVal[id];
+    statVal[id] = v;
+    if (!roll || PK.reduced() || from === v){ el.textContent = v; return; }
+    let t = 0; const D = 700;
+    const f = dt => { t += dt * 1000; const k = Math.min(1, t / D); el.textContent = Math.round(PK.lerp(from, v, 1 - Math.pow(1 - k, 3))); if (k >= 1) PK.untick(f); };
+    PK.tick(f);
+  }
+  function paintStats(){
+    const s = state.cut ? statsL(state.lt) : statsB(state.bt);
+    setStat('stDots', s.dots, true); setStat('stRows', state.cut ? 3 : 6, true);
+    ['stDots','stStops','stRows'].forEach(id => $(id).classList.toggle('cutdone', state.cut));
+  }
+
+  /* ── 輸入 ── */
+  let debounce = 0;
+  function onWord(){
+    const raw = input.value;
+    const hasCJK = /[㐀-鿿]/.test(raw);
+    const bt = barbier(raw), lt = braille(raw);
+    warn.textContent = hasCJK ? '1821 年的巴黎還不認得漢字——試試拼音或英文名字。' : '';
+    state.word = raw; state.bt = bt; state.lt = lt;
+    store.set('word', raw);
+    stopScan();
+    build(); paintStats();
+    if (state.cut){ scanBraille(); } else { scanBarbier(); }
+  }
+  input.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(onWord, 380); });
+  btnRescan.addEventListener('click', () => { stopScan(); state.cut ? scanBraille() : scanBarbier(); });
+
+  /* ── 高潮：切一刀 ── */
+  function doCut(){
+    if (state.cut || state.busy) return;
+    stopScan(); hlOnly(-1); tableHL(0, 0);
+    state.cut = true; state.busy = true;
+    btnCut.disabled = true;
+    const blade = $('blade'), off = $('offcut'), top = $('topDots');
+    const cells = strip.querySelectorAll('.bcell'), lbl = $('blLbl');
+    finger.classList.remove('show');
+    const finish = () => {
+      off.style.display = 'none';
+      state.busy = false; btnCut.hidden = true; btnUndo.hidden = false;
+      paintStats(); build(); scanBraille();
+      $('beatCut').classList.add('in');
+      store.set('cut', true);
+    };
+    readout.innerHTML = '刀沿著第三排和第四排中間走過去……';
+    if (PK.reduced()){ finish(); return; }
+    PK.replayDash(blade, 520);
+    setTimeout(() => { off.classList.add('fall'); }, 560);
+    setTimeout(() => { top.classList.add('gone'); }, 1200);
+    setTimeout(() => {
+      cells.forEach((g, k) => setTimeout(() => g.classList.remove('pre'), k * 70));
+      lbl.classList.remove('pre');
+    }, 1500);
+    setTimeout(finish, 1700 + cells.length * 70 + 450);
+  }
+  btnCut.addEventListener('click', doCut);
+  btnUndo.addEventListener('click', () => {
+    stopScan(); state.cut = false; btnUndo.hidden = true; btnCut.hidden = false;
+    store.set('cut', false);
+    build(); paintStats(); scanBarbier();
+  });
+
+  /* ═══ 工作台 C：解讀 ═══ */
+  function cellSVG(svg, dots, x, y, r, pitch){
+    const g = mk('g', { class: 'dotg' }, svg);
+    for (let d = 1; d <= 6; d++){
+      const col = d <= 3 ? 0 : 1, row = (d - 1) % 3, on = dots.indexOf(d) >= 0;
+      mk('circle', { cx: x + col * pitch, cy: y + row * pitch, r: on ? r : r * .45, fill: on ? 'url(#emboss)' : 'rgba(239,230,212,.14)' }, g);
+    }
+    return g;
+  }
+  (function buildKey(){
+    const key = $('key');
+    'abcdefghij'.split('').forEach(ch => {
+      const fig = document.createElement('figure');
+      const svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 14 18'); svg.setAttribute('aria-hidden', 'true');
+      defs(svg);
+      cellSVG(svg, BR[ch], 4, 3.5, 1.5, 5.5);
+      fig.appendChild(svg);
+      const cap = document.createElement('figcaption'); cap.textContent = ch;
+      fig.appendChild(cap); key.appendChild(fig);
+    });
+  })();
+  (function buildMystery(){
+    const svg = $('mystery');
+    svg.setAttribute('viewBox', '0 0 110 30');
+    defs(svg);
+    mk('rect', { class: 'paper', x: 0, y: 0, width: 110, height: 30, rx: 2 }, svg);
+    'mains'.split('').forEach((ch, k) => cellSVG(svg, BR[ch], 11 + k * 20, 7, 2, 7.5));
+  })();
+  (function buildEnd(){
+    const svg = $('endCell'); defs(svg);
+    cellSVG(svg, [1,2,3,4,5,6], 9, 8, 3, 12);
+  })();
+
+  const HINTS = [
+    '第一格：c 是左上＋右上，再加上左下那一點。',
+    '第三格最省事——它只用到上面四點，直接對 a 到 j 那排。',
+    '第四格是 d 加左下；最後一格是 i 加左下。'
+  ];
+  let tries = 0;
+  function openFinale(){
+    const f = $('finale');
+    f.hidden = false;
+    $('hint').innerHTML = '<span class="solved-mark">讀出來了。</span>';
+    $('reveal').hidden = true;
+    store.set('solved', true);
+    requestAnimationFrame(() => { PK.scrollTo(f); f.focus({ preventScroll: true }); });
+    PK.announce('MAINS，法文的「手」。');
+  }
+  function check(){
+    const g = $('guess').value;
+    if (!g.trim()) return;
+    if (checkGuess(g)){ openFinale(); return; }
+    $('hint').textContent = HINTS[Math.min(tries, HINTS.length - 1)];
+    tries++;
+    if (tries >= 2) $('reveal').hidden = false;
+  }
+  $('check').addEventListener('click', check);
+  $('guess').addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+  $('reveal').addEventListener('click', () => { $('guess').value = 'mains'; openFinale(); });
+
+  /* ── 啟動 ── */
+  const saved = store.get('word', null);
+  if (typeof saved === 'string' && saved.trim()) input.value = saved;
+  if (store.get('solved', false)){ $('finale').hidden = false; $('hint').innerHTML = '<span class="solved-mark">你上次讀出來過。</span>'; }
+  state.bt = barbier(input.value); state.lt = braille(input.value); state.word = input.value;
+  build(); paintStats();
+  /* 工作台 A 進視窗才開始摸 */
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver(es => { if (es[0].isIntersecting){ io.disconnect(); scanBarbier(); } }, { threshold: .4 });
+    io.observe($('benchA'));
+  } else scanBarbier();
+  PK.onMotionChange(() => { if (!state.busy){ stopScan(); state.cut ? scanBraille() : scanBarbier(); } });
+})();
+</script>
+</body>
+</html>

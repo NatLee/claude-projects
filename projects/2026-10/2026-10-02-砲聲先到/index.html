@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>砲聲先到，列車後到｜每日小專案</title>
+<meta name="description" content="列車還在山的另一頭，四百公尺外的窗戶先響了。拿起筆，畫一個能讓它安靜下來的新幹線車頭。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#12181c; --pk-ink:#e7ebe8; --pk-dim:#8d999c; --pk-accent:#f0a24a;
+  --paper:#ece8dd; --paper-ink:#1d2326; --paper-dim:#6b7372; --bar:#2f3d44;
+  --alarm:#e0533c; --kf:#1aa0cf; --kf-deep:#0b5e7e; --kf-belly:#ec8a3d;
+  --mono:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace;
+}
+body{background:var(--pk-bg)}
+/* 平靜層：過關時整片桌面染成翠鳥藍（只動 opacity） */
+#calm{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0;
+  background:radial-gradient(120% 90% at 70% 10%,#167fa6 0%,#0b4560 45%,#071c27 100%);
+  transition:opacity 2.6s ease}
+body.calm #calm{opacity:1}
+.hero,.desk,.ending,.pk-foot{position:relative;z-index:1}
+
+/* ── 第一屏：傳真機 ── */
+.hero{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 18px 40px;
+  background:radial-gradient(80% 60% at 50% 0%,#1e282e 0%,transparent 70%)}
+.fax{width:min(440px,100%);position:relative}
+.slot{height:30px;border-radius:10px 10px 4px 4px;background:linear-gradient(#3a464c,#232c31);box-shadow:0 6px 16px rgba(0,0,0,.5);
+  display:flex;align-items:center;justify-content:space-between;padding:0 14px;font:11px var(--mono);color:#a9b6b9;letter-spacing:.12em;position:relative;z-index:2}
+.slot i{width:8px;height:8px;border-radius:50%;background:#59d38a;box-shadow:0 0 8px #59d38a;display:inline-block;margin-right:6px}
+.paperwrap{overflow:hidden;margin:0 14px}
+.paper{background:linear-gradient(#f3efe4,#e7e1d2);color:var(--paper-ink);padding:26px 26px 30px;font-family:var(--pk-serif);
+  box-shadow:0 18px 40px rgba(0,0,0,.45);position:relative;transform:translateY(-102%);animation:feed 2.6s steps(26,end) .4s forwards}
+@keyframes feed{to{transform:none}}
+.paper .hd{font:11px var(--mono);color:var(--paper-dim);letter-spacing:.08em;border-bottom:1px dashed #b9b2a2;padding-bottom:8px;margin-bottom:16px}
+.paper p{margin:0 0 10px;font-size:clamp(17px,4.6vw,21px);line-height:1.7;min-height:1.7em}
+.paper .sig{font-size:14px;color:var(--paper-dim);text-align:right;margin-top:14px}
+.stamp{position:absolute;right:18px;top:40px;width:62px;height:62px;border:2px solid #c2402c;border-radius:50%;color:#c2402c;
+  font:700 13px var(--pk-sans);display:flex;align-items:center;justify-content:center;transform:rotate(-14deg);opacity:0;transition:opacity .4s}
+.stamp.on{opacity:.8}
+.lede{max-width:440px;margin:34px auto 22px;color:var(--pk-dim);font-size:15px;text-align:center}
+.lede b{color:var(--pk-ink);font-weight:600}
+.go{opacity:0;transition:opacity .6s}
+.go.on{opacity:1}
+
+/* ── 桌面＋視窗 ── */
+.desk{max-width:1120px;margin:0 auto;padding:40px 22px 30px;display:grid;gap:20px;
+  grid-template-columns:minmax(280px,360px) 1fr;grid-template-rows:auto auto 1fr;grid-template-areas:"brief work" "feed work" "bird work";align-items:start}
+.desk::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1.5px);background-size:22px 22px}
+#brief{grid-area:brief} #work{grid-area:work} #feed{grid-area:feed} #bird{grid-area:bird}
+@media (min-width:901px) and (min-height:780px){ #work{position:sticky;top:14px} }
+@media (max-width:900px){
+  .desk{grid-template-columns:1fr;grid-template-rows:none;grid-template-areas:"brief" "work" "feed" "bird";padding:30px 14px}
+}
+.win{background:var(--paper);color:var(--paper-ink);border:1px solid #0a0e10;box-shadow:0 14px 34px rgba(0,0,0,.38);border-radius:3px;overflow:hidden}
+.bar{background:var(--bar);color:#e5ecee;font:12px var(--mono);letter-spacing:.06em;padding:6px 10px;display:flex;justify-content:space-between;align-items:center;position:relative}
+.bar::after{content:"";position:absolute;inset:0;background:var(--alarm);opacity:0;transition:opacity .5s}
+.bar.alarm::after{opacity:.85}
+.bar span{position:relative;z-index:1}
+.bar .dots{opacity:.55;letter-spacing:.3em}
+.body{padding:14px 16px}
+.win h2{font:600 16px var(--pk-sans);margin:0 0 8px}
+.win p{margin:0 0 8px;font-size:14.5px;line-height:1.75}
+.spec{margin:6px 0 10px;padding:0;list-style:none;font-size:14px}
+.spec li{padding:6px 0;border-bottom:1px dotted #bdb6a6;display:flex;gap:10px}
+.spec li b{font:600 12px var(--mono);color:var(--paper-dim);min-width:4.6em;padding-top:2px}
+.note{font-size:12.5px;color:var(--paper-dim)}
+
+#work{display:flex;flex-direction:column;gap:20px}
+canvas{display:block;width:100%}
+#cad{height:220px;touch-action:none;cursor:crosshair;background:#f4f1e8}
+#tunnel{height:200px;background:#0d1316}
+@media (max-width:560px){ #cad{height:190px} #tunnel{height:170px} }
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid #cfc8b7;background:#e4dfd2}
+.tb{appearance:none;font:12.5px var(--mono);color:var(--paper-ink);background:#f6f3ea;border:1px solid #9d9789;border-radius:3px;padding:6px 10px;cursor:pointer;transition:background .2s,transform .1s}
+.tb:hover{background:#fff}
+.tb:active{transform:translateY(1px)}
+.tb[aria-pressed="true"]{background:var(--kf);color:#fff;border-color:var(--kf-deep)}
+.tb.kf{border-color:var(--kf);color:var(--kf-deep)}
+.run{appearance:none;margin-left:auto;font:600 14px var(--pk-sans);letter-spacing:.08em;color:#fff;background:#b8452f;border:0;border-radius:3px;padding:9px 16px;cursor:pointer;transition:background .2s,transform .1s,opacity .2s}
+.run:hover{background:#d0543b}
+.run:active{transform:translateY(1px)}
+.run:disabled{opacity:.4;cursor:default}
+.readout{font:12px var(--mono);color:var(--paper-dim)}
+.tunwrap{will-change:transform}
+.cap{font:12px var(--mono);color:#9fb0b4;background:#0d1316;padding:6px 12px 10px;min-height:2.4em}
+.gauge{display:grid;grid-template-columns:1fr 1.25fr;gap:16px;padding:12px 14px;align-items:center}
+@media (max-width:560px){ .gauge{grid-template-columns:1fr} }
+.pa{font:600 34px/1 var(--mono);letter-spacing:-.02em}
+.pa small{font-size:13px;color:var(--paper-dim);margin-left:4px}
+.track{position:relative;height:10px;background:#d4cebf;border-radius:5px;overflow:hidden;margin:10px 0 4px}
+.fill{position:absolute;inset:0;transform-origin:0 50%;transform:scaleX(0);background:var(--alarm);transition:transform .9s cubic-bezier(.2,.7,.3,1),background .4s}
+.fill.ok{background:var(--kf)}
+.passmark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--paper-ink)}
+.glabel{font:11.5px var(--mono);color:var(--paper-dim)}
+#chart{width:100%;height:auto;display:block}
+#chart text{font:9px var(--mono);fill:var(--paper-dim)}
+
+/* 通訊 */
+#feed{display:flex;flex-direction:column;gap:12px}
+.msg{background:var(--paper);color:var(--paper-ink);border-left:4px solid var(--bar);box-shadow:0 8px 22px rgba(0,0,0,.3);padding:10px 14px;
+  opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s cubic-bezier(.2,.7,.3,1)}
+.msg.in{opacity:1;transform:none}
+.msg .who{font:11.5px var(--mono);color:var(--paper-dim);margin-bottom:4px;letter-spacing:.05em}
+.msg p{margin:0 0 6px;font-size:14.5px;line-height:1.75}
+.msg p:last-child{margin:0}
+.msg.red{border-left-color:var(--alarm)}
+.msg.blue{border-left-color:var(--kf)}
+.msg.quote p{font-family:var(--pk-serif);font-size:16.5px}
+.msg .pk-btn{margin-top:6px;font-size:13px;padding:8px 16px;color:var(--kf-deep);border-color:var(--kf-deep)}
+.msg .pk-btn:hover{background:var(--kf-deep);color:#fff}
+
+/* 賞鳥筆記 */
+#bird .body{background:repeating-linear-gradient(#f6f2e6 0 27px,#d9e3e6 27px 28px)}
+#birdPage2[hidden]{display:none}
+.kfsvg{width:100%;height:auto;display:block;margin:4px 0 8px;overflow:visible}
+.kfsvg .diver{animation:dive 2.2s cubic-bezier(.5,0,.8,.4) .2s both}
+@keyframes dive{from{transform:translate(-60px,-70px);opacity:0}30%{opacity:1}to{transform:none;opacity:1}}
+.kfsvg .ring{transform-box:view-box;transform-origin:212px 150px;animation:ring 1.6s ease-out 2.2s both}
+@keyframes ring{from{transform:scale(.2);opacity:.9}to{transform:scale(1);opacity:0}}
+
+/* 結尾 */
+.ending{max-width:680px;margin:0 auto;padding:40px 22px 10px;font-family:var(--pk-serif)}
+.ending[hidden]{display:none}
+.ending h2{font-size:clamp(24px,5.6vw,36px);line-height:1.45;font-weight:600;margin:40px 0 26px}
+.ending h2 em{font-style:normal;color:#8fe0ff}
+.ending p{font-size:17px;line-height:2;color:#d6e6ea;margin:0 0 22px}
+.ending .big{font-size:clamp(22px,5vw,30px);line-height:1.6;color:#fff;margin:60px 0 10px}
+.ending .tag{font:12px var(--mono);letter-spacing:.14em;color:#8fc9db;margin:56px 0 6px}
+.ending .count{font:700 clamp(40px,11vw,72px)/1 var(--mono);color:var(--kf-belly);display:block;margin:6px 0 6px}
+.ending .last{font-size:clamp(19px,4.6vw,24px);color:#fff;margin:70px 0 30px;line-height:1.9}
+.ending .again{margin:10px 0 40px;color:#8fe0ff;border-color:#8fe0ff}
+.ending .again:hover{background:#8fe0ff;color:#06222e}
+
+@media (prefers-reduced-motion: reduce){
+  .paper{animation:none;transform:none}
+  .kfsvg .diver,.kfsvg .ring{animation:none}
+  .kfsvg .ring{opacity:0}
+  .msg{transition:none;opacity:1;transform:none}
+  #calm{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="calm" aria-hidden="true"></div>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="fax" role="img" aria-label="一張傳真：每天下午四點多，玻璃窗會先咚一聲，接著才聽見列車，而列車明明還在山的另一頭。">
+    <div class="slot" aria-hidden="true"><span><i></i>FAX 受信中</span><span>NO.0347</span></div>
+    <div class="paperwrap" aria-hidden="true">
+      <div class="paper">
+        <div class="hd">致：新幹線車輛開發 ／ 來自：隧道出口附近住戶</div>
+        <p class="tl">每天下午四點多，玻璃窗會先「咚」一聲。</p>
+        <p class="tl">接著，我們才聽見列車。</p>
+        <p class="tl">列車明明還在山的另一頭。</p>
+        <div class="sig">——離出口四百公尺的一戶人家</div>
+        <div class="stamp" id="stamp">苦情</div>
+      </div>
+    </div>
+  </div>
+  <p class="lede go" id="lede">1990 年代初，山陽新幹線想從 270 衝上 300 km/h。<br>試驗主任後來說：<b>跑快不難，難的是安靜地跑快。</b></p>
+  <button class="pk-btn go" id="toBrief" type="button">接下這張傳真 ▾</button>
+</header>
+
+<main class="desk" id="desk">
+  <section class="win" id="brief" aria-labelledby="briefT">
+    <div class="bar"><span id="briefT">■ 任務書.txt</span><span class="dots" aria-hidden="true">▫▫×</span></div>
+    <div class="body">
+      <h2>件名：次世代車頭　先頭形狀檢討</h2>
+      <ul class="spec">
+        <li><b>速度</b><span>營業 300 km/h，比現役快 10%。</span></li>
+        <li><b>車身</b><span>斷面 10.2 m²。車頭最長 18 m——再長，第一節車廂就沒座位了。</span></li>
+        <li><b>麻煩</b><span>砲聲大小跟速度的<strong>三次方</strong>走。快 10%，砲聲大 37%。</span></li>
+        <li><b>過關線</b><span>出口外 20 m 的微氣壓波 ≤ <strong id="passTxt">32</strong> Pa（舊式 8 m 車鼻跑 270 km/h 時的水準）。</span></li>
+        <li><b>工具</b><span>一支筆。</span></li>
+      </ul>
+      <p class="note" id="prev"></p>
+    </div>
+  </section>
+
+  <div id="work">
+    <section class="win" aria-labelledby="cadT">
+      <div class="bar"><span id="cadT">■ 先頭形狀 CAD — 側視</span><span class="dots" aria-hidden="true">縱向放大</span></div>
+      <canvas id="cad" role="img" aria-label="車頭描線畫布。用滑鼠或手指從左側鼻尖往右拖到車身高度，畫出車頭上緣，下半會自動鏡射。也可以用下方的樣板按鈕。"></canvas>
+      <div class="tools">
+        <button class="tb" type="button" data-p="blunt">樣板：平頭</button>
+        <button class="tb" type="button" data-p="round4">短圓鼻</button>
+        <button class="tb" type="button" data-p="cone15">長尖錐</button>
+        <button class="tb kf" type="button" id="guideBtn" aria-pressed="false" hidden>描圖線</button>
+        <button class="tb kf" type="button" id="traceBtn" hidden>照描圖線生成</button>
+        <span class="readout" id="noseTxt" aria-live="polite">從左邊的鼻尖，往右拖一筆。</span>
+        <button class="run" type="button" id="runBtn" disabled>送進隧道 ▸</button>
+      </div>
+    </section>
+
+    <section class="win" aria-labelledby="tunT">
+      <div class="bar" id="tunBar"><span id="tunT">■ 隧道模擬　300 km/h</span><span class="dots" aria-hidden="true">▫▫×</span></div>
+      <div class="tunwrap" id="tunWrap">
+        <canvas id="tunnel" role="img" aria-label="隧道剖面動畫：列車從左側進洞，壓力波以音速先抵達右側出口，出口外有一棟房子。"></canvas>
+        <div class="cap" id="tcap">等待車頭。</div>
+      </div>
+      <div class="gauge">
+        <div>
+          <div class="glabel">出口外 20 m 微氣壓波（模型估計）</div>
+          <div class="pa"><span id="paNum">—</span><small>Pa</small></div>
+          <div class="track" aria-hidden="true"><div class="fill" id="fill"></div><div class="passmark" id="passMark"></div></div>
+          <div class="glabel" id="paVerdict">過關線 32 Pa</div>
+        </div>
+        <svg id="chart" viewBox="0 0 300 110" role="img" aria-label="斷面積成長率曲線：每公尺斷面積增加多少，尖峰決定砲聲大小。">
+          <line x1="24" y1="92" x2="296" y2="92" stroke="#9d9789" stroke-width="1"/>
+          <line x1="24" y1="8" x2="24" y2="92" stroke="#9d9789" stroke-width="1"/>
+          <text x="26" y="106">0</text><text x="96" y="106">6</text><text x="170" y="106">12</text><text x="244" y="106">18 m</text>
+          <text x="2" y="12">m²/m</text>
+          <line id="thr" x1="24" x2="296" y1="0" y2="0" stroke="#1aa0cf" stroke-width="1" stroke-dasharray="4 3" opacity="0"/>
+          <text id="thrT" x="294" y="0" text-anchor="end" fill="#0b5e7e" opacity="0">過關線</text>
+          <polyline id="curve" fill="none" stroke="#1d2326" stroke-width="1.6" points=""/>
+          <circle id="pk" r="3.5" fill="#e0533c" cx="-10" cy="-10"/>
+          <text id="pkT" x="0" y="0" fill="#c2402c"></text>
+        </svg>
+      </div>
+    </section>
+  </div>
+
+  <section id="feed" role="log" aria-label="通訊紀錄">
+    <div class="msg in"><div class="who">系統 · CAD 已就緒</div><p>從鼻尖往車身畫一筆，再按「送進隧道」。畫幾次都行。</p></div>
+  </section>
+
+  <section class="win" id="bird" hidden aria-labelledby="birdT">
+    <div class="bar"><span id="birdT">■ 賞鳥筆記（試驗主任的）</span><span class="dots" aria-hidden="true">p.112</span></div>
+    <div class="body">
+      <p>試驗主任<strong>中津英治</strong>是日本野鳥之會的會員。他把「車子縮了一下」翻成另一句話：阻力在一瞬間劇變。</p>
+      <p>然後他問：有誰每天都在做這件事——從很輕的東西，衝進很重的東西？</p>
+      <button class="tb kf" type="button" id="birdBtn">翻到下一頁 ▸</button>
+      <div id="birdPage2" hidden>
+        <svg class="kfsvg" viewBox="0 0 300 175" role="img" aria-label="一隻翠鳥斜斜俯衝入水，嘴尖細長，水面只起一圈小漣漪。">
+          <line x1="0" y1="150" x2="300" y2="150" stroke="#5c8fa0" stroke-width="1.5"/>
+          <path d="M0 150 L300 150 L300 175 L0 175 Z" fill="#cfe3e8"/>
+          <ellipse class="ring" cx="212" cy="150" rx="34" ry="5" fill="none" stroke="#5c8fa0" stroke-width="1.2"/>
+          <g class="diver">
+            <g transform="translate(150 92) rotate(38)">
+              <path d="M-62 -6 Q-40 -20 -8 -14 Q12 -10 20 -3 L72 0 L20 4 Q8 12 -14 12 Q-46 12 -62 6 Z" fill="#167fa6"/>
+              <path d="M-44 8 Q-20 14 4 9 Q12 6 18 3 L-10 3 Q-30 4 -44 8 Z" fill="#ec8a3d"/>
+              <path d="M18 -3 L74 0 L18 4 Z" fill="#22272a"/>
+              <path d="M-62 -6 L-86 -16 L-80 -2 L-88 6 L-62 6 Z" fill="#0b5e7e"/>
+              <path d="M-36 -12 Q-14 -24 6 -12 Q-14 -6 -36 -12 Z" fill="#1aa0cf"/>
+              <circle cx="8" cy="-5" r="2.4" fill="#111"/>
+              <path d="M2 2 Q8 5 14 2" stroke="#f6efe2" stroke-width="2" fill="none"/>
+            </g>
+          </g>
+          <text x="10" y="20" font-size="11" fill="#6b7372" font-family="ui-monospace,Consolas,monospace">カワセミ（翠鳥）　空氣 → 水</text>
+        </svg>
+        <p>翠鳥從空中俯衝進水裡抓魚，水花幾乎不起。嘴尖細得像針，往後一點一點變粗——<strong>斷面積穩穩地長，從不突然。</strong></p>
+        <p class="note">CAD 上多了一條藍色描圖線。照著描，或按「照描圖線生成」。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<section class="ending" id="ending" hidden aria-labelledby="endT">
+  <h2 id="endT" class="rv">你畫的線，和一隻翠鳥的嘴<br>吻合 <em id="simPct">—</em>。</h2>
+  <p class="rv">中津的團隊把各種形狀的子彈射進管子裡量壓力波，又借航空宇宙技術研究所的超級電腦一遍遍地算。算出來最好的車頭，他說，幾乎就是翠鳥的嘴。</p>
+  <p class="rv">1997 年 3 月 22 日，500 系開始營業運轉。車頭 15 公尺，佔掉第一節車廂一半多；車身斷面近乎正圓。中津給的數字：比前代快 10%，用電少 15%，進洞時的氣壓衝擊少三成。</p>
+  <p class="rv">代價也寫在車上：第一節車廂只剩一扇門，駕駛的視野窄，座位比前代少了 12 個。</p>
+  <p class="rv">車頂的集電弓上也住著一隻鳥——貓頭鷹翅膀邊緣的鋸齒羽，被刻成了渦流產生器，壓掉風切聲。</p>
+  <p class="big rv">「車子好像縮了一下。」</p>
+  <p class="rv">那位年輕工程師在駕駛座上感覺到的，就是你剛剛在曲線上看見的那道紅色尖峰。</p>
+  <p class="tag rv">博多　2027.01.13</p>
+  <p class="rv">500 系的定期運轉在這一天結束。距離今天還有 <span class="count" id="countN">—</span> <span id="countUnit">天。</span></p>
+  <p class="last rv">下次在溪邊看見一道藍光鑽進水裡、水面幾乎沒動——<br>那是一個車頭的初稿。</p>
+  <button class="pk-btn again rv" type="button" id="againBtn">再畫一個 ▴</button>
+</section>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：JFS〈Shinkansen Technology Learned from an Owl?〉中津英治訪談（2005）；Wikipedia「新幹線500系電車」「トンネル微気圧波」「500 Series Shinkansen」。砲聲數值為簡化模型。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="sim.js"></script>
+<script>
+'use strict';
+const LS = 'kawasemi.';
+const store = PK.store(LS);
+const $ = (id) => document.getElementById(id);
+const fmt = (v, d) => v.toFixed(d === undefined ? 1 : d);
+const PASS = SIM.PASS, R = SIM.R, DX = SIM.DX, N = SIM.N, XMAX = SIM.XMAX;
+const SPEED = 300;
+
+$('passTxt').textContent = fmt(PASS, 0);
+$('paVerdict').textContent = '過關線 ' + fmt(PASS, 0) + ' Pa';
+const GAUGE_MAX = PASS * 3;
+$('passMark').style.left = (PASS / GAUGE_MAX * 100) + '%';
+(function prev() {
+  const best = store.get('best', null);
+  if (best) $('prev').textContent = '上次你把砲聲壓到 ' + fmt(best) + ' Pa' + (store.get('passed', false) ? '，窗戶沒響。' : '。');
+})();
+
+/* ════════ 第一屏：傳真逐行印出 ════════ */
+(function fax() {
+  const lines = Array.prototype.slice.call(document.querySelectorAll('.paper .tl'));
+  const texts = lines.map((l) => l.textContent);
+  const done = () => { $('stamp').classList.add('on'); $('lede').classList.add('on'); $('toBrief').classList.add('on'); };
+  if (PK.reduced()) { done(); return; }
+  lines.forEach((l) => { l.textContent = ''; });
+  let k = 0;
+  const next = () => {
+    if (k >= lines.length) { setTimeout(done, 300); return; }
+    const el = lines[k], t = texts[k]; k++;
+    PK.type(el, t, 70, () => setTimeout(next, 380));
+  };
+  setTimeout(next, 1500);
+})();
+$('toBrief').addEventListener('click', () => PK.scrollTo($('desk')));
+
+/* ════════ CAD ════════ */
+const cad = $('cad'), cx = cad.getContext('2d');
+let G = null;                 /* 版面幾何 */
+let profile = null, points = [], drawing = false, guide = false, peakX = null, birdA = 0;
+
+function cadLayout() {
+  const f = PK.fitCanvas(cad);
+  if (f.w < 80) return null;
+  cx.setTransform(f.dpr, 0, 0, f.dpr, 0, 0);
+  const ox = f.w * 0.04, sx = (f.w * 0.93) / (XMAX + 6);
+  return { w: f.w, h: f.h, ox: ox, sx: sx, cy: f.h * 0.52, sy: (f.h * 0.36) / R };
+}
+function X(m) { return G.ox + m * G.sx; }
+function tipIndex(r) { let i = 0; while (i < r.length && r[i] <= 0.02) i++; return Math.min(i, r.length - 1); }
+
+function silhouette(r, close) {
+  cx.beginPath();
+  cx.moveTo(X(0), G.cy);
+  for (let i = 0; i <= N; i++) cx.lineTo(X(i * DX), G.cy - r[i] * G.sy);
+  if (close) {
+    cx.lineTo(G.w, G.cy - R * G.sy); cx.lineTo(G.w, G.cy + R * G.sy);
+    for (let i = N; i >= 0; i--) cx.lineTo(X(i * DX), G.cy + r[i] * G.sy);
+    cx.closePath();
+  } else {
+    cx.moveTo(X(0), G.cy);
+    for (let i = 0; i <= N; i++) cx.lineTo(X(i * DX), G.cy + r[i] * G.sy);
+  }
+}
+
+function drawCad() {
+  G = cadLayout(); if (!G) return;
+  const w = G.w, h = G.h;
+  cx.clearRect(0, 0, w, h);
+  /* 方格紙 */
+  cx.lineWidth = 1;
+  for (let m = 0; m <= XMAX + 6; m++) {
+    cx.strokeStyle = m % 3 === 0 ? 'rgba(29,35,38,.14)' : 'rgba(29,35,38,.06)';
+    cx.beginPath(); cx.moveTo(X(m) + .5, 8); cx.lineTo(X(m) + .5, h - 18); cx.stroke();
+  }
+  cx.fillStyle = '#6b7372'; cx.font = '10px ui-monospace,Consolas,monospace';
+  for (let m = 0; m <= XMAX; m += 3) cx.fillText(m + (m === XMAX ? ' m' : ''), X(m) + 2, h - 5);
+  cx.setLineDash([3, 4]); cx.strokeStyle = 'rgba(29,35,38,.35)';
+  cx.beginPath(); cx.moveTo(0, G.cy); cx.lineTo(w, G.cy); cx.stroke();
+  cx.strokeStyle = 'rgba(184,69,47,.45)';
+  cx.beginPath(); cx.moveTo(X(XMAX), 6); cx.lineTo(X(XMAX), h - 18); cx.stroke();
+  cx.strokeStyle = 'rgba(29,35,38,.25)';
+  [-1, 1].forEach((s) => { cx.beginPath(); cx.moveTo(X(0), G.cy + s * R * G.sy); cx.lineTo(X(XMAX), G.cy + s * R * G.sy); cx.stroke(); });
+  cx.setLineDash([]);
+  cx.fillStyle = 'rgba(184,69,47,.75)'; cx.fillText('上限', X(XMAX) - 26, 16);
+
+  /* 車身（18 m 之後） */
+  const body = profile || null;
+  cx.fillStyle = '#d4d9dc'; cx.strokeStyle = '#3c4a51'; cx.lineWidth = 1.4;
+  if (body) { silhouette(body, true); cx.fill(); cx.stroke(); }
+  else { cx.fillRect(X(XMAX), G.cy - R * G.sy, w - X(XMAX), 2 * R * G.sy); cx.strokeRect(X(XMAX) + .5, G.cy - R * G.sy, w, 2 * R * G.sy); }
+  /* 車窗與飾帶 */
+  cx.fillStyle = '#2a3940';
+  for (let m = XMAX + 1.2; X(m + .8) < w; m += 1.7) cx.fillRect(X(m), G.cy - R * G.sy * .55, G.sx * .8, R * G.sy * .32);
+  cx.fillStyle = '#1aa0cf'; cx.fillRect(X(XMAX), G.cy + R * G.sy * .1, w - X(XMAX), Math.max(2, R * G.sy * .08));
+
+  /* 翠鳥五官（高潮時浮現） */
+  if (birdA > 0 && profile) {
+    const L = SIM.noseLength(profile), t0 = tipIndex(profile) * DX, xb = X(Math.min(XMAX, t0 + L));
+    cx.save(); cx.globalAlpha = birdA;
+    cx.fillStyle = '#167fa6';
+    cx.beginPath(); cx.ellipse(xb + G.sx * 2.4, G.cy - R * G.sy * .25, G.sx * 3.2, R * G.sy * .8, 0, Math.PI, 2 * Math.PI); cx.fill();
+    cx.fillStyle = '#ec8a3d';
+    cx.beginPath(); cx.ellipse(xb + G.sx * 1.6, G.cy + R * G.sy * .2, G.sx * 1.6, R * G.sy * .32, 0, 0, 2 * Math.PI); cx.fill();
+    cx.fillStyle = '#f6efe2';
+    cx.beginPath(); cx.ellipse(xb + G.sx * .9, G.cy + R * G.sy * .62, G.sx * 1.1, R * G.sy * .22, 0, 0, 2 * Math.PI); cx.fill();
+    cx.fillStyle = '#111';
+    cx.beginPath(); cx.arc(xb + G.sx * 1.2, G.cy - R * G.sy * .3, Math.max(2.5, R * G.sy * .1), 0, 2 * Math.PI); cx.fill();
+    cx.fillStyle = '#fff';
+    cx.beginPath(); cx.arc(xb + G.sx * 1.3, G.cy - R * G.sy * .36, Math.max(1, R * G.sy * .03), 0, 2 * Math.PI); cx.fill();
+    /* 鼻（嘴）上色 */
+    cx.fillStyle = 'rgba(34,39,42,.85)';
+    cx.beginPath(); cx.moveTo(X(0), G.cy);
+    for (let i = 0; i <= N && i * DX <= t0 + L; i++) cx.lineTo(X(i * DX), G.cy - profile[i] * G.sy);
+    for (let i = Math.min(N, Math.round((t0 + L) / DX)); i >= 0; i--) cx.lineTo(X(i * DX), G.cy + profile[i] * G.sy);
+    cx.closePath(); cx.fill();
+    cx.restore();
+  }
+
+  /* 描圖線 */
+  if (guide) {
+    const g = SIM.PRESETS.beak(15);
+    cx.setLineDash([5, 4]); cx.strokeStyle = '#1aa0cf'; cx.lineWidth = 2;
+    silhouette(g, false); cx.stroke(); cx.setLineDash([]);
+  }
+  /* 尖峰位置 */
+  if (peakX !== null && profile && birdA === 0) {
+    const px = X(Math.min(peakX, XMAX + 5));
+    cx.strokeStyle = '#e0533c'; cx.lineWidth = 2;
+    cx.beginPath(); cx.moveTo(px, G.cy - R * G.sy - 10); cx.lineTo(px, G.cy + R * G.sy + 10); cx.stroke();
+    cx.fillStyle = '#c2402c'; cx.fillText('尖峰', px + 4, G.cy - R * G.sy - 2);
+  }
+  /* 尚未畫：提示 */
+  if (!profile && !points.length) {
+    cx.fillStyle = 'rgba(184,69,47,.9)'; cx.font = '13px system-ui,sans-serif';
+    cx.fillText('● 鼻尖從這裡開始 → 拖到車身高度', X(0) + 2, G.cy - 8);
+  }
+  /* 正在畫 */
+  if (points.length) {
+    cx.strokeStyle = '#b8452f'; cx.lineWidth = 2.2; cx.lineJoin = 'round';
+    cx.beginPath();
+    points.forEach((p, i) => { const xx = X(p.x), yy = G.cy - Math.min(p.r, R * 1.15) * G.sy; if (i) cx.lineTo(xx, yy); else cx.moveTo(xx, yy); });
+    cx.stroke();
+  }
+}
+
+function addPt(e) {
+  const r = cad.getBoundingClientRect();
+  const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  (list.length ? list : [e]).forEach((ev) => {
+    points.push({ x: (ev.clientX - r.left - G.ox) / G.sx, r: Math.abs(G.cy - (ev.clientY - r.top)) / G.sy });
+  });
+}
+cad.addEventListener('pointerdown', (e) => {
+  if (busy) return;
+  G = G || cadLayout(); if (!G) return;
+  drawing = true; points = []; peakX = null;
+  try { cad.setPointerCapture(e.pointerId); } catch (err) {}
+  addPt(e); drawCad(); e.preventDefault();
+});
+cad.addEventListener('pointermove', (e) => { if (!drawing) return; addPt(e); drawCad(); });
+const endDraw = () => {
+  if (!drawing) return;
+  drawing = false;
+  if (points.length < 4) { points = []; drawCad(); return; }
+  setProfile(SIM.resample(points), '手繪');
+  points = [];
+};
+cad.addEventListener('pointerup', endDraw);
+cad.addEventListener('pointercancel', endDraw);
+
+function setProfile(r, src) {
+  profile = r; peakX = null; birdA = 0;
+  const L = SIM.noseLength(r);
+  $('noseTxt').textContent = src + '：鼻長 ' + fmt(L) + ' m';
+  $('runBtn').disabled = false;
+  drawCad();
+}
+document.querySelectorAll('.tb[data-p]').forEach((b) => b.addEventListener('click', () => {
+  if (busy) return;
+  const names = { blunt: '平頭', round4: '短圓鼻', cone15: '長尖錐' };
+  setProfile(SIM.PRESETS[b.dataset.p](), names[b.dataset.p]);
+}));
+$('guideBtn').addEventListener('click', () => {
+  guide = !guide; $('guideBtn').setAttribute('aria-pressed', String(guide)); drawCad();
+});
+$('traceBtn').addEventListener('click', () => { if (!busy) setProfile(SIM.PRESETS.beak(15), '描圖線'); });
+
+/* ════════ 隧道模擬 ════════ */
+const tun = $('tunnel'), tx = tun.getContext('2d');
+let T = null, anim = null, busy = false;
+
+function tunLayout() {
+  const f = PK.fitCanvas(tun);
+  if (f.w < 80) return null;
+  tx.setTransform(f.dpr, 0, 0, f.dpr, 0, 0);
+  return { w: f.w, h: f.h, g: f.h * 0.76, th: f.h * 0.16, xIn: f.w * 0.2, xOut: f.w * 0.74 };
+}
+
+function drawTrain(xf, r) {
+  const L = T.w * 0.3, hT = T.th * 0.66, c = T.g - hT / 2 - 2;
+  const pm = (L / 3) / 27;                       /* px/公尺：三節車廂、每節 27 m */
+  const t0 = tipIndex(r);
+  tx.fillStyle = '#dfe4e6';
+  tx.beginPath(); tx.moveTo(xf, c);
+  let last = xf;
+  for (let i = t0; i <= N; i++) { last = xf - (i - t0) * DX * pm; tx.lineTo(last, c - (r[i] / R) * hT / 2); }
+  tx.lineTo(xf - L, c - hT / 2); tx.lineTo(xf - L, c + hT / 2);
+  for (let i = N; i >= t0; i--) tx.lineTo(xf - (i - t0) * DX * pm, c + (r[i] / R) * hT / 2);
+  tx.closePath(); tx.fill();
+  tx.fillStyle = '#1aa0cf'; tx.fillRect(xf - L, c + hT * .08, L - (xf - last) * .2, Math.max(1.5, hT * .1));
+}
+
+function drawTunnel(s) {
+  T = tunLayout(); if (!T) return;
+  const { w, h, g, th, xIn, xOut } = T;
+  tx.clearRect(0, 0, w, h);
+  tx.fillStyle = '#0d1316'; tx.fillRect(0, 0, w, h);
+  /* 星點 */
+  tx.fillStyle = 'rgba(255,255,255,.35)';
+  for (let i = 0; i < 26; i++) tx.fillRect(PK.hash('s' + i) * w, PK.hash('t' + i) * g * .5, 1, 1);
+  /* 地面與軌道 */
+  tx.fillStyle = '#1a2328'; tx.fillRect(0, g, w, h - g);
+  tx.fillStyle = '#3b4a51'; tx.fillRect(0, g, w, 2);
+  /* 房子（出口外） */
+  const hx = xOut + w * 0.12, hw = w * 0.07, hh = h * 0.16;
+  tx.fillStyle = '#2d3a40'; tx.fillRect(hx, g - hh, hw, hh);
+  tx.beginPath(); tx.moveTo(hx - 4, g - hh); tx.lineTo(hx + hw / 2, g - hh - hh * .55); tx.lineTo(hx + hw + 4, g - hh); tx.closePath(); tx.fill();
+  const jit = s && s.shake ? s.shake : 0;
+  tx.fillStyle = s && s.lit ? '#f4c26b' : '#c9a35a';
+  tx.fillRect(hx + hw * .3 + jit, g - hh * .72, hw * .4, hh * .36);
+  /* 列車（在山的前面畫會被山遮住：先畫列車，再畫山體，最後畫隧道剖面） */
+  /* 山 */
+  tx.fillStyle = '#25323a';
+  tx.beginPath(); tx.moveTo(xIn - w * .06, g);
+  tx.quadraticCurveTo(xIn + (xOut - xIn) * .2, h * .02, (xIn + xOut) / 2, h * .1);
+  tx.quadraticCurveTo(xOut - (xOut - xIn) * .15, h * .05, xOut + w * .06, g);
+  tx.closePath(); tx.fill();
+  /* 隧道剖面 */
+  tx.fillStyle = '#0a0f11'; tx.fillRect(xIn, g - th, xOut - xIn, th);
+  tx.strokeStyle = '#4f6068'; tx.lineWidth = 2;
+  [xIn, xOut].forEach((xx) => { tx.beginPath(); tx.moveTo(xx, g); tx.lineTo(xx, g - th); tx.stroke(); });
+  /* 壓力波 */
+  if (s && s.wave !== null && s.wave !== undefined) {
+    const bw = s.bw, xw = s.wave;
+    const grd = tx.createLinearGradient(xw - bw, 0, xw + 2, 0);
+    grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, s.col);
+    tx.fillStyle = grd; tx.fillRect(Math.max(xIn, xw - bw), g - th, Math.min(bw, xw - xIn) + 2, th);
+  }
+  /* 列車 */
+  if (s && s.train !== undefined && profile) {
+    tx.save(); tx.beginPath(); tx.rect(0, 0, w, h); tx.clip();
+    drawTrain(s.train, profile); tx.restore();
+  }
+  /* 出口爆音圈 */
+  if (s && s.ring > 0 && s.ring < 1) {
+    const p = s.ring, n = s.rings;
+    for (let k = 0; k < n; k++) {
+      const q = Math.max(0, p - k * .14); if (q <= 0) continue;
+      tx.strokeStyle = s.col.replace(/[\d.]+\)$/, (1 - q) * s.ringA + ')');
+      tx.lineWidth = 2;
+      tx.beginPath(); tx.arc(xOut, g - th / 2, 6 + q * w * .2, -Math.PI / 2.2, Math.PI / 2.2); tx.stroke();
+    }
+    if (s.word) {
+      tx.fillStyle = 'rgba(255,240,220,' + (1 - p) + ')';
+      tx.font = '600 ' + Math.round(14 + s.ringA * 10) + 'px system-ui,sans-serif';
+      tx.fillText(s.word, xOut + w * .03, g - th - 12 - p * 10);
+    }
+  }
+  tx.fillStyle = '#6f8287'; tx.font = '10px ui-monospace,Consolas,monospace';
+  tx.fillText('入口', xIn - 26, g + 14); tx.fillText('出口', xOut + 4, g + 14);
+}
+
+const tunWrap = $('tunWrap');
+function runSim() {
+  if (!profile || busy) return;
+  const res = SIM.analyze(profile, SPEED);
+  const ratio = res.pa / PASS, ok = res.pa <= PASS;
+  busy = true; $('runBtn').disabled = true;
+  $('tunBar').classList.remove('alarm');
+  $('fill').style.transform = 'scaleX(0)'; $('paNum').textContent = '…';
+  $('tcap').textContent = '▸ 列車以 300 km/h 接近入口';
+  T = tunLayout();
+  if (!T) { busy = false; $('runBtn').disabled = false; return; }
+  const col = ok ? 'rgba(26,160,207,0.9)' : 'rgba(255,90,60,0.9)';
+  const gradThr = PASS / (res.pa / res.grad);
+  const bw = PK.clamp(T.w * 0.03 * gradThr / res.grad, 4, T.w * 0.12);
+  const vt = T.w * 0.17, vw = vt * 340 / (SPEED / 3.6);
+  const x0 = T.xIn - T.w * 0.1, tIn = (T.xIn - x0) / vt, tArr = tIn + (T.xOut - T.xIn) / vw, tOut = tIn + (T.xOut - T.xIn) / vt;
+  const rings = ok ? 1 : Math.min(4, 1 + Math.round(ratio));
+  const ringA = ok ? .35 : Math.min(1, .5 + ratio * .15);
+  const word = ok ? '' : (ratio > 2.5 ? '咚！！' : '咚！');
+  const amp = ok ? 0 : Math.min(7, 1.6 * ratio);
+  let t = 0, stage = 0;
+  const finishAll = () => { busy = false; $('runBtn').disabled = false; tunWrap.style.transform = ''; finish(res); };
+
+  if (PK.reduced()) {
+    drawTunnel({ train: T.xOut + T.w * .05, wave: null, col: col, ring: .35, rings: rings, ringA: ringA, word: word, shake: 0 });
+    $('tcap').textContent = '▸ 壓力波先抵達出口（1 km 隧道約 2.9 秒），列車約 12 秒後才出洞';
+    showGauge(res, ok, false); finishAll(); return;
+  }
+  anim = function (dt) {
+    t += dt;
+    const s = { train: x0 + vt * t, wave: null, col: col, bw: bw, ring: 0, rings: rings, ringA: ringA, word: word, shake: 0 };
+    if (t >= tIn && t < tArr) { s.wave = T.xIn + (t - tIn) * vw; if (stage === 0) { stage = 1; $('tcap').textContent = '▸ 進洞。空氣被擠成一道壓力波，以音速往前跑'; } }
+    if (t >= tArr) {
+      const p = (t - tArr) / 1.1; s.ring = p;
+      if (p < .6 && amp) { s.shake = Math.sin(t * 70) * amp * (1 - p / .6); tunWrap.style.transform = 'translate(' + (Math.sin(t * 90) * amp * .4 * (1 - p / .6)) + 'px,0)'; }
+      else tunWrap.style.transform = '';
+      if (stage === 1) { stage = 2; $('tcap').textContent = '▸ 壓力波先到出口——真實的 1 km 隧道裡約 2.9 秒'; showGauge(res, ok, true); }
+    }
+    if (t >= tOut && stage === 2) { stage = 3; $('tcap').textContent = '▸ 列車這才出洞——約 12 秒。砲聲先到，列車後到。'; }
+    drawTunnel(s);
+    if (t > tOut + 1.6) { PK.untick(anim); anim = null; finishAll(); }
+  };
+  PK.tick(anim);
+}
+$('runBtn').addEventListener('click', runSim);
+
+function showGauge(res, ok, roll) {
+  const target = res.pa;
+  $('fill').classList.toggle('ok', ok);
+  $('fill').style.transform = 'scaleX(' + Math.min(1, target / GAUGE_MAX) + ')';
+  $('paVerdict').textContent = ok ? '低於過關線 ' + fmt(PASS, 0) + ' Pa' : '過關線的 ' + fmt(target / PASS, 2) + ' 倍';
+  if (!ok) $('tunBar').classList.add('alarm');
+  if (!roll || PK.reduced()) { $('paNum').textContent = fmt(target); }
+  else {
+    let k = 0;
+    const roller = (dt) => { k = Math.min(1, k + dt / .8); $('paNum').textContent = fmt(target * (1 - Math.pow(1 - k, 3))); if (k >= 1) PK.untick(roller); };
+    PK.tick(roller);
+  }
+  drawChart(res);
+}
+
+function drawChart(res) {
+  const cy0 = 92, ymax = 5, sxm = 272 / 22;
+  const py = (v) => cy0 - Math.min(v, ymax) / ymax * 82;
+  const pts = [];
+  for (let i = 0; i < res.curve.length; i += 2) pts.push((24 + i * DX * sxm).toFixed(1) + ',' + py(Math.max(0, res.curve[i])).toFixed(1));
+  $('curve').setAttribute('points', pts.join(' '));
+  const gradThr = PASS / (res.pa / res.grad);
+  ['thr', 'thrT'].forEach((id) => $(id).setAttribute('opacity', '1'));
+  $('thr').setAttribute('y1', py(gradThr)); $('thr').setAttribute('y2', py(gradThr));
+  $('thrT').setAttribute('y', py(gradThr) - 3);
+  const kx = 24 + Math.max(0, res.peakX) * sxm, ky = py(res.grad);
+  $('pk').setAttribute('cx', kx); $('pk').setAttribute('cy', ky);
+  const lbl = $('pkT');
+  lbl.textContent = res.pa <= PASS ? '峰 ' + fmt(res.peakX) + ' m' : '砲聲在這裡出生 · ' + fmt(res.peakX) + ' m';
+  lbl.setAttribute('x', Math.min(kx + 6, 170)); lbl.setAttribute('y', Math.max(14, ky - 6));
+  peakX = res.peakX; drawCad();
+}
+
+/* ════════ 劇情：通訊 ════════ */
+let tries = 0, birdOpen = false, passed = false;
+function say(who, html, cls, delay) {
+  setTimeout(() => {
+    const m = document.createElement('div');
+    m.className = 'msg ' + (cls || '');
+    m.innerHTML = '<div class="who">' + who + '</div>' + html;
+    $('feed').appendChild(m);
+    if (PK.reduced()) m.classList.add('in');
+    else requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add('in')));
+    if (window.innerWidth <= 900) m.scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'nearest' });
+    const btn = m.querySelector('[data-go]');
+    if (btn) btn.addEventListener('click', () => PK.scrollTo($(btn.dataset.go)));
+  }, delay || 0);
+}
+function diagLine(res) {
+  const d = SIM.diagnose(res), L = fmt(res.L), x = fmt(res.peakX);
+  if (d === 'short') return '車頭只有 ' + L + ' m：斷面積得在這麼短的距離裡，從零長到 10.2 m²。波前被擠得很陡。';
+  if (d === 'late') return '長度有 ' + L + ' m，可是斷面積在最後幾公尺才猛長——紅色尖峰落在 ' + x + ' m。前段細得浪費，後段一口氣變粗。';
+  return '尖峰落在 ' + x + ' m：那一段線條突然陡了一下。';
+}
+
+function finish(res) {
+  tries++;
+  const best = store.get('best', null);
+  if (best === null || res.pa < best) store.set('best', +fmt(res.pa));
+  store.set('tries', store.get('tries', 0) + 1);
+  const ok = res.pa <= PASS;
+  PK.announce((ok ? '過關。' : '未過。') + '微氣壓波 ' + fmt(res.pa) + ' 帕，過關線 ' + fmt(PASS, 0) + ' 帕。');
+  if (ok) { if (!passed) climax(res); else say('苦情係', '<p>' + fmt(res.pa) + ' Pa。窗戶還是很安靜。</p>', 'blue'); return; }
+  if (tries === 1) {
+    say('苦情係', '<p>又響了。<strong>' + fmt(res.pa) + ' Pa</strong>，是過關線的 ' + fmt(res.pa / PASS, 1) + ' 倍。</p>', 'red');
+    say('解析班', '<p>列車衝進洞口，像針筒裡推進的活塞：前方的空氣無處可躲，被擠成一道壓力波，以音速往前跑——比列車快四倍，所以砲聲先到。</p>' +
+      '<p>它在出口有多兇，看波前有多陡；波前多陡，看車頭的斷面積長得多急。右下那條曲線的尖峰，就是砲聲出生的地方。</p><p>' + diagLine(res) + '</p>', '', 900);
+  } else if (tries === 2) {
+    say('苦情係', '<p>' + fmt(res.pa) + ' Pa。窗戶還在抖。</p><p>' + diagLine(res) + '</p>', 'red');
+    say('若手・試驗班', '<p>報告：試驗車衝進隧道的那一瞬間，我覺得車子好像<strong>縮了一下</strong>。</p>', 'quote', 1100);
+    setTimeout(unlockBird, 2000);
+  } else {
+    say('苦情係', '<p>' + fmt(res.pa) + ' Pa。</p><p>' + diagLine(res) + (birdOpen ? '' : '</p><p>賞鳥筆記還沒翻開。') + '</p>', 'red');
+  }
+}
+
+function unlockBird() {
+  const b = $('bird'); if (!b.hidden) return;
+  b.hidden = false;
+  say('試驗主任', '<p>縮了一下……我書架上有本筆記，你翻翻看。</p><button class="pk-btn" type="button" data-go="bird">打開賞鳥筆記 ▾</button>', 'blue');
+}
+$('birdBtn').addEventListener('click', () => {
+  birdOpen = true;
+  $('birdPage2').hidden = false; $('birdBtn').hidden = true;
+  $('guideBtn').hidden = false; $('traceBtn').hidden = false;
+  guide = true; $('guideBtn').setAttribute('aria-pressed', 'true'); drawCad();
+  PK.announce('筆記翻開：翠鳥。CAD 上出現藍色描圖線。');
+});
+
+function climax(res) {
+  passed = true; store.set('passed', true);
+  $('bird').hidden = false;
+  document.body.classList.add('calm');
+  say('苦情係', '<p>……</p>', 'blue', 300);
+  say('苦情係', '<p>今天下午，窗戶沒有響。</p>', 'blue quote', 1700);
+  const sim = SIM.similarity(profile);
+  $('simPct').textContent = Math.round(sim * 100) + '%';
+  /* 鼻子長出翠鳥的臉 */
+  const grow = (dt) => {
+    birdA = Math.min(1, birdA + dt / 1.6); drawCad();
+    if (birdA >= 1) PK.untick(grow);
+  };
+  if (PK.reduced()) { birdA = 1; drawCad(); } else setTimeout(() => PK.tick(grow), 2200);
+  const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+  const n = SIM.daysUntil(today, '2027-01-13');
+  if (n > 0) $('countN').textContent = n;
+  else { $('countN').textContent = '0'; $('countUnit').textContent = '天——它已經在這一天退出定期運轉。'; }
+  setTimeout(() => {
+    $('ending').hidden = false; PK.reveal('#ending .rv');
+    say('試驗主任', '<p>你畫出來的東西，有隻鳥早就在用了。</p><button class="pk-btn" type="button" data-go="ending">看那台車後來怎麼了 ▾</button>', 'blue');
+  }, 3600);
+}
+$('againBtn').addEventListener('click', () => {
+  birdA = 0; PK.scrollTo($('work')); drawCad();
+});
+
+/* ════════ 版面 ════════ */
+function relayout() { drawCad(); if (!busy) drawTunnel(profile ? { train: T ? T.xIn - T.w * .1 : 0 } : null); }
+if ('ResizeObserver' in window) { const ro = new ResizeObserver(relayout); ro.observe(cad); ro.observe(tun); }
+else window.addEventListener('resize', relayout);
+relayout();
+PK.onMotionChange(() => relayout());
+</script>
+</body>
+</html>

@@ -440,18 +440,24 @@ if (typeof document !== 'undefined') (function () {
   });
 
   /* ---------- 進場編排 ---------- */
-  var io = new IntersectionObserver(function (entries) {
-    entries.forEach(function (e) {
-      if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
-    });
-  }, { rootMargin: '0px 0px -8% 0px' });
-  $$('.reveal').forEach(function (n) { io.observe(n); });
+  if (!('IntersectionObserver' in window)) {           /* 無 IO：直接全顯示，別讓內容永遠藏著 */
+    $$('.reveal').forEach(function (n) { n.classList.add('is-in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+      });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    $$('.reveal').forEach(function (n) { io.observe(n); });
+  }
 
-  mReduced.addEventListener('change', function (e) {
+  function onReducedChange(e) {
     reduced = e.matches;
     document.body.classList.toggle('reduced', reduced);
     if (reduced && demoTimer) stopDemo();
-  });
+  }
+  if (mReduced.addEventListener) mReduced.addEventListener('change', onReducedChange);
+  else if (mReduced.addListener) mReduced.addListener(onReducedChange);   /* 舊 Safari */
   document.body.classList.toggle('reduced', reduced);
 
   /* ---------- 啟動 ---------- */

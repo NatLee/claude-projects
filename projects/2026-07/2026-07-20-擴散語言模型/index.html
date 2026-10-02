@@ -272,6 +272,8 @@
 </style>
 </head>
 <body class="preload">
+<script>/* 保養 2026-10-03：保險絲——主程式萬一中途出錯，.rise 內容也不會整頁停在 opacity:0 */
+window.addEventListener("load", function(){ document.body.classList.remove("preload"); });</script>
 <a class="home" href="../../../index.html" aria-label="回到每日小專案首頁">← 回首頁</a>
 <a class="skip" href="#player">跳到去噪播放器</a>
 
@@ -510,7 +512,10 @@
   /* ════════════════ 減弱動態（動態監聽 change） ════════════════ */
   const RM = window.matchMedia("(prefers-reduced-motion: reduce)");
   let reduce = RM.matches;
-  RM.addEventListener("change", e => { reduce = e.matches; onReduceChange(); });
+  /* 保養 2026-10-03：舊 Safari 的 MediaQueryList 沒有 addEventListener，直接呼叫會拋錯、整段主程式停擺 */
+  const onRM = e => { reduce = e.matches; onReduceChange(); };
+  if (RM.addEventListener) RM.addEventListener("change", onRM);
+  else if (RM.addListener) RM.addListener(onRM);
 
   /* ════════════════ 偏好（localStorage 前綴 dlm.） ════════════════ */
   const PREF_KEY = "dlm.prefs";

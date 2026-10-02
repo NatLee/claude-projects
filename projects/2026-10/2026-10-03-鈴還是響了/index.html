@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>我握著她的手，鈴還是響了｜每日小專案</title>
+<meta name="description" content="一九二四年，波士頓一間全黑的房間。你握著靈媒的手、貼著她的腳踝，電鈴還是在你兩腳之間響了。那年夏天坐在同一個位子的魔術師，在小腿上綁了一整天的繃帶。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0807; --pk-ink:#ebe2cf; --pk-dim:#8b8274; --pk-accent:#efbe78;
+  --pk-line:rgba(235,226,207,.14);
+  --pk-serif:"Noto Serif TC","Source Han Serif TC","Songti TC","PMingLiU",Georgia,serif;
+  --warm:#f2c47f; --sense:#93d9cf; --ember:#e08466;
+  --lit-glow:rgba(242,196,127,.20);
+}
+html,body{background:var(--pk-bg)}
+body{font-family:var(--pk-serif);min-height:100svh}
+[hidden]{display:none!important}   /* 本頁大量用 hidden 切換；別讓 .lit{display:flex} 之類的規則蓋過它 */
+/* 膠片顆粒＋暗角（靜態，不動） */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 45%,rgba(0,0,0,.55) 100%)}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:31;opacity:.07;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .7 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+
+/* ── 聲音開關 ── */
+.snd{position:fixed;top:14px;right:14px;z-index:40;font:13px/1 var(--pk-sans);letter-spacing:.08em;color:var(--pk-dim);
+  background:color-mix(in srgb,var(--pk-bg) 60%,transparent);border:1px solid var(--pk-line);border-radius:999px;padding:7px 12px;cursor:pointer;
+  transition:color .25s,border-color .25s}
+.snd:hover,.snd:focus-visible{color:var(--pk-ink);border-color:rgba(235,226,207,.35)}
+.snd[aria-pressed="false"]{opacity:.7}
+
+/* ── 場景 ── */
+main{position:relative;z-index:1}
+.scene{position:relative;min-height:100svh;padding:78px 20px 56px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .8s ease}
+.scene.on{opacity:1}
+.scene[hidden]{display:none}
+.scene:focus{outline:none}
+.col{width:100%;max-width:34em;margin:0 auto;text-align:center}
+.chap{font:12px/1.6 var(--pk-sans);letter-spacing:.34em;color:var(--pk-dim);margin:0 0 30px;text-align:center}
+.scene p{margin:0 0 1.05em}
+.txt{font-size:clamp(17px,1.2vw + 12px,21px);line-height:1.95;letter-spacing:.02em}
+h1{font-weight:600;font-size:clamp(24px,4.6vw + 8px,38px);line-height:1.6;letter-spacing:.05em;margin:0 0 26px}
+.say{color:var(--warm)}
+.snd-cap{color:var(--pk-dim);letter-spacing:.06em}
+.you{color:var(--sense)}
+.small{font:13.5px/1.9 var(--pk-sans);color:var(--pk-dim);letter-spacing:.04em}
+.em{font-size:1.18em;letter-spacing:.12em;color:var(--pk-ink)}
+/* 還沒輪到的行：看不見、點不到、讀屏也先不唸 */
+.ln{opacity:0;visibility:hidden;transform:translateY(10px);
+  transition:opacity 1s ease,transform 1s cubic-bezier(.2,.7,.3,1),visibility 0s linear 1s}
+.ln.in{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+.tapnote{position:absolute;left:0;right:0;bottom:18px;text-align:center;font:12px var(--pk-sans);color:rgba(235,226,207,.28);letter-spacing:.2em;pointer-events:none}
+
+/* 按鈕 */
+.pk-btn{font-family:var(--pk-serif);letter-spacing:.16em;color:var(--warm);border-color:rgba(242,196,127,.6)}
+.pk-btn:hover{background:var(--warm);color:var(--pk-bg)}
+.choice{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.choice .pk-btn:disabled{opacity:.3}
+.choice .pk-btn.picked:disabled{opacity:1;background:var(--warm);color:var(--pk-bg)}
+#garterOut{margin-top:34px;padding-top:28px;border-top:1px solid var(--pk-line)}
+.linkish{appearance:none;background:none;border:0;color:var(--pk-dim);font:12.5px var(--pk-sans);letter-spacing:.06em;text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px}
+.linkish:hover{color:var(--pk-ink)}
+
+/* ── 序：一盞燈 ── */
+#s0 .lamp{position:absolute;top:0;left:50%;width:120px;height:46vh;transform:translateX(-50%);pointer-events:none}
+#s0 .lamp svg{width:100%;height:100%;overflow:visible}
+#s0::before{content:"";position:absolute;left:50%;top:0;width:min(150vw,1100px);height:min(150vw,1100px);transform:translate(-50%,-38%);
+  background:radial-gradient(circle at 50% 50%,rgba(246,207,143,.30),rgba(242,196,127,.08) 32%,rgba(0,0,0,0) 62%);
+  pointer-events:none;transition:opacity .35s ease}
+#s0.off::before{opacity:0}
+#s0 .fil{transition:stroke .3s,opacity .3s}
+#s0.off .fil{stroke:#3a3128;opacity:.6}
+#s0 .glass{transition:fill .3s}
+#s0.off .glass{fill:rgba(235,226,207,.04)}
+#s0 .col{position:relative;margin-top:16vh;max-width:46em}
+.nw{white-space:nowrap}
+
+/* ── 降靈會（黑暗半場） ── */
+.seance{justify-content:flex-start}
+.dark,.lit{position:relative;z-index:1}
+.dark{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:center;min-height:calc(100svh - 134px);transition:opacity .9s ease}
+.dark .middle{flex:1;width:100%;display:flex;flex-direction:column;justify-content:center;position:relative;min-height:12em}
+.intro{transition:opacity .7s ease}
+.cap{width:100%;max-width:32em;margin:0 auto;display:flex;flex-direction:column;justify-content:flex-end;gap:.55em;text-align:center;min-height:9em}
+/* 開始握之前：開場白在版面裡、字幕區疊在下面；開始之後對調 */
+.middle .cap{position:absolute;left:0;right:0;bottom:0}
+.started .middle .cap{position:relative}
+.started .intro{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);opacity:0;pointer-events:none}
+.cap p{margin:0;transition:opacity 1.2s ease,transform 1.2s ease;font-size:clamp(17px,1.1vw + 12px,20px);line-height:1.85}
+.cap p.fresh{animation:capin .9s ease both}
+.cap p.old{opacity:.32}
+.cap p.older{opacity:.14}
+@keyframes capin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ask{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:6px}
+.chips{display:flex;gap:8px}
+.chips button{width:42px;height:42px;border-radius:50%;border:1px solid rgba(235,226,207,.25);background:transparent;color:var(--pk-ink);
+  font:16px var(--pk-serif);cursor:pointer;transition:border-color .2s,color .2s,background .2s}
+.chips button[aria-pressed="true"]{border-color:var(--warm);color:var(--pk-bg);background:var(--warm)}
+.chips button:hover{border-color:var(--warm)}
+
+.leg{width:100%;margin:14px 0 6px}
+.leglab{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;align-items:center;font:12px/1.5 var(--pk-sans);color:var(--pk-dim);letter-spacing:.08em;margin-bottom:4px}
+.leglab .who{color:var(--sense)}
+.bd{display:inline-flex;align-items:center;gap:6px}
+.bd i{width:6px;height:6px;border-radius:50%;background:var(--sense);box-shadow:0 0 8px var(--sense)}
+.trace{display:block;width:100%;height:84px}
+
+.holdwrap{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:10px}
+.hold{position:relative;width:118px;height:118px;border-radius:50%;cursor:pointer;
+  border:1px solid rgba(235,226,207,.32);color:var(--pk-ink);font:15px/1.5 var(--pk-serif);letter-spacing:.24em;
+  background:radial-gradient(circle at 50% 40%,rgba(235,226,207,.07),rgba(0,0,0,0) 70%);
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  transition:border-color .3s,color .3s,transform .15s}
+.hold::after{content:"";position:absolute;inset:-11px;border-radius:50%;border:1px solid var(--warm);opacity:0;transform:scale(.92);
+  transition:opacity .4s,transform .4s}
+.hold:hover{border-color:rgba(242,196,127,.6)}
+.hold.on{border-color:var(--warm);color:var(--warm);transform:scale(.97)}
+.hold.on::after{opacity:.5;transform:scale(1);animation:breathe 2.8s ease-in-out infinite}
+.hold:disabled{opacity:.35;cursor:default}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.07);opacity:.2}}
+.hint{font:12.5px/1.7 var(--pk-sans);color:var(--pk-dim);letter-spacing:.06em;margin:0;text-align:center;min-height:1.7em}
+
+/* ── 燈亮（明亮半場） ── */
+.lit{width:100%;max-width:760px;display:flex;flex-direction:column;align-items:center}
+.scene.lighted::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 30%,var(--lit-glow),rgba(0,0,0,0) 62%);animation:dawn 1.8s ease both}
+@keyframes dawn{from{opacity:0}to{opacity:1}}
+.planbox{width:100%}
+.plan{display:block;width:100%;max-width:560px;height:auto;overflow:visible;margin:0 auto 14px}
+.plan .tbl{fill:none;stroke:rgba(235,226,207,.22);stroke-dasharray:4 5}
+.plan .chair{fill:rgba(235,226,207,.035);stroke:rgba(235,226,207,.34)}
+.plan .limb{fill:none;stroke:rgba(235,226,207,.26);stroke-width:1.2;stroke-linecap:round}
+.plan .foot{fill:rgba(235,226,207,.10);stroke:rgba(235,226,207,.55)}
+.plan .foot.hers{stroke:var(--warm)}
+.plan .hand{fill:rgba(235,226,207,.12);stroke:rgba(235,226,207,.5)}
+.plan .boxg rect{fill:rgba(147,217,207,.10);stroke:var(--sense)}
+.plan .boxg line{stroke:var(--sense)}
+.plan text{font:11.5px var(--pk-sans);fill:rgba(235,226,207,.62);text-anchor:middle;letter-spacing:.06em}
+.plan text.sm{font-size:10px;fill:rgba(235,226,207,.4)}
+.plan .route{fill:none;stroke:var(--warm);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.plan .back{fill:none;stroke:var(--warm);stroke-width:1.4;stroke-dasharray:3 5;opacity:0;transition:opacity 1.2s ease}
+.plan .back.in{opacity:.7}
+.plan .note{opacity:0;transition:opacity 1s ease}
+.plan .note.in{opacity:1}
+.plan .glowg{filter:drop-shadow(0 0 5px rgba(242,196,127,.75))}
+.plan .tap{fill:none;stroke:var(--warm);stroke-width:1.4;opacity:0;transform-box:view-box;transform-origin:111px 150px}
+.plan .tap.go{animation:ripple 1s ease-out both}
+@keyframes ripple{from{opacity:.95;transform:scale(.4)}to{opacity:0;transform:scale(2.6)}}
+.plan .boxg{transition:transform 1.8s cubic-bezier(.45,.05,.25,1)}
+.plan .boxg.moved{transform:translate(-84px,31px)}
+
+.cmp{width:100%;max-width:560px;margin:4px auto 18px}
+.cmp canvas{display:block;width:100%;height:150px}
+.cmp .k{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;font:12px var(--pk-sans);color:var(--pk-dim);letter-spacing:.06em;margin-top:6px}
+.cmp .k b{font-weight:400}
+.cmp .k .s{color:var(--sense)} .cmp .k .r{color:rgba(242,196,127,.85)}
+
+/* ── 懸賞 ── */
+.money{font:600 clamp(54px,10vw,96px)/1 Georgia,"Times New Roman",serif;letter-spacing:.02em;color:var(--warm);margin:0 0 26px;
+  font-variant-numeric:lining-nums tabular-nums;text-shadow:0 0 30px rgba(242,196,127,.25)}
+
+/* ── 繃帶 ── */
+.bandage{display:flex;gap:18px;justify-content:center;align-items:flex-end;flex-wrap:wrap;margin:6px auto 18px}
+.calf{width:120px;height:180px;overflow:visible}
+.calf .skin{fill:none;stroke:rgba(235,226,207,.55);stroke-width:1.4}
+.calf .band{fill:rgba(242,196,127,.18);stroke:var(--warm)}
+.calf .swell{fill:url(#swellg);opacity:0;transition:opacity 2.2s ease}
+.calf.on .swell{opacity:1}
+.bandage .planbox{width:min(330px,100%)}
+.bandage .plan{max-width:330px;margin:0}
+
+/* ── 第二晚 ── */
+.rings{display:flex;gap:14px;justify-content:center;margin:4px 0 18px;min-height:30px}
+.rings span{width:24px;height:24px;border-radius:50%;border:1px solid rgba(242,196,127,.4);opacity:.25;transition:opacity .2s}
+.rings span.hit{opacity:1;background:radial-gradient(circle,rgba(242,196,127,.85),rgba(242,196,127,.1) 70%);box-shadow:0 0 14px rgba(242,196,127,.6)}
+
+/* ── 後來（時間線） ── */
+.tl{list-style:none;margin:0 auto;padding:0;max-width:34em;text-align:left;position:relative}
+.tl::before{content:"";position:absolute;left:5.6em;top:.6em;bottom:.6em;width:1px;background:var(--pk-line)}
+.tl li{display:grid;grid-template-columns:5.2em 1fr;gap:0 1.4em;margin:0 0 1.5em;align-items:start}
+.tl time{font:12.5px/2.1 var(--pk-sans);color:var(--pk-dim);letter-spacing:.08em;text-align:right;position:relative}
+.tl time::after{content:"";position:absolute;right:-.95em;top:.95em;width:7px;height:7px;border-radius:50%;background:var(--warm);box-shadow:0 0 10px rgba(242,196,127,.6)}
+.tl p{margin:0;font-size:clamp(16px,1vw + 12px,19px);line-height:1.9}
+
+/* ── 指紋 ── */
+.prints{display:block;width:100%;max-width:560px;height:auto;margin:0 auto;overflow:visible}
+.prints .ridge{fill:none;stroke-width:1.05;stroke-linecap:round}
+.prints .fa .ridge{stroke:rgba(235,226,207,.72)}
+.prints .fb .ridge{stroke:rgba(147,217,207,.78)}
+.prints .fb{mix-blend-mode:screen}
+.prints .ol{fill:none;stroke:rgba(235,226,207,.12)}
+.prints .mn{fill:none;stroke:rgba(224,132,102,.55);stroke-width:1.2}
+.prints .mn.lit{fill:var(--ember);stroke:var(--ember)}
+.prints.match .fb .ridge{stroke:rgba(242,196,127,.9)}
+.prints.match{filter:drop-shadow(0 0 8px rgba(242,196,127,.35))}
+.plabels{display:flex;justify-content:space-around;max-width:560px;margin:4px auto 0;font:12.5px var(--pk-sans);letter-spacing:.08em;color:var(--pk-dim)}
+.plabels .b{color:var(--sense)}
+.count{font:15px var(--pk-sans);letter-spacing:.14em;color:var(--pk-dim);margin:10px 0 0;text-align:center}
+.count b{font:600 22px Georgia,serif;color:var(--ember);font-variant-numeric:tabular-nums}
+
+/* ── 十年 ── */
+.altarwrap{position:relative;width:100%;max-width:420px;margin:0 auto}
+.altar{display:block;width:100%;height:auto;overflow:visible}
+.altar .flame{transform-box:view-box;transform-origin:208px 140px;animation:flick 1.9s ease-in-out infinite alternate}
+.altar .glow{transition:opacity 1.8s ease;animation:glowf 2.3s ease-in-out infinite alternate}
+@keyframes flick{0%{transform:scale(1,1) skewX(0)}35%{transform:scale(.97,1.04) skewX(1.5deg)}70%{transform:scale(1.02,.96) skewX(-1deg)}100%{transform:scale(.98,1.02) skewX(.6deg)}}
+@keyframes glowf{from{opacity:.86}to{opacity:1}}
+.altar.out .flame{animation:none;opacity:0;transform:scale(.25,.08);transition:opacity .45s ease,transform .5s ease}
+.altar.out .glow{animation:none;opacity:0}
+.altar .smoke{fill:none;stroke:rgba(235,226,207,.45);stroke-width:1.6;stroke-linecap:round;opacity:0}
+.altar.out .smoke{opacity:1;transition:opacity 3.6s ease 1.2s}
+.altar.out.gone .smoke{opacity:0}
+.year{font:600 clamp(30px,6vw,46px)/1 var(--pk-serif);letter-spacing:.32em;text-indent:.32em;color:var(--pk-ink);text-align:center;margin:8px 0 6px;
+  transition:opacity .35s ease;min-height:1.1em}
+.year.swap{opacity:.25}
+.final p{font-size:clamp(17px,1.2vw + 12px,21px);line-height:2}
+.final .turn{margin-top:2.2em}
+.final .last{color:var(--warm)}
+#tenCap{margin-bottom:18px}
+.ends{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.ends a{color:var(--pk-dim);font:13px var(--pk-sans);letter-spacing:.1em;align-self:center}
+.pk-foot{text-align:center;margin-top:46px;max-width:40em;font-family:var(--pk-sans)}
+
+@media (max-width:560px){
+  .scene{padding:70px 16px 44px}
+  .dark{min-height:calc(100svh - 114px)}
+  .hold{width:104px;height:104px}
+  .trace{height:72px}
+  .tl::before{left:4.6em}
+  .tl li{grid-template-columns:4.2em 1fr;gap:0 1.2em}
+  .tl time{font-size:11.5px}
+  .tl time::after{right:-.85em}
+  .cmp canvas{height:132px}
+}
+@media (prefers-reduced-motion:reduce){
+  .ln,.cap p,.intro,.dark,.scene,.plan .boxg,.plan .back{transition:none!important}
+  .cap p.fresh{animation:none}
+  .hold.on::after{animation:none}
+  .scene.lighted::before{animation:none}
+  .plan .tap.go{animation:none;opacity:0}
+  .altar .flame,.altar .glow{animation:none}
+  .altar.out .smoke{transition:none;opacity:.5}
+  .year{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+<button class="snd" id="snd" type="button" aria-pressed="true">聲音・開</button>
+
+<main id="stage">
+
+<!-- ═══ 序：關燈 ═══ -->
+<section class="scene on" id="s0" tabindex="-1" aria-label="序：關燈">
+  <div class="lamp" aria-hidden="true">
+    <svg viewBox="0 0 120 300" preserveAspectRatio="xMidYMin meet">
+      <line x1="60" y1="0" x2="60" y2="196" stroke="#4a4239" stroke-width="1.2"/>
+      <rect x="53" y="194" width="14" height="16" rx="2" fill="#2e2923"/>
+      <path class="glass" d="M60 210 C 41 210 36 233 44 248 C 50 258 52 264 52 270 L 68 270 C 68 264 70 258 76 248 C 84 233 79 210 60 210 Z"
+        fill="rgba(255,226,170,.16)" stroke="rgba(235,226,207,.35)" stroke-width="1"/>
+      <path class="fil" d="M55 258 L57 238 L60 246 L63 238 L65 258" fill="none" stroke="#ffd9a0" stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="col">
+    <p class="chap ln">波士頓・萊姆街十號・頂樓</p>
+    <h1 class="ln" data-w="1500">一九二四年夏天。<br><span class="nw">窄窄的房間，</span><span class="nw">一張桌子，一盞燈。</span></h1>
+    <p class="txt say ln" data-w="1300">這屋子的規矩：靈魂怕光。燈要關掉。</p>
+    <p class="ln"><button class="pk-btn" id="lightsOff" type="button">關燈</button></p>
+    <p class="small ln">有聲音；戴耳機更好。右上角可以關掉。</p>
+    <p class="small ln" id="again" hidden></p>
+  </div>
+</section>
+
+<!-- ═══ 一、第一夜（你） ═══ -->
+<section class="scene seance" id="s1" hidden tabindex="-1" aria-label="第一夜：在他來之前">
+  <div class="dark">
+    <p class="chap">第一夜・在他來之前</p>
+    <div class="middle">
+      <div class="col intro txt">
+        <p class="ln">你坐在她左邊。</p>
+        <p class="ln">她的左手放進你的右手；她的左腳踝，貼住你的右腳。另一側，也有人這樣扣住她。</p>
+        <p class="ln">她腳前的地板上擺著一個木盒，十四吋長。上蓋一壓，裡面的電鈴就響。</p>
+        <p class="ln" data-w="1400">她說，等一下來的是華特——她哥哥，十幾年前死於一場火車意外。</p>
+        <div class="ln ask" role="group" aria-labelledby="askq">
+          <span id="askq" class="small">華特會用鈴聲回答。要他響幾下？</span>
+          <span class="chips" id="chips">
+            <button type="button" data-n="1" aria-pressed="false" aria-label="一下">一</button>
+            <button type="button" data-n="2" aria-pressed="false" aria-label="兩下">二</button>
+            <button type="button" data-n="3" aria-pressed="true" aria-label="三下">三</button>
+            <button type="button" data-n="4" aria-pressed="false" aria-label="四下">四</button>
+            <button type="button" data-n="5" aria-pressed="false" aria-label="五下">五</button>
+          </span>
+        </div>
+      </div>
+      <div class="cap" aria-live="polite"></div>
+    </div>
+    <div class="leg ln">
+      <div class="leglab"><span class="who">你的右小腿感覺到的</span>
+        <span><span class="bd"><i></i>她的左手・在</span>　<span class="bd"><i></i>她的左腳踝・在</span></span></div>
+      <canvas class="trace" aria-hidden="true"></canvas>
+    </div>
+    <div class="holdwrap ln">
+      <button type="button" class="hold" aria-pressed="false" aria-describedby="h1">握住</button>
+      <p class="hint" id="h1">按住不放＝握著她的手。放開就是鬆手。</p>
+      <button type="button" class="linkish tgl">無法長按？改成點一下切換</button>
+    </div>
+  </div>
+  <div class="lit" hidden>
+    <div class="planbox" data-plan="a"></div>
+    <div class="col txt">
+      <p class="ln">燈亮了。</p>
+      <p class="ln">她的雙手在兩邊的人手裡，雙腳貼著兩邊的人的腳。盒子在原地，蓋子好好的。</p>
+      <p class="ln" id="s1n">鈴響了三下，一下不多，一下不少。</p>
+      <p class="ln em" data-w="1600">按鈴的，是誰？</p>
+      <p class="ln"><button class="pk-btn next" type="button" data-go="s2">繼續</button></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 二、懸賞 ═══ -->
+<section class="scene" id="s2" hidden tabindex="-1" aria-label="懸賞">
+  <div class="col txt">
+    <p class="chap ln">懸賞</p>
+    <p class="money ln" aria-label="兩千五百美元"><span id="money">$0</span></p>
+    <p class="ln">一九二二年底，《科學人》雜誌懸賞兩千五百美元：給第一個能在評審面前，拿出「看得見的靈異現象」的人。</p>
+    <p class="ln">評審五位：一位哈佛心理學教授、一位合創特藝彩色的麻省理工物理學家、兩位靈異研究者——還有一個魔術師。</p>
+    <p class="ln">到了一九二四年夏天，獎金還在。名單上最被看好的就是她。報上寫：波士頓靈媒，難倒專家。</p>
+    <p class="ln">雜誌編輯私下說：她五、六成是真的，獎金該給她。</p>
+    <p class="ln" data-w="1700">那位魔術師說：讓我去坐一次。她要是作弊、我卻沒抓到，我自己賠一千美元。</p>
+    <p class="ln em" data-w="1500">他叫胡迪尼。</p>
+    <p class="ln"><button class="pk-btn next" type="button" data-go="s3">繼續</button></p>
+  </div>
+  <p class="tapnote" aria-hidden="true">點畫面任一處，可以一次讀完</p>
+</section>
+
+<!-- ═══ 三、繃帶 ═══ -->
+<section class="scene" id="s3" hidden tabindex="-1" aria-label="繃帶">
+  <div class="col txt">
+    <p class="chap ln">繃帶</p>
+    <p class="ln" data-w="1400">胡迪尼沒有先去研究那個盒子。他先研究自己的腿。</p>
+    <div class="bandage ln" aria-hidden="true">
+      <svg class="calf" viewBox="0 0 120 180">
+        <defs>
+          <radialGradient id="swellg" cx="62" cy="96" r="44" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#93d9cf" stop-opacity=".55"/><stop offset="1" stop-color="#93d9cf" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <ellipse class="swell" cx="62" cy="98" rx="40" ry="46"/>
+        <path class="skin" d="M40 6 C 36 40 30 70 38 104 C 44 128 46 146 44 160 L 46 172 L 98 174 C 100 166 90 162 74 158 C 72 140 78 120 82 100 C 88 70 86 36 84 6"/>
+        <rect class="band" x="34" y="44" width="54" height="11" rx="3" transform="rotate(-4 61 50)"/>
+        <text x="60" y="30" text-anchor="middle" fill="rgba(235,226,207,.45)" font-size="10" font-family="sans-serif">膝蓋</text>
+      </svg>
+      <div class="planbox" data-plan="move"></div>
+    </div>
+    <p class="ln">七月二十三日，他在右小腿、膝蓋下方綁了一條絲質橡膠繃帶，綁了一整天。</p>
+    <p class="ln" data-w="1500">到了晚上，繃帶下面那一截腫了起來，碰一下都痛。他把右邊褲管捲到膝蓋以上。<br><span class="you">痛，就是靈敏。</span></p>
+    <p class="ln" id="moveLine" data-w="2200">然後他堅持把鈴盒從她腳前，挪到自己兩腳之間。</p>
+    <p class="ln">想去按那個鈴的東西，得先經過他那條腫著的腿。</p>
+    <p class="ln"><button class="pk-btn next" type="button" data-go="s4">換你坐他的位子</button></p>
+  </div>
+</section>
+
+<!-- ═══ 四、同一個位子（他） ═══ -->
+<section class="scene seance" id="s4" hidden tabindex="-1" aria-label="七月二十三日夜：同一個位子">
+  <div class="dark">
+    <p class="chap">七月二十三日・夜</p>
+    <div class="middle">
+      <div class="col intro txt">
+        <p class="ln">同一個位子。同樣的黑。</p>
+        <p class="ln">她的左手在你右手裡；她的右手，由她丈夫握著。</p>
+        <p class="ln" data-w="1400">鈴盒在你兩腳之間。你的右小腿露在外面，腫著。</p>
+      </div>
+      <div class="cap" aria-live="polite"></div>
+    </div>
+    <div class="leg ln">
+      <div class="leglab"><span class="who">你的右小腿（腫）感覺到的</span>
+        <span><span class="bd"><i></i>她的左手・在</span>　<span class="bd"><i></i>她的左腳踝・在</span></span></div>
+      <canvas class="trace" aria-hidden="true"></canvas>
+    </div>
+    <div class="holdwrap ln">
+      <button type="button" class="hold" aria-pressed="false" aria-describedby="h4">握住</button>
+      <p class="hint" id="h4">按住不放＝握著她的手。</p>
+      <button type="button" class="linkish tgl">無法長按？改成點一下切換</button>
+    </div>
+  </div>
+  <div class="lit" hidden>
+    <div class="planbox" data-plan="b"></div>
+    <div class="col txt">
+      <p class="ln" data-w="5600">燈亮了，一切都在原位。</p>
+      <p class="ln" data-w="1700">可是你的腿記得她走過的路：一頓一頓往前挪、抬腳越過你的右腳、踩下鈴盒，再原路滑回去。</p>
+      <div class="cmp ln" aria-label="同一段黑暗裡，兩條腿的感覺比較圖：一般的小腿始終是一條平線，腫起來的小腿完整描出她的腳踝移動">
+        <canvas id="cmp" aria-hidden="true"></canvas>
+        <div class="k"><span><b class="r">┄ 她的腳踝實際挪了多少</b></span><span><b class="s">— 腿感覺到的</b></span><span>（門檻模型示意）</span></div>
+      </div>
+      <p class="ln">上面那條是第一夜的你，下面那條是他。同一段黑暗，同一隻腳。</p>
+      <p class="ln">還有那句「用力壓住我的腳踝」：用一個大動作，蓋過一個小動作。叫你注意這裡，好讓你錯過那裡——魔術師最老的那一招。</p>
+      <p class="ln say" data-w="1500">回旅館的車上，胡迪尼說：「我抓到她了。全是假的。」</p>
+      <p class="ln"><button class="pk-btn next" type="button" data-go="s5">繼續</button></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 五、第二晚：吊襪帶 ═══ -->
+<section class="scene" id="s5" hidden tabindex="-1" aria-label="第二晚：吊襪帶">
+  <div class="col txt">
+    <p class="chap ln">第二晚・七月二十四日</p>
+    <p class="ln">第二晚換到那位物理學家住的旅館。鈴盒照舊在胡迪尼兩腳之間，褲管照舊捲著。</p>
+    <p class="ln">她用同樣的方式開始。</p>
+    <p class="ln em" data-w="1700">這一次，什麼都沒有發生。</p>
+    <p class="ln">過了好一陣子，黑暗裡她開口：</p>
+    <p class="ln say">「你戴著吊襪帶，對吧？」</p>
+    <p class="ln say" data-w="1500">「扣環刮到我了。」</p>
+    <p class="ln small">那年代的紳士在小腿上綁吊襪帶拉住襪子，帶子上有個金屬扣——那個扣子勾住了她的絲襪，她的腳踝滑不動。</p>
+    <div class="ln choice" id="garter" role="group" aria-label="要不要替她解開吊襪帶">
+      <button class="pk-btn" type="button" data-c="yes">替她解開</button>
+      <button class="pk-btn" type="button" data-c="no">不解開</button>
+    </div>
+  </div>
+  <div class="col txt" id="garterOut" hidden>
+    <p class="ln" id="gNo1" hidden>你沒動。華特整晚沒有再來。</p>
+    <p class="ln small" id="gNo2" hidden data-w="1600">（那一晚，胡迪尼替她解開了。）</p>
+    <p class="ln" id="gYes" hidden>你解開了扣環。</p>
+    <p class="ln">她的腳踝又滑得動了。華特問雜誌發行人：要響幾下？他說：五下。</p>
+    <div class="ln rings" id="rings5" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    <p class="ln">這一次她滑得很大膽。胡迪尼後來寫：她大概以為我也被騙倒了——或者，以為我會像其他人一樣幫她。</p>
+    <p class="ln"><button class="pk-btn next" type="button" data-go="s6">繼續</button></p>
+  </div>
+</section>
+
+<!-- ═══ 六、後來 ═══ -->
+<section class="scene" id="s6" hidden tabindex="-1" aria-label="後來">
+  <div class="col">
+    <p class="chap ln">後來</p>
+    <ol class="tl">
+      <li class="ln" data-w="2400"><time>1924・8</time><p>胡迪尼做了一個木箱，請她坐進去，只露出頭和雙手。鈴還是響了——燈一開，箱蓋被撐開了。</p></li>
+      <li class="ln" data-w="2800"><time>同一個月</time><p>又一場，箱子裡多了一把折尺。她說是胡迪尼和他的助手放的；胡迪尼說是她帶進去的。折尺當年沒拿去驗指紋，這件事到今天沒有定論。</p></li>
+      <li class="ln" data-w="2800"><time>1925・2</time><p>評審團公布結論：看到的現象，未必每一樣都查出了手法；但沒有一樣，能斷定是尋常方法做不到的。獎金沒有頒出。五位評審，只有一位投她。</p></li>
+      <li class="ln" data-w="2600"><time>1930</time><p>那位編輯寫了一份沒被刊出的報告：胡迪尼某次來訪前，她私下找他商量——要是華特那晚沒來，能不能請他自己去按那個鈴。</p></li>
+    </ol>
+    <p class="ln" style="text-align:center"><button class="pk-btn next" type="button" data-go="s7">繼續</button></p>
+  </div>
+  <p class="tapnote" aria-hidden="true">點畫面任一處，可以一次讀完</p>
+</section>
+
+<!-- ═══ 七、拇指印 ═══ -->
+<section class="scene" id="s7" hidden tabindex="-1" aria-label="拇指印">
+  <div class="col txt">
+    <p class="chap ln">拇指印</p>
+    <p class="ln">鈴之後，華特學會了更厲害的：在熱過的牙科蠟上，按下他的拇指印。死人的指紋。</p>
+    <p class="ln">點子是她向牙醫要來的。牙醫把自己的拇指壓進一塊熱蠟示範給她看，蠟和樣本都讓她帶回家。當天晚上，華特就留下了第一枚。</p>
+    <p class="ln" data-w="1500">幾年後，一位研究者開始收集每個來過降靈會的人的指紋，一枚一枚比。他是她的支持者——他想證明，這枚指紋不屬於任何一個活人。</p>
+    <div class="ln">
+      <svg class="prints" id="prints" viewBox="0 0 420 250" role="img" aria-label="兩枚拇指印：左邊是華特在降靈會上留下的，右邊是牙醫的"></svg>
+      <div class="plabels" id="plabels"><span>華特（降靈會上的蠟印）</span><span class="b">卡德威爾醫師（她的牙醫）</span></div>
+      <p class="count" aria-live="polite">特徵點吻合　<b id="mcount">0</b>／24</p>
+      <p class="small" style="margin:2px 0 0;font-size:11.5px;opacity:.7">指紋為示意圖；一九三二年的比對報告列出二十四處吻合。</p>
+    </div>
+    <div class="holdwrap ln" id="fpHold">
+      <button type="button" class="hold" aria-pressed="false" aria-describedby="h7">疊起來</button>
+      <p class="hint" id="h7">按住，把兩枚指紋疊在一起。</p>
+    </div>
+    <div id="fpOut" hidden>
+      <p class="ln em">二十四處，全部對上。</p>
+      <p class="ln">華特的拇指印，是她牙醫的。牙醫那時還活得好好的。</p>
+      <p class="ln">一九三二年十月，比對報告登了出來。許多原本替她背書的人，開始收回自己說過的話。</p>
+      <p class="ln"><button class="pk-btn next" type="button" data-go="s8">繼續</button></p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 八、十年 ═══ -->
+<section class="scene" id="s8" hidden tabindex="-1" aria-label="十年">
+  <div class="col txt" id="tenIntro">
+    <p class="chap ln">十年</p>
+    <p class="ln">胡迪尼死於一九二六年十月三十一日，萬聖夜。</p>
+    <p class="ln">生前，他和妻子貝絲說好：先走的那個，如果真能從另一邊回來，就說一句只有兩人知道的暗語。</p>
+    <p class="ln">之後每年萬聖夜，貝絲都辦一場降靈會。</p>
+    <p class="ln" data-w="1300">他的照片旁點著一根蠟燭。據說，十年沒熄過。</p>
+  </div>
+  <div class="altarwrap ln" id="altarWrap">
+    <svg class="altar" id="altar" viewBox="0 0 320 290" role="img" aria-label="一張空著的相框，旁邊點著一根蠟燭">
+      <defs>
+        <radialGradient id="cg" cx="208" cy="122" r="150" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#ffd59a" stop-opacity=".5"/>
+          <stop offset=".28" stop-color="#f2c47f" stop-opacity=".16"/>
+          <stop offset="1" stop-color="#f2c47f" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="wax" x1="196" y1="0" x2="220" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#cdbfa6"/><stop offset=".45" stop-color="#efe4cf"/><stop offset="1" stop-color="#a99a80"/>
+        </linearGradient>
+        <radialGradient id="fl" cx="208" cy="128" r="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#fff4dc"/><stop offset=".55" stop-color="#ffd08a"/><stop offset="1" stop-color="#e98a45"/>
+        </radialGradient>
+      </defs>
+      <circle class="glow" cx="208" cy="122" r="150" fill="url(#cg)"/>
+      <g class="frame">
+        <rect x="42" y="72" width="104" height="132" rx="3" fill="#14100c" stroke="#6b6052" stroke-width="2"/>
+        <rect x="52" y="82" width="84" height="112" fill="#1b1611" stroke="#3a332a"/>
+        <path d="M94 204 L94 222 M70 222 L118 222" stroke="#4a4136" stroke-width="2"/>
+      </g>
+      <rect x="196" y="146" width="24" height="112" rx="3" fill="url(#wax)"/>
+      <path d="M197 150 q11 7 22 0" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>
+      <line x1="208" y1="147" x2="208" y2="137" stroke="#2a221a" stroke-width="2" stroke-linecap="round"/>
+      <g class="flame">
+        <path d="M208 92 C 215 108 222 120 217 132 C 214 140 202 140 199 132 C 194 120 201 108 208 92 Z" fill="url(#fl)"/>
+        <path d="M208 112 C 211 120 213 126 211 131 C 209 135 207 135 205 131 C 203 126 205 120 208 112 Z" fill="#fff7e6" opacity=".9"/>
+      </g>
+      <path class="smoke" id="smoke" d="M208 136 C 199 118 219 104 206 86 C 195 70 216 56 203 36 C 196 26 206 16 202 6"/>
+      <line x1="16" y1="260" x2="304" y2="260" stroke="#3a332a" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <p class="year" id="year" aria-live="polite"></p>
+  <div class="cap" id="tenCap" aria-live="polite" style="min-height:4.5em"></div>
+  <div class="holdwrap ln" id="tenHold">
+    <button type="button" class="hold" aria-pressed="false" aria-describedby="h8">等</button>
+    <p class="hint" id="h8">按住，陪她等。</p>
+  </div>
+  <div class="col final" id="tenOut" hidden>
+    <p class="ln">她把那根據說燒了十年的蠟燭，熄了。</p>
+    <p class="ln say" data-w="2600">後來她說：「等一個男人，十年夠久了。」</p>
+    <p class="ln turn">第一盞燈，是為了讓你看不見才關的。</p>
+    <p class="ln last" data-w="1800">最後這一盞，是為了放他走。</p>
+    <div class="ln ends">
+      <button class="pk-btn" id="replay" type="button">再坐一次</button>
+      <a href="../../../index.html">← 回首頁</a>
+    </div>
+    <footer class="pk-foot ln">資料來源：Houdini 自費出版小冊（1924）；Polidoro, <i>Skeptic</i>（1998）；Stashower, <i>American History</i>（1999）；Wikipedia。</footer>
+  </div>
+</section>
+
+</main>
+<noscript><p style="text-align:center;padding:40px;color:#ebe2cf">這一頁需要 JavaScript 才能關燈。</p></noscript>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="core.js"></script>
+<script>
+'use strict';
+(function () {
+const LS = 'lime24.';                 /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const C = window.CORE;
+
+/* ══════════ 聲音（全部即時合成，不載任何音檔） ══════════ */
+const Snd = (function () {
+  let ctx = null, master = null, roomG = null, on = store.get('sound', true), wbuf = null, bbuf = null;
+  function ensure() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ctx; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try { ctx = new AC(); } catch (e) { return null; }
+    master = ctx.createGain(); master.gain.value = on ? 0.75 : 0; master.connect(ctx.destination);
+    const n = ctx.sampleRate * 2;
+    wbuf = ctx.createBuffer(1, n, ctx.sampleRate); bbuf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const w = wbuf.getChannelData(0), b = bbuf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < n; i++) { w[i] = Math.random() * 2 - 1; last = (last + 0.02 * w[i]) / 1.02; b[i] = last * 3.2; }
+    return ctx;
+  }
+  function noise(buf, t, dur, type, freq, q, peak, atk) {
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 0.7;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + (atk || 0.005));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f).connect(g).connect(master); s.start(t); s.stop(t + dur + 0.05);
+  }
+  function knock() {
+    if (!ensure()) return;
+    const t = ctx.currentTime + 0.02;
+    [0, 0.3].forEach(function (k) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(110, t + k); o.frequency.exponentialRampToValueAtTime(52, t + k + 0.15);
+      g.gain.setValueAtTime(0.0001, t + k); g.gain.exponentialRampToValueAtTime(0.9, t + k + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + k + 0.24);
+      o.connect(g).connect(master); o.start(t + k); o.stop(t + k + 0.28);
+      noise(wbuf, t + k, 0.06, 'bandpass', 950, 1.4, 0.32, 0.003);
+    });
+  }
+  /* 一九二○年代的電鈴：小錘以每秒二十來下敲一片金屬 */
+  function ring(dur) {
+    if (!ensure()) return;
+    dur = dur || 0.62;
+    const t0 = ctx.currentTime + 0.01;
+    const env = ctx.createGain(); env.gain.value = 0; env.connect(master);
+    [[1180, .42], [1188, .3], [2950, .17], [4620, .09], [6080, .05]].forEach(function (p) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = p[0]; g.gain.value = p[1];
+      o.connect(g).connect(env); o.start(t0); o.stop(t0 + dur + 0.9);
+    });
+    const rate = 21, N = Math.max(1, Math.floor(dur * rate));
+    env.gain.setValueAtTime(0, t0);
+    for (let i = 0; i < N; i++) {
+      const ts = t0 + i / rate;
+      env.gain.setValueAtTime(0.5, ts);
+      env.gain.setTargetAtTime(0.12, ts + 0.002, 0.011);
+    }
+    const tr = t0 + N / rate;
+    env.gain.setValueAtTime(0.3, tr);
+    env.gain.setTargetAtTime(0.0001, tr, 0.16);
+  }
+  function click() {
+    if (!ensure()) return;
+    const t = ctx.currentTime + 0.01;
+    noise(wbuf, t, 0.03, 'highpass', 2500, 0.7, 0.4, 0.002);
+    noise(wbuf, t + 0.035, 0.05, 'bandpass', 1400, 2, 0.25, 0.002);
+  }
+  function chime() {
+    if (!ensure()) return;
+    const t = ctx.currentTime + 0.02;
+    [[523.25, .18], [784, .1], [1046.5, .05]].forEach(function (p) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = p[0];
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(p[1], t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+      o.connect(g).connect(master); o.start(t); o.stop(t + 2.3);
+    });
+  }
+  function snuff() {
+    if (!ensure()) return;
+    const t = ctx.currentTime + 0.01;
+    noise(wbuf, t, 0.7, 'bandpass', 1300, 0.6, 0.22, 0.12);
+  }
+  function room(want) {
+    if (!ensure()) return;
+    if (want && !roomG) {
+      const s = ctx.createBufferSource(); s.buffer = bbuf; s.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 360;
+      roomG = ctx.createGain(); roomG.gain.value = 0.0001;
+      s.connect(f).connect(roomG).connect(master); s.start();
+      roomG._src = s;
+    }
+    if (roomG) roomG.gain.setTargetAtTime(want ? 0.05 : 0.0001, ctx.currentTime, 0.6);
+  }
+  function set(v) {
+    on = v; store.set('sound', v);
+    if (master) master.gain.setTargetAtTime(v ? 0.75 : 0, ctx.currentTime, 0.05);
+  }
+  return { ensure: ensure, knock: knock, ring: ring, click: click, chime: chime, snuff: snuff, room: room, set: set, get on() { return on; } };
+})();
+
+const sndBtn = $('#snd');
+function paintSnd() { sndBtn.textContent = Snd.on ? '聲音・開' : '聲音・關'; sndBtn.setAttribute('aria-pressed', String(Snd.on)); }
+sndBtn.addEventListener('click', function () { Snd.set(!Snd.on); Snd.ensure(); paintSnd(); });
+paintSnd();
+
+/* ══════════ 逐行登場（點畫面可一次讀完） ══════════ */
+let player = null;
+function play(container, done) {
+  const lines = $$('.ln', container).filter(function (el) { return !el.classList.contains('in') && !el.hidden && !el.closest('[hidden]'); });
+  let i = 0, timer = 0, finished = false;
+  const quick = PK.reduced() ? 0.55 : 1;
+  function step() {
+    if (i >= lines.length) { finish(); return; }
+    const el = lines[i++];
+    el.classList.add('in');
+    if (i >= lines.length) { finish(); return; }
+    timer = setTimeout(step, (+el.dataset.w || 1150) * quick);
+  }
+  function finish() {
+    if (finished) return;
+    finished = true;
+    if (player === api) player = null;
+    /* 鍵盤使用者：焦點若落在 body 或已隱藏／停用的按鈕上，交給這一段最後的按鈕 */
+    const a = document.activeElement;
+    const nb = container.querySelector('button.next, #garter button, #replay');
+    if (nb && (!a || a === document.body || a.disabled || a.closest('[hidden]') || a.classList.contains('scene'))) {
+      try { nb.focus({ preventScroll: true }); } catch (e) {}
+    }
+    if (done) done();
+  }
+  function skip() { clearTimeout(timer); while (i < lines.length) lines[i++].classList.add('in'); finish(); }
+  const api = { skip: skip };
+  player = api;
+  step();
+  return api;
+}
+document.addEventListener('click', function (e) {
+  if (!player) return;
+  if (e.target.closest('button, a, .hold')) return;
+  if (!e.target.closest('.scene')) return;
+  player.skip();
+});
+
+/* ══════════ 場景切換 ══════════ */
+let cur = $('#s0');
+const enterFns = {};
+function go(id) {
+  const next = $('#' + id), prev = cur;
+  if (!next || next === prev) return;
+  cur = next;
+  if (player) { player.skip(); player = null; }
+  prev.classList.remove('on');
+  function swap() {
+    prev.hidden = true;
+    next.hidden = false;
+    void next.getBoundingClientRect();
+    next.classList.add('on');
+    window.scrollTo(0, 0);
+    try { next.focus({ preventScroll: true }); } catch (e) { next.focus(); }
+    PK.announce(next.getAttribute('aria-label') || '');
+    if (enterFns[id]) enterFns[id]();
+  }
+  if (PK.reduced()) swap(); else setTimeout(swap, 700);
+}
+document.addEventListener('click', function (e) {
+  const b = e.target.closest('button.next[data-go]');
+  if (b) go(b.dataset.go);
+});
+
+/* ══════════ 按住（滑鼠／觸控／空白鍵；可改成點一下切換） ══════════ */
+let toggleMode = store.get('toggle', false);
+const holders = [];
+function makeHold(btn, h) {
+  let held = false, via = '';
+  function press(src, e) {
+    if (btn.disabled || held) return;
+    if (e && e.cancelable) e.preventDefault();
+    held = true; via = src;
+    btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true');
+    Snd.ensure();
+    if (h.down) h.down();
+  }
+  function release(src) {
+    if (!held) return;
+    if (src !== 'force' && via && src !== via) return;
+    held = false; via = '';
+    btn.classList.remove('on'); btn.setAttribute('aria-pressed', 'false');
+    if (h.up) h.up();
+  }
+  btn.addEventListener('pointerdown', function (e) {
+    if (toggleMode || (e.button !== undefined && e.button !== 0)) return;
+    try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+    press('ptr', e);
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (ev) {
+    btn.addEventListener(ev, function () { if (!toggleMode) release('ptr'); });
+  });
+  btn.addEventListener('click', function (e) { if (toggleMode) { if (held) release('force'); else press('tog', e); } });
+  btn.addEventListener('keydown', function (e) {
+    if (toggleMode || (e.key !== ' ' && e.key !== 'Enter')) return;
+    e.preventDefault();
+    if (!e.repeat) press('key');
+  });
+  btn.addEventListener('keyup', function (e) { if (!toggleMode && (e.key === ' ' || e.key === 'Enter')) release('key'); });
+  btn.addEventListener('blur', function () { if (!toggleMode) release('force'); });
+  btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  const api = { get held() { return held; }, release: function () { release('force'); }, btn: btn };
+  holders.push(api);
+  return api;
+}
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) holders.forEach(function (h) { if (!toggleMode) h.release(); });
+});
+function paintToggle() {
+  $$('.tgl').forEach(function (b) { b.textContent = toggleMode ? '改回按住不放' : '無法長按？改成點一下切換'; });
+  $$('.hold').forEach(function (b) {
+    const hint = document.getElementById(b.getAttribute('aria-describedby'));
+    if (hint && hint.dataset.base === undefined) hint.dataset.base = hint.textContent;
+    if (hint && !hint.dataset.locked) hint.textContent = toggleMode ? '點一下開始，再點一下放開。' : hint.dataset.base;
+  });
+}
+document.addEventListener('click', function (e) {
+  const t = e.target.closest('.tgl');
+  if (!t) return;
+  holders.forEach(function (h) { h.release(); });
+  toggleMode = !toggleMode; store.set('toggle', toggleMode); paintToggle();
+});
+
+/* ══════════ 平面圖（SVG 400×290） ══════════ */
+function planSVG(kind) {
+  const boxAtHer = kind === 'a' || kind === 'move';
+  const other = kind === 'b' ? '她的丈夫' : '另一位客人';
+  const label = kind === 'b'
+    ? '燈亮後的平面圖：她的左腳從你右腳旁往前挪、抬起越過你的右腳，踩在你兩腳之間的鈴盒上，再滑回原位'
+    : (kind === 'a' ? '燈亮後的平面圖：她的雙手雙腳都被兩側的人扣著，鈴盒在她腳前，蓋子關著' : '鈴盒從她腳前移到你兩腳之間');
+  const bx = boxAtHer ? 183 : 99, by = boxAtHer ? 112 : 143;
+  let s = '<svg class="plan" viewBox="0 0 400 290" role="img" aria-label="' + label + '">' +
+    '<ellipse class="tbl" cx="200" cy="84" rx="172" ry="62"/>' +
+    '<text class="sm" x="200" y="38">桌面（在上方）</text>' +
+    '<path class="limb" d="M86 200 L82 172 M104 200 L148 172 M190 204 L171 172 M210 204 L229 172 M296 200 L252 172 M314 200 L318 172"/>' +
+    '<rect class="chair" x="58" y="200" width="74" height="48" rx="10"/><text x="95" y="229">你</text>' +
+    '<rect class="chair" x="163" y="204" width="74" height="48" rx="10"/><text x="200" y="233" style="fill:var(--warm)">她</text>' +
+    '<rect class="chair" x="268" y="200" width="74" height="48" rx="10"/><text x="305" y="229">' + other + '</text>' +
+    '<circle class="hand" cx="150" cy="197" r="6"/><circle class="hand" cx="160" cy="197" r="6"/>' +
+    '<circle class="hand" cx="240" cy="197" r="6"/><circle class="hand" cx="250" cy="197" r="6"/>' +
+    '<ellipse class="foot" cx="82" cy="156" rx="8.5" ry="15"/><ellipse class="foot" cx="150" cy="156" rx="8.5" ry="15"/>' +
+    '<ellipse class="foot hers" cx="170" cy="156" rx="8.5" ry="15"/><ellipse class="foot hers" cx="230" cy="156" rx="8.5" ry="15"/>' +
+    '<ellipse class="foot" cx="250" cy="156" rx="8.5" ry="15"/><ellipse class="foot" cx="318" cy="156" rx="8.5" ry="15"/>' +
+    '<g class="boxg"><rect x="' + bx + '" y="' + by + '" width="34" height="15" rx="2"/>' +
+    '<line x1="' + bx + '" y1="' + (by + 4) + '" x2="' + (bx + 34) + '" y2="' + (by + 4) + '"/>' +
+    /* 盒子在你腳邊時，標籤放盒子下方，免得被路線壓住 */
+    '<text class="sm" x="' + (bx + 17) + '" y="' + (kind === 'b' ? by + 28 : by - 6) + '" style="fill:var(--sense)">鈴盒</text></g>';
+  if (kind === 'b') {
+    s += '<g class="glowg"><path class="route" id="route" d=""/></g>' +
+      '<path class="back" id="routeBack" d=""/>' +
+      '<text class="sm note" x="146" y="112" style="fill:var(--warm)">腳懸空</text>' +
+      '<circle class="tap" cx="111" cy="150" r="9"/><circle class="tap" cx="111" cy="150" r="9"/><circle class="tap" cx="111" cy="150" r="9"/>';
+  }
+  return s + '</svg>';
+}
+$$('.planbox').forEach(function (el) { el.innerHTML = planSVG(el.dataset.plan); });
+
+/* ══════════ 腿的感覺（canvas） ══════════ */
+const CSS = getComputedStyle(document.documentElement);
+const COL = { sense: CSS.getPropertyValue('--sense').trim() || '#93d9cf', ember: CSS.getPropertyValue('--ember').trim() || '#e08466' };
+function drawTrace(cv, data, upto, opt) {
+  opt = opt || {};
+  const s = PK.fitCanvas(cv);
+  if (s.w < 80) return;
+  const g = cv.getContext('2d');
+  g.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+  g.clearRect(0, 0, s.w, s.h);
+  const L = 2, R = s.w - 2, base = s.h - 22, top = 8;
+  const T = data.t[data.t.length - 1];
+  const X = function (t) { return L + (R - L) * t / T; };
+  const Y = function (v) { return base - (base - top) * v / C.DMAX; };
+  g.strokeStyle = 'rgba(235,226,207,.16)'; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(L, base + 0.5); g.lineTo(R, base + 0.5); g.stroke();
+  const n = Math.min(data.t.length, Math.floor(upto / data.dt) + 1);
+  if (n > 1) {
+    g.save();
+    g.strokeStyle = COL.sense; g.lineWidth = 1.7; g.lineJoin = 'round';
+    g.shadowColor = 'rgba(147,217,207,.7)'; g.shadowBlur = 7;
+    g.beginPath();
+    for (let i = 0; i < n; i++) { const x = X(data.t[i]), y = Y(data.felt[i]); if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.stroke(); g.restore();
+    g.strokeStyle = COL.ember; g.lineWidth = 1.6;
+    for (let i = 1; i < n - 1; i++) {
+      const v = data.spike[i];
+      if (v > 0 && v >= data.spike[i - 1] && v >= data.spike[i + 1]) {
+        const x = X(data.t[i]);
+        g.beginPath(); g.moveTo(x, base + 4); g.lineTo(x, base + 4 + 14 * v / 0.6); g.stroke();
+      }
+    }
+  }
+  if (opt.head !== false) {
+    g.fillStyle = 'rgba(235,226,207,.42)';
+    g.fillRect(Math.round(X(Math.min(upto, T))) - 0.5, top, 1, base - top + 18);
+  }
+}
+function drawCompare(cv) {
+  const s = PK.fitCanvas(cv);
+  if (s.w < 80) return;
+  const g = cv.getContext('2d');
+  g.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+  g.clearRect(0, 0, s.w, s.h);
+  const rows = [{ d: C.perceive(3, C.ORDINARY), y0: 6, lab: '一般的小腿' }, { d: C.perceive(3, C.TENDER), y0: s.h / 2 + 4, lab: '腫起來的小腿' }];
+  const h = s.h / 2 - 16, L = 4, R = s.w - 4;
+  rows.forEach(function (row) {
+    const d = row.d, T = d.t[d.t.length - 1];
+    const X = function (t) { return L + (R - L) * t / T; };
+    const Y = function (v) { return row.y0 + h - h * v / C.DMAX; };
+    g.strokeStyle = 'rgba(235,226,207,.14)'; g.lineWidth = 1; g.setLineDash([]);
+    g.beginPath(); g.moveTo(L, row.y0 + h + 0.5); g.lineTo(R, row.y0 + h + 0.5); g.stroke();
+    g.strokeStyle = 'rgba(242,196,127,.75)'; g.lineWidth = 1.3; g.setLineDash([4, 4]);
+    g.beginPath();
+    for (let i = 0; i < d.t.length; i++) { const x = X(d.t[i]), y = Y(d.real[i]); if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.stroke(); g.setLineDash([]);
+    g.save(); g.strokeStyle = COL.sense; g.lineWidth = 1.8; g.shadowColor = 'rgba(147,217,207,.6)'; g.shadowBlur = 6;
+    g.beginPath();
+    for (let i = 0; i < d.t.length; i++) { const x = X(d.t[i]), y = Y(d.felt[i]); if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+    g.stroke(); g.restore();
+    g.fillStyle = 'rgba(235,226,207,.55)'; g.font = '11px ' + (CSS.getPropertyValue('--pk-sans') || 'sans-serif');
+    g.fillText(row.lab, L + 2, row.y0 + 11);
+  });
+}
+
+/* ══════════ 降靈會引擎（兩夜共用） ══════════ */
+function Seance(sec, kind, onReveal) {
+  const cap = $('.cap', sec), intro = $('.intro', sec), cv = $('.trace', sec);
+  const btn = $('.hold', sec), hint = $('.hint', sec);
+  let n = 3, data = null, events = null, state = null, started = false, ended = false, warnAt = -99, clock = 0;
+  function build() {
+    data = C.perceive(n, kind === 'A' ? C.ORDINARY : C.TENDER);
+    events = C.script(kind, n);
+    state = { t: 0, end: C.duration(n), done: false };
+  }
+  build();
+  function say(text, cls) {
+    const ps = $$('p', cap);
+    ps.forEach(function (p, i) {
+      const age = ps.length - i;
+      p.classList.remove('fresh');
+      p.classList.toggle('old', age === 1);
+      p.classList.toggle('older', age >= 2);
+      if (age >= 3) p.remove();
+    });
+    const p = document.createElement('p');
+    p.textContent = text;
+    p.className = 'fresh' + (cls === 'say' ? ' say' : cls === 'snd' ? ' snd-cap' : cls === 'you' ? ' you' : '');
+    cap.appendChild(p);
+  }
+  function frame(dt) {
+    clock += dt;
+    if (hold.held && !ended) {
+      const r = C.advance(state, dt, true, events);
+      state = { t: r.t, end: state.end, done: r.done };
+      r.fired.forEach(function (e) {
+        if (e.type === 'cap') say(e.text, e.cls);
+        else if (e.type === 'knock') Snd.knock();
+        else if (e.type === 'ring') Snd.ring();
+        else if (e.type === 'end') {
+          ended = true;
+          hint.dataset.locked = '1';
+          hint.textContent = toggleMode ? '再點一下，放手。' : '';
+          say(kind === 'A' ? '華特說，可以開燈了。放手吧。' : '放手。讓你的腿把它畫出來。', 'you');
+        }
+      });
+    }
+    drawTrace(cv, data, state.t);
+  }
+  const hold = makeHold(btn, {
+    down: function () {
+      if (!started) {
+        started = true;
+        sec.classList.add('started');
+        const chips = $('#chips', sec);
+        if (chips) $$('button', chips).forEach(function (b) { b.disabled = true; });
+        Snd.room(true);
+      }
+    },
+    up: function () {
+      if (!started) return;
+      if (ended) { finish(); return; }
+      if (clock - warnAt > 3.5) {
+        warnAt = clock;
+        say('「控制！」', 'say');
+        setTimeout(function () { if (!ended && !hold.held) say('黑暗裡有人喊。你鬆手了——握好，華特才肯繼續。'); }, 700);
+      }
+    }
+  });
+  function finish() {
+    PK.untick(frame);
+    Snd.room(false);
+    Snd.click();
+    btn.disabled = true;
+    sec.classList.add('lighted');
+    const dark = $('.dark', sec), lit = $('.lit', sec);
+    dark.style.opacity = '0';
+    setTimeout(function () {
+      dark.hidden = true; lit.hidden = false;
+      window.scrollTo(0, 0);
+      onReveal(n);
+    }, PK.reduced() ? 0 : 900);
+  }
+  return {
+    setN: function (k) { if (!started) { n = k; build(); drawTrace(cv, data, 0); } },
+    start: function () {
+      play($('.dark', sec), function () { try { btn.focus({ preventScroll: true }); } catch (e) {} });
+      PK.tick(frame);
+    },
+    redraw: function () { drawTrace(cv, data, state.t); }
+  };
+}
+
+/* ── 序 ── */
+if (store.get('done', false)) {
+  const a = $('#again'); a.hidden = false; a.textContent = '上次，你陪她等到了一九三六年。';
+}
+enterFns.s0 = function () {};
+play($('#s0'));
+$('#lightsOff').addEventListener('click', function () {
+  Snd.ensure(); Snd.click();
+  $('#s0').classList.add('off');
+  this.disabled = true;
+  setTimeout(function () { go('s1'); }, PK.reduced() ? 200 : 1100);
+});
+
+/* ── 一、第一夜 ── */
+const night1 = Seance($('#s1'), 'A', function (n) {
+  const zh = ['零', '一', '兩', '三', '四', '五'];
+  $('#s1n').textContent = '鈴響了' + zh[n] + '下，一下不多，一下不少。';
+  play($('#s1 .lit'));
+});
+$('#chips').addEventListener('click', function (e) {
+  const b = e.target.closest('button[data-n]');
+  if (!b || b.disabled) return;
+  $$('#chips button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+  night1.setN(+b.dataset.n);
+});
+enterFns.s1 = function () { night1.start(); };
+
+/* ── 二、懸賞：數字滾上去 ── */
+enterFns.s2 = function () {
+  const el = $('#money');
+  play($('#s2'));
+  if (PK.reduced()) { el.textContent = '$2,500'; return; }
+  let t = 0;
+  function f(dt) {
+    t += dt;
+    const k = C.smooth(t / 1.6);
+    el.textContent = '$' + Math.round(2500 * k).toLocaleString('en-US');
+    if (k >= 1) PK.untick(f);
+  }
+  setTimeout(function () { PK.tick(f); }, 1000);
+};
+
+/* ── 三、繃帶：盒子挪位 ── */
+enterFns.s3 = function () {
+  play($('#s3'));
+  const calf = $('#s3 .calf');
+  setTimeout(function () { calf.classList.add('on'); }, 3200);
+  const obs = new MutationObserver(function () {
+    if ($('#moveLine').classList.contains('in')) {
+      obs.disconnect();
+      setTimeout(function () { $('#s3 [data-plan="move"] .boxg').classList.add('moved'); }, PK.reduced() ? 0 : 500);
+    }
+  });
+  obs.observe($('#moveLine'), { attributes: true, attributeFilter: ['class'] });
+};
+
+/* ── 四、同一個位子（他）：燈亮後畫出腳的路 ── */
+const night2 = Seance($('#s4'), 'B', function (n) {
+  const route = $('#route'), back = $('#routeBack'), taps = $$('#s4 .tap');
+  route.setAttribute('d', C.pathD(n, 0, C.TAP0));
+  back.setAttribute('d', C.pathD(n, C.backStart(n), C.duration(n)));
+  const litBox = $('#s4 .lit');
+  drawCompare($('#cmp'));
+  PK.replayDash(route, 2200);
+  const T = PK.reduced() ? 0 : 2300;
+  for (let i = 0; i < n; i++) {
+    setTimeout(function () {
+      Snd.ring(0.5);
+      const c = taps[i];
+      if (c) { c.classList.remove('go'); void c.getBoundingClientRect(); c.classList.add('go'); }
+    }, T + i * 900);
+  }
+  setTimeout(function () { const note = $('#s4 .plan .note'); if (note) note.classList.add('in'); }, PK.reduced() ? 0 : 1500);
+  setTimeout(function () { back.classList.add('in'); }, T + n * 900 + 300);
+  play(litBox);   /* 第一行馬上出來，第二行等路線畫完、三下鈴踩完（data-w） */
+});
+enterFns.s4 = function () { night2.start(); };
+window.addEventListener('resize', function () {
+  if (cur.id === 's1') night1.redraw();
+  if (cur.id === 's4') { night2.redraw(); if (!$('#s4 .lit').hidden) drawCompare($('#cmp')); }
+});
+
+/* ── 五、吊襪帶 ── */
+enterFns.s5 = function () { play($('#s5 .col')); };
+$('#garter').addEventListener('click', function (e) {
+  const b = e.target.closest('button[data-c]');
+  if (!b) return;
+  $$('#garter button').forEach(function (x) { x.disabled = true; });
+  b.classList.add('picked');
+  const yes = b.dataset.c === 'yes';
+  $('#gYes').hidden = !yes; $('#gNo1').hidden = yes; $('#gNo2').hidden = yes;
+  const out = $('#garterOut');
+  out.hidden = false;
+  if (player) player.skip();
+  /* 五下鈴：在它那一行登場時響 */
+  const rings = $('#rings5');
+  const obs = new MutationObserver(function () {
+    if (!rings.classList.contains('in')) return;
+    obs.disconnect();
+    $$('span', rings).forEach(function (sp, i) {
+      setTimeout(function () { sp.classList.add('hit'); Snd.ring(0.45); }, 400 + i * 820);
+    });
+  });
+  obs.observe(rings, { attributes: true, attributeFilter: ['class'] });
+  play(out);
+  setTimeout(function () { out.scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'center' }); }, 80);
+});
+
+/* ── 六、後來 ── */
+enterFns.s6 = function () { play($('#s6')); };
+
+/* ── 七、拇指印：按住疊起來 ── */
+(function () {
+  const svg = $('#prints'), P = C.printRidges(1932);
+  function printG(cls) {
+    let g = '<g class="' + cls + '"><ellipse class="ol" cx="' + P.outline.cx + '" cy="' + P.outline.cy + '" rx="' + P.outline.rx + '" ry="' + P.outline.ry + '"/>';
+    P.paths.forEach(function (d) { g += '<path class="ridge" d="' + d + '"/>'; });
+    P.minutiae.forEach(function (m) { g += '<circle class="mn" cx="' + m[0] + '" cy="' + m[1] + '" r="3.2"/>'; });
+    return g + '</g>';
+  }
+  svg.innerHTML = '<g id="fpA">' + printG('fa') + '</g><g id="fpB">' + printG('fb') + '</g>';
+  const gA = $('#fpA'), gB = $('#fpB'), mA = $$('#fpA .mn'), mB = $$('#fpB .mn');
+  let p = 0, locked = false, shown = -1;
+  /* 兩枚各往中間走，在正中央疊合（SVG transform 屬性，旋轉軸心用 viewBox 座標釘死） */
+  function place() {
+    const e = C.smooth(p);
+    const ax = 6 + 104 * e, bx = 110 + 104 * (1 - e), by = 6 + 8 * (1 - e), rot = 11 * (1 - e);
+    gA.setAttribute('transform', 'translate(' + ax.toFixed(2) + ' 6)');
+    gB.setAttribute('transform', 'translate(' + bx.toFixed(2) + ' ' + by.toFixed(2) + ') rotate(' + rot.toFixed(2) + ' 100 118)');
+    const k = C.matchCount(p);
+    if (k !== shown) {
+      shown = k;
+      $('#mcount').textContent = String(k);
+      mA.forEach(function (c, i) { c.classList.toggle('lit', i < k); });
+      mB.forEach(function (c, i) { c.classList.toggle('lit', i < k); });
+    }
+  }
+  place();
+  const hold = makeHold($('#fpHold .hold'), {});
+  function f(dt) {
+    if (locked) return;
+    p += hold.held ? dt / 2.6 : -dt / 1.1;
+    p = Math.max(0, Math.min(1, p));
+    place();
+    if (p >= 1) {
+      locked = true; PK.untick(f);
+      svg.classList.add('match');
+      $('#plabels').innerHTML = '<span>華特 ＝ <span class="b">卡德威爾醫師</span></span>';
+      Snd.chime();
+      $('#fpHold .hold').disabled = true;
+      $('#fpHold .hint').textContent = '';
+      const out = $('#fpOut'); out.hidden = false;
+      play(out);
+      setTimeout(function () { out.scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'center' }); }, 80);
+    }
+  }
+  enterFns.s7 = function () {
+    play($('#s7 .col'), function () { try { $('#fpHold .hold').focus({ preventScroll: true }); } catch (e) {} });
+    PK.tick(f);
+  };
+})();
+
+/* ── 八、十年：按住陪她等，放手熄燈 ── */
+(function () {
+  const yearEl = $('#year'), capEl = $('#tenCap'), altar = $('#altar');
+  const ZH = '〇一二三四五六七八九';
+  const zhYear = function (y) { return String(y).split('').map(function (d) { return ZH[+d]; }).join(''); };
+  let sec = 0, lastY = 0, ready = false, done = false, waitedMsg = -99, clock = 0;
+  const lines = {
+    1927: '第一年。照片旁的蠟燭亮著。',
+    1929: '有個靈媒說出了暗語。貝絲先是信了，後來收回。',
+    1932: '這一年，華特的拇指印被比對出來。',
+    1934: '還是沒有。'
+  };
+  function say(text, cls) {
+    const ps = $$('p', capEl);
+    for (let i = 0; i < ps.length - 1; i++) ps[i].remove();
+    if (ps.length) { ps[ps.length - 1].classList.remove('fresh'); ps[ps.length - 1].classList.add('old'); }
+    const p = document.createElement('p'); p.textContent = text; p.className = 'fresh' + (cls ? ' ' + cls : '');
+    capEl.appendChild(p);
+  }
+  const hold = makeHold($('#tenHold .hold'), {
+    up: function () {
+      if (done) return;
+      if (ready) { out(); return; }
+      if (sec > 0 && clock - waitedMsg > 3) { waitedMsg = clock; say('她還在等。', 'snd-cap'); }
+    }
+  });
+  function f(dt) {
+    clock += dt;
+    if (done || !hold.held) return;
+    sec += dt;
+    const y = C.yearAt(sec);
+    if (y !== lastY) {
+      lastY = y;
+      yearEl.classList.add('swap');
+      setTimeout(function () { yearEl.textContent = zhYear(y); yearEl.classList.remove('swap'); }, PK.reduced() ? 0 : 180);
+      if (lines[y]) say(lines[y], y === 1929 || y === 1932 ? 'snd-cap' : '');
+    }
+    if (!ready && sec >= 10 * C.YEAR_SEC + 0.6) {
+      ready = true;
+      say('一九三六年，第十個萬聖夜，好萊塢一家旅館的屋頂。他沒有來。');
+      const hint = $('#h8'); hint.dataset.locked = '1';
+      hint.textContent = toggleMode ? '再點一下。' : '';
+      setTimeout(function () { if (!done) say('放手吧。', 'say'); }, 1400);
+    }
+  }
+  function out() {
+    done = true; PK.untick(f);
+    Snd.snuff();
+    altar.classList.add('out');
+    PK.replayDash($('#smoke'), 3200);
+    setTimeout(function () { altar.classList.add('gone'); }, 5200);
+    $('#tenHold').hidden = true;
+    store.set('done', true);
+    setTimeout(function () {
+      const o = $('#tenOut'); o.hidden = false;
+      $('#tenIntro').hidden = true;
+      capEl.hidden = true;
+      play(o);
+      setTimeout(function () { o.scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'start' }); }, 80);
+    }, PK.reduced() ? 300 : 1800);
+  }
+  enterFns.s8 = function () {
+    yearEl.textContent = zhYear(1926);
+    play($('#s8'), function () { try { $('#tenHold .hold').focus({ preventScroll: true }); } catch (e) {} });
+    PK.tick(f);
+  };
+})();
+
+$('#replay').addEventListener('click', function () { window.location.reload(); });
+
+/* 「無法長按」偏好 */
+paintToggle();
+/* 中途切到「減少動態」：正在逐行登場的段落一次放完（CSS 那邊的動畫由媒體查詢接手） */
+PK.onMotionChange(function (reduced) { if (reduced && player) player.skip(); });
+})();
+</script>
+</body>
+</html>

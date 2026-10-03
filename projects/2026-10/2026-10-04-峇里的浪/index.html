@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>不准調準｜每日小專案</title>
+<meta name="description" content="在峇里島，一對樂器發出一模一樣的音，就是還沒調好。今天你是村裡的調音師：拿銼刀把一對青銅鍵磨開幾赫茲，讓整套 gamelan 用同一個速度呼吸。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b0c12; --pk-ink:#efe7d6; --pk-dim:#8d8779; --pk-accent:#e7b75f;
+  --pk-line:rgba(239,231,214,.13);
+  --pk-serif:"Noto Serif TC","Source Han Serif TC","Songti TC","PMingLiU",Georgia,serif;
+  --lo:#e59a52; --hi:#86d3bd; --wave:#f1d79c; --gold:#e7b75f;
+  --panel:#13151e; --panel2:#0e1017;
+}
+html,body{background:var(--pk-bg)}
+body{font-family:var(--pk-serif);min-height:100svh}
+[hidden]{display:none!important}
+/* 一盞從底下照上來的油燈＋一點夜色（靜態） */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(120% 70% at 50% 118%,rgba(231,183,95,.14),transparent 62%),
+             radial-gradient(90% 55% at 50% -12%,rgba(134,211,189,.06),transparent 70%)}
+main{position:relative;z-index:1}
+
+/* ── 聲音開關 ── */
+.snd{position:fixed;top:14px;right:14px;z-index:40;font:13px/1 var(--pk-sans);letter-spacing:.08em;color:var(--pk-dim);
+  background:color-mix(in srgb,var(--pk-bg) 60%,transparent);border:1px solid var(--pk-line);border-radius:999px;padding:7px 12px;cursor:pointer;
+  transition:color .25s,border-color .25s}
+.snd:hover,.snd:focus-visible{color:var(--pk-ink);border-color:rgba(239,231,214,.35)}
+.snd[aria-pressed="false"]{opacity:.7}
+
+/* ── 場景 ── */
+.scene{min-height:100svh;padding:84px 18px 56px;display:flex;flex-direction:column;justify-content:center;opacity:0;transition:opacity .6s ease}
+.scene.on{opacity:1}
+.col{width:100%;max-width:700px;margin:0 auto}
+.chap{font:12px/1.6 var(--pk-sans);letter-spacing:.34em;color:var(--pk-dim);margin:0 0 22px;text-align:center;font-weight:400}
+.chap:focus{outline:none}
+.ln{font-size:clamp(17px,1vw + 12.5px,20px);line-height:1.95;letter-spacing:.02em;margin:0 0 .85em;
+  opacity:0;visibility:hidden;transform:translateY(8px);
+  transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.3,1),visibility 0s linear .9s}
+.ln.in{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+.ln i{font-style:normal;font-family:var(--pk-sans);letter-spacing:.03em}
+.ln.em{font-size:clamp(19px,1.3vw + 13px,23px);letter-spacing:.06em}
+.lo-t{color:var(--lo)} .hi-t{color:var(--hi)} .wv{color:var(--wave);font-weight:600}
+.small{font:13.5px/1.9 var(--pk-sans);color:var(--pk-dim);letter-spacing:.04em}
+.say{min-height:9.5em}
+.pg .actions{justify-content:flex-start}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 0}
+
+/* ── 按鈕 ── */
+.pk-btn{font-family:var(--pk-sans);letter-spacing:.14em;color:var(--gold);border-color:rgba(231,183,95,.6)}
+.pk-btn:hover{background:var(--gold);color:var(--pk-bg)}
+.pk-btn.solid{background:var(--gold);color:var(--pk-bg)}
+.pk-btn.solid:hover{background:#f3cd82}
+.pk-btn.big{font-size:17px;padding:14px 40px}
+.pk-btn.sm{font-size:13.5px;padding:8px 16px;letter-spacing:.1em}
+.ln .pk-btn{margin-top:4px}
+
+/* ── 第一屏 ── */
+#s0 .col{text-align:center}
+.kick{font:12.5px/1.6 var(--pk-sans);letter-spacing:.42em;color:var(--pk-dim);margin:0 0 20px}
+.ttl{position:relative;display:inline-block;margin:0 0 6px;font-family:var(--pk-serif);font-weight:700;
+  font-size:clamp(54px,13vw,108px);line-height:1.15;letter-spacing:.14em;padding-left:.14em;color:var(--pk-ink)}
+.ttl .ghost{position:absolute;left:.14em;top:0;mix-blend-mode:screen;opacity:.6;pointer-events:none}
+.ttl .g-lo{color:var(--lo);transform:translateX(-2.5px);animation:breatheL 5.6s ease-in-out infinite}
+.ttl .g-hi{color:var(--hi);transform:translateX(2.5px);animation:breatheR 5.6s ease-in-out infinite}
+@keyframes breatheL{0%,100%{transform:translateX(-2.6px)}50%{transform:translateX(-.4px)}}
+@keyframes breatheR{0%,100%{transform:translateX(2.6px)}50%{transform:translateX(.4px)}}
+.hero-waves{display:block;width:100%;max-width:560px;height:auto;margin:6px auto 0;opacity:.9}
+.lede{font-size:clamp(19px,1.4vw + 13px,24px);line-height:1.9;letter-spacing:.04em;margin:26px 0 8px}
+.lede-2{font-size:clamp(16px,.8vw + 12.5px,18.5px);color:var(--pk-dim);margin:0 0 30px;line-height:1.9}
+#go{margin:0 0 14px}
+.saved{margin:22px auto 0;max-width:30em}
+.linkish{appearance:none;background:none;border:0;padding:0 2px;color:var(--gold);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+
+/* ── 工作台 ── */
+.bench{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--pk-line);border-radius:18px;
+  padding:18px 20px 16px;margin:16px 0 0;box-shadow:0 22px 60px rgba(0,0,0,.38);overflow:hidden}
+.krow{display:grid;grid-template-columns:150px minmax(0,1fr);align-items:center;gap:14px}
+.krow + .krow{margin-top:2px}
+.klabel{font:12.5px/1.55 var(--pk-sans);letter-spacing:.04em;color:var(--pk-dim)}
+.klabel b{display:block;font-weight:600;font-size:14.5px;color:var(--pk-ink);letter-spacing:.05em}
+.klabel .hz{display:block;font-variant-numeric:tabular-nums;color:var(--pk-ink);font-size:13px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.dot.lo{background:var(--lo)} .dot.hi{background:var(--hi)}
+.kw{position:relative}
+.key{display:block;width:100%;height:auto;cursor:pointer;touch-action:manipulation;overflow:visible;-webkit-tap-highlight-color:transparent}
+.key:focus{outline:none}
+.key:focus-visible{outline:2px solid var(--gold);outline-offset:4px;border-radius:12px}
+.key.file{touch-action:none;cursor:grab}
+.key.file.dragging{cursor:grabbing}
+.key .uline{opacity:.85}
+.key.lo .uline{fill:var(--lo)} .key.hi .uline{fill:var(--hi)}
+.key .glow{opacity:0;transition:opacity .75s ease}
+.key.hit .glow{opacity:.6;transition:none}
+.zones{opacity:0;transition:opacity .25s}
+.key.file:hover .zones,.key.file:focus-visible .zones,.key.file.dragging .zones{opacity:1}
+@media (hover:none){.key.file .zones{opacity:.85}}
+.zone{fill:none;stroke-width:1.4;stroke-dasharray:4 4}
+.zone.zg{stroke:rgba(134,211,189,.75)} .zone.zs{stroke:rgba(229,154,82,.75)}
+.key.g-on .zone.zg,.key.s-on .zone.zs{stroke-dasharray:none;stroke-width:2.2}
+.zt{font:600 11px var(--pk-sans);text-anchor:middle;letter-spacing:.12em}
+.zt.zg{fill:rgba(134,211,189,.95)} .zt.zs{fill:rgba(229,154,82,.95)}
+.chip{position:absolute;width:3px;height:3px;border-radius:50%;pointer-events:none;background:#f6dc9a;
+  animation:fall .65s cubic-bezier(.3,.1,.7,1) forwards}
+.chip.dull{background:#a77b3c;width:4px;height:2px;border-radius:1px}
+@keyframes fall{from{transform:translate(0,0);opacity:1}to{transform:translate(var(--dx),var(--dy));opacity:0}}
+.strikes{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0 2px}
+.meter{position:relative;margin:16px 0 0;border-radius:12px;background:rgba(0,0,0,.28);overflow:hidden}
+.meter canvas{display:block;width:100%;height:92px}
+.ph{position:absolute;top:0;bottom:0;left:0;width:2px;background:rgba(239,231,214,.4);transform:translateX(-10px);pointer-events:none}
+.readout{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:10px 2px 0;font-family:var(--pk-sans)}
+.readout b{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--wave);letter-spacing:.01em;line-height:1}
+.readout span{font-size:13px;color:var(--pk-dim)}
+.readout em{font-style:normal;font-size:14px;color:var(--pk-ink);margin-left:auto;text-align:right}
+.readout em small{display:block;color:var(--pk-dim);font-size:12px}
+.ruler{position:relative;height:44px;margin:12px 2px 0;font-family:var(--pk-sans)}
+.ruler .track{position:absolute;left:0;right:0;top:12px;height:8px;border-radius:4px;background:rgba(239,231,214,.06)}
+.ruler .seg{position:absolute;top:12px;height:8px;border-radius:4px;background:rgba(239,231,214,.17)}
+.ruler .seg.tgt{background:rgba(231,183,95,.6);box-shadow:0 0 0 1px rgba(231,183,95,.9),0 0 12px rgba(231,183,95,.35)}
+.ruler .tick{position:absolute;top:25px;font-size:10.5px;color:var(--pk-dim);transform:translateX(-50%)}
+/* 指針只移動自己（像素位移），不拖整條全寬軌道——否則 translateX(%) 會把版面撐寬 */
+.ruler .mt{position:absolute;left:0;top:0;width:0;height:100%;pointer-events:none;transition:transform .12s linear}
+.ruler .mk{position:absolute;left:-6px;top:0;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:9px solid var(--hi)}
+.ruler .mt.ref .mk{border-top-color:rgba(239,231,214,.55)}
+.ruler .mt.ref .mk::after{content:"";position:absolute;left:-1px;top:2px;width:2px;height:22px;background:rgba(239,231,214,.35)}
+.stat{font:13.5px/1.8 var(--pk-sans);color:var(--pk-dim);margin:8px 2px 0;min-height:1.8em;letter-spacing:.03em}
+.stat.good{color:var(--hi)}
+.filehint{font:12.5px/1.7 var(--pk-sans);color:var(--pk-dim);text-align:center;margin:10px 0 0}
+
+/* ── 第二章：三對 ── */
+.rows{display:grid;gap:12px;margin-top:16px}
+.row{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--pk-line);border-radius:14px;padding:12px 14px 12px;
+  transition:border-color .5s;overflow:hidden}
+.row.ok{border-color:rgba(134,211,189,.5)}
+.rhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-family:var(--pk-sans)}
+.rhead .reg{font-family:var(--pk-serif);font-size:19px;color:var(--pk-ink);letter-spacing:.1em}
+.rhead .rf{font-size:12.5px;color:var(--pk-dim)}
+.rhead .rd{margin-left:auto;font-size:13px;color:var(--pk-dim)}
+.rhead .rd b{font-size:21px;color:var(--wave);font-variant-numeric:tabular-nums;margin-right:3px}
+.rhead .rn{display:block;width:100%;font-style:normal;font-size:12.5px;color:var(--pk-dim);text-align:right;margin-top:-2px}
+.rbody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:center;margin-top:6px}
+.rkeys{display:grid;gap:0}
+.strip-w{position:relative;border-radius:9px;overflow:hidden;background:rgba(0,0,0,.28)}
+.strip{display:block;width:100%;height:60px}
+.rfoot{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+.rstat{font:12.5px/1.6 var(--pk-sans);color:var(--pk-dim);letter-spacing:.03em}
+.row.ok .rstat{color:var(--hi)}
+.cents{margin:6px 0 14px;font-family:var(--pk-sans)}
+.cr{display:grid;grid-template-columns:5.5em minmax(0,1fr) 4.6em;gap:10px;align-items:center;margin:8px 0}
+.cr .cl{font-size:13px;color:var(--pk-dim)}
+.cr .cb{position:relative;height:10px;border-radius:5px;background:rgba(239,231,214,.07)}
+.cr .cb i{position:absolute;inset:0;border-radius:5px;background:linear-gradient(90deg,var(--lo),var(--wave));transform-origin:left center;transform:scaleX(0);
+  transition:transform 1.1s cubic-bezier(.2,.7,.3,1)}
+.cr .cb::after{content:"";position:absolute;left:var(--semi);top:-4px;width:1px;height:18px;background:rgba(239,231,214,.45)}
+.cr b{font-size:15px;color:var(--wave);font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.cents .semi{font-size:11.5px;color:var(--pk-dim);text-align:right;margin:-2px 4.6em 0 0;padding-right:10px}
+
+/* ── 第三章：上台 ── */
+.stage{margin-top:16px;background:linear-gradient(180deg,#141620,#0c0d14);border:1px solid var(--pk-line);border-radius:18px;padding:16px 16px 12px;position:relative;overflow:hidden}
+.stage::before{content:"";position:absolute;left:50%;top:50%;width:140%;height:140%;transform:translate(-50%,-50%) scale(.6);border-radius:50%;
+  background:radial-gradient(closest-side,rgba(231,183,95,.18),transparent);opacity:0;pointer-events:none;transition:opacity 1.6s ease,transform 2.4s ease}
+.stage.gong::before{opacity:1;transform:translate(-50%,-50%) scale(1);transition:none}
+.inst{display:grid;grid-template-columns:3.6em minmax(0,1fr) minmax(0,1.2fr);gap:12px;align-items:center;padding:8px 0;position:relative}
+.inst + .inst{border-top:1px dashed rgba(239,231,214,.08)}
+.inst .il{font-size:17px;letter-spacing:.1em;color:var(--pk-ink);text-align:center}
+.inst .il small{display:block;font:11px var(--pk-sans);color:var(--pk-dim);letter-spacing:.04em}
+.ikeys{display:block;width:100%;height:auto;overflow:visible}
+.ikeys .glow{opacity:0;transition:opacity .6s ease}
+.ikeys .hit .glow{opacity:.75;transition:none}
+.inst .strip{height:48px}
+.inst .rr{position:absolute;right:5px;top:4px;font:11.5px/1.6 var(--pk-sans);color:var(--pk-ink);font-variant-numeric:tabular-nums;
+  background:rgba(11,12,18,.8);padding:0 6px;border-radius:4px}
+.playrow{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;margin:18px 0 0}
+.vers{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0 0}
+.vers .pk-btn[aria-pressed="true"]{background:rgba(231,183,95,.18);color:var(--pk-ink)}
+
+/* ── 收尾 ── */
+#s4 .col{max-width:620px}
+.coda{font-size:clamp(20px,1.6vw + 13px,26px);letter-spacing:.06em;line-height:1.9}
+.again{margin-top:26px}
+
+footer.pk-foot{position:relative;z-index:1;margin:64px auto 28px;max-width:700px}
+.again .linkish{font:14px/1.8 var(--pk-sans);letter-spacing:.1em}
+
+@media (max-width:560px){
+  .scene{padding:74px 14px 44px}
+  .bench{padding:14px 12px 12px}
+  .krow{grid-template-columns:1fr;gap:2px}
+  .klabel{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .klabel b,.klabel .hz{display:inline}
+  .klabel .hz{margin-left:auto}
+  .meter canvas{height:78px}
+  .rbody{grid-template-columns:1fr;gap:8px}
+  .inst{grid-template-columns:3.2em minmax(0,1fr)}
+  .inst .strip-w{grid-column:1 / -1}
+  .cr{grid-template-columns:4.6em minmax(0,1fr) 4.4em}
+  .say{min-height:0}
+}
+
+/* 減少動態：關掉呼吸標題、火花、播放頭、鍵的亮光 */
+@media (prefers-reduced-motion: reduce){
+  .ttl .ghost{animation:none}
+  .chip,.ph{display:none}
+  .key .glow,.ikeys .glow{display:none}
+  .stage::before{display:none}
+}
+.rm .ttl .ghost{animation:none}
+.rm .chip,.rm .ph{display:none}
+.rm .key .glow,.rm .ikeys .glow,.rm .stage::before{display:none}
+.rm .ln{transition:none}
+.rm .scene{transition:none}
+</style>
+</head>
+<body>
+<!-- 共用漸層（userSpaceOnUse＋實座標，鍵的幾何固定在 320×70 的 viewBox） -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="brz" x1="0" y1="12" x2="0" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f7dc95"/><stop offset=".42" stop-color="#d6a24c"/><stop offset="1" stop-color="#7d521c"/>
+    </linearGradient>
+    <linearGradient id="fresh" x1="0" y1="12" x2="0" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff7df"/><stop offset="1" stop-color="#ecc97f"/>
+    </linearGradient>
+    <radialGradient id="glw" cx="160" cy="31" r="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff3cf" stop-opacity=".95"/><stop offset="1" stop-color="#fff3cf" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="brzV" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7d521c"/><stop offset=".5" stop-color="#e6b862"/><stop offset="1" stop-color="#7d521c"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+<button class="snd" id="snd" type="button" aria-pressed="true" hidden>聲音：開</button>
+
+<main id="main">
+
+  <!-- ═══ 第一屏：鉤子 ═══ -->
+  <section class="scene on" id="s0" aria-labelledby="h0">
+    <div class="col">
+      <p class="kick">峇里島・一對新到的鍵</p>
+      <h1 class="ttl" id="h0" tabindex="-1">不准調準<span class="ghost g-lo" aria-hidden="true">不准調準</span><span class="ghost g-hi" aria-hidden="true">不准調準</span></h1>
+      <svg class="hero-waves" id="heroWaves" viewBox="0 0 600 110" aria-hidden="true"></svg>
+      <p class="lede">在峇里島，一對樂器發出一模一樣的音，<br>就是還沒調好。</p>
+      <p class="lede-2">今天你是村裡的調音師。手上一把銼刀，兩隻耳朵。</p>
+      <button class="pk-btn big solid" id="go" type="button">上工</button>
+      <p class="small">會有聲音。音量先轉小，戴耳機更好。</p>
+      <p class="small saved" id="saved" hidden></p>
+    </div>
+  </section>
+
+  <!-- ═══ 一・同一爐銅 ═══ -->
+  <section class="scene" id="s1" hidden aria-labelledby="c1">
+    <div class="col">
+      <h2 class="chap" id="c1" tabindex="-1">一・同一爐銅</h2>
+      <div class="say" id="say1">
+        <div class="pg" data-p="1">
+          <p class="ln">鐵匠剛把一對新鍵送來。同一爐青銅、同一個模子，連音高都一樣：每秒振動 342 次。</p>
+          <p class="ln">上面那根要裝在低的那台，叫 <i class="lo-t">pengumbang</i>；下面那根裝在高的那台，叫 <i class="hi-t">pengisep</i>。</p>
+          <p class="ln">各敲一下，再一起敲。</p>
+          <p class="ln small noaudio" hidden>這台裝置發不出聲音——那就用眼睛看底下的浪。</p>
+        </div>
+        <div class="pg" data-p="2" hidden>
+          <p class="ln">一起敲，聲音平平地拉長，沒有一點起伏；底下那條帶子也是平的。</p>
+          <p class="ln em">在世界上大部分的地方，這叫音準。<br>在這裡，這叫還沒活過來。</p>
+          <p class="ln"><button class="pk-btn solid" id="toFile" type="button">拿起銼刀</button></p>
+        </div>
+        <div class="pg" data-p="3" hidden>
+          <p class="ln">峇里的調音師手上沒有旋鈕。要音高一點，就磨掉鍵的兩端；要低一點，就刮薄鍵腹的底面。</p>
+          <p class="ln">村子要的是每秒七、八下的浪。把下面那根磨高一點——邊磨邊聽。</p>
+          <p class="ln"><button class="pk-btn sm" id="refBtn" type="button">先聽一次村子要的浪</button></p>
+        </div>
+        <div class="pg" data-p="4" hidden>
+          <p class="ln em">停。</p>
+          <p class="ln">那一鬆一緊的起伏，峇里話叫 <b class="wv">ombak</b>——浪。</p>
+          <p class="ln">兩根差了 <b class="wv" data-v="mid">7.2</b> 赫茲，聲音就每秒鼓起 <b class="wv" data-v="mid">7.2</b> 次。你聽到的音高是兩根的平均；起伏的快慢，是兩根的差。</p>
+          <p class="ln"><button class="pk-btn solid" id="next1" type="button">下一對 →</button></p>
+        </div>
+      </div>
+
+      <div class="bench" id="benchA">
+        <div class="krow">
+          <div class="klabel"><b><i class="dot lo"></i>pengumbang</b>低的那台 <span class="hz" id="fA0">342.0 Hz</span></div>
+          <div class="kw" id="kwA0"></div>
+        </div>
+        <div class="krow">
+          <div class="klabel"><b><i class="dot hi"></i>pengisep</b>高的那台 <span class="hz" id="fA1">342.0 Hz</span></div>
+          <div class="kw" id="kwA1"></div>
+        </div>
+        <p class="filehint" id="hintA" hidden>在兩端來回拖曳＝磨（變高）；在中段來回拖曳＝刮（變低）。鍵盤：選中下面那根按 ↑ ↓。</p>
+        <div class="strikes">
+          <button class="pk-btn sm" type="button" data-hit="0">敲上面</button>
+          <button class="pk-btn sm" type="button" data-hit="1">敲下面</button>
+          <button class="pk-btn sm solid" type="button" data-hit="2">一起敲</button>
+        </div>
+        <div class="meter"><canvas id="cvA" aria-hidden="true"></canvas><div class="ph" id="phA"></div></div>
+        <div class="readout" aria-hidden="true"><b id="dA">0.0</b><span>下／秒</span><em id="nA">平的<small>沒有浪</small></em></div>
+        <div class="ruler" id="rulerA" aria-hidden="true"></div>
+        <p class="stat" id="statA"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 二・同一口氣 ═══ -->
+  <section class="scene" id="s2" hidden aria-labelledby="c2">
+    <div class="col">
+      <h2 class="chap" id="c2" tabindex="-1">二・同一口氣</h2>
+      <div class="say" id="say2">
+        <div class="pg" data-p="1">
+          <p class="ln">鐵匠手腳很快。你磨中間那對的時候，他照你的比例，把低一個八度、高一個八度的兩對也磨好了——頻率比跟你那對一模一樣，一絲不差。</p>
+          <p class="ln">敲敲看。</p>
+        </div>
+        <div class="pg" data-p="2" hidden>
+          <p class="ln">低的那對慢吞吞地晃，高的那對抖得像蟬叫。同一套樂器，三種呼吸。</p>
+          <p class="ln">峇里的規矩是整套同一口氣：每一對的浪，都要一樣快。把低的、高的都磨到跟中間那對一樣。</p>
+        </div>
+        <div class="pg" data-p="3" hidden>
+          <p class="ln">三對都在每秒 <b class="wv" data-v="mid">7.2</b> 下左右起伏了。看看你把它們各拉開了多少：</p>
+          <div class="ln cents" id="cents"></div>
+          <p class="ln">往上一個八度，差距就砍一半。浪的快慢只看差幾赫茲、不看比例；照比例抄，抄出來是三種速度。</p>
+          <p class="ln">低音那對差了 <b class="wv" data-v="cLo">70</b> 音分，<span data-v="cLoWord">大約四分之三個半音</span>——放在鋼琴上，調音師會以為琴壞了。</p>
+          <p class="ln">浪和八度是綁在一起調的：峇里的八度刻意不剛好是兩倍。比兩倍窄一點叫 <i>nyerod</i>，寬一點叫 <i>ngelanting</i>。</p>
+          <p class="ln"><button class="pk-btn solid" id="next2" type="button">上台 →</button></p>
+        </div>
+      </div>
+
+      <div class="rows" id="rows">
+        <div class="row" data-b="2">
+          <div class="rhead"><span class="reg">高</span><span class="rf">dong・684 Hz</span><span class="rd"><b>0.0</b>下／秒</span><em class="rn"></em></div>
+          <div class="rbody"><div class="rkeys"><div class="kw"></div><div class="kw"></div></div><div class="strip-w"><canvas class="strip" aria-hidden="true"></canvas><div class="ph"></div></div></div>
+          <div class="rfoot"><button class="pk-btn sm" type="button" data-rhit="2">敲這一對</button><span class="rstat" aria-live="polite"></span></div>
+        </div>
+        <div class="row" data-b="1">
+          <div class="rhead"><span class="reg">中</span><span class="rf">dong・342 Hz・你磨的那對</span><span class="rd"><b>0.0</b>下／秒</span><em class="rn"></em></div>
+          <div class="rbody"><div class="rkeys"><div class="kw"></div><div class="kw"></div></div><div class="strip-w"><canvas class="strip" aria-hidden="true"></canvas><div class="ph"></div></div></div>
+          <div class="rfoot"><button class="pk-btn sm" type="button" data-rhit="1">敲這一對</button><span class="rstat">已調好，當標準</span></div>
+        </div>
+        <div class="row" data-b="0">
+          <div class="rhead"><span class="reg">低</span><span class="rf">dong・171 Hz</span><span class="rd"><b>0.0</b>下／秒</span><em class="rn"></em></div>
+          <div class="rbody"><div class="rkeys"><div class="kw"></div><div class="kw"></div></div><div class="strip-w"><canvas class="strip" aria-hidden="true"></canvas><div class="ph"></div></div></div>
+          <div class="rfoot"><button class="pk-btn sm" type="button" data-rhit="0">敲這一對</button><span class="rstat" aria-live="polite"></span></div>
+        </div>
+        <p class="filehint">每對的下面那根都能磨（兩端，變高）或刮（中段，變低）；虛線是中間那對的浪，對齊它。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 三・上台 ═══ -->
+  <section class="scene" id="s3" hidden aria-labelledby="c3">
+    <div class="col">
+      <h2 class="chap" id="c3" tabindex="-1">三・上台</h2>
+      <div class="say" id="say3">
+        <div class="pg" data-p="1">
+          <p class="ln">天黑了。這套樂器要第一次在村裡出聲。</p>
+          <p class="ln">敲下第一聲。</p>
+        </div>
+        <div class="pg" data-p="2" hidden>
+          <p class="ln">三排鍵、幾十個音，全部用同一個速度起伏——像一整片海，跟著同一口氣漲退。</p>
+          <p class="ln">換個版本聽聽。</p>
+        </div>
+      </div>
+      <div class="stage" id="stage"></div>
+      <div class="playrow">
+        <button class="pk-btn big solid" id="play" type="button">敲下第一聲</button>
+      </div>
+      <div class="vers" id="vers" role="group" aria-label="換版本聽" hidden>
+        <button class="pk-btn sm" type="button" data-ver="mine" aria-pressed="true">你磨的這一套</button>
+        <button class="pk-btn sm" type="button" data-ver="ratio" aria-pressed="false">鐵匠照比例抄的</button>
+        <button class="pk-btn sm" type="button" data-ver="flat" aria-pressed="false">全部調到一模一樣</button>
+      </div>
+      <p class="ln small" id="verNote" style="text-align:center;margin-top:14px"></p>
+      <div class="playrow"><button class="pk-btn" id="next3" type="button" hidden>收工 →</button></div>
+    </div>
+  </section>
+
+  <!-- ═══ 四・吸氣，吐氣 ═══ -->
+  <section class="scene" id="s4" hidden aria-labelledby="c4">
+    <div class="col">
+      <h2 class="chap" id="c4" tabindex="-1">四・吸氣，吐氣</h2>
+      <p class="ln" data-k="a">低的那台叫 <i class="lo-t">pengumbang</i>，高的那台叫 <i class="hi-t">pengisep</i>。用英文介紹 gamelan 的文字，常把高的那台比作吸氣、低的比作吐氣；那個起伏，有人說是心跳，是活著的記號。</p>
+      <p class="ln" data-k="a">連那面大鑼也在浪，而且它沒有搭檔。楊百翰大學的團隊量過：鑼面的第二個振動模式，差一點點就是第一個的兩倍。就差那一點點，一槌下去，它自己跟自己打出浪來。</p>
+      <p class="ln" data-k="a">每個村子的 gamelan，音階和浪速都是自己的。在峇里住了好幾年的作曲家 Colin McPhee 說，同一種音階在各套之間差得太遠，簡直可以說：有多少套 gamelan，就有多少種音階。</p>
+      <p class="ln" data-k="a">你剛剛磨出來的這一套，每秒 <b class="wv" data-v="mid">7.2</b> 下。世界上也就這一組。</p>
+      <p class="ln" data-k="a">最後，回到開頭那對一模一樣的鍵，再敲一次。</p>
+      <p class="ln" data-k="a"><button class="pk-btn solid" id="last" type="button">敲那對還沒調的鍵</button></p>
+      <p class="ln coda" data-k="b">現在你聽得出來它少了什麼。<br>不是音準，是呼吸。</p>
+      <p class="ln again" data-k="b"><button class="linkish" id="restart" type="button">重新上工</button></p>
+    </div>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料：I Made Kartawan〈Tuning in Gender Wayang〉（UBC，2014）・Smithsonian 國立亞洲藝術博物館（Baumbusch）・Krueger 等（JASA，2010）・Wikipedia「Ombak」「Gamelan」
+</footer>
+
+<noscript><p style="text-align:center;padding:40px;color:#efe7d6">這一頁需要 JavaScript 才敲得響。</p></noscript>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="core.js"></script>
+<script>
+'use strict';
+const LS = 'ombak7.';               /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+const O = window.OMBAK;
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+const fmt = (d) => (Math.round(Math.abs(d) * 10 + 1e-6) / 10).toFixed(1);   /* +ε：7.3499999 與 7.35 別顯示成兩個數 */
+let RM = PK.reduced();
+document.documentElement.classList.toggle('rm', RM);
+PK.onMotionChange((m) => { RM = m; document.documentElement.classList.toggle('rm', m); redrawVisible(); });
+
+/* ════════════════ 聲音 ════════════════ */
+const AU = (function () {
+  let ctx = null, out = null, noise = null, ok = false, muted = false, dr = null, gr = null;
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return ok; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    try {
+      ctx = new AC();
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 5;
+      comp.attack.value = 0.003; comp.release.value = 0.25;
+      out = ctx.createGain(); out.gain.value = muted ? 0 : 0.9;
+      out.connect(comp); comp.connect(ctx.destination);
+      const len = Math.floor(ctx.sampleRate * 1.2);
+      noise = ctx.createBuffer(1, len, ctx.sampleRate);
+      const ch = noise.getChannelData(0);
+      for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+      ok = true;
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ok = false; }
+    return ok;
+  }
+  const now = () => (ctx ? ctx.currentTime : performance.now() / 1000);
+  /* 一根青銅鍵：基頻＋兩個不諧和泛音（自由棒的 2.76、5.4 倍），泛音衰減快 */
+  const PART = [[1, 1, 1], [2.76, 0.2, 0.3], [5.4, 0.06, 0.11]];
+  function strike(f, t, o) {
+    if (!ok) return;
+    o = o || {};
+    const v = 0.15 * (o.v || 1), tau = o.len || 1.6;
+    t = Math.max(t, ctx.currentTime);
+    for (const [r, a, k] of PART) {
+      const fr = f * r;
+      if (fr > 9000) continue;
+      const os = ctx.createOscillator(), g = ctx.createGain();
+      os.frequency.value = fr;
+      const tt = tau * k;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(a * v, t + 0.004);
+      g.gain.setTargetAtTime(0, t + 0.004, tt);
+      let stop = t + 0.004 + tt * 7;
+      if (o.damp) { g.gain.setTargetAtTime(0, t + o.damp, 0.05); stop = Math.min(stop, t + o.damp + 0.4); }
+      os.connect(g); g.connect(out);
+      os.start(t); os.stop(stop);
+    }
+    if (o.noClick) return;
+    const n = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain();
+    n.buffer = noise; bp.type = 'bandpass'; bp.frequency.value = Math.min(f * 5, 7000); bp.Q.value = 1.4;
+    ng.gain.setValueAtTime(v * 0.35, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    n.connect(bp); bp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.05);
+  }
+  function pair(f, d, t, o) { strike(f, t, o); strike(f + d, t, Object.assign({}, o, { noClick: true })); }
+  /* 大鑼：第二模式「差一點點」兩倍 → 一敲就自己打出幾赫茲的浪 */
+  function gong(t) {
+    if (!ok) return;
+    t = Math.max(t, ctx.currentTime);
+    const f = 68, v = 0.2;
+    const P = [[1, .5, 3.2], [2, .46, 2.8], [2.04, .42, 3.0], [3, .15, 1.4], [3.05, .13, 1.5], [4.1, .05, .6]];
+    for (const [r, a, tau] of P) {
+      const os = ctx.createOscillator(), g = ctx.createGain();
+      os.frequency.value = f * r;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a * v, t + 0.025); g.gain.setTargetAtTime(0, t + 0.025, tau);
+      os.connect(g); g.connect(out); os.start(t); os.stop(t + tau * 7);
+    }
+    const n = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), ng = ctx.createGain();
+    n.buffer = noise; lp.type = 'lowpass'; lp.frequency.value = 400;
+    ng.gain.setValueAtTime(v * 0.6, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    n.connect(lp); lp.connect(ng); ng.connect(out); n.start(t); n.stop(t + 0.15);
+  }
+  /* 磨的時候：兩個純音持續響，邊磨邊聽拍頻怎麼變 */
+  function droneOn(f1, f2) {
+    if (!ok) return;
+    if (dr) { droneSet(f1, f2); return; }
+    const t = ctx.currentTime, g = ctx.createGain();
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.11, t + 0.09);
+    g.connect(out);
+    const a = ctx.createOscillator(), b = ctx.createOscillator();
+    a.frequency.value = f1; b.frequency.value = f2;
+    a.connect(g); b.connect(g); a.start(t); b.start(t);
+    dr = { g, a, b };
+  }
+  function droneSet(f1, f2) {
+    if (!dr) return;
+    const t = ctx.currentTime;
+    dr.a.frequency.setTargetAtTime(f1, t, 0.012); dr.b.frequency.setTargetAtTime(f2, t, 0.012);
+  }
+  function droneOff() {
+    if (!dr) return;
+    const t = ctx.currentTime, d = dr; dr = null;
+    d.g.gain.cancelScheduledValues(t); d.g.gain.setValueAtTime(d.g.gain.value, t); d.g.gain.linearRampToValueAtTime(0, t + 0.25);
+    d.a.stop(t + 0.3); d.b.stop(t + 0.3);
+  }
+  /* 銼刀聲：帶通噪音，音量跟著拖曳速度 */
+  function rasp(mode) {
+    if (!ok) return;
+    raspOff();
+    const t = ctx.currentTime, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = noise; s.loop = true; f.type = 'bandpass'; f.frequency.value = mode === 'grind' ? 3400 : 1300; f.Q.value = 0.9;
+    g.gain.value = 0; s.connect(f); f.connect(g); g.connect(out); s.start(t);
+    gr = { s, g };
+  }
+  function raspLevel(x) { if (gr) gr.g.gain.setTargetAtTime(Math.min(1, x) * 0.06, ctx.currentTime, 0.03); }
+  function raspOff() {
+    if (!gr) return;
+    const t = ctx.currentTime, r = gr; gr = null;
+    r.g.gain.cancelScheduledValues(t); r.g.gain.setTargetAtTime(0, t, 0.04); r.s.stop(t + 0.3);
+  }
+  function setMuted(m) { muted = m; if (ctx) out.gain.setTargetAtTime(m ? 0 : 0.9, ctx.currentTime, 0.03); }
+  function hush() { droneOff(); raspOff(); }
+  return { init, now, strike, pair, gong, droneOn, droneSet, droneOff, rasp, raspLevel, raspOff, setMuted, hush,
+    get ok() { return ok; }, get muted() { return muted; } };
+})();
+document.addEventListener('visibilitychange', () => { if (document.hidden) AU.hush(); });
+
+/* ════════════════ 畫：鍵、浪、尺 ════════════════ */
+const GRIND_X = [86, 234];   /* viewBox 座標：x<86 或 x>234 是鍵端（磨），中間是鍵腹（刮） */
+function keySVG(kind, mini) {
+  const h = mini ? 58 : 72;
+  const zones = kind === 'hi' ? `
+    <g class="zones" aria-hidden="true">
+      <rect class="zone zg" x="8" y="6" width="78" height="50" rx="12"/>
+      <rect class="zone zg" x="234" y="6" width="78" height="50" rx="12"/>
+      <rect class="zone zs" x="96" y="6" width="128" height="50" rx="12"/>
+      ${mini ? '' : `<text class="zt zg" x="47" y="70">磨 ↑</text><text class="zt zs" x="160" y="70">刮 ↓</text><text class="zt zg" x="273" y="70">磨 ↑</text>`}
+    </g>` : '';
+  return `<svg class="key ${kind}" viewBox="0 0 320 ${h}" focusable="false">
+    <ellipse cx="160" cy="55" rx="128" ry="4.5" fill="rgba(0,0,0,.45)"/>
+    <line x1="0" y1="31" x2="320" y2="31" stroke="rgba(239,231,214,.22)" stroke-width="1.5"/>
+    <g class="bar">
+      <rect class="body" x="14" y="12" width="292" height="38" rx="9" fill="url(#brz)"/>
+      <rect class="endL" x="14" y="12" width="0" height="38" rx="8" fill="url(#fresh)"/>
+      <rect class="endR" x="306" y="12" width="0" height="38" rx="8" fill="url(#fresh)"/>
+      <rect class="shine" x="24" y="15" width="272" height="5" rx="2.5" fill="rgba(255,248,225,.36)"/>
+      <ellipse class="belly" cx="160" cy="45.5" rx="0" ry="4.5" fill="rgba(46,26,6,.62)"/>
+      <circle cx="87" cy="31" r="3.4" fill="#2b1b09"/><circle cx="233" cy="31" r="3.4" fill="#2b1b09"/>
+      <rect class="glow" x="14" y="12" width="292" height="38" rx="9" fill="url(#glw)"/>
+    </g>
+    <rect class="uline" x="40" y="53" width="240" height="2" rx="1"/>
+    ${zones}
+  </svg>`;
+}
+/* 磨掉的兩端變短、露出新銅色；刮過的鍵腹底下一道暗痕 */
+function paintMarks(svg, st) {
+  const g = Math.min(st.up * 0.8, 22), e = Math.min(4 + st.up * 1.6, 30) * (st.up > 0.05 ? 1 : 0);
+  const set = (sel, a) => { const el = svg.querySelector(sel); for (const k in a) el.setAttribute(k, a[k]); };
+  set('.body', { x: 14 + g, width: 292 - 2 * g });
+  set('.glow', { x: 14 + g, width: 292 - 2 * g });
+  set('.shine', { x: 24 + g, width: Math.max(0, 272 - 2 * g) });
+  set('.endL', { x: 14 + g, width: e });
+  set('.endR', { x: 306 - g - e, width: e });
+  set('.belly', { rx: Math.min(st.down * 7, 76) });
+}
+function hit(svg) {
+  if (RM || !svg) return;
+  svg.classList.add('hit');
+  setTimeout(() => svg.classList.remove('hit'), 90);
+}
+/* 一秒鐘的振幅包絡：|cos(π d t)|，浪頭的個數＝每秒幾下 */
+function drawEnv(cv, d, o) {
+  o = o || {};
+  const rect = cv.getBoundingClientRect();
+  if (rect.width < 80) return;                                   /* 隱藏中的 canvas 寬度是 0 */
+  const s = PK.fitCanvas(cv, rect.height || 92);
+  const g = cv.getContext('2d');
+  g.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+  g.clearRect(0, 0, s.w, s.h);
+  const W = s.w, H = s.h, mid = H / 2, amp = H * 0.39;
+  g.fillStyle = 'rgba(239,231,214,.06)';
+  for (let i = 1; i < 10; i++) g.fillRect(Math.round(W * i / 10), 5, 1, H - 10);
+  const N = Math.min(700, Math.max(160, Math.round(W * 1.2)));
+  const y = (dd, t) => mid - Math.max(0.03, O.envelope(dd, t)) * amp;
+  g.beginPath();
+  for (let i = 0; i <= N; i++) { const t = i / N; i ? g.lineTo(t * W, y(d, t)) : g.moveTo(0, y(d, t)); }
+  for (let i = N; i >= 0; i--) { const t = i / N; g.lineTo(t * W, 2 * mid - y(d, t)); }
+  g.closePath();
+  const grd = g.createLinearGradient(0, mid - amp, 0, mid + amp);
+  grd.addColorStop(0, 'rgba(241,215,156,.9)'); grd.addColorStop(0.5, 'rgba(231,183,95,.28)'); grd.addColorStop(1, 'rgba(241,215,156,.9)');
+  g.fillStyle = grd; g.fill();
+  if (o.ref != null) {
+    g.setLineDash([3, 4]); g.strokeStyle = 'rgba(134,211,189,.85)'; g.lineWidth = 1.3;
+    g.beginPath();
+    for (let i = 0; i <= N; i++) { const t = i / N; i ? g.lineTo(t * W, y(o.ref, t)) : g.moveTo(0, y(o.ref, t)); }
+    g.stroke(); g.setLineDash([]);
+  }
+  if (!o.bare) {
+    g.fillStyle = 'rgba(239,231,214,.38)'; g.font = '10px system-ui, sans-serif';
+    g.fillText('0', 4, H - 5); g.textAlign = 'right'; g.fillText('1 秒', W - 4, H - 5); g.textAlign = 'left';
+  }
+}
+const RULER_MAX = 22;
+function buildRuler(el) {
+  let h = '<div class="track"></div>';
+  for (const z of O.ZONES) {
+    if (z.id === 'flat' || z.id === 'rough') continue;
+    h += `<div class="seg" data-z="${z.id}" style="left:${z.lo / RULER_MAX * 100}%;width:${(z.hi - z.lo) / RULER_MAX * 100}%"></div>`;
+  }
+  for (const v of [0, 5, 10, 15, 20]) h += `<span class="tick" style="left:${v / RULER_MAX * 100}%">${v}</span>`;
+  h += '<div class="mt ref" hidden><i class="mk"></i></div><div class="mt now"><i class="mk"></i></div>';
+  el.innerHTML = h;
+}
+function setRuler(el, d, ref) {
+  const w = el.clientWidth;
+  const p = (v) => `translateX(${(Math.min(Math.abs(v), RULER_MAX) / RULER_MAX * w).toFixed(1)}px)`;
+  el.querySelector('.mt.now').style.transform = p(d);
+  const r = el.querySelector('.mt.ref');
+  r.hidden = ref == null;
+  if (ref != null) r.style.transform = p(ref);
+}
+
+/* ════════════════ 一對鍵（工作台與三排共用） ════════════════ */
+function makePair(o) {
+  o.wLo.innerHTML = keySVG('lo', o.mini);
+  o.wHi.innerHTML = keySVG('hi', o.mini);
+  const svLo = o.wLo.firstElementChild, svHi = o.wHi.firstElementChild;
+  const P = { f: o.f, st: o.st, editable: false, svLo, svHi };
+  let kbT = 0, lastChip = 0;
+
+  function aria() {
+    const z = O.zoneOf(P.st.d);
+    if (P.editable) {
+      svHi.setAttribute('role', 'slider');
+      svHi.setAttribute('aria-label', o.label + '：拖曳兩端磨高、拖曳中段刮低；方向鍵微調，Enter 一起敲');
+      svHi.setAttribute('aria-valuemin', String(O.D_MIN));
+      svHi.setAttribute('aria-valuemax', String(O.D_MAX));
+      svHi.setAttribute('aria-valuenow', P.st.d.toFixed(1));
+      svHi.setAttribute('aria-valuetext', `差 ${fmt(P.st.d)} 赫茲，每秒 ${fmt(P.st.d)} 下，${z.name}`);
+    } else {
+      svHi.setAttribute('role', 'button');
+      svHi.setAttribute('aria-label', '敲 pengisep（高的那台）');
+      ['aria-valuemin', 'aria-valuemax', 'aria-valuenow', 'aria-valuetext'].forEach((a) => svHi.removeAttribute(a));
+    }
+  }
+  P.paint = function () {
+    paintMarks(svHi, P.st);
+    aria();
+    o.onPaint && o.onPaint(P);
+  };
+  P.setEditable = function (on) {
+    P.editable = on;
+    svHi.classList.toggle('file', on);
+    aria();
+  };
+  P.strikeLo = () => { AU.init(); AU.strike(P.f, AU.now() + 0.02, { len: 1.6 }); hit(svLo); o.onStrike && o.onStrike('lo'); };
+  P.strikeHi = () => { AU.init(); AU.strike(P.f + P.st.d, AU.now() + 0.02, { len: 1.6 }); hit(svHi); o.onStrike && o.onStrike('hi'); };
+  P.strikeBoth = () => { AU.init(); AU.pair(P.f, P.st.d, AU.now() + 0.02, { len: 1.6 }); hit(svLo); hit(svHi); o.onStrike && o.onStrike('both'); };
+  function release() { AU.pair(P.f, P.st.d, AU.now() + 0.04, { len: 1.6 }); hit(svLo); hit(svHi); o.onRelease && o.onRelease(P); }
+  function apply(st) { P.st = st; P.paint(); AU.droneSet(P.f, P.f + P.st.d); }
+
+  svLo.setAttribute('tabindex', '0');
+  svLo.setAttribute('role', 'button');
+  svLo.setAttribute('aria-label', '敲 pengumbang（低的那台）');
+  svLo.addEventListener('click', P.strikeLo);
+  svLo.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); P.strikeLo(); } });
+
+  svHi.setAttribute('tabindex', '0');
+  let drag = null;
+  svHi.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    AU.init();
+    const r = svHi.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width * 320;
+    const mode = (x < GRIND_X[0] || x > GRIND_X[1]) ? 'grind' : 'scrape';
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, mode, dist: 0, t: performance.now(), live: false };
+    try { svHi.setPointerCapture(e.pointerId); } catch (_) {}
+    if (P.editable) { e.preventDefault(); svHi.classList.add('dragging', mode === 'grind' ? 'g-on' : 's-on'); }
+  });
+  svHi.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id || !P.editable) return;
+    const step = Math.hypot(e.clientX - drag.x, e.clientY - drag.y);
+    if (step < 0.5) return;
+    drag.x = e.clientX; drag.y = e.clientY;
+    const tn = performance.now(), dt = Math.max(8, tn - drag.t); drag.t = tn;
+    drag.dist += step;
+    if (!drag.live) {
+      if (drag.dist < 5) return;
+      drag.live = true; AU.droneOn(P.f, P.f + P.st.d); AU.rasp(drag.mode);
+    }
+    apply(O.rub(P.st, drag.mode, step, o.k || 0.035));
+    AU.raspLevel(step / dt * 0.3);
+    if (!RM && tn - lastChip > 28) { lastChip = tn; chip(o.wHi, e, drag.mode); }
+  });
+  const end = (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag; drag = null;
+    svHi.classList.remove('dragging', 'g-on', 's-on');
+    if (!d.live) { if (d.dist < 8) P.strikeHi(); return; }
+    AU.raspOff(); AU.droneOff();
+    release();
+  };
+  svHi.addEventListener('pointerup', end);
+  svHi.addEventListener('pointercancel', end);
+  svHi.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (P.editable) P.strikeBoth(); else P.strikeHi(); return; }
+    if (!P.editable) return;
+    let v = 0;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowRight') v = 0.1;
+    else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') v = -0.1;
+    else if (e.key === 'PageUp') v = 1;
+    else if (e.key === 'PageDown') v = -1;
+    else return;
+    e.preventDefault(); AU.init();
+    apply(O.rub(P.st, v > 0 ? 'grind' : 'scrape', Math.abs(v), 1));
+    clearTimeout(kbT); kbT = setTimeout(release, 450);
+  });
+  P.paint();
+  return P;
+}
+/* 銼屑：磨的是亮的火星，刮的是暗的銅屑 */
+function chip(wrap, e, mode) {
+  const r = wrap.getBoundingClientRect();
+  const c = document.createElement('i');
+  c.className = 'chip' + (mode === 'grind' ? '' : ' dull');
+  c.style.left = (e.clientX - r.left) + 'px';
+  c.style.top = (r.height * 0.62) + 'px';
+  const side = (e.clientX - r.left) < r.width / 2 ? -1 : 1;
+  c.style.setProperty('--dx', (mode === 'grind' ? side * (10 + Math.random() * 26) : (Math.random() - 0.5) * 14) + 'px');
+  c.style.setProperty('--dy', (mode === 'grind' ? 8 + Math.random() * 18 : 18 + Math.random() * 16) + 'px');
+  wrap.appendChild(c);
+  c.addEventListener('animationend', () => c.remove());
+  setTimeout(() => c.remove(), 900);
+}
+
+/* ════════════════ 狀態 ════════════════ */
+const S = { mid: { d: 0, up: 0, down: 0 }, lo: null, hi: null };
+const tuned = () => [S.lo ? S.lo.d : S.mid.d, S.mid.d, S.hi ? S.hi.d : S.mid.d];
+function fillVals() {
+  const c = O.cents(O.REG[0], tuned()[0]);
+  $$('[data-v="mid"]').forEach((el) => { el.textContent = fmt(S.mid.d); });
+  $$('[data-v="cLo"]').forEach((el) => { el.textContent = Math.round(c); });
+  const word = c < 70 ? '將近四分之三個半音' : c <= 80 ? '大約四分之三個半音' : '超過四分之三個半音';
+  $$('[data-v="cLoWord"]').forEach((el) => { el.textContent = word; });
+}
+
+/* ════════════════ 場景與旁白 ════════════════ */
+const scenes = $$('.scene');
+let cur = 0, moving = false;
+const ENTER = {};
+function goScene(n) {
+  const a = scenes[cur], b = scenes[n];
+  if (a === b || moving) return;
+  moving = true;
+  AU.hush();
+  a.classList.remove('on');
+  const show = () => {
+    a.hidden = true; b.hidden = false;
+    void b.offsetWidth;
+    b.classList.add('on');
+    cur = n; moving = false;
+    window.scrollTo(0, 0);
+    const h = b.querySelector('.chap, h1');
+    if (h) h.focus({ preventScroll: true });
+    if (ENTER[n]) ENTER[n]();
+  };
+  if (RM) show(); else setTimeout(show, 420);
+}
+/* 一行一行亮起；done 在最後一行亮完時呼叫 */
+function reveal(lines, done) {
+  let i = 0;
+  const step = () => {
+    while (i < lines.length && lines[i].hidden) i++;
+    if (i >= lines.length) { if (done) done(); return; }
+    lines[i].classList.add('in'); i++;
+    if (RM) step(); else setTimeout(step, 620);
+  };
+  step();
+}
+function page(sayEl, n, done) {
+  $$('.pg', sayEl).forEach((pg) => {
+    const on = pg.dataset.p === String(n);
+    if (!on) { pg.hidden = true; $$('.ln', pg).forEach((l) => l.classList.remove('in')); }
+  });
+  const pg = $(`.pg[data-p="${n}"]`, sayEl);
+  pg.hidden = false;
+  const ls = $$('.ln', pg);
+  ls.forEach((l) => l.classList.remove('in'));
+  PK.announce(ls.filter((l) => !l.hidden).map((l) => l.textContent.trim()).join(' '));
+  reveal(ls, done);
+}
+
+/* ════════════════ 第一屏 ════════════════ */
+(function heroWaves() {
+  const svg = $('#heroWaves');
+  const W = 600, mid = 55, A = 24;
+  const wave = (cyc) => { let d = ''; for (let x = 0; x <= W; x += 2) d += (x ? 'L' : 'M') + x + ' ' + (mid + A * Math.sin(2 * Math.PI * cyc * x / W)).toFixed(1); return d; };
+  let top = '', bot = '';
+  for (let x = 0; x <= W; x += 3) {
+    const e = Math.abs(Math.cos(Math.PI * 2 * x / W)) * A * 1.9 / 2 + 1.5;
+    top += (x ? 'L' : 'M') + x + ' ' + (mid - e).toFixed(1);
+    bot = 'L' + x + ' ' + (mid + e).toFixed(1) + bot;
+  }
+  svg.innerHTML =
+    `<path d="${top}${bot}Z" fill="rgba(241,215,156,.07)" stroke="rgba(241,215,156,.3)" stroke-width="1"/>` +
+    `<path d="${wave(15)}" fill="none" stroke="#e59a52" stroke-opacity=".62" stroke-width="1.3"/>` +
+    `<path d="${wave(17)}" fill="none" stroke="#86d3bd" stroke-opacity=".62" stroke-width="1.3"/>`;
+})();
+const sv = store.get('set', null);
+if (sv && isFinite(sv.lo) && isFinite(sv.mid) && isFinite(sv.hi)) {
+  const el = $('#saved');
+  el.innerHTML = `工作台上還留著你上次磨好的那一套（低 ${fmt(sv.lo)}・中 ${fmt(sv.mid)}・高 ${fmt(sv.hi)} 下／秒）。<button class="linkish" id="jump" type="button">直接上台</button>`;
+  el.hidden = false;
+  $('#jump').addEventListener('click', () => {
+    startAudio();
+    S.mid = { d: sv.mid, up: sv.mid, down: 0 };
+    S.lo = { d: sv.lo, up: 0, down: 0 }; S.hi = { d: sv.hi, up: 0, down: 0 };
+    fillVals();
+    goScene(3);
+  });
+}
+function startAudio() {
+  const ok = AU.init();
+  $('#snd').hidden = false;
+  $('.noaudio').hidden = ok;
+}
+$('#go').addEventListener('click', () => { startAudio(); goScene(1); });
+$('#snd').addEventListener('click', (e) => {
+  const m = !AU.muted;
+  AU.setMuted(m);
+  e.currentTarget.setAttribute('aria-pressed', String(!m));
+  e.currentTarget.textContent = m ? '聲音：關' : '聲音：開';
+});
+
+/* ════════════════ 一・同一爐銅 ════════════════ */
+const say1 = $('#say1'), rulerA = $('#rulerA'), cvA = $('#cvA'), statA = $('#statA');
+buildRuler(rulerA);
+let refGhost = null, struckBoth = false, done1 = false;
+const A = makePair({
+  wLo: $('#kwA0'), wHi: $('#kwA1'), f: O.REG[1], st: S.mid, label: 'pengisep',
+  onPaint(P) {
+    const z = O.zoneOf(P.st.d);
+    $('#fA1').textContent = (P.f + P.st.d).toFixed(1) + ' Hz';
+    $('#dA').textContent = fmt(P.st.d);
+    $('#nA').innerHTML = `${z.name}<small>${z.zh}</small>`;
+    setRuler(rulerA, P.st.d, null);
+    drawEnv(cvA, P.st.d, { ref: refGhost });
+  },
+  onStrike(which) {
+    sweep('#phA', 3.2);
+    if (which === 'both' && !struckBoth) {
+      struckBoth = true;
+      setTimeout(() => page(say1, 2), RM ? 0 : 1300);
+    }
+  },
+  onRelease(P) {
+    sweep('#phA', 3.2);
+    S.mid = P.st;
+    const d = P.st.d, z = O.zoneOf(d);
+    if (O.inTarget(d)) {
+      statA.className = 'stat good';
+      statA.textContent = `每秒 ${fmt(d)} 下，${z.name}。就是這個。`;
+      if (!done1) {
+        done1 = true;
+        A.setEditable(false);              /* 這對定案：之後還能敲，但不再磨 */
+        $('#hintA').hidden = true;
+        fillVals();
+        setTimeout(() => page(say1, 4), RM ? 0 : 900);
+      }
+    } else {
+      statA.className = 'stat';
+      if (d <= -0.6) statA.textContent = '顛倒了：下面那根比上面還低。磨兩端，把它拉回上面去。';
+      else if (d < 6.75) statA.textContent = `每秒 ${fmt(d)} 下，${z.name}——還太慢。再磨一點兩端。`;
+      else statA.textContent = `每秒 ${fmt(d)} 下，${z.name}——太快了。刮一下鍵腹，把它降回來。`;
+    }
+    PK.announce(statA.textContent);
+  }
+});
+$$('[data-hit]', $('#benchA')).forEach((b) => b.addEventListener('click', () => {
+  const k = b.dataset.hit;
+  if (k === '0') A.strikeLo(); else if (k === '1') A.strikeHi(); else A.strikeBoth();
+}));
+$('#toFile').addEventListener('click', () => {
+  A.setEditable(true);
+  $('#hintA').hidden = false;
+  rulerA.querySelector('[data-z="sedeng"]').classList.add('tgt');
+  statA.textContent = '目標：每秒七、八下（pengumbang sedeng，尺上亮起的那一格）。';
+  page(say1, 3);
+  A.svHi.focus({ preventScroll: true });
+  $('#benchA').scrollIntoView({ behavior: RM ? 'auto' : 'smooth', block: 'center' });
+});
+$('#refBtn').addEventListener('click', () => {
+  AU.init();
+  AU.pair(O.REG[1], 7.5, AU.now() + 0.03, { len: 1.9 });
+  refGhost = 7.5; A.paint(); sweep('#phA', 3.6);
+  statA.className = 'stat';
+  statA.textContent = '虛線是村子要的浪：每秒 7.5 下。';
+  setTimeout(() => { refGhost = null; A.paint(); }, 4200);
+});
+$('#next1').addEventListener('click', () => goScene(2));
+ENTER[1] = () => { A.paint(); page(say1, 1); };
+
+/* 播放頭：一秒掃過一次，掃 dur 秒 */
+const sweeps = new Map();
+function sweep(sel, dur) {
+  if (RM) return;
+  const el = typeof sel === 'string' ? $(sel) : sel;
+  if (!el) return;
+  sweeps.set(el, { start: performance.now() / 1000, dur });
+  PK.tick(sweepTick);
+}
+function sweepTick() {
+  const now = performance.now() / 1000;
+  for (const [el, s] of sweeps) {
+    const t = now - s.start;
+    const w = el.parentNode.clientWidth;
+    if (t > s.dur || RM) { el.style.transform = 'translateX(-10px)'; sweeps.delete(el); continue; }
+    el.style.transform = `translateX(${(t % 1) * w}px)`;
+  }
+  if (!sweeps.size) PK.untick(sweepTick);
+}
+
+/* ════════════════ 二・同一口氣 ════════════════ */
+const say2 = $('#say2');
+const rowEls = {};
+$$('.row', $('#rows')).forEach((r) => { rowEls[r.dataset.b] = r; });
+let R = null, heard2 = new Set(), shown2 = false, done2 = false;
+function rowPaint(b, P) {
+  const r = rowEls[b], z = O.zoneOf(P.st.d);
+  $('.rd b', r).textContent = fmt(P.st.d);
+  $('.rn', r).textContent = z.name + '・' + z.zh;
+  drawEnv($('.strip', r), P.st.d, { ref: b === 1 ? null : S.mid.d, bare: true });
+}
+function rowStatus(b) {
+  if (b === 1) return;
+  const r = rowEls[b], d = R[b].st.d, diff = d - S.mid.d;
+  const ok = Math.abs(diff) <= 0.5;
+  r.classList.toggle('ok', ok);
+  $('.rstat', r).textContent = ok ? '✓ 跟中間那對同一口氣'
+    : (diff < 0 ? `比中間慢 ${fmt(diff)} 下——磨兩端` : `比中間快 ${fmt(diff)} 下——刮鍵腹`);
+}
+function check2() {
+  if (done2) return;
+  if (O.matched([R[0].st.d, R[2].st.d], S.mid.d, 0.5)) {
+    done2 = true;
+    S.lo = R[0].st; S.hi = R[2].st;
+    store.set('set', { lo: S.lo.d, mid: S.mid.d, hi: S.hi.d });
+    fillVals(); buildCents();
+    setTimeout(() => page(say2, 3, growCents), RM ? 0 : 900);
+  }
+}
+function heard(b) {
+  heard2.add(b);
+  if (!shown2 && heard2.has(0) && heard2.has(2)) { shown2 = true; setTimeout(() => page(say2, 2), RM ? 0 : 1600); }
+}
+function buildR() {
+  const dm = S.mid.d;
+  const init = {
+    0: { d: O.ratioCopy(dm, O.REG[1], O.REG[0]), up: 0, down: 0 },
+    1: { d: dm, up: S.mid.up, down: S.mid.down },
+    2: { d: O.ratioCopy(dm, O.REG[1], O.REG[2]), up: 0, down: 0 }
+  };
+  R = {};
+  for (const b of [0, 1, 2]) {
+    const r = rowEls[b], kws = $$('.kw', r);
+    R[b] = makePair({
+      wLo: kws[0], wHi: kws[1], f: O.REG[b], st: init[b], mini: true,
+      label: ['低', '中', '高'][b] + '音那對的 pengisep', k: 0.035,
+      onPaint: (P) => rowPaint(b, P),
+      onStrike: () => { sweep($('.ph', r), 3.2); if (b !== 1) heard(b); },
+      onRelease: (P) => { sweep($('.ph', r), 3.2); heard(b); rowStatus(b); check2(); }
+    });
+    if (b !== 1) R[b].setEditable(true);
+    rowStatus(b);
+  }
+  $$('[data-rhit]').forEach((btn) => btn.addEventListener('click', () => R[btn.dataset.rhit].strikeBoth()));
+}
+function buildCents() {
+  const t = tuned(), lab = ['低 171', '中 342', '高 684'];
+  const MAXC = 110;
+  let h = '';
+  for (const b of [0, 1, 2]) {
+    const c = O.cents(O.REG[b], t[b]);
+    h += `<div class="cr"><span class="cl">${lab[b]} Hz</span><span class="cb" style="--semi:${100 / MAXC * 100}%"><i data-s="${Math.min(c / MAXC, 1).toFixed(3)}"></i></span><b>${Math.round(c)} 音分</b></div>`;
+  }
+  h += `<p class="semi">直線＝一個半音（100 音分）</p>`;
+  $('#cents').innerHTML = h;
+}
+function growCents() { $$('#cents .cb i').forEach((i) => { i.style.transform = `scaleX(${i.dataset.s})`; }); }
+$('#next2').addEventListener('click', () => goScene(3));
+ENTER[2] = () => {
+  if (!R) buildR();
+  for (const b of [0, 1, 2]) R[b].paint();
+  page(say2, 1);
+};
+
+/* ════════════════ 三・上台 ════════════════ */
+const say3 = $('#say3'), stage = $('#stage');
+let playing = false, played = false, ver = 'mine';
+(function buildStage() {
+  let h = '';
+  for (const b of [2, 1, 0]) {
+    let keys = '';
+    for (let i = 0; i < 5; i++) {
+      /* 由上往下看的五根鍵：越高的音越短 */
+      const hgt = 60 - i * 4, x = 8 + i * 58, y = (66 - hgt) / 2;
+      keys += `<g data-k="${i}"><rect x="${x}" y="${y}" width="42" height="${hgt}" rx="6" fill="url(#brzV)"/>` +
+        `<rect x="${x + 5}" y="${y + 3}" width="32" height="3" rx="1.5" fill="rgba(255,248,225,.35)"/>` +
+        `<circle cx="${x + 21}" cy="${y + hgt * 0.25}" r="2.2" fill="#2b1b09"/><circle cx="${x + 21}" cy="${y + hgt * 0.75}" r="2.2" fill="#2b1b09"/>` +
+        `<rect class="glow" x="${x - 3}" y="${y - 3}" width="48" height="${hgt + 6}" rx="8" fill="rgba(255,236,186,.55)"/></g>`;
+    }
+    h += `<div class="inst" data-b="${b}"><span class="il">${['低', '中', '高'][b]}<small>${O.REG[b]} Hz</small></span>` +
+      `<svg class="ikeys" viewBox="0 0 300 66" aria-hidden="true">${keys}</svg>` +
+      `<div class="strip-w"><canvas class="strip" aria-hidden="true"></canvas><div class="ph"></div><span class="rr"></span></div></div>`;
+  }
+  stage.innerHTML = h;
+})();
+function drawStage() {
+  const t = tuned();
+  for (const b of [0, 1, 2]) {
+    const el = $(`.inst[data-b="${b}"]`, stage);
+    const d = O.deltaFor(ver, O.REG[b], t);
+    drawEnv($('.strip', el), d, { bare: true });
+    $('.rr', el).textContent = `每秒 ${fmt(d)} 下`;
+  }
+}
+function glow(e) {
+  if (RM) return;
+  if (e.kind === 'gong') {
+    stage.classList.add('gong');
+    setTimeout(() => stage.classList.remove('gong'), 120);
+    return;
+  }
+  const f = O.freq(e.deg, e.oct), b = O.bandOf(f);
+  const g = $(`.inst[data-b="${b}"] g[data-k="${e.deg}"]`, stage);
+  if (!g) return;
+  g.classList.add('hit');
+  setTimeout(() => g.classList.remove('hit'), 90);
+}
+function playPiece(v, done) {
+  if (playing) return;
+  AU.init();
+  ver = v; playing = true;
+  $$('#vers [data-ver]').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.ver === v)); b.disabled = true; });
+  $('#play').disabled = true;
+  drawStage();
+  const t = tuned(), ev = O.piece(), t0 = AU.now() + 0.15;
+  for (const e of ev) {
+    if (e.kind === 'gong') { AU.gong(t0 + e.t); continue; }
+    const f = O.freq(e.deg, e.oct), d = O.deltaFor(v, f, t);
+    AU.pair(f, d, t0 + e.t, { len: e.len, damp: e.damp, v: e.oct === 0 ? 1.1 : 0.85 });
+  }
+  const phs = $$('.ph', stage);
+  let i = 0;
+  const tick = () => {
+    const tt = AU.now() - t0;
+    while (i < ev.length && ev[i].t <= tt) { glow(ev[i]); i++; }
+    if (!RM) phs.forEach((p) => { p.style.transform = tt > 0 ? `translateX(${(tt % 1) * p.parentNode.clientWidth}px)` : 'translateX(-10px)'; });
+    if (tt > O.pieceLength()) {
+      PK.untick(tick); playing = false;
+      phs.forEach((p) => { p.style.transform = 'translateX(-10px)'; });
+      $$('#vers [data-ver]').forEach((b) => { b.disabled = false; });
+      $('#play').disabled = false;
+      if (done) done();
+    }
+  };
+  PK.tick(tick);
+  PK.announce(v === 'flat' ? '全部調到一模一樣的版本' : v === 'ratio' ? '照比例抄的版本' : '你磨的這一套，開始');
+}
+const VNOTE = {
+  mine: '你磨的這一套：三層一起，每秒同樣幾下。',
+  ratio: '照比例抄的：低的拖著走，高的在發抖，每一層各喘各的。',
+  flat: '全部一模一樣：每個音都對，聽起來像一排擺在桌上的鐵條。'
+};
+$('#play').addEventListener('click', () => {
+  playPiece('mine', () => {
+    if (!played) {
+      played = true;
+      $('#play').textContent = '再敲一次';
+      page(say3, 2, () => { $('#vers').hidden = false; $('#next3').hidden = false; });
+    }
+  });
+});
+$$('#vers [data-ver]').forEach((b) => b.addEventListener('click', () => {
+  const v = b.dataset.ver;
+  const note = $('#verNote');
+  note.classList.remove('in');
+  playPiece(v, () => { note.textContent = VNOTE[v]; note.classList.add('in'); });
+}));
+$('#next3').addEventListener('click', () => goScene(4));
+ENTER[3] = () => { drawStage(); page(say3, 1); };
+
+/* ════════════════ 四・吸氣，吐氣 ════════════════ */
+ENTER[4] = () => {
+  fillVals();
+  const s4 = $('#s4');
+  $$('.ln', s4).forEach((l) => l.classList.remove('in'));
+  reveal($$('.ln[data-k="a"]', s4));
+};
+$('#last').addEventListener('click', () => {
+  AU.init();
+  AU.pair(O.REG[1], 0, AU.now() + 0.03, { len: 1.8 });
+  $('#last').disabled = true;
+  setTimeout(() => {
+    const ls = $$('.ln[data-k="b"]', $('#s4'));
+    PK.announce(ls[0].textContent);
+    reveal(ls);
+  }, RM ? 0 : 2400);
+});
+$('#restart').addEventListener('click', () => {
+  S.mid = { d: 0, up: 0, down: 0 }; S.lo = S.hi = null;
+  struckBoth = false; done1 = false; done2 = false; shown2 = false; heard2 = new Set(); played = false;
+  A.st = S.mid; A.setEditable(false); A.paint();
+  $('#hintA').hidden = true; statA.textContent = ''; statA.className = 'stat';
+  const tg = rulerA.querySelector('.tgt'); if (tg) tg.classList.remove('tgt');
+  R = null; $$('.row .kw').forEach((k) => { k.innerHTML = ''; });
+  $$('[data-rhit]').forEach((b) => { const c = b.cloneNode(true); b.replaceWith(c); });
+  $('#play').textContent = '敲下第一聲'; $('#vers').hidden = true; $('#next3').hidden = true;
+  $('#verNote').textContent = ''; $('#last').disabled = false;
+  goScene(1);
+});
+
+/* ════════════════ 尺寸改變時重畫看得見的 canvas ════════════════ */
+function redrawVisible() {
+  if (cur === 1) A.paint();
+  if (cur === 2 && R) for (const b of [0, 1, 2]) R[b].paint();
+  if (cur === 3) drawStage();
+}
+let rzT = 0;
+window.addEventListener('resize', () => { cancelAnimationFrame(rzT); rzT = requestAnimationFrame(redrawVisible); });
+</script>
+</body>
+</html>

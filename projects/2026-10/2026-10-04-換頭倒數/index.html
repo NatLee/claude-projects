@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>那場手術沒有發生｜每日小專案</title>
+<meta name="description" content="2015 年，一位義大利醫師說兩年內就能把人的頭接到另一具身體上。一個倒數時鐘跟著報導往前走：六次承諾、一次大體演練，和第一個說「我願意」的人。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#f2f0eb; --pk-ink:#17191c; --pk-dim:#6a6e74; --pk-accent:#cf3a24; --pk-line:rgba(23,25,28,.12);
+  --red:#cf3a24; --teal:#1d7480; --card:#fffdf9; --mono:"SF Mono","Roboto Mono","Noto Sans Mono","Consolas",ui-monospace,monospace;
+}
+body{background:var(--pk-bg);font-family:var(--pk-sans)}
+.pk-home{background:color-mix(in srgb,var(--pk-bg) 75%,transparent)}
+
+/* ── 置頂的倒數時鐘 ── */
+.clock{position:sticky;top:0;z-index:8;background:color-mix(in srgb,var(--pk-bg) 88%,transparent);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-bottom:1px solid var(--pk-line)}
+.clock .in{max-width:760px;margin:0 auto;padding:46px 20px 12px;display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:end}
+.clock .lab{font-size:12.5px;letter-spacing:.14em;color:var(--pk-dim);grid-column:1/3}
+.clock .num{font:600 clamp(40px,8vw,64px)/1 var(--mono);letter-spacing:.02em;color:var(--red);font-variant-numeric:tabular-nums;
+  display:flex;align-items:baseline;gap:10px;min-height:1.05em}
+.clock .num small{font:500 15px var(--pk-sans);color:var(--pk-ink);letter-spacing:.1em}
+.clock .num .hms{font:500 15px var(--mono);color:var(--pk-dim);letter-spacing:.06em}
+.clock.over .num{color:var(--pk-ink)}
+.clock.over .num .tag{background:var(--red);color:#fff}
+.clock .tag{font:600 12px var(--pk-sans);letter-spacing:.16em;padding:3px 8px;border-radius:4px;border:1px solid var(--red);color:var(--red);align-self:center}
+.clock .meta{font:12.5px/1.6 var(--mono);color:var(--pk-dim);grid-column:1/2}
+.clock .meta b{font-weight:500;color:var(--pk-ink)}
+.marks{display:flex;gap:7px;align-self:center;grid-row:2/4;grid-column:2/3}
+.mk{position:relative;width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(23,25,28,.25)}
+.mk.trust{background:var(--teal);border-color:var(--teal)}
+.mk.doubt{border-color:var(--teal);border-style:dashed}
+.mk::after{content:"";position:absolute;left:-3px;right:-3px;top:50%;height:2px;margin-top:-1px;background:var(--red);
+  transform:scaleX(0);transform-origin:0 50%;transition:transform .35s ease}
+.mk.broken::after{transform:scaleX(1) rotate(-35deg)}
+.reset{position:absolute;right:20px;top:46px;font:600 11px var(--pk-sans);letter-spacing:.2em;color:#fff;background:var(--red);
+  padding:3px 8px;border-radius:3px;opacity:0;transform:translateY(-4px);transition:opacity .25s,transform .25s;pointer-events:none}
+.reset.on{opacity:1;transform:none}
+.clock .in{position:relative}
+
+/* ── 第一屏 ── */
+.hook{min-height:calc(100svh - 160px);display:flex;flex-direction:column;justify-content:center;max-width:760px;margin:0 auto;padding:30px 20px}
+.hook h1{font:700 clamp(26px,4.4vw + 8px,40px)/1.5 var(--pk-sans);letter-spacing:.02em;margin:0 0 18px}
+.hook p{font-size:clamp(16px,1vw + 12px,19px);line-height:1.9;color:#33373c;margin:0 0 14px;max-width:34em}
+.btn{appearance:none;font:600 15px var(--pk-sans);letter-spacing:.12em;border-radius:999px;padding:12px 26px;cursor:pointer;
+  border:1.5px solid var(--pk-ink);background:var(--pk-ink);color:var(--pk-bg);transition:transform .12s,background .2s,color .2s}
+.btn:hover{background:var(--red);border-color:var(--red)}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--pk-ink)}
+.btn.ghost:hover{background:var(--pk-ink);color:var(--pk-bg);border-color:var(--pk-ink)}
+.btn:disabled{opacity:.35;cursor:default;transform:none}
+.btn.picked:disabled{opacity:1;background:var(--teal);border-color:var(--teal);color:#fff}
+
+/* ── 報導卡片 ── */
+.feed{max-width:760px;margin:0 auto;padding:0 20px 40px}
+.card{background:var(--card);border:1px solid var(--pk-line);border-radius:14px;padding:22px 24px 20px;margin:0 0 22px;
+  box-shadow:0 1px 0 rgba(0,0,0,.03),0 10px 28px -18px rgba(0,0,0,.25);opacity:0;transform:translateY(14px);
+  transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.3,1)}
+.card.in{opacity:1;transform:none}
+.card header{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.card time{font:500 13px var(--mono);color:var(--pk-dim);letter-spacing:.04em}
+.card .tg{font:600 11.5px var(--pk-sans);letter-spacing:.14em;padding:2px 8px;border-radius:999px;background:rgba(23,25,28,.06);color:var(--pk-dim)}
+.card.promise .tg{background:rgba(207,58,36,.1);color:var(--red)}
+.card.quiz .tg{background:rgba(29,116,128,.12);color:var(--teal)}
+.card h2{font:700 clamp(19px,1vw + 15px,23px)/1.5 var(--pk-sans);margin:0 0 10px;letter-spacing:.02em}
+.card h2:focus{outline:none}
+.card p{margin:0 0 12px;font-size:16.5px;line-height:1.9;color:#2b2f34}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.after{font:14px/1.7 var(--pk-sans);color:var(--pk-dim);margin:14px 0 4px;min-height:1.7em}
+.after:empty{min-height:0;margin:0}
+.after b{color:var(--pk-ink);font-weight:600}
+
+/* 解謎：脖子橫切面 */
+.neck{display:block;width:100%;max-width:300px;height:auto;margin:6px auto 12px;overflow:visible}
+.neck .skin{fill:#fbe9df;stroke:#d9bfb2;stroke-width:1.5}
+.neck .part{stroke-width:1.5;transition:fill .4s,stroke .4s,opacity .4s}
+.neck .v{fill:#f1c7c0;stroke:#c9675a}
+.neck .tr{fill:#e8eef2;stroke:#8aa3b2}
+.neck .es{fill:#f3dccf;stroke:#c69b84}
+.neck .vb{fill:#efe8dc;stroke:#b9ab95}
+.neck .cord{fill:#fff6e8;stroke:#b48a52}
+.neck text{font:11px var(--pk-sans);fill:#5b5f64;text-anchor:middle}
+.neck.done .part{opacity:.55}
+.neck.done .cord{opacity:1;fill:var(--red);stroke:var(--red)}
+.neck.done .v{opacity:1;fill:#bfe0e4;stroke:var(--teal)}
+.opt.right:disabled{opacity:1;background:var(--red);border-color:var(--red);color:#fff}
+
+/* 結尾 */
+.coda{max-width:760px;margin:0 auto;padding:10px 20px 20px;text-align:center}
+.coda .big{font:700 clamp(22px,2vw + 14px,30px)/1.6 var(--pk-sans);margin:18px 0 8px}
+.coda .sum{font:15px/1.9 var(--pk-sans);color:var(--pk-dim)}
+.coda[hidden]{display:none}
+.pk-foot{max-width:720px;margin:40px auto 28px;padding:16px 20px 0;text-align:center}
+
+@media (max-width:560px){
+  .clock .in{padding:44px 16px 10px;grid-template-columns:1fr}
+  .marks{grid-row:auto;grid-column:1/2;margin-top:4px}
+  .reset{right:16px}
+  .feed,.hook,.coda{padding-left:16px;padding-right:16px}
+  .card{padding:18px 16px 16px}
+}
+@media (prefers-reduced-motion:reduce){
+  .card{opacity:1;transform:none;transition:none}
+  .mk::after,.reset,.neck .part{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<div class="clock" id="clock" aria-describedby="clockMeta">
+  <div class="in">
+    <div class="lab" id="clockLab">距離人類第一例換頭手術</div>
+    <div class="num" id="clockNum" aria-live="off"><span id="clockVal">——</span><small id="clockUnit">尚未公布日期</small></div>
+    <div class="marks" id="marks" aria-label="六次承諾"></div>
+    <div class="meta" id="clockMeta">目標 <b id="clockTarget">—</b>　報導日期 <b id="clockDate">—</b></div>
+    <span class="reset" id="reset" aria-hidden="true">重設</span>
+  </div>
+</div>
+
+<main>
+  <section class="hook" id="hook">
+    <h1>有人要把一顆頭，<br>接到另一具身體上。</h1>
+    <p>他寫好了藍圖，找到了自願者，對各國記者說了日期。</p>
+    <p>上面這個時鐘，會照他說過的每一個日期倒數。每一次他給出日期，你決定信不信。</p>
+    <div class="row"><button class="btn" id="start" type="button">翻開第一則報導</button></div>
+  </section>
+
+  <div class="feed" id="feed" aria-live="polite"></div>
+
+  <section class="coda" id="end" hidden>
+    <p class="sum" id="sum"></p>
+    <p class="big">被倒數的那個人，後來沒有等它。</p>
+    <p class="sum">時鐘還在走。你現在看到的，是真的今天。</p>
+  </section>
+</main>
+
+<footer class="pk-foot">資料來源：Canavero, <i>Surg Neurol Int</i>（2013, 2017）；Newsweek、ScienceAlert、Vice、CNBC／NYT、MIT Technology Review；Wikipedia。</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="core.js"></script>
+<script>
+'use strict';
+(function () {
+const LS = 'hvn17.';               /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+const H = window.HVN;
+const $ = (s, r) => (r || document).querySelector(s);
+const todayIso = H.isoOf(new Date());
+
+/* ── 時鐘 ── */
+const clock = $('#clock'), valEl = $('#clockVal'), unitEl = $('#clockUnit'), labEl = $('#clockLab');
+const tgtEl = $('#clockTarget'), dateEl = $('#clockDate'), resetEl = $('#reset'), marksEl = $('#marks');
+let shown = null, tween = null, hmsTimer = 0;
+const P = H.promises();
+P.forEach(function (p) { const i = document.createElement('i'); i.className = 'mk'; i.dataset.id = p.id; i.title = p.tag; marksEl.appendChild(i); });
+
+function zhDate(iso) { if (!iso || iso === 'soon') return iso === 'soon' ? '「幾天內公布」' : '—'; const [y, m, d] = iso.split('-'); return y + '・' + m + '・' + d; }
+function setNumber(n, dur) {
+  if (tween) { PK.untick(tween); tween = null; }
+  if (shown == null || PK.reduced() || n == null) { shown = n; valEl.textContent = n == null ? '？？' : H.fmt(n); return; }
+  const from = shown, t0 = { t: 0 };
+  dur = dur || 0.7;
+  tween = function (dt) {
+    t0.t += dt;
+    const k = Math.min(1, t0.t / dur), e = 1 - Math.pow(1 - k, 3);
+    valEl.textContent = H.fmt(Math.round(from + (n - from) * e));
+    if (k >= 1) { PK.untick(tween); tween = null; shown = n; }
+  };
+  PK.tick(tween);
+}
+function flashReset() {
+  if (PK.reduced()) return;
+  resetEl.classList.add('on');
+  setTimeout(function () { resetEl.classList.remove('on'); }, 900);
+}
+let lastTarget = null;
+function showClock(i) {
+  const s = H.STEPS[i], date = H.dateAt(i, todayIso), target = H.targetAt(i), st = H.clockState(date, target);
+  dateEl.textContent = zhDate(date);
+  tgtEl.textContent = zhDate(target);
+  clock.classList.toggle('over', st.mode === 'over');
+  if (st.mode === 'none') { labEl.textContent = '距離人類第一例換頭手術'; unitEl.textContent = '尚未公布日期'; valEl.textContent = '——'; shown = null; return; }
+  if (st.mode === 'soon') { labEl.textContent = '距離人類第一例換頭手術'; unitEl.textContent = '天（日期「幾天內公布」）'; setNumber(null); }
+  if (st.mode === 'count') { labEl.textContent = '距離人類第一例換頭手術'; unitEl.innerHTML = '天'; setNumber(st.days); }
+  if (st.mode === 'over') {
+    labEl.textContent = '人類第一例換頭手術';
+    unitEl.innerHTML = '<span class="tag">逾期</span> 天' + (s.kind === 'end' ? ' <span class="hms" id="hms"></span>' : '');
+    setNumber(st.days);
+  }
+  if (lastTarget && target && target !== lastTarget && s.kind === 'promise') { flashReset(); PK.announce('時鐘重設：' + (st.days == null ? '日期未定' : st.days + ' 天')); }
+  lastTarget = target;
+}
+/* 收尾那則：時鐘換成真實時間，每秒走一格（分頁隱藏時 PK 的迴圈會自己停） */
+function liveClock() {
+  let acc = 1;
+  function f(dt) {
+    acc += dt;
+    if (acc < 1) return;
+    acc = 0;
+    const now = new Date(), iso = H.isoOf(now);
+    const days = H.overdueDays(iso);
+    if (days !== shown) { shown = days; valEl.textContent = H.fmt(days); }
+    const hms = $('#hms');
+    if (hms) hms.textContent = [now.getHours(), now.getMinutes(), now.getSeconds()].map(function (x) { return (x < 10 ? '0' : '') + x; }).join(':');
+  }
+  PK.tick(f);
+}
+
+/* ── 卡片 ── */
+const feed = $('#feed');
+const choices = {};
+let cur = -1;
+function scrollToEl(el) {
+  const y = el.getBoundingClientRect().top + window.scrollY - clock.offsetHeight - 14;
+  window.scrollTo({ top: y, behavior: PK.reduced() ? 'auto' : 'smooth' });
+}
+function card(i) {
+  const s = H.STEPS[i];
+  const el = document.createElement('article');
+  el.className = 'card ' + s.kind;
+  const date = s.date ? zhDate(s.date) : zhDate(todayIso);
+  let html = '<header><time>' + date + '</time><span class="tg">' + s.tag + '</span></header>' +
+    '<h2 tabindex="-1">' + s.head + '</h2>';
+  if (s.kind !== 'quiz') s.body.forEach(function (p) { html += '<p>' + p + '</p>'; });
+  if (s.kind === 'quiz') html += neckSVG() + '<div class="row" role="group" aria-label="選一條">' +
+    s.options.map(function (o) { return '<button class="btn ghost opt" type="button" data-k="' + o.k + '">' + o.label + '</button>'; }).join('') + '</div>' +
+    '<p class="after" aria-live="polite"></p>' +
+    '<div class="reveal" hidden>' + s.body.map(function (p) { return '<p>' + p + '</p>'; }).join('') + '</div>';
+  if (s.kind === 'promise') html += '<div class="row" role="group" aria-label="你相信這個日期嗎"><button class="btn" type="button" data-c="trust">相信</button><button class="btn ghost" type="button" data-c="doubt">存疑</button></div>';
+  if (s.kind !== 'quiz') html += '<p class="after" aria-live="polite"></p>';
+  if (s.kind !== 'end') html += '<div class="row nextrow"' + (s.kind === 'fact' ? '' : ' hidden') + '><button class="btn ghost next" type="button">下一則 →</button></div>';
+  el.innerHTML = html;
+  return el;
+}
+function neckSVG() {
+  return '<svg class="neck" viewBox="0 0 300 220" role="img" aria-label="脖子的橫切面示意：前方是氣管，後面是食道，兩側是頸動脈和頸靜脈，最後面是包在脊椎裡的脊髓">' +
+    '<ellipse class="skin" cx="150" cy="110" rx="128" ry="96"/>' +
+    '<circle class="part tr" cx="150" cy="52" r="20"/><text x="150" y="56">氣管</text>' +
+    '<ellipse class="part es" cx="150" cy="92" rx="15" ry="10"/><text x="150" y="96" style="font-size:9.5px">食道</text>' +
+    '<circle class="part v" cx="88" cy="96" r="12"/><circle class="part v" cx="212" cy="96" r="12"/>' +
+    '<circle class="part v" cx="66" cy="112" r="9"/><circle class="part v" cx="234" cy="112" r="9"/>' +
+    '<text x="64" y="80">血管</text><text x="236" y="80">血管</text>' +
+    '<circle class="part vb" cx="150" cy="150" r="34"/>' +
+    '<circle class="part cord" cx="150" cy="150" r="13"/><text x="150" y="200">脊髓（在脊椎裡）</text>' +
+    '</svg>';
+}
+function next() {
+  if (cur >= H.STEPS.length - 1) return;
+  cur++;
+  const s = H.STEPS[cur], el = card(cur);
+  feed.appendChild(el);
+  if (s.id === 'zero') runDown(); else showClock(cur);
+  void el.getBoundingClientRect();
+  el.classList.add('in');
+  scrollToEl(el);
+  setTimeout(function () { try { el.querySelector('h2').focus({ preventScroll: true }); } catch (e) {} }, PK.reduced() ? 0 : 450);
+  if (s.kind === 'end') finish();
+}
+/* 時間到：先把「十二月」剩下的 44 天倒完，再翻成逾期 */
+function runDown() {
+  const i = cur, left = H.daysBetween('2017-11-17', H.LAST_DEADLINE);
+  if (PK.reduced()) { showClock(i); timeUp(); return; }
+  clock.classList.remove('over');
+  labEl.textContent = '距離「十二月」'; unitEl.textContent = '天';
+  dateEl.textContent = '2017・11・17 → 2017・12・31'; tgtEl.textContent = zhDate(H.LAST_DEADLINE);
+  shown = left; valEl.textContent = H.fmt(left);
+  setNumber(0, 1.6);
+  setTimeout(function () { showClock(i); timeUp(); }, 2100);
+}
+feed.addEventListener('click', function (e) {
+  const b = e.target.closest('button');
+  if (!b || b.disabled) return;
+  const el = b.closest('.card'), i = Array.prototype.indexOf.call(feed.children, el), s = H.STEPS[i];
+  if (b.classList.contains('next')) { b.disabled = true; next(); return; }
+  if (b.dataset.c) {
+    choices[s.id] = b.dataset.c;
+    el.querySelectorAll('button[data-c]').forEach(function (x) { x.disabled = true; });
+    b.classList.add('picked');
+    const mk = marksEl.querySelector('[data-id="' + s.id + '"]');
+    if (mk) mk.classList.add(b.dataset.c);
+    const st = H.clockState(H.dateAt(i, todayIso), H.targetAt(i));
+    el.querySelector('.after').innerHTML = (b.dataset.c === 'trust' ? '你選了<b>相信</b>。' : '你選了<b>存疑</b>。') +
+      (st.mode === 'soon' ? '時鐘上沒有數字了：只剩「幾天內」。' : '時鐘停在 <b>' + H.fmt(st.days) + '</b> 天。');
+    el.querySelector('.nextrow').hidden = false;
+    el.querySelector('.next').focus({ preventScroll: true });
+    return;
+  }
+  if (b.dataset.k) {
+    const right = b.dataset.k === s.answer;
+    el.querySelectorAll('.opt').forEach(function (x) { x.disabled = true; if (x.dataset.k === s.answer) x.classList.add('right'); });
+    if (!right) b.classList.add('picked');
+    el.querySelector('.neck').classList.add('done');
+    el.querySelector('.after').innerHTML = right ? '<b>對，是脊髓。</b>' : '你選了「' + b.textContent + '」——那一條接得起來。最難的是<b>脊髓</b>。';
+    el.querySelector('.reveal').hidden = false;
+    el.querySelector('.nextrow').hidden = false;
+    PK.announce(right ? "答對了：脊髓" : "正解是脊髓");
+  }
+});
+
+/* ── 時間到：倒數跑完、承諾一個一個劃掉 ── */
+function timeUp() {
+  const marks = marksEl.querySelectorAll('.mk');
+  marks.forEach(function (m, k) { setTimeout(function () { m.classList.add('broken'); }, PK.reduced() ? 0 : 300 + k * 260); });
+  PK.announce('期限已過，六次承諾都沒有兌現');
+}
+function finish() {
+  const t = H.tally(choices);
+  $('#sum').textContent = '六次承諾裡，你相信了 ' + t.trust + ' 次、存疑了 ' + t.doubt + ' 次。兌現的次數：0。';
+  $('#end').hidden = false;
+  liveClock();
+  store.set('done', true);
+}
+
+$('#start').addEventListener('click', function () {
+  this.disabled = true;
+  next();
+});
+if (store.get('done', false)) $('#start').textContent = '再翻一次第一則報導';
+})();
+</script>
+</body>
+</html>

@@ -216,9 +216,11 @@ function bans(rows, byDir, today) {
   }
   out.title = { banned: bannedT, free: TITLE_FORMS.filter(v => !bannedT.has(v)), window: TITLE_WINDOW };
 
-  /* 標題長度帶 */
+  /* 標題長度帶：數「件」不數「發布日」——規則是「別和上一件同帶」。
+     用發布日算時，同一天發了三件以上會把短／中／長全部封掉（2026-10-04 發四件後就是這樣），
+     隔天無論怎麼取標題都會被擋。sorted 同日內以最後掛上的排最前，正好是「上一件」。 */
   const bannedB = new Map();
-  for (const r of withinDays(TITLE_LEN_WINDOW)) {
+  for (const r of sorted.slice(0, TITLE_LEN_WINDOW)) {
     const t = titleOf(r);
     if (t) bannedB.set(titleBand(t), bannedB.get(titleBand(t)) || r.date);
   }

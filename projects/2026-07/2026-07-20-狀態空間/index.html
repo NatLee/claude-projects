@@ -933,6 +933,11 @@ input[type=range]::-moz-range-track{height:6px; border-radius:99px; background:t
 
   // 進入視窗才畫線（漸進揭示）
   if ('IntersectionObserver' in window) {
+    /* 先把兩條曲線藏好：否則圖表露出 25% 時曲線已經整條在那，被觸發後才「消失→重畫」，會閃一下 */
+    if (!reduced) ['curveQuad', 'curveLin'].forEach(function (id) {
+      var p = $(id), len = p.getTotalLength();
+      p.style.strokeDasharray = len; p.style.strokeDashoffset = len;
+    });
     var io = new IntersectionObserver(function (ents) {
       ents.forEach(function (en) { if (en.isIntersecting) { drawInCurves(); io.disconnect(); } });
     }, { threshold: 0.25 });

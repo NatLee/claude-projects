@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>「間隔兩秒就停」｜每日小專案</title>
+<meta name="description" content="早三秒是一把硬玉米，晚三秒是整層樓的焦味。先用耳朵按停一袋模擬爆米花，再看你聽見的疏密堆成一座山；最後讓手機替你守那兩秒。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+/* ── 本頁個性：深夜茶水間＋微波爐的琥珀光、螢光綠數字 ── */
+:root{
+  --pk-bg:#0f0c09; --pk-ink:#f2e8d8; --pk-dim:#a29682; --pk-accent:#f2b03d;
+  --pk-line:rgba(255,232,196,.13); --pk-maxw:680px;
+  --butter:#fff0c8; --kernel:#e3a12f; --burnt:#5e3520; --vfd:#8dffd8; --alarm:#ff5a36;
+  --card:#17130f;
+}
+html{ scroll-behavior:smooth; }
+body{ background:var(--pk-bg); }
+::selection{ background:rgba(242,176,61,.35); }
+.kicker{ margin:0 0 8px; font-size:12.5px; letter-spacing:.34em; color:var(--pk-accent); }
+h2{ font-family:var(--pk-serif); font-weight:600; font-size:clamp(28px,6vw,42px); line-height:1.3; margin:0 0 22px; }
+h3,h4{ font-family:var(--pk-serif); font-weight:600; }
+.chapter{ position:relative; padding:16vh 0 6vh; }
+.chapter p{ margin:0 0 1.15em; }
+.big{ font-size:clamp(18px,3.6vw,21px); line-height:1.8; }
+
+/* 螢光數字（VFD） */
+.vfd{ display:inline-block; font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Liberation Mono",monospace;
+  font-variant-numeric:tabular-nums; color:var(--vfd); letter-spacing:.1em; background:#050908; border-radius:10px; padding:.12em .5em;
+  text-shadow:0 0 6px rgba(141,255,216,.75),0 0 20px rgba(141,255,216,.3);
+  box-shadow:inset 0 0 0 1px rgba(141,255,216,.10), inset 0 0 22px rgba(0,0,0,.85); }
+.colon{ animation:blink 1s steps(1) infinite; }
+@keyframes blink{ 50%{ opacity:.12; } }
+
+/* 第一屏 */
+.hero{ position:relative; overflow:hidden; }
+.hero::before{ content:""; position:absolute; left:50%; bottom:-38vh; width:150vw; height:95vh; transform:translateX(-50%);
+  background:radial-gradient(closest-side, rgba(255,172,72,.30), rgba(255,140,40,.09) 55%, transparent 76%);
+  animation:glow 6s ease-in-out infinite; pointer-events:none; }
+.hero::after{ content:""; position:absolute; inset:0; pointer-events:none;
+  background-image:radial-gradient(circle, rgba(255,235,200,.06) 1px, transparent 1.4px); background-size:7px 7px;
+  -webkit-mask-image:linear-gradient(to top,#000,transparent 70%); mask-image:linear-gradient(to top,#000,transparent 70%); }
+@keyframes glow{ 0%,100%{ opacity:.8; } 50%{ opacity:1; } }
+.hero .pk-wrap{ z-index:1; }
+.hero .vfd{ font-size:clamp(46px,13vw,80px); margin:0 0 34px; }
+.hero h1{ font-size:clamp(27px,6.6vw,44px); }
+.hero .lede{ font-size:clamp(17px,3.4vw,19px); color:#e6dccb; margin:0 0 1em; }
+.cta{ margin-top:22px; display:flex; gap:14px 18px; align-items:center; flex-wrap:wrap; }
+.hint{ font-size:13px; color:var(--pk-dim); margin:0; }
+
+/* 章節導覽（桌機右側） */
+.chapnav{ position:fixed; right:18px; top:50%; transform:translateY(-50%); z-index:8; display:flex; flex-direction:column; gap:12px; }
+.chapnav a{ display:flex; align-items:center; justify-content:flex-end; gap:9px; color:var(--pk-dim); text-decoration:none; font-size:12.5px; letter-spacing:.1em; }
+.chapnav a i{ width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.4; transition:transform .25s, opacity .25s; }
+.chapnav a span{ opacity:0; transform:translateX(4px); transition:opacity .25s, transform .25s; }
+.chapnav a:hover span, .chapnav a:focus-visible span, .chapnav a[aria-current="true"] span{ opacity:1; transform:none; }
+.chapnav a[aria-current="true"]{ color:var(--pk-accent); }
+.chapnav a[aria-current="true"] i{ opacity:1; transform:scale(1.45); }
+@media (max-width:980px){ .chapnav{ display:none; } }
+
+/* 微波爐 */
+.stage{ max-width:780px; margin:34px auto 0; padding:0 16px; }
+.oven{ position:relative; display:grid; grid-template-columns:minmax(0,1fr) 168px; gap:16px; padding:18px; border-radius:26px;
+  background:linear-gradient(165deg,#302a24 0%,#1c1814 52%,#141110 100%);
+  box-shadow:0 46px 90px -34px rgba(0,0,0,.85), inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 0 1px rgba(255,255,255,.035); }
+.win{ position:relative; aspect-ratio:16/10; border-radius:14px; overflow:hidden; background:#070504;
+  box-shadow:0 0 0 3px #0c0a08, inset 0 0 60px rgba(0,0,0,.9); }
+.win>*{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+.win-light{ background:radial-gradient(75% 85% at 50% 72%, rgba(255,198,112,.62), rgba(255,148,52,.2) 46%, rgba(0,0,0,0) 76%);
+  opacity:0; transition:opacity .6s ease; }
+.oven.on .win-light{ opacity:1; }
+.win-mesh{ background-image:radial-gradient(circle, rgba(0,0,0,.62) 1.15px, transparent 1.45px); background-size:6px 6px; pointer-events:none; }
+.win-glass{ background:linear-gradient(118deg, rgba(255,255,255,.08), rgba(255,255,255,0) 34%, rgba(255,255,255,0) 64%, rgba(255,255,255,.035)); pointer-events:none; }
+.panel{ display:flex; flex-direction:column; gap:12px; }
+.panel .vfd{ font-size:30px; text-align:center; }
+.keys{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:4px 2px; }
+.keys i{ height:9px; border-radius:3px; background:rgba(255,255,255,.055); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); }
+.go,.halt{ position:relative; appearance:none; font:inherit; cursor:pointer; border-radius:14px; padding:13px 10px; letter-spacing:.12em;
+  transition:transform .12s, background .25s, color .25s, border-color .25s, opacity .25s; }
+.go{ background:transparent; color:var(--pk-ink); border:1px solid rgba(255,232,196,.28); font-size:15px; }
+.go:hover:not(:disabled){ border-color:var(--pk-accent); color:var(--pk-accent); }
+.halt{ border:0; background:var(--alarm); color:#1b0b05; font-size:24px; font-weight:800; padding:18px 10px; box-shadow:0 10px 30px -10px rgba(255,90,54,.75); }
+.halt::after{ content:""; position:absolute; inset:-5px; border-radius:18px; border:2px solid var(--alarm); opacity:0; pointer-events:none; }
+.oven.on .halt::after{ animation:ring 1.6s ease-in-out infinite; }
+@keyframes ring{ 0%,100%{ opacity:0; transform:scale(.97); } 50%{ opacity:.75; transform:scale(1.03); } }
+.go:disabled,.halt:disabled{ cursor:default; }
+.halt:disabled{ background:#33261f; color:#76645a; box-shadow:none; }
+.go:disabled{ opacity:.4; }
+.go:active:not(:disabled),.halt:active:not(:disabled){ transform:scale(.97); }
+.panel small{ font-size:12px; color:var(--pk-dim); text-align:center; letter-spacing:.06em; }
+.c1msg{ min-height:1.6em; text-align:center; font-size:13px; color:var(--pk-dim); margin:12px 0 0; }
+
+/* 開袋 */
+.out{ margin-top:34px; }
+.out h3{ font-size:clamp(26px,5.4vw,34px); margin:0 0 4px; }
+.out .auto{ color:#ff8a6a; font-size:14px; margin:0 0 6px; }
+.kern{ margin:18px 0 10px; padding:14px; border-radius:18px; background:radial-gradient(120% 120% at 50% 0%, #241d16, #15110d); border:1px solid var(--pk-line); }
+#kerncv{ width:100%; display:block; }
+.chips{ display:flex; flex-wrap:wrap; gap:8px 10px; margin:14px 0 18px; padding:0; list-style:none; }
+.chips li{ border:1px solid var(--pk-line); border-radius:999px; padding:5px 14px 6px; font-size:14px; color:var(--pk-dim); display:flex; align-items:center; gap:8px; }
+.chips li i{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+.chips b{ color:var(--pk-ink); font-size:19px; font-variant-numeric:tabular-nums; }
+.verdict h4{ font-size:23px; margin:0 0 4px; }
+.verdict p{ margin:0 0 .6em; }
+.row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
+.note{ font-size:12.5px; color:var(--pk-dim); }
+
+/* 圖 */
+.fig{ margin:26px 0; }
+.fig canvas{ width:100%; height:300px; display:block; }
+.fig figcaption{ font-size:13px; color:var(--pk-dim); margin-top:8px; display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+.mini{ appearance:none; font:inherit; font-size:13px; color:var(--pk-accent); background:transparent; border:1px solid rgba(242,176,61,.45); border-radius:999px; padding:5px 14px; cursor:pointer; transition:background .2s,color .2s; }
+.mini:hover{ background:var(--pk-accent); color:var(--pk-bg); }
+.demo-note{ border-left:2px solid var(--pk-accent); padding-left:12px; color:var(--pk-dim); font-size:14px; }
+
+/* 安靜階梯 */
+.ladder{ list-style:none; margin:22px 0 14px; padding:0; display:grid; gap:8px; }
+.ladder li{ display:grid; grid-template-columns:11em 3.2em minmax(0,1fr) auto; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; background:var(--card); border:1px solid var(--pk-line); font-size:15px; }
+.ladder .lb em{ display:inline-block; margin-left:8px; font-style:normal; font-size:11px; letter-spacing:.08em; color:var(--pk-bg); background:var(--pk-accent); border-radius:999px; padding:0 7px; vertical-align:2px; }
+.ladder .tm{ font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--vfd); }
+.ladder .dots{ overflow:hidden; white-space:nowrap; line-height:0; }
+.ladder .ct{ font-size:14px; color:var(--pk-dim); white-space:nowrap; }
+.ladder .ct b{ color:var(--pk-ink); font-variant-numeric:tabular-nums; }
+.ladder li.key{ border-color:rgba(242,176,61,.55); }
+.ladder li.me{ background:rgba(255,90,54,.10); border-color:rgba(255,90,54,.5); }
+@media (max-width:560px){
+  .ladder li{ grid-template-columns:minmax(0,1fr) auto; row-gap:6px; }
+  .ladder .dots{ grid-column:1 / -1; }
+}
+
+/* 袋子背面 */
+.labels{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:26px 0 30px; }
+.label{ margin:0; padding:16px 18px 14px; border-radius:4px; color:#2b1d10; font-size:15.5px; line-height:1.65; background:#efe2c4;
+  box-shadow:0 14px 34px -14px rgba(0,0,0,.85); transform:rotate(-1.1deg); }
+.label + .label{ background:#f4dcc6; transform:rotate(.9deg); }
+.label strong{ font-size:12px; letter-spacing:.14em; display:block; margin-bottom:6px; color:#8a5a2c; }
+@media (max-width:560px){ .labels{ grid-template-columns:1fr; } }
+
+/* 兩台微波爐 */
+.ovens svg{ width:100%; height:auto; display:block; overflow:visible; }
+.ovens .ax{ stroke:rgba(255,232,196,.22); stroke-width:1.5; }
+.ovens .cA{ fill:none; stroke:#ffcf70; stroke-width:3; stroke-linejoin:round; }
+.ovens .cB{ fill:none; stroke:#8dd4ff; stroke-width:3; stroke-linejoin:round; }
+.ovens .fix{ stroke:var(--alarm); stroke-width:2; stroke-dasharray:6 5; }
+.ovens text{ font-family:var(--pk-sans); font-size:17px; fill:var(--pk-ink); }
+.ovens .tA{ fill:#ffcf70; } .ovens .tB{ fill:#8dd4ff; } .ovens .tF{ fill:#ff8a6a; font-size:15px; }
+.ovens .mk{ stroke:var(--pk-bg); stroke-width:2.5; }
+
+/* 換它來聽 */
+.tool{ position:relative; overflow:hidden; display:grid; grid-template-columns:210px minmax(0,1fr); gap:24px; padding:24px; margin:30px 0 18px;
+  border-radius:24px; background:linear-gradient(160deg,#1d1813,#110e0b); border:1px solid var(--pk-line); }
+.ringbox{ position:relative; width:200px; height:200px; margin:0 auto; }
+.ringbox svg{ width:100%; height:100%; display:block; }
+.ringbox .trk{ fill:none; stroke:rgba(255,255,255,.07); stroke-width:12; }
+.ringbox .arc{ fill:none; stroke:var(--pk-dim); stroke-width:12; stroke-linecap:round; transition:stroke .3s; }
+.tool.armed .arc{ stroke:var(--pk-accent); }
+.tool.hot .arc{ stroke:#ff8b3d; }
+.tool.stop .arc{ stroke:var(--alarm); }
+.ringc{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.ringc b{ font-size:46px; line-height:1; font-variant-numeric:tabular-nums; font-weight:700; }
+.ringc span{ font-size:13px; color:var(--pk-dim); margin-top:6px; }
+.tstate{ font-family:var(--pk-serif); font-size:19px; margin:0 0 8px; min-height:1.6em; }
+.tstats{ font-size:14px; color:var(--pk-dim); margin:0 0 12px; }
+.tstats b{ color:var(--pk-ink); font-variant-numeric:tabular-nums; }
+#scope{ width:100%; height:88px; display:block; border-radius:12px; background:#0a0806; box-shadow:inset 0 0 0 1px var(--pk-line); }
+.tbtns{ display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 4px; }
+.tbtns .pk-btn{ padding:10px 18px; font-size:14px; }
+.tbtns .pk-btn[aria-pressed="true"]{ background:var(--pk-accent); color:var(--pk-bg); }
+.setting{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:12px 0 0; font-size:14px; color:var(--pk-dim); }
+.seg{ display:inline-flex; border:1px solid var(--pk-line); border-radius:999px; overflow:hidden; }
+.seg button{ appearance:none; font:inherit; font-size:13.5px; padding:6px 13px; border:0; background:transparent; color:var(--pk-dim); cursor:pointer; transition:background .2s,color .2s; }
+.seg button[aria-pressed="true"]{ background:var(--pk-accent); color:#1b1206; }
+.seg button:hover:not([aria-pressed="true"]){ color:var(--pk-ink); }
+.terr{ color:#ff9a7a; font-size:14px; margin:8px 0 0; }
+.terr:empty{ display:none; }
+.trust{ font-size:12.5px; color:var(--pk-dim); margin:12px 0 0; }
+.alarm{ position:absolute; inset:0; z-index:3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:20px;
+  background:var(--alarm); color:#1b0904; }
+.alarm[hidden]{ display:none; }
+.alarm b{ font-family:var(--pk-serif); font-size:clamp(72px,20vw,128px); line-height:1; }
+.alarm p{ margin:0; font-size:16px; }
+.alarm button{ appearance:none; font:inherit; border:2px solid #1b0904; background:transparent; color:#1b0904; border-radius:999px; padding:8px 22px; cursor:pointer; }
+.alarm button:focus-visible{ outline:3px solid #fff; }
+.tool.stop .alarm{ animation:flash .45s ease-out 1; }
+@keyframes flash{ from{ opacity:0; transform:scale(1.04); } to{ opacity:1; transform:none; } }
+.hist{ margin:18px 0 0; padding:14px 16px; border-radius:14px; border:1px dashed var(--pk-line); font-size:14px; }
+.hist p{ margin:0; }
+.hist ol{ margin:8px 0 6px; padding-left:1.3em; color:var(--pk-dim); }
+@media (max-width:560px){ .tool{ grid-template-columns:1fr; padding:18px 16px; } .ringbox{ width:180px; height:180px; } }
+
+/* 尾聲 */
+.end{ text-align:center; padding:20vh 0 4vh; }
+.end .vfd{ font-size:clamp(52px,15vw,96px); margin-bottom:34px; min-width:3.6em; }
+.end .vfd small{ font-size:.34em; margin-left:.2em; letter-spacing:.05em; }
+.end p{ margin:0 auto 1em; max-width:30em; }
+.end .last{ font-family:var(--pk-serif); font-size:clamp(28px,6.5vw,40px); margin-top:34px; color:var(--pk-accent); }
+
+@media (max-width:560px){
+  .oven{ grid-template-columns:1fr; padding:12px; border-radius:20px; }
+  .panel{ flex-direction:row; flex-wrap:wrap; align-items:stretch; }
+  .panel .vfd{ flex:1 1 100%; font-size:26px; }
+  .keys,.panel small{ display:none; }
+  .go,.halt{ flex:1 1 40%; }
+  .fig canvas{ height:240px; }
+  .chapter{ padding:12vh 0 4vh; }
+}
+/* 減少動態：頁內動畫各自關掉（kit 只把時長縮短，無限循環的要明確 none，否則會變成高速閃爍） */
+@media (prefers-reduced-motion: reduce){
+  html{ scroll-behavior:auto; }
+  .colon,.hero::before,.oven.on .halt::after,.tool.stop .alarm{ animation:none !important; }
+  .win-light{ transition:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<nav class="chapnav" aria-label="章節">
+  <a href="#top"><span>序</span><i></i></a>
+  <a href="#ch1"><span>一・第一袋</span><i></i></a>
+  <a href="#ch2"><span>二・一百八十度</span><i></i></a>
+  <a href="#ch3"><span>三・兩秒是一把尺</span><i></i></a>
+  <a href="#ch4"><span>四・換它來聽</span><i></i></a>
+  <a href="#end"><span>尾聲</span><i></i></a>
+</nav>
+
+<header class="pk-hero hero" id="top">
+  <div class="pk-wrap">
+    <div class="vfd rv" aria-hidden="true">2<span class="colon">:</span>47</div>
+    <h1 class="rv">早三秒，一把硬玉米。<br>晚三秒，整層樓的焦味。</h1>
+    <p class="lede rv">微波爐裡的聲音正在變稀。你的手指停在「停止」上方，等一個說不上來的時機。</p>
+    <p class="lede rv">爆米花袋的背面教過你怎麼抓這個時機。它給的不是分鐘數，是一段安靜的長度。</p>
+    <div class="cta rv">
+      <button class="pk-btn" id="toCh1" type="button">先用耳朵試一袋 ↓</button>
+      <p class="hint">請打開聲音，戴耳機更好（iPhone 記得關掉靜音鍵）。</p>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- 第一章：用耳朵按停（計時＋聆聽） -->
+  <section class="chapter" id="ch1" aria-labelledby="h-ch1">
+    <div class="pk-wrap">
+      <p class="kicker rv">第一章</p>
+      <h2 class="rv" id="h-ch1">第一袋</h2>
+      <p class="rv">前面九十秒的暖機，先幫你快轉掉了。袋子裡四百顆玉米粒正在升溫，第一聲隨時會來。</p>
+      <p class="rv">覺得「夠了」就按停，空白鍵也行。別看時鐘，用聽的。</p>
+    </div>
+    <div class="stage rv">
+      <div class="oven" id="oven">
+        <div class="win" aria-hidden="true">
+          <div class="win-light"></div>
+          <svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="hazeG" gradientUnits="userSpaceOnUse" cx="160" cy="140" r="190">
+                <stop offset="0" stop-color="#5b4a3c" stop-opacity=".95"/>
+                <stop offset=".6" stop-color="#3d322a" stop-opacity=".75"/>
+                <stop offset="1" stop-color="#211b16" stop-opacity=".6"/>
+              </radialGradient>
+            </defs>
+            <ellipse cx="160" cy="176" rx="122" ry="15" fill="rgba(255,240,220,.06)" stroke="rgba(255,240,220,.16)" stroke-width="1"/>
+            <g transform="translate(160 172)">
+              <ellipse id="bagShadow" cx="0" cy="3" rx="66" ry="6" fill="rgba(0,0,0,.38)"/>
+              <g id="bagBody" transform="scale(1 .36)">
+                <path d="M-64 0 C-84 -22 -84 -74 -60 -97 Q0 -107 60 -97 C84 -74 84 -22 64 0 Q0 8 -64 0 Z" fill="#eadcbd"/>
+                <path d="M-64 0 C-84 -22 -84 -74 -60 -97 Q-54 -98 -48 -99 C-62 -70 -62 -26 -48 3 Q-56 2 -64 0 Z" fill="rgba(90,60,30,.13)"/>
+                <path d="M-72 -40 Q0 -33 72 -40 L73 -63 Q0 -56 -73 -63 Z" fill="#c8432b"/>
+                <g fill="#fff3d6">
+                  <circle cx="-34" cy="-51" r="3.4"/><circle cx="-29" cy="-48" r="2.6"/><circle cx="-6" cy="-49" r="3.6"/><circle cx="0" cy="-46" r="2.6"/>
+                  <circle cx="24" cy="-51" r="3.2"/><circle cx="30" cy="-48" r="2.5"/>
+                </g>
+                <path d="M-62 -18 Q0 -12 62 -18 M-60 -82 Q0 -88 60 -82" fill="none" stroke="rgba(60,40,20,.18)" stroke-width="1" vector-effect="non-scaling-stroke"/>
+              </g>
+            </g>
+            <rect id="haze" x="0" y="0" width="320" height="200" fill="url(#hazeG)" opacity="0"/>
+          </svg>
+          <canvas id="sparks"></canvas>
+          <div class="win-mesh"></div>
+          <div class="win-glass"></div>
+        </div>
+        <div class="panel">
+          <div class="vfd" id="clock" aria-hidden="true">1:32</div>
+          <div class="keys" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <button class="go" id="c1start" type="button">開始加熱</button>
+          <button class="halt" id="c1stop" type="button" disabled aria-label="停（空白鍵也可以）">停</button>
+          <small>空白鍵＝停</small>
+        </div>
+      </div>
+      <p class="c1msg" id="c1msg"></p>
+    </div>
+
+    <div class="pk-wrap">
+      <div class="out" id="c1out" hidden>
+        <h3>你停在 <span id="o-t">—</span>。</h3>
+        <p class="auto" id="o-auto" hidden>你一直沒按，微波爐自己跳停了。</p>
+        <div class="kern"><canvas id="kerncv" role="img" aria-label="開袋後的爆米花"></canvas></div>
+        <ul class="chips">
+          <li><i style="background:#fff0c8"></i>蓬鬆 <b id="o-fl">0</b></li>
+          <li><i style="background:#e3a12f"></i>沒爆 <b id="o-un">0</b></li>
+          <li><i style="background:#6b3a20"></i>焦掉 <b id="o-sc">0</b></li>
+        </ul>
+        <div class="verdict">
+          <h4 id="o-h"></h4>
+          <p id="o-p"></p>
+          <p class="note" id="o-cmp"></p>
+          <p class="note">（模擬袋。哪一秒開始焦，是遊戲的設定，不是你家微波爐的。）</p>
+        </div>
+        <div class="row">
+          <button class="pk-btn" id="toCh2" type="button">你剛才聽見了什麼 ↓</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第二章：把聲音堆成山 -->
+  <section class="chapter" id="ch2" aria-labelledby="h-ch2">
+    <div class="pk-wrap">
+      <p class="kicker rv">第二章</p>
+      <h2 class="rv" id="h-ch2">一百八十度</h2>
+      <p class="rv">最上面那一排細線，是<span class="if-mine">你那一袋</span><span class="if-demo">一袋示範爆米花</span>的每一聲，照時間排好。看著它們落下來。</p>
+      <figure class="fig rv">
+        <canvas id="pilecv" role="img" aria-label="每一聲依時間堆成的山形圖"></canvas>
+        <figcaption><span id="pileCap">每一格，是同一段時間裡的一聲。</span><button class="mini" id="pileAgain" type="button">再堆一次</button></figcaption>
+      </figure>
+      <p class="rv big">照時間堆起來，就成了一座山。</p>
+      <p class="rv">每一聲，都是一顆玉米粒撐到了極限：粒子裡那一點水被加熱成蒸氣，內部到了約 180°C、壓力約 930 kPa（九個大氣壓上下），硬殼一裂，澱粉瞬間膨成泡沫。2015 年有研究者把高速攝影和錄音一格一格對齊，認為那一聲「啵」，是蒸氣衝出來的聲音。</p>
+      <p class="rv">可是同一袋裡，沒有兩顆一樣：大小、含水量、離袋底多遠，各不相同，於是每一顆抵達 180°C 的時刻也不同。你耳朵聽見的「越來越密、又越來越稀」，就是這座山的高度。</p>
+      <p class="rv if-mine">紅線是你按停的地方。線右邊那些空心的，是還沒輪到的；袋底另外還有 <b id="dudN">12</b> 顆，永遠輪不到——水分不夠，或殼上有裂縫，蒸氣先漏光了。</p>
+      <p class="rv demo-note if-demo">眼前是一袋示範的。回第一章停一袋，這座山會換成你的，還會多一條你按停的線。</p>
+    </div>
+  </section>
+
+  <!-- 第三章：安靜是一把尺 -->
+  <section class="chapter" id="ch3" aria-labelledby="h-ch3">
+    <div class="pk-wrap">
+      <p class="kicker rv">第三章</p>
+      <h2 class="rv" id="h-ch3">兩秒是一把尺</h2>
+      <p class="rv big">山有多高，就是每秒有幾聲。</p>
+      <p class="rv">兩聲之間隔一秒，是每秒一聲；隔兩秒，是每秒半聲——已經走到山腳最尾端了。拿<span class="if-mine">你那一袋</span><span class="if-demo">示範袋</span>來量：安靜第一次撐滿半秒、1、2、3、5 秒的那一刻，袋裡各剩多少顆還沒輪到。</p>
+      <ol class="ladder rv" id="ladder" aria-label="安靜階梯"></ol>
+      <p class="rv" id="ladderSum"></p>
+      <p class="rv note" id="dudNote"></p>
+
+      <p class="rv big" style="margin-top:2.2em">不過，兩秒不是天條。</p>
+      <p class="rv">翻到兩家美國大廠的說明，數字各說各話：</p>
+      <div class="labels rv">
+        <p class="label"><strong>ORVILLE REDENBACHER’S</strong>爆裂聲變稀、每聲間隔 2–3 秒時，停。</p>
+        <p class="label"><strong>POP SECRET</strong>間隔 1–2 秒就好了。<br>等到 2–3 秒，會焦。</p>
+      </div>
+      <p class="rv">兩秒，剛好是兩家說法唯一重疊的那一點。袋子不同，「再等一下」的代價也不同；但它們都同意一件很怪的事：要你計時的，是安靜。</p>
+
+      <p class="rv big" style="margin-top:2.2em">那為什麼不乾脆印「兩分半」？</p>
+      <figure class="fig ovens rv">
+        <svg viewBox="0 0 600 236" role="img" aria-label="兩條鐘形曲線：強一點的微波爐整座山往前，弱一點的往後；同一個固定時間對強的那台已經太晚，對弱的那台還太早">
+          <line class="ax" x1="20" y1="196" x2="580" y2="196"/>
+          <path class="cA" id="ovA" d=""/>
+          <path class="cB" id="ovB" d=""/>
+          <line class="fix" x1="360" y1="36" x2="360" y2="196"/>
+          <text class="tF" x="366" y="32">固定時間</text>
+          <text class="tA" x="190" y="50" text-anchor="middle">強一點的</text>
+          <text class="tB" x="320" y="68" text-anchor="middle">弱一點的</text>
+          <circle class="mk" id="mkA" r="6" fill="#ffcf70"/>
+          <circle class="mk" id="mkB" r="6" fill="#8dd4ff"/>
+          <text class="tF" x="368" y="112">← 弱的還在爆</text>
+          <text class="tF" x="368" y="220">← 強的袋底在焦</text>
+        </svg>
+        <figcaption>橫軸是時間，山的高度是每秒幾聲；圓點是安靜第一次滿兩秒的地方。</figcaption>
+      </figure>
+      <p class="rv">微波爐有強有弱。同一個固定時間，對強的那台已經太晚，對弱的那台還太早。微波爐上的「爆米花鍵」，多數用的是出廠設定好的時間和火力——Pop Secret 乾脆叫你永遠別按它。</p>
+      <p class="rv">「兩秒」不一樣：它量的是山本身。換哪一台，它都量得準。</p>
+      <p class="rv">等太久的代價藏在袋底。那層亮亮的金屬膜會吸收微波、把熱集中起來，好讓油和調味料融勻；已經爆開的花貼著它，一過 150°C 左右就開始焦。</p>
+    </div>
+  </section>
+
+  <!-- 第四章：換手機來聽 -->
+  <section class="chapter" id="ch4" aria-labelledby="h-ch4">
+    <div class="pk-wrap">
+      <p class="kicker rv">第四章</p>
+      <h2 class="rv" id="h-ch4">換它來聽</h2>
+      <p class="rv">下次站在微波爐前，把手機立在旁邊、離門近一點，跟微波爐同時按下開始。</p>
+      <p class="rv">它做的事和你剛才一樣：聽一聲一聲的「啵」，等它們密起來，再等它們稀下去。兩聲之間的安靜一滿門檻，它就叫你。</p>
+
+      <div class="tool rv" id="tool">
+        <div class="ringbox">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="trk" cx="100" cy="100" r="88"/>
+            <circle class="arc" id="arc" cx="100" cy="100" r="88" transform="rotate(-90 100 100)"/>
+          </svg>
+          <div class="ringc"><b id="gapNum">—</b><span id="gapLbl">秒安靜</span></div>
+        </div>
+        <div>
+          <p class="tstate" id="tstate">還沒開始聽。</p>
+          <p class="tstats">聽到 <b id="tn">0</b> 聲｜每秒 <b id="tr">0.0</b> 聲｜高峰 <b id="tp">0.0</b></p>
+          <canvas id="scope" aria-hidden="true"></canvas>
+          <div class="tbtns">
+            <button class="pk-btn" id="micBtn" type="button" aria-pressed="false">用麥克風聽</button>
+            <button class="pk-btn" id="simBtn" type="button" aria-pressed="false">沒有微波爐？放一袋模擬的給它聽</button>
+          </div>
+          <p class="terr" id="terr" role="alert"></p>
+          <div class="setting">門檻
+            <span class="seg" role="group" aria-label="安靜門檻" id="segGap">
+              <button type="button" data-v="1.5">1.5 秒</button><button type="button" data-v="2">2 秒</button><button type="button" data-v="2.5">2.5 秒</button><button type="button" data-v="3">3 秒</button>
+            </span>
+          </div>
+          <div class="setting">靈敏度
+            <span class="seg" role="group" aria-label="靈敏度" id="segSens">
+              <button type="button" data-v="low">低</button><button type="button" data-v="mid">中</button><button type="button" data-v="high">高</button>
+            </span>
+          </div>
+          <p class="trust">袋子寫 1–2 秒選 1.5，寫 2–3 秒選 2.5。每一聲「啵」，波形上都該閃一條線；沒閃就調高，亂閃就調低。麥克風只用來即時判斷聲音起伏，不錄音、不上傳。</p>
+        </div>
+        <div class="alarm" id="alarm" hidden>
+          <b>停！</b>
+          <p id="alarmTxt">現在打開微波爐。</p>
+          <button type="button" id="alarmOk">知道了</button>
+        </div>
+      </div>
+
+      <div class="hist" id="hist" hidden>
+        <p id="histSum"></p>
+        <ol id="histList"></ol>
+        <button class="mini" id="histClear" type="button">清除紀錄</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 尾聲：回到 2:47 -->
+  <section class="end" id="end" aria-labelledby="h-end">
+    <div class="pk-wrap">
+      <h2 class="pk-sr" id="h-end">尾聲</h2>
+      <div class="vfd" id="endVfd" aria-hidden="true">2<span class="colon">:</span>47</div>
+      <p class="rv">回到開頭那台微波爐。</p>
+      <p class="rv">2:47 這個數字，可以忘了。</p>
+      <p class="rv">下次茶水間又傳來那陣越來越稀的聲音，你會知道那是一座山的山腳；你等的不是時間，是兩聲之間，一段兩秒長的安靜。</p>
+      <p class="rv last">數到二，開門。</p>
+    </div>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia〈Popcorn〉〈Microwave popcorn〉；Virot &amp; Ponomarenko, J. R. Soc. Interface (2015)；Orville Redenbacher’s、Pop Secret 官方微波說明。
+</footer>
+
+<script>
+/* ── 核心：純函式（無 DOM、無 WebAudio），node 可直接斷言 ── */
+var Core = (function () {
+  'use strict';
+
+  /* 可重現的亂數（mulberry32）與常態分布（Box–Muller） */
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function gauss(r) {
+    var u = 1 - r(), v = r();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  /* 一袋模擬爆米花：每顆抵達「爆點」的時刻服從左窄右寬的兩段常態分布；
+     少數是永遠不會爆的「啞粒」。時間單位：秒，從按下微波爐開始算。
+     scorchAt／autoEnd 是遊戲假設（焦化起點、自動關機），不是量測值。 */
+  var BAG = { N: 400, mu: 112, sL: 6, sR: 9.5, dud: 0.03, t0: 92 };
+  function makeBag(seed, P) {
+    P = Object.assign({}, BAG, P || {});
+    var r = rng(seed), pops = [], duds = 0, pL = P.sL / (P.sL + P.sR);
+    for (var i = 0; i < P.N; i++) {
+      if (r() < P.dud) { duds++; continue; }
+      var z = Math.abs(gauss(r));
+      var t = r() < pL ? P.mu - z * P.sL : P.mu + z * P.sR;
+      pops.push(Math.max(P.t0 + 0.6, t));
+    }
+    pops.sort(function (a, b) { return a - b; });
+    return { seed: seed, N: P.N, duds: duds, pops: pops, mu: P.mu, sL: P.sL, sR: P.sR, t0: P.t0,
+             scorchAt: P.mu + 3 * P.sR, autoEnd: P.mu + 5.2 * P.sR };
+  }
+
+  /* 已排序陣列中 ≤ t 的個數（二分搜尋） */
+  function countLE(arr, t) {
+    var lo = 0, hi = arr.length;
+    while (lo < hi) { var m = (lo + hi) >> 1; if (arr[m] <= t) lo = m + 1; else hi = m; }
+    return lo;
+  }
+
+  /* 焦掉的片數：過了 scorchAt 之後以 1.5 次方增加（遊戲假設） */
+  function scorched(bag, t) {
+    var over = t - bag.scorchAt;
+    return over > 0 ? Math.floor(1.3 * Math.pow(over, 1.5)) : 0;
+  }
+
+  function tier(o, N) {
+    if (o.popped === 0) return 'raw';
+    if (o.scorched > 60) return 'disaster';
+    if (o.scorched > 15) return 'burnt';
+    if (o.scorched > 0) return 'singed';
+    if (o.left > N * 0.12) return 'rawish';
+    if (o.left > 8) return 'early';
+    return 'good';
+  }
+
+  /* 在 tStop 按停：爆開幾顆、還沒輪到幾顆、啞粒幾顆、焦掉幾片 */
+  function outcome(bag, tStop) {
+    var popped = countLE(bag.pops, tStop);
+    var left = bag.pops.length - popped;
+    var o = { tStop: tStop, popped: popped, left: left, duds: bag.duds,
+              unpopped: left + bag.duds, scorched: Math.min(popped, scorched(bag, tStop)) };
+    o.tier = tier(o, bag.N);
+    return o;
+  }
+
+  /* 「爆起來了」的判定：win 秒內聽到 n 聲 → 回傳那一聲的時刻 */
+  function armTime(pops, n, win) {
+    n = n || 9; win = win || 3;
+    for (var i = n - 1; i < pops.length; i++) if (pops[i] - pops[i - n + 1] <= win) return pops[i];
+    return null;
+  }
+
+  /* 高峰：以每一聲為中心、win 秒窗內聲數最多的時刻 */
+  function peak(pops, win) {
+    win = win || 3;
+    var best = 0, bt = null, j = 0, k = 0;
+    for (var i = 0; i < pops.length; i++) {
+      var c = pops[i];
+      while (pops[j] < c - win / 2) j++;
+      while (k < pops.length && pops[k] <= c + win / 2) k++;
+      if (k - j > best) { best = k - j; bt = c; }
+    }
+    return { t: bt, rate: best / win };
+  }
+
+  /* after 之後，安靜第一次撐滿 G 秒的那一刻（最後一聲之後也算） */
+  function firstGap(pops, G, after) {
+    for (var i = 0; i < pops.length; i++) {
+      if (pops[i] < after) continue;
+      var next = i + 1 < pops.length ? pops[i + 1] : Infinity;
+      if (next - pops[i] >= G) return pops[i] + G;
+    }
+    return null;
+  }
+
+  /* 裁判的批次版（同一套規則，給模擬袋與測試用）：爆起來之後、至少聽滿 dwell 秒，安靜第一次撐滿 G 秒 */
+  function judgeStop(pops, G, dwell) {
+    var arm = armTime(pops);
+    if (arm === null) return null;
+    dwell = dwell === undefined ? 6 : dwell;
+    var from = countLE(pops, arm) - 1;
+    for (var i = from; i < pops.length; i++) {
+      var next = i + 1 < pops.length ? pops[i + 1] : Infinity;
+      var t = Math.max(pops[i] + G, arm + dwell);
+      if (t <= next) return t;
+    }
+    return null;
+  }
+
+  /* 「兩秒法則」的裁判：吃進一聲一聲的時刻，回報狀態與該不該停 */
+  function makeJudge(opt) {
+    opt = opt || {};
+    var G = opt.gap || 2, AN = opt.armN || 9, AW = opt.armWin || 3, RW = opt.rateWin || 3;
+    var DW = opt.dwell === undefined ? 6 : opt.dwell;   /* 爆起來後至少再聽 DW 秒，防偶發空檔誤判 */
+    var pops = [], armed = false, armedAt = null, peakRate = 0, stopAt = null;
+    function rateAt(now) {
+      var c = 0;
+      for (var i = pops.length - 1; i >= 0 && pops[i] > now - RW; i--) if (pops[i] <= now) c++;
+      return c / RW;
+    }
+    return {
+      pop: function (t) {
+        if (stopAt !== null) return;
+        pops.push(t);
+        if (!armed && pops.length >= AN && t - pops[pops.length - AN] <= AW) { armed = true; armedAt = t; }
+        var r = rateAt(t);
+        if (r > peakRate) peakRate = r;
+      },
+      update: function (now) {
+        var last = pops.length ? pops[pops.length - 1] : null;
+        var gap = last === null ? 0 : Math.max(0, now - last);
+        var rate = rateAt(now);
+        if (armed && stopAt === null && gap >= G && now >= armedAt + DW) stopAt = Math.max(last + G, armedAt + DW);
+        var state = stopAt !== null ? 'stop' : !pops.length ? 'idle' : !armed ? 'warm'
+                  : rate < peakRate * 0.35 ? 'slow' : 'pop';
+        return { state: state, gap: gap, rate: rate, peak: peakRate, count: pops.length,
+                 armed: armed, armedAt: armedAt, stopAt: stopAt, G: G,
+                 first: pops.length ? pops[0] : null };
+      },
+      setGap: function (g) { G = g; },
+      pops: function () { return pops.slice(); }
+    };
+  }
+
+  /* 爆裂聲偵測：兩級高通濾掉嗡嗡聲 → 每 ~4ms 算能量 → 能量突然高出「底噪」ratio 倍就算一聲。
+     底噪是下包絡：往下追得快、往上追得慢，所以密集爆裂時也不會被拖高太多。 */
+  function makeDetector(sr, opt) {
+    opt = opt || {};
+    var sub = Math.max(32, Math.round(sr * 0.004));
+    var ratio = opt.ratio || 7, absMin = opt.absMin || 4e-6, refr = opt.refractory || 0.04;
+    var fc = opt.hpf || 1500, rc = 1 / (2 * Math.PI * fc), dt = 1 / sr, a = rc / (rc + dt);
+    var px = 0, py = 0, qy = 0, acc = 0, n = 0, total = 0, floor = -1, last = -1e9, ready = true, peakE = 0;
+    return {
+      process: function (buf, out) {
+        out = out || [];
+        for (var i = 0; i < buf.length; i++) {
+          /* 兩級一階高通串接（-12 dB/八度）：微波爐的嗡嗡聲與風扇聲多在低頻 */
+          var x = buf[i], y = a * (py + x - px), z = a * (qy + y - py);
+          px = x; py = y; qy = z;
+          acc += z * z;
+          if (++n === sub) {
+            var e = acc / n, t = (total + i + 1) / sr;
+            acc = 0; n = 0;
+            if (e > peakE) peakE = e;
+            if (floor < 0) floor = e;
+            var thr = Math.max(floor * ratio, absMin);
+            if (ready && e > thr && t - last >= refr) { out.push(t); last = t; ready = false; }
+            else if (!ready && e < Math.max(floor * ratio * 0.5, absMin * 0.5)) ready = true;
+            floor += (e < floor ? 0.06 : 0.003) * (e - floor);
+          }
+        }
+        total += buf.length;
+        return out;
+      },
+      set: function (o) { if (o.ratio) ratio = o.ratio; if (o.absMin) absMin = o.absMin; },
+      level: function () { var v = peakE; peakE = 0; return v; },
+      floor: function () { return floor; },
+      time: function () { return total / sr; }
+    };
+  }
+
+  /* 直方圖：把每一聲依時間丟進寬 w 秒的桶子 */
+  function histogram(pops, t0, t1, w) {
+    var nb = Math.max(1, Math.ceil((t1 - t0) / w)), h = [];
+    for (var b = 0; b < nb; b++) h.push(0);
+    for (var i = 0; i < pops.length; i++) {
+      var k = Math.floor((pops[i] - t0) / w);
+      if (k >= 0 && k < nb) h[k]++;
+    }
+    return h;
+  }
+
+  /* 安靜階梯：空檔第一次撐滿 1／2／3／5 秒時，袋子裡的狀況 */
+  function ladder(bag, gaps) {
+    var pk = peak(bag.pops).t;
+    return (gaps || [1, 2, 3, 5]).map(function (G) {
+      var at = firstGap(bag.pops, G, pk);
+      return { G: G, at: at, o: at === null ? null : outcome(bag, at) };
+    });
+  }
+
+  function fmt(t) {
+    if (t === null || t === undefined || !isFinite(t)) return '—';
+    var s = Math.max(0, Math.floor(t + 1e-6)), m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  return { rng: rng, gauss: gauss, BAG: BAG, makeBag: makeBag, countLE: countLE, scorched: scorched,
+           tier: tier, outcome: outcome, armTime: armTime, peak: peak, firstGap: firstGap,
+           judgeStop: judgeStop, makeJudge: makeJudge, makeDetector: makeDetector, histogram: histogram, ladder: ladder, fmt: fmt };
+})();
+if (typeof module !== 'undefined') { module.exports = Core; }
+</script>
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'pop2s.';               /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => Array.prototype.slice.call((r || document).querySelectorAll(s));
+const clamp = PK.clamp, lerp = PK.lerp;
+const easeOut = (p) => 1 - Math.pow(1 - p, 3);
+/* m:ss.s（先四捨五入到十分之一秒，避免 59.96 變成 0:60.0） */
+const fmt1 = (t) => { const d = Math.round(t * 10), m = Math.floor(d / 600), s = (d - m * 600) / 10; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1); };
+const SANS = getComputedStyle(document.body).fontFamily;
+let RM = PK.reduced();
+
+PK.reveal();
+$('#toCh1').addEventListener('click', () => PK.scrollTo($('#ch1')));
+$('#toCh2').addEventListener('click', () => PK.scrollTo($('#ch2')));
+
+/* 數字滾動（reduced 直接到位） */
+function roll(el, to, ms) {
+  if (RM) { el.textContent = to; return; }
+  let t = 0;
+  const f = (dt) => {
+    t += dt * 1000;
+    const p = Math.min(1, t / (ms || 800));
+    el.textContent = Math.round(to * easeOut(p));
+    if (p >= 1) PK.untick(f);
+  };
+  PK.tick(f);
+}
+
+/* ════════════ 聲音（Web Audio 即時合成，不載入任何音檔） ════════════ */
+const Snd = (function () {
+  let ctx = null, out = null;
+  const noiseMap = new WeakMap();
+  function get() {
+    if (!ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      try { ctx = new AC(); } catch (e) { return null; }
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -14; comp.knee.value = 10; comp.ratio.value = 5; comp.attack.value = 0.002; comp.release.value = 0.15;
+      out = ctx.createGain(); out.gain.value = 0.7;
+      out.connect(comp); comp.connect(ctx.destination);
+    }
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+  function noise(c) {
+    let b = noiseMap.get(c);
+    if (!b) {
+      b = c.createBuffer(1, c.sampleRate, c.sampleRate);
+      const d = b.getChannelData(0), r = Core.rng(7);
+      for (let i = 0; i < d.length; i++) d[i] = r() * 2 - 1;
+      noiseMap.set(c, b);
+    }
+    return b;
+  }
+  /* 一聲「啵」：帶通雜訊的短促爆發＋一點低頻的「咚」 */
+  function pop(c, dest, t, r) {
+    const a = 0.45 + r() * 0.45, d = 0.02 + r() * 0.035;
+    const src = c.createBufferSource(); src.buffer = noise(c);
+    const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1800 + r() * 3000; bp.Q.value = 0.7 + r() * 1.0;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(a, t + 0.0012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    src.connect(bp); bp.connect(g); g.connect(dest);
+    src.start(t, r() * 0.9, d + 0.02);
+    const o = c.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(240 + r() * 220, t);
+    o.frequency.exponentialRampToValueAtTime(90, t + 0.035);
+    const g2 = c.createGain();
+    g2.gain.setValueAtTime(0.0001, t);
+    g2.gain.exponentialRampToValueAtTime(a * 0.45, t + 0.002);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+    o.connect(g2); g2.connect(dest); o.start(t); o.stop(t + 0.05);
+  }
+  /* 微波爐的嗡嗡聲：變壓器的 120 Hz＋風扇的寬頻雜訊 */
+  function hum(c, dest) {
+    const g = c.createGain(); g.gain.value = 0; g.connect(dest);
+    const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 120;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 360;
+    const og = c.createGain(); og.gain.value = 0.06;
+    o.connect(lp); lp.connect(og); og.connect(g);
+    const n = c.createBufferSource(); n.buffer = noise(c); n.loop = true;
+    const bp = c.createBiquadFilter(); bp.type = 'lowpass'; bp.frequency.value = 650; bp.Q.value = 0.7;
+    const ng = c.createGain(); ng.gain.value = 0.2;
+    n.connect(bp); bp.connect(ng); ng.connect(g);
+    const t = c.currentTime;
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.3);
+    o.start(t); n.start(t);
+    return {
+      stop(t2) {
+        t2 = t2 || c.currentTime;
+        g.gain.cancelScheduledValues(t2); g.gain.setValueAtTime(g.gain.value, t2); g.gain.linearRampToValueAtTime(0, t2 + 0.15);
+        o.stop(t2 + 0.25); n.stop(t2 + 0.25);
+      }
+    };
+  }
+  function beep(c, dest, t, f, d, v) {
+    const o = c.createOscillator(); o.type = 'square'; o.frequency.value = f;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = f * 2.2;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.008);
+    g.gain.setValueAtTime(v, t + d - 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(lp); lp.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.02);
+  }
+  /* 開門：一聲低沉的「咚」＋門閂的「喀」 */
+  function clunk(c, dest, t) {
+    const o = c.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.08);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
+    o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.14);
+    const s = c.createBufferSource(); s.buffer = noise(c);
+    const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+    const g2 = c.createGain();
+    g2.gain.setValueAtTime(0.0001, t); g2.gain.exponentialRampToValueAtTime(0.25, t + 0.001); g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+    s.connect(hp); hp.connect(g2); g2.connect(dest); s.start(t, 0.3, 0.03);
+  }
+  return { get, ctx: () => ctx, out: () => out, noise, pop, hum, beep, clunk };
+})();
+
+/* 播一袋模擬爆米花：照 AudioContext 時鐘預排（lookahead），畫面用 take() 對時 */
+function playBag(bag, dest, from) {
+  const c = Snd.get();
+  const bus = c.createGain(); bus.connect(dest);
+  const h = Snd.hum(c, bus);
+  const T0 = c.currentTime + 0.15;              /* 這一刻＝模擬時間 from */
+  const r = Core.rng((bag.seed ^ 0x5bd1e995) >>> 0);
+  let i = Core.countLE(bag.pops, from);
+  const due = [];
+  let stopped = false;
+  function sched() {
+    const now = c.currentTime, horizon = now + 0.3;
+    while (i < bag.pops.length) {
+      const tc = T0 + (bag.pops[i] - from);
+      if (tc > horizon) break;
+      if (tc >= now - 0.02) { Snd.pop(c, bus, Math.max(tc, now + 0.005), r); due.push(tc); }
+      i++;
+    }
+  }
+  sched();
+  const iv = setInterval(sched, 50);
+  return {
+    T0: T0, from: from,
+    sim() { return from + (c.currentTime - T0); },
+    take(now) { let n = 0; while (due.length && due[0] <= now) { due.shift(); n++; } return n; },
+    stop() {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(iv);
+      const t = c.currentTime;
+      h.stop(t);
+      bus.gain.cancelScheduledValues(t); bus.gain.setValueAtTime(1, t); bus.gain.linearRampToValueAtTime(0, t + 0.05);
+      setTimeout(() => { try { bus.disconnect(); } catch (e) {} }, 800);
+      due.length = 0;
+    }
+  };
+}
+
+/* ════════════ 開袋：把四百顆畫出來 ════════════ */
+const Kern = (function () {
+  const cv = $('#kerncv');
+  let job = null, last = null;
+  function draw(bag, o, instant) {
+    last = [bag, o];
+    const W = cv.parentNode.clientWidth - 28;
+    if (W < 80) return;
+    const cell = W < 420 ? 12 : 15, cols = Math.max(10, Math.floor(W / cell)), rows = Math.ceil(bag.N / cols);
+    const H = rows * cell + 4;
+    cv.style.height = H + 'px';
+    const box = PK.fitCanvas(cv, H);
+    const fluffy = o.popped - o.scorched, cats = [];
+    for (let i = 0; i < fluffy; i++) cats.push(0);
+    for (let i = 0; i < o.scorched; i++) cats.push(1);
+    for (let i = 0; i < o.left; i++) cats.push(2);
+    for (let i = 0; i < o.duds; i++) cats.push(3);
+    const r = Core.rng(bag.seed ^ 77);
+    for (let i = cats.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); const tmp = cats[i]; cats[i] = cats[j]; cats[j] = tmp; }
+    const delay = cats.map(() => r() * 0.7), jit = cats.map(() => [r() - 0.5, r() - 0.5, r()]);
+    const xOff = (W - cols * cell) / 2;
+    const g = cv.getContext('2d');
+    function paint(T) {
+      g.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
+      g.clearRect(0, 0, box.w, box.h);
+      for (let i = 0; i < cats.length; i++) {
+        const p = clamp((T - delay[i]) / 0.25, 0, 1);
+        if (p <= 0) continue;
+        const s = p < 1 ? easeOut(p) * 1.08 - (p > 0.8 ? (p - 0.8) * 0.4 : 0) : 1;
+        const x = xOff + ((i % cols) + 0.5) * cell + jit[i][0] * cell * 0.25;
+        const y = (Math.floor(i / cols) + 0.5) * cell + 2 + jit[i][1] * cell * 0.25;
+        const k = cats[i], rr = cell * s;
+        if (k <= 1) {
+          const col = k ? '#6b3a20' : '#fff0c8', sh = k ? '#3d2012' : '#e5cf9c';
+          const a = jit[i][2] * Math.PI * 2;
+          g.fillStyle = sh;
+          blob(g, x + 0.6, y + 0.9, rr * 0.27, a);
+          g.fillStyle = col;
+          blob(g, x, y, rr * 0.27, a);
+        } else {
+          g.fillStyle = k === 2 ? '#e8a531' : '#a8762c';
+          g.beginPath(); g.ellipse(x, y, rr * 0.2, rr * 0.27, jit[i][2] * 2, 0, Math.PI * 2); g.fill();
+          g.fillStyle = 'rgba(255,240,200,.45)';
+          g.beginPath(); g.arc(x - rr * 0.06, y - rr * 0.1, rr * 0.06, 0, Math.PI * 2); g.fill();
+        }
+      }
+    }
+    function blob(g, x, y, rad, a) {
+      g.beginPath();
+      for (let q = 0; q < 3; q++) {
+        const aa = a + q * 2.1;
+        g.moveTo(x + Math.cos(aa) * rad * 0.7 + rad, y + Math.sin(aa) * rad * 0.7);
+        g.arc(x + Math.cos(aa) * rad * 0.7, y + Math.sin(aa) * rad * 0.7, rad, 0, Math.PI * 2);
+      }
+      g.fill();
+    }
+    if (job) { PK.untick(job); job = null; }
+    if (RM || instant) { paint(9); return; }
+    let T = 0;
+    job = (dt) => { T += dt; paint(T); if (T > 1.05) { PK.untick(job); job = null; } };
+    PK.tick(job);
+  }
+  return { draw, redraw() { if (last && !$('#c1out').hidden) draw(last[0], last[1], true); } };
+})();
+
+const TIER = {
+  raw:      { h: '一顆都還沒爆。', p: () => '你打開的是一袋溫熱的生玉米。' },
+  rawish:   { h: '太早了。', p: (o) => `袋底一大把硬粒，${o.unpopped} 顆。咬下去會先想到牙醫。` },
+  early:    { h: '早了一點。', p: (o) => `還有 ${o.left} 顆在路上，再撐幾秒就到了。` },
+  good:     { h: '漂亮。', p: (o) => o.left ? `袋底剩 ${o.unpopped} 顆，其中 ${o.duds} 顆怎麼等都不會爆。`
+                                          : `袋底剩 ${o.unpopped} 顆，全是怎麼等都不會爆的啞粒。` },
+  singed:   { h: '晚了一點點。', p: (o) => `${o.scorched} 片焦了。只有你吃得出來——暫時。` },
+  burnt:    { h: '焦味飄出茶水間了。', p: (o) => `${o.scorched} 片焦黑，隔壁同事抬頭聞了一下。` },
+  disaster: { h: '整層樓都知道了。', p: (o) => `${o.scorched} 片焦黑。今天下午，大家都會記得是誰。` }
+};
+
+/* ════════════ 第一章：微波爐 ════════════ */
+const Ch1 = (function () {
+  const oven = $('#oven'), clock = $('#clock'), bStart = $('#c1start'), bStop = $('#c1stop'), msg = $('#c1msg');
+  const body = $('#bagBody'), shadow = $('#bagShadow'), haze = $('#haze'), cv = $('#sparks'), out = $('#c1out');
+  let bag = null, pl = null, running = false, seen = 0, puff = 0, th = 0, sparks = [], box = null;
+  let pose = { dx: 0, sx: 1, sy: 0.36 };
+  function layout() { box = PK.fitCanvas(cv); }
+  function setPose(dx, sx, sy) {
+    pose = { dx, sx, sy };
+    body.setAttribute('transform', `translate(${dx.toFixed(2)} 0) scale(${sx.toFixed(3)} ${sy.toFixed(3)})`);
+    shadow.setAttribute('transform', `translate(${dx.toFixed(2)} 0) scale(${sx.toFixed(3)} 1)`);
+  }
+  function spawn() {
+    if (!box || box.w < 80) return;
+    const k = box.w / 320, cx = (160 + pose.dx) * k, hw = 70 * pose.sx * k;
+    const bottom = 172 * k, top = (172 - 100 * pose.sy) * k;
+    sparks.push({ x: cx + (Math.random() - 0.5) * 1.5 * hw, y: top + Math.random() * (bottom - top) * 0.8,
+                  r: (4 + Math.random() * 6) * k, life: 0, max: 0.14 + Math.random() * 0.1 });
+  }
+  function drawSparks(dt) {
+    if (!box || box.w < 80) return;
+    const g = cv.getContext('2d');
+    g.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
+    g.clearRect(0, 0, box.w, box.h);
+    g.globalCompositeOperation = 'lighter';
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.life += dt;
+      if (s.life >= s.max) { sparks.splice(i, 1); continue; }
+      const p = s.life / s.max, a = (1 - p) * 0.85, rr = s.r * (0.6 + p * 0.9);
+      const gr = g.createRadialGradient(s.x, s.y, 0, s.x, s.y, rr);
+      gr.addColorStop(0, `rgba(255,250,235,${a.toFixed(3)})`);
+      gr.addColorStop(1, 'rgba(255,220,150,0)');
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(s.x, s.y, rr, 0, Math.PI * 2); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+  function start() {
+    const c = Snd.get();
+    if (!c) { msg.textContent = '這個瀏覽器放不出網頁音效，換一個試試。'; return; }
+    Tool.halt();
+    bag = Core.makeBag((Math.random() * 4294967296) >>> 0);
+    pl = playBag(bag, Snd.out(), bag.t0);
+    running = true; seen = 0; puff = 0; sparks = [];
+    haze.setAttribute('opacity', '0');
+    oven.classList.add('on');
+    bStart.disabled = true; bStop.disabled = false;
+    bStop.focus({ preventScroll: true });
+    msg.textContent = '加熱中……覺得夠了就按停。';
+    layout();
+    PK.tick(frame);
+    PK.announce('開始加熱。覺得夠了就按停，空白鍵也可以。');
+  }
+  function frame(dt) {
+    if (!running) return;
+    const now = Snd.ctx().currentTime;
+    const n = pl.take(now);
+    if (n) {
+      seen += n;
+      if (!RM) { puff = Math.min(0.06, puff + 0.014 * n); for (let k = 0; k < Math.min(n, 4); k++) spawn(); }
+    }
+    const st = pl.sim();
+    clock.textContent = Core.fmt(Math.max(bag.t0, st));
+    if (!RM) th += dt * (Math.PI * 2 / 9);
+    puff *= Math.exp(-dt * 9);
+    const frac = seen / bag.pops.length;
+    setPose(Math.sin(th) * 14, 0.8 + 0.2 * Math.abs(Math.cos(th)), 0.36 + 0.64 * (1 - Math.pow(1 - frac, 2)) + puff);
+    haze.setAttribute('opacity', Math.min(0.85, Core.scorched(bag, st) / 90).toFixed(3));
+    drawSparks(dt);
+    if (st >= bag.autoEnd) stop(true);
+  }
+  function stop(auto) {
+    if (!running) return;
+    const c = Snd.ctx(), tStop = Math.max(bag.t0, pl.sim());
+    running = false;
+    pl.stop();
+    PK.untick(frame);
+    sparks = []; drawSparks(0);
+    Snd.beep(c, Snd.out(), c.currentTime + 0.02, 1850, 0.09, 0.12);
+    Snd.clunk(c, Snd.out(), c.currentTime + 0.2);
+    oven.classList.remove('on');
+    bStart.disabled = false; bStart.textContent = '再一袋';
+    bStop.disabled = true;
+    clock.textContent = Core.fmt(tStop);
+    msg.textContent = '';
+    show(bag, tStop, auto);
+    App.set(bag, tStop, true);
+  }
+  function show(bag, tStop, auto) {
+    const o = Core.outcome(bag, tStop), T = TIER[o.tier];
+    $('#o-t').textContent = Core.fmt(tStop);
+    $('#o-auto').hidden = !auto;
+    $('#o-h').textContent = T.h;
+    $('#o-p').textContent = T.p(o);
+    const j = Core.judgeStop(bag.pops, 2), d = tStop - j;
+    $('#o-cmp').textContent = j === null ? '' :
+      `這一袋第一次「安靜滿兩秒」，在 ${Core.fmt(j)}——你${Math.abs(d) < 0.6 ? '幾乎同時按下。' : d < 0 ? `早了 ${Math.round(-d)} 秒。` : `晚了 ${Math.round(d)} 秒。`}`;
+    out.hidden = false;
+    $('#kerncv').setAttribute('aria-label', `開袋：蓬鬆 ${o.popped - o.scorched} 顆、沒爆 ${o.unpopped} 顆、焦掉 ${o.scorched} 片`);
+    Kern.draw(bag, o);
+    roll($('#o-fl'), o.popped - o.scorched, 900);
+    roll($('#o-un'), o.unpopped, 900);
+    roll($('#o-sc'), o.scorched, 900);
+    PK.announce(`你停在 ${Core.fmt(tStop)}。${T.h}${T.p(o)}`);
+    store.set('last', { t: +tStop.toFixed(2), tier: o.tier });
+  }
+  bStart.addEventListener('click', start);
+  bStop.addEventListener('click', () => stop(false));
+  document.addEventListener('keydown', (e) => {
+    if (!running) return;
+    if (e.key === ' ' || e.key === 'Spacebar' || (e.key === 'Enter' && e.target === document.body)) {
+      e.preventDefault();
+      stop(false);
+    }
+  });
+  window.addEventListener('resize', () => { if (running) layout(); });
+  return { halt() { if (running) stop(false); }, running: () => running };
+})();
+
+/* ════════════ 共用狀態：目前畫在第二、三章的是哪一袋 ════════════ */
+const App = {
+  bag: null, tStop: null, mine: false,
+  set(bag, tStop, mine) {
+    this.bag = bag; this.tStop = tStop; this.mine = mine;
+    $$('.if-mine').forEach((el) => { el.hidden = !mine; });
+    $$('.if-demo').forEach((el) => { el.hidden = mine; });
+    $('#dudN').textContent = bag.duds;
+    Pile.load();
+    Ladder.render();
+  }
+};
+
+/* ════════════ 第二章：一聲一聲落下來，堆成山 ════════════ */
+const Pile = (function () {
+  const cv = $('#pilecv');
+  let G = null, T = 0, dur = 2, job = null, visible = false, done = false;
+  function geom() {
+    const bag = App.bag, tStop = App.tStop;
+    const box = PK.fitCanvas(cv);
+    if (box.w < 80) return null;
+    const padL = 10, padR = 10, base = box.h - 30, top = 40;
+    const t0 = bag.t0, tEnd = Math.max(bag.pops[bag.pops.length - 1], tStop || 0) + 3;
+    const plotW = box.w - padL - padR;
+    /* 桶寬取「每桶約 12px」換算成的秒數（0.5 秒一階），磚塊寬＝桶寬，高度讓山頂接近畫布上緣 */
+    let w = (tEnd - t0) / (plotW / 12);
+    w = Math.min(3, Math.max(0.5, Math.round(w * 2) / 2));
+    const h = Core.histogram(bag.pops, t0, tEnd, w);
+    const binPx = plotW * w / (tEnd - t0);
+    const maxB = Math.max.apply(null, h);
+    const bw = Math.max(1.5, binPx - 1.2);
+    const sq = Math.max(1.6, Math.min(bw, (base - top) / maxB));
+    const X = (t) => padL + (t - t0) / (tEnd - t0) * plotW;
+    const stack = h.map(() => 0);
+    const items = bag.pops.map((t, i) => {
+      const b = Math.min(h.length - 1, Math.floor((t - t0) / w)), k = stack[b]++;
+      return { x0: X(t), x1: padL + b * binPx + (binPx - bw) / 2, y1: base - (k + 1) * sq,
+               ghost: tStop !== null && t > tStop, d: (t - t0) / (tEnd - t0) * 1.1 + PK.hash('p' + i) * 0.15 };
+    });
+    let pb = 0;
+    for (let b = 1; b < h.length; b++) if (h[b] > h[pb]) pb = b;
+    return { box, padL, padR, base, t0, tEnd, w, binPx, bw, sq, X, items, maxB, pb, tStop };
+  }
+  function paint() {
+    if (!G) return;
+    const { box } = G, g = cv.getContext('2d');
+    g.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
+    g.clearRect(0, 0, box.w, box.h);
+    g.lineWidth = 1;
+    g.strokeStyle = 'rgba(255,232,196,.2)';
+    g.beginPath(); g.moveTo(G.padL, G.base + 0.5); g.lineTo(box.w - G.padR, G.base + 0.5); g.stroke();
+    g.strokeStyle = 'rgba(255,232,196,.08)';
+    g.beginPath(); g.moveTo(G.padL, 22.5); g.lineTo(box.w - G.padR, 22.5); g.stroke();
+    g.font = '11px ' + SANS; g.textAlign = 'center'; g.fillStyle = 'rgba(242,232,216,.5)';
+    for (let s = Math.ceil(G.t0 / 10) * 10; s <= G.tEnd; s += 10) {
+      const x = G.X(s);
+      g.fillRect(Math.round(x), G.base + 3, 1, 4);
+      g.fillText(Core.fmt(s), x, G.base + 20);
+    }
+    for (const it of G.items) {
+      const p = clamp((T - it.d) / 0.7, 0, 1), e = easeOut(p);
+      const x = lerp(it.x0, it.x1, e), y = lerp(12, it.y1, e);
+      const wd = lerp(1.4, G.bw, e), ht = lerp(12, Math.max(1, G.sq - 0.8), e);
+      if (it.ghost) {
+        g.strokeStyle = 'rgba(255,240,200,.38)';
+        g.strokeRect(x + 0.5, y + 0.5, Math.max(0.5, wd - 1), Math.max(0.5, ht - 1));
+      } else {
+        g.fillStyle = '#fff0c8';
+        g.fillRect(x, y, wd, ht);
+      }
+    }
+    if (G.tStop !== null) {
+      const x = Math.round(G.X(G.tStop)) + 0.5;
+      g.strokeStyle = '#ff5a36'; g.lineWidth = 1.5; g.setLineDash([4, 3]);
+      g.beginPath(); g.moveTo(x, 6); g.lineTo(x, G.base); g.stroke(); g.setLineDash([]);
+      const right = x > box.w - 110;
+      g.textAlign = right ? 'right' : 'left'; g.fillStyle = '#ff8a6a'; g.font = '12px ' + SANS;
+      g.fillText('你按停 ' + Core.fmt(G.tStop), x + (right ? -6 : 6), 36);
+    }
+    if (T >= dur) {
+      const x = G.padL + (G.pb + 0.5) * G.binPx, y = G.base - G.maxB * G.sq - 8;
+      g.textAlign = x < 90 ? 'left' : x > box.w - 90 ? 'right' : 'center';
+      g.fillStyle = 'rgba(255,240,200,.85)'; g.font = '12px ' + SANS;
+      g.fillText('高峰：每秒約 ' + Math.round(G.maxB / G.w) + ' 聲', x, Math.max(14, y));
+    }
+  }
+  function play() {
+    G = geom();
+    if (!G) return;
+    dur = Math.max.apply(null, G.items.map((it) => it.d)) + 0.7;
+    done = true;
+    if (job) { PK.untick(job); job = null; }
+    if (RM) { T = dur; paint(); return; }
+    T = 0;
+    job = (dt) => { T += dt; paint(); if (T >= dur) { PK.untick(job); job = null; } };
+    PK.tick(job);
+  }
+  function load() {
+    done = false;
+    const bag = App.bag, left = App.tStop === null ? 0 : bag.pops.length - Core.countLE(bag.pops, App.tStop);
+    const pk = Core.peak(bag.pops);
+    cv.setAttribute('aria-label', `${bag.pops.length} 聲依時間堆成的山形圖，高峰每秒約 ${Math.round(pk.rate)} 聲` +
+      (App.tStop === null ? '' : `；你在 ${Core.fmt(App.tStop)} 按停，之後還有 ${left} 顆沒輪到`));
+    $('#pileCap').textContent = App.tStop === null ? '每一格，是同一小段時間裡的一聲。'
+      : left ? `每一格是一聲；空心的 ${left} 格，在你按停之後才會爆。`
+      : '每一格是一聲；你按停的時候，會爆的都爆完了。';
+    if (visible) play();
+    else { G = geom(); T = 0; if (G) paint(); }
+  }
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((es) => {
+      es.forEach((e) => { visible = e.isIntersecting; if (visible && !done) play(); });
+    }, { threshold: 0.35 }).observe(cv);
+  } else { visible = true; }
+  $('#pileAgain').addEventListener('click', play);
+  let rz = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(rz);
+    rz = setTimeout(() => { if (!App.bag) return; G = geom(); if (G && !job) { if (done) T = dur; paint(); } }, 150);
+  });
+  return { load };
+})();
+
+/* ════════════ 第三章：安靜階梯 ════════════ */
+const Ladder = (function () {
+  const ol = $('#ladder');
+  function dots(left, sc) {
+    let s = '', x = 4;
+    const n1 = Math.min(left, 26), n2 = Math.min(sc, 26);
+    for (let i = 0; i < n1; i++) { s += `<circle cx="${x}" cy="6" r="2.7" fill="#e3a12f"/>`; x += 7.2; }
+    if (left > 26) { s += `<text x="${x}" y="10" font-size="10" fill="#e3a12f">+${left - 26}</text>`; x += 26; }
+    if (n1 && n2) x += 6;
+    for (let i = 0; i < n2; i++) { s += `<circle cx="${x}" cy="6" r="2.7" fill="#6b3a20" stroke="#9a5a33" stroke-width=".7"/>`; x += 7.2; }
+    if (sc > 26) { s += `<text x="${x}" y="10" font-size="10" fill="#c07a50">+${sc - 26}</text>`; x += 26; }
+    const w = Math.max(12, Math.ceil(x));
+    return `<svg width="${w}" height="12" viewBox="0 0 ${w} 12" aria-hidden="true">${s}</svg>`;
+  }
+  function render() {
+    const bag = App.bag;
+    const L = Core.ladder(bag, [0.5, 1, 2, 3, 5]);
+    const rows = L.filter((r) => r.at !== null).map((r) => ({ me: false, G: r.G, at: r.at, o: r.o }));
+    if (App.tStop !== null) rows.push({ me: true, at: App.tStop, o: Core.outcome(bag, App.tStop) });
+    rows.sort((a, b) => a.at - b.at);
+    ol.innerHTML = rows.map((r) => {
+      const cls = r.me ? 'me' : r.G === 2 ? 'key' : '';
+      const lb = r.me ? '你按停' : (r.G === 0.5 ? '安靜滿半秒' : `安靜滿 ${r.G} 秒`) + (r.G === 2 ? '<em>常見說法</em>' : '');
+      const ct = `還沒輪到 <b>${r.o.left}</b> 顆${r.o.scorched ? `・焦 <b>${r.o.scorched}</b> 片` : ''}`;
+      return `<li class="${cls}"><span class="lb">${lb}</span><span class="tm">${Core.fmt(r.at)}</span><span class="dots">${dots(r.o.left, r.o.scorched)}</span><span class="ct">${ct}</span></li>`;
+    }).join('');
+    const by = {};
+    L.forEach((r) => { by[r.G] = r.o; });
+    if (by[0.5] && by[2] && by[5]) {
+      const g1 = by[0.5].left - by[2].left, g2 = by[2].left - by[5].left, b5 = by[5].scorched;
+      const tail = g2 === 0 ? '一顆也沒多' : `只多 ${g2} 顆`;
+      $('#ladderSum').textContent = `從「半秒」等到「兩秒」，多爆了 ${g1} 顆；從「兩秒」等到「五秒」，${tail}` +
+        (b5 > 0 ? `，卻焦了 ${b5} 片。` : '，再等下去就輪到焦了。');
+    }
+    $('#dudNote').textContent = `另外還有 ${bag.duds} 顆啞粒，不管等多久都一樣。`;
+  }
+  return { render };
+})();
+
+/* ════════════ 第三章：兩台微波爐 ════════════ */
+(function () {
+  const base = 196;
+  function bell(c, sl, sr, H) {
+    let d = '';
+    for (let x = 20; x <= 580; x += 4) {
+      const s = x < c ? sl : sr, y = base - H * Math.exp(-((x - c) * (x - c)) / (2 * s * s));
+      d += (x === 20 ? 'M' : 'L') + x + ' ' + y.toFixed(1) + ' ';
+    }
+    return d;
+  }
+  /* 示意圖：同一座山，強的那台往前、弱的往後；圓點＝安靜第一次滿兩秒（畫在山腳約 2.2σ 處，示意用） */
+  const A = { c: 190, sl: 28, sr: 40, H: 130 }, B = { c: 320, sl: 32, sr: 48, H: 112 };
+  $('#ovA').setAttribute('d', bell(A.c, A.sl, A.sr, A.H));
+  $('#ovB').setAttribute('d', bell(B.c, B.sl, B.sr, B.H));
+  function mark(o, mk) {
+    const x = o.c + 2.2 * o.sr, y = base - o.H * Math.exp(-(2.2 * 2.2) / 2);
+    $(mk).setAttribute('cx', x.toFixed(1)); $(mk).setAttribute('cy', y.toFixed(1));
+  }
+  mark(A, '#mkA');
+  mark(B, '#mkB');
+  const fig = $('.ovens');
+  let drawn = false;
+  function draw() { if (drawn) return; drawn = true; PK.replayDash($('#ovA'), 1300); PK.replayDash($('#ovB'), 1500); }
+  if ('IntersectionObserver' in window && !RM) {
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); draw(); } }, { threshold: 0.4 });
+    io.observe(fig);
+  }
+})();
+
+/* ════════════ 第四章：換手機來聽 ════════════ */
+const Tool = (function () {
+  const el = $('#tool'), arc = $('#arc'), gapNum = $('#gapNum'), gapLbl = $('#gapLbl'), stateEl = $('#tstate');
+  const nPop = $('#tn'), nRate = $('#tr'), nPeak = $('#tp'), scope = $('#scope');
+  const bMic = $('#micBtn'), bSim = $('#simBtn'), alarm = $('#alarm'), err = $('#terr');
+  const C = 2 * Math.PI * 88;
+  const SENS = { low: { ratio: 12, absMin: 1.6e-5 }, mid: { ratio: 7, absMin: 4e-6 }, high: { ratio: 4.5, absMin: 1e-6 } };
+  let gap = store.get('gap', 2), sens = store.get('sens', 'mid');
+  if ([1.5, 2, 2.5, 3].indexOf(gap) < 0) gap = 2;
+  if (!SENS[sens]) sens = 'mid';
+  let mode = null, ctx = null, det = null, judge = null, proc = null, mute = null, srcNode = null, stream = null;
+  let sim = null, simBag = null, simOff = 0, wake = null, last = 'idle', slowSeen = false, lv = [], hits = [], snap = null, ticking = false;
+  arc.style.strokeDasharray = C.toFixed(1);
+  arc.style.strokeDashoffset = C.toFixed(1);
+
+  function say(s) { stateEl.textContent = s; PK.announce(s); }
+  function ui() {
+    bMic.textContent = mode === 'mic' ? '停止聆聽' : '用麥克風聽';
+    bMic.setAttribute('aria-pressed', String(mode === 'mic'));
+    bSim.textContent = mode === 'sim' ? '停止模擬' : '沒有微波爐？放一袋模擬的給它聽';
+    bSim.setAttribute('aria-pressed', String(mode === 'sim'));
+    bMic.disabled = mode === 'sim';
+    bSim.disabled = mode === 'mic';
+  }
+  function segs() {
+    $$('#segGap button').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.v === gap)));
+    $$('#segSens button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.v === sens)));
+  }
+  function reset() {
+    alarm.hidden = true;
+    el.classList.remove('stop', 'hot', 'armed');
+    last = 'idle'; slowSeen = false; lv = []; hits = []; snap = null;
+    arc.style.strokeDashoffset = C.toFixed(1);
+    gapNum.textContent = '—'; gapLbl.textContent = '等它爆起來';
+    nPop.textContent = '0'; nRate.textContent = '0.0'; nPeak.textContent = '0.0';
+  }
+  function wire(c, input) {
+    if (!c.createScriptProcessor) { err.textContent = '這個瀏覽器不支援即時聲音分析。'; finish(); return false; }
+    ctx = c;
+    proc = c.createScriptProcessor(2048, 1, 1);
+    mute = c.createGain(); mute.gain.value = 0;
+    input.connect(proc); proc.connect(mute); mute.connect(c.destination);
+    det = Core.makeDetector(c.sampleRate, SENS[sens]);
+    judge = Core.makeJudge({ gap: gap });
+    proc.onaudioprocess = (e) => {
+      if (!det) return;
+      const h = det.process(e.inputBuffer.getChannelData(0));
+      for (let i = 0; i < h.length; i++) { judge.pop(h[i]); hits.push(h[i]); }
+      const now = det.time();
+      lv.push([now, det.level()]);
+      const st = judge.update(now);
+      snap = { st, now };
+      if (st.state !== last) onState(st);
+    };
+    el.classList.add('on');
+    if (!ticking) { ticking = true; PK.tick(frame); }
+    return true;
+  }
+  function onState(st) {
+    last = st.state;
+    el.classList.toggle('armed', st.armed);
+    if (st.state === 'warm') say('有聲音了……等它爆起來。');
+    else if (st.state === 'pop' && !slowSeen) say(`爆起來了。安靜滿 ${st.G} 秒就叫你。`);
+    else if (st.state === 'slow' && !slowSeen) { slowSeen = true; say('變稀了，快到了。'); }
+    else if (st.state === 'stop') fire(st);
+  }
+  function fire(st) {
+    const c = ctx, t = c.currentTime + 0.02;
+    for (let k = 0; k < 2; k++) for (let i = 0; i < 3; i++) Snd.beep(c, Snd.out(), t + k * 0.9 + i * 0.2, 2300, 0.12, 0.3);
+    if (navigator.vibrate) { try { navigator.vibrate([220, 90, 220, 90, 420]); } catch (e) {} }
+    el.classList.remove('hot');
+    el.classList.add('stop');
+    let txt;
+    if (mode === 'sim' && simBag) {
+      const want = Core.judgeStop(simBag.pops, st.G);
+      txt = `它在模擬時鐘 ${fmt1(st.stopAt + simOff)} 喊停；這袋的出爐紀錄說，安靜第一次滿 ${st.G} 秒是 ${fmt1(want)}。`;
+    } else {
+      txt = `從你按下到現在：${Core.fmt(st.stopAt)}。現在打開微波爐。`;
+      saveRun(st);
+    }
+    $('#alarmTxt').textContent = txt;
+    alarm.hidden = false;
+    $('#alarmOk').focus({ preventScroll: true });
+    say('停！' + txt);
+    finish();
+  }
+  function finish() {
+    if (proc) { proc.onaudioprocess = null; try { proc.disconnect(); } catch (e) {} }
+    if (srcNode) { try { srcNode.disconnect(); } catch (e) {} }
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (sim) sim.stop();
+    if (wake) { try { wake.release(); } catch (e) {} }
+    proc = srcNode = stream = sim = wake = null;
+    mode = null;
+    el.classList.remove('on');
+    ui();
+  }
+  async function startMic() {
+    if (mode) { finish(); say('停止聆聽了。'); return; }
+    err.textContent = '';
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      err.textContent = '這個瀏覽器拿不到麥克風（需要 https，或直接開本機檔案）。'; return;
+    }
+    const c = Snd.get();
+    if (!c) { err.textContent = '這個瀏覽器不支援網頁音訊。'; return; }
+    Ch1.halt();
+    let s;
+    try {
+      s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    } catch (e) {
+      const n = e && e.name;
+      err.textContent = n === 'NotAllowedError' ? '麥克風被拒絕了。可以從網址列旁的權限設定重新允許。'
+        : n === 'NotFoundError' ? '找不到麥克風。' : '麥克風打不開（' + (n || '未知原因') + '）。';
+      return;
+    }
+    if (c.state === 'suspended') c.resume();
+    reset();
+    stream = s; mode = 'mic';
+    srcNode = c.createMediaStreamSource(s);
+    if (!wire(c, srcNode)) return;
+    ui();
+    say('在聽了。微波爐開始轉了嗎？');
+    try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {}
+  }
+  function startSim() {
+    if (mode) { finish(); say('停止模擬了。'); return; }
+    err.textContent = '';
+    const c = Snd.get();
+    if (!c) { err.textContent = '這個瀏覽器不支援網頁音訊。'; return; }
+    Ch1.halt();
+    reset();
+    mode = 'sim';
+    simBag = Core.makeBag((Math.random() * 4294967296) >>> 0);
+    const bus = c.createGain(); bus.connect(Snd.out());
+    sim = playBag(simBag, bus, simBag.t0);
+    simOff = sim.from + (c.currentTime - sim.T0);   /* 偵測器時間 → 模擬時鐘 */
+    if (!wire(c, bus)) return;
+    ui();
+    say('模擬袋開始加熱，它在聽。');
+  }
+  function drawScope(now) {
+    const box = PK.fitCanvas(scope);
+    if (box.w < 80) return;
+    const g = scope.getContext('2d'), W = box.w, H = box.h, span = 10;
+    g.setTransform(box.dpr, 0, 0, box.dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+    while (lv.length && lv[0][0] < now - span - 1) lv.shift();
+    while (hits.length && hits[0] < now - span - 1) hits.shift();
+    g.fillStyle = 'rgba(141,255,216,.32)';
+    for (let i = 0; i < lv.length; i++) {
+      const x = W - (now - lv[i][0]) / span * W, db = 10 * Math.log10(lv[i][1] + 1e-12);
+      const hh = clamp((db + 80) / 70, 0, 1) * (H - 10);
+      g.fillRect(x - 1.5, H - hh, 2.4, hh);
+    }
+    g.fillStyle = '#fff0c8';
+    for (let i = 0; i < hits.length; i++) {
+      const x = W - (now - hits[i]) / span * W;
+      g.fillRect(x - 0.6, 6, 1.6, H - 6);
+      g.beginPath(); g.arc(x + 0.2, 6, 2.4, 0, Math.PI * 2); g.fill();
+    }
+  }
+  function frame() {
+    if (!snap) { if (!mode) { ticking = false; PK.untick(frame); } return; }
+    const now = snap.now;
+    const live = mode ? judge.update(det.time()) : snap.st;
+    const frac = live.state === 'stop' ? 1 : live.armed ? Math.min(1, live.gap / live.G) : 0;
+    arc.style.strokeDashoffset = (C * (1 - frac)).toFixed(1);
+    el.classList.toggle('hot', live.armed && frac > 0.6 && live.state !== 'stop');
+    gapNum.textContent = live.state === 'stop' ? live.G.toFixed(1) : live.armed ? live.gap.toFixed(1) : '—';
+    gapLbl.textContent = live.armed || live.state === 'stop' ? '秒安靜' : '等它爆起來';
+    nPop.textContent = live.count;
+    nRate.textContent = live.rate.toFixed(1);
+    nPeak.textContent = live.peak.toFixed(1);
+    drawScope(mode ? det.time() : now);
+    if (!mode) { ticking = false; PK.untick(frame); }
+  }
+  function runs() {
+    const r = store.get('runs', []);
+    return Array.isArray(r) ? r.filter((x) => x && isFinite(x.arm) && isFinite(x.stop) && typeof x.d === 'string') : [];
+  }
+  function saveRun(st) {
+    if (st.armedAt === null) return;
+    const r = runs();
+    r.unshift({ d: new Date().toISOString().slice(0, 10), arm: +st.armedAt.toFixed(1), stop: +st.stopAt.toFixed(1), n: st.count, g: st.G });
+    store.set('runs', r.slice(0, 6));
+    renderHist();
+  }
+  function renderHist() {
+    const r = runs(), box = $('#hist');
+    if (!r.length) { box.hidden = true; return; }
+    box.hidden = false;
+    const avg = (k) => r.reduce((s, x) => s + x[k], 0) / r.length;
+    $('#histSum').textContent = `你家微波爐（最近 ${r.length} 次）：按下後約 ${Core.fmt(avg('arm'))} 爆起來，約 ${Core.fmt(avg('stop'))} 喊停。`;
+    $('#histList').innerHTML = r.map((x) => `<li>${x.d}　爆起來 ${Core.fmt(x.arm)}　喊停 ${Core.fmt(x.stop)}（${x.n} 聲，門檻 ${x.g} 秒）</li>`).join('');
+  }
+  bMic.addEventListener('click', startMic);
+  bSim.addEventListener('click', startSim);
+  $('#alarmOk').addEventListener('click', () => { alarm.hidden = true; bMic.focus({ preventScroll: true }); });
+  $('#histClear').addEventListener('click', () => { store.del('runs'); renderHist(); PK.announce('紀錄清掉了。'); });
+  $('#segGap').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    gap = +b.dataset.v; store.set('gap', gap); segs();
+    if (judge && mode) judge.setGap(gap);
+  });
+  $('#segSens').addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    sens = b.dataset.v; store.set('sens', sens); segs();
+    if (det && mode) det.set(SENS[sens]);
+  });
+  segs(); ui(); renderHist();
+  drawScope(0);
+  window.addEventListener('resize', () => { if (!mode) drawScope(snap ? snap.now : 0); });
+  return { halt() { if (mode) { finish(); say('先停下來了。'); } }, micOn: () => mode === 'mic' };
+})();
+
+/* 分頁藏起來：模擬聲音一起暫停（麥克風模式例外——它得在背景繼續聽） */
+document.addEventListener('visibilitychange', () => {
+  const c = Snd.ctx();
+  if (!c) return;
+  if (document.hidden) { if (!Tool.micOn()) c.suspend(); }
+  else if (c.state === 'suspended') c.resume();
+});
+
+/* ════════════ 章節導覽 ════════════ */
+(function () {
+  const links = $$('.chapnav a');
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver((es) => {
+    es.forEach((e) => {
+      if (!e.isIntersecting) return;
+      links.forEach((a) => a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + e.target.id)));
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  ['top', 'ch1', 'ch2', 'ch3', 'ch4', 'end'].forEach((id) => { const s = document.getElementById(id); if (s) io.observe(s); });
+})();
+
+/* ════════════ 尾聲：2:47 → 2.0 秒 ════════════ */
+(function () {
+  const v = $('#endVfd');
+  let done = false;
+  function fin() { v.innerHTML = '2.0<small>秒</small>'; }
+  function run() {
+    if (done) return;
+    done = true;
+    if (RM) { fin(); return; }
+    const seq = [[700, '<span style="opacity:.25">2:47</span>'], [880, '2:47'], [1000, '<span style="opacity:.2">-:--</span>'], [1250, '- -'], [1500, '<span style="opacity:.3">2.0</span>'], [1650, 'fin']];
+    seq.forEach(([ms, h]) => setTimeout(() => { if (h === 'fin') fin(); else v.innerHTML = h; }, ms));
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); run(); } }, { threshold: 0.8 });
+    io.observe(v);
+  } else run();
+})();
+
+PK.onMotionChange((v) => { RM = v; });
+App.set(Core.makeBag(20261005), null, false);
+</script>
+</body>
+</html>

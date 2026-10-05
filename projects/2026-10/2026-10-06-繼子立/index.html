@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>三十個孩子，數到十的離開｜每日小專案</title>
+<meta name="description" content="1627 年京都一本算術書裡的繼母排了一圈座位，十四個繼子接連出列。輪到最後一個，你替她開口。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#ebe4d4; --pk-ink:#1e1a15; --pk-dim:#6e6558; --pk-accent:#b2372a;
+  --pk-line:rgba(30,26,21,.16);
+  --paper2:#e3dbc8; --shu:#b2372a; --shu-soft:rgba(178,55,42,.14);
+  --pk-maxw:1060px;
+}
+body{
+  background-color:var(--pk-bg);
+  background-image:
+    radial-gradient(1200px 700px at 80% -10%, rgba(255,255,255,.55), transparent 60%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .3  0 0 0 0 .25  0 0 0 0 .18  0 0 0 .07 0'/></filter><rect width='180' height='180' filter='url(%23n)'/></svg>");
+}
+.pk-home{background:color-mix(in srgb, var(--pk-bg) 75%, transparent)}
+
+/* ── 第一屏 ── */
+.hero{min-height:100svh;display:grid;place-items:center;padding:80px 22px 60px;position:relative}
+.hero-in{max-width:560px;width:100%}
+.seal{display:inline-flex;writing-mode:vertical-rl;font-family:var(--pk-serif);font-weight:700;
+  color:#f6efe2;background:var(--shu);padding:10px 7px;border-radius:4px;letter-spacing:.2em;
+  font-size:15px;box-shadow:inset 0 0 0 2px #f6efe2, inset 0 0 0 3px var(--shu);margin-bottom:34px;transform:rotate(-3deg)}
+.hero h1{font-family:var(--pk-serif);font-weight:700;font-size:clamp(30px,7vw,52px);line-height:1.35;margin:0 0 26px;letter-spacing:.02em}
+.hero p{font-size:clamp(16px,2.6vw,19px);margin:0 0 12px;color:var(--pk-ink)}
+.hero .quiet{color:var(--pk-dim)}
+.hero .turn{font-family:var(--pk-serif);font-size:clamp(20px,4vw,26px);margin-top:30px}
+.hero .turn b{color:var(--shu);font-weight:700}
+.cue{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font-size:12px;letter-spacing:.3em;color:var(--pk-dim)}
+.cue::after{content:"";display:block;width:1px;height:34px;margin:8px auto 0;background:var(--pk-dim);animation:drip 2.2s ease-in-out infinite;transform-origin:top}
+@keyframes drip{0%{transform:scaleY(0);opacity:1}70%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+
+/* ── 捲動舞台 ── */
+.scrolly{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:56px;max-width:var(--pk-maxw);margin:0 auto;padding:0 22px}
+.steps{padding:12vh 0 30vh}
+.step{min-height:78vh;display:flex;flex-direction:column;justify-content:center}
+.step.short{min-height:60vh}
+.step p{font-size:17.5px;margin:0 0 16px}
+.step h2{font-family:var(--pk-serif);font-size:clamp(22px,3.4vw,28px);margin:0 0 18px;font-weight:700}
+.step .em{font-family:var(--pk-serif);font-size:21px}
+.step .sm{font-size:14.5px;color:var(--pk-dim)}
+.step{opacity:.28;transition:opacity .6s ease}
+.step.on{opacity:1}
+.stage-col{position:relative}
+.stage{position:sticky;top:8vh;height:84vh;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.stage svg{width:min(100%,62vh);height:auto;overflow:visible;display:block}
+.cap{margin-top:10px;font-size:13.5px;letter-spacing:.12em;color:var(--pk-dim);min-height:1.6em;text-align:center}
+.cap b{color:var(--pk-ink);font-weight:600}
+.cap .r{color:var(--shu)}
+
+/* 石頭 */
+.stone .body{transform-box:fill-box;transform-origin:center;transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .55s ease}
+.stone .disc{fill:var(--paper2);stroke:#6e6558;stroke-width:1;stroke-dasharray:2.5 2.5;transition:fill .5s ease}
+svg.shown .stone.w .disc{fill:url(#gW);stroke:#8c8371;stroke-dasharray:none;stroke-width:.6}
+svg.shown .stone.b .disc{fill:url(#gB);stroke:#0b0a09;stroke-dasharray:none;stroke-width:.6}
+.stone .hi{fill:none;stroke:var(--shu);stroke-width:2.2;opacity:0;transition:opacity .12s}
+.stone.cur .hi{opacity:1}
+.stone .her{fill:none;stroke:var(--shu);stroke-width:1.2;stroke-dasharray:3 3;opacity:0;transition:opacity .4s}
+.stone.mark .her{opacity:1}
+.stone.out .body{opacity:.28}
+.stone .ord{font-size:7.5px;fill:var(--pk-dim);text-anchor:middle;dominant-baseline:central;opacity:0;transition:opacity .4s;font-family:var(--pk-sans)}
+.stone.out .ord{opacity:1}
+.stone.win .her{opacity:1;stroke-dasharray:none;stroke-width:2.4}
+svg.kenko .stone .disc{fill:#8f877a !important;stroke:none}
+svg.kenko .stone.out .body{opacity:.6;transform:none !important}
+svg.kenko .stone .ord,svg.kenko .stone .her{opacity:0}
+.ctr{font-family:var(--pk-serif);font-weight:700;text-anchor:middle;dominant-baseline:central;fill:var(--pk-ink)}
+#ctrNum{font-size:46px}
+#ctrSub{font-size:9px;letter-spacing:.3em;fill:var(--pk-dim)}
+#ptr{transition:opacity .4s;opacity:0}
+#ptr.on{opacity:1}
+.stamp{opacity:0;transform-box:fill-box;transform-origin:center;transform:scale(1.6) rotate(-8deg);transition:opacity .35s ease,transform .45s cubic-bezier(.3,1.4,.4,1)}
+.stamp.on{opacity:1;transform:scale(1) rotate(-8deg)}
+
+/* 開口 */
+.plea{background:rgba(255,255,255,.45);border:1px solid var(--pk-line);border-radius:14px;padding:22px 20px 18px;margin-top:6px;
+  box-shadow:0 18px 40px -26px rgba(30,26,21,.45)}
+.plea label{display:block;font-size:15px;margin-bottom:12px;line-height:1.75}
+.plea .row{display:flex;gap:10px;flex-wrap:wrap}
+.plea input{flex:1 1 220px;min-width:0;font:inherit;font-family:var(--pk-serif);font-size:18px;padding:11px 14px;border-radius:10px;
+  border:1px solid rgba(30,26,21,.3);background:#fbf8f1;color:var(--pk-ink);transition:border-color .2s, box-shadow .2s}
+.plea input:focus{outline:none;border-color:var(--shu);box-shadow:0 0 0 3px var(--shu-soft)}
+.pk-btn{color:var(--shu);border-color:var(--shu)}
+.pk-btn:hover{background:var(--shu);color:#fbf6ec}
+.say{background:var(--shu);color:#fbf6ec}
+.say:hover{background:#8f2a1f;border-color:#8f2a1f}
+.fb{min-height:1.5em;margin-top:14px;font-size:15.5px}
+.fb .q{font-family:var(--pk-serif)}
+.fb .hint{display:block;color:var(--pk-dim);font-size:14px;margin-top:6px}
+.again{margin-top:10px}
+
+.after[hidden]{display:none}
+
+/* 工具 */
+.tool{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 14px}
+.tool label{font-size:13.5px;color:var(--pk-dim);display:flex;flex-direction:column;gap:6px}
+.tool input{font:inherit;font-size:20px;font-family:var(--pk-serif);padding:9px 12px;border-radius:10px;border:1px solid rgba(30,26,21,.3);background:#fbf8f1;color:var(--pk-ink);width:100%}
+.tool input:focus{outline:none;border-color:var(--shu);box-shadow:0 0 0 3px var(--shu-soft)}
+.seat{font-family:var(--pk-serif);font-size:19px;margin:6px 0 8px;min-height:2.2em}
+.seat b{color:var(--shu);font-size:34px;display:inline-block;margin:0 4px;font-variant-numeric:tabular-nums}
+.seat b.pop{animation:pop .45s cubic-bezier(.3,1.5,.5,1)}
+@keyframes pop{0%{transform:scale(.6);opacity:.2}100%{transform:none;opacity:1}}
+#mini{width:180px;height:180px;display:block;margin:4px 0 10px;overflow:visible}
+
+/* 結尾 */
+.kenko-q{writing-mode:vertical-rl;font-family:var(--pk-serif);font-size:18px;line-height:2.1;letter-spacing:.08em;
+  height:min(26em,62vh);margin:0 auto 22px 0;padding:0 0 0 6px;border-right:2px solid var(--shu);padding-right:16px;max-width:100%;overflow-x:auto}
+.kenko-q cite{font-style:normal;font-size:13px;color:var(--pk-dim);margin-top:1.4em;display:block}
+.yours{font-family:var(--pk-serif);font-size:17px;color:var(--pk-dim);margin:10px 0 0}
+.yours b{color:var(--shu);font-weight:600}
+.last{font-family:var(--pk-serif);font-size:clamp(22px,4vw,30px);line-height:1.6;font-weight:700;margin-top:24px}
+
+.foot{max-width:var(--pk-maxw);padding:0 22px}
+
+@media (max-width:820px){
+  .scrolly{display:flex;flex-direction:column;padding:0}
+  .stage-col{order:-1;position:sticky;top:0;z-index:3;height:46svh;background:var(--pk-bg);
+    box-shadow:0 14px 18px -12px var(--pk-bg);border-bottom:1px solid var(--pk-line)}
+  .stage{position:relative;top:0;height:46svh;padding-top:24px}
+  .stage svg{width:auto;height:calc(46svh - 66px)}
+  .steps{padding:6vh 16px 24vh;position:relative;z-index:1}
+  .step{min-height:62svh}
+  .step.short{min-height:48svh}
+  .step p{font-size:16.5px}
+}
+@media (max-width:560px){
+  .tool{grid-template-columns:1fr 1fr}
+  .kenko-q{font-size:16px}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue::after{animation:none}
+  .step{opacity:1;transition:none}
+  .stone .body,.stamp,.seat b.pop{transition:none;animation:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="hero-in">
+    <div class="seal" aria-hidden="true">繼子立</div>
+    <h1 class="rv">三十個孩子<br>圍成一圈。</h1>
+    <p class="rv">每數到第十個，就有一個離開。</p>
+    <p class="rv">最後留下的那個，繼承這個家。</p>
+    <p class="rv turn">十五個是她生的。另外十五個，不是。<br><b>座位，是她排的。</b></p>
+  </div>
+  <div class="cue" aria-hidden="true">往下</div>
+</header>
+
+<div class="scrolly">
+  <div class="steps" id="steps">
+
+    <section class="step" data-s="intro">
+      <h2>京都，一六二七年。</h2>
+      <p>有個叫吉田光由的人出了一本算術書，叫《塵劫記》。教你換算米和銀子、丈量田地、算利息，還畫了插圖。</p>
+      <p>它賣得太好，好到滿街都是翻刻的盜版。</p>
+      <p class="em">翻到後面，夾著一個家族的故事。</p>
+    </section>
+
+    <section class="step" data-s="reveal">
+      <p>一戶人家，三十個孩子。<b>白石</b>是續弦的妻子生的，<b>黑石</b>是前妻留下的。各十五個。</p>
+      <p>要選一個繼承家業。她提議：圍成一圈，數到十的出列，留到最後的那個繼承。</p>
+      <p class="em">誰都挑不出毛病。</p>
+      <p class="sm">位置是她排的。看起來很隨便——你看得出規律嗎？</p>
+    </section>
+
+    <section class="step short" data-s="start">
+      <p>從她自己的孩子開始，順時針數。</p>
+      <p class="em">一、二、三……</p>
+    </section>
+
+    <section class="step" data-s="count">
+      <p>數到十。黑的。</p>
+      <p>從下一個再數十個。黑的。</p>
+      <p>再一次。又是黑的。</p>
+      <p class="sm">圈子在變小，數的節奏沒變。</p>
+    </section>
+
+    <section class="step" data-s="last">
+      <p>第十四顆黑石也走了。</p>
+      <p>圈裡剩十六個人：十五個白，<b>一個黑</b>。</p>
+      <p>照這樣數下去，下一個「十」會落在誰身上，母親心裡有數，她也有。</p>
+      <p class="em">輪到她說話了。</p>
+    </section>
+
+    <section class="step" data-s="plea" id="pleaStep">
+      <div class="plea">
+        <label for="pleaIn">她只能開口一次。規則改不了——還是數到十。<br>能爭的只有兩件：<b>從誰數起</b>、<b>往哪邊數</b>。替她說：</label>
+        <form class="row" id="pleaForm" autocomplete="off">
+          <input id="pleaIn" type="text" maxlength="40" placeholder="「……」" aria-describedby="fb">
+          <button class="pk-btn say" type="submit" id="sayBtn">說出口</button>
+        </form>
+        <div class="fb" id="fb" aria-live="polite"></div>
+        <button class="pk-btn again" type="button" id="againBtn" hidden>倒回她開口之前</button>
+      </div>
+    </section>
+
+    <div class="after" id="after" hidden>
+      <section class="step" data-s="won" id="wonStep">
+        <h2>十五顆白石，一顆接一顆。</h2>
+        <p>最後圈裡只剩一顆，黑的。</p>
+        <p>書裡她說的是：「接下來，請從我開始，往左數。」</p>
+        <p id="dirNote"></p>
+      </section>
+
+      <section class="step" data-s="why">
+        <p>十六個人、數到十、從自己數起——第一個被叫到「一」的人，就是最後留下的人。順著數、逆著數都一樣。</p>
+        <p>這種巧合不常見。同樣數到十，從一人到兩百人，只有 <b>1、2、16、22、71</b> 這五種人數會這樣。</p>
+        <p class="em">十六，剛好是其中一個。</p>
+        <p>母親把三十個人的位置算得很準。她沒算到的，是剩下的那十六個。</p>
+      </section>
+
+      <section class="step" data-s="tool">
+        <h2>換你坐進圈裡。</h2>
+        <p class="sm">西方也有同一道題，主角換成一世紀被困在洞穴裡的士兵。不管是哪一圈，安全的位置只由人數和「數到幾」決定。</p>
+        <div class="tool">
+          <label>圈裡幾個人<input id="tN" type="number" inputmode="numeric" min="2" max="999" value="30" aria-label="圈裡幾個人"></label>
+          <label>每數到幾出列<input id="tK" type="number" inputmode="numeric" min="2" max="99" value="10" aria-label="每數到幾出列"></label>
+        </div>
+        <div class="seat" id="seat" aria-live="polite"></div>
+        <svg id="mini" viewBox="-100 -100 200 200" aria-hidden="true"></svg>
+        <p class="sm" id="selfNote"></p>
+      </section>
+
+      <section class="step" data-s="end">
+        <blockquote class="kenko-q">
+          用雙六的棋子排成繼子立。剛排好時，不知道哪一顆會被取走。數到了，取走一顆，其餘的像是都逃過了；可是再數下去，一顆一顆地抽，沒有一顆逃得掉。
+          <cite>吉田兼好《徒然草》第一三七段・十四世紀</cite>
+        </blockquote>
+        <p>比《塵劫記》早三百年，一個法師看著同一圈石頭，想到的是死期：誰都在圈裡，誰都會被數到。</p>
+        <p>三百年後，一本算術書替這圈石頭加了另一個結局——有一顆留下來了。不靠運氣，靠開口要求從自己數起。</p>
+        <p class="yours" id="yours" hidden></p>
+        <p class="last">下次有人說「圍成一圈，數到十」——<br>先問：從誰開始？</p>
+      </section>
+    </div>
+
+  </div>
+
+  <div class="stage-col">
+    <div class="stage">
+      <svg id="ring" viewBox="-130 -130 260 260" role="img" aria-label="三十顆石頭圍成的圓圈">
+        <defs>
+          <radialGradient id="gW" cx="35%" cy="30%" r="75%">
+            <stop offset="0" stop-color="#ffffff"/><stop offset=".7" stop-color="#ece6da"/><stop offset="1" stop-color="#c9c1b0"/>
+          </radialGradient>
+          <radialGradient id="gB" cx="35%" cy="30%" r="75%">
+            <stop offset="0" stop-color="#6a6560"/><stop offset=".45" stop-color="#2a2724"/><stop offset="1" stop-color="#0c0b0a"/>
+          </radialGradient>
+        </defs>
+        <circle r="92" fill="none" stroke="rgba(30,26,21,.12)" stroke-width="1"/>
+        <g id="stones"></g>
+        <path id="ptr" d="M0,-122 l-6,-10 h12 z" fill="#b2372a"/>
+        <text id="ctrNum" class="ctr" x="0" y="-6"></text>
+        <text id="ctrSub" class="ctr" x="0" y="30"></text>
+        <g class="stamp" id="stamp" aria-hidden="true">
+          <rect x="-26" y="-34" width="52" height="68" rx="4" fill="#b2372a"/>
+          <rect x="-22" y="-30" width="44" height="60" rx="2" fill="none" stroke="#f6efe2" stroke-width="1.4"/>
+          <text x="0" y="-9" class="ctr" style="fill:#f6efe2;font-size:19px">跡</text>
+          <text x="0" y="14" class="ctr" style="fill:#f6efe2;font-size:19px">取</text>
+        </g>
+      </svg>
+      <div class="cap" id="cap" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<footer class="pk-foot foot pk-wrap">
+  出處：吉田光由《塵劫記》（1627）；吉田兼好《徒然草》第137段；Wikipedia「ままこ立て」「ヨセフスの問題」。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'mmk27.';
+const store = PK.store(LS);
+
+/*CORE-START*/
+/* ── 純函式：繼子立／約瑟夫斯 ── */
+var MMK = (function () {
+  var N = 30, K = 10;
+  /* 在 alive（順時針排列的座位號）裡，從 start 數起（start 算「一」），
+     每數到 k 出列；dir=1 順時針、-1 逆時針；limit 次後停。回傳每次的點名軌跡。 */
+  function trace(alive, start, k, dir, limit) {
+    var arr = alive.slice(), i = arr.indexOf(start), steps = [];
+    if (i < 0) throw new Error('start 不在圈裡');
+    var lim = limit == null ? arr.length - 1 : limit;
+    while (arr.length > 1 && steps.length < lim) {
+      var counted = [], j = i;
+      for (var c = 0; c < k; c++) {
+        counted.push(arr[j]);
+        if (c < k - 1) j = ((j + dir) % arr.length + arr.length) % arr.length;
+      }
+      var p = arr[j];
+      steps.push({ counted: counted, removed: p });
+      arr.splice(j, 1);
+      if (dir === 1) i = j >= arr.length ? 0 : j;
+      else i = ((j - 1) % arr.length + arr.length) % arr.length;
+    }
+    return { steps: steps, rest: arr };
+  }
+  function range(n) { var a = []; for (var i = 0; i < n; i++) a.push(i); return a; }
+  /* 母親的排法：從 0 號（自己的孩子）順時針數，前十五個出列的位置全排黑石 */
+  function arrangement() {
+    var t = trace(range(N), 0, K, 1, 15);
+    var black = {};
+    t.steps.forEach(function (s) { black[s.removed] = true; });
+    return range(N).map(function (i) { return black[i] ? 'b' : 'w'; });
+  }
+  /* 解析她開口說的話 */
+  function parsePlea(text) {
+    var s = String(text || '').trim();
+    var fromMe = /我|自己|本人|這裡|这里|此處/.test(s);
+    var ccw = /左|逆|反過|反向|相反|倒過|倒著|倒数|倒數|回頭|另一邊|另一个方向|另一個方向/.test(s);
+    var cw = /右|順時|顺时|順著|顺着/.test(s);
+    var kTry = /\d/.test(s.replace(/10|１０/g, '')) || /數到[^十]|数到[^十]/.test(s);
+    return { empty: !s, fromMe: fromMe, dir: ccw && !cw ? -1 : 1, saidDir: ccw || cw, kTry: kTry };
+  }
+  /* 依說詞決定第二輪從誰數起 */
+  function secondRound(rest, lastRemoved, her, plea) {
+    var start;
+    if (plea.fromMe) start = her;
+    else {
+      /* 沒要求從自己數：接著上一個出列位置的下一位，往指定方向 */
+      var n = N, p = lastRemoved;
+      for (var step = 1; step <= n; step++) {
+        var q = ((p + plea.dir * step) % n + n) % n;
+        if (rest.indexOf(q) >= 0) { start = q; break; }
+      }
+    }
+    var ordered = rest.slice().sort(function (a, b) { return a - b; });
+    var t = trace(ordered, start, K, plea.dir);
+    /* 她被叫到就停：截斷到她出列那一步 */
+    var cut = -1;
+    for (var i = 0; i < t.steps.length; i++) if (t.steps[i].removed === her) { cut = i; break; }
+    return { start: start, steps: cut >= 0 ? t.steps.slice(0, cut + 1) : t.steps, survived: cut < 0 && t.rest[0] === her, survivor: t.rest[0] };
+  }
+  /* 約瑟夫斯：n 人、數到 k，從第 1 位數起，安全座位（1 起算） */
+  function safeSeat(n, k) { var j = 0; for (var i = 2; i <= n; i++) j = (j + k) % i; return j + 1; }
+  function selfStartCounts(k, max) { var r = []; for (var n = 1; n <= max; n++) if (safeSeat(n, k) === 1) r.push(n); return r; }
+  return { N: N, K: K, trace: trace, range: range, arrangement: arrangement, parsePlea: parsePlea,
+           secondRound: secondRound, safeSeat: safeSeat, selfStartCounts: selfStartCounts };
+})();
+if (typeof module !== 'undefined') module.exports = MMK;
+/*CORE-END*/
+
+(function () {
+  var doc = document;
+  if (!doc.getElementById('ring')) return;
+  var N = MMK.N, K = MMK.K;
+  var KAN = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+  var colors = MMK.arrangement();
+  var first = MMK.trace(MMK.range(N), 0, K, 1, 14);
+  var HER = MMK.trace(MMK.range(N), 0, K, 1, 15).steps[14].removed;
+  var LAST = first.steps[13].removed;
+  var REST = first.rest.slice();
+
+  var ring = doc.getElementById('ring'), gS = doc.getElementById('stones');
+  var ctrNum = doc.getElementById('ctrNum'), ctrSub = doc.getElementById('ctrSub');
+  var ptr = doc.getElementById('ptr'), stamp = doc.getElementById('stamp'), cap = doc.getElementById('cap');
+  var NS = 'http://www.w3.org/2000/svg', R = 92, els = [];
+
+  function pos(i, r) { var a = (-90 + i * 360 / N) * Math.PI / 180; return [Math.cos(a) * r, Math.sin(a) * r]; }
+  for (var i = 0; i < N; i++) {
+    var p = pos(i, R), o = pos(i, 116);
+    var g = doc.createElementNS(NS, 'g');
+    g.setAttribute('class', 'stone ' + colors[i]);
+    g.setAttribute('transform', 'translate(' + p[0].toFixed(2) + ' ' + p[1].toFixed(2) + ')');
+    g.innerHTML = '<g class="body"><circle class="disc" r="10.5"/></g>' +
+      '<circle class="hi" r="14"/><circle class="her" r="15.5"/>' +
+      '<text class="ord" x="' + (o[0] - p[0]).toFixed(2) + '" y="' + (o[1] - p[1]).toFixed(2) + '"></text>';
+    gS.appendChild(g);
+    els.push(g);
+  }
+  ptr.setAttribute('transform', 'rotate(0)');
+
+  /* ── 舞台狀態 ── */
+  var outCount = 0, outW = 0, outB = 0, cur = -1;
+  function setCur(i) { if (cur >= 0) els[cur].classList.remove('cur'); cur = i; if (i >= 0) els[i].classList.add('cur'); }
+  function takeOut(i) {
+    var el = els[i]; if (el.classList.contains('out')) return;
+    outCount++; if (colors[i] === 'w') outW++; else outB++;
+    var d = pos(i, 22);
+    el.classList.add('out');
+    el.querySelector('.body').style.transform = 'translate(' + d[0].toFixed(1) + 'px,' + d[1].toFixed(1) + 'px) scale(.55)';
+    el.querySelector('.ord').textContent = outCount;
+    renderCap();
+  }
+  function putBack(i) {
+    var el = els[i];
+    el.classList.remove('out', 'win');
+    el.querySelector('.body').style.transform = '';
+    el.querySelector('.ord').textContent = '';
+  }
+  function renderCap(extra) {
+    if (!ring.classList.contains('shown')) { cap.textContent = ''; return; }
+    cap.innerHTML = '出列　黑 <b>' + outB + '</b>　白 <b>' + outW + '</b>' + (extra ? '　<span class="r">' + extra + '</span>' : '');
+  }
+  function center(a, b) { ctrNum.textContent = a || ''; ctrSub.textContent = b || ''; }
+
+  /* ── 時序器（共用 rAF；reduced 時直接跳到最後） ── */
+  var seq = null;
+  function runSeq(evs, done) {
+    stopSeq();
+    if (PK.reduced()) { evs.forEach(function (e) { e.fn(); }); if (done) done(); return; }
+    var t = 0, k = 0;
+    seq = function (dt) {
+      t += dt * 1000;
+      while (k < evs.length && evs[k].at <= t) evs[k++].fn();
+      if (k >= evs.length) { stopSeq(); if (done) done(); }
+    };
+    seq.flush = function () { while (k < evs.length) evs[k++].fn(); if (done) done(); };
+    PK.tick(seq);
+  }
+  function stopSeq() { if (seq) { PK.untick(seq); seq = null; } }
+  function flushSeq() { if (seq) { var s = seq; PK.untick(s); seq = null; s.flush(); } }
+
+  function buildEvents(steps, k, speed) {
+    var evs = [], t = 0;
+    steps.forEach(function (s, idx) {
+      var dc = Math.max(28, speed.count * Math.pow(speed.acc, idx));
+      s.counted.forEach(function (pp, c) {
+        evs.push({ at: t, fn: function () { setCur(pp); center(KAN[c] || String(c + 1)); } });
+        t += dc;
+      });
+      t += speed.hold;
+      evs.push({ at: t, fn: function () { takeOut(s.removed); setCur(-1); } });
+      t += speed.gap;
+    });
+    return evs;
+  }
+
+  /* ── 第一輪（14 顆黑石） ── */
+  var firstState = 'idle'; /* idle → running → done */
+  function playFirst() {
+    if (firstState !== 'idle') return;
+    firstState = 'running';
+    ptr.classList.add('on');
+    runSeq(buildEvents(first.steps, K, { count: 70, acc: .88, hold: 200, gap: 80 }), function () {
+      firstState = 'done'; setCur(-1); center('', '');
+      els[HER].classList.add('mark');
+      renderCap('剩十六');
+    });
+  }
+  function finishFirst() {
+    if (firstState === 'done') return;
+    if (firstState === 'idle') { firstState = 'running'; ptr.classList.add('on'); runSeq(buildEvents(first.steps, K, { count: 0, acc: 1, hold: 0, gap: 0 })); }
+    flushSeq();
+    if (firstState !== 'done') { firstState = 'done'; setCur(-1); center('', ''); els[HER].classList.add('mark'); renderCap('剩十六'); }
+  }
+
+  /* ── 依捲動切換場景 ── */
+  function enter(name) {
+    ring.classList.toggle('kenko', name === 'end');
+    if (name === 'intro') { ring.classList.remove('shown'); renderCap(); if (firstState === 'idle') center('', ''); }
+    if (name !== 'intro') { ring.classList.add('shown'); renderCap(firstState === 'done' ? '剩十六' : ''); }
+    if ((name === 'reveal' || name === 'intro') && firstState === 'idle') { setCur(-1); ptr.classList.remove('on'); }
+    if (name === 'reveal' && firstState === 'idle') center('三十', '人');
+    if (name === 'start' && firstState === 'idle') { ptr.classList.add('on'); center('一', '起點'); setCur(0); }
+    if (name === 'count') { setCur(-1); playFirst(); }
+    if (name === 'last' || name === 'plea') finishFirst();
+  }
+  var steps = doc.querySelectorAll('.step');
+  function onStep(el) {
+    for (var i = 0; i < steps.length; i++) steps[i].classList.toggle('on', steps[i] === el);
+    enter(el.getAttribute('data-s'));
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) onStep(e.target); });
+    }, { rootMargin: '-52% 0px -38% 0px' });
+    for (var s = 0; s < steps.length; s++) io.observe(steps[s]);
+  } else { for (var s2 = 0; s2 < steps.length; s2++) steps[s2].classList.add('on'); finishFirst(); ring.classList.add('shown'); }
+
+  /* ── 高潮：她開口 ── */
+  var form = doc.getElementById('pleaForm'), input = doc.getElementById('pleaIn'), fb = doc.getElementById('fb');
+  var again = doc.getElementById('againBtn'), sayBtn = doc.getElementById('sayBtn'), after = doc.getElementById('after');
+  var game = 'ready', fails = 0, lastPlea = null;
+  var HINTS = ['她能爭的只有兩件：從誰數起、往哪邊數。',
+               '想想：第一個被叫到「一」的人，會是誰？',
+               '試試讓她自己站在「一」上。'];
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function resetRound2() {
+    stopSeq(); setCur(-1);
+    REST.forEach(function (i) { putBack(i); });
+    outCount = 14; outW = 0; outB = 14;
+    els[HER].classList.add('mark');
+    stamp.classList.remove('on');
+    center('', ''); renderCap('剩十六');
+  }
+
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    if (game === 'playing' || game === 'won') return;
+    finishFirst();
+    var text = input.value, plea = MMK.parsePlea(text);
+    if (plea.empty) { fb.innerHTML = '她張了嘴，沒有出聲。<span class="hint">在框裡寫下她要說的話。</span>'; return; }
+    resetRound2();
+    var r = MMK.secondRound(REST, LAST, HER, plea);
+    lastPlea = { text: text.trim(), plea: plea };
+    game = 'playing'; sayBtn.disabled = true; input.readOnly = true; again.hidden = true;
+    var pre = plea.kTry ? '母親搖頭：「數到十，不改。」' : '';
+    fb.innerHTML = (pre ? pre + '<br>' : '') + '<span class="q">「' + esc(text.trim()) + '」</span>';
+    PK.announce('她說：' + text.trim() + '。開始數。');
+    var evs = buildEvents(r.steps, K, r.survived ? { count: 55, acc: .86, hold: 220, gap: 100 } : { count: 90, acc: .95, hold: 420, gap: 200 });
+    runSeq(evs, function () {
+      setCur(-1); center('', '');
+      if (r.survived) {
+        game = 'won';
+        els[HER].classList.add('win');
+        stamp.classList.add('on');
+        renderCap('留下的是她');
+        fb.innerHTML = '<span class="q">「' + esc(text.trim()) + '」</span><br>十五顆白石接連出列。圈裡只剩她。';
+        PK.announce('十五個白石接連出列，她留下來了。');
+        store.set('plea', lastPlea.text);
+        store.set('dir', plea.saidDir ? plea.dir : 0);
+        unlock(true);
+      } else {
+        game = 'failed'; fails++;
+        var whites = r.steps.filter(function (s) { return colors[s.removed] === 'w'; }).length;
+        var hit = r.steps.length && r.steps[r.steps.length - 1].removed === HER;
+        var msg = hit ? (whites ? '先走了 ' + whites + ' 顆白石，然後——數到十，是她。' : '第一個「十」就落在她身上。')
+                      : '她沒被數到，可是留到最後的不是她。';
+        renderCap(hit ? '她出列了' : '');
+        fb.innerHTML = '<span class="q">「' + esc(text.trim()) + '」</span><br>' + msg +
+          '<span class="hint">' + HINTS[Math.min(fails - 1, HINTS.length - 1)] + '</span>';
+        PK.announce(msg + HINTS[Math.min(fails - 1, HINTS.length - 1)]);
+        again.hidden = false; again.focus();
+      }
+    });
+  });
+  again.addEventListener('click', function () {
+    game = 'ready'; sayBtn.disabled = false; input.readOnly = false; again.hidden = true;
+    resetRound2(); input.focus(); input.select();
+  });
+
+  function unlock(scroll) {
+    after.hidden = false;
+    var steps2 = after.querySelectorAll('.step');
+    if (io) for (var i = 0; i < steps2.length; i++) io.observe(steps2[i]);
+    steps = doc.querySelectorAll('.step');
+    var saved = store.get('plea', '');
+    var dir = lastPlea ? (lastPlea.plea.saidDir ? lastPlea.plea.dir : 0) : store.get('dir', 0);
+    doc.getElementById('dirNote').textContent =
+      dir === -1 ? '你也說了往左。其實那半句可以不說——' :
+      dir === 1 ? '你說的是往右，跟原書相反。一樣留下來了——' :
+      '你連方向都沒提。不用提——';
+    var y = doc.getElementById('yours');
+    if (saved) { y.hidden = false; y.innerHTML = '你替她說的是：<b>「' + esc(saved) + '」</b>'; }
+    tool();
+    if (scroll) setTimeout(function () { doc.getElementById('wonStep').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'center' }); }, PK.reduced() ? 0 : 1200);
+  }
+
+  /* 曾經解開過：直接開放後段（舞台仍可重玩） */
+  if (store.get('plea', '')) unlock(false);
+
+  /* ── 工具：你該站哪 ── */
+  var tN = doc.getElementById('tN'), tK = doc.getElementById('tK'), seatEl = doc.getElementById('seat');
+  var mini = doc.getElementById('mini'), selfNote = doc.getElementById('selfNote');
+  var last = store.get('tool', null);
+  if (last) { tN.value = last.n; tK.value = last.k; }
+  function tool() {
+    var n = Math.round(+tN.value), k = Math.round(+tK.value);
+    if (!(n >= 2 && n <= 999 && k >= 2 && k <= 99)) { seatEl.textContent = '人數 2–999、數到 2–99。'; mini.innerHTML = ''; selfNote.textContent = ''; return; }
+    store.set('tool', { n: n, k: k });
+    var s = MMK.safeSeat(n, k);
+    seatEl.innerHTML = '站第<b class="pop">' + s + '</b>個';
+    var b = seatEl.querySelector('b'); if (PK.reduced()) b.classList.remove('pop');
+    selfNote.textContent = s === 1
+      ? '這一圈和她那圈一樣：誰被叫到「一」，誰就留下。'
+      : '從被叫到「一」的人算第 1 個，順著數的方向。換個說法：讓你逆著方向數過去第 ' + (s - 1) + ' 個人當「一」。';
+    if (n > 90) { mini.innerHTML = ''; mini.style.display = 'none'; return; }
+    mini.style.display = '';
+    var h = '<circle r="78" fill="none" stroke="rgba(30,26,21,.14)"/>';
+    var rr = Math.max(2.2, Math.min(7, 240 / n));
+    for (var i = 0; i < n; i++) {
+      var a = (-90 + i * 360 / n) * Math.PI / 180, x = Math.cos(a) * 78, y = Math.sin(a) * 78;
+      var on = i === s - 1;
+      h += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (on ? rr * 1.5 : rr).toFixed(1) +
+           '" fill="' + (on ? '#b2372a' : (i === 0 ? '#1e1a15' : '#a39a8a')) + '"/>';
+    }
+    h += '<text x="0" y="-2" class="ctr" style="font-size:13px;fill:#6e6558">黑點＝一</text>';
+    h += '<text x="0" y="16" class="ctr" style="font-size:13px;fill:#b2372a">紅點＝你</text>';
+    mini.innerHTML = h;
+  }
+  tN.addEventListener('input', tool); tK.addEventListener('input', tool);
+
+  PK.onMotionChange(function (r) { if (r) flushSeq(); });
+})();
+PK.reveal();
+</script>
+</body>
+</html>

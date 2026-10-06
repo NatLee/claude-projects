@@ -728,7 +728,7 @@
   wdBox.checked = wd;
   wdBox.addEventListener("change", applyWd);
 
-  RM.addEventListener("change", function(e){
+  function onRM(e){
     reduce = e.matches;
     if (reduce){
       if (playing){ pause(); }
@@ -737,14 +737,18 @@
     } else {
       render();
     }
-  });
+  }
+  /* 舊版 Safari 沒有 MediaQueryList.addEventListener，直接呼叫會丟錯、中斷後面整段啟動 */
+  if (RM.addEventListener) RM.addEventListener("change", onRM);
+  else if (RM.addListener) RM.addListener(onRM);
 
   document.addEventListener("visibilitychange", function(){
     if (document.hidden){ if (playing){ wasPlaying = true; pause(); } }
     else if (wasPlaying && !reduce){ wasPlaying = false; play(); }
   });
 
-  new ResizeObserver(function(){ render(); }).observe($("#chartWrap"));
+  if ("ResizeObserver" in window) new ResizeObserver(function(){ render(); }).observe($("#chartWrap"));
+  else window.addEventListener("resize", function(){ render(); });
 
   /* ════════════════════ 啟動 ════════════════════ */
   buildCurves();

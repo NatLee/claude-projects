@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>紅筆一轉，信差愣住了｜每日小專案</title>
+<meta name="description" content="教宗的信差來托斯卡納收畫，喬托只交給他一個紅色的圓。換你一筆畫圓，看看你的手在哪裡猶豫。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#14110d; --pk-ink:#eee3cc; --pk-dim:#9d917a; --pk-accent:#d4a84b;
+  --pk-line:rgba(238,227,204,.14);
+  --sinopia:#a83a26; --red-text:#e3826a; --gold:#d4a84b; --gold-hi:#f0d38a;
+  --lapis:#16224a; --lapis-hi:#2e4a8c;
+  --parch:#efe2c4; --parch-ink:#5a4530;
+}
+body{
+  background:
+    radial-gradient(1100px 680px at 50% -12%, #2b2119 0%, transparent 62%),
+    var(--pk-bg);
+}
+.pk-hero{ position:relative; overflow:hidden; }
+.halo{
+  position:absolute; right:-14vmin; top:50%; width:78vmin; height:78vmin;
+  transform:translateY(-50%); opacity:.28; pointer-events:none; overflow:visible;
+}
+.halo path{ fill:none; stroke:var(--sinopia); stroke-width:7; stroke-linecap:round; }
+.kicker{
+  font-size:12px; letter-spacing:.34em; color:var(--gold);
+  margin:0 0 22px; font-family:var(--pk-sans);
+}
+.pk-hero h1 b{ font-weight:600; color:var(--red-text); }
+.lede{ color:var(--pk-dim); max-width:30em; }
+
+/* ── 幕 ── */
+.act{ padding:11vh 0 2vh; opacity:0; transform:translateY(20px);
+  transition:opacity .9s ease, transform .9s cubic-bezier(.2,.7,.3,1); }
+.act.on{ opacity:1; transform:none; }
+.act[hidden]{ display:none; }
+.act h2{
+  font-family:var(--pk-serif); font-weight:600; font-size:15px; letter-spacing:.28em;
+  margin:0 0 26px; color:var(--gold);
+  display:flex; align-items:center; gap:14px;
+}
+.act h2::after{ content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--gold),transparent); opacity:.4; }
+.act p{ margin:0 0 1.15em; }
+.say{
+  font-family:var(--pk-serif); font-size:clamp(19px,4.6vw,23px); line-height:1.7;
+  border-left:2px solid var(--sinopia); padding:2px 0 2px 18px; margin:26px 0;
+  min-height:1.7em;
+}
+.say small{ display:block; font-family:var(--pk-sans); font-size:12.5px; color:var(--pk-dim); letter-spacing:.1em; margin-top:6px; }
+.next{ margin:30px 0 0; }
+.dim{ color:var(--pk-dim); }
+.vasari{
+  font-family:var(--pk-serif); font-size:17px; color:#d9ccb0;
+  background:rgba(212,168,75,.06); border:1px solid rgba(212,168,75,.22);
+  border-radius:4px; padding:18px 20px; margin:24px 0;
+}
+.vasari cite{ display:block; font-style:normal; font-size:12.5px; color:var(--pk-dim); margin-top:8px; letter-spacing:.06em; }
+
+/* ── 皮袋裡的畫 ── */
+.bag{ position:relative; height:250px; margin:34px 0 20px; }
+.leaf{
+  position:absolute; left:50%; top:24px; width:138px; height:184px; margin-left:-69px;
+  background:var(--parch); border-radius:2px;
+  box-shadow:0 18px 30px -14px rgba(0,0,0,.7), inset 0 0 26px rgba(140,95,40,.28);
+  transform:rotate(0deg);
+  transition:transform 1s cubic-bezier(.2,.8,.25,1);
+  transition-delay:calc(var(--i) * 90ms);
+}
+.leaf svg{ width:100%; height:100%; display:block; }
+.leaf svg *{ fill:none; stroke:var(--parch-ink); stroke-width:1.1; stroke-linecap:round; stroke-linejoin:round; }
+.leaf svg .gild{ stroke:#b48a3a; stroke-width:2.2; }
+.act.on .leaf{ transform:translateX(var(--x)) rotate(var(--r)); }
+.leaf:hover{ z-index:5; }
+.act.on .leaf:hover{ transform:translateX(var(--x)) translateY(-12px) rotate(calc(var(--r) * .4)); transition-delay:0s; }
+
+/* ── 紙與筆 ── */
+.paper{
+  position:relative; width:min(100%,440px); aspect-ratio:1; margin:30px auto 14px;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255,255,255,.35), transparent 55%),
+    radial-gradient(circle at 80% 85%, rgba(120,80,30,.22), transparent 60%),
+    var(--parch);
+  border-radius:3px;
+  box-shadow:0 34px 60px -26px rgba(0,0,0,.85), inset 0 0 70px rgba(130,88,36,.32);
+}
+.paper::before{ /* 紙纖維 */
+  content:""; position:absolute; inset:0; border-radius:inherit; opacity:.45; pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .3 0 0 0 0 .16 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode:multiply;
+}
+.paper canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; border-radius:inherit; }
+.paper canvas:focus-visible{ outline:2px solid var(--gold); outline-offset:4px; }
+.hint{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:var(--pk-serif); color:rgba(90,69,48,.55); font-size:15px; letter-spacing:.2em;
+  pointer-events:none; transition:opacity .4s;
+}
+.hint.gone{ opacity:0; }
+.tools{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+.mini{
+  appearance:none; font:inherit; font-size:13px; letter-spacing:.06em; cursor:pointer;
+  color:var(--pk-dim); background:transparent; border:1px solid var(--pk-line); border-radius:999px; padding:7px 14px;
+  transition:color .2s, border-color .2s, transform .12s;
+}
+.mini:hover, .mini:focus-visible{ color:var(--pk-ink); border-color:var(--pk-dim); }
+.mini:active{ transform:translateY(1px); }
+
+.readout{ text-align:center; margin:26px 0 6px; min-height:96px; }
+.score{
+  font-family:var(--pk-serif); font-size:clamp(50px,13vw,72px); line-height:1; font-weight:600;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold) 60%,#9b7428);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  font-variant-numeric:tabular-nums;
+}
+.score span{ font-size:.42em; margin-left:4px; }
+.score-lbl{ font-size:12.5px; color:var(--pk-dim); letter-spacing:.3em; margin-top:8px; }
+.note{ text-align:center; color:#d9ccb0; font-size:15px; min-height:1.6em; }
+.warn{ color:var(--red-text); }
+
+/* ── 圓規示意 ── */
+.compass{ display:block; width:min(100%,300px); margin:22px auto; overflow:visible; }
+.compass .arm{ stroke:var(--pk-dim); stroke-width:2; fill:none; }
+.compass .pin{ fill:var(--gold); }
+.compass .orbit{ fill:none; stroke:var(--sinopia); stroke-width:3; stroke-linecap:round; }
+.compass .hand{
+  transform-box:view-box; transform-origin:150px 150px;
+  animation:spin 3.6s cubic-bezier(.45,.05,.55,.95) infinite;
+}
+.compass .hand line{ stroke:var(--pk-ink); stroke-width:2; }
+.compass .hand circle{ fill:var(--red-text); }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ── 比較條 ── */
+.cmp{ margin:26px 0 8px; display:grid; gap:12px; }
+.row{ display:grid; grid-template-columns:4.5em 1fr 4em; align-items:center; gap:12px; font-size:14px; }
+.bar{ height:10px; border-radius:99px; background:rgba(238,227,204,.08); overflow:hidden; }
+.bar i{ display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--sinopia),var(--red-text));
+  transform-origin:0 50%; transform:scaleX(0); transition:transform 1.1s cubic-bezier(.2,.8,.25,1); }
+.row:nth-child(2) .bar i{ background:linear-gradient(90deg,#9b7428,var(--gold-hi)); }
+.row b{ font-family:var(--pk-serif); font-variant-numeric:tabular-nums; text-align:right; }
+
+/* ── 放大鏡 ── */
+.lens{
+  position:relative; width:min(100%,460px); aspect-ratio:1; margin:30px auto 14px; border-radius:50%;
+  background:radial-gradient(circle at 50% 42%, var(--lapis-hi) 0%, var(--lapis) 58%, #0b1128 100%);
+  box-shadow:0 0 0 1px rgba(212,168,75,.35), 0 0 0 9px rgba(212,168,75,.06), 0 40px 80px -30px #000;
+}
+.lens::after{ /* 金箔星點 */
+  content:""; position:absolute; inset:0; border-radius:50%; pointer-events:none; opacity:.5;
+  background-image:radial-gradient(1.2px 1.2px at 20% 30%, var(--gold-hi), transparent),
+    radial-gradient(1px 1px at 70% 18%, var(--gold-hi), transparent),
+    radial-gradient(1.4px 1.4px at 82% 64%, var(--gold-hi), transparent),
+    radial-gradient(1px 1px at 33% 80%, var(--gold-hi), transparent),
+    radial-gradient(1px 1px at 55% 50%, var(--gold-hi), transparent);
+}
+.lens canvas{ position:absolute; inset:0; width:100%; height:100%; border-radius:50%; }
+.amp{ text-align:center; font-family:var(--pk-serif); color:var(--gold); letter-spacing:.2em; font-size:14px; min-height:1.6em; }
+.legend{ display:flex; gap:18px; justify-content:center; font-size:12.5px; color:var(--pk-dim); margin:4px 0 18px; }
+.legend i{ display:inline-block; width:18px; height:2px; vertical-align:middle; margin-right:6px; }
+
+/* ── 終幕 ── */
+.proverb{
+  font-family:Georgia, "Times New Roman", var(--pk-serif); font-style:italic;
+  font-size:clamp(25px,6.6vw,38px); line-height:1.35; text-align:center; margin:40px 0 8px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--gold));
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.proverb-zh{ text-align:center; font-family:var(--pk-serif); font-size:19px; margin:0 0 36px; }
+.twist{ opacity:0; transform:translateY(12px); transition:opacity 1s ease, transform 1s ease; }
+.twist.on{ opacity:1; transform:none; }
+.twist[hidden]{ display:none; }
+.tondo{
+  font-family:var(--pk-serif); font-size:clamp(20px,5vw,26px); line-height:1.6; margin:28px 0;
+}
+.tondo em{ font-style:normal; color:var(--red-text); }
+.coda{
+  font-family:var(--pk-serif); font-size:clamp(19px,4.6vw,22px); line-height:1.8;
+  margin:54px 0 0; padding-top:30px; border-top:1px solid var(--pk-line);
+}
+
+@media (max-width:560px){
+  .bag{ height:210px; }
+  .leaf{ width:108px; height:144px; margin-left:-54px; }
+  .act.on .leaf{ transform:translateX(calc(var(--x) * .6)) rotate(var(--r)); }
+  .act.on .leaf:hover{ transform:translateX(calc(var(--x) * .6)) translateY(-12px) rotate(calc(var(--r) * .4)); }
+  .act{ padding-top:9vh; }
+}
+@media (prefers-reduced-motion: reduce){
+  .act, .twist{ transition:none; opacity:1; transform:none; }
+  .leaf, .bar i{ transition:none; }
+  .compass .hand{ animation:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <svg class="halo" viewBox="0 0 400 400" aria-hidden="true"><path id="heroO" d="M200 36 A164 164 0 1 1 196 36.05"/></svg>
+  <div class="pk-wrap">
+    <p class="kicker rv">佛羅倫斯　十四世紀初</p>
+    <h1 class="rv">信差的皮袋裡，已經塞滿了大師們的畫。<br>輪到你，你只打算畫<b>一筆</b>。</h1>
+    <p class="lede rv">羅馬要替聖彼得大教堂添新畫。教宗派了一個人到托斯卡納，替他看看：誰的手最可靠。</p>
+    <p class="next rv"><button class="pk-btn" data-go="1">讓信差進門</button></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="act" id="act1" hidden aria-labelledby="h1a">
+    <h2 id="h1a">I　皮袋</h2>
+    <p>他先去了西恩納。那裡的師傅們很大方，每個人都拿出壓箱的功夫：聖人的衣褶一層疊一層，拱門上的線密得像織錦，天使的羽毛一根一根數得出來。</p>
+    <div class="bag" aria-hidden="true">
+      <div class="leaf" style="--i:0;--x:-150px;--r:-16deg">
+        <svg viewBox="0 0 120 160"><circle class="gild" cx="60" cy="40" r="19"/><ellipse cx="60" cy="42" rx="9" ry="11"/><path d="M42 140 C44 98 50 66 60 56 C70 66 76 98 78 140"/><path d="M48 138 C50 110 54 84 58 70 M52 139 C55 112 57 92 60 76 M72 138 C70 110 66 84 62 70 M68 139 C66 112 63 92 60 78"/><path d="M45 92 C52 98 68 98 75 92 M44 108 C52 115 68 115 76 108 M43 124 C52 131 68 131 77 124"/><path d="M54 40 h3 M63 40 h3 M58 47 q2 2 4 0"/></svg>
+      </div>
+      <div class="leaf" style="--i:1;--x:-52px;--r:-6deg">
+        <svg viewBox="0 0 120 160"><path d="M24 148 V70 A36 36 0 0 1 96 70 V148"/><path d="M34 148 V72 A26 26 0 0 1 86 72 V148"/><path d="M24 70 h-6 M96 70 h6 M18 62 h84"/><path d="M60 34 v8 M44 40 l4 7 M76 40 l-4 7"/><path d="M28 80 h3 M28 90 h3 M28 100 h3 M28 110 h3 M28 120 h3 M28 130 h3 M28 140 h3 M89 80 h3 M89 90 h3 M89 100 h3 M89 110 h3 M89 120 h3 M89 130 h3 M89 140 h3"/><path d="M40 148 l20 -40 l20 40 M50 128 h20"/></svg>
+      </div>
+      <div class="leaf" style="--i:2;--x:52px;--r:5deg">
+        <svg viewBox="0 0 120 160"><circle class="gild" cx="44" cy="44" r="13"/><circle cx="44" cy="46" r="7"/><path d="M50 56 C76 40 98 44 108 30 M52 62 C80 54 100 60 110 50 M52 68 C78 68 96 78 104 72 M50 74 C70 82 86 96 92 94"/><path d="M60 50 l4 -3 M70 46 l4 -3 M80 44 l4 -3 M90 40 l4 -3 M64 60 l4 -2 M76 58 l4 -2 M88 58 l4 -2"/><path d="M36 60 C30 90 34 120 44 150 M50 60 C58 92 56 124 50 150"/><path d="M38 90 h14 M38 110 h16 M40 130 h14"/></svg>
+      </div>
+      <div class="leaf" style="--i:3;--x:150px;--r:15deg">
+        <svg viewBox="0 0 120 160"><circle class="gild" cx="52" cy="42" r="16"/><ellipse cx="52" cy="44" rx="8" ry="10"/><circle class="gild" cx="74" cy="80" r="10"/><circle cx="74" cy="81" r="5.5"/><path d="M34 150 C30 110 36 74 50 60 C64 66 80 92 86 150"/><path d="M40 146 C40 118 44 92 52 78 M48 148 C50 122 54 100 60 88 M70 148 C68 124 66 106 64 96"/><path d="M58 96 C66 90 80 92 86 100"/></svg>
+      </div>
+    </div>
+    <p>每一張都在說：看，我會這麼多。</p>
+    <p>然後他回到佛羅倫斯。一天早上，他走進一間工作室，裡面的畫家正在忙。信差說明來意，請對方也畫一張小圖，讓他帶回去給教宗看。</p>
+    <p>畫家放下手上的活，抽出一張紙，拿起一枝沾了紅土的筆。</p>
+    <p class="say">他把筆遞給你。</p>
+    <p class="next"><button class="pk-btn" data-go="2">接過那枝筆</button></p>
+  </section>
+
+  <section class="act" id="act2" hidden aria-labelledby="h2a">
+    <h2 id="h2a">II　第一筆</h2>
+    <p>不畫聖人，不畫拱門。<br>在紙上畫一個圓——一筆畫完，中間別停。</p>
+    <div class="paper">
+      <canvas id="pad1" tabindex="0" role="img" aria-label="畫紙：用滑鼠或手指一筆畫一個圓。鍵盤使用者可按下方「讓我代筆」。"></canvas>
+      <div class="hint" id="hint1">從哪裡下筆都可以</div>
+    </div>
+    <div class="tools">
+      <button class="mini" id="clr1" type="button">重畫</button>
+      <button class="mini" id="auto1" type="button">用鍵盤？讓我代筆</button>
+    </div>
+    <div class="readout" aria-live="polite"><div class="score" id="sc1">—</div><div class="score-lbl">圓　度</div></div>
+    <p class="note" id="note1"></p>
+    <div id="after1" hidden>
+      <p class="say"><span id="quip1"></span><small>——信差</small></p>
+      <p>畫家把那張紙推到他面前。「夠了，還嫌多。把它跟其他人的放在一起送去，看他們認不認得出來。」</p>
+      <p class="next"><button class="pk-btn" data-go="3">看畫家是怎麼握筆的</button></p>
+    </div>
+  </section>
+
+  <section class="act" id="act3" hidden aria-labelledby="h3a">
+    <h2 id="h3a">III　圓規</h2>
+    <p>兩百多年後，瓦薩里在《藝苑名人傳》裡把那個動作寫了下來。那個畫家叫喬托。</p>
+    <blockquote class="vasari">他把手臂抵在腰側，把自己變成一把圓規，然後只轉動手——畫出的圓，比例與輪廓之勻，看了令人驚嘆。<cite>瓦薩里〈喬托傳〉，1568 年版，意譯</cite></blockquote>
+    <svg class="compass" viewBox="0 0 300 300" role="img" aria-label="示意圖：手臂固定成圓規的一腳，筆尖繞著它轉一圈">
+      <circle class="orbit" cx="150" cy="150" r="96" stroke-dasharray="4 9"/>
+      <path class="arm" d="M150 300 L150 150"/>
+      <circle class="pin" cx="150" cy="150" r="6"/>
+      <g class="hand"><line x1="150" y1="150" x2="150" y2="54"/><circle cx="150" cy="54" r="6"/></g>
+    </svg>
+    <p>固定的那一腳是手臂，轉的那一腳是筆尖。抖動少了一個來源：手臂不再跟著亂跑。</p>
+    <p>換你試試。<span class="dim">用滑鼠的話，手腕貼著桌面別離開，只轉不移；用手指的話，把小指撐在螢幕邊當軸。</span>淡淡的那圈是你的第一筆。</p>
+    <div class="paper">
+      <canvas id="pad2" tabindex="0" role="img" aria-label="第二張畫紙：再一筆畫一個圓。鍵盤使用者可按下方「讓我代筆」。"></canvas>
+      <div class="hint" id="hint2">手臂別動，只轉手</div>
+    </div>
+    <div class="tools">
+      <button class="mini" id="clr2" type="button">重畫</button>
+      <button class="mini" id="auto2" type="button">用鍵盤？讓我代筆</button>
+    </div>
+    <div class="cmp" id="cmp" hidden>
+      <div class="row"><span>第一筆</span><div class="bar"><i id="b1"></i></div><b id="v1">—</b></div>
+      <div class="row"><span>當圓規</span><div class="bar"><i id="b2"></i></div><b id="v2">—</b></div>
+    </div>
+    <p class="note" id="note2" aria-live="polite"></p>
+    <div id="after2" hidden>
+      <p>分數只說了一半。另一半藏在你看不出來的地方——你的手在哪個方向猶豫了。</p>
+      <p class="next"><button class="pk-btn" data-go="4">把它放到放大鏡底下</button></p>
+    </div>
+  </section>
+
+  <section class="act" id="act4" hidden aria-labelledby="h4a">
+    <h2 id="h4a">IV　放大</h2>
+    <p>金色那圈是一個完美的圓。紅色是你今天最好的那一筆。</p>
+    <div class="lens">
+      <canvas id="lensCv" role="img" aria-label="放大圖：你畫的圓與完美圓的偏差，被放大後的樣子"></canvas>
+    </div>
+    <p class="amp" id="ampLbl">×1</p>
+    <div class="legend" aria-hidden="true"><span><i style="background:var(--gold)"></i>完美的圓</span><span><i style="background:var(--red-text)"></i>你</span></div>
+    <p class="tools"><button class="pk-btn" id="magBtn" type="button">把偏差放大</button></p>
+    <div id="after4" hidden>
+      <p class="say" id="worstLine"></p>
+      <p>肉眼看起來圓圓的東西，放大之後每一處都在招供：哪裡手腕轉不過去、哪裡速度一快就往外甩、哪裡快收尾時心急了。</p>
+      <p>瓦薩里說，信差把那張紙連同其他人的畫一起送回羅馬，還轉述了畫家「手臂沒動、也沒用圓規」。教宗和身邊懂畫的人一看就明白了，這個人比當時所有畫家都高出一截。</p>
+      <p>他們看的不是一個圓。是一隻不猶豫的手。</p>
+      <p class="next"><button class="pk-btn" data-go="5">信差回到了羅馬，然後……</button></p>
+    </div>
+  </section>
+
+  <section class="act" id="act5" hidden aria-labelledby="h5a">
+    <h2 id="h5a">V　Tondo</h2>
+    <p>喬托後來被請到羅馬作畫。佛羅倫斯則留下一句俗語，七百年後的義大利文辭典還收著：</p>
+    <p class="proverb" lang="it">Tu sei più tondo che l’O di Giotto.</p>
+    <p class="proverb-zh">「你比喬托的 O 還圓。」</p>
+    <p class="say" id="verdict"></p>
+    <p class="tools"><button class="pk-btn" id="twistBtn" type="button">托斯卡納人聽到的是……</button></p>
+    <div class="twist" id="twist" hidden>
+      <p class="tondo">在托斯卡納，<em>tondo</em> 不只是「圓」。<br>它也是<em>遲鈍、腦筋轉不過彎</em>。</p>
+      <p>瓦薩里自己就說了：這句話是拿來講頭腦粗笨的人的。它妙就妙在一語雙關——誇一個圓，罵一個人，用的是同一個字。</p>
+      <p class="say" id="verdict2"></p>
+      <p class="dim">附帶一提：這段軼事最早見於瓦薩里 1550 年的書，離喬托過世已兩百多年，真假無從查證。俗語倒是真的。</p>
+      <p class="coda">信差的皮袋裡，塞滿了大師們的畫，沒有一張留下名字。<br>留下來的，是一個圓——和一句拿它來罵人的俗語。</p>
+      <p class="tools"><button class="mini" id="again" type="button">再畫一圈（後果自負）</button></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Giorgio Vasari《藝苑名人傳》〈喬托傳〉；Treccani 義大利語辭典「tondo」條。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'giottoO.';           /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+
+/* ===== 核心邏輯（純函式，node 斷言用；座標一律在 1000×1000 的虛擬紙面） ===== */
+/*CORE-START*/
+const TAU = Math.PI * 2;
+function resample(pts, n) {
+  if (pts.length < 2) return pts.slice();
+  const d = [0];
+  for (let i = 1; i < pts.length; i++) d.push(d[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  const L = d[d.length - 1];
+  if (L === 0) return [{ x: pts[0].x, y: pts[0].y }];
+  const out = [];
+  let j = 1;
+  for (let k = 0; k < n; k++) {
+    const t = L * k / (n - 1);
+    while (j < pts.length - 1 && d[j] < t) j++;
+    const seg = (d[j] - d[j - 1]) || 1;
+    const u = Math.min(1, Math.max(0, (t - d[j - 1]) / seg));
+    out.push({ x: pts[j - 1].x + (pts[j].x - pts[j - 1].x) * u, y: pts[j - 1].y + (pts[j].y - pts[j - 1].y) * u });
+  }
+  return out;
+}
+/* 代數最小平方擬合（Bullock 法）：回傳 {cx,cy,r} */
+function fitCircle(pts) {
+  const n = pts.length;
+  if (n < 3) return null;
+  let mx = 0, my = 0;
+  for (const p of pts) { mx += p.x; my += p.y; }
+  mx /= n; my /= n;
+  let Suu = 0, Svv = 0, Suv = 0, Suuu = 0, Svvv = 0, Suvv = 0, Svuu = 0;
+  for (const p of pts) {
+    const u = p.x - mx, v = p.y - my;
+    Suu += u * u; Svv += v * v; Suv += u * v;
+    Suuu += u * u * u; Svvv += v * v * v; Suvv += u * v * v; Svuu += v * u * u;
+  }
+  const det = Suu * Svv - Suv * Suv;
+  if (Math.abs(det) < 1e-9) return null;
+  const b1 = 0.5 * (Suuu + Suvv), b2 = 0.5 * (Svvv + Svuu);
+  const uc = (b1 * Svv - b2 * Suv) / det, vc = (Suu * b2 - Suv * b1) / det;
+  return { cx: uc + mx, cy: vc + my, r: Math.sqrt(uc * uc + vc * vc + (Suu + Svv) / n) };
+}
+function sweepOf(pts, f) {
+  let prev = Math.atan2(pts[0].y - f.cy, pts[0].x - f.cx), sw = 0;
+  const cum = [0], ang = [prev];
+  for (let i = 1; i < pts.length; i++) {
+    const a = Math.atan2(pts[i].y - f.cy, pts[i].x - f.cx);
+    let da = a - prev;
+    while (da > Math.PI) da -= TAU;
+    while (da < -Math.PI) da += TAU;
+    sw += da; prev = a; cum.push(sw); ang.push(a);
+  }
+  return { sweep: Math.abs(sw), cum, ang };
+}
+/* 畫面 y 朝下：角度 0＝三點鐘、正向＝順時針 */
+function clockOf(theta) {
+  const h = ((Math.round(3 + theta * 6 / Math.PI) % 12) + 12) % 12;
+  return h === 0 ? 12 : h;
+}
+function analyze(raw) {
+  if (!raw || raw.length < 12) return { ok: false, reason: 'short' };
+  let pts = resample(raw, 200);
+  let f = fitCircle(pts);
+  if (!f || !isFinite(f.r) || f.r > 3000) return { ok: false, reason: 'line' };
+  if (f.r < 70) return { ok: false, reason: 'small' };
+  let s = sweepOf(pts, f);
+  if (s.sweep < TAU * 0.85) return { ok: false, reason: 'open', sweep: s.sweep };
+  /* 繞超過一圈：只取第一圈 */
+  const cut = s.cum.findIndex(c => Math.abs(c) >= TAU);
+  if (cut > 0) {
+    pts = resample(pts.slice(0, cut + 1), 200);
+    f = fitCircle(pts) || f;
+    s = sweepOf(pts, f);
+  }
+  const res = pts.map(p => Math.hypot(p.x - f.cx, p.y - f.cy) - f.r);
+  let sum = 0, wi = 0;
+  for (let i = 0; i < res.length; i++) { sum += Math.abs(res[i]); if (Math.abs(res[i]) > Math.abs(res[wi])) wi = i; }
+  const mad = sum / res.length / f.r;
+  const last = pts[pts.length - 1];
+  const gap = Math.hypot(pts[0].x - last.x, pts[0].y - last.y) / f.r;
+  const pen = Math.min(0.08, Math.max(0, gap - 0.12) * 0.1);
+  const score = Math.round(Math.max(0, Math.min(100, 100 * (1 - 2.2 * mad - pen))) * 10) / 10;
+  return {
+    ok: true, score, fit: f, pts, res, ang: s.ang, mad, gap, sweep: s.sweep,
+    worst: { i: wi, clock: clockOf(s.ang[wi]), out: res[wi] > 0, pct: Math.abs(res[wi]) / f.r * 100 }
+  };
+}
+/* 放大倍率：預設 10，但最大偏差放大後不超過半徑的 60% */
+function ampFor(an, want) {
+  let m = 0;
+  for (const r of an.res) m = Math.max(m, Math.abs(r));
+  if (m === 0) return want;
+  return Math.max(1, Math.min(want, 0.6 * an.fit.r / m));
+}
+function verdict(score) { return score >= 95 ? 'full' : score >= 88 ? 'mid' : 'low'; }
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+/* 模擬一隻會抖的手（鍵盤代筆用）；steady 越大越穩 */
+function simulateHand(seed, steady) {
+  const rnd = mulberry32(seed);
+  const k = 1.3 / (steady || 1);
+  const cx = 500 + (rnd() - 0.5) * 40, cy = 500 + (rnd() - 0.5) * 40;
+  const R = 290 + rnd() * 60, a0 = rnd() * TAU;
+  const p1 = rnd() * TAU, p2 = rnd() * TAU, p3 = rnd() * TAU;
+  const sw = TAU * (1.0 + rnd() * 0.05);
+  const out = [];
+  for (let i = 0; i < 150; i++) {
+    const t = i / 149, a = a0 + sw * t;
+    const w = k * (0.05 * Math.sin(2 * a + p1) + 0.028 * Math.sin(3 * a + p2) + 0.014 * Math.sin(5 * a + p3)) + k * 0.05 * t;
+    out.push({ x: cx + R * (1 + w) * Math.cos(a), y: cy + R * (1 + w) * Math.sin(a) });
+  }
+  return out;
+}
+const ZH_CLOCK = ['', '一', '兩', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
+/*CORE-END*/
+
+/* ===== 介面 ===== */
+const $ = (s) => document.querySelector(s);
+const reduced = PK.reduced;
+let tries = store.get('n', 0);
+let best = store.get('best', null);   /* 歷來最佳分數 */
+let A1 = null, A2 = null;             /* 第一筆、第二筆的分析 */
+let bestAn = null;                    /* 本次最佳那一筆（給放大鏡） */
+
+/* 幕的揭露 */
+function openAct(n) {
+  const el = document.getElementById('act' + n);
+  if (!el) return;
+  if (el.hidden) {
+    el.hidden = false;
+    void el.getBoundingClientRect();
+    requestAnimationFrame(() => el.classList.add('on'));
+  }
+  if (n === 2) pad1.layout();
+  if (n === 3) pad2.layout();
+  if (n === 4) lens.layout();
+  setTimeout(() => PK.scrollTo(el), 60);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-go]');
+  if (!b) return;
+  const n = +b.dataset.go;
+  if (n === 4 && !bestAn) return;
+  openAct(n);
+  if (n === 5) renderVerdict();
+});
+
+/* 筆刷畫紙 */
+function Pad(cv, hint, onDone, ghostFn) {
+  const ctx = cv.getContext('2d');
+  let w = 0, pts = [], drawing = false, result = null, fitAlpha = 0, busy = false;
+  function layout() {
+    const rect = cv.getBoundingClientRect();
+    if (rect.width < 80) return false;
+    const s = PK.fitCanvas(cv);
+    w = s.w;
+    ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+    redraw();
+    return true;
+  }
+  const S = () => w / 1000;
+  function stroke(list, color, alpha, widthMul) {
+    if (list.length < 2) return;
+    ctx.save();
+    ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (let i = 1; i < list.length; i++) {
+      const a = list[i - 1], b = list[i];
+      ctx.lineWidth = (b.w || 7) * S() * widthMul;
+      ctx.beginPath(); ctx.moveTo(a.x * S(), a.y * S()); ctx.lineTo(b.x * S(), b.y * S()); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  function drawFit() {
+    if (!result || !result.ok || fitAlpha <= 0) return;
+    const f = result.fit;
+    ctx.save();
+    ctx.globalAlpha = fitAlpha * 0.9; ctx.strokeStyle = '#b48a3a'; ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 6]);
+    ctx.beginPath(); ctx.arc(f.cx * S(), f.cy * S(), f.r * S(), 0, TAU); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#b48a3a';
+    ctx.beginPath(); ctx.arc(f.cx * S(), f.cy * S(), 3, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  function redraw() {
+    if (!w) return;
+    ctx.clearRect(0, 0, w, w);
+    const g = ghostFn && ghostFn();
+    if (g) stroke(g, '#8a2c1d', 0.16, 1);
+    stroke(pts, '#a83a26', 0.92, 1);
+    drawFit();
+  }
+  function toV(e) {
+    const r = cv.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * 1000 / r.width, y: (e.clientY - r.top) * 1000 / r.height };
+  }
+  function push(p) {
+    const last = pts[pts.length - 1];
+    if (last) {
+      const d = Math.hypot(p.x - last.x, p.y - last.y);
+      if (d < 1.5) return;
+      const target = PK.clamp(10 - d * 0.32, 3.2, 10);
+      p.w = PK.lerp(last.w, target, 0.35);
+      pts.push(p);
+      stroke([last, p], '#a83a26', 0.92, 1);
+    } else { p.w = 8; pts.push(p); }
+  }
+  function begin() { pts = []; result = null; fitAlpha = 0; redraw(); hint.classList.add('gone'); }
+  cv.addEventListener('pointerdown', (e) => {
+    if (busy || (e.button !== undefined && e.button > 0)) return;
+    e.preventDefault();
+    if (!w) layout();
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    drawing = true; begin(); push(toV(e));
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!drawing) return;
+    const list = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (list.length ? list : [e])) push(toV(ev));
+  });
+  function end() {
+    if (!drawing) return;
+    drawing = false;
+    finish();
+  }
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+  cv.addEventListener('lostpointercapture', end);
+  function finish() {
+    result = analyze(pts);
+    if (result.ok) fadeFit();
+    onDone(result);
+  }
+  function fadeFit() {
+    if (reduced()) { fitAlpha = 1; redraw(); return; }
+    fitAlpha = 0;
+    const f = (dt) => { fitAlpha = Math.min(1, fitAlpha + dt * 1.6); redraw(); if (fitAlpha >= 1) PK.untick(f); };
+    PK.tick(f);
+  }
+  function auto(seed, steady) {
+    if (busy) return;
+    if (!w) layout();
+    const src = simulateHand(seed, steady);
+    begin();
+    if (reduced()) { src.forEach(p => push({ x: p.x, y: p.y })); finish(); return; }
+    busy = true;
+    let i = 0, acc = 0;
+    const f = (dt) => {
+      acc += dt * 150 / 1.3;
+      while (i < src.length && acc >= 1) { push({ x: src[i].x, y: src[i].y }); i++; acc -= 1; }
+      if (i >= src.length) { PK.untick(f); busy = false; finish(); }
+    };
+    PK.tick(f);
+  }
+  function clear() { if (busy) return; pts = []; result = null; fitAlpha = 0; hint.classList.remove('gone'); redraw(); }
+  return { layout, redraw, auto, clear, get pts() { return pts; } };
+}
+
+const REASON = {
+  short: '筆太短了——一筆畫完整個圓。',
+  line: '這比較像一條線。再試一次，繞一圈。',
+  small: '圓太小了。那位畫家可是用整條手臂在畫——畫大一點。',
+  open: '還沒繞完一圈就停了。一口氣畫回起點。'
+};
+
+function countUp(el, to, done) {
+  if (reduced()) { el.innerHTML = to.toFixed(1) + '<span>%</span>'; if (done) done(); return; }
+  let t = 0;
+  const f = (dt) => {
+    t = Math.min(1, t + dt / 0.9);
+    const e = 1 - Math.pow(1 - t, 3);
+    el.innerHTML = (to * e).toFixed(1) + '<span>%</span>';
+    if (t >= 1) { PK.untick(f); if (done) done(); }
+  };
+  PK.tick(f);
+}
+function worstText(an) {
+  const W = an.worst;
+  return `${ZH_CLOCK[W.clock]}點鐘方向${W.out ? '往外鼓' : '往內縮'}了 ${W.pct.toFixed(1)}%`;
+}
+function record(an) {
+  tries += 1; store.set('n', tries);
+  if (best === null || an.score > best) { best = an.score; store.set('best', best); }
+  if (!bestAn || an.score > bestAn.score) bestAn = an;
+}
+
+const QUIPS = {
+  low: '「……一個圓？還是個歪的。我就帶這個回羅馬？」',
+  mid: '「就這樣？其他人可是畫了整個聖人。」',
+  full: '「……就這樣？我就只拿到這個？」'
+};
+
+const pad1 = Pad($('#pad1'), $('#hint1'), (an) => {
+  const note = $('#note1');
+  if (!an.ok) { note.innerHTML = '<span class="warn">' + REASON[an.reason] + '</span>'; PK.announce(REASON[an.reason]); return; }
+  A1 = an; record(an);
+  note.textContent = '';
+  countUp($('#sc1'), an.score, () => {
+    note.textContent = '最歪的地方：' + worstText(an) + '。';
+    PK.announce('圓度 ' + an.score.toFixed(1) + '%。最歪的地方：' + worstText(an));
+    const after = $('#after1');
+    if (after.hidden) {
+      after.hidden = false;
+      PK.type($('#quip1'), QUIPS[verdict(an.score)], 42);
+    }
+  });
+  pad2.redraw();
+});
+const pad2 = Pad($('#pad2'), $('#hint2'), (an) => {
+  const note = $('#note2');
+  if (!an.ok) { note.innerHTML = '<span class="warn">' + REASON[an.reason] + '</span>'; PK.announce(REASON[an.reason]); return; }
+  A2 = an; record(an);
+  $('#cmp').hidden = false;
+  const a = A1 ? A1.score : 0;
+  $('#v1').textContent = A1 ? a.toFixed(1) + '%' : '—';
+  $('#v2').textContent = an.score.toFixed(1) + '%';
+  requestAnimationFrame(() => {
+    $('#b1').style.transform = 'scaleX(' + (a / 100) + ')';
+    $('#b2').style.transform = 'scaleX(' + (an.score / 100) + ')';
+  });
+  const d = an.score - a;
+  let msg;
+  if (!A1) msg = '這一筆：' + an.score.toFixed(1) + '%。';
+  else if (d >= 0.5) msg = '好了 ' + d.toFixed(1) + ' 個百分點。手臂一旦變成固定的那一腳，筆尖就只管轉。';
+  else if (d > -0.5) msg = '幾乎一樣。你的手本來就挺穩——或者，它還不習慣當圓規。';
+  else msg = '反而退了 ' + (-d).toFixed(1) + ' 個百分點。別灰心：喬托用一輩子練這一招，你用了二十秒。';
+  note.textContent = msg;
+  PK.announce('第二筆圓度 ' + an.score.toFixed(1) + '%。' + msg);
+  $('#after2').hidden = false;
+  if (!$('#act4').hidden) lens.reset();
+  if (!$('#act5').hidden) renderVerdict();
+},() => (A1 ? A1.pts : null));
+
+$('#clr1').addEventListener('click', () => { pad1.clear(); $('#note1').textContent = ''; });
+$('#clr2').addEventListener('click', () => { pad2.clear(); $('#note2').textContent = ''; });
+let seedBase = (Date.now() % 100000) | 0;
+$('#auto1').addEventListener('click', () => pad1.auto(++seedBase, 1));
+$('#auto2').addEventListener('click', () => pad2.auto(++seedBase, 1.6));
+
+/* 放大鏡 */
+const lens = (function () {
+  const cv = $('#lensCv'), ctx = cv.getContext('2d');
+  let w = 0, k = 1, played = false;
+  function layout() {
+    const rect = cv.getBoundingClientRect();
+    if (rect.width < 80) return false;
+    const s = PK.fitCanvas(cv);
+    w = s.w; ctx.setTransform(s.dpr, 0, 0, s.dpr, 0, 0);
+    draw(); return true;
+  }
+  function draw() {
+    if (!w) return;
+    ctx.clearRect(0, 0, w, w);
+    const an = bestAn;
+    if (!an) return;
+    const c = w / 2, R = w * 0.3, sc = R / an.fit.r;
+    ctx.save();
+    ctx.strokeStyle = '#d4a84b'; ctx.lineWidth = 1.6; ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.arc(c, c, R, 0, TAU); ctx.stroke();
+    ctx.restore();
+    ctx.save();
+    ctx.strokeStyle = '#e3826a'; ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.shadowColor = 'rgba(227,130,106,.55)'; ctx.shadowBlur = 10;
+    ctx.beginPath();
+    for (let i = 0; i < an.res.length; i++) {
+      const rr = (an.fit.r + an.res[i] * k) * sc, a = an.ang[i];
+      const x = c + rr * Math.cos(a), y = c + rr * Math.sin(a);
+      if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+    if (k > 1.5) {
+      const W = an.worst, rr = (an.fit.r + an.res[W.i] * k) * sc, a = an.ang[W.i];
+      const x = c + rr * Math.cos(a), y = c + rr * Math.sin(a);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, (k - 1.5) / 3);
+      ctx.strokeStyle = '#f0d38a'; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(x, y, 9, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c + R * Math.cos(a), c + R * Math.sin(a)); ctx.lineTo(x, y); ctx.stroke();
+      ctx.restore();
+    }
+    $('#ampLbl').textContent = '×' + (k < 9.95 ? k.toFixed(1) : Math.round(k));
+  }
+  function play() {
+    if (!bestAn) return;
+    if (!w) layout();
+    const target = ampFor(bestAn, 10);
+    const after = () => {
+      played = true;
+      const W = bestAn.worst;
+      $('#worstLine').textContent = `你的手在${ZH_CLOCK[W.clock]}點鐘方向最不聽話——${W.out ? '往外甩' : '往裡縮'}了半徑的 ${W.pct.toFixed(1)}%。放大 ${target < 9.95 ? target.toFixed(1) : 10} 倍，它就藏不住了。`;
+      $('#after4').hidden = false;
+      PK.announce('放大完成。' + $('#worstLine').textContent);
+    };
+    if (reduced()) { k = target; draw(); after(); return; }
+    k = 1; let t = 0;
+    const f = (dt) => {
+      t = Math.min(1, t + dt / 1.6);
+      const e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      k = 1 + (target - 1) * e;
+      draw();
+      if (t >= 1) { PK.untick(f); after(); }
+    };
+    PK.tick(f);
+  }
+  function reset() { k = 1; draw(); if (played) $('#magBtn').textContent = '用新的那筆再放大一次'; }
+  return { layout, draw, play, reset };
+})();
+$('#magBtn').addEventListener('click', () => lens.play());
+
+/* 終幕 */
+function renderVerdict() {
+  const s = bestAn ? bestAn.score : (best || 0);
+  const v = verdict(s);
+  const head = `你今天最好的一圈：${s.toFixed(1)}%。`;
+  $('#verdict').textContent = head + (v === 'full' ? '以佛羅倫斯的標準，這句話可以原封不動送給你。'
+    : v === 'mid' ? '差一點點，就配得上這句讚美了。' : '離喬托的 O 還有一段路，不過這句話，你還是可以先收著。');
+  $('#verdict2').textContent = v === 'full' ? `所以，${s.toFixed(1)}% 的你——恭喜，也節哀。`
+    : v === 'mid' ? `${s.toFixed(1)}%：剛好卡在「手很穩」與「人很鈍」中間。進可攻，退可守。`
+    : `${s.toFixed(1)}%：恭喜，你不夠圓。在托斯卡納，算你走運。`;
+}
+$('#twistBtn').addEventListener('click', (e) => {
+  const tw = $('#twist');
+  e.currentTarget.hidden = true;
+  tw.hidden = false;
+  void tw.getBoundingClientRect();
+  requestAnimationFrame(() => tw.classList.add('on'));
+  PK.announce('在托斯卡納，tondo 不只是圓，也是遲鈍、腦筋轉不過彎。');
+});
+$('#again').addEventListener('click', () => {
+  pad2.clear(); $('#note2').textContent = '';
+  PK.scrollTo($('#pad2'));
+  setTimeout(() => $('#pad2').focus({ preventScroll: true }), 400);
+});
+
+/* 版面：視窗改變時重排（隱藏中的會自動略過） */
+let rz = 0;
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(rz);
+  rz = requestAnimationFrame(() => { pad1.layout(); pad2.layout(); lens.layout(); });
+});
+
+/* 開場 */
+PK.reveal();
+const heroO = $('#heroO');
+PK.replayDash(heroO, 2600);
+PK.onMotionChange(() => PK.replayDash(heroO, 2600));
+if (best !== null) {
+  const k = document.createElement('p');
+  k.className = 'dim rv in';
+  k.style.fontSize = '13px';
+  k.textContent = `上次來，你最圓的一圈是 ${(+best).toFixed(1)}%。`;
+  document.querySelector('.pk-hero .pk-wrap').appendChild(k);
+}
+</script>
+</body>
+</html>

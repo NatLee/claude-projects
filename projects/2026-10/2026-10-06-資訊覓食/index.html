@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一次搜尋從來不夠｜每日小專案</title>
+<meta name="description" content="狐狸什麼時候該離開正在吃的那叢漿果？把覓食者拖進一片資訊森林，親身試出邊際價值定理，再帶走一套採集式研究流程與資料庫地圖。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0f1913; --pk-ink:#ebe5cf; --pk-dim:#9ba791; --pk-accent:#ec6a7c;
+  --pk-line:rgba(235,229,207,.14); --pk-maxw:660px;
+  --moss:#1a2b20; --moss2:#22382a; --paper:#15211a; --fern:#8fb874; --fern-d:#5f8a4c;
+  --lichen:#d8c97f; --berry:#e2566a; --berry-d:#9e3045; --fox:#e0813f; --cream:#efe6d2; --ink-d:#26201b;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",Georgia,serif;
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1200px 700px at 85% -10%, rgba(143,184,116,.10), transparent 60%),
+    radial-gradient(900px 600px at -10% 40%, rgba(216,201,127,.06), transparent 60%),
+    var(--pk-bg);
+}
+body::before{ /* 等高線紙紋 */
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.07;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420'%3E%3Cg fill='none' stroke='%23ebe5cf' stroke-width='1'%3E%3Cpath d='M-20 80C60 40 120 120 210 90S360 20 440 70'/%3E%3Cpath d='M-20 130C70 90 130 170 220 140S370 70 440 120'/%3E%3Cpath d='M-20 250C50 220 140 300 230 260S380 210 440 250'/%3E%3Cpath d='M-20 300C60 270 150 350 240 310S390 260 440 300'/%3E%3Cpath d='M-20 380C80 350 160 420 260 380S380 340 440 380'/%3E%3C/g%3E%3C/svg%3E");
+}
+main,header,footer{position:relative;z-index:1}
+header#top{min-height:100svh;display:flex;align-items:center}
+header#top .hero-grid{width:100%}
+a{color:var(--lichen)}
+a:hover{color:var(--cream)}
+strong{color:var(--cream)}
+p{margin:0 0 1.1em}
+figure{margin:0}
+.wide{position:relative;max-width:1000px;margin:0 auto;padding:0 22px}
+.k{font-size:12px;letter-spacing:.32em;color:var(--fern);text-transform:none}
+.serif{font-family:var(--serif)}
+.dim{color:var(--pk-dim)}
+.fic{display:inline-block;font-size:11.5px;letter-spacing:.12em;color:var(--pk-dim);border:1px dashed var(--pk-line);border-radius:99px;padding:0 9px;vertical-align:middle}
+
+/* ── 章節路標 ── */
+.trail{position:fixed;top:14px;right:16px;z-index:9;width:170px;height:30px;
+  background:color-mix(in srgb,var(--pk-bg) 70%,transparent);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+  border-radius:99px;padding:0 14px}
+.trail svg{position:absolute;left:14px;right:14px;top:14px;width:calc(100% - 28px);height:2px;overflow:visible}
+.trail a{position:absolute;top:10px;width:10px;height:10px;margin-left:-5px;border-radius:50%;
+  background:var(--pk-bg);border:1.5px solid var(--pk-dim)}
+.trail a.on{border-color:var(--berry);background:var(--berry)}
+.trail .tfox{position:absolute;top:2px;left:14px;width:22px;height:22px;margin-left:-11px;transition:transform .6s cubic-bezier(.3,.8,.3,1)}
+
+/* ── 第一屏 ── */
+.hero-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:36px;align-items:center;max-width:1000px;margin:0 auto;padding:80px 22px 40px}
+.hero-grid h1{font-family:var(--serif);font-weight:600;font-size:clamp(27px,4.6vw,44px);line-height:1.45;margin:14px 0 22px}
+.hero-grid p{color:#d9d3bd;font-size:17px}
+.cue{display:inline-block;margin-top:14px;color:var(--pk-dim);font-size:13px;letter-spacing:.2em;text-decoration:none}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+.plate0{width:100%;max-width:420px;justify-self:center}
+.plate0 svg{width:100%;height:auto;overflow:visible}
+.plate0 figcaption{font-size:12px;color:var(--pk-dim);text-align:center;letter-spacing:.12em;margin-top:6px}
+.hb{animation:pick 9s ease-in-out infinite}
+@keyframes pick{0%,8%{opacity:1;transform:none}16%,86%{opacity:.08;transform:translateY(3px)}96%,100%{opacity:1;transform:none}}
+.hb{transform-box:fill-box;transform-origin:center}
+
+/* ── 章節 ── */
+.chapter{padding:90px 0 20px}
+.ch-head{margin-bottom:28px}
+.ch-head .k{display:flex;align-items:center;gap:12px}
+.ch-head .k::after{content:"";flex:1;border-top:1px dashed var(--pk-line)}
+.ch-head h2{font-family:var(--serif);font-weight:600;font-size:clamp(23px,4.2vw,32px);line-height:1.5;margin:10px 0 0}
+h3{font-family:var(--serif);font-weight:600;font-size:20px;margin:42px 0 12px;line-height:1.5}
+.plate{position:relative;background:var(--paper);border:1px solid var(--pk-line);border-radius:6px;padding:28px 22px 20px;margin:26px 0}
+.plate .no{position:absolute;top:-10px;left:16px;background:var(--pk-bg);padding:0 8px;font-size:11.5px;letter-spacing:.24em;color:var(--fern)}
+.quote{font-family:var(--serif);font-size:clamp(20px,3.6vw,26px);line-height:1.6;margin:30px 0;padding-left:18px;border-left:3px solid var(--berry);color:var(--cream)}
+.orig{font-size:13.5px;color:var(--pk-dim);font-style:italic}
+.scent{list-style:none;padding:0;margin:0}
+.scent li{display:grid;grid-template-columns:1fr 88px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px dashed var(--pk-line)}
+.scent li:last-child{border-bottom:0}
+.scent b{display:block;font-weight:500;color:var(--cream);font-size:15px}
+.scent small{color:var(--pk-dim);font-size:12.5px}
+.whiff{height:22px;position:relative}
+.whiff i{position:absolute;left:0;top:50%;height:2px;border-radius:2px;background:var(--lichen);transform-origin:left;opacity:.85}
+.whiff i:nth-child(2){top:25%;opacity:.5}.whiff i:nth-child(3){top:75%;opacity:.5}
+
+/* ── 森林互動 ── */
+.quest{display:flex;gap:12px;align-items:flex-start;background:var(--moss);border:1px solid var(--pk-line);border-radius:8px;padding:12px 16px;margin:0 0 14px}
+.quest .tag{flex:none;font-size:11.5px;letter-spacing:.14em;color:var(--pk-bg);background:var(--lichen);border-radius:4px;padding:2px 8px;margin-top:3px}
+.quest p{margin:0;font-family:var(--serif);font-size:17px;color:var(--cream)}
+.quest.flash{animation:flash 1.2s ease}
+@keyframes flash{0%{transform:translateY(-4px);opacity:.3}100%{transform:none;opacity:1}}
+.forest{display:grid;grid-template-columns:1fr 280px;gap:18px;align-items:start}
+.map{position:relative;aspect-ratio:10/7;border-radius:10px;overflow:hidden;border:1px solid var(--pk-line);
+  background:radial-gradient(circle at 30% 30%,#203427,#16241b 70%);user-select:none;-webkit-user-select:none}
+.map .topo{position:absolute;inset:0;width:100%;height:100%;opacity:.35}
+.map .route{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.route path{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linecap:round}
+.route .you{stroke:var(--berry);stroke-dasharray:2 6}
+.route .mvt{stroke:var(--fern);stroke-dasharray:8 6;opacity:.9}
+.camp{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border:1.5px dashed var(--pk-dim);border-radius:50%}
+.camp span{position:absolute;top:32px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--pk-dim);white-space:nowrap}
+.patch{position:absolute;width:96px;height:96px;margin:-48px 0 0 -48px;cursor:pointer}
+.patch svg{width:100%;height:100%;overflow:visible;display:block}
+.patch .blob{fill:var(--moss2);stroke:var(--fern-d);stroke-width:1.6}
+.patch .blob2{fill:none;stroke:var(--fern);stroke-width:.8;stroke-dasharray:3 4;opacity:.6}
+.patch .bd{fill:var(--berry);transition:opacity .45s ease,transform .45s ease;transform-box:fill-box;transform-origin:center}
+.patch .bd.gone{opacity:0;transform:scale(.3)}
+.patch .ring{fill:none;stroke:var(--lichen);stroke-width:2;stroke-dasharray:5 5;opacity:0;transition:opacity .25s}
+.patch.target .ring,.patch.here .ring{opacity:1}
+.patch.here .ring{stroke:var(--berry);stroke-dasharray:none}
+.patch .lbl{position:absolute;top:92%;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:12.5px;line-height:1.5;
+  background:rgba(15,25,19,.86);padding:1px 9px;border-radius:99px;color:var(--cream)}
+.patch .fog{position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,rgba(200,210,195,.55),rgba(200,210,195,.15) 55%,transparent 72%);opacity:0;transition:opacity 1.2s ease;pointer-events:none}
+.patch.locked .fog{opacity:1}
+.patch.locked .bd,.patch.locked .blob{opacity:.25}
+.patch.locked .lbl{color:var(--pk-dim)}
+.fox{position:absolute;left:0;top:0;width:50px;height:50px;margin:-25px 0 0 -25px;z-index:3;touch-action:none;cursor:grab;
+  border-radius:50%;background:radial-gradient(circle,rgba(239,230,210,.18),transparent 70%)}
+.fox svg{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
+.fox.drag{cursor:grabbing}
+.fox:focus-visible{outline:2px solid var(--lichen);outline-offset:4px}
+.hint{position:absolute;left:12px;top:10px;font-size:12px;color:var(--pk-dim);background:rgba(15,25,19,.8);padding:2px 10px;border-radius:99px;pointer-events:none;transition:opacity .4s}
+.side{display:flex;flex-direction:column;gap:12px}
+.hud{background:var(--moss);border:1px solid var(--pk-line);border-radius:8px;padding:14px 16px}
+.nums{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.nums div{font-size:12px;color:var(--pk-dim);letter-spacing:.08em}
+.nums b{display:block;font-family:var(--serif);font-size:26px;color:var(--cream);font-weight:600;letter-spacing:0}
+.rate{margin-top:12px}
+.rate .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--pk-dim)}
+.rate .lab b{color:var(--cream);font-weight:500;font-variant-numeric:tabular-nums}
+.bar{height:8px;border-radius:99px;background:rgba(235,229,207,.08);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;width:100%;border-radius:99px;transform-origin:left;transform:scaleX(0);transition:transform .2s linear}
+.bar.here i{background:var(--berry)}
+.bar.avg i{background:var(--fern)}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{appearance:none;font:inherit;font-size:13.5px;letter-spacing:.06em;cursor:pointer;color:var(--cream);background:transparent;
+  border:1px solid var(--pk-line);border-radius:99px;padding:6px 14px;transition:background .2s,border-color .2s}
+.btn:hover{border-color:var(--lichen)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.pri{border-color:var(--berry);color:#fff;background:var(--berry-d)}
+.notes{background:var(--moss);border:1px solid var(--pk-line);border-radius:8px;padding:12px 16px;font-size:13.5px}
+.notes h4{margin:0 0 6px;font-size:12px;letter-spacing:.2em;color:var(--fern);font-weight:500}
+.notes ul{margin:0;padding-left:18px}
+.notes li{margin:4px 0;animation:fadeup .6s ease}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.notes .empty{color:var(--pk-dim);list-style:none;margin-left:-18px}
+.plist{list-style:none;padding:0;margin:14px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.plist li{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--pk-line);border-radius:6px;padding:7px 10px;font-size:13px}
+.plist li span small{display:block;color:var(--pk-dim);font-size:11.5px}
+.plist li.lk{opacity:.5}
+.plist .btn{padding:3px 10px;font-size:12px;white-space:nowrap}
+
+/* 收尾 */
+.results{margin-top:30px}
+.results[hidden]{display:none}
+.score{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.score div{background:var(--paper);border:1px solid var(--pk-line);border-radius:8px;padding:14px;text-align:center}
+.score small{display:block;font-size:12px;color:var(--pk-dim);letter-spacing:.1em}
+.score b{font-family:var(--serif);font-size:32px;font-weight:600;color:var(--cream)}
+.score .you b{color:var(--berry)}
+.score .mvt b{color:var(--fern)}
+.chart svg,.mvtfig svg{width:100%;height:auto;overflow:visible;display:block}
+.chart text,.mvtfig text{fill:var(--pk-dim);font-size:10px;font-family:inherit}
+.chart .ax,.mvtfig .ax{stroke:rgba(235,229,207,.25);stroke-width:1}
+.leaves{list-style:none;padding:0;margin:10px 0}
+.leaves li{padding:8px 0;border-bottom:1px dashed var(--pk-line);font-size:14.5px}
+.leaves em{font-style:normal;font-size:12px;padding:1px 8px;border-radius:99px;margin-left:6px}
+.leaves .early{background:rgba(216,201,127,.18);color:var(--lichen)}
+.leaves .late{background:rgba(226,86,106,.18);color:#f19aa6}
+.leaves .ok{background:rgba(143,184,116,.2);color:var(--fern)}
+
+/* ── 第三程：圖版 ── */
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:460px}
+th,td{border-bottom:1px solid var(--pk-line);padding:8px 10px;text-align:left;vertical-align:top}
+th{color:var(--fern);font-weight:500;font-size:12.5px;letter-spacing:.08em}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.9em;background:rgba(235,229,207,.08);padding:1px 6px;border-radius:4px;color:var(--lichen)}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0;border-bottom:1px solid var(--pk-line)}
+.tabs button{appearance:none;font:inherit;font-size:14px;cursor:pointer;background:transparent;color:var(--pk-dim);border:0;border-bottom:2px solid transparent;padding:8px 12px;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--cream);border-bottom-color:var(--berry)}
+.tabpanel{padding:8px 0}
+.db{list-style:none;padding:0;margin:0}
+.db li{padding:14px 0;border-bottom:1px dashed var(--pk-line)}
+.db li:last-child{border-bottom:0}
+.db h4{margin:0;font-size:16px;font-weight:600;color:var(--cream)}
+.db h4 a{font-weight:400;font-size:13px;margin-left:8px;word-break:break-all}
+.db p{margin:4px 0 0;font-size:14.5px}
+.db .pro{color:var(--pk-dim);font-size:13.5px}
+.db .pro::before{content:"進階　";color:var(--lichen);font-size:12px;letter-spacing:.1em}
+details{background:var(--paper);border:1px solid var(--pk-line);border-radius:6px;margin:12px 0;padding:0 16px}
+details[open]{padding-bottom:12px}
+summary{cursor:pointer;padding:12px 0;font-weight:500;color:var(--cream)}
+summary::marker{color:var(--berry)}
+textarea.tpl{width:100%;min-height:290px;background:#0c140f;color:var(--cream);border:1px solid var(--pk-line);border-radius:6px;padding:12px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12.5px;line-height:1.6;resize:vertical}
+ol.steps{padding-left:22px}
+ol.steps li{margin:6px 0}
+
+/* 流程卡（第二個拖曳） */
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.zone{background:var(--moss);border:1px dashed var(--pk-line);border-radius:8px;padding:12px;min-height:160px}
+.zone.over{border-color:var(--lichen);background:#203327}
+.zone h4{margin:0 0 8px;font-size:12.5px;letter-spacing:.18em;color:var(--fern);font-weight:500}
+.zone ul{list-style:none;margin:0;padding:0;min-height:60px}
+.card{display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--pk-line);border-left:3px solid var(--fern);border-radius:6px;padding:7px 8px;margin:6px 0;font-size:13.5px;touch-action:pan-y;cursor:grab}
+#flowList .card{border-left-color:var(--berry)}
+.card .grip{color:var(--pk-dim);letter-spacing:-2px;flex:none;touch-action:none;padding:4px 6px;margin:-4px 0 -4px -4px}
+.card .ct{flex:1;line-height:1.4}
+.card .n{font-family:var(--serif);color:var(--berry);margin-right:2px}
+.card .acts{display:flex;gap:4px;flex:none}
+.card .acts button{appearance:none;font:inherit;font-size:12px;cursor:pointer;color:var(--cream);background:transparent;border:1px solid var(--pk-line);border-radius:4px;padding:2px 7px}
+.card .acts button:hover{border-color:var(--lichen)}
+.card.ghost{position:fixed;z-index:50;pointer-events:none;opacity:.92;box-shadow:0 10px 30px rgba(0,0,0,.45);margin:0}
+.card.lift{opacity:.3}
+.ph{height:34px;border:1.5px dashed var(--lichen);border-radius:6px;margin:6px 0}
+.flowcard{background:var(--cream);color:var(--ink-d);border-radius:6px;padding:22px 24px;margin-top:18px;position:relative}
+.flowcard h4{font-family:var(--serif);font-size:19px;margin:0 0 4px}
+.flowcard .sub{font-size:12px;color:#6b6152;margin-bottom:10px}
+.flowcard ol{margin:0;padding-left:22px}
+.flowcard li{margin:5px 0;font-size:14px}
+.flowcard li b{color:#7a2433}
+.flowcard .rule{margin-top:12px;font-size:13px;border-top:1px dashed #b9ad92;padding-top:8px}
+.flowcard .empty{color:#6b6152}
+
+/* ── 終點 ── */
+.endfig{max-width:360px;margin:20px auto}
+.endfig svg{width:100%;height:auto;overflow:visible}
+
+@media (max-width:860px){
+  .forest{grid-template-columns:1fr}
+  .plist{grid-template-columns:repeat(2,1fr)}
+  .hero-grid{grid-template-columns:1fr;padding-top:70px}
+  .plate0{max-width:300px;order:-1}
+}
+@media (max-width:560px){
+  .wide{padding:0 16px}
+  .trail{width:120px;right:10px}
+  .map{aspect-ratio:5/6}
+  .patch{width:66px;height:66px;margin:-33px 0 0 -33px}
+  .patch .lbl{font-size:11px;padding:0 6px}
+  .fox{width:42px;height:42px;margin:-21px 0 0 -21px}
+  .plist{grid-template-columns:1fr}
+  .score{grid-template-columns:1fr}
+  .flow{grid-template-columns:1fr}
+  .scent li{grid-template-columns:1fr 60px}
+  .hero-grid{padding:64px 16px 30px}
+  .hero-grid p{font-size:16px}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .hb,.cue span,.quest.flash,.notes li{animation:none}
+  .trail .tfox,.bar i,.patch .bd,.patch .fog{transition:none}
+}
+@media print{
+  body{background:#fff}
+  body::before{display:none}
+  body *{visibility:hidden}
+  #flowCard,#flowCard *{visibility:visible}
+  #flowCard{position:absolute;left:0;top:0;width:100%;margin:0;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<nav class="trail" aria-label="章節路標">
+  <svg aria-hidden="true"><line x1="0" y1="1" x2="100%" y2="1" stroke="rgba(235,229,207,.3)" stroke-dasharray="3 4"/></svg>
+  <a href="#top" style="left:14px" aria-label="起點"></a>
+  <a href="#ch1" aria-label="第一程：氣味"></a>
+  <a href="#ch2" aria-label="第二程：森林"></a>
+  <a href="#ch3" aria-label="第三程：地圖"></a>
+  <a href="#end" aria-label="終點"></a>
+  <svg class="tfox" viewBox="0 0 100 100" aria-hidden="true"><use href="#foxhead"/></svg>
+</nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="foxhead" viewBox="0 0 100 100">
+      <polygon points="14,8 36,40 10,44" fill="#e0813f"/>
+      <polygon points="86,8 64,40 90,44" fill="#e0813f"/>
+      <polygon points="18,18 31,39 15,41" fill="#5b2e17"/>
+      <polygon points="82,18 69,39 85,41" fill="#5b2e17"/>
+      <polygon points="10,42 90,42 50,94" fill="#e0813f"/>
+      <polygon points="10,42 40,64 50,94 26,66" fill="#efe6d2"/>
+      <polygon points="90,42 60,64 50,94 74,66" fill="#efe6d2"/>
+      <ellipse cx="36" cy="54" rx="3.6" ry="4.6" fill="#26201b"/>
+      <ellipse cx="64" cy="54" rx="3.6" ry="4.6" fill="#26201b"/>
+      <polygon points="44,84 56,84 50,93" fill="#26201b"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header id="top">
+  <div class="hero-grid">
+    <div>
+      <div class="k">一次搜尋從來不夠</div>
+      <h1 class="rv">第三叢越橘上，果子越來越難找了。</h1>
+      <p class="rv">狐狸低頭嗅了嗅。剛到的兩分鐘吃到七顆，接下來兩分鐘剩兩顆。下一叢在溪的另一邊，走過去要好一陣子。牠該留下，還是動身？</p>
+      <p class="rv">你盯著搜尋框的時候，站的位置一模一樣。第一頁讀完，第二頁開始重複——要不要換關鍵字、換網站、換個問法？多數人憑感覺決定。這一頁給你一條生態學家算出來的規則，和一套能帶回家的採集流程。</p>
+      <a class="cue" href="#ch1">往森林裡走 <span>↓</span></a>
+    </div>
+    <figure class="plate0 rv" aria-hidden="true">
+      <svg viewBox="0 0 300 300">
+        <circle cx="150" cy="150" r="146" fill="#15211a" stroke="rgba(235,229,207,.2)"/>
+        <circle cx="150" cy="150" r="138" fill="none" stroke="rgba(235,229,207,.12)" stroke-dasharray="2 5"/>
+        <path d="M24 262C80 252 140 266 200 258S270 262 284 254" fill="none" stroke="rgba(235,229,207,.25)"/>
+        <path d="M60 80C50 60 75 45 92 55C108 42 130 55 124 74C138 86 124 104 108 100C98 114 70 110 68 96C52 96 48 84 60 80Z" fill="#22382a" stroke="#5f8a4c"/>
+        <circle cx="80" cy="74" r="4" fill="#e2566a" opacity=".35"/><circle cx="104" cy="82" r="4" fill="#e2566a" opacity=".35"/>
+        <path d="M150 150C120 120 150 85 185 95C205 70 250 85 248 118C275 130 268 172 238 176C228 200 182 198 170 182C140 190 128 165 150 150Z" fill="#22382a" stroke="#8fb874" stroke-width="1.4"/>
+        <path d="M156 152C132 126 158 96 186 104C206 82 240 94 240 120C262 132 256 166 232 168" fill="none" stroke="#8fb874" stroke-dasharray="3 5" opacity=".5"/>
+        <g fill="#e2566a">
+          <circle class="hb" style="animation-delay:0s"   cx="168" cy="140" r="5"/>
+          <circle class="hb" style="animation-delay:.6s"  cx="186" cy="118" r="5"/>
+          <circle class="hb" style="animation-delay:1.2s" cx="206" cy="108" r="5"/>
+          <circle class="hb" style="animation-delay:1.8s" cx="226" cy="124" r="5"/>
+          <circle class="hb" style="animation-delay:2.6s" cx="242" cy="144" r="5"/>
+          <circle class="hb" style="animation-delay:3.4s" cx="212" cy="148" r="5"/>
+          <circle class="hb" style="animation-delay:4.4s" cx="190" cy="164" r="5"/>
+          <circle cx="230" cy="166" r="5"/>
+        </g>
+        <path d="M200 230C190 212 210 200 226 206C240 194 262 204 258 222C272 232 262 252 246 250C236 264 212 260 208 248C194 248 190 236 200 230Z" fill="#22382a" stroke="#5f8a4c"/>
+        <g fill="#e2566a"><circle cx="216" cy="222" r="4.5"/><circle cx="236" cy="216" r="4.5"/><circle cx="246" cy="234" r="4.5"/><circle cx="226" cy="240" r="4.5"/><circle cx="212" cy="244" r="4.5"/></g>
+        <path d="M112 236C140 246 166 246 190 238" fill="none" stroke="rgba(235,229,207,.35)" stroke-dasharray="2 6"/>
+        <use href="#foxhead" x="36" y="170" width="86" height="86"/>
+      </svg>
+      <figcaption>圖版 0　赤狐與三叢越橘（示意）</figcaption>
+    </figure>
+  </div>
+</header>
+
+<main>
+<!-- ═══════════ 第一程 ═══════════ -->
+<section id="ch1" class="chapter pk-wrap">
+  <div class="ch-head rv"><div class="k">第一程　氣味</div><h2>食物從來不是均勻灑在地上的</h2></div>
+  <p class="rv">1970 年代的生態學家想弄清楚動物怎麼花時間。他們發現食物總是一叢一叢地長——生態學把每一叢叫做「斑塊」（patch）。斑塊之間隔著空地，過去要花時間；斑塊裡的食物越吃越少，每分鐘的收穫一直往下掉。研究這筆帳的學問，叫「最適覓食理論」。</p>
+  <p class="rv">1990 年代，全錄帕羅奧圖研究中心（PARC）的 Peter Pirolli 與 Stuart Card 把這本帳簿搬到人身上。1999 年，他們在《Psychological Review》第 106 卷第 4 期發表〈Information Foraging〉：人找資訊，跟動物找食物用的是同一種算術。一頁搜尋清單、一個網站、一串討論、一個資料夾，都是斑塊。</p>
+
+  <div class="plate rv">
+    <span class="no">圖版 I　資訊氣味</span>
+    <p>動物靠氣味判斷哪邊有吃的；人靠標題、摘要片段、連結文字、網址判斷「點下去有沒有東西」。Pirolli 與 Card 把這些線索叫做<strong>資訊氣味</strong>（information scent）。氣味越濃越值得過去，氣味變淡就該換方向。同一個問題，三條連結的氣味差很多：<span class="fic">虛構示意</span></p>
+    <ul class="scent">
+      <li><span><b>「10 個你不知道的充電祕密（第 7 個太驚人）」</b><small>標題沒有給出任何你要的詞</small></span><span class="whiff" aria-label="氣味很淡"><i style="width:18%"></i></span></li>
+      <li><span><b>「討論：充到 80% 就拔有差嗎？（142 則回覆）」</b><small>有人在問同一題，但得自己翻</small></span><span class="whiff" aria-label="氣味中等"><i style="width:55%"></i><i style="width:35%"></i></span></li>
+      <li><span><b>「鋰離子電池：循環壽命與日曆老化」</b><small>出現了專業術語——下一步的關鍵字就在這裡</small></span><span class="whiff" aria-label="氣味很濃"><i style="width:100%"></i><i style="width:80%"></i><i style="width:70%"></i></span></li>
+    </ul>
+  </div>
+
+  <h3 class="rv">麻煩的是，你要找的東西會變</h3>
+  <p class="rv">1989 年，UCLA 的 Marcia J. Bates 在《Online Review》第 13 卷第 5 期（407–424 頁）指出：傳統資訊檢索的模型假設「一次查詢，換回一批文件」，問題從頭到尾不變。實際上人每讀到一點新東西，問題就被改寫一次；需求不是被最後那一批文件滿足，而是被沿途一顆一顆撿起來的片段滿足。</p>
+  <p class="rv">她替這種找法取了名字：<strong>berrypicking</strong>，採漿果。漿果散在灌木上，不會一串串掛好等你，得一顆一顆摘，邊摘邊往下一叢走。</p>
+  <p class="rv">兩件事疊在一起：你得決定什麼時候離開這一叢，而你要找的東西會在半路變形。1976 年，一位生態學家替前半件事寫下了一條規則。先別急著看——進森林走一趟。</p>
+</section>
+
+<!-- ═══════════ 第二程：互動 ═══════════ -->
+<section id="ch2" class="chapter">
+  <div class="pk-wrap">
+    <div class="ch-head rv"><div class="k">第二程　森林</div><h2>九十分鐘，六叢灌木，一個會變形的問題</h2></div>
+    <p class="rv">你有 90 分鐘研究下面這個問題。把狐狸<strong>拖進</strong>任一叢開始採：每一叢都越採越少；換到下一叢要花路程時間，離得越遠越久；離開的灌木會慢慢再長出漿果。霧裡還藏著兩叢，要先撿到對的線索才看得見。什麼時候離開，全由你決定。<span class="fic">地圖、斑塊與數值皆為虛構示意</span></p>
+  </div>
+  <div class="wide">
+    <div class="quest" id="quest" aria-live="polite"><span class="tag" id="qTag">問題 v1</span><p id="qText"></p></div>
+    <div class="forest">
+      <div>
+        <div class="map" id="map" role="group" aria-label="資訊森林地圖（虛構示意）">
+          <svg class="topo" viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true">
+            <g fill="none" stroke="#ebe5cf" stroke-width=".18">
+              <path d="M-5 10C20 4 30 18 55 12S85 2 105 9"/><path d="M-5 24C18 18 34 32 58 26S88 16 105 22"/>
+              <path d="M-5 40C22 34 36 48 60 40S86 30 105 37"/><path d="M-5 56C20 50 40 64 64 56S90 46 105 52"/>
+              <path d="M-5 66C24 61 44 70 70 64S94 58 105 62"/>
+            </g>
+            <path d="M58 -2C54 14 66 22 60 36S70 58 64 72" fill="none" stroke="#7fa6b8" stroke-width=".7" opacity=".7"/>
+          </svg>
+          <svg class="route" viewBox="0 0 100 70" preserveAspectRatio="none" aria-hidden="true"><path class="mvt" id="mvtRoute" d=""/><path class="you" id="youRoute" d=""/></svg>
+          <div class="camp" id="camp" aria-hidden="true"><span>營地</span></div>
+          <div class="fox" id="fox" role="button" tabindex="0" aria-describedby="foxHelp">
+            <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#foxhead"/></svg>
+          </div>
+          <div class="hint" id="hint" aria-hidden="true">拖曳狐狸到任一叢開始</div>
+        </div>
+        <p id="foxHelp" class="pk-sr">鍵盤：在狐狸上按方向鍵挑選目的地，按 Enter 出發；或使用地圖下方每一叢的「移到這裡」按鈕。</p>
+        <ul class="plist" id="plist" aria-label="斑塊清單"></ul>
+      </div>
+      <div class="side">
+        <div class="hud">
+          <div class="nums">
+            <div>時間<b id="clock">0</b>／ 90 分</div>
+            <div style="text-align:right">籃子<b id="basket">0</b>顆</div>
+          </div>
+          <div class="rate"><div class="lab"><span>這一叢現在</span><b id="rHere">—</b></div><div class="bar here"><i id="barHere"></i></div></div>
+          <div class="rate"><div class="lab"><span>你到目前的平均</span><b id="rAvg">—</b></div><div class="bar avg"><i id="barAvg"></i></div></div>
+          <div class="ctrl">
+            <button class="btn" id="pauseBtn" type="button" disabled>暫停</button>
+            <button class="btn" id="stepBtn" type="button" disabled>再過 5 分鐘</button>
+          </div>
+          <p class="dim" id="rmNote" style="font-size:12.5px;margin:10px 0 0" hidden>已開啟「減少動態」：時鐘不會自己走，狐狸瞬間抵達。按「再過 5 分鐘」推進時間。</p>
+        </div>
+        <div class="notes"><h4>採集筆記</h4><ul id="notes"><li class="empty">還沒撿到新詞。</li></ul></div>
+      </div>
+    </div>
+
+    <div class="results" id="results" hidden>
+      <div class="pk-wrap" style="padding:0">
+        <h3 id="resHead" tabindex="-1">時間到。</h3>
+        <div class="score">
+          <div class="you"><small>你的籃子</small><b id="sYou">0</b></div>
+          <div class="mvt"><small>照規則走的狐狸</small><b id="sMvt">0</b></div>
+          <div><small id="sStayLab">一直待在第一叢</small><b id="sStay">0</b></div>
+        </div>
+        <p id="verdict"></p>
+        <figure class="chart" aria-label="累積收穫隨時間變化：你與照規則走的狐狸">
+          <svg id="chart" viewBox="0 0 340 200"></svg>
+          <figcaption class="dim" style="font-size:12.5px">紅點線：你；綠虛線：照規則走的狐狸（地圖上的綠色虛線是牠的路線）。</figcaption>
+        </figure>
+        <h3>你每一次離開的時機</h3>
+        <ul class="leaves" id="leaves"></ul>
+        <p class="dim" style="font-size:13.5px" id="rStarNote"></p>
+
+        <h3>規則</h3>
+        <p class="quote">當這一叢的收穫率，掉到整片森林的平均收穫率，就動身。</p>
+        <p class="orig">“The predator should leave the patch it is presently in when the marginal capture rate in the patch drops to the average capture rate for the habitat.”<br>— Eric L. Charnov，〈Optimal foraging, the marginal value theorem〉，Theoretical Population Biology 9(2)，1976</p>
+        <p>這條規則叫<strong>邊際價值定理</strong>（Marginal Value Theorem）。剛才面板上那兩條橫條——紅的「這一叢現在」、綠的「你到目前的平均」——紅條縮到比綠條短的那一刻，就是該走的時候。再待下去，你每多花一分鐘，換到的都比「出去再找一叢」少。</p>
+        <figure class="mvtfig plate">
+          <span class="no">圖版 II　切線</span>
+          <svg id="mvtFig" viewBox="0 0 340 210" role="img" aria-label="邊際價值定理示意：從路程起點畫一條切線碰到收穫曲線，切點就是最佳離開時間"></svg>
+          <figcaption class="dim" style="font-size:13px;margin-top:8px">從「出發點」（往左量出路程時間）畫一條直線去碰收穫曲線，碰到的那一點斜率最大，平均收穫率最高——切點就是最佳離開時間。路程越遠，切點越往右：離下一叢越遠，越值得在這一叢多待一會兒。</figcaption>
+        </figure>
+        <p>這條規則有它的邊界。生態學的實驗多半支持它預測的<em>方向</em>（叢越遠、待越久），數字卻常常對不上：動物還要躲天敵、要探索、要應付不確定。人也一樣。規則管得了「何時走」，管不了「問題會變」——後者要靠採漿果的本事：<span id="qCount"></span></p>
+        <div class="ctrl"><button class="btn pri" id="againBtn" type="button">再走一次</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 第三程：釣魚竿 ═══════════ -->
+<section id="ch3" class="chapter">
+  <div class="pk-wrap">
+    <div class="ch-head rv"><div class="k">第三程　地圖</div><h2>把森林畫成你自己的地圖</h2></div>
+    <p class="rv">規則有了，接下來是能帶走的版本。下面八張圖版照覓食的順序排：先決定要找什麼，再決定去哪找、怎麼記、找誰證實、怎麼讓資訊自己送上門，最後是何時收工。每一張都有入門用法，也有給工程師與研究者的進階層。</p>
+
+    <div class="plate rv">
+      <span class="no">圖版 1　框問題</span>
+      <p>出發前先把問題寫下來，寫成能被資料回答的形狀。萬用框架是 <strong>5W1H</strong>：誰、什麼、何時、何地、為什麼、怎麼做——逐格填，空著的那格通常就是你真正卡住的地方。</p>
+      <p>健康與醫學問題用 <strong>PICO</strong>，實證醫學用來框臨床問題、也用來設計文獻搜尋策略：</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>字母</th><th>意思</th><th>例：兒童頭痛吃乙醯胺酚有比安慰劑有效嗎？</th></tr></thead>
+        <tbody>
+          <tr><td>P</td><td>病人、問題或族群</td><td>頭痛的兒童 → children、headache</td></tr>
+          <tr><td>I</td><td>介入措施</td><td>乙醯胺酚 → paracetamol</td></tr>
+          <tr><td>C</td><td>比較、對照</td><td>安慰劑 → placebo</td></tr>
+          <tr><td>O</td><td>想看的結局</td><td>疼痛 → pain</td></tr>
+        </tbody>
+      </table></div>
+      <p>四格拆完，關鍵字自己就出來了：<code>children headache paracetamol placebo pain</code>，可以直接丟進 PubMed。也有人加上 T（時間）與 S（研究類型）。</p>
+      <p>最後補一行：<strong>什麼樣的資料能回答它？</strong>「多少、多常」要統計；「合不合法」要法條與判決；「有沒有效」要臨床試驗或系統性回顧；「怎麼設定、為何壞掉」要官方文件、issue 與 changelog；「誰先做出來」要專利或論文。這一行決定你等一下要去哪一叢。</p>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 2　建詞彙表</span>
+      <p>你腦中的說法，常常不是文件裡的說法。開一張表，四欄：日常說法、專業術語、英文（或其他語言）、縮寫或代號。每讀到一篇好東西，就從裡面撿新詞填進去——這張表長大的過程，就是 Bates 說的採漿果。</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>日常說法</th><th>專業術語</th><th>英文</th><th>縮寫／代號</th></tr></thead>
+        <tbody>
+          <tr><td>電池變不耐用</td><td>電池老化、容量衰退</td><td>battery degradation、capacity fade</td><td>SoH（state of health）</td></tr>
+          <tr><td>放著不用也會壞</td><td>日曆老化</td><td>calendar aging</td><td>—</td></tr>
+          <tr><td>網站突然打不開</td><td>憑證過期、DNS 解析失敗</td><td>certificate expired、DNS resolution</td><td>錯誤代碼原文</td></tr>
+        </tbody>
+      </table></div>
+      <p>Google Scholar 的官方說明就這樣建議：不熟的領域，先從次級資料學術語——例如讀維基百科的「overweight」條目，可能讓你想到用「pediatric hyperalimentation」去搜。</p>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 3　選對斑塊：資料庫地圖</span>
+      <p>不同的問題長在不同的森林。下面是一張分層地圖：先從一般起點撒網，再依「什麼樣的資料能回答它」走進專門的斑塊。<span class="fic">網址與功能查證於 2026-10-06；平台會改版，以官方說明為準</span></p>
+      <div class="tabs" role="tablist" aria-label="資料庫地圖分類">
+        <button role="tab" id="t-gen" aria-controls="p-gen" aria-selected="true">一般起點</button>
+        <button role="tab" id="t-aca" aria-controls="p-aca" aria-selected="false" tabindex="-1">學術</button>
+        <button role="tab" id="t-gov" aria-controls="p-gov" aria-selected="false" tabindex="-1">政府與公共</button>
+        <button role="tab" id="t-pat" aria-controls="p-pat" aria-selected="false" tabindex="-1">產業與專利</button>
+        <button role="tab" id="t-dev" aria-controls="p-dev" aria-selected="false" tabindex="-1">工程師</button>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="p-gen" aria-labelledby="t-gen">
+        <ul class="db">
+          <li><h4>搜尋引擎</h4><p>先用日常說法撒網，看前幾筆用什麼詞描述你的問題——那些詞就是氣味，抄進詞彙表。</p><p class="pro">精確詞組、<code>site:</code>、日期區間、<code>filetype:</code> 等運算子能大幅縮小範圍；語法細節見同系列的〈搜尋框的暗號〉。</p></li>
+          <li><h4>維基百科<a href="https://zh.wikipedia.org/" rel="noopener">zh.wikipedia.org</a></h4><p>當地圖用，別當終點。最有價值的是條目底部的參考文獻與外部連結：從那裡往回跳，就是「向後追」。</p><p class="pro">切換到英文或其他語言版本，引用的文獻常常完全不同；「討論」與「檢視歷史」看得出哪些段落有爭議。</p></li>
+        </ul>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="p-aca" aria-labelledby="t-aca" hidden>
+        <ul class="db">
+          <li><h4>Google Scholar<a href="https://scholar.google.com/" rel="noopener">scholar.google.com</a></h4><p>跨領域的學術搜尋。每筆底下的「Cited by」（被引用）看誰引用了它，「Related articles」找相似的，「All versions」找可讀的全文版本。</p><p class="pro"><code>author:"d knuth"</code> 依作者找；標題加引號找特定論文；搜尋頁的信封圖示可設快訊。單一查詢最多只顯示 1,000 筆，要更多就把查詢切細。</p></li>
+          <li><h4>PubMed<a href="https://pubmed.ncbi.nlm.nih.gov/" rel="noopener">pubmed.ncbi.nlm.nih.gov</a></h4><p>美國國家醫學圖書館的生醫與生命科學文獻庫，超過 4,000 萬筆書目與摘要。本身不收全文，但常連到出版社或 PubMed Central 的全文。</p><p class="pro">MEDLINE 收錄的文章標有 MeSH 主題詞，能把一堆同義詞收成一個標準詞；用 Advanced 頁面組合欄位查詢。</p></li>
+          <li><h4>arXiv<a href="https://arxiv.org/" rel="noopener">arxiv.org</a></h4><p>物理、數學、資訊科學、計量生物、計量金融、統計、電機與系統科學、經濟八大領域的預印本。有版主分類審核，但 arXiv 本身<strong>不做同儕審查</strong>，引用前要留意。</p><p class="pro">提供 API，適合寫程式追蹤某個分類的新論文。</p></li>
+          <li><h4>SSRN<a href="https://www.ssrn.com/" rel="noopener">ssrn.com</a></h4><p>社會科學起家的預印本與研究論文平台，現收 65 個以上學科。經濟、法律、管理的工作論文常先出現在這裡。</p></li>
+          <li><h4>DOAJ<a href="https://doaj.org/" rel="noopener">doaj.org</a></h4><p>開放取用期刊目錄：收錄經同儕審查的開放取用期刊，可以搜期刊也可以搜文章，全文免費可讀。</p><p class="pro">提供 API、OAI-PMH 與公開資料傾印。</p></li>
+          <li><h4>Semantic Scholar<a href="https://www.semanticscholar.org/" rel="noopener">semanticscholar.org</a></h4><p>Ai2（艾倫人工智慧研究所）的免費學術搜尋，索引超過 2 億篇論文，引用與被引用列表整理得很清楚。</p><p class="pro">Semantic Scholar Academic Graph（S2AG）提供資料集與 API，適合批次做引用網路分析。</p></li>
+          <li><h4>臺灣博碩士論文知識加值系統<a href="https://ndltd.ncl.edu.tw/" rel="noopener">ndltd.ncl.edu.tw</a></h4><p>國家圖書館的臺灣學位論文資料庫。碩博士論文通常有很長的文獻回顧，是找某個臺灣議題的絕佳起點——直接從它的參考文獻往回跳。</p></li>
+        </ul>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="p-gov" aria-labelledby="t-gov" hidden>
+        <ul class="db">
+          <li><h4>政府資料開放平臺<a href="https://data.gov.tw/" rel="noopener">data.gov.tw</a></h4><p>各機關以開放格式釋出的資料集：交通、環境、選舉、實價登錄、食品藥品許可證……</p><p class="pro">平臺訂有共通性應用程式介面指引（RESTful 風格），資料集附詮釋資料，適合程式化抓取與定期更新。</p></li>
+          <li><h4>中華民國統計資訊網<a href="https://www.stat.gov.tw/" rel="noopener">stat.gov.tw</a></h4><p>行政院主計總處的官方統計：物價指數、就業失業、薪資、家庭收支、人口及住宅普查。</p><p class="pro">有「預告統計資料發布時間表」可以預先知道數字哪天出來；也提供 RSS。</p></li>
+          <li><h4>立法院法律系統<a href="https://lis.ly.gov.tw/lglawc/lglawkm" rel="noopener">lis.ly.gov.tw</a></h4><p>法律全文，加上民國 59 年迄今的立法沿革、立法理由與立法紀錄。想知道「這條為什麼這樣寫」，來這裡。</p></li>
+          <li><h4>全國法規資料庫<a href="https://law.moj.gov.tw/" rel="noopener">law.moj.gov.tw</a></h4><p>法務部維護的現行法規條文。查「現在的規定是什麼」先來這裡，再去立法院系統查它怎麼來的。</p></li>
+          <li><h4>司法院裁判書查詢<a href="https://judgment.judicial.gov.tw/FJUD/default.aspx" rel="noopener">judgment.judicial.gov.tw</a></h4><p>各級法院裁判書全文。輸入「105訴123」這類簡寫就能查案號；輸入「民訴法226」能找到引用該條文的裁判。</p><p class="pro">另有司法院資料開放平臺，適合批次分析。</p></li>
+        </ul>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="p-pat" aria-labelledby="t-pat" hidden>
+        <ul class="db">
+          <li><h4>Google Patents<a href="https://patents.google.com/" rel="noopener">patents.google.com</a></h4><p>搜尋並閱讀世界各國的專利全文，也能找非專利文獻做先前技術比對。</p><p class="pro">專利文件列出的引用文獻＝向後追；「被誰引用」＝向前追。追一條技術線，比關鍵字更準。</p></li>
+          <li><h4>經濟部智慧財產局：專利檢索<a href="https://www.tipo.gov.tw/tw/patents/476.html" rel="noopener">tipo.gov.tw</a></h4><p>臺灣專利的官方來源。局網「專利檢索」頁可進入「全球專利檢索系統」與「中華民國專利資料檢索系統」。</p><p class="pro">先用國際專利分類（IPC）定位技術領域，再在分類內下關鍵字，能避開同詞異義。</p></li>
+        </ul>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="p-dev" aria-labelledby="t-dev" hidden>
+        <ul class="db">
+          <li><h4>官方文件先行</h4><p>先讀你用的那個<strong>版本</strong>的文件。版本號是工程世界最濃的氣味：同一個錯誤，在不同版本可能是完全不同的事。</p></li>
+          <li><h4>RFC Editor<a href="https://www.rfc-editor.org/" rel="noopener">rfc-editor.org</a></h4><p>RFC 的官方家：網路協定與網際網路標準的原文。</p><p class="pro">看 Errata（勘誤）頁；首頁可訂閱新發布的 RFC。</p></li>
+          <li><h4>MDN Web Docs<a href="https://developer.mozilla.org/" rel="noopener">developer.mozilla.org</a></h4><p>HTML、CSS、JavaScript 與 Web API 的參考文件。</p><p class="pro">參考頁附規格表與瀏覽器相容性表：先確定功能在哪份規格、哪些瀏覽器支援，再決定要不要用。</p></li>
+          <li><h4>GitHub Issues 與 Discussions</h4><p>把錯誤訊息原文加引號搜 issue，<strong>包含已關閉的</strong>——你遇到的問題，常常早就有人回報、有人修好。Discussions 的問答分類可以把留言標成解答。</p><p class="pro">要搜程式碼本身，用 GitHub Code Search（語法見〈搜尋框的暗號〉）。</p></li>
+          <li><h4>Stack Overflow<a href="https://stackoverflow.com/" rel="noopener">stackoverflow.com</a></h4><p>程式問答網站。讀回覆時注意年份與版本：十年前的高票解法，未必適用你手上的版本。</p></li>
+          <li><h4>CVE.org 與 NVD<a href="https://www.cve.org/" rel="noopener">cve.org</a><a href="https://nvd.nist.gov/" rel="noopener">nvd.nist.gov</a></h4><p>公開漏洞的編號與細節。CVE 編號是完美的精確關鍵字：拿它去串起公告、修補、討論與 exploit 分析。</p></li>
+          <li><h4>套件 registry 與 Releases<a href="https://www.npmjs.com/" rel="noopener">npmjs.com</a><a href="https://pypi.org/" rel="noopener">pypi.org</a></h4><p>套件頁、CHANGELOG 與 GitHub Releases 告訴你「版本之間改了什麼」，破壞性變更通常寫在這裡。</p></li>
+        </ul>
+        <details>
+          <summary>工程師的覓食順序（範例）</summary>
+          <ol class="steps">
+            <li>錯誤訊息原文加引號搜一次，記下版本號。</li>
+            <li>去該專案的 issue tracker 搜同樣字串，打開「已關閉」。</li>
+            <li>對照 CHANGELOG／Releases：問題是哪一版出現、哪一版修好？</li>
+            <li>還不清楚就讀原始碼（Code Search），或回到規格（RFC、MDN 的規格表）。</li>
+            <li>把查詢、版本與結論寫進搜尋日誌，連同 commit 一起留在 repo。</li>
+          </ol>
+        </details>
+      </div>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 4　搜尋日誌</span>
+      <p>覓食最常見的浪費，是忘了自己去過哪一叢。每次查詢記一行：在哪查、用什麼字串、撿到什麼、新詞是什麼、下一步去哪。兩週後回頭看，你會發現問題被改寫了好幾次——日誌就是你的路線圖。</p>
+      <label for="tpl" class="dim" style="font-size:13px">日誌模板（Markdown，可貼進筆記軟體或 repo）</label>
+      <textarea id="tpl" class="tpl" readonly>
+# 搜尋日誌：〔用一行寫下問題〕
+問題 v1：
+什麼樣的資料能回答它：
+
+| # | 時間 | 問題版本 | 查詢字串（原樣貼上） | 斑塊（在哪查） | 撿到什麼 | 新詞／線索 | 收穫感 0–3 | 下一步 |
+|---|------|----------|----------------------|----------------|----------|------------|------------|--------|
+| 1 |      | v1       |                      |                |          |            |            |        |
+| 2 |      |          |                      |                |          |            |            |        |
+
+## 問題改版紀錄
+- v2（因為撿到 ___）：
+- v3：
+
+## 三角驗證
+- 來源 A：
+- 來源 B：
+- 來源 C：
+- 為什麼它們彼此獨立：
+
+## 停止檢查
+- 最近三次查詢帶來幾個新詞／新證據：
+- 決定：繼續／換斑塊／改問題／收工
+</textarea>
+      <div class="ctrl"><button class="btn" type="button" id="copyTpl">複製模板</button></div>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 5　向後追、向前追：Bates 的六招</span>
+      <p>Bates 在 1989 年那篇論文裡整理了研究者實際在用的六種採集法。三十多年後，每一招都還在，換了工具而已：</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Bates 的說法</th><th>做法</th><th>現在用什麼</th></tr></thead>
+        <tbody>
+          <tr><td>Footnote chasing（向後追）</td><td>從一篇好文章的參考文獻往回跳</td><td>論文參考文獻、維基條目的註腳、專利的引用文獻</td></tr>
+          <tr><td>Citation searching（向前追）</td><td>找出誰引用了它，往後跳</td><td>Google Scholar 的 Cited by、Semantic Scholar 的引用列表</td></tr>
+          <tr><td>Journal run</td><td>鎖定一本核心期刊，一期一期翻</td><td>核心期刊目錄、核心 repo 的 Releases、某機關的發布時間表</td></tr>
+          <tr><td>Area scanning</td><td>在找到的東西旁邊逛</td><td>「相關文章」、同分類、同 topic、同書架</td></tr>
+          <tr><td>Subject searches</td><td>用索引與主題詞查</td><td>PubMed 的 MeSH、專利的 IPC 分類、資料庫主題分類</td></tr>
+          <tr><td>Author searching</td><td>找到好作者，看他還寫了什麼</td><td><code>author:</code> 運算子、Scholar 作者頁</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 6　三角驗證</span>
+      <p>重要的說法，至少找兩到三個<strong>彼此獨立</strong>的來源。「獨立」的意思是它們沒有互相轉述、沒有共用同一份新聞稿、背後不是同一個人。十篇文章引用同一份報告，只算一個來源。</p>
+      <p>最好的組合是不同種類的斑塊互相印證：一份官方統計＋一篇同儕審查論文＋一位直接經手的人的紀錄。判斷來源可不可信，見同系列的〈查核員先關掉了那個分頁〉；順著引用往回追到最早的出處，見〈那句達爾文名言是誰寫的〉。</p>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 7　讓資訊自己來</span>
+      <p>好的覓食者記得哪幾叢會再長出漿果。設好訂閱，新東西長出來時，它會自己通知你：</p>
+      <ul>
+        <li><strong>Google 快訊</strong>（<a href="https://www.google.com/alerts" rel="noopener">google.com/alerts</a>）：對關鍵字設快訊，頻率可選即時、每天最多一次、每週最多一次，來源可選新聞、部落格、網頁等。</li>
+        <li><strong>Google Scholar 快訊</strong>：在搜尋頁按信封圖示；也能對某篇論文的「Cited by」設快訊，有新論文引用它就通知你；或在作者頁按「Follow」。</li>
+        <li><strong>RSS</strong>：很多官方網站還提供，例如中華民國統計資訊網。用一個閱讀器把各叢集中起來。</li>
+        <li><strong>GitHub Watch</strong>：在 repo 右上角 Watch → Custom，只勾 Releases，就只收新版本通知，不被其他動態淹沒。</li>
+        <li><strong>RFC Editor</strong>：首頁可訂閱新發布的 RFC。</li>
+      </ul>
+    </div>
+
+    <div class="plate rv">
+      <span class="no">圖版 8　何時收工</span>
+      <p>當新來源不再帶來新詞、新證據、新反例——研究方法上叫做<strong>資訊飽和</strong>——你在這一叢的收穫率已經掉到整趟平均以下。這時候有三條路：換一種斑塊、把問題改寫成下一版，或者收工。</p>
+      <p>給自己一個時間盒（例如 25 分鐘），盒子結束時問一句：<strong>最後十分鐘撿到幾顆？</strong>如果是零，就該動身了。這就是邊際價值定理的口袋版。</p>
+    </div>
+
+    <h3 class="rv">組一套你的採集流程</h3>
+    <p class="rv">把左邊的步驟卡<strong>拖進</strong>右邊「我的流程」，上下拖動排序；也可以用每張卡上的按鈕加入、上移、下移、移除（手機上請按住卡片左側的 ⋮⋮ 拖曳）。排好的流程會存在這台裝置上，可以複製成 Markdown 或直接列印成一張卡。</p>
+  </div>
+  <div class="wide">
+    <div class="flow">
+      <div class="zone" id="poolZone"><h4>步驟與工具</h4><ul id="poolList" aria-label="可加入的步驟"></ul></div>
+      <div class="zone" id="flowZone"><h4>我的流程</h4><ul id="flowList" aria-label="我的流程（依序）"></ul></div>
+    </div>
+    <div class="ctrl">
+      <button class="btn" type="button" id="presetBtn">套用建議順序</button>
+      <button class="btn" type="button" id="clearBtn">清空</button>
+      <button class="btn" type="button" id="copyMd">複製成 Markdown</button>
+      <button class="btn" type="button" id="printBtn">列印流程卡</button>
+    </div>
+    <div class="flowcard" id="flowCard" aria-live="polite">
+      <h4>我的研究流程</h4><div class="sub">一次搜尋從來不夠——邊採邊改問題，收穫率掉到平均以下就換地方。</div>
+      <ol id="flowOut"></ol>
+      <div class="rule">停留規則：這一叢的收穫率掉到整趟平均以下，就動身。</div>
+    </div>
+  </div>
+  <div class="pk-wrap">
+    <h3 class="rv">練習：五份自學作業</h3>
+    <details class="rv"><summary>作業 1　把一個真問題改寫三次</summary><p>挑一個你最近真的想知道的事，用 5W1H 或 PICO 改寫三次，每次更窄、更能被某一種資料回答。寫下每一版「什麼樣的資料能回答它」。</p></details>
+    <details class="rv"><summary>作業 2　寫一頁搜尋日誌</summary><p>用上面的模板，針對作業 1 的問題至少查 8 次、橫跨 3 種以上的斑塊。每次記下撿到的新詞，最後數一數：問題改版了幾次？</p></details>
+    <details class="rv"><summary>作業 3　向後追三篇、向前追三篇</summary><p>找一篇你覺得好的文章或論文。從它的參考文獻挑 3 篇（向後），再用 Google Scholar 的 Cited by 挑 3 篇引用它的（向前）。把這 7 篇的關係畫成一張小圖：誰引用誰、誰反駁誰。</p></details>
+    <details class="rv"><summary>作業 4　三個獨立來源</summary><p>替一個你常聽到的說法找三個彼此獨立的來源（支持或推翻都算）。寫下你判斷它們「獨立」的理由：作者、資金、資料來源是不是不同？</p></details>
+    <details class="rv"><summary>作業 5　設一叢會自己長漿果的灌木</summary><p>為作業 1 的主題設一個 Google 快訊或 Scholar 快訊（工程師：Watch 一個 repo 的 Releases）。兩週後回來數：它帶來幾顆新漿果？依邊際價值定理決定要不要保留這個訂閱。</p></details>
+
+    <h3 class="rv">自學延伸</h3>
+    <ul class="rv">
+      <li>原典：Pirolli, P., &amp; Card, S. (1999). Information foraging. <em>Psychological Review, 106</em>(4), 643–675.</li>
+      <li>原典：Bates, M. J. (1989). The design of browsing and berrypicking techniques for the online search interface. <em>Online Review, 13</em>(5), 407–424。作者在 UCLA 個人頁面提供全文：<a href="https://pages.gseis.ucla.edu/faculty/bates/berrypicking.html" rel="noopener">pages.gseis.ucla.edu</a>。</li>
+      <li>原典：Charnov, E. L. (1976). Optimal foraging, the marginal value theorem. <em>Theoretical Population Biology, 9</em>(2), 129–136.</li>
+      <li>官方說明：<a href="https://scholar.google.com/intl/en/scholar/help.html" rel="noopener">Google Scholar Search Help</a>、<a href="https://pubmed.ncbi.nlm.nih.gov/help/" rel="noopener">PubMed User Guide</a>、<a href="https://docs.github.com/en/subscriptions-and-notifications/get-started/configuring-notifications" rel="noopener">GitHub：Configuring notifications</a>。</li>
+      <li>下一步可以查的詞：<code>information scent</code>、<code>optimal foraging theory</code>、<code>systematic review search strategy</code>、<code>citation chaining</code>、<code>snowball sampling literature review</code>。把它們丟進 Google Scholar，從最高被引的那篇開始向前追。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════ 終點 ═══════════ -->
+<section id="end" class="chapter pk-wrap">
+  <div class="ch-head rv"><div class="k">終點</div><h2>留在灌木上的果子</h2></div>
+  <figure class="endfig rv" aria-hidden="true">
+    <svg viewBox="0 0 300 150">
+      <path d="M10 132C80 124 150 138 220 128S280 132 296 126" fill="none" stroke="rgba(235,229,207,.25)"/>
+      <path d="M40 110C30 90 55 72 76 82C96 64 128 78 122 100C140 110 126 132 104 128C90 140 60 136 58 124C40 124 32 114 40 110Z" fill="#22382a" stroke="#5f8a4c"/>
+      <g fill="#e2566a"><circle cx="70" cy="98" r="4.5"/><circle cx="96" cy="108" r="4.5"/><circle cx="84" cy="118" r="4.5"/></g>
+      <path d="M128 120C160 126 196 124 226 112" fill="none" stroke="rgba(235,229,207,.35)" stroke-dasharray="2 6"/>
+      <use href="#foxhead" x="222" y="70" width="58" height="58"/>
+    </svg>
+  </figure>
+  <p class="rv">狐狸離開第三叢時，枝頭還掛著幾顆越橘。牠看見了，也算過了：把最後那幾顆找出來的時間，夠牠在下一叢吃到更多。</p>
+  <p class="rv" id="leftLine">你剛才在森林裡，也留下了一些沒採的果子。那些不叫浪費——那是你拿去換路程的錢。</p>
+  <p class="rv">厲害的覓食者不會霸著最大的那一叢，牠知道什麼時候該走。厲害的研究者也不靠一次搜到，他知道下一次該搜什麼——而下一次要用的那個詞，多半就藏在這一次撿到的果子裡。</p>
+</section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Charnov (1976) Theoretical Population Biology；Pirolli &amp; Card (1999) Psychological Review；Bates (1989) Online Review；各資料庫官方說明頁（查證於 2026-10-06）。森林地圖、斑塊與數值為虛構示意。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'forage89.';           /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+
+/*CORE-START*/
+var FORAGE = (function () {
+  /* ── 收益曲線：g(t)=G·(1−e^{−t/τ})；邊際收穫率 g'(t)=(G/τ)·e^{−t/τ} ── */
+  function gain(G, tau, t) { return t <= 0 ? 0 : G * (1 - Math.exp(-t / tau)); }
+  function marginal(G, tau, t) { return (G / tau) * Math.exp(-Math.max(0, t) / tau); }
+  /* 邊際率降到 r 的時刻（從斑塊初始狀態算起） */
+  function leaveTime(G, tau, r) {
+    var r0 = G / tau;
+    if (!(r > 0)) return Infinity;
+    if (r >= r0) return 0;
+    return tau * Math.log(r0 / r);
+  }
+  /* 單一斑塊型＋固定路程 T：最大化 g(t)/(t+T)。切點條件 g'(t)(t+T)=g(t)，二分法數值解 */
+  function mvtSingle(G, tau, T) {
+    var lo = 0, hi = tau * 60;
+    for (var i = 0; i < 100; i++) {
+      var mid = (lo + hi) / 2;
+      var h = marginal(G, tau, mid) * (mid + T) - gain(G, tau, mid);
+      if (h > 0) lo = mid; else hi = mid;
+    }
+    var t = (lo + hi) / 2;
+    return { t: t, rate: gain(G, tau, t) / (t + T) };
+  }
+
+  /* ── 森林（虛構示意）：座標 x 0–100、y 0–70；時間單位：分鐘 ── */
+  function makeWorld() {
+    return {
+      budget: 90, regrow: 15,
+      start: { x: 7, y: 60 },
+      travelBase: 1.5, travelPerUnit: 0.11,
+      patches: [
+        { id: 'serp',  name: '搜尋頁前十筆', x: 22, y: 44, G: 26, tau: 2.5 },
+        { id: 'wiki',  name: '線上百科條目', x: 36, y: 16, G: 34, tau: 5,
+          unlock: { at: 14, opens: 'acad', note: '新詞：「循環壽命」「日曆老化」（cycle life／calendar aging）', q: 1 } },
+        { id: 'forum', name: '討論區長串',   x: 52, y: 54, G: 30, tau: 9,
+          unlock: { at: 12, opens: 'docs', note: '線索：好幾個人提到某個「最佳化充電」設定的名稱', q: 2 } },
+        { id: 'news',  name: '新聞報導',     x: 64, y: 30, G: 16, tau: 3 },
+        { id: 'acad',  name: '學術資料庫',   x: 90, y: 13, G: 80, tau: 12, locked: true,
+          unlock: { at: 22, opens: null, note: '向後追：一篇綜述的參考文獻，指向十幾篇實驗論文', q: 3 } },
+        { id: 'docs',  name: '原廠說明文件', x: 86, y: 60, G: 40, tau: 4, locked: true }
+      ],
+      questions: [
+        '手機充到八成就拔，電池真的比較長命嗎？',
+        '鋰電池長時間停在高電量，「日曆老化」會比較快嗎？',
+        '我的手機有沒有內建這種保護？設定叫什麼、怎麼開？',
+        '在我的用法裡，日曆老化和循環老化，哪一個影響大？'
+      ]
+    };
+  }
+  function patchById(world, id) {
+    for (var i = 0; i < world.patches.length; i++) if (world.patches[i].id === id) return world.patches[i];
+    return null;
+  }
+  function posOf(world, id) { return id ? patchById(world, id) : world.start; }
+  function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy); }
+  function travelTime(world, fromId, toId) {
+    if (fromId === toId) return 0;
+    return world.travelBase + world.travelPerUnit * dist(posOf(world, fromId), posOf(world, toId));
+  }
+
+  /* ── 狀態機：使用者與基準策略共用 ── */
+  function newState(world) {
+    var s = { time: 0, total: 0, at: null, travel: null, done: false, started: false,
+              spent: {}, got: {}, open: {}, q: 0, enterAt: 0, log: [], trace: [{ t: 0, g: 0 }], notes: [] };
+    world.patches.forEach(function (p) { s.spent[p.id] = 0; s.got[p.id] = 0; s.open[p.id] = !p.locked; });
+    return s;
+  }
+  function remaining(world, s, id) { var p = patchById(world, id); return p.G - gain(p.G, p.tau, s.spent[id]); }
+  function rateHere(world, s) {
+    if (!s.at || s.travel) return 0;
+    var p = patchById(world, s.at); return marginal(p.G, p.tau, s.spent[s.at]);
+  }
+  function avgRate(s) { return s.time > 0 ? s.total / s.time : 0; }
+  /* 出發往 toId；回傳 false 表示不能去 */
+  function startTravel(world, s, toId) {
+    if (s.done || s.travel || !patchById(world, toId) || !s.open[toId] || toId === s.at) return false;
+    if (s.at) {
+      var p = patchById(world, s.at);
+      s.log.push({ id: s.at, enter: s.enterAt, leave: s.time, got: s.got[s.at],
+                   marginal: marginal(p.G, p.tau, s.spent[s.at]), avg: avgRate(s) });
+    }
+    var tt = travelTime(world, s.at, toId);
+    s.travel = { from: s.at, to: toId, left: tt, total: tt };
+    s.started = true;
+    return true;
+  }
+  /* 離開的斑塊會慢慢長回來（漿果再生）：已採時間按 e^{−dt/ρ} 衰減 */
+  function regrow(world, s, dt) {
+    if (!world.regrow) return;
+    var k = Math.exp(-dt / world.regrow);
+    world.patches.forEach(function (p) {
+      if (p.id === s.at && !s.travel) return;
+      s.spent[p.id] *= k;
+    });
+  }
+  /* 時間往前推 dt 分鐘；回傳事件陣列 */
+  function advance(world, s, dt) {
+    var ev = [];
+    while (dt > 1e-9 && !s.done) {
+      var room = world.budget - s.time;
+      if (room <= 1e-9) break;
+      var step = Math.min(dt, room);
+      regrow(world, s, step);
+      if (s.travel) {
+        var use = Math.min(step, s.travel.left);
+        s.travel.left -= use; s.time += use; dt -= use;
+        if (s.travel.left <= 1e-9) {
+          s.at = s.travel.to; s.travel = null; s.enterAt = s.time;
+          ev.push({ type: 'arrive', id: s.at });
+        }
+      } else if (s.at) {
+        var p = patchById(world, s.at);
+        var t0 = s.spent[p.id], t1 = t0 + step;
+        var g = gain(p.G, p.tau, t1) - gain(p.G, p.tau, t0);
+        s.spent[p.id] = t1; s.got[p.id] += g; s.total += g; s.time += step; dt -= step;
+        if (p.unlock && !p.unlock.done && s.got[p.id] >= p.unlock.at && !(s.unlocked && s.unlocked[p.id])) {
+          s.unlocked = s.unlocked || {}; s.unlocked[p.id] = true;
+          if (p.unlock.opens) s.open[p.unlock.opens] = true;
+          if (p.unlock.q > s.q) s.q = p.unlock.q;
+          s.notes.push(p.unlock.note);
+          ev.push({ type: 'unlock', id: p.id, opens: p.unlock.opens, note: p.unlock.note, q: s.q });
+        }
+      } else break; /* 還在營地：時鐘不走 */
+      var last = s.trace[s.trace.length - 1];
+      if (s.time - last.t >= 0.5 - 1e-9) s.trace.push({ t: s.time, g: s.total });
+    }
+    if (!s.done && s.time >= world.budget - 1e-9) {
+      s.done = true;
+      if (s.at && !s.travel) {
+        var q = patchById(world, s.at);
+        s.log.push({ id: s.at, enter: s.enterAt, leave: s.time, got: s.got[s.at],
+                     marginal: marginal(q.G, q.tau, s.spent[s.at]), avg: avgRate(s), final: true });
+      }
+      s.trace.push({ t: s.time, g: s.total });
+      ev.push({ type: 'end' });
+    }
+    return ev;
+  }
+  function leftInForest(world, s) {
+    var sum = 0;
+    world.patches.forEach(function (p) { if (s.open[p.id]) sum += remaining(world, s, p.id); });
+    return sum;
+  }
+
+  /* ── 門檻策略（邊際價值定理）：收穫率掉到 r 就走，下一叢挑「(預期收穫)/(路程+停留)」最高者 ── */
+  function pickNext(world, s, r) {
+    var best = null, bestScore = 0;
+    world.patches.forEach(function (p) {
+      if (!s.open[p.id] || p.id === s.at) return;
+      var t0 = s.spent[p.id];
+      var stay = Math.max(0, leaveTime(p.G, p.tau, r) - t0);
+      if (stay <= 0) return;
+      var score = (gain(p.G, p.tau, t0 + stay) - gain(p.G, p.tau, t0)) / (travelTime(world, s.at, p.id) + stay);
+      if (score > bestScore) { bestScore = score; best = p.id; }
+    });
+    return { id: best, score: bestScore };
+  }
+  function runThreshold(world, r, dt) {
+    dt = dt || 0.25;
+    var s = newState(world), guard = 0;
+    var first = pickNext(world, s, r);
+    if (!first.id) return s;
+    startTravel(world, s, first.id);
+    while (!s.done && guard++ < 100000) {
+      if (s.travel) { advance(world, s, Math.min(dt, s.travel.left)); continue; }
+      var here = rateHere(world, s);
+      if (here <= r) {
+        var nx = pickNext(world, s, r);
+        if (nx.id && nx.score > here) { startTravel(world, s, nx.id); continue; }
+      }
+      advance(world, s, dt);
+    }
+    s.r = r;
+    return s;
+  }
+  function bestPolicy(world) {
+    var best = null;
+    for (var r = 0.2; r <= 9.001; r += 0.05) {
+      var s = runThreshold(world, r);
+      if (!best || s.total > best.total + 1e-9) best = s;
+    }
+    return best;
+  }
+  /* 對照組 */
+  function rng(seed) { var a = seed >>> 0; return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function runRandom(world, seed) {
+    var R = rng(seed), s = newState(world), guard = 0;
+    while (!s.done && guard++ < 1000) {
+      var opts = world.patches.filter(function (p) { return s.open[p.id] && p.id !== s.at; });
+      if (!opts.length) { advance(world, s, world.budget); break; }
+      startTravel(world, s, opts[Math.floor(R() * opts.length)].id);
+      advance(world, s, s.travel.left);
+      advance(world, s, 1 + R() * 19);
+    }
+    return s;
+  }
+  function runStay(world, id) { var s = newState(world); startTravel(world, s, id); advance(world, s, world.budget * 2); return s; }
+
+  /* 離開時機判讀：拿離開當下的收穫率對照最佳門檻 r* */
+  function judgeLeave(m, rStar) {
+    if (m > rStar * 1.35) return 'early';
+    if (m < rStar * 0.65) return 'late';
+    return 'ok';
+  }
+  function verdict(you, best) {
+    var k = best > 0 ? you / best : 0;
+    if (k >= 0.97) return 'match';
+    if (k >= 0.85) return 'close';
+    if (k >= 0.65) return 'mid';
+    return 'far';
+  }
+
+  /* ── 研究流程卡（第二個拖曳互動） ── */
+  function sanitizeFlow(list, validIds) {
+    var seen = {}, out = [];
+    (Array.isArray(list) ? list : []).forEach(function (id) {
+      if (validIds.indexOf(id) >= 0 && !seen[id]) { seen[id] = 1; out.push(id); }
+    });
+    return out;
+  }
+  function insertAt(list, id, idx) {
+    var out = list.filter(function (x) { return x !== id; });
+    idx = Math.max(0, Math.min(out.length, idx));
+    out.splice(idx, 0, id);
+    return out;
+  }
+  function moveBy(list, id, d) {
+    var i = list.indexOf(id); if (i < 0) return list.slice();
+    return insertAt(list, id, i + d);
+  }
+  function removeId(list, id) { return list.filter(function (x) { return x !== id; }); }
+  function flowMarkdown(ids, cards) {
+    var map = {}; cards.forEach(function (c) { map[c.id] = c; });
+    var lines = ['# 我的研究流程', ''];
+    ids.forEach(function (id, i) { var c = map[id]; if (c) lines.push((i + 1) + '. **' + c.t + '**：' + c.d); });
+    if (!ids.length) lines.push('（還沒有步驟）');
+    lines.push('', '> 停留規則：這一叢的收穫率掉到整趟平均以下，就換地方。');
+    return lines.join('\n');
+  }
+
+  return { gain: gain, marginal: marginal, leaveTime: leaveTime, mvtSingle: mvtSingle,
+           makeWorld: makeWorld, patchById: patchById, travelTime: travelTime, dist: dist,
+           newState: newState, startTravel: startTravel, advance: advance, remaining: remaining,
+           rateHere: rateHere, avgRate: avgRate, leftInForest: leftInForest,
+           pickNext: pickNext, runThreshold: runThreshold, bestPolicy: bestPolicy,
+           runRandom: runRandom, runStay: runStay, rng: rng, judgeLeave: judgeLeave, verdict: verdict,
+           sanitizeFlow: sanitizeFlow, insertAt: insertAt, moveBy: moveBy, removeId: removeId,
+           flowMarkdown: flowMarkdown };
+})();
+if (typeof module !== 'undefined') module.exports = FORAGE;
+/*CORE-END*/
+
+/* ══════════ 森林互動 ══════════ */
+(function () {
+  var doc = document, F = FORAGE;
+  var mapEl = doc.getElementById('map');
+  if (!mapEl) return;
+  var world = F.makeWorld();
+  var S = F.newState(world);
+  var SPEED = 3;                    /* 模擬分鐘／真實秒 */
+  var MAXR = 10;                    /* 橫條滿格＝每分鐘 10 顆 */
+  var reduced = PK.reduced();
+  var paused = false, offscreen = false, ticking = false, target = null, drag = null, lastList = -1;
+  var fox = doc.getElementById('fox'), hint = doc.getElementById('hint');
+  var els = {};                     /* id → {el, dots[], shown} */
+  var youD = '', best = null;
+  function $(id) { return doc.getElementById(id); }
+  function nm(id) { return id ? F.patchById(world, id).name : '營地'; }
+  function f1(v) { return (Math.round(v * 10) / 10).toFixed(1); }
+
+  /* 斑塊輪廓：PK.hash 固定抖動的手繪感 blob */
+  function blob(seed, R, J) {
+    var n = 9, pts = [], i;
+    for (i = 0; i < n; i++) {
+      var a = i / n * Math.PI * 2, r = R + (PK.hash(seed + i) - 0.5) * J;
+      pts.push([50 + Math.cos(a) * r, 50 + Math.sin(a) * r]);
+    }
+    var d = '';
+    for (i = 0; i < n; i++) {
+      var p0 = pts[(i - 1 + n) % n], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n];
+      if (i === 0) d += 'M' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1);
+      var c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+      var c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += 'C' + c1[0].toFixed(1) + ' ' + c1[1].toFixed(1) + ' ' + c2[0].toFixed(1) + ' ' + c2[1].toFixed(1) + ' ' + p2[0].toFixed(1) + ' ' + p2[1].toFixed(1);
+    }
+    return d + 'Z';
+  }
+  var NS = 'http://www.w3.org/2000/svg', K = 10;
+  world.patches.forEach(function (p) {
+    var el = doc.createElement('div');
+    el.className = 'patch' + (p.locked ? ' locked' : '');
+    el.setAttribute('aria-hidden', 'true');
+    el.style.left = p.x + '%'; el.style.top = (p.y / 70 * 100) + '%';
+    var svg = '<svg viewBox="0 0 100 100"><circle class="ring" cx="50" cy="50" r="49"/><path class="blob" d="' + blob(p.id, 38, 13) + '"/><path class="blob2" d="' + blob(p.id + 'x', 30, 10) + '"/><g>';
+    for (var i = 0; i < K; i++) {
+      var a = PK.hash(p.id + 'a' + i) * Math.PI * 2, r = 6 + PK.hash(p.id + 'r' + i) * 22;
+      svg += '<circle class="bd" r="4.6" cx="' + (50 + Math.cos(a) * r).toFixed(1) + '" cy="' + (50 + Math.sin(a) * r).toFixed(1) + '"/>';
+    }
+    svg += '</g></svg><span class="fog"></span><span class="lbl">' + (p.locked ? '？ 霧中' : p.name) + '</span>';
+    el.innerHTML = svg;
+    el.addEventListener('click', function () { if (!drag) go(p.id); });
+    mapEl.appendChild(el);
+    els[p.id] = { el: el, dots: el.querySelectorAll('.bd'), shown: K, lbl: el.querySelector('.lbl') };
+  });
+  $('camp').style.left = world.start.x + '%'; $('camp').style.top = (world.start.y / 70 * 100) + '%';
+
+  /* 斑塊清單（鍵盤／讀屏替代） */
+  var plist = $('plist');
+  function renderList() {
+    var cur = S.travel ? S.travel.to : S.at;
+    plist.innerHTML = '';
+    world.patches.forEach(function (p) {
+      var li = doc.createElement('li'), open = S.open[p.id];
+      if (!open) li.className = 'lk';
+      var tt = Math.round(F.travelTime(world, cur, p.id));
+      var left = Math.round(F.remaining(world, S, p.id));
+      var name = open ? p.name : '霧中的一叢';
+      var info = !open ? '需要線索' : (p.id === cur ? (S.travel ? '前往中' : '你在這裡') + '・剩約 ' + left + ' 顆' : '路程約 ' + tt + ' 分・剩約 ' + left + ' 顆');
+      li.innerHTML = '<span>' + name + '<small>' + info + '</small></span>';
+      var b = doc.createElement('button');
+      b.type = 'button'; b.className = 'btn'; b.textContent = '移到這裡';
+      b.disabled = !open || p.id === cur || S.done || !!S.travel;
+      b.setAttribute('aria-label', '移到這裡：' + name + '（' + info + '）');
+      b.addEventListener('click', function () { go(p.id); });
+      li.appendChild(b); plist.appendChild(li);
+    });
+  }
+
+  /* 座標：世界 → 地圖像素 */
+  function rect() { return mapEl.getBoundingClientRect(); }
+  function toPx(pos) { var r = rect(); return { x: pos.x / 100 * r.width, y: pos.y / 70 * r.height }; }
+  function placeFox(px, scale) {
+    fox.style.transform = 'translate(' + px.x.toFixed(1) + 'px,' + px.y.toFixed(1) + 'px)' + (scale ? ' scale(' + scale + ')' : '');
+  }
+  function foxWorldPos() {
+    if (S.travel) {
+      var a = S.travel.from ? F.patchById(world, S.travel.from) : world.start, b = F.patchById(world, S.travel.to);
+      var k = S.travel.total > 0 ? 1 - S.travel.left / S.travel.total : 1;
+      return { x: PK.lerp(a.x, b.x, k), y: PK.lerp(a.y, b.y, k) };
+    }
+    return S.at ? F.patchById(world, S.at) : world.start;
+  }
+  function setTarget(id) {
+    if (target && els[target]) els[target].el.classList.remove('target');
+    target = id;
+    if (id && els[id]) els[id].el.classList.add('target');
+  }
+  function foxLabel() {
+    fox.setAttribute('aria-label', '狐狸，目前' + (S.travel ? '正前往「' + nm(S.travel.to) + '」' : '在「' + nm(S.at) + '」') + '。方向鍵挑選目的地，Enter 出發。');
+  }
+
+  /* ── 繪製 ── */
+  function draw() {
+    $('clock').textContent = Math.floor(S.time);
+    $('basket').textContent = Math.floor(S.total);
+    var here = F.rateHere(world, S), avg = F.avgRate(S);
+    $('rHere').textContent = S.at && !S.travel ? '每分鐘 ' + f1(here) + ' 顆' : (S.travel ? '路上，沒得採' : '—');
+    $('rAvg').textContent = S.time > 0 ? '每分鐘 ' + f1(avg) + ' 顆' : '—';
+    $('barHere').style.transform = 'scaleX(' + Math.min(1, here / MAXR).toFixed(3) + ')';
+    $('barAvg').style.transform = 'scaleX(' + Math.min(1, avg / MAXR).toFixed(3) + ')';
+    world.patches.forEach(function (p) {
+      var e = els[p.id], n = Math.ceil(F.remaining(world, S, p.id) / p.G * K - 0.05);
+      if (n !== e.shown) { for (var i = 0; i < K; i++) e.dots[i].classList.toggle('gone', i >= n); e.shown = n; }
+      e.el.classList.toggle('here', S.at === p.id && !S.travel);
+    });
+    if (!drag) placeFox(toPx(foxWorldPos()));
+    var bucket = Math.floor(S.time * 2);
+    if (bucket !== lastList) { lastList = bucket; renderList(); }
+  }
+
+  /* ── 事件 ── */
+  var QN = 0;
+  function handle(ev) {
+    ev.forEach(function (e) {
+      if (e.type === 'arrive') {
+        PK.announce('抵達「' + nm(e.id) + '」。這一叢現在每分鐘約 ' + f1(F.rateHere(world, S)) + ' 顆。');
+        foxLabel(); lastList = -1;
+      } else if (e.type === 'unlock') {
+        var ul = $('notes'), em = ul.querySelector('.empty'); if (em) em.remove();
+        var li = doc.createElement('li'); li.textContent = e.note; ul.appendChild(li);
+        var msg = '撿到線索：' + e.note + '。';
+        if (e.opens) {
+          var o = els[e.opens]; o.el.classList.remove('locked'); o.lbl.textContent = F.patchById(world, e.opens).name;
+          msg += '霧散了，「' + nm(e.opens) + '」出現在地圖上。';
+        }
+        if (e.q > QN) { QN = e.q; setQuest(e.q, true); msg += '你的問題變成：' + world.questions[e.q]; }
+        PK.announce(msg); lastList = -1;
+      } else if (e.type === 'end') finish();
+    });
+  }
+  function setQuest(i, flash) {
+    $('qTag').textContent = '問題 v' + (i + 1);
+    $('qText').textContent = world.questions[i];
+    var q = $('quest');
+    if (flash && !PK.reduced()) { q.classList.remove('flash'); void q.offsetWidth; q.classList.add('flash'); }
+  }
+
+  /* ── 出發 ── */
+  function go(id) {
+    if (S.done) return;
+    if (S.travel) { PK.announce('狐狸還在路上。'); return; }
+    if (!S.open[id]) { PK.announce('霧太濃了，還沒有線索通往那一叢。'); return; }
+    if (id === S.at) { PK.announce('你已經在「' + nm(id) + '」了。'); return; }
+    var from = S.at ? F.patchById(world, S.at) : world.start, to = F.patchById(world, id);
+    var tt = F.travelTime(world, S.at, id);
+    if (!F.startTravel(world, S, id)) return;
+    youD += (youD ? ' ' : '') + 'M' + from.x + ' ' + from.y + 'L' + to.x + ' ' + to.y;
+    $('youRoute').setAttribute('d', youD);
+    setTarget(null); hint.style.opacity = '0';
+    $('pauseBtn').disabled = reduced; $('stepBtn').disabled = false;
+    PK.announce('出發前往「' + to.name + '」，路程約 ' + Math.round(tt) + ' 分鐘。');
+    foxLabel(); lastList = -1;
+    if (reduced) { handle(F.advance(world, S, S.travel.left)); draw(); }
+    else startTick();
+    draw();
+  }
+
+  /* ── 時鐘 ── */
+  function frame(dt) {
+    if (paused || offscreen || S.done) return;
+    handle(F.advance(world, S, dt * SPEED));
+    draw();
+  }
+  function startTick() { if (!ticking && !reduced) { ticking = true; PK.tick(frame); } }
+  function stopTick() { if (ticking) { ticking = false; PK.untick(frame); } }
+  $('pauseBtn').addEventListener('click', function () {
+    paused = !paused; this.textContent = paused ? '繼續' : '暫停';
+    PK.announce(paused ? '已暫停。' : '繼續計時。');
+  });
+  $('stepBtn').addEventListener('click', function () {
+    if (S.done || !S.started) return;
+    handle(F.advance(world, S, 5)); draw();
+    if (!S.done) PK.announce('過了 5 分鐘。籃子裡 ' + Math.floor(S.total) + ' 顆，這一叢每分鐘 ' + f1(F.rateHere(world, S)) + ' 顆，你的平均每分鐘 ' + f1(F.avgRate(S)) + ' 顆。');
+  });
+  PK.onMotionChange(function (r) {
+    reduced = r; $('rmNote').hidden = !r;
+    if (r) { stopTick(); if (S.travel) { handle(F.advance(world, S, S.travel.left)); draw(); } }
+    else if (S.started && !S.done) startTick();
+    $('pauseBtn').disabled = r || !S.started || S.done;
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) { offscreen = !es[0].isIntersecting; }, { threshold: 0.15 }).observe(mapEl);
+  }
+  $('rmNote').hidden = !reduced;
+
+  /* ── 拖曳（Pointer Events，滑鼠與觸控） ── */
+  function localPt(e) { var r = rect(); return { x: e.clientX - r.left, y: e.clientY - r.top, w: r.width, h: r.height }; }
+  function patchAt(pt) {
+    var hit = null, bestD = Infinity;
+    world.patches.forEach(function (p) {
+      var c = { x: p.x / 100 * pt.w, y: p.y / 70 * pt.h }, rad = els[p.id].el.offsetWidth * 0.62 || 40;
+      var d = Math.hypot(pt.x - c.x, pt.y - c.y);
+      if (d < rad && d < bestD) { bestD = d; hit = p.id; }
+    });
+    return hit;
+  }
+  fox.addEventListener('pointerdown', function (e) {
+    if (S.done || S.travel) return;
+    drag = { id: e.pointerId, over: null, moved: false };
+    if (fox.setPointerCapture) try { fox.setPointerCapture(e.pointerId); } catch (x) {}
+    fox.classList.add('drag');
+    e.preventDefault();
+  });
+  fox.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var pt = localPt(e);
+    drag.moved = true;
+    placeFox({ x: PK.clamp(pt.x, 0, pt.w), y: PK.clamp(pt.y, 0, pt.h) }, 1.12);
+    var over = patchAt(pt);
+    if (over !== drag.over) { drag.over = over; setTarget(over); }
+  });
+  function endDrag() {
+    if (!drag) return;
+    var over = drag.over;
+    fox.classList.remove('drag');
+    drag = null;
+    if (over) go(over); else { setTarget(null); draw(); }
+  }
+  fox.addEventListener('pointerup', endDrag);
+  fox.addEventListener('pointercancel', function () { if (drag) { drag.over = null; endDrag(); } });
+
+  /* ── 鍵盤：方向鍵挑目的地，Enter 出發 ── */
+  var DIRS = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  fox.addEventListener('keydown', function (e) {
+    if (DIRS[e.key]) {
+      e.preventDefault();
+      var o = target ? F.patchById(world, target) : foxWorldPos(), d = DIRS[e.key], pick = null, bs = Infinity;
+      world.patches.forEach(function (p) {
+        if (p.id === target || (p.id === S.at && !target)) return;
+        var vx = p.x - o.x, vy = p.y - o.y, len = Math.hypot(vx, vy); if (len < 0.01) return;
+        var cos = (vx * d[0] + vy * d[1]) / len; if (cos <= 0.2) return;
+        var sc = len * (1 + 2 * (1 - cos)); if (sc < bs) { bs = sc; pick = p.id; }
+      });
+      if (pick) {
+        setTarget(pick);
+        PK.announce(S.open[pick] ? '目的地：「' + nm(pick) + '」，路程約 ' + Math.round(F.travelTime(world, S.at, pick)) + ' 分鐘。按 Enter 出發。' : '那個方向是霧中的一叢，還沒有線索。');
+      }
+    } else if ((e.key === 'Enter' || e.key === ' ') && target) { e.preventDefault(); go(target); }
+    else if (e.key === 'Escape') setTarget(null);
+  });
+  window.addEventListener('resize', function () { draw(); });
+
+  /* ── 時間到 ── */
+  function pathOf(trace, X, Y) {
+    return trace.map(function (p, i) { return (i ? 'L' : 'M') + X(p.t).toFixed(1) + ' ' + Y(p.g).toFixed(1); }).join('');
+  }
+  function finish() {
+    stopTick();
+    $('pauseBtn').disabled = true; $('stepBtn').disabled = true;
+    best = F.bestPolicy(F.makeWorld());
+    var firstId = S.log.length ? S.log[0].id : 'serp';
+    var stay = F.runStay(F.makeWorld(), firstId);
+    var you = S.total, v = you > best.total * 1.01 ? 'beat' : F.verdict(you, best.total);
+    $('sYou').textContent = Math.round(you);
+    $('sMvt').textContent = Math.round(best.total);
+    $('sStay').textContent = Math.round(stay.total);
+    $('sStayLab').textContent = '一直待在「' + nm(firstId) + '」';
+    var V = {
+      beat: '你採得比照規則走的狐狸還多。牠只會算「何時走」，不知道哪一叢藏著線索；你跟著新詞改了路線——這份多出來的收穫，屬於採漿果。',
+      match: '跟照規則走的狐狸幾乎一樣多。你的直覺已經在照那條規則走了。',
+      close: '差一點。看看下面哪幾次離開得太早或太晚。',
+      mid: '照規則走的狐狸多採了不少。常見的原因有兩種：在某一叢待太久，或者搬家太勤，把時間花在路上。',
+      far: '差距不小。看看下面的離開紀錄：是不是在快空掉的灌木前等太久，或在路上花掉太多分鐘？'
+    };
+    $('verdict').textContent = V[v];
+    /* 離開時機 */
+    var ul = $('leaves'); ul.innerHTML = '';
+    var real = S.log.filter(function (l) { return !l.final; });
+    if (!real.length) ul.innerHTML = '<li>你一整趟都待在同一叢。</li>';
+    real.forEach(function (l) {
+      var j = F.judgeLeave(l.marginal, best.r), T = { early: '偏早', late: '偏晚', ok: '剛好' };
+      var li = doc.createElement('li');
+      li.innerHTML = '「' + nm(l.id) + '」待了 ' + f1(l.leave - l.enter) + ' 分，採 ' + Math.round(l.got) + ' 顆；離開時這叢每分鐘還有 ' + f1(l.marginal) + ' 顆，你當時的平均是 ' + f1(l.avg) + '<em class="' + j + '">' + T[j] + '</em>';
+      ul.appendChild(li);
+    });
+    $('rStarNote').textContent = '判讀標準：照規則走的狐狸在收穫率掉到每分鐘約 ' + f1(best.r) + ' 顆時離開，整趟平均每分鐘 ' + f1(best.total / world.budget) + ' 顆——兩個數字很接近，這正是規則要說的事。';
+    /* 圖：累積收穫 */
+    var maxG = Math.max(you, best.total) * 1.08;
+    var X = function (t) { return 34 + t / world.budget * 296; }, Y = function (g) { return 176 - g / maxG * 160; };
+    var c = '<line class="ax" x1="34" y1="176" x2="332" y2="176"/><line class="ax" x1="34" y1="12" x2="34" y2="176"/>';
+    for (var t = 0; t <= world.budget; t += 30) c += '<text x="' + X(t) + '" y="190" text-anchor="middle">' + t + ' 分</text>';
+    c += '<text x="30" y="' + (Y(maxG / 1.08) + 3) + '" text-anchor="end">' + Math.round(maxG / 1.08) + '</text><text x="30" y="179" text-anchor="end">0</text>';
+    c += '<path id="cM" d="' + pathOf(best.trace, X, Y) + '" fill="none" stroke="#8fb874" stroke-width="2" stroke-dasharray="6 4"/>';
+    c += '<path id="cY" d="' + pathOf(S.trace, X, Y) + '" fill="none" stroke="#e2566a" stroke-width="2.4"/>';
+    real.forEach(function (l) { c += '<circle cx="' + X(l.leave).toFixed(1) + '" cy="' + Y(traceAt(S.trace, l.leave)).toFixed(1) + '" r="3" fill="#ebe5cf"/>'; });
+    $('chart').innerHTML = c;
+    /* 地圖上畫出照規則走的狐狸路線 */
+    var md = '', prev = world.start;
+    best.log.forEach(function (l) { var p = F.patchById(world, l.id); md += 'M' + prev.x + ' ' + prev.y + 'L' + p.x + ' ' + p.y + ' '; prev = p; });
+    $('mvtRoute').setAttribute('d', md);
+    drawMvtFig();
+    $('qCount').textContent = QN > 0 ? '這一趟，你的問題改版了 ' + QN + ' 次。' : '這一趟你的問題沒有改版——下次試試先去會掉線索的那幾叢。';
+    var left = Math.round(F.leftInForest(world, S));
+    $('leftLine').textContent = '你剛才在森林裡留下了大約 ' + left + ' 顆沒採的果子。那些不叫浪費——那是你拿去換路程的錢。';
+    var pb = store.get('pb', 0); if (you > pb) store.set('pb', Math.round(you));
+    store.set('last', { you: Math.round(you), mvt: Math.round(best.total) });
+    $('results').hidden = false;
+    lastList = -1; renderList(); foxLabel();
+    PK.announce('時間到。你採到 ' + Math.round(you) + ' 顆，照規則走的狐狸採到 ' + Math.round(best.total) + ' 顆。往下看規則。');
+    if (!PK.reduced()) { PK.replayDash($('cY'), 1400); }
+    setTimeout(function () { $('resHead').focus({ preventScroll: true }); PK.scrollTo($('resHead')); }, PK.reduced() ? 0 : 500);
+  }
+  function traceAt(tr, t) { var g = 0; for (var i = 0; i < tr.length; i++) { if (tr[i].t <= t + 1e-6) g = tr[i].g; else break; } return g; }
+
+  /* 圖版 II：邊際價值定理的切線（由純函式 mvtSingle 數值解） */
+  function drawMvtFig() {
+    var G = 30, tau = 5, T = 6, sol = F.mvtSingle(G, tau, T);
+    var ox = 120, base = 178, sx = 10, sy = 4.6;
+    var X = function (t) { return ox + t * sx; }, Y = function (g) { return base - g * sy; };
+    var curve = '';
+    for (var t = 0; t <= 20; t += 0.25) curve += (t ? 'L' : 'M') + X(t).toFixed(1) + ' ' + Y(F.gain(G, tau, t)).toFixed(1);
+    var gt = F.gain(G, tau, sol.t), slope = gt / (sol.t + T), tEnd = 19;
+    var s = '<line class="ax" x1="' + X(-T - 1) + '" y1="' + base + '" x2="' + X(20.5) + '" y2="' + base + '"/>';
+    s += '<line class="ax" x1="' + ox + '" y1="20" x2="' + ox + '" y2="' + base + '"/>';
+    s += '<path d="' + curve + '" fill="none" stroke="#e2566a" stroke-width="2.4"/>';
+    s += '<line id="tan" x1="' + X(-T) + '" y1="' + base + '" x2="' + X(tEnd).toFixed(1) + '" y2="' + Y(slope * (tEnd + T)).toFixed(1) + '" stroke="#8fb874" stroke-width="1.6" stroke-dasharray="6 4"/>';
+    s += '<line x1="' + X(sol.t).toFixed(1) + '" y1="' + Y(gt).toFixed(1) + '" x2="' + X(sol.t).toFixed(1) + '" y2="' + base + '" stroke="#d8c97f" stroke-dasharray="2 3"/>';
+    s += '<circle cx="' + X(sol.t).toFixed(1) + '" cy="' + Y(gt).toFixed(1) + '" r="4.5" fill="#d8c97f"/>';
+    s += '<circle cx="' + X(-T) + '" cy="' + base + '" r="3.5" fill="#ebe5cf"/>';
+    s += '<text x="' + X(-T) + '" y="' + (base + 16) + '" text-anchor="middle">出發點</text>';
+    s += '<text x="' + ((X(-T) + ox) / 2) + '" y="' + (base - 6) + '" text-anchor="middle">路程</text>';
+    s += '<text x="' + X(sol.t).toFixed(1) + '" y="' + (base + 16) + '" text-anchor="middle" fill="#d8c97f">最佳離開時間</text>';
+    s += '<text x="' + X(14) + '" y="' + (Y(G) + 6) + '" text-anchor="middle">在這一叢的累積收穫</text>';
+    s += '<text x="' + (ox + 4) + '" y="16">收穫</text><text x="' + X(20.5) + '" y="' + (base + 16) + '" text-anchor="end">時間 →</text>';
+    $('mvtFig').innerHTML = s;
+  }
+
+  $('againBtn').addEventListener('click', function () {
+    S = F.newState(world); QN = 0; youD = ''; paused = false; target = null;
+    $('youRoute').setAttribute('d', ''); $('mvtRoute').setAttribute('d', '');
+    world.patches.forEach(function (p) { if (p.locked) { els[p.id].el.classList.add('locked'); els[p.id].lbl.textContent = '？ 霧中'; } });
+    $('notes').innerHTML = '<li class="empty">還沒撿到新詞。</li>';
+    setQuest(0, false);
+    $('results').hidden = true; $('pauseBtn').textContent = '暫停'; $('pauseBtn').disabled = true; $('stepBtn').disabled = true;
+    hint.style.opacity = '1'; lastList = -1; draw(); foxLabel();
+    PK.scrollTo(mapEl); fox.focus({ preventScroll: true });
+    PK.announce('重新開始。狐狸回到營地。');
+  });
+
+  setQuest(0, false); foxLabel(); renderList();
+  requestAnimationFrame(draw);
+})();
+
+/* ══════════ 研究流程卡（第二個拖曳） ══════════ */
+(function () {
+  var doc = document, F = FORAGE;
+  var pool = doc.getElementById('poolList'), list = doc.getElementById('flowList');
+  if (!pool) return;
+  var CARDS = [
+    { id: 'frame', t: '框問題', d: '用 5W1H 或 PICO 寫下問題，加一行「什麼樣的資料能回答它」' },
+    { id: 'vocab', t: '建詞彙表', d: '日常說法、專業術語、英文、縮寫四欄，邊讀邊補' },
+    { id: 'seed', t: '找起點', d: '從維基百科、綜述或學位論文的參考文獻出發' },
+    { id: 'engine', t: '搜尋引擎撒網', d: '看前幾筆用什麼詞描述問題；必要時加運算子' },
+    { id: 'scholar', t: '學術資料庫', d: 'Google Scholar、PubMed、arXiv、Semantic Scholar…' },
+    { id: 'gov', t: '政府與公共資料', d: '統計、法規、立法沿革、裁判書、開放資料' },
+    { id: 'patent', t: '專利檢索', d: 'Google Patents、智慧局專利檢索；看引用欄位' },
+    { id: 'tech', t: '官方文件與規格', d: '對準版本號；RFC、MDN、CHANGELOG、Releases' },
+    { id: 'issues', t: 'Issue 與討論區', d: '錯誤訊息原文加引號，包含已關閉的' },
+    { id: 'back', t: '向後追', d: '從好文章的參考文獻往回跳' },
+    { id: 'fwd', t: '向前追', d: '看誰引用了它（Cited by）' },
+    { id: 'log', t: '寫搜尋日誌', d: '每次查詢記一行：在哪、字串、撿到什麼、下一步' },
+    { id: 'tri', t: '三角驗證', d: '至少兩到三個彼此獨立的來源' },
+    { id: 'alert', t: '設訂閱', d: 'Google 快訊、Scholar 快訊、RSS、GitHub Watch' },
+    { id: 'stop', t: '飽和就收工', d: '新來源不再帶來新東西＝收穫率低於平均' }
+  ];
+  var IDS = CARDS.map(function (c) { return c.id; });
+  var PRESET = ['frame', 'vocab', 'seed', 'engine', 'scholar', 'back', 'fwd', 'log', 'tri', 'alert', 'stop'];
+  var byId = {}; CARDS.forEach(function (c) { byId[c.id] = c; });
+  var flow = F.sanitizeFlow(store.get('flow', []), IDS);
+
+  function btn(txt, act, label) { return '<button type="button" data-act="' + act + '" aria-label="' + label + '">' + txt + '</button>'; }
+  function render(focusId, focusAct) {
+    pool.innerHTML = ''; list.innerHTML = '';
+    CARDS.forEach(function (c) {
+      if (flow.indexOf(c.id) >= 0) return;
+      var li = doc.createElement('li'); li.className = 'card'; li.dataset.id = c.id;
+      li.innerHTML = '<span class="grip" aria-hidden="true">⋮⋮</span><span class="ct">' + c.t + '</span><span class="acts">' + btn('加入', 'add', '加入流程：' + c.t) + '</span>';
+      pool.appendChild(li);
+    });
+    flow.forEach(function (id, i) {
+      var c = byId[id], li = doc.createElement('li'); li.className = 'card'; li.dataset.id = id;
+      li.innerHTML = '<span class="grip" aria-hidden="true">⋮⋮</span><span class="ct"><span class="n">' + (i + 1) + '.</span>' + c.t + '</span><span class="acts">' +
+        btn('↑', 'up', '上移：' + c.t) + btn('↓', 'down', '下移：' + c.t) + btn('×', 'rm', '移除：' + c.t) + '</span>';
+      list.appendChild(li);
+    });
+    if (!flow.length) list.innerHTML = '<li class="dim" style="font-size:13px;padding:8px 2px">把步驟拖到這裡，或按「加入」。</li>';
+    var out = doc.getElementById('flowOut'); out.innerHTML = '';
+    if (!flow.length) out.innerHTML = '<li class="empty">（還沒有步驟）</li>';
+    flow.forEach(function (id) { var li = doc.createElement('li'); li.innerHTML = '<b>' + byId[id].t + '</b>：' + byId[id].d; out.appendChild(li); });
+    store.set('flow', flow);
+    if (focusId) {
+      var b = doc.querySelector('.card[data-id="' + focusId + '"] [data-act="' + focusAct + '"]') || doc.querySelector('.card[data-id="' + focusId + '"] button');
+      if (b) b.focus();
+    }
+  }
+  function act(id, a) {
+    var c = byId[id]; if (!c) return;
+    if (a === 'add') { flow = F.insertAt(flow, id, flow.length); render(id, 'rm'); PK.announce('已加入第 ' + flow.length + ' 步：' + c.t); }
+    else if (a === 'up') { flow = F.moveBy(flow, id, -1); render(id, 'up'); PK.announce(c.t + ' 移到第 ' + (flow.indexOf(id) + 1) + ' 步'); }
+    else if (a === 'down') { flow = F.moveBy(flow, id, 1); render(id, 'down'); PK.announce(c.t + ' 移到第 ' + (flow.indexOf(id) + 1) + ' 步'); }
+    else if (a === 'rm') { flow = F.removeId(flow, id); render(); PK.announce('已移除：' + c.t); }
+  }
+  [pool, list].forEach(function (ul) {
+    ul.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-act]'); if (!b) return;
+      act(b.closest('.card').dataset.id, b.dataset.act);
+    });
+  });
+
+  /* 拖曳：自製 Pointer Events（觸控可用），ghost 只動 transform */
+  var D = null;
+  function zoneAt(x, y) {
+    var zs = [['flow', doc.getElementById('flowZone')], ['pool', doc.getElementById('poolZone')]];
+    for (var i = 0; i < zs.length; i++) { var r = zs[i][1].getBoundingClientRect(); if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return zs[i][0]; }
+    return null;
+  }
+  function indexAt(y) {
+    var items = [].slice.call(list.querySelectorAll('.card:not(.lift)')), i;
+    for (i = 0; i < items.length; i++) { var r = items[i].getBoundingClientRect(); if (y < r.top + r.height / 2) return i; }
+    return items.length;
+  }
+  function clearPh() { var p = doc.querySelector('.ph'); if (p) p.remove(); }
+  function onDown(e) {
+    var card = e.target.closest('.card'); if (!card || e.target.closest('button')) return;
+    if (e.pointerType === 'touch' && !e.target.closest('.grip')) return; /* 觸控只從把手拖，卡片其他地方留給捲動 */
+    if (e.button !== undefined && e.button !== 0) return;
+    D = { id: card.dataset.id, card: card, x0: e.clientX, y0: e.clientY, on: false, from: card.parentNode === list ? 'flow' : 'pool' };
+    if (card.setPointerCapture) try { card.setPointerCapture(e.pointerId); } catch (x) {}
+  }
+  function onMove(e) {
+    if (!D) return;
+    var dx = e.clientX - D.x0, dy = e.clientY - D.y0;
+    if (!D.on) {
+      if (Math.abs(dx) + Math.abs(dy) < 6) return;
+      D.on = true; var r = D.card.getBoundingClientRect();
+      D.ghost = D.card.cloneNode(true); D.ghost.classList.add('ghost');
+      D.ghost.style.left = r.left + 'px'; D.ghost.style.top = r.top + 'px'; D.ghost.style.width = r.width + 'px';
+      doc.body.appendChild(D.ghost); D.card.classList.add('lift');
+    }
+    e.preventDefault();
+    D.ghost.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(-1.5deg)';
+    var z = zoneAt(e.clientX, e.clientY); D.zone = z;
+    doc.getElementById('flowZone').classList.toggle('over', z === 'flow');
+    doc.getElementById('poolZone').classList.toggle('over', z === 'pool' && D.from === 'flow');
+    clearPh();
+    if (z === 'flow') {
+      D.idx = indexAt(e.clientY);
+      var ph = doc.createElement('li'); ph.className = 'ph';
+      var items = list.querySelectorAll('.card:not(.lift)');
+      if (D.idx < items.length) list.insertBefore(ph, items[D.idx]); else list.appendChild(ph);
+    }
+  }
+  function onUp() {
+    if (!D) return;
+    var d = D; D = null;
+    clearPh();
+    doc.getElementById('flowZone').classList.remove('over'); doc.getElementById('poolZone').classList.remove('over');
+    if (!d.on) return;
+    d.ghost.remove(); d.card.classList.remove('lift');
+    if (d.zone === 'flow') { flow = F.insertAt(flow, d.id, d.idx); render(); PK.announce(byId[d.id].t + ' 放在第 ' + (flow.indexOf(d.id) + 1) + ' 步'); }
+    else if (d.zone === 'pool' && d.from === 'flow') { flow = F.removeId(flow, d.id); render(); PK.announce('已移除：' + byId[d.id].t); }
+  }
+  [pool, list].forEach(function (ul) { ul.addEventListener('pointerdown', onDown); });
+  doc.addEventListener('pointermove', onMove, { passive: false });
+  doc.addEventListener('pointerup', onUp);
+  doc.addEventListener('pointercancel', function () { if (D) { D.zone = null; onUp(); } });
+
+  function copy(text, b) {
+    var done = function () { var o = b.textContent; b.textContent = '已複製'; setTimeout(function () { b.textContent = o; }, 1500); PK.announce('已複製到剪貼簿。'); };
+    var fallback = function () {
+      var ta = doc.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      doc.body.appendChild(ta); ta.select(); try { doc.execCommand('copy'); done(); } catch (x) { PK.announce('無法自動複製，請手動選取。'); } ta.remove();
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+  }
+  doc.getElementById('presetBtn').addEventListener('click', function () { flow = PRESET.slice(); render(); PK.announce('已套用建議順序，共 ' + flow.length + ' 步。'); });
+  doc.getElementById('clearBtn').addEventListener('click', function () { flow = []; render(); PK.announce('已清空流程。'); });
+  doc.getElementById('copyMd').addEventListener('click', function () { copy(F.flowMarkdown(flow, CARDS), this); });
+  doc.getElementById('printBtn').addEventListener('click', function () { window.print(); });
+  doc.getElementById('copyTpl').addEventListener('click', function () { copy(doc.getElementById('tpl').value.trim() + '\n', this); });
+  render();
+})();
+
+/* ══════════ 資料庫地圖分頁籤 ══════════ */
+(function () {
+  var tabs = [].slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+  function sel(t, focus) {
+    tabs.forEach(function (x) {
+      var on = x === t; x.setAttribute('aria-selected', on ? 'true' : 'false'); x.tabIndex = on ? 0 : -1;
+      document.getElementById(x.getAttribute('aria-controls')).hidden = !on;
+    });
+    if (focus) t.focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { sel(t); });
+    t.addEventListener('keydown', function (e) {
+      var j = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : null;
+      if (j === null) return; e.preventDefault(); sel(tabs[(j + tabs.length) % tabs.length], true);
+    });
+  });
+})();
+
+/* ══════════ 章節路標 ══════════ */
+(function () {
+  var nav = document.querySelector('.trail'); if (!nav) return;
+  var dots = [].slice.call(nav.querySelectorAll('a')), fx = nav.querySelector('.tfox');
+  var secs = ['top', 'ch1', 'ch2', 'ch3', 'end'].map(function (id) { return document.getElementById(id); });
+  var cur = 0;
+  function layout() {
+    var w = nav.clientWidth - 28;
+    dots.forEach(function (d, i) { d.style.left = (14 + w * i / (dots.length - 1)) + 'px'; });
+    fx.style.transform = 'translateX(' + (w * cur / (dots.length - 1)).toFixed(1) + 'px)';
+    dots.forEach(function (d, i) { d.classList.toggle('on', i <= cur); });
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { cur = secs.indexOf(e.target); layout(); } });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    secs.forEach(function (s) { if (s) io.observe(s); });
+  }
+  window.addEventListener('resize', layout);
+  layout();
+})();
+
+PK.reveal();
+</script>
+</body>
+</html>

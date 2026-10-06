@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>搜尋框的暗號｜每日小專案</title>
+<meta name="description" content="一台只收錄 56 份虛構文件的終端機搜尋引擎、八張委託單：引號、排除、site:、filetype:、日期、OR、intitle:——最後學會猜「那一頁上會寫什麼字」。附 Google／Gmail／GitHub／PubMed／ripgrep 語法速查與練習題。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#131312; --pk-ink:#e7e2d6; --pk-dim:#8f897d; --pk-accent:#f2a33a;
+  --pk-line:rgba(255,236,200,.10);
+  --pk-maxw:760px;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono","JetBrains Mono",Menlo,Consolas,"Liberation Mono","Noto Sans Mono CJK TC","PingFang TC","Microsoft JhengHei",monospace;
+  --pk-serif:var(--mono);
+  --panel:#1a1a18; --well:#0e0e0d;
+  --amber-soft:rgba(242,163,58,.14); --amber-line:rgba(242,163,58,.42);
+  --ink2:#f3ecdc; --warn:#e9c47c;
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(1100px 620px at 50% -12%, rgba(242,163,58,.07), transparent 62%),
+    var(--pk-bg);
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.014) 0 1px, transparent 1px 3px)}
+header,main,footer{position:relative;z-index:1}
+.pk-home{font-family:var(--mono)}
+::selection{background:var(--pk-accent);color:#1a1205}
+code,kbd{font-family:var(--mono);font-size:.92em}
+a{color:var(--pk-accent)}
+
+/* ── 第一屏 ── */
+.hero{position:relative;overflow:hidden}
+.idx{position:absolute;inset:0;overflow:hidden;opacity:.085;pointer-events:none;
+  -webkit-mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent);mask-image:linear-gradient(transparent,#000 25%,#000 75%,transparent)}
+.idx-roll{font:12px/2.1 var(--mono);white-space:nowrap;padding-left:52%;animation:roll 180s linear infinite;will-change:transform}
+@keyframes roll{to{transform:translateY(-50%)}}
+.boot{font:12.5px/1.8 var(--mono);color:var(--pk-dim);letter-spacing:.05em;margin:0 0 30px}
+.boot b{color:var(--pk-accent);font-weight:500}
+.fic{border:1px solid var(--pk-line);padding:1px 7px;border-radius:3px;white-space:nowrap}
+.hero h1{font-size:clamp(26px,6vw,44px);line-height:1.45;letter-spacing:.01em;margin:0 0 14px}
+.hook2{font:clamp(17px,3.6vw,23px)/1.7 var(--mono);margin:0}
+.hook2 em{font-style:normal;color:var(--pk-accent)}
+.fake-q{overflow-wrap:anywhere;margin:36px 0 8px;border:1px solid var(--pk-line);background:var(--well);padding:14px 16px;font:15px/1.6 var(--mono);border-radius:6px;min-height:52px}
+.pr{color:var(--pk-accent);margin-right:10px;user-select:none}
+.caret{display:inline-block;width:.55em;height:1.05em;background:var(--pk-accent);vertical-align:-.18em;margin-left:2px;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.fake-note{font:13px/1.7 var(--mono);color:var(--pk-dim);min-height:3.4em;margin:0 0 30px;opacity:0;transition:opacity .6s}
+.fake-note.on{opacity:1}
+.fake-note b{color:var(--pk-ink);font-weight:500}
+.boot-btn{font-family:var(--mono)}
+
+/* ── 一般段落 ── */
+.prose{margin:0 0 56px}
+.prose p{font-size:16.5px;margin:0 0 16px}
+h2{font:600 clamp(20px,3.6vw,26px)/1.5 var(--mono);margin:0 0 18px}
+h2::before{content:"## ";color:var(--pk-accent)}
+.sm{font-size:14px;color:var(--pk-dim)}
+.kbd{font:12.5px var(--mono);border:1px solid var(--pk-line);border-bottom-width:2px;border-radius:4px;padding:0 6px}
+
+/* ── 假介面：掘字主控台 ── */
+.console{margin:10px -10px 64px;border:1px solid var(--pk-line);background:var(--panel);border-radius:10px;overflow:hidden;
+  box-shadow:0 30px 90px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.03)}
+.c-bar{display:flex;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid var(--pk-line);font:12px var(--mono);color:var(--pk-dim);background:#171715}
+.dots{display:flex;gap:6px}
+.dots i{width:9px;height:9px;border-radius:50%;background:#3a3934;display:block}
+.c-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-name b{color:var(--pk-ink);font-weight:500}
+.c-body{padding:18px 18px 22px}
+.lv-nav{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:0 0 18px;padding:0}
+.lv-nav button{font:12px var(--mono);color:var(--pk-dim);background:transparent;border:1px solid var(--pk-line);border-radius:4px;padding:5px 9px;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
+.lv-nav button:hover{color:var(--pk-ink);border-color:var(--amber-line)}
+.lv-nav button[aria-current="step"]{color:#1a1205;background:var(--pk-accent);border-color:var(--pk-accent)}
+.lv-nav button.done::after{content:" ✓";color:var(--pk-accent)}
+.lv-nav button.done[aria-current="step"]::after{color:#1a1205}
+.brief{position:relative;border-left:2px solid var(--pk-accent);padding:2px 84px 2px 14px;margin:0 0 18px;min-height:96px}
+.brief .tag{font:12px var(--mono);color:var(--pk-dim);letter-spacing:.08em}
+.brief h3{font:600 19px/1.5 var(--mono);margin:2px 0 6px;color:var(--ink2)}
+.brief p{margin:0 0 8px;font-size:15px;line-height:1.8}
+.goal{font:12.5px/1.7 var(--mono);color:var(--pk-accent)}
+.stamp{position:absolute;right:0;top:4px;font:700 13px/1 var(--mono);color:var(--pk-accent);border:2px solid var(--pk-accent);padding:6px 8px;border-radius:4px;
+  opacity:0;transform:rotate(-9deg) scale(1.7);transition:transform .38s cubic-bezier(.2,1.6,.4,1),opacity .2s;pointer-events:none;text-align:center}
+.stamp small{display:block;font-size:10.5px;font-weight:500;margin-top:4px;letter-spacing:.04em}
+.brief.won .stamp{opacity:1;transform:rotate(-9deg) scale(1)}
+.qbar{display:flex;align-items:center;gap:8px;background:var(--well);border:1px solid var(--amber-line);border-radius:6px;padding:4px 4px 4px 12px;transition:box-shadow .2s}
+.qbar:focus-within{box-shadow:0 0 0 3px var(--amber-soft)}
+.qbar label{font:15px var(--mono);color:var(--pk-accent);user-select:none;cursor:text}
+.qbar input{flex:1;min-width:0;background:transparent;border:0;color:var(--ink2);font:16px/1.4 var(--mono);padding:10px 0;caret-color:var(--pk-accent);outline:none}
+.qbar input::placeholder{color:#5f5b53}
+.go{font:600 13px var(--mono);background:var(--pk-accent);color:#1a1205;border:0;border-radius:4px;padding:10px 14px;cursor:pointer;white-space:nowrap}
+.go:focus-visible{outline:2px solid var(--ink2);outline-offset:2px}
+.trace{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px;min-height:24px}
+.chip{font:12px/1.6 var(--mono);border:1px solid var(--pk-line);border-radius:3px;padding:1px 7px;color:var(--pk-dim);animation:chipIn .25s ease both}
+@keyframes chipIn{from{opacity:0;transform:translateY(3px)}}
+.chip b{color:var(--ink2);font-weight:500}
+.chip.k-phrase,.chip.k-or{border-color:var(--amber-line)}
+.chip.k-neg b{text-decoration:line-through;text-decoration-color:var(--pk-accent)}
+.chip.k-filter{background:rgba(255,255,255,.03)}
+.warn{font:12px/1.7 var(--mono);color:var(--warn);margin:4px 0 0}
+.status{font:12px var(--mono);color:var(--pk-dim);margin:10px 0 6px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.status b{color:var(--ink2);font-weight:500}
+.res{list-style:none;margin:0;padding:0;border-top:1px dashed var(--pk-line)}
+.r{padding:11px 4px;border-bottom:1px dashed var(--pk-line);opacity:0;transform:translateY(6px);
+  transition:opacity .3s ease,transform .3s ease,background .4s;transition-delay:calc(var(--i,0) * 28ms)}
+.r.in{opacity:1;transform:none}
+.r-top{display:flex;gap:8px;align-items:baseline;font:11.5px/1.6 var(--mono);color:var(--pk-dim);flex-wrap:wrap}
+.ft{color:#141412;background:#7b8590;padding:0 5px;border-radius:2px;font-weight:700;font-size:10.5px;letter-spacing:.04em}
+.ft.pdf{background:#d9875a}.ft.xlsx{background:#93b06c}.ft.pptx{background:#cfa64b}
+.url{overflow-wrap:anywhere;min-width:0}
+.dt{margin-left:auto;white-space:nowrap}
+.r-t{font-size:15.5px;line-height:1.55;color:var(--ink2);margin:3px 0 2px}
+.r-s{font-size:13.5px;color:var(--pk-dim);line-height:1.7}
+mark{background:var(--amber-soft);color:var(--pk-accent);border-radius:2px;padding:0 1px}
+mark.fz{background:transparent;border-bottom:1px dotted var(--pk-accent);padding:0}
+.r.hit{background:linear-gradient(90deg,var(--amber-soft),transparent 75%);box-shadow:inset 2px 0 0 var(--pk-accent);padding-left:12px}
+.r.hit .r-t::after{content:"  ◆ 就是它";font:12px var(--mono);color:var(--pk-accent)}
+.more{font:12px var(--mono);color:var(--pk-dim);padding:10px 4px}
+.empty{font:13px/1.8 var(--mono);color:var(--pk-dim);padding:14px 4px}
+.verdict{margin:16px 0 0;font-size:14.5px;line-height:1.85}
+.verdict:empty{display:none}
+.v-box{border:1px solid var(--pk-line);border-radius:6px;padding:12px 14px;background:rgba(0,0,0,.18)}
+.v-box.ok{border-color:var(--amber-line)}
+.v-h{font:600 13px var(--mono);letter-spacing:.06em;margin:0 0 6px;color:var(--pk-accent)}
+.v-box.bad .v-h{color:var(--warn)}
+.v-box ul{margin:0;padding-left:1.2em}
+.v-box li{margin:2px 0}
+.gap{display:grid;grid-template-columns:auto auto 1fr;gap:2px 10px;font:13px/1.8 var(--mono);margin:10px 0 2px}
+.gap .you{color:var(--pk-dim);text-decoration:line-through;text-decoration-color:rgba(242,163,58,.6)}
+.gap .arr{color:var(--pk-dim)}
+.gap .it{color:var(--pk-accent)}
+.hints{margin:12px 0 0}
+.hint{font-size:14px;line-height:1.8;margin:0 0 8px;padding:8px 12px;border-left:2px solid var(--pk-line);animation:chipIn .35s ease both}
+.hint .hn{font:12px var(--mono);color:var(--pk-accent);margin-right:8px}
+.hint code{background:var(--well);border:1px solid var(--pk-line);border-radius:3px;padding:1px 6px;color:var(--ink2);overflow-wrap:anywhere}
+.ctl{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.pk-btn.sm{font-family:var(--mono);font-size:13px;padding:8px 16px;letter-spacing:.04em}
+.mini-btn{font:12px var(--mono);background:transparent;color:var(--pk-accent);border:1px solid var(--amber-line);border-radius:3px;padding:2px 8px;cursor:pointer;margin-left:6px}
+.mini-btn:hover{background:var(--amber-soft)}
+.syntax{margin-top:18px;border-top:1px solid var(--pk-line);padding-top:10px}
+.syntax summary{font:12.5px var(--mono);color:var(--pk-dim);cursor:pointer}
+.syntax table{font:12.5px/1.7 var(--mono);border-collapse:collapse;margin-top:8px;width:100%}
+.syntax td{padding:3px 10px 3px 0;vertical-align:top;border-bottom:1px dashed var(--pk-line)}
+.syntax td:first-child{color:var(--pk-accent);white-space:nowrap}
+.skip{font:12px var(--mono);color:var(--pk-dim);background:none;border:0;text-decoration:underline;cursor:pointer;padding:0;margin-left:auto}
+
+/* ── 轉折：手冊頁 ── */
+.man{font-family:var(--mono);margin:0 0 64px;border-top:1px solid var(--pk-line);border-bottom:1px solid var(--pk-line);padding:22px 0}
+.man-h{display:flex;justify-content:space-between;font-size:12px;color:var(--pk-dim);letter-spacing:.06em;margin-bottom:18px;gap:8px}
+.man h3{font:600 13px var(--mono);color:var(--pk-accent);letter-spacing:.12em;margin:22px 0 8px}
+.man p{font-family:var(--pk-sans);font-size:16px;margin:0 0 14px;padding-left:2ch}
+.rules{list-style:none;margin:0;padding:0 0 0 2ch;counter-reset:r}
+.rules li{counter-increment:r;margin:0 0 18px;padding-left:4ch;position:relative}
+.rules li::before{content:"-" counter(r);position:absolute;left:0;color:var(--pk-accent);font-size:14px}
+.rules b{font-size:15px;color:var(--ink2);font-weight:600}
+.rules p{padding:0;margin:4px 0 6px;font-size:15px}
+.ba{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;line-height:1.75}
+.ba span:nth-child(odd){color:var(--pk-dim)}
+.ba .no{color:var(--pk-dim);text-decoration:line-through;text-decoration-color:rgba(242,163,58,.55)}
+.ba .yes{color:var(--pk-accent);overflow-wrap:anywhere}
+
+/* ── 拆字機 ── */
+.rw{margin:0 0 70px}
+.rw-box{border:1px solid var(--amber-line);border-radius:8px;background:var(--well);padding:14px}
+.rw-box:focus-within{box-shadow:0 0 0 3px var(--amber-soft)}
+.rw-box textarea{width:100%;background:transparent;border:0;color:var(--ink2);font:16px/1.6 var(--mono);resize:vertical;outline:none;caret-color:var(--pk-accent);min-height:3.4em}
+.rw-box textarea::placeholder{color:#5f5b53}
+.rw-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.eg{font:12px var(--mono);color:var(--pk-dim);background:transparent;border:1px dashed var(--pk-line);border-radius:3px;padding:3px 8px;cursor:pointer}
+.eg:hover{color:var(--pk-ink);border-color:var(--amber-line)}
+.rw-out{margin-top:16px;font:13.5px/1.8 var(--mono)}
+.rw-out:empty{display:none}
+.rw-line{display:grid;grid-template-columns:5.5em 1fr;gap:8px;padding:4px 0;border-bottom:1px dashed var(--pk-line)}
+.rw-k{color:var(--pk-dim)}
+.rw-v{overflow-wrap:anywhere}
+.rw-v s{color:var(--pk-dim);text-decoration-color:rgba(242,163,58,.6)}
+.rw-v .to{color:var(--pk-accent)}
+.rw-qs{list-style:none;margin:14px 0 0;padding:0;counter-reset:q}
+.rw-qs li{counter-increment:q;display:grid;grid-template-columns:2ch 1fr auto;gap:4px 10px;align-items:start;padding:8px 0;border-bottom:1px dashed var(--pk-line);animation:chipIn .3s ease both}
+.rw-qs li::before{content:counter(q);color:var(--pk-accent)}
+.rw-qs code{color:var(--ink2);overflow-wrap:anywhere;font-size:14px}
+.rw-qs .why{grid-column:2 / 3;color:var(--pk-dim);font-size:12.5px}
+.rw-note{color:var(--warn);font-size:12.5px;margin-top:10px}
+
+/* ── 釣魚竿 ── */
+.rod{margin:0 0 64px}
+.rod details{border-top:1px solid var(--pk-line)}
+.rod details:last-of-type{border-bottom:1px solid var(--pk-line)}
+.rod summary{cursor:pointer;list-style:none;padding:16px 0;font:600 15.5px var(--mono);display:flex;gap:12px;align-items:baseline}
+.rod summary::-webkit-details-marker{display:none}
+.rod summary::before{content:"+";color:var(--pk-accent);width:1ch;transition:transform .25s;display:inline-block}
+.rod details[open] summary::before{content:"−"}
+.rod summary small{font:400 12.5px var(--pk-sans);color:var(--pk-dim)}
+.rod .in{padding:0 0 22px}
+.rod p,.rod li{font-size:15px}
+.rod h4{font:600 13px var(--mono);color:var(--pk-accent);letter-spacing:.08em;margin:20px 0 8px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.col{border:1px solid var(--pk-line);border-radius:6px;padding:12px;background:rgba(0,0,0,.15)}
+.col h5{font:600 12.5px var(--mono);margin:0 0 4px;color:var(--ink2)}
+.col .src{font-size:11.5px;color:var(--pk-dim);margin:0 0 10px;line-height:1.6}
+.col dl{margin:0;font-size:13.5px;line-height:1.65}
+.col dt{font-family:var(--mono);color:var(--pk-accent);margin-top:8px;overflow-wrap:anywhere}
+.col dd{margin:0;color:var(--pk-ink)}
+.col.off dt{color:var(--warn)}
+.col.dead dt{color:var(--pk-dim);text-decoration:line-through}
+.tbl{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--pk-line);border-radius:6px}
+.tbl table{border-collapse:collapse;min-width:680px;width:100%;font-size:13px;line-height:1.6}
+.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--pk-line);text-align:left;vertical-align:top}
+.tbl th{font:600 12px var(--mono);color:var(--pk-dim);background:rgba(255,255,255,.02);white-space:nowrap}
+.tbl td:first-child{color:var(--pk-dim);white-space:nowrap}
+.tbl code{color:var(--pk-accent)}
+pre.term{background:var(--well);border:1px solid var(--pk-line);border-radius:6px;padding:12px 14px;font:13px/1.75 var(--mono);overflow-x:auto;color:var(--ink2);margin:8px 0 12px}
+pre.term .c{color:var(--pk-dim)}
+.hw{counter-reset:h;list-style:none;padding:0;margin:0}
+.hw li{counter-increment:h;padding:12px 0 12px 3ch;position:relative;border-bottom:1px dashed var(--pk-line)}
+.hw li::before{content:counter(h) ".";position:absolute;left:0;color:var(--pk-accent);font-family:var(--mono)}
+.hw code{display:inline-block;background:var(--well);border:1px solid var(--pk-line);border-radius:3px;padding:1px 6px;color:var(--ink2);overflow-wrap:anywhere;margin-top:4px}
+.links li{margin:6px 0}
+.caveat{font-size:13px;color:var(--warn);font-family:var(--mono)}
+
+/* ── 回馬槍 ── */
+.coda{min-height:70vh;display:flex;flex-direction:column;justify-content:center;margin:0 0 20px}
+.coda .ln{font:clamp(17px,3.4vw,22px)/1.9 var(--mono);margin:0}
+.coda .ln.dim{color:var(--pk-dim)}
+.coda .ln.big{font-size:clamp(22px,5vw,34px);margin-top:26px;line-height:1.5}
+.coda .ln.big em{font-style:normal;color:var(--pk-accent)}
+.coda .fake-q{margin-top:34px}
+
+.pk-foot{font-family:var(--mono)}
+
+@media (max-width:560px){
+  .console{margin-left:-8px;margin-right:-8px;border-radius:8px}
+  .c-body{padding:14px 12px 18px}
+  .brief{padding-right:0;min-height:0}
+  .stamp{top:auto;bottom:-6px;right:4px}
+  .cols{grid-template-columns:1fr}
+  .rw-line{grid-template-columns:1fr;gap:0}
+  .go{padding:10px 10px}
+  .dt{margin-left:0}
+}
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto}
+  .idx-roll,.caret{animation:none}
+  .r{opacity:1;transform:none;transition:none}
+  .chip,.hint,.rw-qs li{animation:none}
+  .stamp{transition:none}
+  .fake-note{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero hero">
+  <div class="idx" aria-hidden="true"><div class="idx-roll" id="idxRoll"></div></div>
+  <div class="pk-wrap">
+    <p class="boot rv">掘字 0.9 · 本機索引 <b id="docN">56</b> 份文件 · <span class="fic">虛構示意</span></p>
+    <h1 class="rv">你要找的東西就在網路上。</h1>
+    <p class="hook2 rv">問題是：你打的字，跟它寫的字<em>不一樣</em>。</p>
+    <div class="fake-q rv" aria-hidden="true"><span class="pr">掘&gt;</span><span id="heroType"></span><i class="caret"></i></div>
+    <p class="fake-note" id="heroNote"></p>
+    <a class="pk-btn boot-btn rv" href="#console">開機 ↓</a>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="prose rv" aria-labelledby="h-rules">
+    <h2 id="h-rules">這台機器很笨，笨得很誠實</h2>
+    <p>掘字是一台小搜尋引擎，只收了 56 份文件——全是虛構的市政公告、新聞、懶人包、論壇和轉貼站，網域都以 <code>.example</code> 結尾。它聽不懂意思，只認字：你打的每個字，它去每份文件裡找；找得到的留下，找不到的淘汰，再按「字出現在標題還是內文」和「這個網站多熱門」排名。</p>
+    <p>真實的搜尋引擎聰明得多，會猜同義詞、會改錯字、會讀懂問句。但不管它多聰明，你能控制的，就只有打進框裡的那幾個字。</p>
+    <p>下面有八張委託單。每張背後都有一份文件，被雜訊埋著。輸入時清單會即時更新，按 <span class="kbd">Enter</span> 交件；失敗三次，示範寫法會自己浮出來。</p>
+  </section>
+
+  <section id="console" class="console" aria-label="掘字搜尋引擎（虛構示意）">
+    <div class="c-bar">
+      <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span class="c-name"><b>掘字</b> · 委託 <span id="barLv">1</span>/8</span>
+      <span class="fic">虛構示意</span>
+    </div>
+    <div class="c-body">
+      <ol class="lv-nav" id="lvNav" aria-label="委託單"></ol>
+
+      <div class="brief" id="brief">
+        <div class="tag" id="lvTag">委託 01 / 08</div>
+        <h3 id="lvTitle">—</h3>
+        <p id="lvBrief"></p>
+        <div class="goal" id="lvGoal"></div>
+        <div class="stamp" id="stamp" aria-hidden="true">結案<small id="stampOp"></small></div>
+      </div>
+
+      <form class="qbar" id="qf" role="search" autocomplete="off">
+        <label for="q">掘&gt;</label>
+        <input id="q" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="打字，按 Enter 交件" aria-describedby="status">
+        <button class="go" type="submit">交件</button>
+      </form>
+      <div class="trace" id="trace" aria-label="掘字怎麼讀你的查詢"></div>
+      <div id="warns"></div>
+      <div class="status" id="status"><span>等你下指令</span></div>
+      <ol class="res" id="res" aria-label="搜到的文件"></ol>
+
+      <div class="verdict" id="verdict" aria-live="polite"></div>
+      <div class="hints" id="hints"></div>
+      <div class="ctl">
+        <button class="pk-btn sm" id="hintBtn" type="button">要提示</button>
+        <button class="pk-btn sm" id="nextBtn" type="button" hidden>下一張委託 →</button>
+        <button class="skip" id="skipBtn" type="button">先跳過關卡，往下讀</button>
+      </div>
+
+      <details class="syntax">
+        <summary>掘字認得的暗號（教學用，規則簡化）</summary>
+        <table>
+          <tr><td>"…"</td><td>一字不差的片語；片語裡的 * 代表「中間隨便幾個字」</td></tr>
+          <tr><td>-字</td><td>排除含有這個字的文件；也能 -"片語"、-site:</td></tr>
+          <tr><td>site:</td><td>只看某網域（含子網域）或某網址開頭</td></tr>
+          <tr><td>filetype:</td><td>pdf／xlsx／pptx／html（ext: 同義）</td></tr>
+          <tr><td>after: before:</td><td>文件日期，格式 2023-01-31 或 2023/01/31，含當天</td></tr>
+          <tr><td>A OR B</td><td>大寫 OR 或 |：兩者有一個就算</td></tr>
+          <tr><td>intitle: inurl:</td><td>只比對標題／網址</td></tr>
+          <tr><td>其他</td><td>沒加引號的字：每個都要出現。五個字以上連在一起的中文，會被拆成兩字一組比對（命中一半就算）</td></tr>
+        </table>
+      </details>
+    </div>
+  </section>
+
+  <section class="man rv" id="man" aria-labelledby="h-man">
+    <div class="man-h" aria-hidden="true"><span>KEYWORD(7)</span><span>掘字使用手冊</span><span>KEYWORD(7)</span></div>
+    <h2 id="h-man">第七張委託單為什麼不一樣</h2>
+    <p>前六張，你在學篩子：引號篩掉改寫、減號篩掉同名、site: 篩掉轉貼、日期和檔案類型篩掉舊版。到了第七張，篩子全部失靈——市府那份押金爭議須知，通篇沒有「房東」，也沒有「押金」。它寫的是「出租人」「承租人」「押租金」「返還」。</p>
+    <p>運算子只能從已經存在的字裡挑。如果你打的字根本不在那一頁上，篩子越細，留下的越少，最後一筆不剩。</p>
+
+    <h3>名稱</h3>
+    <p>關鍵字思維——不要描述你的問題，去猜「那一頁上會寫哪些字」。</p>
+
+    <h3>選項</h3>
+    <ol class="rules">
+      <li><b>用作者的詞彙，不用你的問題句。</b>
+        <p>寫那份文件的人，用的是他那一行的行話：法律寫「出租人」、醫學寫「腹瀉」、工程師寫錯誤代碼。最快學到行話的地方，常常就是排名第一的那篇雜訊——它為了被搜到，會順手把正式名稱寫出來。</p>
+        <div class="ba"><span>你想</span><span class="no">房東不還押金怎麼辦</span><span>它寫</span><span class="yes">押租金 返還 出租人</span></div></li>
+      <li><b>具體名詞勝過形容詞。</b>
+        <p>「很好用」「最新」「推薦」是每一頁都會寫的字，等於沒篩。能指認的東西才有用：型號、地名、機關名、標準編號、專案名。</p>
+        <div class="ba"><span>你想</span><span class="no">公車 App 的資料去哪裡拿</span><span>它寫</span><span class="yes">公車動態 介接規格書 API</span></div></li>
+      <li><b>錯誤訊息整段照貼，加引號，拿掉只屬於你的部分。</b>
+        <p>錯誤訊息不分國界，人人看到的都是同一串字。把路徑、帳號、你的檔名去掉，留下固定的那段，用引號包起來。</p>
+        <div class="ba"><span>你想</span><span class="no">python 跑不動 找不到 pandas</span><span>它寫</span><span class="yes">"ModuleNotFoundError: No module named"</span></div></li>
+      <li><b>同一個東西，列出所有叫法。</b>
+        <p>自行車、單車、腳踏車；健保、全民健康保險；AI、人工智慧。叫法一列出來，就能用 OR 一次撈齊。</p></li>
+      <li><b>換一種語言。</b>
+        <p>技術和學術題材，英文寫成的頁面常常多得多。中文找不到時，把關鍵名詞換成英文術語再試一次，例如「過擬合」→ <code>overfitting</code>。</p></li>
+    </ol>
+    <h3>注意</h3>
+    <p>掘字是教學用的玩具：56 份文件、規則簡化。真實引擎會自動擴充同義詞、改寫你的查詢，同一招在外面效果可能更好，也可能更差——所以每招都值得在真的搜尋框裡驗證一次。</p>
+  </section>
+
+  <section class="rw rv" id="rw" aria-labelledby="h-rw">
+    <h2 id="h-rw">換你：把一個真的問題打進來</h2>
+    <p class="prose" style="margin:0 0 14px">最近一直查不到的那件事，用平常說話的方式打進來。下面這台拆字機會拿掉問句詞、找出核心名詞、換成文件常用的詞，再給你幾種可以拿去真實搜尋框試的寫法。它是規則式的、詞庫有限，粗糙但誠實。</p>
+    <form class="rw-box" id="rwf">
+      <label for="rwq" class="pk-sr">你的問題</label>
+      <textarea id="rwq" rows="2" spellcheck="false" placeholder="例如：為什麼我的房東一直不還押金？"></textarea>
+      <div class="rw-row">
+        <button class="go" type="submit">拆成它的字</button>
+        <span class="sm" style="margin-left:4px">或試試：</span>
+        <button class="eg" type="button">為什麼我的房東一直不還押金？</button>
+        <button class="eg" type="button">Python 一直出現 ModuleNotFoundError: No module named 'pandas' 怎麼辦</button>
+        <button class="eg" type="button">2023 年台灣的空氣品質報告哪裡可以下載</button>
+        <button class="eg" type="button">老闆不給加班費可以去哪裡申訴</button>
+      </div>
+    </form>
+    <div class="rw-out" id="rwOut" aria-live="polite"></div>
+  </section>
+
+  <section class="rod rv" id="rod" aria-labelledby="h-rod">
+    <h2 id="h-rod">帶走：一套釣竿</h2>
+    <p class="sm" style="margin:0 0 12px">平台語法會變，以各家官方說明為準。以下於 2026-10-06 對照官方頁面整理。</p>
+
+    <details>
+      <summary>Google 運算子速查 <small>官方列出的／坊間流傳的／已退役的</small></summary>
+      <div class="in">
+        <div class="cols">
+          <div class="col">
+            <h5>官方說明頁列出</h5>
+            <p class="src">Google 搜尋說明〈Refine Google searches〉</p>
+            <dl>
+              <dt>"精確詞組"</dt><dd>整段一字不差。</dd>
+              <dt>site:gov.tw</dt><dd>只看某網站或網域。</dd>
+              <dt>-詞</dt><dd>排除含有這個詞的頁面。</dd>
+              <dt>after:2023-01-01 before:2023-12-31</dt><dd>日期區間，可單用也可合用；也接受 2025/11/01 這種寫法。</dd>
+              <dt>filetype:pdf</dt><dd>指定檔案類型。</dd>
+            </dl>
+            <p class="src" style="margin-top:10px">運算子和詞之間不能有空格：<code>site:nytimes.com</code> 可以，<code>site: nytimes.com</code> 不行。不想記語法，可用「工具 → 進階搜尋」表單。Search Central 的除錯頁另列了只在 Google 圖片有效的 <code>imagesize:</code>、<code>src:</code>。</p>
+          </div>
+          <div class="col off">
+            <h5>坊間流傳、官方說明頁沒列</h5>
+            <p class="src">可能時靈時不靈、隨時會變。清單據 Ahrefs 整理（2023，2026 更新）與維基百科 Google Search 條目。</p>
+            <dl>
+              <dt>A OR B　A | B</dt><dd>任一個出現即可（要大寫）。</dd>
+              <dt>( )</dt><dd>分組，例如 <code>(單車 OR 自行車) 道路</code>。</dd>
+              <dt>"最大的 * 在世界上"</dt><dd>引號裡的 * 當佔位萬用字元。</dd>
+              <dt>intitle:　allintitle:</dt><dd>詞要出現在標題。</dd>
+              <dt>inurl:　allinurl:</dt><dd>詞要出現在網址。</dd>
+              <dt>intext:</dt><dd>詞要出現在內文。</dd>
+              <dt>ext:pdf</dt><dd>filetype: 的別名。</dd>
+              <dt>define:詞</dt><dd>查定義。</dd>
+              <dt>AROUND(4)</dt><dd>兩詞相距幾個字內；Ahrefs 列為「不可靠」。</dd>
+            </dl>
+          </div>
+          <div class="col dead">
+            <h5>已退役</h5>
+            <p class="src">別再用；舊教學還在流傳。</p>
+            <dl>
+              <dt>+詞</dt><dd>舊的「必含」。據 Ahrefs 引 Search Engine Land，2011 年取消；改用引號。有趣的是 Gmail 說明頁至今仍把 <code>+</code> 列為「完全符合該字」——同一家公司，不同產品，語法不通用。</dd>
+              <dt>~詞</dt><dd>舊的「含同義詞」。據同一來源，2013 年取消；現在引擎會自己擴充同義詞。</dd>
+              <dt>cache:</dt><dd>看 Google 快取頁。Google 於 2024 年 2 月移除快取連結（The Verge 報導、維基百科），此運算子也不再提供；舊頁面改去 Wayback Machine 找。</dd>
+              <dt>link:　info:</dt><dd>據 Ahrefs 引 Search Engine Land，2017 年取消。</dd>
+            </dl>
+            <p class="src" style="margin-top:10px">小插曲：連整理清單的文章也會過時——那份 Ahrefs 清單在本頁查證時仍把 <code>cache:</code> 列為「可用」。查語法，回到官方頁。</p>
+          </div>
+        </div>
+        <p class="sm" style="margin-top:14px">日期篩選的提醒：Ahrefs 指出 before:／after: 不一定準，因為頁面更新也會改變它被認定的日期。掘字第四關的「年度」陷阱，在真實世界只會更亂。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>同一個想法，換個平台怎麼寫 <small>Gmail／GitHub／PubMed</small></summary>
+      <div class="in">
+        <p>想法是共通的——精確、排除、限定來源、限定時間、限定欄位——寫法各家不同。橫著讀這張表，換平台時就知道去說明頁找哪一條。</p>
+        <div class="tbl" tabindex="0" role="region" aria-label="跨平台語法對照表（可橫向捲動）">
+          <table>
+            <thead><tr><th>想做的事</th><th>Google 網頁</th><th>Gmail</th><th>GitHub Code Search</th><th>PubMed</th></tr></thead>
+            <tbody>
+              <tr><td>一字不差</td><td><code>"…"</code></td><td><code>"…"</code></td><td><code>"…"</code></td><td><code>"…"</code>（片語搜尋）</td></tr>
+              <tr><td>排除</td><td><code>-詞</code></td><td><code>-詞</code></td><td><code>NOT</code></td><td><code>NOT</code></td></tr>
+              <tr><td>任一個</td><td><code>OR</code>（非官方說明）</td><td><code>OR</code> 或 <code>{ }</code></td><td><code>OR</code>，可加括號</td><td><code>OR</code>（必須大寫），由左到右處理，用括號分組</td></tr>
+              <tr><td>限定來源</td><td><code>site:</code></td><td><code>from:</code> <code>to:</code> <code>list:</code></td><td><code>repo:owner/name</code> <code>org:</code> <code>user:</code></td><td><code>[au]</code> 作者、<code>[ad]</code> 機構</td></tr>
+              <tr><td>限定時間</td><td><code>after:</code> <code>before:</code></td><td><code>after:2004/04/16</code>、<code>older_than:1y</code>、<code>newer_than:2d</code></td><td>—</td><td><code>2019/01/01:2019/06/30[dp]</code></td></tr>
+              <tr><td>限定欄位</td><td><code>intitle:</code>（非官方說明）</td><td><code>subject:</code></td><td><code>symbol:</code> <code>content:</code> <code>language:</code></td><td><code>[ti]</code> 標題、<code>[tiab]</code> 標題＋摘要、<code>[mh]</code> MeSH 主題詞</td></tr>
+              <tr><td>檔案／類型</td><td><code>filetype:pdf</code></td><td><code>has:attachment</code> <code>filename:pdf</code></td><td><code>path:*.md</code>、<code>path:/src/**/*.js</code></td><td><code>systematic review[pt]</code></td></tr>
+              <tr><td>模式比對</td><td>—</td><td><code>holiday AROUND 10 vacation</code></td><td><code>/sparse.*index/</code>，預設不分大小寫，<code>/(?-i)True/</code> 區分</td><td><code>vaccin*</code>（* 前至少 4 個字元）、<code>"hip pain"[Title:~4]</code> 鄰近搜尋</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h4>各平台的小陷阱</h4>
+        <ul>
+          <li>Gmail：用負面運算子時，整串對話仍可能出現，因為它先找符合的「單封信」。搜完可以直接把條件存成篩選器。</li>
+          <li>GitHub：空白就是 AND；<code>repo:</code> 要寫完整的 owner/name；正規表示式不支援 look-around。</li>
+          <li>PubMed：一加欄位標籤（例如 <code>[tiab]</code>）或萬用字元，就會關掉「自動詞彙對應」（Automatic Term Mapping），不再自動帶入 MeSH 同義詞——精準換來的是漏網。同一欄位查多個詞，要每個詞各自加標籤。</li>
+        </ul>
+        <p class="sm">表內各格依 Gmail 說明〈Refine searches in Gmail〉、GitHub Docs〈Understanding GitHub Code Search syntax〉、PubMed Help 整理。其他平台（如論壇站內搜尋）語法差異更大，請找它們自己的說明頁。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>給工程師：捷徑與命令列 <small>Chrome 網站搜尋、ripgrep</small></summary>
+      <div class="in">
+        <h4>把常用查詢變成網址列捷徑</h4>
+        <p>Chrome：設定 → 搜尋引擎 → 管理搜尋引擎和網站搜尋 → 「網站搜尋」旁按「新增」。填三欄：名稱、捷徑、以 <code>%s</code> 代替查詢字詞的網址（介面字樣依版本略有不同）。之後在網址列打捷徑＋空白＋關鍵字即可。</p>
+<pre class="term"><span class="c"># 捷徑 pm → PubMed</span>
+https://pubmed.ncbi.nlm.nih.gov/?term=%s
+<span class="c"># 捷徑 mdn → 把 site: 綁死在網址裡</span>
+https://www.google.com/search?q=site:developer.mozilla.org+%s</pre>
+        <h4>同一套思維，搬到自己的硬碟</h4>
+        <p>搜尋框的暗號在命令列都有對應。以下旗標依 ripgrep 官方 GUIDE：</p>
+<pre class="term"><span class="c"># 引號（一字不差，不當正規表示式）→ -F</span>
+rg -F 'fn write('
+<span class="c"># 不分大小寫 → -i；大寫才區分 → -S（smart case）</span>
+rg -i timeout
+<span class="c"># 完整的字才算 → -w</span>
+rg -w id
+<span class="c"># filetype: → -g 'glob'；排除類型 → -g '!glob'</span>
+rg 押租金 -g '*.md'
+rg lexopt -g '!*.toml'
+<span class="c"># site:（限定範圍）→ 直接給目錄</span>
+rg 'fn write\(' src
+<span class="c"># 前後文 → -C；只算行數 → -c</span>
+rg -C 2 'connection refused'
+<span class="c"># 搜 PDF → 先轉文字（pdftotext），或用 --pre 前處理器</span>
+pdftotext report.pdf - | rg -i 'pm2\.5'</pre>
+        <p class="sm">ripgrep 預設會略過 <code>.gitignore</code> 裡的檔案、隱藏檔與二進位檔——找不到東西時，加 <code>-u</code>（可重複到 <code>-uuu</code>）逐層放寬，或用 <code>--debug</code> 看它略過了什麼。這跟搜尋引擎的「沒收錄」是同一種盲點。</p>
+        <h4>把查詢當程式碼保存</h4>
+        <p>好用的查詢字串存進筆記或 repo 的 README，標上日期與用途。下次只改兩個字就能重跑；語法失效時，也知道從哪天開始壞的。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>五題回家作業 <small>去真的搜尋框試</small></summary>
+      <div class="in">
+        <p class="caveat">參考寫法不保證搜到什麼；索引與排名會隨時間變，這正是練習的一部分。</p>
+        <ol class="hw">
+          <li>找一份臺灣政府機關發布的空氣品質年報 PDF。<br><code>空氣品質 年報 site:gov.tw filetype:pdf</code><br><span class="sm">接著加 after:／before: 鎖一年，看筆數怎麼變。</span></li>
+          <li>「It is not the strongest of the species that survives」這句常被掛在達爾文名下，找一個專門追查名言出處的網站怎麼說。<br><code>"not the strongest of the species" site:quoteinvestigator.com</code><br><span class="sm">追溯出處的完整方法，見本系列〈那句達爾文名言是誰寫的〉。</span></li>
+          <li>拿你最近遇到的一則錯誤訊息，去掉自己的路徑與變數，加引號搜。<br><code>"No module named" site:stackoverflow.com</code><br><span class="sm">再拿掉 site: 比一比：官方文件、issue tracker、論壇各占多少。</span></li>
+          <li>用 OR 一次撈三種叫法，再拿掉 OR 只留一種，比較少了什麼。<br><code>(自行車 OR 單車 OR 腳踏車) 道路 規劃 site:gov.tw</code><br><span class="sm">OR 不在官方說明頁上，若行為怪怪的，正好記錄下來。</span></li>
+          <li>挑一個你熟的中文專有名詞，查出它的英文術語，用英文再搜一次，比較頭幾頁的來源類型。<br><code>過擬合</code> → <code>overfitting regularization filetype:pdf</code></li>
+        </ol>
+      </div>
+    </details>
+
+    <details>
+      <summary>自學地圖 <small>下一步去哪讀</small></summary>
+      <div class="in">
+        <ul class="links">
+          <li><a href="https://support.google.com/websearch/answer/2466433" target="_blank" rel="noopener">Google 搜尋說明：Refine Google searches</a>——官方承認的運算子以這頁為準。</li>
+          <li><a href="https://developers.google.com/search/docs/monitor-debug/search-operators" target="_blank" rel="noopener">Google Search Central：Overview of Google search operators</a>——站長視角，含 imagesize:、src:。</li>
+          <li><a href="https://support.google.com/mail/answer/7190" target="_blank" rel="noopener">Gmail 說明：Refine searches in Gmail</a>——信箱裡的整套運算子。</li>
+          <li><a href="https://docs.github.com/en/search-github/github-code-search/understanding-github-code-search-syntax" target="_blank" rel="noopener">GitHub Docs：Understanding GitHub Code Search syntax</a></li>
+          <li><a href="https://pubmed.ncbi.nlm.nih.gov/help/" target="_blank" rel="noopener">PubMed User Guide</a>——欄位標籤、MeSH、Automatic Term Mapping；學術檢索的入門磚。</li>
+          <li><a href="https://support.google.com/chrome/answer/95426" target="_blank" rel="noopener">Chrome 說明：設定預設搜尋引擎與網站搜尋捷徑</a></li>
+          <li><a href="https://github.com/BurntSushi/ripgrep/blob/master/GUIDE.md" target="_blank" rel="noopener">ripgrep User Guide</a></li>
+        </ul>
+        <h4>延伸練習</h4>
+        <ul>
+          <li>挑一個你常去的網站，找出它站內搜尋的說明頁，把它的語法填進上面那張對照表的新一欄。</li>
+          <li>每週把一次失敗的搜尋記下來：你打了什麼、最後是哪幾個字找到的。一個月後回頭看，會發現自己常漏的是哪一類詞。</li>
+          <li>同系列其他頁接著談：怎麼判斷找到的來源可不可信、怎麼問 AI 並查核它給的引用、怎麼追到一段引言的原始出處、怎麼把一次搜尋變成反覆覓食的流程。</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section class="coda rv" aria-label="結尾">
+    <p class="ln dim">&gt; 你要找的東西就在網路上。</p>
+    <p class="ln dim">&gt; 你打的字，跟它寫的字不一樣。</p>
+    <p class="ln">&gt; 那就先去學它的字。</p>
+    <p class="ln big">運算子是篩子。<br>暗號，是<em>它寫的字</em>。</p>
+    <div class="fake-q" aria-hidden="true"><span class="pr">掘&gt;</span><span id="codaQ"></span><i class="caret"></i></div>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Google 搜尋說明中心、Google Search Central、Gmail 說明、Chrome 說明、GitHub Docs、PubMed User Guide、ripgrep GUIDE、Ahrefs、維基百科。<br>
+  掘字、青岬市與頁中所有文件、網域皆為虛構示意。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'srchop.';           /* 本頁 localStorage 前綴（全站唯一） */
+const store = PK.store(LS);
+
+/*CORE-START*/
+/* ── 掘字：語料、查詢解析、排序、判定、拆字機（純函式，node 可測） ── */
+var SR = (function () {
+  'use strict';
+  var GOV = 'qingjia.gov.example', DATA = 'data.qingjia.gov.example';
+  /* 文件欄位：id、t 標題、dom 網域、path、d 日期、f 類型、s 摘要（看得到）、k 內文關鍵詞（看不到）、p 熱門度 0..1 */
+  var D = [
+    /* 委託一：一字不差 */
+    { id: 'a1', t: '退潮以前｜沈汀散文全文', dom: 'lit-archive.example', path: '/shen-ting/tuichao', d: '2009-06-01', f: 'html', s: '收錄於沈汀 1998 年散文集《鹽的地圖》。「我站在堤防上才明白，潮水不會等你準備好，它向來準時。」', k: '散文 原文 堤防 鹽的地圖 沈汀', p: .22 },
+    { id: 'a2', t: '潮水不會等你準備好！100 句讓人振作的名言', dom: 'quotes-daily.example', path: '/list/100-quotes', d: '2021-03-14', f: 'html', s: '第 37 句：「潮水不會等你準備好。」——沈汀。每天一句，給努力的你。', k: '名言 語錄 勵志 振作', p: .9 },
+    { id: 'a3', t: '「機會就像潮水，不會等你準備好」職場語錄精選', dom: 'quotes-daily.example', path: '/list/career', d: '2022-08-02', f: 'html', s: '機會就像潮水，不會等你準備好；準備好的人才看得見浪。', k: '名言 語錄 職場', p: .88 },
+    { id: 'a4', t: '潮水不等人：你準備好了嗎？給新鮮人的 10 個提醒', dom: 'lazypack.example', path: '/career/10-tips', d: '2023-01-09', f: 'html', s: '潮水不等人，你準備好了嗎？整理 10 個出社會前該懂的事。', k: '懶人包 新鮮人 職場', p: .9 },
+    { id: 'a5', t: '網瘋傳「海不會等你準備好」原來出自這位作家', dom: 'trendnews.example', path: '/viral/20240520', d: '2024-05-20', f: 'html', s: '社群瘋傳「海不會等你準備好才漲潮」，有網友指出原句出自一位已故散文家……', k: '熱搜 名言 作家 網友', p: .85 },
+    { id: 'a6', t: '[問卦] 「潮水不會等你」這句到底誰講的', dom: 'talkboard.example', path: '/t/88412', d: '2020-11-11', f: 'html', s: '有人說是日本作家，有人說是電影台詞，還有人說是某企業家，到底？', k: '問卦 名言 出處', p: .6 },
+    { id: 'a7', t: '沈汀逝世十週年 讀者重返北岸堤防', dom: 'harbor-daily.example', path: '/culture/2019-0903', d: '2019-09-03', f: 'html', s: '〈退潮以前〉裡那段被轉貼到面目全非的文字，讓許多讀者專程回到北岸。', k: '沈汀 散文 紀念', p: .5 },
+    /* 委託二：同名撞車 */
+    { id: 'b1', t: '雪鴞冬季遷徙觀察紀錄：北岸濕地 2024–25', dom: 'birdnotes.example', path: '/records/snowy-owl-2025', d: '2025-02-10', f: 'html', s: '今年第一隻雪鴞在十二月初落在北岸濕地的漂流木上。南下的數量與北方旅鼠多寡有關。', k: '猛禽 鳥類 旅鼠 濕地 觀察 遷徙路線', p: .2 },
+    { id: 'b2', t: '北方猛禽圖鑑：雪鴞', dom: 'birdnotes.example', path: '/guide/snowy-owl', d: '2023-11-02', f: 'html', s: '體長約 60 公分的白色貓頭鷹。部分族群在食物短缺的冬季南下遷徙。', k: '猛禽 鳥類 圖鑑 貓頭鷹', p: .25 },
+    { id: 'b3', t: '雪鴞 X5 休旅車 全新上市', dom: 'snowl-motors.example', path: '/x5', d: '2025-01-05', f: 'html', s: '雪鴞汽車年度旗艦。為家庭每一次長途遷徙而生，七人座、續航 600 公里。', k: '汽車 休旅車 新車 規格', p: .95 },
+    { id: 'b4', t: '雪鴞車友會 冬季大遷徙 南下自駕團報名', dom: 'carfans.example', path: '/club/snowl/winter', d: '2024-12-01', f: 'html', s: '雪鴞汽車車主限定！冬季大遷徙，十台以上成團。', k: '車友 自駕 汽車', p: .8 },
+    { id: 'b5', t: '雪鴞汽車召回 1.2 萬輛 煞車軟管恐老化', dom: 'trendnews.example', path: '/auto/20241015', d: '2024-10-15', f: 'html', s: '雪鴞汽車宣布召回旗下兩款車型……', k: '召回 汽車 新聞', p: .85 },
+    { id: 'b6', t: '雪鴞 X5 vs 對手 規格比較懶人包', dom: 'lazypack.example', path: '/auto/snowl-x5', d: '2025-01-20', f: 'html', s: '雪鴞汽車新旗艦值得買嗎？一張表看懂。', k: '汽車 比較 懶人包', p: .9 },
+    { id: 'b7', t: '雪鴞汽車電動車隊 冬季遷徙測試 挑戰零下 20 度', dom: 'harbor-daily.example', path: '/auto/2025-0112', d: '2025-01-12', f: 'html', s: '雪鴞汽車將電動車隊開往北境，進行為期兩週的冬季遷徙測試。', k: '汽車 電動車 測試', p: .7 },
+    /* 委託三：認明出處 */
+    { id: 'c1', t: '青岬市垃圾車收運時間調整公告', dom: GOV, path: '/env/news/2024-1203', d: '2024-12-03', f: 'html', s: '環境保護局公告：自 2025 年 1 月 1 日起，東區、港區垃圾車收運時間調整如下，請市民配合。', k: '環保局 清潔隊 資源回收 路線 公告', p: .3 },
+    { id: 'c2', t: '垃圾車時間大調整！青岬東區居民跳腳', dom: 'harbor-daily.example', path: '/local/2024-1204', d: '2024-12-04', f: 'html', s: '青岬市府公告垃圾車收運時間調整，東區晚班提前一小時……', k: '新聞 東區 居民', p: .75 },
+    { id: 'c3', t: '青岬市垃圾車收運時間調整 一張圖看懂', dom: 'trendnews.example', path: '/local/20241205', d: '2024-12-05', f: 'html', s: '市府公告的青岬市垃圾車收運時間調整，懶人圖新舊時刻對照。', k: '熱搜 時刻表', p: .9 },
+    { id: 'c4', t: '青岬市垃圾車時間表 2025 懶人包（持續更新）', dom: 'lazypack.example', path: '/city/qingjia-trash', d: '2025-01-02', f: 'html', s: '青岬市各區垃圾車收運時間調整後的最新時刻，一頁看完。', k: '懶人包 時刻表', p: .92 },
+    { id: 'c5', t: '[問卦] 青岬垃圾車改時間是要大家半夜倒垃圾？', dom: 'talkboard.example', path: '/t/90233', d: '2024-12-04', f: 'html', s: '收運時間調整到晚上十點半，上班族怎麼追？', k: '問卦 抱怨', p: .6 },
+    { id: 'c6', t: '資源回收日曆（年度版）', dom: GOV, path: '/env/calendar.pdf', d: '2025-01-01', f: 'pdf', s: '各行政區資源回收日與垃圾車收運日一覽。', k: '環保局 回收 日曆', p: .3 },
+    /* 委託四：年份陷阱 */
+    { id: 'd1', t: '青岬市空氣品質年報（2020 年度）', dom: GOV, path: '/env/aq/annual-2020.pdf', d: '2021-04-10', f: 'pdf', s: '彙整 2020 年度全市 12 個測站的 PM2.5、臭氧監測數據與改善措施。', k: '環保局 測站 年平均 年報', p: .3 },
+    { id: 'd2', t: '青岬市空氣品質年報（2021 年度）', dom: GOV, path: '/env/aq/annual-2021.pdf', d: '2022-04-12', f: 'pdf', s: '彙整 2021 年度全市 12 個測站的 PM2.5、臭氧監測數據與改善措施。', k: '環保局 測站 年平均 年報', p: .3 },
+    { id: 'd3', t: '青岬市空氣品質年報（2022 年度）', dom: GOV, path: '/env/aq/annual-2022.pdf', d: '2023-04-18', f: 'pdf', s: '本報告彙整 2022 年度全市 12 個測站的 PM2.5、臭氧監測數據，2023 年 4 月出版。', k: '環保局 測站 年平均 年報', p: .3 },
+    { id: 'd4', t: '青岬市空氣品質年報（2023 年度）', dom: GOV, path: '/env/aq/annual-2023.pdf', d: '2024-04-20', f: 'pdf', s: '彙整 2023 年度全市 12 個測站的監測數據，並與 2022 年度比較。', k: '環保局 測站 年平均 年報', p: .3 },
+    { id: 'd5', t: '2022 年度空氣品質監測數據附表', dom: GOV, path: '/env/aq/data-2022.xlsx', d: '2023-04-18', f: 'xlsx', s: '測站逐月 PM2.5、PM10、臭氧數據，供下載分析。', k: '環保局 開放資料 數據', p: .28 },
+    { id: 'd6', t: '空氣品質專區', dom: GOV, path: '/env/aq', d: '2025-02-01', f: 'html', s: '即時空氣品質、歷年空氣品質年報下載（2020–2023 年度）。', k: '環保局 即時 年報 下載', p: .35 },
+    { id: 'd7', t: '青岬市空品年報出爐 PM2.5 連三年下降', dom: 'harbor-daily.example', path: '/env/2023-0419', d: '2023-04-19', f: 'html', s: '市府今公布 2022 年度空氣品質年報……', k: '新聞 空氣品質 PM2.5', p: .7 },
+    { id: 'd8', t: '青岬市空氣品質年報 2023.pdf 免費下載', dom: 'docs-share.example', path: '/f/qj-aq-2023.pdf', d: '2023-06-02', f: 'pdf', s: '青岬市空氣品質年報 PDF 全文下載，免註冊。', k: '下載 文件', p: .85 },
+    { id: 'd9', t: '2023 青岬市空氣品質報告懶人包', dom: 'lazypack.example', path: '/env/qj-aq-2023', d: '2023-05-10', f: 'html', s: '今年空氣品質報告重點一次看，PM2.5 有變好嗎？', k: '懶人包 空氣品質', p: .9 },
+    /* 委託五：三種叫法 */
+    { id: 'e1', t: '青岬市自行車道路網發展計畫', dom: GOV, path: '/traffic/bike-network.pdf', d: '2024-03-01', f: 'pdf', s: '交通局規劃 2024–2028 年新增 42 公里自行車道，串連捷運站與河濱。', k: '交通局 路網 計畫', p: .3 },
+    { id: 'e2', t: '河濱單車道修復工程公告', dom: GOV, path: '/works/riverside-bikeway', d: '2024-07-15', f: 'html', s: '工務局：河濱單車道北段因颱風損壞，即日起封閉施工。', k: '工務局 施工 河濱 封閉', p: .3 },
+    { id: 'e3', t: '國小學童腳踏車安全騎乘宣導', dom: GOV, path: '/edu/safe-ride.pptx', d: '2024-09-02', f: 'pptx', s: '教育局宣導簡報：戴安全帽、靠右行駛、夜間開燈。', k: '教育局 宣導 安全帽 簡報', p: .3 },
+    { id: 'e4', t: '2025 自行車推薦！單車入門 10 款', dom: 'bikeshop.example', path: '/blog/best-2025', d: '2025-03-01', f: 'html', s: '通勤、運動都適合的自行車與單車配件推薦。', k: '腳踏車 推薦 購物', p: .9 },
+    { id: 'e5', t: '青岬市單車道地圖懶人包', dom: 'lazypack.example', path: '/city/qingjia-bike', d: '2024-08-01', f: 'html', s: '全市單車道路線一張圖。', k: '懶人包 地圖', p: .9 },
+    { id: 'e6', t: '腳踏車被偷 青岬警察都不理？', dom: 'talkboard.example', path: '/t/87110', d: '2024-06-30', f: 'html', s: '停在捷運站的腳踏車第三次被偷……', k: '問卦 失竊', p: .6 },
+    { id: 'e7', t: '青岬市自行車道 五年擴建計畫出爐', dom: 'harbor-daily.example', path: '/local/2024-0302', d: '2024-03-02', f: 'html', s: '交通局公布自行車道路網發展計畫……', k: '新聞 交通局', p: .7 },
+    /* 委託六：只看標題 */
+    { id: 'f1', t: '青岬市家庭防颱準備指南（2024 版）', dom: GOV, path: '/disaster/typhoon-guide', d: '2024-06-01', f: 'html', s: '颱風來前 72 小時該做的事：沙包、停電、避難處所、藥品與證件。', k: '消防局 防災 防颱準備指南 避難', p: .3 },
+    { id: 'f2', t: '颱風警報發布 請市民做好防颱措施', dom: GOV, path: '/news/2024-0712', d: '2024-07-12', f: 'html', s: '請青岬市民參考防颱準備指南，提前備妥飲水與照明。', k: '消防局 颱風 警報', p: .45 },
+    { id: 'f3', t: '里長防災講座 發放家用防災包', dom: GOV, path: '/news/2024-0820', d: '2024-08-20', f: 'html', s: '講座現場加印防颱準備指南手冊 500 份。', k: '民政局 里長 講座', p: .35 },
+    { id: 'f4', t: '停班停課決定說明', dom: GOV, path: '/news/2024-0903', d: '2024-09-03', f: 'html', s: '颱風期間是否停班停課，依各區雨量與風力判斷；居家準備請見防颱準備指南。', k: '人事處 停班停課 颱風', p: .5 },
+    { id: 'f5', t: '防颱準備指南懶人包：10 樣必備物品', dom: 'lazypack.example', path: '/life/typhoon-10', d: '2024-07-10', f: 'html', s: '手電筒、行動電源、乾糧……照著買就對了。', k: '懶人包 防颱 颱風', p: .92 },
+    { id: 'f6', t: '颱風將至 專家：先讀青岬市防颱準備指南', dom: 'harbor-daily.example', path: '/local/2024-0711', d: '2024-07-11', f: 'html', s: '氣象專家提醒，市府網站上的防颱準備指南值得全家一起讀。', k: '新聞 颱風 專家', p: .7 },
+    /* 委託七：它不這樣叫 */
+    { id: 'g1', t: '住宅租賃押租金返還爭議處理須知', dom: GOV, path: '/legal/deposit-disputes.pdf', d: '2024-02-20', f: 'pdf', s: '租賃契約終止，承租人返還房屋後，出租人應返還押租金；如有扣除，應列明細。', k: '法制局 消費者保護官 出租人 承租人 租賃契約 存證信函 調解', p: .3 },
+    { id: 'g2', t: '房東不還押金怎麼辦？律師教你 3 招', dom: 'law-easy.example', path: '/rent/deposit-3', d: '2024-04-01', f: 'html', s: '押金在法律文件裡常寫成「押租金」，房東是「出租人」、房客是「承租人」。先蒐證、再寄存證信函……', k: '房東 押金 房客 律師', p: .92 },
+    { id: 'g3', t: '押金拿不回來？租屋族必看懶人包', dom: 'lazypack.example', path: '/life/deposit', d: '2023-10-10', f: 'html', s: '房東扣押金的 5 種常見理由，教你怎麼拿回來。', k: '懶人包 租屋 房東 押金', p: .9 },
+    { id: 'g4', t: '[問卦] 房東扣押金扣到剩 500 正常嗎', dom: 'talkboard.example', path: '/t/91022', d: '2024-05-05', f: 'html', s: '退租時房東說牆壁有洞要扣錢……', k: '問卦 租屋 房東 押金', p: .7 },
+    { id: 'g5', t: '租屋糾紛 房東不還押金 申訴管道一次看', dom: 'trendnews.example', path: '/life/20240303', d: '2024-03-03', f: 'html', s: '房東不還押金可以找誰？整理申訴管道。', k: '熱搜 租屋 申訴 房東 押金', p: .85 },
+    { id: 'g6', t: '消費爭議調解申請說明', dom: GOV, path: '/legal/mediation', d: '2023-12-01', f: 'html', s: '消費者與企業經營者發生爭議時，可向消費者保護官申訴或申請調解。', k: '法制局 調解 申訴 消費者保護官', p: .3 },
+    /* 委託八：全部一起 */
+    { id: 'h1', t: '公車動態資訊介接規格書 v2.1', dom: DATA, path: '/docs/bus-dynamic-v2.1.pdf', d: '2023-08-01', f: 'pdf', s: '交通局公車即時到站（ETA）API 正式版規格：端點、參數、JSON 欄位與錯誤碼。', k: '交通局 開放資料 API 即時到站 ETA JSON 公車', p: .3 },
+    { id: 'h2', t: '公車動態資訊介接規格書 v1.0', dom: DATA, path: '/docs/bus-dynamic-v1.0.pdf', d: '2020-05-10', f: 'pdf', s: '交通局公車到站 API 規格（XML 格式），已停止維護。', k: '交通局 API 公車 XML 舊版', p: .25 },
+    { id: 'h3', t: '公車動態資訊介接規格書 v2.0 草案', dom: DATA, path: '/docs/bus-dynamic-v2.0-draft.pdf', d: '2022-03-15', f: 'pdf', s: '意見徵詢版，欄位可能異動。', k: '交通局 API 公車 草案 意見徵詢', p: .25 },
+    { id: 'h4', t: '公車站牌代碼對照表', dom: DATA, path: '/datasets/bus-stops.xlsx', d: '2023-08-01', f: 'xlsx', s: '全市站牌代碼、經緯度，搭配到站 API 使用。', k: '交通局 開放資料 API 公車 站牌', p: .25 },
+    { id: 'h5', t: '手把手串接青岬公車 API（附程式碼）', dom: 'devblog.example', path: '/qingjia-bus-api', d: '2023-09-12', f: 'html', s: '照著交通局介接規格書 v2.1 一步一步打 API，十分鐘拿到公車到站時間。', k: '教學 程式碼 API 公車 JavaScript', p: .85 },
+    { id: 'h6', t: '公車動態資訊介接規格書v2.1.pdf 下載', dom: 'docs-share.example', path: '/f/bus-v2.1.pdf', d: '2023-09-30', f: 'pdf', s: '公車 API 規格書全文，免註冊下載。', k: '下載 API 公車', p: .8 },
+    { id: 'h7', t: '交通局開放公車即時到站 API 開發者可免費申請', dom: 'harbor-daily.example', path: '/tech/2023-0802', d: '2023-08-02', f: 'html', s: '青岬市交通局今公布公車動態 API 正式版……', k: '新聞 交通局 API 公車', p: .7 },
+    { id: 'h8', t: '開放資料平台 API 總覽', dom: DATA, path: '/apis', d: '2025-01-10', f: 'html', s: '列出所有開放資料 API：公車、停車、空氣品質……', k: 'API 開放資料 公車 停車', p: .4 }
+  ];
+
+  var L = [
+    { id: 1, name: '引號', title: '一字不差', op: '"…" 精確詞組',
+      brief: '你記得那段話一字不差：「潮水不會等你準備好」。名言網站把它改寫成十幾種版本，你要找的是最早刊出它的那篇散文。',
+      k: 2, n: 2, targets: ['a1'],
+      naive: ['潮水不會等你準備好', '潮水 不會 等你 準備好', '"不會等你準備好"'],
+      std: '"潮水不會等你準備好"',
+      hints: ['五個字以上連在一起的中文，掘字會拆成兩字一組比對——所以「潮水不等人」「海不會等你」全被撈進來。有沒有辦法叫它一個字都不准改？',
+              '用雙引號 " " 把整段包起來，就是「精確詞組」。Google 官方說明頁列的第一個運算子就是它。',
+              '"潮水不會等你準備好"'],
+      lesson: '引號讓「差不多」出局。記得原句一字不差時，先包引號再說。',
+      gap: [['潮水不等人…', '潮水不會等你準備好（原句）']] },
+    { id: 2, name: '排除', title: '同名撞車', op: '-詞 排除',
+      brief: '你想看雪鴞——白色的北方貓頭鷹——冬天南下遷徙的觀察紀錄。偏偏有一款休旅車也叫雪鴞，廣告預算比鳥多很多。',
+      k: 3, n: 3, targets: ['b1'],
+      naive: ['雪鴞 遷徙', '雪鴞', '雪鴞 冬季'],
+      std: '雪鴞 遷徙 -汽車',
+      hints: ['看看擋在前面的那些：它們都有一個鳥類紀錄不會寫的字。',
+              '在那個字前面加減號，例如 -某字，含有它的頁面就會被踢掉。減號和字要黏在一起。',
+              '雪鴞 遷徙 -汽車'],
+      lesson: '排除法：先看雜訊長什麼樣，再找出它們共有、目標沒有的那個字。',
+      gap: null },
+    { id: 3, name: 'site:', title: '認明出處', op: 'site: 限定網站',
+      brief: '青岬市明年起調整垃圾車收運時間。轉貼新聞、懶人包一大堆，你要的是市府自己貼出來的那份公告。市府網站的網域是 qingjia.gov.example。',
+      k: 1, n: 2, targets: ['c1'],
+      naive: ['青岬市 垃圾車 收運時間 調整', '青岬市垃圾車收運時間調整', '垃圾車 收運時間 公告'],
+      std: 'site:qingjia.gov.example 垃圾車 收運時間',
+      hints: ['轉貼站排得比較前面，因為它們把標題寫得更「好搜」。不如直接限定只看市府網站。',
+              'site:網域 只看某個網站。冒號後面不能有空格。',
+              'site:qingjia.gov.example 垃圾車 收運時間'],
+      lesson: 'site: 是最常用的篩子。網域寫得越短，範圍越大：site:gov.example 會涵蓋所有以它結尾的政府網站。',
+      gap: null },
+    { id: 4, name: 'filetype: 日期', title: '年份陷阱', op: 'filetype: ＋ after:／before:',
+      brief: '主管要「2023 年市府發布的那份空氣品質年報」，PDF 檔。小心：年報標題上的「年度」，跟它發布的年份不是同一年。',
+      k: 1, n: 2, targets: ['d3'],
+      naive: ['青岬市 空氣品質 報告 2023', '青岬市空氣品質年報 2023', '空氣品質年報 2023 pdf', 'filetype:pdf 空氣品質 2023'],
+      std: 'site:qingjia.gov.example filetype:pdf 空氣品質 after:2023-01-01 before:2023-12-31',
+      hints: ['標題寫「2023 年度」的那份，其實 2024 年才發布；你要的那份標題寫的是 2022 年度。用文件日期篩，別用標題上的數字。',
+              'filetype:pdf 鎖檔案類型；after:2023-01-01 before:2023-12-31 鎖日期區間。另外，有人把 PDF 轉貼到文件分享站了。',
+              'site:qingjia.gov.example filetype:pdf 空氣品質 after:2023-01-01 before:2023-12-31'],
+      lesson: '日期運算子篩的是「文件的日期」，不是內容講的年份。真實引擎上，頁面日期還可能因為更新而變動。',
+      gap: [['2023', '2022 年度（2023 年 4 月出版）']] },
+    { id: 5, name: 'OR', title: '三種叫法', op: 'A OR B 任一',
+      brief: '你在整理青岬市所有自行車相關的官方文件。問題是：交通局寫「自行車」、工務局寫「單車」、教育局寫「腳踏車」。三份都要找到。',
+      k: 3, n: 3, targets: ['e1', 'e2', 'e3'],
+      naive: ['青岬市 自行車道', 'site:qingjia.gov.example 自行車', 'site:qingjia.gov.example 自行車 單車 腳踏車', '青岬市 自行車 OR 單車 OR 腳踏車'],
+      std: 'site:qingjia.gov.example 自行車 OR 單車 OR 腳踏車',
+      hints: ['掘字預設「每個字都要出現」。三個詞並排，等於要求同一份文件把三種叫法都寫一遍。',
+              '用大寫 OR 把同義詞串起來：A OR B OR C。OR 不在 Google 官方說明頁上，但掘字認得。',
+              'site:qingjia.gov.example 自行車 OR 單車 OR 腳踏車'],
+      lesson: '同一個東西，不同作者有不同叫法。先把叫法列出來，再用 OR 一次撈齊。',
+      gap: [['自行車', '自行車／單車／腳踏車']] },
+    { id: 6, name: 'intitle:', title: '被提到≠就是它', op: 'intitle: 標題含',
+      brief: '颱風要來了。你要找市府那份「防颱準備指南」本身——可是市府每則新聞都順口提一句「請參考防颱準備指南」，懶人包也搶著用這個詞當標題。',
+      k: 1, n: 2, targets: ['f1'],
+      naive: ['防颱準備指南', 'site:qingjia.gov.example 防颱準備指南', 'intitle:防颱準備指南', '青岬市 防颱 指南'],
+      std: 'intitle:防颱準備指南 site:qingjia.gov.example',
+      hints: ['提到它的頁面很多，「標題就是它」的頁面很少。',
+              'intitle:詞 只比對標題。再配一個 site: 擋掉懶人包和新聞。',
+              'intitle:防颱準備指南 site:qingjia.gov.example'],
+      lesson: '「被提到」和「就是它」是兩回事。intitle: 不在官方說明頁上、可能失效，但在很多引擎都值得一試。',
+      gap: null },
+    { id: 7, name: '換詞', title: '它不這樣叫', op: '換成作者的詞',
+      brief: '朋友退租三個月了，房東還沒還押金。你想找市府對這類爭議的官方處理說明。',
+      k: 2, n: 3, targets: ['g1'],
+      naive: ['房東 不還 押金', '房東不還押金怎麼辦', 'site:qingjia.gov.example 房東 押金', 'site:qingjia.gov.example 押金', '"房東不還押金"'],
+      std: '押租金 返還',
+      hints: ['這次連 site: 都救不了：那份文件裡一個「房東」、一個「押金」都沒有。官方文件用的是另一套詞。',
+              '回頭看排在第一的那篇律師文，讀它的摘要——它會告訴你法律文件怎麼稱呼房東和押金。',
+              '押租金 返還'],
+      lesson: '運算子是篩子，篩不出不存在的字。先學會它們的詞，再回來搜。',
+      gap: [['房東', '出租人'], ['房客', '承租人'], ['押金', '押租金'], ['還', '返還']] },
+    { id: 8, name: '組合', title: '只能剩一份', op: 'site: ＋ filetype: ＋ after:',
+      brief: '你在寫一個公車到站小工具。要的是交通局 2023 年起發布的正式版 API 規格書，PDF；不要舊版、不要草案、不要別人轉貼的，也不要教學文。開放資料平台在 data.qingjia.gov.example。',
+      k: 1, n: 1, targets: ['h1'],
+      naive: ['公車 API 規格', '公車動態資訊介接規格書', 'filetype:pdf 公車 API', '"v2.1" filetype:pdf', 'site:data.qingjia.gov.example 公車 API'],
+      std: 'site:data.qingjia.gov.example filetype:pdf 公車 after:2023-01-01',
+      hints: ['把要擋掉的東西列出來：舊版和草案（看日期）、轉貼站（看網域）、站牌表和總覽頁（看檔案類型）。',
+              'site: 可以指定子網域，例如 data.qingjia.gov.example；日期用 after:。',
+              'site:data.qingjia.gov.example filetype:pdf 公車 after:2023-01-01'],
+      lesson: '好查詢像一條過濾管線：每個運算子擋掉一種雜訊。寫好了記得存起來，下次改兩個字就能重用。',
+      gap: null }
+  ];
+
+  var byId = {};
+  D.forEach(function (d) { byId[d.id] = d; });
+
+  /* 寬度正規化：一個字換一個字（長度不變，方便標記位置） */
+  function W(s) {
+    var o = '';
+    s = String(s == null ? '' : s);
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c >= 0xFF01 && c <= 0xFF5E) c -= 0xFEE0;
+      else if (c === 0x3000) c = 32;
+      else if (c === 0x300C || c === 0x300D || c === 0x300E || c === 0x300F || c === 0x201C || c === 0x201D) c = 34;
+      o += String.fromCharCode(c);
+    }
+    return o;
+  }
+  function N(s) { return W(s).toLowerCase(); }
+  D.forEach(function (d) { d.nt = N(d.t); d.ns = N(d.s); d.nb = N(d.s + ' ' + d.k); d.nu = N(d.dom + d.path); });
+
+  var CJK = /[㐀-鿿豈-﫿]/;
+  var CJKG = /[㐀-鿿豈-﫿]/g;
+  function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function bigrams(s) { var a = []; for (var i = 0; i < s.length - 1; i++) a.push(s.slice(i, i + 2)); return a; }
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function cleanWord(w) { return w.replace(/^[?!.,;:。，、？！…]+|[?!.,;:。，、？！…]+$/g, ''); }
+
+  function wordAlt(v, field) {
+    var cjk = (v.match(CJKG) || []).length;
+    if (!field && cjk >= 5) {
+      var src = v.replace(/[^0-9a-z㐀-鿿豈-﫿]/g, '');
+      return { mode: 'fuzzy', v: src, raw: v, bg: bigrams(src), field: null };
+    }
+    return { mode: 'sub', v: v, raw: v, field: field || null };
+  }
+  function phraseAlt(v, field) {
+    v = v.replace(/\s+/g, ' ').trim();
+    if (v.indexOf('*') >= 0) {
+      var parts = v.split('*').map(function (x) { return esc(x.trim()); }).filter(function (x, i, a) { return x || (i > 0 && i < a.length - 1); });
+      return { mode: 'wild', v: v, raw: v, re: new RegExp(parts.join('[\\s\\S]{0,12}')), field: field || null };
+    }
+    return { mode: 'phrase', v: v, raw: v, field: field || null };
+  }
+  function parseDate(v) {
+    var m = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(v);
+    if (!m) return null;
+    var mo = +m[2], dd = +m[3];
+    if (mo < 1 || mo > 12 || dd < 1 || dd > 31) return null;
+    return m[1] + '-' + pad(mo) + '-' + pad(dd);
+  }
+  var TYPES = { htm: 'html', html: 'html', pdf: 'pdf', xls: 'xlsx', xlsx: 'xlsx', ppt: 'pptx', pptx: 'pptx', doc: 'docx', docx: 'docx', csv: 'csv' };
+  var OPS = { site: 1, filetype: 1, ext: 1, before: 1, after: 1, intitle: 1, inurl: 1 };
+  var RETIRED = {
+    cache: 'cache: 已退役：Google 在 2024 年移除了快取連結。掘字也不認得它。',
+    link: 'link: 已退役，掘字不認得它。',
+    info: 'info: 已退役，掘字不認得它。',
+    related: 'related: 掘字不支援。'
+  };
+
+  function parse(raw) {
+    var w = W(raw), s = w.toLowerCase(), i = 0, pendingOr = false;
+    var P = { pos: [], neg: [], site: [], nsite: [], types: [], ntypes: [], before: null, after: null, warns: [] };
+    if (/：/.test(String(raw || '')) && /(site|filetype|ext|before|after|intitle|inurl)：/i.test(String(raw))) {
+      P.warns.push('全形冒號「：」掘字幫你當成半形；真實引擎不一定這麼寬容。');
+    }
+    function addPos(a) {
+      if (pendingOr && P.pos.length) P.pos[P.pos.length - 1].push(a);
+      else P.pos.push([a]);
+      pendingOr = false;
+    }
+    while (i < s.length) {
+      var c = s[i];
+      if (/\s/.test(c) || c === '(' || c === ')') { i++; continue; }
+      var neg = false;
+      if (c === '-') {
+        if (i + 1 >= s.length || /\s/.test(s[i + 1])) { i++; continue; }
+        neg = true; i++; c = s[i];
+      }
+      if (c === '+') { P.warns.push('「+」必含運算子已退役；掘字把後面當普通字。想要必含，請用引號。'); i++; continue; }
+      if (c === '~') { P.warns.push('「~」同義詞運算子已退役；掘字直接忽略它。'); i++; continue; }
+      var m = /^([a-z]+):/.exec(s.slice(i));
+      if (m && (OPS[m[1]] || RETIRED[m[1]])) {
+        var op = m[1];
+        i += m[0].length;
+        if (i >= s.length || /\s/.test(s[i])) {
+          P.warns.push(op + ': 後面有空格——運算子和詞要黏在一起，這次的 ' + op + ': 沒有作用。');
+          continue;
+        }
+        var val, quoted = false;
+        if (s[i] === '"') {
+          var j = s.indexOf('"', i + 1); if (j < 0) j = s.length;
+          val = s.slice(i + 1, j); i = j + 1; quoted = true;
+        } else {
+          var j2 = i; while (j2 < s.length && !/\s/.test(s[j2]) && s[j2] !== ')') j2++;
+          val = s.slice(i, j2); i = j2;
+        }
+        if (RETIRED[op]) { P.warns.push(RETIRED[op]); continue; }
+        applyOp(P, op, val, neg, quoted, addPos);
+        continue;
+      }
+      if (c === '"') {
+        var k = s.indexOf('"', i + 1);
+        if (k < 0) { k = s.length; P.warns.push('引號沒有關上，掘字把後面全部當成同一個片語。'); }
+        var ph = s.slice(i + 1, k).trim();
+        i = k + 1;
+        if (ph) { var pa = phraseAlt(ph); if (neg) P.neg.push(pa); else addPos(pa); }
+        continue;
+      }
+      var j3 = i;
+      while (j3 < s.length && !/\s/.test(s[j3]) && s[j3] !== '"' && s[j3] !== '(' && s[j3] !== ')') j3++;
+      var word = s.slice(i, j3), wr = w.slice(i, j3);
+      i = j3;
+      if (!neg && (wr === 'OR' || wr === '|')) {
+        if (!P.pos.length) P.warns.push('OR 前面要有詞。'); else pendingOr = true;
+        continue;
+      }
+      if (!neg && wr === 'AND') continue;
+      if (wr === 'or') P.warns.push('小寫的 or 會被當成普通字；要表示「或」，請用大寫 OR。');
+      var segs = word.split('|');
+      for (var si = 0; si < segs.length; si++) {
+        var sg = cleanWord(segs[si]);
+        if (!sg) continue;
+        if (si > 0 && !neg && P.pos.length) pendingOr = true;
+        var a = wordAlt(sg);
+        if (neg) P.neg.push(a); else addPos(a);
+      }
+    }
+    if (pendingOr) P.warns.push('OR 後面要有詞。');
+    return P;
+  }
+  function applyOp(P, op, v, neg, quoted, addPos) {
+    if (op === 'site') {
+      v = v.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      if (!v) return;
+      (neg ? P.nsite : P.site).push(v);
+    } else if (op === 'filetype' || op === 'ext') {
+      var t = TYPES[v.replace(/^\./, '')] || v;
+      (neg ? P.ntypes : P.types).push(t);
+    } else if (op === 'before' || op === 'after') {
+      var dt = parseDate(v);
+      if (!dt) P.warns.push('「' + op + ':' + v + '」日期看不懂；請用 2023-01-31 或 2023/01/31 的格式。');
+      else P[op] = dt;
+    } else if (op === 'intitle' || op === 'inurl') {
+      var field = op === 'intitle' ? 'title' : 'url';
+      var a = quoted ? phraseAlt(v, field) : wordAlt(cleanWord(v), field);
+      if (!a.v) return;
+      if (neg) P.neg.push(a); else addPos(a);
+    }
+  }
+
+  function matchAlt(d, a) {
+    if (a.mode === 'fuzzy') {
+      var tot = a.bg.length, inT = 0, inA = 0;
+      if (!tot) return { hit: false, w: 0, cov: 0, n: 0, tot: 0 };
+      for (var i = 0; i < tot; i++) {
+        var t = d.nt.indexOf(a.bg[i]) >= 0;
+        if (t) inT++;
+        if (t || d.nb.indexOf(a.bg[i]) >= 0) inA++;
+      }
+      var cov = inA / tot;
+      return { hit: cov >= 0.5, w: cov * (inT / tot >= 0.5 ? 3 : 1), cov: cov, n: inA, tot: tot };
+    }
+    var test = a.mode === 'wild' ? function (x) { return a.re.test(x); } : function (x) { return x.indexOf(a.v) >= 0; };
+    if (a.field === 'title') { var h1 = test(d.nt); return { hit: h1, w: h1 ? 3 : 0 }; }
+    if (a.field === 'url') { var h2 = test(d.nu); return { hit: h2, w: h2 ? 1 : 0 }; }
+    var inTt = test(d.nt), inB = test(d.nb);
+    return { hit: inTt || inB, w: inTt ? 3 : (inB ? 1 : 0) };
+  }
+  function siteMatch(d, v) {
+    if (v.indexOf('/') >= 0) return (d.dom + d.path).indexOf(v) === 0;
+    return d.dom === v || d.dom.slice(-(v.length + 1)) === '.' + v;
+  }
+  function hasQuery(P) {
+    return !!(P.pos.length || P.neg.length || P.site.length || P.nsite.length || P.types.length || P.ntypes.length || P.before || P.after);
+  }
+  function filterWhy(d, P) {
+    var why = [];
+    if (P.site.length && !P.site.some(function (v) { return siteMatch(d, v); })) why.push({ k: 'site', v: P.site.join('、') });
+    if (P.nsite.some(function (v) { return siteMatch(d, v); })) why.push({ k: 'nsite', v: P.nsite.join('、') });
+    if (P.types.length && P.types.indexOf(d.f) < 0) why.push({ k: 'type', v: P.types.join('/'), has: d.f });
+    if (P.ntypes.indexOf(d.f) >= 0) why.push({ k: 'ntype', v: d.f });
+    if (P.after && d.d < P.after) why.push({ k: 'date', v: 'after:' + P.after, has: d.d });
+    if (P.before && d.d > P.before) why.push({ k: 'date', v: 'before:' + P.before, has: d.d });
+    return why;
+  }
+  function search(q, docs) {
+    docs = docs || D;
+    var P = typeof q === 'string' ? parse(q) : q;
+    if (!hasQuery(P)) return { P: P, list: [], count: 0, empty: true };
+    var list = [];
+    docs.forEach(function (d) {
+      if (filterWhy(d, P).length) return;
+      var sc = 0;
+      for (var ci = 0; ci < P.pos.length; ci++) {
+        var best = null;
+        for (var ai = 0; ai < P.pos[ci].length; ai++) {
+          var r = matchAlt(d, P.pos[ci][ai]);
+          if (r.hit && (!best || r.w > best.w)) best = r;
+        }
+        if (!best) return;
+        sc += best.w;
+      }
+      for (var ni = 0; ni < P.neg.length; ni++) if (matchAlt(d, P.neg[ni]).hit) return;
+      sc += d.p * 2;
+      list.push({ d: d, s: sc });
+    });
+    list.sort(function (a, b) { return b.s - a.s || (a.d.d < b.d.d ? 1 : a.d.d > b.d.d ? -1 : 0); });
+    return { P: P, list: list, count: list.length, empty: false };
+  }
+  function rankOf(res, id) {
+    for (var i = 0; i < res.list.length; i++) if (res.list[i].d.id === id) return i + 1;
+    return 0;
+  }
+  function judge(lv, q) {
+    var res = typeof q === 'string' ? search(q) : q;
+    var ranks = lv.targets.map(function (id) { return rankOf(res, id); });
+    var pass = res.count > 0 && res.count <= lv.n && ranks.every(function (r) { return r > 0 && r <= lv.k; });
+    return { pass: pass, ranks: ranks, count: res.count, res: res };
+  }
+  function altLabel(a) {
+    var v = a.mode === 'phrase' || a.mode === 'wild' ? '"' + a.v + '"' : a.raw;
+    if (a.field === 'title') return 'intitle:' + v;
+    if (a.field === 'url') return 'inurl:' + v;
+    return v;
+  }
+  /* 為什麼沒過：每份目標文件被哪條規則擋下、排第幾、誰擋在前面 */
+  function diagnose(lv, q) {
+    var J = judge(lv, q), res = J.res, P = res.P;
+    var out = { pass: J.pass, count: res.count, n: lv.n, k: lv.k, empty: res.empty, targets: [] };
+    lv.targets.forEach(function (id, ix) {
+      var rank = J.ranks[ix];
+      if (rank) {
+        out.targets.push({ id: id, rank: rank, ok: rank <= lv.k, ahead: res.list.slice(0, rank - 1).map(function (x) { return x.d.dom; }) });
+        return;
+      }
+      var d = byId[id], why = filterWhy(d, P);
+      P.pos.forEach(function (cl) {
+        var hit = false, fz = null;
+        cl.forEach(function (a) { var r = matchAlt(d, a); if (r.hit) hit = true; if (a.mode === 'fuzzy') fz = r; });
+        if (!hit) why.push({ k: 'miss', v: cl.map(altLabel).join(' OR '), fz: cl.length === 1 && fz ? fz : null });
+      });
+      P.neg.forEach(function (a) { if (matchAlt(d, a).hit) why.push({ k: 'neg', v: altLabel(a) }); });
+      out.targets.push({ id: id, rank: 0, ok: false, why: why });
+    });
+    return out;
+  }
+
+  /* ── 拆字機：把口語問題改寫成「它可能寫的字」 ── */
+  var STOP_MULTI = ['有沒有人知道', '有人知道', '我想知道', '想知道', '請問一下', '請問', '為什麼', '為何', '怎麼辦', '怎麼樣', '該怎麼', '要怎麼', '怎麼', '如何',
+    '哪裡可以', '哪裡有', '哪裡', '在哪', '一直出現', '出現', '跳出', '顯示', '是不是', '是否', '可不可以', '可以嗎', '能不能', '會不會', '什麼', '到底', '一直', '好像', '真的', '我們', '我的', '我家', '自己', '可以去', '可以'];
+  var STOP_ONE = /[嗎呢吧啊啦耶喔哦欸的了我很都也就還在要去給把被讓]/g;
+  var FORMAL = [
+    ['房東', '出租人', '法律文件常用'], ['房客', '承租人', '法律文件常用'], ['押金', '押租金', '判決、契約常見'], ['不還', '返還', ''], ['租屋', '租賃', ''],
+    ['退錢', '退款', ''], ['老闆', '雇主', '勞動法規用語'], ['薪水', '工資', '勞動法規用語'], ['加班費', '延長工作時間 工資', '勞動基準法的說法'],
+    ['被開除', '解僱', ''], ['被裁員', '資遣', ''], ['罰單', '罰鍰', '交通法規用語'], ['小孩', '兒童', ''], ['老人', '高齡者', ''],
+    ['拉肚子', '腹瀉', '醫學用語'], ['睡不著', '失眠', ''], ['電腦中毒', '惡意程式', ''], ['當機', '無回應', ''], ['網路很慢', '網路延遲', ''],
+    ['空汙', '空氣污染', ''], ['健保', '全民健康保險', ''], ['腳踏車', '自行車', '也可 OR 單車'], ['機車', '機車 OR 機器腳踏車', '法規寫「機器腳踏車」'],
+    ['不給', '未給付', ''], ['申訴', '申訴', '']
+  ];
+  var EN = [['當機', 'crash'], ['錯誤', 'error'], ['安裝', 'install'], ['設定', 'config'], ['很慢', 'slow'], ['記憶體', 'memory'], ['權限', 'permission'],
+    ['套件', 'package'], ['部署', 'deploy'], ['編譯', 'compile'], ['過擬合', 'overfitting'], ['機器學習', 'machine learning'], ['資料庫', 'database'],
+    ['爬蟲', 'web scraping'], ['空氣品質', 'air quality'], ['報告', 'report'], ['下載', 'download'], ['連不上', 'cannot connect']];
+  var PLACES = ['台灣', '臺灣', '台北', '臺北', '香港', '日本', '美國', '中國', '歐盟'];
+  var FILE_PDF = /報告|年報|白皮書|論文|手冊|指南|規格|簡章|須知|說明書/;
+  var FILE_PPT = /簡報|投影片/;
+  var FILE_XLS = /統計|數據|資料表|名單|試算表/;
+  var OFFICIAL = /政府|官方|法規|法律|規定|公告|補助|申請|申訴|罰單|罰鍰|押金|房東|勞基法|加班費|老闆|報稅|健保|空氣品質/;
+  var ERRISH = /error|exception|failed|failure|not found|denied|refused|timeout|traceback|errno|cannot|undefined|null/i;
+
+  function rewrite(text) {
+    var orig = String(text == null ? '' : text).trim();
+    var R = { orig: orig, removed: [], core: [], formal: [], english: [], quoted: [], err: null, errCore: null, years: [], file: null, official: false, long: [], queries: [] };
+    if (!orig) return R;
+    var s = W(orig).replace(/((?:19|20)\d{2})\s*年/g, '$1 ');
+    /* 1. 使用者自己加的引號片段 */
+    s = s.replace(/"([^"]{2,})"/g, function (m0, g) { R.quoted.push(g.trim()); return ' '; });
+    /* 2. 英數片段（錯誤訊息、型號、年份） */
+    var ascii = [];
+    s = s.replace(/[A-Za-z0-9][A-Za-z0-9 _.:'\-\/()<>=#@]*[A-Za-z0-9)'>]|[A-Za-z0-9]/g, function (m0) { ascii.push(m0.trim()); return ' '; });
+    ascii.forEach(function (a) {
+      if (/^(19|20)\d{2}$/.test(a)) { R.years.push(a); return; }
+      if (a.length >= 12 && ERRISH.test(a) && /\s/.test(a)) {
+        R.err = a;
+        var core = a.replace(/'[^']*'|"[^"]*"|`[^`]*`/g, ' ').replace(/(\/|[A-Za-z]:\\)[^\s]*/g, ' ').replace(/\b0x[0-9a-f]+\b|\b\d+\b/gi, ' ').replace(/\s+/g, ' ').trim();
+        if (core && core !== a && core.length >= 8) R.errCore = core;
+        return;
+      }
+      a.split(/\s+/).forEach(function (t) { t = t.replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9+#.]+$/g, ''); if (t && R.core.indexOf(t) < 0) R.core.push(t); });
+    });
+    /* 3. 保護詞庫裡的詞，再拿掉問句詞與語氣詞 */
+    var keep = [];
+    var dict = FORMAL.map(function (f) { return f[0]; }).concat(EN.map(function (e) { return e[0]; }), PLACES)
+      .sort(function (a, b) { return b.length - a.length; });
+    dict.forEach(function (w) {
+      if (s.indexOf(w) < 0) return;
+      s = s.split(w).join(' \u0001' + keep.length + '\u0001 ');
+      keep.push(w);
+    });
+    STOP_MULTI.forEach(function (w) { if (s.indexOf(w) >= 0) { R.removed.push(w); s = s.split(w).join(' '); } });
+    var ones = s.match(STOP_ONE);
+    if (ones) ones.forEach(function (c) { if (R.removed.indexOf(c) < 0) R.removed.push(c); });
+    s = s.replace(STOP_ONE, ' ');
+    if (/[?？!！]/.test(orig)) R.removed.push('？');
+    /* 4. 切詞、還原保護詞 */
+    var cjkTokens = [];
+    s.split(/[\s,.;:!?、，。；：！？「」『』（）()\[\]【】"']+/).forEach(function (tk) {
+      if (!tk) return;
+      var mm = /^\u0001(\d+)\u0001$/.exec(tk);
+      var t = mm ? keep[+mm[1]] : tk.replace(/\u0001\d+\u0001/g, ' ').trim();
+      if (!t) return;
+      t.split(/\s+/).forEach(function (u) {
+        if (!u) return;
+        if (!mm && u.length < 2 && CJK.test(u)) return;
+        if (cjkTokens.indexOf(u) < 0) cjkTokens.push(u);
+        if (!mm && (u.match(CJKG) || []).length > 6) R.long.push(u);
+      });
+    });
+    R.core = cjkTokens.concat(R.core);
+    /* 5. 換成文件用語、英文 */
+    var formalCore = R.core.map(function (t) {
+      for (var i = 0; i < FORMAL.length; i++) if (FORMAL[i][0] === t && FORMAL[i][1] !== t) { R.formal.push(FORMAL[i]); return FORMAL[i][1]; }
+      return t;
+    });
+    R.core.forEach(function (t) { for (var i = 0; i < EN.length; i++) if (EN[i][0] === t) R.english.push(EN[i]); });
+    R.file = FILE_PDF.test(orig) ? 'pdf' : FILE_PPT.test(orig) ? 'pptx' : FILE_XLS.test(orig) ? 'xlsx' : null;
+    R.official = OFFICIAL.test(orig);
+    /* 6. 組出建議查詢 */
+    var base = R.core.join(' ');
+    var formal = formalCore.join(' ');
+    function add(q, why) { q = q.replace(/\s+/g, ' ').trim(); if (q && !R.queries.some(function (x) { return x.q === q; })) R.queries.push({ q: q, why: why }); }
+    if (R.err) {
+      add('"' + R.err + '"', '錯誤訊息整段加引號');
+      if (R.errCore) add('"' + R.errCore + '"', '拿掉你自己的變數、路徑、數字，留下固定的部分');
+      var tools = R.core.filter(function (t) { return !CJK.test(t); });
+      if (tools.length) add(tools.join(' ') + ' "' + (R.errCore || R.err) + '"', '加上工具或語言名稱，縮小範圍');
+    }
+    R.quoted.forEach(function (qq) { add('"' + qq + '" ' + base, '你自己加的引號照留'); });
+    if (base) add(base + (R.years.length ? ' ' + R.years.join(' ') : ''), '核心名詞：拿掉問句詞與語氣詞');
+    if (R.formal.length) add(formal, '換成文件裡常見的寫法');
+    var narrow = (R.formal.length ? formal : base);
+    if (narrow && (R.official || R.file || R.years.length)) {
+      var parts = [narrow];
+      if (R.official) parts.push('site:gov.tw');
+      if (R.file) parts.push('filetype:' + R.file);
+      if (R.years.length) parts.push('after:' + R.years[0] + '-01-01 before:' + R.years[0] + '-12-31');
+      add(parts.join(' '), [R.official ? '限定政府網域' : '', R.file ? '鎖檔案類型' : '', R.years.length ? '鎖日期（篩的是網頁日期，不是內容年份）' : ''].filter(Boolean).join('、'));
+    }
+    if (R.english.length) {
+      var en = R.english.map(function (e) { return e[1]; });
+      var asc = R.core.filter(function (t) { return !CJK.test(t); });
+      add(en.concat(asc).join(' ') + (R.errCore ? ' "' + R.errCore + '"' : ''), '換成英文術語，技術題材的頁面通常多得多');
+    }
+    return R;
+  }
+
+  return { DOCS: D, LEVELS: L, byId: byId, W: W, N: N, parse: parse, search: search, judge: judge, diagnose: diagnose, matchAlt: matchAlt, siteMatch: siteMatch, bigrams: bigrams, rewrite: rewrite, altLabel: altLabel };
+})();
+if (typeof module !== 'undefined') module.exports = SR;
+/*CORE-END*/
+
+/* ───────────────────────── 介面 ───────────────────────── */
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const escH = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const LV = SR.LEVELS;
+  let done = store.get('done', []);
+  if (!Array.isArray(done)) done = [];
+  let cur = PK.clamp(+store.get('lv', 0) || 0, 0, LV.length - 1);
+  const fails = {}, shown = {};
+  let won = false;
+
+  /* 第一屏：索引滾軸＋示範一次天真的查法 */
+  (function hero() {
+    const titles = SR.DOCS.map((d) => d.dom + '  ' + d.t);
+    const block = titles.join('\n');
+    $('idxRoll').textContent = block + '\n' + block;
+    $('idxRoll').style.whiteSpace = 'pre';
+    $('docN').textContent = SR.DOCS.length;
+    const demo = '房東不還押金怎麼辦';
+    const r = SR.search(demo);
+    const doms = r.list.map((x) => x.d.dom);
+    const note = () => {
+      $('heroNote').innerHTML = '→ 掘到 <b>' + r.count + '</b> 筆：' + escH(doms.join('、')) +
+        '。<br>→ 市府那份處理須知，不在裡面。它通篇沒寫「房東」。';
+      $('heroNote').classList.add('on');
+    };
+    if (PK.reduced()) { $('heroType').textContent = demo; note(); }
+    else setTimeout(() => PK.type($('heroType'), demo, 120, () => setTimeout(note, 500)), 900);
+    PK.onMotionChange((m) => { if (m) { $('heroType').textContent = demo; note(); } });
+  })();
+
+  /* 委託單導覽 */
+  function navRender() {
+    const nav = $('lvNav');
+    nav.innerHTML = LV.map((l, i) =>
+      '<li><button type="button" data-i="' + i + '"' + (i === cur ? ' aria-current="step"' : '') +
+      (done.indexOf(l.id) >= 0 ? ' class="done"' : '') + ' aria-label="委託 ' + l.id + '：' + escH(l.title) +
+      (done.indexOf(l.id) >= 0 ? '（已結案）' : '') + '">' + String(l.id).padStart(2, '0') + ' ' + escH(l.name) + '</button></li>').join('');
+  }
+  $('lvNav').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-i]');
+    if (b) { load(+b.dataset.i); $('q').focus(); }
+  });
+
+  function load(i) {
+    cur = i; won = false;
+    store.set('lv', i);
+    const l = LV[i];
+    $('barLv').textContent = l.id;
+    $('lvTag').textContent = '委託 ' + String(l.id).padStart(2, '0') + ' / 08';
+    $('lvTitle').textContent = l.title;
+    $('lvBrief').textContent = l.brief;
+    $('lvGoal').textContent = '過關：' + (l.targets.length > 1 ? '三份目標都' : '目標') + '排進前 ' + l.k + ' 名，而且總筆數 ≤ ' + l.n + '。';
+    $('brief').classList.toggle('won', false);
+    $('stampOp').textContent = '';
+    $('q').value = '';
+    $('verdict').innerHTML = '';
+    $('nextBtn').hidden = true;
+    renderHints();
+    navRender();
+    render('');
+  }
+
+  /* 查詢解析軌跡 */
+  function chips(P) {
+    const out = [];
+    const altChip = (a, neg) => {
+      if (neg) return ['k-neg', '排除', SR.altLabel(a)];
+      if (a.field === 'title') return ['k-filter', '標題含', a.mode === 'phrase' ? '"' + a.v + '"' : a.v];
+      if (a.field === 'url') return ['k-filter', '網址含', a.v];
+      if (a.mode === 'phrase' || a.mode === 'wild') return ['k-phrase', '片語', '"' + a.v + '"'];
+      if (a.mode === 'fuzzy') return ['k-fuzzy', '拆成 ' + a.bg.length + ' 組兩字', a.raw];
+      return ['k-word', '詞', a.v];
+    };
+    P.pos.forEach((cl) => {
+      if (cl.length > 1) out.push(['k-or', '任一', cl.map(SR.altLabel).join(' | ')]);
+      else out.push(altChip(cl[0]));
+    });
+    P.neg.forEach((a) => out.push(altChip(a, true)));
+    P.site.forEach((v) => out.push(['k-filter', '網域', v]));
+    P.nsite.forEach((v) => out.push(['k-neg', '排除網域', v]));
+    P.types.forEach((v) => out.push(['k-filter', '類型', v]));
+    P.ntypes.forEach((v) => out.push(['k-neg', '排除類型', v]));
+    if (P.after) out.push(['k-filter', '晚於', P.after]);
+    if (P.before) out.push(['k-filter', '早於', P.before]);
+    return out;
+  }
+
+  /* 標記命中的字 */
+  function hl(raw, norm, P) {
+    const on = new Uint8Array(raw.length), fz = new Uint8Array(raw.length);
+    const mark = (needle, arr) => {
+      if (!needle) return;
+      let at = norm.indexOf(needle);
+      while (at >= 0) { for (let k = 0; k < needle.length; k++) arr[at + k] = 1; at = norm.indexOf(needle, at + needle.length); }
+    };
+    P.pos.forEach((cl) => cl.forEach((a) => {
+      if (a.mode === 'fuzzy') a.bg.forEach((b) => mark(b, fz));
+      else if (a.mode === 'wild') { const m = a.re.exec(norm); if (m) for (let k = 0; k < m[0].length; k++) on[m.index + k] = 1; }
+      else mark(a.v, on);
+    }));
+    let html = '', st = 0;
+    for (let i = 0; i <= raw.length; i++) {
+      const s = i < raw.length ? (on[i] ? 2 : fz[i] ? 1 : 0) : -1;
+      const prev = i > 0 ? (on[i - 1] ? 2 : fz[i - 1] ? 1 : 0) : s;
+      if (i === raw.length || (i > 0 && s !== prev)) {
+        const seg = escH(raw.slice(st, i));
+        html += prev === 2 ? '<mark>' + seg + '</mark>' : prev === 1 ? '<mark class="fz">' + seg + '</mark>' : seg;
+        st = i;
+      }
+    }
+    return html;
+  }
+
+  const SHOW = 8;
+  function render(q) {
+    const res = SR.search(q);
+    const P = res.P;
+    $('trace').innerHTML = chips(P).map((c) => '<span class="chip ' + c[0] + '">' + escH(c[1]) + ' <b>' + escH(c[2]) + '</b></span>').join('');
+    $('warns').innerHTML = P.warns.map((w) => '<p class="warn">⚠ ' + escH(w) + '</p>').join('');
+    const ul = $('res');
+    if (res.empty) {
+      $('status').innerHTML = '<span>等你下指令</span><span>索引 ' + SR.DOCS.length + ' 份</span>';
+      ul.innerHTML = '';
+      return res;
+    }
+    $('status').innerHTML = '<span>掘到 <b>' + res.count + '</b> 筆' + (res.count > SHOW ? '，列出前 ' + SHOW + ' 筆' : '') + '</span><span>Enter 交件</span>';
+    if (!res.count) { ul.innerHTML = '<li class="empty">一筆都沒有。每個沒加引號的字都必須出現——有一個字，所有文件都沒寫。</li>'; return res; }
+    const tg = won ? LV[cur].targets : [];
+    ul.innerHTML = res.list.slice(0, SHOW).map((x, i) => {
+      const d = x.d;
+      return '<li class="r' + (tg.indexOf(d.id) >= 0 ? ' hit' : '') + '" style="--i:' + i + '">' +
+        '<div class="r-top"><span class="ft ' + d.f + '">' + d.f.toUpperCase() + '</span><span class="url">' + escH(d.dom + d.path) + '</span><span class="dt">' + d.d + '</span></div>' +
+        '<div class="r-t">' + hl(d.t, d.nt, P) + '</div><div class="r-s">' + hl(d.s, d.ns, P) + '</div></li>';
+    }).join('') + (res.count > SHOW ? '<li class="more">…還有 ' + (res.count - SHOW) + ' 筆</li>' : '');
+    const rows = ul.querySelectorAll('.r');
+    if (PK.reduced()) rows.forEach((r) => r.classList.add('in'));
+    else requestAnimationFrame(() => requestAnimationFrame(() => rows.forEach((r) => r.classList.add('in'))));
+    return res;
+  }
+
+  let deb = 0;
+  $('q').addEventListener('input', () => { clearTimeout(deb); deb = setTimeout(() => { if (!won) $('verdict').innerHTML = ''; render($('q').value); }, 90); });
+
+  function summarizeAhead(doms) {
+    const c = {};
+    doms.forEach((d) => { c[d] = (c[d] || 0) + 1; });
+    return Object.keys(c).map((k) => k + (c[k] > 1 ? ' ×' + c[k] : '')).join('、');
+  }
+  function whyText(w) {
+    switch (w.k) {
+      case 'site': return '那份文件不在 ' + w.v + ' 底下。';
+      case 'nsite': return '你排除的網域，剛好包含那份文件。';
+      case 'type': return '那份文件是 ' + w.has.toUpperCase() + '，不是 ' + w.v.toUpperCase() + '。';
+      case 'ntype': return '你排除了 ' + w.v.toUpperCase() + '，而那份文件就是。';
+      case 'date': return '那份文件的日期是 ' + w.has + '，被 ' + w.v + ' 擋掉了。';
+      case 'neg': return '那份文件裡含有你排除的「' + w.v + '」。';
+      case 'miss':
+        if (w.fz) return '你那一整串「' + w.v + '」被拆成 ' + w.fz.tot + ' 組兩字去比對，那份文件只對上 ' + w.fz.n + ' 組（要一半）。';
+        return '那份文件裡找不到「' + w.v + '」。';
+    }
+    return '';
+  }
+
+  $('qf').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const q = $('q').value;
+    const l = LV[cur];
+    const dg = SR.diagnose(l, q);
+    if (dg.empty) { PK.announce('先打點什麼。'); return; }
+    if (dg.pass) return win(q);
+    fails[cur] = (fails[cur] || 0) + 1;
+    shown[cur] = Math.max(shown[cur] || 0, Math.min(3, fails[cur]));
+    const items = [];
+    if (dg.count === 0) items.push('一筆都沒有。');
+    else if (dg.count > dg.n) items.push('掘到 ' + dg.count + ' 筆，超過 ' + dg.n + ' 筆——雜訊還太多。');
+    dg.targets.forEach((t, i) => {
+      const pre = l.targets.length > 1 ? '［第 ' + (i + 1) + ' 份］' : '';
+      if (t.rank && !t.ok) items.push(pre + '那份文件排第 ' + t.rank + ' 名（要前 ' + dg.k + ' 名）。擋在前面的：' + summarizeAhead(t.ahead) + '。');
+      else if (!t.rank) t.why.forEach((w) => items.push(pre + whyText(w)));
+    });
+    if (dg.targets.some((t) => !t.rank && t.why.some((w) => w.k === 'miss' && !w.fz))) items.push('你打的字，不在它寫的字裡。');
+    $('verdict').innerHTML = '<div class="v-box bad"><p class="v-h">✗ 退件（第 ' + fails[cur] + ' 次）</p><ul>' + items.map((x) => '<li>' + escH(x) + '</li>').join('') + '</ul></div>';
+    renderHints();
+    PK.announce('退件。' + items.join(' '));
+  });
+
+  function win(q) {
+    const l = LV[cur];
+    won = true;
+    if (done.indexOf(l.id) < 0) { done.push(l.id); store.set('done', done); }
+    render(q);
+    $('brief').classList.add('won');
+    $('stampOp').textContent = l.op;
+    const gap = l.gap ? '<div class="gap" aria-label="你打的字與它寫的字">' + l.gap.map((g) => '<span class="you">' + escH(g[0]) + '</span><span class="arr">→</span><span class="it">' + escH(g[1]) + '</span>').join('') + '</div>' : '';
+    $('verdict').innerHTML = '<div class="v-box ok"><p class="v-h">✓ 結案 · ' + escH(l.op) + '</p><p style="margin:0">' + escH(l.lesson) + '</p>' + gap + '</div>';
+    const next = LV.findIndex((x, i) => i > cur && done.indexOf(x.id) < 0);
+    const nx = next >= 0 ? next : LV.findIndex((x) => done.indexOf(x.id) < 0);
+    $('nextBtn').hidden = false;
+    $('nextBtn').textContent = nx >= 0 ? '下一張委託 →' : '八張全結案，往下讀 ↓';
+    $('nextBtn').dataset.go = nx;
+    navRender();
+    PK.announce('結案。' + l.lesson);
+    if (l.id === 7) setTimeout(() => $('man').classList.add('in'), 50);
+  }
+  $('nextBtn').addEventListener('click', () => {
+    const nx = +$('nextBtn').dataset.go;
+    if (nx >= 0) { load(nx); $('q').focus(); }
+    else PK.scrollTo($('man'));
+  });
+  $('skipBtn').addEventListener('click', () => PK.scrollTo($('man')));
+
+  function renderHints() {
+    const l = LV[cur], n = shown[cur] || 0;
+    $('hints').innerHTML = l.hints.slice(0, n).map((h, i) => {
+      if (i === 2) return '<p class="hint"><span class="hn">示範</span><code>' + escH(h) + '</code><button type="button" class="mini-btn" data-fill="1">填入</button></p>';
+      return '<p class="hint"><span class="hn">提示 ' + (i + 1) + '</span>' + escH(h) + '</p>';
+    }).join('');
+    $('hintBtn').disabled = n >= 3;
+    $('hintBtn').textContent = n >= 3 ? '提示用完了' : n ? '再一個提示' : '要提示';
+  }
+  $('hintBtn').addEventListener('click', () => {
+    shown[cur] = Math.min(3, (shown[cur] || 0) + 1);
+    renderHints();
+    PK.announce(LV[cur].hints[shown[cur] - 1]);
+  });
+  $('hints').addEventListener('click', (e) => {
+    if (e.target.closest('[data-fill]')) {
+      $('q').value = LV[cur].hints[2];
+      render($('q').value);
+      $('q').focus();
+    }
+  });
+
+  /* 拆字機 */
+  function copyText(t, btn) {
+    const ok = () => { btn.textContent = '已複製'; setTimeout(() => { btn.textContent = '複製'; }, 1400); PK.announce('已複製'); };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, () => fallback());
+    else fallback();
+    function fallback() {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); ok(); } catch (err) { btn.textContent = '請手動選取'; }
+      ta.remove();
+    }
+  }
+  function runRewrite(text) {
+    const R = SR.rewrite(text);
+    const out = $('rwOut');
+    if (!R.orig) { out.innerHTML = ''; return; }
+    const line = (k, v) => '<div class="rw-line"><span class="rw-k">' + k + '</span><span class="rw-v">' + v + '</span></div>';
+    let h = line('原句', escH(R.orig));
+    if (R.removed.length) h += line('拿掉', R.removed.map((w) => '<s>' + escH(w) + '</s>').join(' ') + ' <span class="sm">——文件不會這樣寫</span>');
+    if (R.err) h += line('錯誤訊息', escH(R.err));
+    h += line('核心', R.core.length ? escH(R.core.join(' ')) : '<span class="sm">（沒剩下名詞，試著多寫一點具體的東西）</span>');
+    if (R.formal.length) h += line('它的字', R.formal.map((f) => escH(f[0]) + ' → <span class="to">' + escH(f[1]) + '</span>' + (f[2] ? ' <span class="sm">' + escH(f[2]) + '</span>' : '')).join('<br>'));
+    if (R.english.length) h += line('英文', R.english.map((e) => escH(e[0]) + ' → <span class="to">' + escH(e[1]) + '</span>').join('、'));
+    if (R.queries.length) {
+      h += '<ol class="rw-qs">' + R.queries.map((q, i) => '<li style="animation-delay:' + (i * 70) + 'ms"><code>' + escH(q.q) + '</code><button type="button" class="mini-btn" data-cp="' + i + '">複製</button><span class="why">' + escH(q.why) + '</span></li>').join('') + '</ol>';
+    }
+    if (R.long.length) h += '<p class="rw-note">⚠ 「' + escH(R.long.join('」「')) + '」太長了，拆字機切不開；試著自己在詞與詞之間加空格。</p>';
+    h += '<p class="sm" style="margin-top:10px">拆字機只會照規則改寫，不知道你的問題對不對、詞換得準不準。把建議拿去真的搜尋框，留下有用的那個。</p>';
+    out.innerHTML = h;
+    out.querySelectorAll('[data-cp]').forEach((b) => b.addEventListener('click', () => copyText(R.queries[+b.dataset.cp].q, b)));
+    const best = R.queries[R.formal.length ? 1 : 0] || R.queries[0];
+    if (best) { store.set('last', best.q); $('codaQ').textContent = best.q; }
+    PK.announce('拆好了，有 ' + R.queries.length + ' 種建議寫法。');
+  }
+  $('rwf').addEventListener('submit', (e) => { e.preventDefault(); runRewrite($('rwq').value); });
+  $('rwq').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); runRewrite($('rwq').value); } });
+  document.querySelectorAll('.eg').forEach((b) => b.addEventListener('click', () => { $('rwq').value = b.textContent; runRewrite(b.textContent); }));
+
+  /* 結尾：帶回你自己的那一串 */
+  const last = store.get('last', '');
+  $('codaQ').textContent = typeof last === 'string' && last ? last : '';
+
+  load(cur);
+  PK.reveal();
+})();
+</script>
+</body>
+</html>

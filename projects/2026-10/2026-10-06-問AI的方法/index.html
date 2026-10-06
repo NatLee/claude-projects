@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你怎麼問，它就怎麼編｜每日小專案</title>
+<meta name="description" content="一位律師問 AI 判例是不是真的，它說是。五組之前／之後對照拆解 AI 搜尋的運作方式，再把你自己的問題改寫成要來源、要原文、要反證的提問，附關鍵字與查核清單。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#eceeef; --pk-ink:#16191c; --pk-dim:#59626a; --pk-accent:#c24a17;
+  --pk-line:rgba(22,25,28,.13);
+  --pk-maxw:1120px;
+  --cold:#dde2e6; --cold-2:#ccd4da; --cold-ink:#36414b; --cold-acc:#66778a; --cold-line:#b3bec8;
+  --warm:#fcebdc; --warm-2:#f6d6ba; --warm-ink:#3a2214; --warm-acc:#c24a17; --warm-t:#a33c0f; --warm-line:#ecc3a0;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Consolas,"Liberation Mono",monospace;
+}
+body{
+  background-color:var(--pk-bg);
+  background-image:
+    linear-gradient(rgba(22,25,28,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(22,25,28,.045) 1px,transparent 1px);
+  background-size:28px 28px;
+  font-size:16.5px;
+}
+.pk-home{background:color-mix(in srgb,var(--pk-bg) 80%,transparent)}
+.pk-btn{color:var(--warm-t);border-color:var(--warm-acc)}
+.pk-btn:hover{background:var(--warm-acc);color:#fff}
+h2,h3{font-family:var(--pk-sans);letter-spacing:.01em}
+.mono{font-family:var(--mono)}
+.tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.tag::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+.cold .tag{color:var(--cold-acc)}
+.warm .tag{color:var(--warm-t)}
+.prose{max-width:660px}
+.prose p{margin:0 0 16px}
+.sec{padding:84px 0 20px}
+.sec h2{font-size:clamp(23px,3.4vw,32px);line-height:1.4;margin:0 0 20px;font-weight:700}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--pk-dim);margin:0 0 10px}
+.note{font-size:13.5px;color:var(--pk-dim)}
+.ill{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;padding:1px 7px;border:1px dashed currentColor;border-radius:4px;opacity:.85;vertical-align:middle}
+
+/* ── 第一屏：雙艙 ── */
+.hero{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:70px 0 40px;position:relative}
+.machine{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--pk-line);border-radius:18px;overflow:hidden;position:relative;
+  box-shadow:0 30px 60px -40px rgba(22,25,28,.45);background:#fff}
+.ch{padding:34px 34px 30px;position:relative;min-height:330px}
+.ch.cold{background:var(--cold);color:var(--cold-ink)}
+.ch.warm{background:var(--warm);color:var(--warm-ink);border-left:1px solid var(--pk-line)}
+.ch .who{margin:0 0 10px;font-size:15.5px}
+.ch .say{font-size:clamp(22px,3vw,30px);font-weight:700;line-height:1.45;margin:6px 0 16px}
+.ch .verdict{margin:18px 0 0;padding-top:14px;border-top:1px dashed var(--cold-line);font-size:15px}
+.ch .verdict b{color:var(--pk-ink)}
+.ch.warm .say{color:var(--warm-t)}
+.blank{margin-top:22px;height:118px;border:1.5px dashed var(--warm-line);border-radius:12px;display:grid;place-items:center;
+  font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;color:var(--warm-t);text-align:center;padding:10px}
+.scan{position:absolute;left:0;right:0;top:0;height:2px;background:linear-gradient(90deg,transparent,rgba(194,74,23,.55),transparent);
+  animation:scan 5.5s cubic-bezier(.45,0,.55,1) infinite;pointer-events:none;opacity:.7}
+@keyframes scan{0%{transform:translateY(0)}50%{transform:translateY(328px)}100%{transform:translateY(0)}}
+.title-row{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-top:38px;flex-wrap:wrap}
+.hero h1{font-family:var(--pk-sans);font-weight:800;font-size:clamp(36px,7vw,76px);line-height:1.12;letter-spacing:-.01em;margin:0}
+.hero h1 .b{color:var(--warm-acc)}
+.hero .sub{max-width:360px;margin:0;color:var(--pk-dim);font-size:15px}
+.cue{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--pk-dim);margin-top:34px}
+
+/* ── 量尺 ── */
+.gauge{position:relative;margin:34px 0 18px;padding:62px 0 34px}
+.track{position:relative;height:12px;border-radius:6px;background:var(--cold-2);overflow:hidden}
+.track .over{position:absolute;left:60%;right:0;top:0;bottom:0;background:linear-gradient(90deg,var(--warm-acc),rgba(194,74,23,.25));
+  transform-origin:left;transform:scaleX(0);transition:transform 1.2s cubic-bezier(.2,.7,.2,1) .2s}
+.gauge.in .track .over{transform:scaleX(1)}
+.ticks{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--pk-dim);margin-top:8px}
+.mk{position:absolute;top:0;transform:translateX(-50%) translateY(10px);opacity:0;transition:opacity .6s ease,transform .7s cubic-bezier(.2,.8,.2,1);text-align:center;width:120px}
+.mk::after{content:"";display:block;width:1.5px;height:24px;margin:4px auto 0;background:currentColor}
+.mk b{display:block;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
+.mk span{font-size:12px;display:block}
+.gauge.in .mk{opacity:1;transform:translateX(-50%) translateY(0)}
+.gauge.in .mk:nth-child(3){transition-delay:.25s}
+.gauge.in .mk:nth-child(4){transition-delay:.5s}
+.mk.p{left:37%;color:var(--cold-ink)}
+.mk.all{left:60%;color:var(--warm-t)}
+.mk.g{left:94%;color:var(--pk-ink);text-align:right;transform:translateX(calc(-100% + 8px)) translateY(10px)}
+.mk.g::after{margin:4px 7px 0 auto}
+.gauge.in .mk.g{transform:translateX(calc(-100% + 8px))}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid var(--pk-line);margin-top:10px}
+.facts p{margin:0;padding:16px 18px 6px 0;font-size:15px}
+.facts p+p{padding-left:18px;border-left:1px solid var(--pk-line)}
+.facts b{display:block;font-size:13px;font-family:var(--mono);letter-spacing:.08em;color:var(--pk-dim);font-weight:500;margin-bottom:4px}
+
+/* ── 運作流程 ── */
+.flow{display:grid;grid-template-columns:1fr 24px 1.2fr 24px 1.3fr;align-items:stretch;gap:0;margin:28px 0 10px}
+.node{background:#fff;border:1px solid var(--pk-line);border-radius:12px;padding:14px 16px;font-size:14.5px}
+.node h4{margin:0 0 8px;font-size:12px;font-family:var(--mono);letter-spacing:.12em;color:var(--pk-dim);font-weight:500}
+.arrow{display:grid;place-items:center;color:var(--pk-dim);font-family:var(--mono)}
+.psg{display:block;padding:6px 8px;border-radius:6px;margin:4px 0;border:1px solid transparent;transition:background .35s,border-color .35s;font-size:13.5px}
+.psg i{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--pk-dim);margin-right:6px}
+.gen{font-size:15px;line-height:1.75}
+.gen sup{font-family:var(--mono);font-size:11px;color:var(--warm-t);padding:0 2px;border-bottom:1.5px solid var(--warm-acc)}
+.flow[data-cite="1"] .psg.p1{background:var(--warm);border-color:var(--warm-acc)}
+.flow[data-cite="2"] .psg.p2{background:var(--warm);border-color:var(--warm-line);border-style:dashed}
+.flow[data-cite="3"] .psg.p3{background:var(--cold);border-color:var(--cold-acc);border-style:dashed}
+.flow-cap{min-height:3.4em;font-size:14.5px;color:var(--pk-dim);margin:8px 0 0}
+.flow-ctl{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.seg{appearance:none;font:inherit;font-size:13.5px;padding:8px 14px;border-radius:999px;border:1px solid var(--pk-line);background:#fff;color:var(--pk-ink);cursor:pointer}
+.seg[aria-pressed="true"]{background:var(--pk-ink);color:#fff;border-color:var(--pk-ink)}
+
+/* ── 五組對照 ── */
+.pair{margin:62px 0 0;border-top:1px solid var(--pk-ink);padding-top:16px}
+.pair-h{display:flex;align-items:baseline;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.pair-h .n{font-family:var(--mono);font-size:13px;color:var(--pk-dim);letter-spacing:.1em}
+.pair-h h3{margin:0;font-size:clamp(19px,2.4vw,23px);font-weight:700;line-height:1.45}
+.duo{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--pk-line);border-radius:14px;overflow:hidden}
+.side{padding:20px 22px 22px}
+.side.cold{background:var(--cold);color:var(--cold-ink)}
+.side.warm{background:var(--warm);color:var(--warm-ink);border-left:1px solid var(--pk-line)}
+.ask{font-size:15.5px;line-height:1.8;margin:0 0 14px;padding:12px 14px;border-radius:10px;background:rgba(255,255,255,.62)}
+.ask mark{background:none;color:inherit;border-bottom:2px solid var(--warm-acc);padding:0 1px;position:relative}
+.ask mark[data-k]::after{content:attr(data-k);font-family:var(--mono);font-size:9.5px;letter-spacing:.06em;color:var(--warm-t);
+  position:relative;top:-.7em;margin-left:2px}
+.out{font-size:14px;line-height:1.75;margin:0;padding:10px 14px;border-left:2px solid currentColor;opacity:.92}
+.out .ill{margin-bottom:6px}
+.out table{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:4px}
+.out td,.out th{border:1px solid var(--warm-line);padding:4px 6px;text-align:left;vertical-align:top}
+.out th{font-weight:600;background:rgba(255,255,255,.5)}
+.why{display:grid;grid-template-columns:120px 1fr;gap:18px;margin-top:14px;font-size:15.5px}
+.why .lbl{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;color:var(--pk-dim);padding-top:4px}
+.why p{margin:0 0 10px}
+
+/* ── 實驗台（高潮） ── */
+.lab{margin-top:30px;border:1px solid var(--pk-ink);border-radius:18px;background:#fff;overflow:hidden;box-shadow:0 34px 70px -46px rgba(22,25,28,.6)}
+.lab-top{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;background:var(--pk-ink);color:#e9ecee;font-family:var(--mono);font-size:11.5px;letter-spacing:.14em}
+.lab-top .dots{display:flex;gap:6px}
+.lab-top .dots i{width:9px;height:9px;border-radius:50%;background:#59626a}
+.lab-top .dots i:last-child{background:var(--warm-acc)}
+form.in{padding:22px 22px 18px;display:grid;gap:14px}
+form.in label.big{font-weight:700;font-size:16px}
+form.in textarea{font:inherit;font-size:17px;line-height:1.7;width:100%;min-height:96px;resize:vertical;padding:12px 14px;border-radius:12px;
+  border:1px solid var(--cold-line);background:var(--cold);color:var(--cold-ink)}
+form.in textarea:focus,form.in select:focus{outline:none;border-color:var(--warm-acc);box-shadow:0 0 0 3px rgba(194,74,23,.18)}
+.opts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.opts label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--pk-dim);font-family:var(--mono);letter-spacing:.06em}
+.opts select{font:inherit;font-family:var(--pk-sans);font-size:15px;letter-spacing:0;padding:9px 10px;border-radius:10px;border:1px solid var(--pk-line);background:#fff;color:var(--pk-ink);width:100%}
+.go-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.go{background:var(--warm-acc);color:#fff;border-color:var(--warm-acc);font-weight:700}
+.go:hover{background:var(--warm-t);border-color:var(--warm-t)}
+.ghostbtn{appearance:none;font:inherit;font-size:13.5px;background:none;border:none;color:var(--pk-dim);text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px}
+.lab-msg{font-size:14px;color:var(--warm-t);min-height:1.4em;margin:0}
+.hist{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--pk-dim)}
+.hist button{appearance:none;font:inherit;font-size:13px;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:5px 12px;border-radius:999px;border:1px solid var(--pk-line);background:var(--pk-bg);color:var(--pk-ink);cursor:pointer}
+.hist button:hover{border-color:var(--warm-acc)}
+.result[hidden]{display:none}
+.result{border-top:1px solid var(--pk-line)}
+.res-duo{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+.res-duo .side{padding:22px}
+.raw{font-size:20px;font-weight:700;line-height:1.55;margin:0 0 16px;word-break:break-word}
+.diag{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.diag li{font-size:13.5px;line-height:1.6;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.55);
+  opacity:0;transform:translateX(-8px);transition:opacity .4s ease,transform .5s cubic-bezier(.2,.8,.2,1)}
+.diag li b{display:block;font-size:13px;color:var(--pk-ink)}
+.result.on .diag li{opacity:1;transform:none}
+.diag li.okk{background:transparent;border:1px dashed var(--cold-line)}
+pre.code{white-space:pre-wrap;word-break:break-word;font-family:var(--mono);font-size:13px;line-height:1.75;margin:0;
+  background:rgba(255,255,255,.7);border:1px solid var(--warm-line);border-radius:10px;padding:14px;max-height:520px;overflow:auto;color:var(--warm-ink)}
+.head-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.head-row h4{margin:0;font-size:15px}
+.cp{appearance:none;font:inherit;font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:6px 12px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--warm-acc);background:#fff;color:var(--warm-t);transition:background .2s,color .2s}
+.cp:hover{background:var(--warm-acc);color:#fff}
+.cp.done{background:var(--pk-ink);border-color:var(--pk-ink);color:#fff}
+.pack{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--pk-line)}
+.pack>section{padding:22px;min-width:0}
+.pack>section+section{border-left:1px solid var(--pk-line)}
+.pack .wide{grid-column:1/-1;border-bottom:1px solid var(--pk-line)}
+.pack .wide+section{border-left:none}
+.qs{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.qs li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:start;padding:10px 12px;border-radius:10px;background:var(--pk-bg)}
+.qs code{font-family:var(--mono);font-size:13.5px;word-break:break-word;color:var(--pk-ink)}
+.qs .qn{grid-column:1/2;font-size:12.5px;color:var(--pk-dim)}
+.qs .cp{grid-row:1/3;grid-column:2;align-self:center}
+.chk{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.chk label{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:14.5px;line-height:1.65;cursor:pointer}
+.chk input{width:17px;height:17px;margin-top:4px;accent-color:var(--warm-acc)}
+.chk input:checked+span{color:var(--pk-dim);text-decoration:line-through;text-decoration-color:var(--warm-acc)}
+.fit{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fit div{border-radius:10px;padding:12px 14px;font-size:14px}
+.fit .y{background:var(--warm)}
+.fit .n{background:var(--cold)}
+.fit h5{margin:0 0 6px;font-size:12px;font-family:var(--mono);letter-spacing:.12em;font-weight:500}
+.fit ul{margin:0;padding-left:18px}
+.fit li{margin:3px 0}
+.tipline{font-size:14px;margin:12px 0 0;color:var(--pk-dim)}
+.reveal-lines>*{opacity:0;transform:translateY(8px);transition:opacity .5s ease,transform .6s cubic-bezier(.2,.8,.2,1)}
+.result.on .reveal-lines>*{opacity:1;transform:none}
+.result.on .reveal-lines>*:nth-child(2){transition-delay:.12s}
+.result.on .reveal-lines>*:nth-child(3){transition-delay:.24s}
+.result.on .reveal-lines>*:nth-child(4){transition-delay:.36s}
+.cutnote{font-size:12.5px;color:var(--warm-t);margin:8px 0 0}
+
+/* ── 釣魚竿 ── */
+.models{counter-reset:m;list-style:none;padding:0;margin:24px 0 0;display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--pk-line)}
+.models li{counter-increment:m;padding:18px 22px 18px 0;border-bottom:1px solid var(--pk-line);font-size:15px}
+.models li:nth-child(even){padding-left:22px;border-left:1px solid var(--pk-line);padding-right:0}
+.models li::before{content:"0" counter(m);font-family:var(--mono);font-size:12px;color:var(--warm-t);display:block;margin-bottom:4px}
+.models b{display:block;font-size:16.5px;margin-bottom:4px}
+.tbl-wrap{overflow-x:auto;margin:20px 0 6px;border:1px solid var(--pk-line);border-radius:12px;background:#fff}
+table.judge{border-collapse:collapse;width:100%;min-width:620px;font-size:14.5px}
+.judge th,.judge td{padding:11px 14px;border-bottom:1px solid var(--pk-line);text-align:left;vertical-align:top}
+.judge thead th{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:var(--pk-dim);font-weight:500;background:var(--pk-bg)}
+.judge td.c{background:rgba(221,226,230,.45)}
+.judge td.w{background:rgba(252,235,220,.6)}
+.judge .pick{font-family:var(--mono);font-size:11.5px;font-weight:700;letter-spacing:.06em;display:block}
+.judge td.w .pick{color:var(--warm-t)}
+.judge td.c .pick{color:var(--cold-acc)}
+.privacy{margin:28px 0 0;padding:18px 20px;border-left:3px solid var(--pk-ink);background:#fff;border-radius:0 12px 12px 0;font-size:15px}
+.privacy p{margin:0 0 8px}
+details.dd{margin:16px 0 0;border:1px solid var(--pk-line);border-radius:14px;background:#fff}
+details.dd>summary{cursor:pointer;list-style:none;padding:16px 20px;font-weight:700;display:flex;justify-content:space-between;gap:12px;align-items:center}
+details.dd>summary::-webkit-details-marker{display:none}
+details.dd>summary::after{content:"+";font-family:var(--mono);font-size:20px;color:var(--warm-t);transition:transform .3s}
+details.dd[open]>summary::after{transform:rotate(45deg)}
+details.dd>summary small{font-weight:400;color:var(--pk-dim);font-size:13px;margin-left:8px}
+.dd-body{padding:0 20px 18px;font-size:15px}
+.dd-body h4{margin:20px 0 6px;font-size:15.5px}
+.dd-body p{margin:0 0 10px}
+.dd-body ul,.dd-body ol{margin:0 0 10px;padding-left:22px}
+.dd-body li{margin:4px 0}
+.dd-body code{font-family:var(--mono);font-size:13px;background:var(--pk-bg);padding:1px 5px;border-radius:4px;word-break:break-word}
+.dd-body a{color:var(--warm-t);word-break:break-word}
+
+/* ── 結尾 ── */
+.end{padding:100px 0 30px}
+.end .machine .ch{min-height:0}
+.end .say{font-size:clamp(18px,2.4vw,23px)}
+.last{font-size:clamp(22px,3.4vw,32px);font-weight:800;line-height:1.5;margin:40px 0 16px;max-width:820px}
+.last span{color:var(--warm-acc)}
+.coda{max-width:640px;color:var(--pk-dim);font-size:16px}
+
+.pk-foot{max-width:var(--pk-maxw)}
+
+@media (max-width:860px){
+  .flow{grid-template-columns:1fr;gap:0}
+  .arrow{transform:rotate(90deg);height:26px}
+  .opts{grid-template-columns:1fr 1fr}
+  .res-duo{grid-template-columns:1fr}
+  .res-duo .side.warm{border-left:none;border-top:1px solid var(--pk-line)}
+}
+@media (max-width:560px){
+  body{font-size:16px}
+  .machine,.duo{grid-template-columns:1fr}
+  .ch.warm,.side.warm{border-left:none;border-top:1px solid var(--pk-line)}
+  .ch{padding:24px 20px;min-height:0}
+  .scan{display:none}
+  .facts{grid-template-columns:1fr}
+  .facts p+p{padding-left:0;border-left:none;border-top:1px solid var(--pk-line)}
+  .mk{width:74px}
+  .mk b{font-size:17px}
+  .mk span{font-size:11px}
+  .why{grid-template-columns:1fr;gap:4px}
+  .pack{grid-template-columns:1fr}
+  .pack>section+section{border-left:none;border-top:1px solid var(--pk-line)}
+  .fit{grid-template-columns:1fr}
+  .models{grid-template-columns:1fr}
+  .models li:nth-child(even){padding-left:0;border-left:none}
+  .opts{grid-template-columns:1fr 1fr}
+  form.in,.res-duo .side,.pack>section{padding:18px 16px}
+  .qs li{grid-template-columns:1fr}
+  .qs .cp{grid-row:auto;grid-column:auto;justify-self:start}
+}
+@media (prefers-reduced-motion: reduce){
+  .scan{animation:none;display:none}
+  .track .over,.mk,.diag li,.reveal-lines>*{transition:none}
+  .diag li,.reveal-lines>*{opacity:1;transform:none}
+  .mk{opacity:1;transform:translateX(-50%)}
+  .mk.g{transform:translateX(calc(-100% + 8px))}
+  .track .over{transform:scaleX(1)}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="pk-wrap">
+    <div class="machine" role="group" aria-label="對照實驗機：之前與之後">
+      <div class="scan" aria-hidden="true"></div>
+      <div class="ch cold rv">
+        <p class="tag">A · 之前 · 2023 紐約</p>
+        <p class="who">一位律師交出的書狀裡，引了好幾個判例。對方律師說找不到。他回頭去問替他找判例的 ChatGPT：</p>
+        <p class="say">「這些判例是真的嗎？」</p>
+        <p class="who">它說是，還補充：在 LexisNexis 和 Westlaw 都查得到。</p>
+        <p class="verdict">那些判例並不存在。<b>2023 年 6 月 22 日</b>，聯邦法官裁罰 <b>5,000 美元</b>。</p>
+      </div>
+      <div class="ch warm rv">
+        <p class="tag">B · 之後 · 你</p>
+        <p class="who">同一台機器，換一種問法、多一道查核，會怎樣？</p>
+        <div class="blank" id="heroBlank">這一格先空著。<br>往下捲到實驗台，用你自己的問題填它。</div>
+      </div>
+    </div>
+    <div class="title-row">
+      <h1 class="rv">你怎麼問，<br><span class="b">它就怎麼編</span></h1>
+      <p class="sub rv">他問了，也查了。問題出在他拿去查證的，正是寫出那些判例的同一台機器。</p>
+    </div>
+    <p class="cue" aria-hidden="true">↓ SCROLL</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="sec" aria-labelledby="h-cjr">
+    <p class="kicker rv">兩年後 · 1,600 次測試</p>
+    <h2 id="h-cjr" class="rv">2025 年，有人把八個 AI 搜尋工具排成一排考試。</h2>
+    <div class="prose rv">
+      <p>哥倫比亞新聞評論（CJR）的 Tow Center 從 20 家新聞出版商各挑 10 篇文章，摘一段原文，交給 8 個能即時上網搜尋的生成式工具，只問四件事：這段出自哪篇文章的標題、哪家出版商、哪天、網址是什麼。</p>
+      <p>同一批摘句，研究者貼進傳統 Google 搜尋，原文都排在前三名。</p>
+    </div>
+    <div class="gauge" id="gauge" role="img" aria-label="答錯比例量尺：Perplexity 37%，八個工具整體超過 60%，Grok 3 為 94%">
+      <div class="track"><div class="over"></div></div>
+      <div class="mk p"><b>37%</b><span>Perplexity</span></div>
+      <div class="mk all"><b>&gt;60%</b><span>八個工具整體</span></div>
+      <div class="mk g"><b>94%</b><span>Grok 3</span></div>
+      <div class="ticks" aria-hidden="true"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100% 答錯</span></div>
+    </div>
+    <div class="facts rv">
+      <p><b>付費版</b>比免費版更常用篤定的語氣給出錯的出處。</p>
+      <p><b>Grok 3</b>的 200 次回覆裡，有 154 次附上的連結點進去是錯誤頁面。</p>
+      <p><b>研究自己也說</b>同一個提示重跑，回覆可能不一樣。</p>
+    </div>
+    <div class="prose rv" style="margin-top:34px">
+      <p>讀到這裡很容易下個結論：AI 不能拿來查資料。研究者沒有這樣寫，這一頁也不打算這樣說。比較有用的問題是兩個：<b>你怎麼問</b>，決定它往哪個方向生成；<b>你怎麼驗</b>，決定那些字能不能被你帶出對話框。</p>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-mech">
+    <p class="kicker rv">它在做什麼</p>
+    <h2 id="h-mech" class="rv">它寫的是「看起來合理」的下一段字，附上的連結是另一回事。</h2>
+    <div class="prose rv">
+      <p>生成式模型的基本動作，是根據前面的文字，一小段一小段地接出最可能的下一段。「可能」來自訓練時讀過的大量文本，跟「是否屬實」沒有直接的開關相連。所以它可以寫出格式完美、案號齊全、根本不存在的判例。</p>
+      <p>有搜尋功能的版本多了一個前置步驟：先拿你的問題去檢索，把找到的幾段網頁文字塞進它的上下文，再開始生成。這叫<b>檢索增強生成（RAG）</b>。它確實讓回覆更貼近資料，但句子仍是生成出來的，旁邊的引用標號也可能掛錯段落。</p>
+    </div>
+    <div class="flow rv" id="flow" data-cite="2">
+      <div class="node"><h4>① 你的問題</h4>「某城市今年起公車票價調整多少？」<br><span class="ill">虛構示意</span></div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node"><h4>② 檢索到的片段（放進上下文）</h4>
+        <span class="psg p1"><i>[1]</i>市府新聞稿：自 3 月起全票調整為 ▒▒ 元。</span>
+        <span class="psg p2"><i>[2]</i>議會紀錄：票價案經三讀通過，附帶決議……</span>
+        <span class="psg p3"><i>[3]</i>部落格：去年就聽說要漲，大家怎麼看？</span>
+      </div>
+      <div class="arrow" aria-hidden="true">→</div>
+      <div class="node"><h4>③ 生成的句子＋引用</h4><p class="gen" style="margin:0">今年 3 月起，全票調整為 ▒▒ 元<sup id="supN">[2]</sup>。</p></div>
+    </div>
+    <div class="flow-ctl rv" role="group" aria-label="切換引用指向">
+      <button type="button" class="seg" data-cite="2" aria-pressed="true">引用指向 [2]</button>
+      <button type="button" class="seg" data-cite="3" aria-pressed="false">引用指向 [3]</button>
+      <button type="button" class="seg" data-cite="1" aria-pressed="false">引用指向 [1]</button>
+    </div>
+    <p class="flow-cap" id="flowCap" aria-live="polite">標號 [2] 指向議會紀錄：它確實和票價有關，但那一段沒寫「3 月」也沒寫金額。主題相關，不等於支持這句話。</p>
+    <p class="note rv">以上為虛構示意。Tow Center 的測試裡，工具常引用轉載頁或錯誤網址；法律 AI 工具的獨立評測（Stanford 團隊 2024）也發現，用了 RAG 的商用產品仍有 17%～33% 的回覆出現錯誤或無依據的內容。</p>
+  </section>
+
+  <section class="sec" aria-labelledby="h-pairs">
+    <p class="kicker rv">五組對照 · A 冷 / B 暖</p>
+    <h2 id="h-pairs" class="rv">同一個人，同一個問題，換一種問法。</h2>
+    <div class="prose rv"><p>下面每一組，左邊是常見的問法，右邊是改寫。底線標出改寫多加的東西。示意輸出用 ▒ 遮住數字，因為重點在形狀，不在內容；它們都不是任何真實產品的真實輸出。</p></div>
+
+    <article class="pair rv">
+      <div class="pair-h"><span class="n">01 / 05</span><h3>模糊的一句，對上有處境、有範圍、要出處的一段</h3></div>
+      <div class="duo">
+        <div class="side cold">
+          <p class="tag">A · 之前</p>
+          <p class="ask">電動機車補助多少？</p>
+          <div class="out"><span class="ill">示意輸出</span><br>電動機車購車補助最高可達 ▒▒,▒▒▒ 元，各縣市另有加碼，建議把握時間申請！</div>
+        </div>
+        <div class="side warm">
+          <p class="tag">B · 之後</p>
+          <p class="ask"><mark data-k="處境">我住台中，打算今年買電動機車。</mark>請列出<mark data-k="範圍">今年度中央與台中市</mark>的購車補助項目、金額與申請期限，<mark data-k="出處">每項附官方網址和網頁上的原句</mark>。<mark data-k="許可">找不到今年度公告的，請直說，不要拿舊年度的數字代替。</mark></p>
+          <div class="out"><span class="ill">示意輸出</span>
+            <table><tr><th>項目</th><th>來源</th><th>原句</th></tr>
+            <tr><td>中央補助 ▒ 元</td><td>（官方網址）</td><td>「……▒……」</td></tr>
+            <tr><td>台中市加碼</td><td colspan="2">找不到今年度公告</td></tr></table>
+          </div>
+        </div>
+      </div>
+      <div class="why"><span class="lbl">為什麼</span><div>
+        <p>沒有年份、沒有地點，模型就用「最常見的寫法」補空白：可能是三年前的金額，可能是別的縣市。你看不出它補了哪裡。</p>
+        <p>最後那句「找不到就直說」很關鍵。生成模型的預設動作是寫出點什麼；你先給它「不知道」的出口，它比較不會為了填滿格子硬湊。</p>
+      </div></div>
+    </article>
+
+    <article class="pair rv">
+      <div class="pair-h"><span class="n">02 / 05</span><h3>「直接告訴我」，對上「先給我搜尋的地圖」</h3></div>
+      <div class="duo">
+        <div class="side cold">
+          <p class="tag">A · 之前</p>
+          <p class="ask">房東不還押金怎麼辦？直接告訴我該怎麼做。</p>
+          <div class="out"><span class="ill">示意輸出</span><br>建議先與房東溝通，保留相關證據；若協商不成，可以尋求法律途徑……（一段放諸四海皆準的建議）</div>
+        </div>
+        <div class="side warm">
+          <p class="tag">B · 之後</p>
+          <p class="ask">我在台灣租屋，房東不還押金。<mark data-k="角色">先不要給結論。</mark>請列出：<mark data-k="詞彙">① 我該用的中英文關鍵字與同義詞</mark>；<mark data-k="地圖">② 哪些官方機關或資料庫有第一手資料</mark>；<mark data-k="目標">③ 每個地方我該找哪一種文件。</mark></p>
+          <div class="out"><span class="ill">示意輸出</span><br>關鍵字：押金／擔保金、租賃契約、返還、調解……<br>第一手：法規資料庫的民法租賃章節、主管機關公布的租賃契約範本、地方政府調解窗口……<br>該找：條文原文、範本條款、申請表格</div>
+        </div>
+      </div>
+      <div class="why"><span class="lbl">為什麼</span><div>
+        <p>模型最擅長的，是「這個領域的人都用什麼詞」：它讀過大量文本，知道「押金」在法條裡叫什麼、在判決裡怎麼寫。它最不可靠的，是精確的條文、金額與日期。</p>
+        <p>所以讓它畫地圖、你自己去目的地。拿到的關鍵字丟進傳統搜尋（加引號、限定網域等技巧，詳見〈搜尋框的暗號〉），落腳在官方原文上。</p>
+      </div></div>
+    </article>
+
+    <article class="pair rv">
+      <div class="pair-h"><span class="n">03 / 05</span><h3>「真的嗎？」，對上「每條主張給我原文句子」</h3></div>
+      <div class="duo">
+        <div class="side cold">
+          <p class="tag">A · 之前</p>
+          <p class="ask">你剛才給的這些判例是真的嗎？</p>
+          <div class="out"><span class="ill">示意 · 轉述 Mata 案情境</span><br>是的，這些判例都真實存在，可以在主要法律資料庫中查到。</div>
+        </div>
+        <div class="side warm">
+          <p class="tag">B · 之後</p>
+          <p class="ask"><mark data-k="拆解">把你上一則回覆拆成一條一條主張。</mark>每條給：<mark data-k="出處">來源網址、該頁上能支持它的原文句子（逐字）</mark>、你的信心。<mark data-k="許可">找不到原文的寫「找不到」，不要改寫成像原文的句子。</mark></p>
+          <div class="out"><span class="ill">示意輸出</span>
+            <table><tr><th>主張</th><th>網址</th><th>原文</th><th>信心</th></tr>
+            <tr><td>判例 A 存在</td><td>（網址）</td><td>「……」</td><td>中</td></tr>
+            <tr><td>判例 B 存在</td><td colspan="2">找不到</td><td>低</td></tr></table>
+          </div>
+        </div>
+      </div>
+      <div class="why"><span class="lbl">為什麼</span><div>
+        <p>問「是不是真的」，等於請同一個生成器再生成一次「看起來合理」的回覆。它沒有另一條獨立的查證管道，「是」很容易接。</p>
+        <p>改要原文句子，它當然也可能編。差別在於：編出來的引句，你在網頁上按 Ctrl+F 一搜就露餡；一個「是」字，你沒辦法 Ctrl+F。</p>
+      </div></div>
+    </article>
+
+    <article class="pair rv">
+      <div class="pair-h"><span class="n">04 / 05</span><h3>一口氣要一整份，對上拆成三步、每步驗收</h3></div>
+      <div class="duo">
+        <div class="side cold">
+          <p class="tag">A · 之前</p>
+          <p class="ask">寫一份電動車和油車五年總持有成本的比較報告。</p>
+          <div class="out"><span class="ill">示意輸出</span><br>電動車五年總成本約 ▒▒▒ 萬元，油車約 ▒▒▒ 萬元，電動車可節省 ▒▒%……（數字從哪來，看不出來）</div>
+        </div>
+        <div class="side warm">
+          <p class="tag">B · 之後</p>
+          <p class="ask"><mark data-k="步驟1">① 先列出總持有成本要算哪些項目，不要填數字。</mark><br><mark data-k="步驟2">② 每一項，告訴我台灣該去哪裡找官方或原廠數字。</mark><br><mark data-k="步驟3">③ 我貼上自己查到的數字，你只用這些數字計算，列出算式。</mark></p>
+          <div class="out"><span class="ill">示意輸出</span><br>項目：車價、補助、能源、保險、稅費、保養、殘值……<br>算式：（你提供的數字）× 年數 ……</div>
+        </div>
+      </div>
+      <div class="why"><span class="lbl">為什麼</span><div>
+        <p>一次生成一整份報告，錯誤會互相墊高：一個記錯的電價，乘上五年、再拿去比較，最後的百分比看起來精確，底下卻是沙。</p>
+        <p>拆步驟讓每一步的產出都小到你看得完、驗得了，而且關鍵數字來自你查到的來源，不是模型記憶裡的平均值。</p>
+      </div></div>
+    </article>
+
+    <article class="pair rv">
+      <div class="pair-h"><span class="n">05 / 05</span><h3>只要支持的研究，對上把反證也排上桌</h3></div>
+      <div class="duo">
+        <div class="side cold">
+          <p class="tag">A · 之前</p>
+          <p class="ask">幫我找研究證明每天喝咖啡對身體好。</p>
+          <div class="out"><span class="ill">示意輸出</span><br>多項研究顯示，適量飲用咖啡與 ▒▒ 風險降低有關……（清一色支持）</div>
+        </div>
+        <div class="side warm">
+          <p class="tag">B · 之後</p>
+          <p class="ask">關於每天喝咖啡和健康的關係，<mark data-k="中立">分三欄：支持有益、認為有害或無關、仍有爭議</mark>。每篇給<mark data-k="規格">作者、年份、研究類型（觀察／隨機試驗／綜述）、連結</mark>。<mark data-k="許可">某欄找不到夠好的研究，就寫明。</mark></p>
+          <div class="out"><span class="ill">示意輸出</span><br>支持｜反對或無關｜爭議——三欄各有幾篇，並標出多數是觀察研究</div>
+        </div>
+      </div>
+      <div class="why"><span class="lbl">為什麼</span><div>
+        <p>研究者把這種傾向叫做 sycophancy（諂媚）：經過人類回饋訓練的助理，容易順著提問者的立場回覆。Anthropic 團隊 2023 年的論文發現五個主流助理都有這種行為。</p>
+        <p>「證明 X」本身就是立場。改成三欄，你不是在找它同意你，是在請它把桌面攤開；研究類型那一欄，則讓你一眼看出證據有多硬。</p>
+      </div></div>
+    </article>
+  </section>
+
+  <section class="sec" id="labSec" aria-labelledby="h-lab">
+    <p class="kicker rv">實驗台 · 換你</p>
+    <h2 id="h-lab" class="rv">把你真的想查的那一題放上來。</h2>
+    <div class="prose rv"><p>不用是什麼大題目，可以是「這個藥能不能和咖啡一起吃」，可以是一行一直報錯的程式。這台機器不連網、不呼叫任何 AI，它照固定規則把你的問法拆開、補上缺的零件，交給你四樣東西帶走。請不要放個資或公司機密。</p></div>
+
+    <div class="lab rv">
+      <div class="lab-top"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span>REWRITE · A → B</span></div>
+      <form class="in" id="labForm" novalidate>
+        <label class="big" for="q">你的問題（原本會怎麼問，就怎麼打）</label>
+        <textarea id="q" maxlength="600" placeholder="例如：間歇性斷食真的能減肥嗎？" aria-describedby="labMsg"></textarea>
+        <div class="opts">
+          <label>用途
+            <select id="purpose">
+              <option value="decide">做決定</option>
+              <option value="report">寫報告</option>
+              <option value="learn">學新東西</option>
+              <option value="debug">寫程式除錯</option>
+            </select></label>
+          <label>領域
+            <select id="domain">
+              <option value="health">健康醫療</option>
+              <option value="law">法律權益</option>
+              <option value="money">金錢理財</option>
+              <option value="tech">科技程式</option>
+              <option value="academic">學術研究</option>
+              <option value="news">新聞時事</option>
+              <option value="life">生活消費</option>
+              <option value="other" selected>其他</option>
+            </select></label>
+          <label>時間範圍
+            <select id="time">
+              <option value="any">不限</option>
+              <option value="1y">最近一年</option>
+              <option value="3y">最近三年</option>
+              <option value="5y">最近五年</option>
+            </select></label>
+          <label>偏好語言
+            <select id="lang">
+              <option value="both">中英都要</option>
+              <option value="zh">中文為主</option>
+              <option value="en">英文為主</option>
+            </select></label>
+        </div>
+        <div class="go-row">
+          <button type="submit" class="pk-btn go">改寫這一題</button>
+          <button type="button" class="ghostbtn" id="demoBtn">用範例題試試</button>
+        </div>
+        <p class="lab-msg" id="labMsg" aria-live="polite"></p>
+        <div class="hist" id="hist" hidden></div>
+      </form>
+
+      <div class="result" id="result" hidden>
+        <div class="res-duo">
+          <div class="side cold">
+            <p class="tag">A · 你原本的問法</p>
+            <p class="raw" id="outRaw"></p>
+            <ul class="diag" id="outDiag" aria-label="原問法缺了什麼"></ul>
+          </div>
+          <div class="side warm">
+            <div class="head-row"><p class="tag" style="margin:0">B · 改寫後的研究提示詞</p><button type="button" class="cp" data-copy="prompt">複製提示詞</button></div>
+            <pre class="code" id="outPrompt" tabindex="0" aria-label="改寫後的提示詞"></pre>
+            <p class="cutnote" id="cutNote" hidden></p>
+          </div>
+        </div>
+        <div class="pack reveal-lines">
+          <section class="wide">
+            <div class="head-row"><h4>給傳統搜尋引擎的查詢</h4><button type="button" class="cp" data-copy="queries">全部複製</button></div>
+            <ul class="qs" id="outQs"></ul>
+            <p class="note" style="margin:10px 0 0">運算子點到為止，完整用法詳見〈搜尋框的暗號〉。平台語法會變，以各搜尋引擎官方說明為準。</p>
+          </section>
+          <section>
+            <div class="head-row"><h4>查核清單</h4><button type="button" class="cp" data-copy="check">複製清單</button></div>
+            <ul class="chk" id="outChk"></ul>
+          </section>
+          <section>
+            <div class="head-row"><h4>這個用途，AI 適合做什麼</h4></div>
+            <div class="fit" id="outFit"></div>
+            <p class="tipline" id="outTip"></p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-rod">
+    <p class="kicker rv">帶走 · 釣竿</p>
+    <h2 id="h-rod" class="rv">下次打開任何一個 AI 對話框之前，先記得四件事。</h2>
+    <ol class="models rv">
+      <li><b>它有截止日</b>沒開搜尋時，它只知道訓練資料截止前的世界。問最新的價格、法規、事件，先確認它有沒有真的去搜。</li>
+      <li><b>檢索之後才生成</b>開了搜尋，它是先找幾段網頁、放進上下文再寫。找錯了頁，寫得再流暢也是錯的。</li>
+      <li><b>引用不等於支持</b>連結掛在句子旁邊，只代表它參考過那頁，不代表那頁說了這句話。點開、Ctrl+F，才算數。</li>
+      <li><b>同一題，每次不同</b>生成帶有隨機性，搜尋排名也會變。重要的事問兩次；兩次說法不同，就是要你自己查的訊號。</li>
+    </ol>
+
+    <h3 class="rv" style="margin:52px 0 6px;font-size:20px">什麼時候先問 AI，什麼時候先打關鍵字</h3>
+    <div class="tbl-wrap rv" role="region" aria-label="判斷表，可橫向捲動" tabindex="0">
+      <table class="judge">
+        <thead><tr><th scope="col">你的情況</th><th scope="col">先用</th><th scope="col">為什麼</th></tr></thead>
+        <tbody>
+          <tr><td>不知道這領域的人都用什麼詞</td><td class="w"><span class="pick">AI</span>請它列關鍵字、同義詞、英文術語</td><td>詞彙是它的強項，錯了也容易被下一步搜尋糾正</td></tr>
+          <tr><td>要最新的價格、法規、班表、公告</td><td class="c"><span class="pick">關鍵字搜尋</span>直達官方網站</td><td>時效性資料以發布者為準，AI 可能拿到舊頁或轉載</td></tr>
+          <tr><td>要某段引言的確切出處、原文</td><td class="c"><span class="pick">關鍵字搜尋</span>加引號搜原句</td><td>Tow Center 的測試裡，傳統搜尋把原文排在前三名</td></tr>
+          <tr><td>手上已有一疊資料，要整理比較</td><td class="w"><span class="pick">AI</span>貼上資料，要求只根據你給的內容</td><td>來源由你掌控，它負責摘要和排版</td></tr>
+          <tr><td>要寫 regex、SQL、搜尋語法</td><td class="w"><span class="pick">AI</span>產生草稿，你用測試資料驗</td><td>語法可以被執行檢驗，錯了立刻知道</td></tr>
+          <tr><td>入門一個陌生主題</td><td class="w"><span class="pick">AI → 搜尋</span>先要地圖，再找教科書或官方教學</td><td>地圖可以粗，細節要回到權威來源</td></tr>
+          <tr><td>醫療、法律、金錢的個人決定</td><td class="c"><span class="pick">官方來源＋專業人士</span>AI 只用來準備問題</td><td>錯一次的代價太高，責任也不在它身上</td></tr>
+          <tr><td>找某個特定網站、檔案、論文</td><td class="c"><span class="pick">關鍵字搜尋</span>或直接上該網站搜</td><td>導航型的找法，搜尋引擎又快又準</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="privacy rv">
+      <p><b>貼上去之前</b>：你打進對話框的文字，會被送到服務商的伺服器處理。不要貼身分證字號、病歷、客戶資料、公司未公開的程式碼與文件。</p>
+      <p>多數主流服務都有「是否用你的對話改進模型」之類的資料設定，企業方案通常另有條款；各家規定不同而且會改，用之前去你那個服務的隱私設定頁看一次。公司若有 AI 使用規範，以規範為準。</p>
+    </div>
+
+    <details class="dd rv">
+      <summary>給工程師與研究者：進階用法<small>regex／SQL、結構化輸出、測試題、deep research、RAG</small></summary>
+      <div class="dd-body">
+        <h4>讓它寫語法，你來執行驗證</h4>
+        <p>regex、SQL、GitHub code search 或學術資料庫的布林查詢，都是「可以被機器檢驗」的輸出。請它同時產生<b>應該命中</b>與<b>不該命中</b>的測試樣本，丟進 regex101 這類工具或測試資料庫跑一次。語法錯了，執行會告訴你；它說得多篤定都不算。</p>
+        <h4>要結構化輸出，方便比對</h4>
+        <p>要求 JSON 或表格（例如 <code>{"claim","url","quote","confidence","counter"}</code>），同一題跑兩次就能用 diff 比；也能寫個小腳本自動抓網頁、檢查 <code>quote</code> 是否逐字出現在 <code>url</code> 的內文裡。這一步會刷掉很多「看起來像引句」的句子。</p>
+        <h4>建立「已知解」測試題</h4>
+        <p>在你的領域挑 10～20 題你已經知道正解、而且有權威出處的問題，新工具或新版本上線就先考一次，記下命中率與錯法。Tow Center 的研究就是這個邏輯：用出處明確的摘句，量工具找不找得回原文。</p>
+        <h4>Deep research 類功能</h4>
+        <p>這類功能會自己多輪搜尋、讀很多頁，最後寫成一份長報告。好處是覆蓋面廣、幫你省掉第一輪篩選；風險是報告越長越像真的，引用越多你越不會逐條查。建議：要它附「方法」一節（搜了哪些詞、排除了什麼），然後抽查最關鍵的三到五條引用。</p>
+        <h4>RAG 為什麼會引錯段落</h4>
+        <p>典型流程：文件切成小段（chunk）→ 轉成向量 → 用問題的向量找最相近的幾段 → 放進上下文 → 生成。「最相近」是語意相似，不是「能支持這句」；切段可能把主詞和數字切開；放進很多段時，模型對中間段落的利用往往較差（Liu 等人 2023〈Lost in the Middle〉）。所以 RAG 降低了亂編，但引用仍要逐條對。</p>
+        <h4>官方提示指南（2026-10-06 確認網址可開）</h4>
+        <ul>
+          <li>Anthropic：<a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/overview" rel="noopener" target="_blank">Prompt engineering overview</a>，以及互動教學 <a href="https://github.com/anthropics/prompt-eng-interactive-tutorial" rel="noopener" target="_blank">prompt-eng-interactive-tutorial</a></li>
+          <li>OpenAI：<a href="https://developers.openai.com/api/docs/guides/prompt-engineering" rel="noopener" target="_blank">Prompt engineering guide</a></li>
+          <li>Google：<a href="https://ai.google.dev/gemini-api/docs/prompting-strategies" rel="noopener" target="_blank">Gemini API — Prompt design strategies</a></li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="dd rv">
+      <summary>五個作業：拿真的 AI 工具試<small>每題 10 分鐘</small></summary>
+      <div class="dd-body">
+        <ol>
+          <li><b>問兩次。</b>同一題、同一個工具，開兩個新對話各問一次。把兩份回覆並排，圈出說法不同的地方——那些就是你該自己查的。</li>
+          <li><b>對原文。</b>要它對某個主張給「來源網址＋逐字原文」。點開每個連結，Ctrl+F 搜引句前五個字。記下：幾條找得到、幾條被改寫、幾條根本不在那頁。</li>
+          <li><b>考已知題。</b>挑一題你很熟、而且有權威出處的問題（例如你工作領域的一條規定）。看它錯在哪裡、錯得多有自信。</li>
+          <li><b>翻轉立場。</b>先問「為什麼 X 是好的」，再開新對話問「為什麼 X 是壞的」。兩邊它都寫得頭頭是道嗎？這就是要你自己攤開證據的理由。</li>
+          <li><b>倒過來用。</b>請它只給你搜尋關鍵字和該查的資料庫，不給結論。拿這些詞去傳統搜尋，比較你自己找到的和它原本可能會說的。</li>
+        </ol>
+      </div>
+    </details>
+
+    <details class="dd rv">
+      <summary>自學延伸：下一步讀什麼<small>原始研究與案例</small></summary>
+      <div class="dd-body">
+        <ul>
+          <li>Klaudia Jaźwińska、Aisvarya Chandrasekar〈AI Search Has a Citation Problem〉，Columbia Journalism Review／Tow Center，2025-03-06：<a href="https://www.cjr.org/tow_center/we-compared-eight-ai-search-engines-theyre-all-bad-at-citing-news.php" rel="noopener" target="_blank">cjr.org</a></li>
+          <li>Mata v. Avianca, Inc., 1:22-cv-01461（S.D.N.Y.），2023-06-22 制裁裁定：可從 <a href="https://en.wikipedia.org/wiki/Mata_v._Avianca,_Inc." rel="noopener" target="_blank">Wikipedia 條目</a>的參考資料追到法院文件</li>
+          <li>Lewis 等人〈Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks〉，NeurIPS 2020：<a href="https://arxiv.org/abs/2005.11401" rel="noopener" target="_blank">arXiv:2005.11401</a></li>
+          <li>Liu 等人〈Lost in the Middle: How Language Models Use Long Contexts〉，TACL 2023：<a href="https://arxiv.org/abs/2307.03172" rel="noopener" target="_blank">arXiv:2307.03172</a></li>
+          <li>Magesh 等人〈Hallucination-Free? Assessing the Reliability of Leading AI Legal Research Tools〉，2024：<a href="https://arxiv.org/abs/2405.20362" rel="noopener" target="_blank">arXiv:2405.20362</a></li>
+          <li>Sharma 等人〈Towards Understanding Sycophancy in Language Models〉，2023：<a href="https://arxiv.org/abs/2310.13548" rel="noopener" target="_blank">arXiv:2310.13548</a></li>
+        </ul>
+        <p>同系列其他頁：關鍵字與運算子見〈搜尋框的暗號〉；判斷來源可不可信見〈查核員先關掉了那個分頁〉；追引言的源頭見〈那句達爾文名言是誰寫的〉；把搜尋當成反覆覓食見〈一次搜尋從來不夠〉。</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="end" aria-labelledby="h-end">
+    <h2 id="h-end" class="pk-sr">結尾：你的之前與之後</h2>
+    <div class="machine rv">
+      <div class="ch cold">
+        <p class="tag">A · 之前</p>
+        <p class="say" id="endBefore">「這些判例是真的嗎？」</p>
+      </div>
+      <div class="ch warm">
+        <p class="tag" id="endTag">B · 之後</p>
+        <p class="say" id="endAfter">「把每條主張配上網址與逐字原文；找不到，就寫找不到。」</p>
+      </div>
+    </div>
+    <p class="last rv">問法，決定它往哪裡編；<br><span>回頭去對</span>，決定你能不能信。</p>
+    <p class="coda rv">那位律師離正確只差一步：他要的那幾個判例，換一個搜尋框——法院的、資料庫的——就會顯示「查無此案」。下一次它給你一句漂亮的原文，把它貼進另一個搜尋框。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Columbia Journalism Review／Tow Center（2025）；Mata v. Avianca（S.D.N.Y. 2023）；Lewis et al.（2020）；Liu et al.（2023）；Magesh et al.（2024）；Sharma et al.（2023）；Anthropic、OpenAI、Google 官方提示指南。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'aiask.';
+const store = PK.store(LS);
+
+/*CORE-START*/
+var AIASK = (function () {
+  var MAXLEN = 300;
+  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
+
+  /* 正規化：去控制字元、收空白、依字元（非 UTF-16 單位）截長 */
+  function clean(s) {
+    var t = String(s == null ? '' : s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+      .replace(/\s+/g, ' ').trim();
+    var chars = Array.from(t), cut = false;
+    if (chars.length > MAXLEN) { t = chars.slice(0, MAXLEN).join(''); cut = true; }
+    return { text: t, cut: cut };
+  }
+
+  var QW = ['可不可以', '能不能', '是不是', '有沒有', '對不對', '真的假的', '告訴我', '我想知道', '想知道', '我想問', '請問', '請幫我',
+    '幫我找', '幫我', '麻煩', '到底', '究竟', '怎麼樣', '怎麼辦', '怎麼', '如何', '為什麼', '為何', '什麼', '哪些', '哪個', '哪裡',
+    '多少', '可以', '應該', '需要', '直接', '一下', '真的', '請', '嗎', '呢', '吧', '啊', '呀', '喔'];
+  var SEPW = ['以及', '還有', '還是', '或是', '或者', '因為', '所以', '如果', '但是', '關於', '對於', '我們', '你們', '他們', '這個', '那個',
+    '這些', '那些', '的', '了', '和', '與', '跟', '及', '或', '在', '我', '你', '他', '她', '它', '把', '被', '會', '要', '能', '就', '都', '也', '很', '最', '更', '從', '給', '讓', '用'];
+  var STOP = { '一個': 1, '東西': 1, '問題': 1, '事情': 1, '方法': 1, '時候': 1, '是否': 1, '大家': 1, '現在': 1, '這樣': 1, '那樣': 1, '需要': 1, '可能': 1, '主要': 1, '重要': 1, '很多': 1, '使用': 1, '解決': 1, '處理': 1, '一起': 1 };
+  var EN_STOP = { the: 1, a: 1, an: 1, is: 1, are: 1, to: 1, of: 1, and: 1, or: 1, in: 1, on: 1, for: 1, how: 1, what: 1, why: 1, can: 1, i: 1, my: 1, do: 1, does: 1 };
+  var PUNCT = /[\s,，、。．!！?？;；:：()（）\[\]【】「」『』"“”'‘’<>《》〈〉\/\\|~～…—\-_=+*&^%$#@`]+/;
+
+  var SYN = {
+    '補助': ['補貼', '津貼'], '減肥': ['減重', '體重控制'], '減重': ['減肥', '體重控制'], '電動車': ['電動汽車', '電動車輛'],
+    '電動機車': ['電動二輪車', '電動摩托車'], '押金': ['擔保金', '保證金'], '房東': ['出租人'], '房客': ['承租人'], '租屋': ['租賃', '租房'],
+    '薪水': ['薪資', '工資'], '加班': ['延長工時'], '離職': ['資遣', '辭職'], '失眠': ['睡眠障礙', '睡不著'], '咖啡': ['咖啡因'],
+    '副作用': ['不良反應'], '斷食': ['禁食', '限時進食'], '疫苗': ['預防接種'], '保險': ['保單'], '退休': ['退休金', '年金'],
+    '股票': ['股市', '個股'], '基金': ['ETF'], '房價': ['不動產價格', '住宅價格'], '報稅': ['申報所得稅', '綜所稅'], '手機': ['智慧型手機'],
+    '小孩': ['兒童', '孩童'], '老人': ['高齡者', '長者'], '空污': ['空氣污染'], '暖化': ['氣候變遷'], '學費': ['教育費用'],
+    '錯誤': ['error', '例外'], '報錯': ['error', '錯誤訊息'], '當機': ['crash', '崩潰'], '很慢': ['效能', 'performance'],
+    '人工智慧': ['AI', '生成式 AI'], '機器學習': ['machine learning'], '資安': ['資訊安全'], '個資': ['個人資料'],
+    '詐騙': ['詐欺'], '罰款': ['罰鍰'], '健保': ['全民健康保險'], '勞保': ['勞工保險'], '研究': ['論文', '實證'],
+    '效果': ['成效', '效益'], '比較': ['差異', '優缺點'], '便宜': ['價格', '費用'], '安全': ['風險'], '糖尿病': ['血糖'],
+    '高血壓': ['血壓'], '憂鬱': ['憂鬱症'], '焦慮': ['焦慮症']
+  };
+  var EN = {
+    '補助': 'subsidy', '補貼': 'subsidy', '電動機車': 'electric scooter', '電動車': 'electric vehicle', '機車': 'scooter', '汽車': 'car',
+    '減肥': 'weight loss', '減重': 'weight loss', '斷食': 'fasting', '間歇性斷食': 'intermittent fasting', '睡眠': 'sleep', '失眠': 'insomnia',
+    '咖啡': 'coffee', '咖啡因': 'caffeine', '健康': 'health', '研究': 'study', '效果': 'effect', '風險': 'risk', '副作用': 'side effects',
+    '成本': 'cost', '價格': 'price', '比較': 'comparison', '安全': 'safety', '隱私': 'privacy', '學習': 'learning', '兒童': 'children',
+    '小孩': 'children', '老人': 'older adults', '運動': 'exercise', '飲食': 'diet', '糖尿病': 'diabetes', '高血壓': 'hypertension',
+    '焦慮': 'anxiety', '憂鬱': 'depression', '疫苗': 'vaccine', '癌症': 'cancer', '空氣污染': 'air pollution', '空污': 'air pollution',
+    '氣候變遷': 'climate change', '房價': 'housing prices', '租屋': 'rental housing', '押金': 'security deposit', '房東': 'landlord',
+    '薪資': 'wages', '薪水': 'salary', '通膨': 'inflation', '利率': 'interest rate', '股票': 'stocks', '保險': 'insurance', '退休': 'retirement',
+    '稅': 'tax', '程式': 'code', '錯誤': 'error', '記憶體': 'memory', '資料庫': 'database', '效能': 'performance', '部署': 'deployment',
+    '測試': 'testing', '資安': 'security', '密碼': 'password', '人工智慧': 'artificial intelligence', '太陽能': 'solar power', '電池': 'battery',
+    '手機': 'smartphone', '螢幕': 'screen time', '藥': 'drug', '藥物': 'medication', '交互作用': 'interaction', '懷孕': 'pregnancy',
+    '過敏': 'allergy', '營養': 'nutrition', '維他命': 'vitamin', '蛋白質': 'protein', '法律': 'law', '合約': 'contract', '契約': 'contract',
+    '勞工': 'labor', '加班': 'overtime', '詐騙': 'scam', '教育': 'education', '大學': 'university', '留學': 'study abroad',
+    '歷史': 'history', '經濟': 'economy', '政策': 'policy', '選舉': 'election', '能源': 'energy', '核能': 'nuclear power', '水': 'water',
+    '塑膠': 'plastic', '回收': 'recycling', '狗': 'dog', '貓': 'cat', '寵物': 'pet', '台灣': 'Taiwan', '臺灣': 'Taiwan', '日本': 'Japan',
+    '美國': 'United States', '中國': 'China', '歐盟': 'European Union'
+  };
+  var VOCAB = (function () {
+    var o = {}, k;
+    for (k in SYN) o[k] = 1;
+    for (k in EN) o[k] = 1;
+    return Object.keys(o).sort(function (a, b) { return b.length - a.length; });
+  })();
+
+  /* 在一段中文裡由左到右、最長優先找出詞庫詞 */
+  function vocabHits(s) {
+    var hits = [], i = 0;
+    while (i < s.length) {
+      var hit = null;
+      for (var j = 0; j < VOCAB.length; j++) {
+        var w = VOCAB[j];
+        if (s.substr(i, w.length) === w) { hit = w; break; }
+      }
+      if (hit) { hits.push(hit); i += hit.length; } else i++;
+    }
+    return hits;
+  }
+
+  /* 含虛詞字元、但本身是實詞的常見詞：切詞前先保護起來（不另加空白） */
+  var PROTECT = ['效能', '能源', '功能', '可能', '能力', '智能', '核能', '費用', '使用', '作用', '應用', '重要', '需要', '主要', '要求',
+    '最近', '最新', '更新', '更年期', '存在', '在職', '和平', '和解', '首都', '都市', '申請', '邀請', '請假', '給付', '從業', '被告',
+    '參與', '及格', '或許', '就業', '就醫', '成就', '把握', '會議', '社會', '機會', '學會', '也許', '很多', '讓與', '用藥', '用法', '用量'];
+  var PROT = VOCAB.filter(function (w) { return w.length >= 2; }).map(function (w) { return { w: w, sp: true }; })
+    .concat(PROTECT.map(function (w) { return { w: w, sp: false }; }))
+    .sort(function (a, b) { return b.w.length - a.w.length; });
+  function protectSplit(s) {
+    var segs = [], buf = '', i = 0;
+    while (i < s.length) {
+      var hit = null;
+      for (var j = 0; j < PROT.length; j++) {
+        if (s.substr(i, PROT[j].w.length) === PROT[j].w) { hit = PROT[j]; break; }
+      }
+      if (hit) {
+        if (buf) segs.push({ t: buf, p: false });
+        buf = '';
+        segs.push({ t: hit.w, p: true, sp: hit.sp });
+        i += hit.w.length;
+      } else { buf += s.charAt(i); i++; }
+    }
+    if (buf) segs.push({ t: buf, p: false });
+    return segs;
+  }
+
+  /* 抽關鍵詞：先保留引號片語與詞庫詞，再去問句詞、切虛詞與標點 */
+  function extractTerms(text) {
+    var s = clean(text).text, phrases = [];
+    s = s.replace(/[「『“"]([^」』”"]{1,40})[」』”"]/g, function (_, p) {
+      p = p.replace(/["“”「」『』]/g, '').trim();
+      if (p) phrases.push(p);
+      return ' ';
+    });
+    s = protectSplit(s).map(function (g) {
+      if (g.p) return g.sp ? ' ' + g.t + ' ' : g.t;
+      var x = g.t;
+      QW.forEach(function (w) { x = x.split(w).join(' '); });
+      SEPW.forEach(function (w) { x = x.split(w).join(' '); });
+      return x;
+    }).join('');
+    s = s.replace(/([㐀-鿿])([A-Za-z0-9])/g, '$1 $2').replace(/([A-Za-z0-9])([㐀-鿿])/g, '$1 $2');
+    var out = [];
+    s.split(PUNCT).forEach(function (p) {
+      p = p.trim();
+      if (!p) return;
+      if (/^\d+$/.test(p)) { if (/^(19|20)\d\d$/.test(p)) out.push(p); return; }
+      if (/^[A-Za-z0-9.#+]+$/.test(p)) { if (p.length >= 2 && !has(EN_STOP, p.toLowerCase())) out.push(p); return; }
+      var len = Array.from(p).length;
+      if ((len < 2 && !has(EN, p)) || has(STOP, p)) return;
+      if (len > 8) {
+        var h = vocabHits(p);
+        if (h.length) { out = out.concat(h); return; }
+      }
+      out.push(p);
+    });
+    var all = phrases.concat(out), seen = Object.create(null), uniq = [];
+    all.forEach(function (t) { if (!seen[t]) { seen[t] = 1; uniq.push(t); } });
+    /* 被更長詞包含的短詞拿掉（片語除外） */
+    uniq = uniq.filter(function (t) {
+      if (phrases.indexOf(t) >= 0) return true;
+      return !uniq.some(function (u) { return u !== t && u.length > t.length && u.indexOf(t) >= 0; });
+    });
+    return { terms: uniq.slice(0, 6), phrases: phrases };
+  }
+
+  function synonymsFor(terms) {
+    var pairs = [], variant = [];
+    terms.forEach(function (t) {
+      var done = false;
+      for (var i = 0; i < VOCAB.length && !done; i++) {
+        var k = VOCAB[i];
+        if (SYN[k] && t.indexOf(k) >= 0) {
+          var alt = SYN[k][0];
+          variant.push(t.replace(k, alt));
+          pairs.push([k, SYN[k].slice()]);
+          done = true;
+        }
+      }
+      if (!done) variant.push(t);
+    });
+    return { pairs: pairs, variant: variant };
+  }
+
+  function toEnglish(terms) {
+    var words = [], miss = [];
+    terms.forEach(function (t) {
+      if (/^[A-Za-z0-9.#+ ]+$/.test(t)) { words.push(t); return; }
+      var h = vocabHits(t).filter(function (w) { return EN[w]; });
+      if (h.length) h.forEach(function (w) { if (words.indexOf(EN[w]) < 0) words.push(EN[w]); });
+      else if (!/^(19|20)\d\d$/.test(t)) miss.push(t);
+    });
+    return { words: words, miss: miss };
+  }
+
+  function ymd(d) {
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  function afterDate(now, years) {
+    var d = new Date(now.getTime());
+    d.setFullYear(d.getFullYear() - years);
+    return ymd(d);
+  }
+
+  var PURPOSE = {
+    decide: { label: '做決定', verb: '為一個決定做功課' },
+    report: { label: '寫報告', verb: '為一份報告蒐集可引用的資料' },
+    learn: { label: '學新東西', verb: '弄懂一個陌生主題' },
+    debug: { label: '寫程式除錯', verb: '找出程式問題的原因' }
+  };
+  var DOMAIN = {
+    health: { label: '健康醫療', src: '政府衛生機關、醫學會指引、同儕審查研究（標明研究類型）', site: ['site:gov.tw', 'site:who.int'] },
+    law: { label: '法律權益', src: '現行法條原文、主管機關函釋與公告、法院判決（附字號）', site: ['site:law.moj.gov.tw', 'site:gov.tw'] },
+    money: { label: '金錢理財', src: '主管機關與發行機構的官方公告、公開說明書、官方統計', site: ['site:gov.tw'] },
+    tech: { label: '科技程式', src: '官方文件（標明版本）、原始碼與 issue 討論、規格文件', site: ['site:github.com', 'site:stackoverflow.com'] },
+    academic: { label: '學術研究', src: '同儕審查論文（附 DOI）、系統性回顧、教科書級資源', site: ['filetype:pdf', 'site:edu.tw'] },
+    news: { label: '新聞時事', src: '一手聲明與原始文件、兩家以上彼此獨立的媒體報導（附發布時間）', site: ['site:gov.tw'] },
+    life: { label: '生活消費', src: '官方或檢驗機構資料、原廠規格；避開業配與導購文', site: ['-業配'] },
+    other: { label: '其他', src: '一手資料與官方來源', site: ['site:gov.tw'] }
+  };
+  var TIME = { any: { label: '不限', y: 0 }, '1y': { label: '最近一年', y: 1 }, '3y': { label: '最近三年', y: 3 }, '5y': { label: '最近五年', y: 5 } };
+  var LANG = { zh: '中文來源為主，必要時補英文一手資料', en: '英文來源為主（多數一手研究與文件是英文）', both: '中英文來源都要，並標出各自語言' };
+  function has(map, k) { return typeof k === 'string' && Object.prototype.hasOwnProperty.call(map, k); }
+  function pick(map, k, d) { return has(map, k) ? map[k] : map[d]; }
+
+  /* 診斷原問法缺了什麼 */
+  function diagnose(q, o) {
+    var out = [];
+    var t = q.replace(/\s/g, '');
+    if (Array.from(t).length < 14) out.push({ k: 'short', label: '太短', why: '它得自己猜你的處境，猜的依據是「最常見的人會問什麼」。', fix: '說清楚處境' });
+    if (/(嗎|是不是|是否|對不對|真的假的|有沒有|是真的)[？?！!。.]*$/.test(t) || /是真的/.test(t))
+      out.push({ k: 'yesno', label: '是非題', why: '生成模型很容易順著接一個「是」，而那個字沒辦法查證。', fix: '拆成一條條主張' });
+    if (/(證明|一定|為什麼.{0,8}(好|有效|有害|不好|比較好)|支持.{0,6}研究|最好的)/.test(t))
+      out.push({ k: 'lead', label: '帶著立場', why: '模型傾向順著提問者的立場回覆；你問「證明」，它就去找證明。', fix: '正反證據並列' });
+    if (o.time === 'any' && !/((19|20)\d\d|今年|去年|最近|最新|目前|現在|月|年度)/.test(t))
+      out.push({ k: 'time', label: '沒有時間', why: '它可能混用不同年份的資料，你看不出哪個數字是哪年的。', fix: '加上時間範圍' });
+    if (/^(law|money|life|health|news)$/.test(o.domain) && !/(台灣|臺灣|台北|臺北|新北|桃園|台中|臺中|台南|臺南|高雄|縣|市|國|美國|日本|歐洲|香港|中國)/.test(t))
+      out.push({ k: 'place', label: '沒有地點', why: '法規、價格、制度各地不同，它會預設一個你沒選的地方。', fix: '寫明地點' });
+    if (!/(來源|出處|網址|連結|引用|原文|文獻|reference|source|link)/i.test(t))
+      out.push({ k: 'src', label: '沒要求出處', why: '不要求，它多半不給；給了你也不知道哪句對哪個來源。', fix: '每條主張附網址與原文' });
+    if (!/(表格|列出|條列|格式|json|清單|步驟|比較表)/i.test(t))
+      out.push({ k: 'fmt', label: '沒指定格式', why: '一大段流暢的文字最難查核；表格能一列一列對。', fix: '用表格輸出' });
+    return out;
+  }
+
+  var EXTRA = {
+    decide: '最後不要替我做決定：列出各個選項的前提條件、風險，以及哪些資訊目前不足以下判斷。',
+    report: '需要引用的地方，給完整書目（作者、標題、出處、年份、網址或 DOI）；不要生成我查不到的文獻。',
+    learn: '先用三句話畫出這個主題的地圖：核心概念、常見誤解、入門該讀的官方或教科書級資源；用生活例子解釋。',
+    debug: '我會另外貼上錯誤訊息全文（不翻譯）、版本號與最小重現程式碼。請先依可能性列出原因，每個附上能確認或排除它的檢查步驟；引用官方文件時標明版本。不要假設我沒提供的程式碼。'
+  };
+
+  function buildPrompt(q, o, now) {
+    var P = pick(PURPOSE, o.purpose, 'learn'), D = pick(DOMAIN, o.domain, 'other'), T = pick(TIME, o.time, 'any');
+    var timeText = T.y ? T.label + '（' + afterDate(now, T.y) + ' 之後發布或更新的資料）' : '不限，但每個來源都要標日期';
+    var L = [];
+    L.push('【目標】我想' + P.verb + '。我的問題是：' + q);
+    L.push('【我的處境】用途：' + P.label + '；領域：' + D.label + '。（在這裡補上地點、身分、已經知道的事；不要放個資或機密）');
+    L.push('【範圍】時間：' + timeText + '。語言：' + pick(LANG, o.lang, 'both') + '。優先來源：' + D.src + '。');
+    L.push('【做法】');
+    L.push('1. 先把問題拆成 3–6 個可以各自查證的子問題，列出來。');
+    L.push('2. 每個子問題分開找來源；重要主張盡量找兩個彼此獨立的來源。');
+    L.push('3. 也要找反對意見、限制條件或例外，不要只找支持的。');
+    L.push('【輸出格式】用表格，每列一個主張：');
+    L.push('主張｜來源網址｜原文引句（逐字複製）｜信心（高/中/低＋理由）｜反證或限制');
+    L.push('【規則】');
+    L.push('- 找不到來源的主張，寫「找不到來源」，不要寫出來充數。');
+    L.push('- 原文引句必須逐字出現在該網址的頁面上；做不到就留空並註明。');
+    L.push('- 分清「來源寫的」和「你推論的」，推論另列一節。');
+    L.push('- 每個來源標出發布或更新日期；超出時間範圍的標「過期」。');
+    L.push('- ' + EXTRA[has(EXTRA, o.purpose) ? o.purpose : 'learn']);
+    L.push('- 最後列出：我應該自己再查證的三件事。');
+    return L.join('\n');
+  }
+
+  function buildQueries(terms, phrases, o, now) {
+    var qs = [], D = pick(DOMAIN, o.domain, 'other'), T = pick(TIME, o.time, 'any');
+    if (!terms.length) return qs;
+    var base = terms.join(' ');
+    var longest = terms.slice().sort(function (a, b) { return b.length - a.length; })[0];
+    var en = toEnglish(terms);
+    var syn = synonymsFor(terms);
+    function add(q, note) { if (q && !qs.some(function (x) { return x.q === q; })) qs.push({ q: q, note: note }); }
+    var enQ = en.words.length ? en.words.join(' ') : '';
+    var enNote = '英文版：許多一手研究與官方文件只有英文' + (en.miss.length ? '（小詞庫翻不出：' + en.miss.join('、') + '，請自己查專有名詞的英文）' : '');
+    if (o.lang === 'en' && enQ) add(enQ, enNote);
+    add(base, '核心詞：拿掉問句詞，只留名詞。搜尋引擎不需要你客氣');
+    var quoted = phrases.length ? phrases : (Array.from(longest).length >= 3 && terms.length > 1 ? [longest] : []);
+    if (quoted.length) {
+      var rest = terms.filter(function (t) { return quoted.indexOf(t) < 0; });
+      add(quoted.map(function (p) { return '"' + p + '"'; }).concat(rest).join(' '), '加引號：這幾個字要連在一起出現');
+    }
+    if (syn.pairs.length) add(syn.variant.join(' '), '換同義詞再搜一輪：' + syn.pairs.map(function (p) { return p[0] + '→' + p[1].join('／'); }).join('，') + '。寫文章的人不一定用你的說法');
+    if (o.lang !== 'en' && enQ) add(enQ, enNote);
+    D.site.forEach(function (s) {
+      add(base + ' ' + s, s.charAt(0) === '-' ? '減號排除：把含這個詞的頁面拿掉' : (s.indexOf('filetype:') === 0 ? 'filetype：只找這種檔案，報告與講義常是 PDF' : 'site：只在這類網域裡找'));
+    });
+    if (T.y) add(base + ' after:' + afterDate(now, T.y), 'after：只要這個日期之後的頁面（' + T.label + '）');
+    if (o.purpose === 'report' && D.site.indexOf('filetype:pdf') < 0) add(base + ' filetype:pdf', 'filetype：找正式報告與白皮書');
+    if (o.purpose === 'debug') {
+      var err = (terms.join(' ').match(/[A-Za-z]*(Error|Exception|ERR_[A-Z_]+)[A-Za-z]*/) || [])[0];
+      add(err ? '"' + err + '"' : '"（貼上錯誤訊息裡最特定的一行）"', '錯誤訊息整行加引號搜，拿掉路徑和你自己的變數名');
+    }
+    return qs.slice(0, 8);
+  }
+
+  var CHK_BASE = [
+    '每個連結都點開：打不開、或打開的頁面跟主張無關，那一條就作廢。',
+    '在頁面上用 Ctrl+F（手機用「在網頁中尋找」）搜引句的前幾個字：找不到，就是被改寫或被編出來的。',
+    '看日期：發布日、更新日、資料本身的統計年份，是三件不同的事。',
+    '換一個彼此獨立的來源再確認一次（不是轉載同一篇的）。',
+    '數字回到原始資料：「研究顯示 30%」就去找那份研究裡的表格。',
+    '語氣越篤定的句子越要查；「信心：高」是它的自評，不是證據。'
+  ];
+  var CHK_P = {
+    decide: ['會左右決定的那兩三個數字，各自找官方或第一手來源重算一次。', '問自己：如果這個前提錯了，我的決定會不會變？'],
+    report: ['每條引用都要讓讀者找得到：作者、標題、年份、出處、網址都必須真實存在。', '沒親眼打開過的文獻，不放進參考資料。'],
+    learn: ['找一本教科書或官方教學，對照它的定義有沒有偏。', '用自己的話重講一次，卡住的地方就是要再查的地方。'],
+    debug: ['在乾淨環境跑一次它給的修正，確認錯誤真的消失、沒有引入新錯誤。', '它提到的函式與參數，去官方文件確認你的版本真的有。']
+  };
+  var CHK_D = {
+    health: '醫療決定請與醫師、藥師確認；留意研究類型：觀察研究不能證明因果。',
+    law: '法條看全國法規資料庫的現行版本與修正日期；個案請諮詢律師或法律扶助管道。',
+    money: '利率、費率、稅率以主管機關或發行機構的當期公告為準。',
+    tech: '確認版本號：同一個函式在不同版本行為可能不同。',
+    academic: '論文用 DOI 或期刊頁核對；預印本（未經同儕審查）要特別標出。',
+    news: '對照事件發生時間與報導時間；早期報導常被更正，找最新的更正或後續。',
+    life: '留意頁面是否有業配、聯盟行銷連結；規格以原廠或檢驗報告為準。',
+    other: ''
+  };
+  function buildChecklist(o) {
+    var L = CHK_BASE.slice().concat(has(CHK_P, o.purpose) ? CHK_P[o.purpose] : CHK_P.learn);
+    var d = has(CHK_D, o.domain) ? CHK_D[o.domain] : '';
+    if (d) L.push(d);
+    return L;
+  }
+
+  var FIT = {
+    decide: { y: ['列出你沒想到的考量面向', '把選項整理成比較表的欄位', '幫你準備要問專業人士的問題'], n: ['替你拍板', '給最新的價格、法規、利率', '判斷你個人的特殊狀況'], tip: '讓它擴大你的視野，決定和數字留給一手來源。' },
+    report: { y: ['規劃大綱與搜尋策略', '摘要、比較你已經找到的資料', '檢查論證的漏洞與用詞'], n: ['生成參考文獻清單（容易出現不存在的文獻）', '提供你沒查過的統計數字', '代替你讀原文'], tip: '寫進報告的每一條引用，都要是你親眼看過的。' },
+    learn: { y: ['用不同比喻解釋同一個概念', '出練習題考你', '告訴你這個領域的關鍵術語'], n: ['當唯一的教材', '最新研究進展', '細節的數據與年份'], tip: '把它當成會回嘴的家教，教科書仍是課本。' },
+    debug: { y: ['解讀錯誤訊息、列可能原因', '寫最小重現範例與測試', '產生 regex、SQL 草稿'], n: ['保證程式能跑', '知道你沒貼出來的程式碼', '版本差異的細節'], tip: '能執行的就去執行：測試通過才算數。' }
+  };
+  function buildFit(purpose) { return has(FIT, purpose) ? FIT[purpose] : FIT.learn; }
+
+  /* 結尾縮影：之後多了什麼 */
+  function afterSummary(diag) {
+    var fixes = diag.map(function (d) { return d.fix; });
+    if (!fixes.length) fixes = ['每條主張附網址與原文'];
+    if (fixes.indexOf('每條主張附網址與原文') < 0) fixes.push('每條主張附網址與原文');
+    fixes.push('找不到就寫找不到');
+    return fixes.slice(0, 5).join('、');
+  }
+
+  function makePack(input, opts) {
+    input = input || {};
+    var now = (opts && opts.now) || new Date();
+    var c = clean(input.q);
+    if (!c.text) return { ok: false, reason: 'empty' };
+    var o = {
+      purpose: has(PURPOSE, input.purpose) ? input.purpose : 'learn',
+      domain: has(DOMAIN, input.domain) ? input.domain : 'other',
+      time: has(TIME, input.time) ? input.time : 'any',
+      lang: has(LANG, input.lang) ? input.lang : 'both'
+    };
+    var ex = extractTerms(c.text);
+    var diag = diagnose(c.text, o);
+    return {
+      ok: true, q: c.text, cut: c.cut, opts: o, terms: ex.terms, diag: diag,
+      prompt: buildPrompt(c.text, o, now),
+      queries: buildQueries(ex.terms, ex.phrases, o, now),
+      checklist: buildChecklist(o), fit: buildFit(o.purpose), after: afterSummary(diag)
+    };
+  }
+
+  function pushHistory(list, entry, max) {
+    var arr = Array.isArray(list) ? list.filter(function (x) { return x && typeof x.q === 'string'; }) : [];
+    var q = clean(entry && entry.q).text;
+    if (!q) return arr.slice(0, max || 5);
+    arr = arr.filter(function (x) { return x.q !== q; });
+    arr.unshift({ q: q, purpose: entry.purpose, domain: entry.domain, time: entry.time, lang: entry.lang });
+    return arr.slice(0, max || 5);
+  }
+
+  return { esc: esc, clean: clean, extractTerms: extractTerms, synonymsFor: synonymsFor, toEnglish: toEnglish, diagnose: diagnose,
+    buildPrompt: buildPrompt, buildQueries: buildQueries, buildChecklist: buildChecklist, buildFit: buildFit, afterSummary: afterSummary,
+    makePack: makePack, pushHistory: pushHistory, afterDate: afterDate, MAXLEN: MAXLEN };
+})();
+if (typeof module !== 'undefined') module.exports = AIASK;
+/*CORE-END*/
+
+(function () {
+  var doc = document;
+  function $(id) { return doc.getElementById(id); }
+  if (!$('labForm')) return;
+  var esc = AIASK.esc;
+
+  PK.reveal();
+
+  /* 量尺：進場才滑入 */
+  (function () {
+    var g = $('gauge');
+    if (PK.reduced() || !('IntersectionObserver' in window)) { g.classList.add('in'); return; }
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { g.classList.add('in'); io.disconnect(); } });
+    }, { threshold: .4 });
+    io.observe(g);
+  })();
+
+  /* 引用指向切換 */
+  var CAP = {
+    '2': '標號 [2] 指向議會紀錄：它確實和票價有關，但那一段沒寫「3 月」也沒寫金額。主題相關，不等於支持這句話。',
+    '3': '標號 [3] 指向一篇部落格閒聊：語意上很接近，卻完全不能當證據。檢索挑的是「相似」，不是「可靠」。',
+    '1': '標號 [1] 指向市府新聞稿，而且那一段真的寫了月份和金額。這才叫支持——你得點開、找到那句，才知道是哪一種。'
+  };
+  var flow = $('flow');
+  Array.prototype.forEach.call(doc.querySelectorAll('.seg'), function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-cite');
+      flow.setAttribute('data-cite', k);
+      $('supN').textContent = '[' + k + ']';
+      Array.prototype.forEach.call(doc.querySelectorAll('.seg'), function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      $('flowCap').textContent = CAP[k];
+    });
+  });
+
+  /* 實驗台 */
+  var hist = AIASK.pushHistory(store.get('hist', []), null, 5);
+  var current = null;
+  var DEMO = { q: '間歇性斷食真的能減肥嗎？', purpose: 'decide', domain: 'health', time: '5y', lang: 'both' };
+
+  function readInput() {
+    return { q: $('q').value, purpose: $('purpose').value, domain: $('domain').value, time: $('time').value, lang: $('lang').value };
+  }
+  function fill(e) {
+    $('q').value = e.q || '';
+    ['purpose', 'domain', 'time', 'lang'].forEach(function (k) { if (e[k]) $(k).value = e[k]; });
+  }
+  function renderHist() {
+    var h = $('hist');
+    if (!hist.length) { h.hidden = true; h.innerHTML = ''; return; }
+    h.hidden = false;
+    h.innerHTML = '<span>最近問過：</span>' + hist.map(function (x, i) {
+      return '<button type="button" data-i="' + i + '" title="' + esc(x.q) + '">' + esc(x.q) + '</button>';
+    }).join('');
+  }
+  $('hist').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-i]');
+    if (!b) return;
+    fill(hist[+b.getAttribute('data-i')] || {});
+    run();
+  });
+  $('demoBtn').addEventListener('click', function () { fill(DEMO); run(); });
+  $('labForm').addEventListener('submit', function (e) { e.preventDefault(); run(); });
+
+  var typing = null;
+  function run() {
+    var inp = readInput();
+    var pack = AIASK.makePack(inp, { now: new Date() });
+    if (!pack.ok) {
+      $('labMsg').textContent = '先寫下一個你真的想查的問題。';
+      $('q').focus();
+      return;
+    }
+    $('labMsg').textContent = '';
+    current = pack;
+    hist = AIASK.pushHistory(hist, inp, 5);
+    store.set('hist', hist);
+    renderHist();
+    render(pack);
+  }
+
+  function render(p) {
+    var res = $('result');
+    res.hidden = false;
+    res.classList.remove('on');
+    $('outRaw').textContent = '「' + p.q + '」';
+    $('outDiag').innerHTML = p.diag.length ? p.diag.map(function (d) {
+      return '<li><b>缺：' + esc(d.label) + '</b>' + esc(d.why) + '</li>';
+    }).join('') : '<li class="okk"><b>零件大致齊全</b>它照樣會編，所以下面的查核清單一條都不能省。</li>';
+    Array.prototype.forEach.call($('outDiag').children, function (li, i) { li.style.transitionDelay = (i * 0.08) + 's'; });
+    var cn = $('cutNote');
+    if (p.cut) { cn.hidden = false; cn.textContent = '你的問題超過 ' + AIASK.MAXLEN + ' 字，已截斷；長背景建議另外分段貼。'; }
+    else cn.hidden = true;
+
+    var pre = $('outPrompt');
+    if (typing) { PK.untick(typing); typing = null; }
+    if (PK.reduced()) pre.textContent = p.prompt;
+    else {
+      var i = 0, acc = 0, txt = p.prompt;
+      typing = function (dt) {
+        acc += dt * 1000;
+        var n = Math.floor(acc / 4);
+        if (n) { acc -= n * 4; i = Math.min(txt.length, i + n * 2); }
+        pre.textContent = txt.slice(0, i);
+        if (i >= txt.length) { PK.untick(typing); typing = null; }
+      };
+      pre.textContent = '';
+      PK.tick(typing);
+    }
+
+    $('outQs').innerHTML = p.queries.length ? p.queries.map(function (q, i) {
+      return '<li><code>' + esc(q.q) + '</code><span class="qn">' + esc(q.note) + '</span><button type="button" class="cp" data-copy="q' + i + '" aria-label="複製這條查詢">複製</button></li>';
+    }).join('') : '<li><span class="qn">這一題抽不出名詞。試著把你要查的「東西」寫出來，例如藥名、法規名、產品型號。</span></li>';
+    $('outChk').innerHTML = p.checklist.map(function (c, i) {
+      return '<li><label><input type="checkbox" id="ck' + i + '"><span>' + esc(c) + '</span></label></li>';
+    }).join('');
+    $('outFit').innerHTML = '<div class="y"><h5>適合交給它</h5><ul>' + p.fit.y.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') +
+      '</ul></div><div class="n"><h5>不適合交給它</h5><ul>' + p.fit.n.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></div>';
+    $('outTip').textContent = p.fit.tip;
+
+    $('endBefore').textContent = '「' + p.q + '」';
+    $('endAfter').textContent = '加上：' + p.after + '。';
+    $('endTag').textContent = 'B · 之後 · 你的改寫';
+    $('heroBlank').textContent = '已填入：「' + (Array.from(p.q).length > 40 ? Array.from(p.q).slice(0, 40).join('') + '…' : p.q) + '」→ 改寫完成';
+
+    requestAnimationFrame(function () { requestAnimationFrame(function () { res.classList.add('on'); }); });
+    PK.announce('改寫完成：原問法缺 ' + p.diag.length + ' 項，產生 ' + p.queries.length + ' 條搜尋查詢與 ' + p.checklist.length + ' 條查核清單。');
+    PK.scrollTo(res);
+  }
+
+  /* 複製：clipboard 失敗就選取文字 */
+  function textFor(key) {
+    if (!current) return { text: '', el: null };
+    if (key === 'prompt') return { text: current.prompt, el: $('outPrompt') };
+    if (key === 'queries') return { text: current.queries.map(function (q) { return q.q; }).join('\n'), el: $('outQs') };
+    if (key === 'check') return { text: current.checklist.map(function (c) { return '☐ ' + c; }).join('\n'), el: $('outChk') };
+    var m = /^q(\d+)$/.exec(key);
+    if (m && current.queries[+m[1]]) {
+      var li = $('outQs').children[+m[1]];
+      return { text: current.queries[+m[1]].q, el: li ? li.querySelector('code') : null };
+    }
+    return { text: '', el: null };
+  }
+  function selectEl(el) {
+    if (!el || !window.getSelection) return;
+    var r = doc.createRange(); r.selectNodeContents(el);
+    var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+  }
+  function flash(btn, label) {
+    var old = btn.getAttribute('data-label') || btn.textContent;
+    btn.setAttribute('data-label', old);
+    btn.textContent = label; btn.classList.add('done');
+    setTimeout(function () { btn.textContent = old; btn.classList.remove('done'); }, 1800);
+  }
+  $('result').addEventListener('click', function (e) {
+    var btn = e.target.closest('.cp');
+    if (!btn) return;
+    if (typing && btn.getAttribute('data-copy') === 'prompt') { PK.untick(typing); typing = null; $('outPrompt').textContent = current.prompt; }
+    var t = textFor(btn.getAttribute('data-copy'));
+    if (!t.text) return;
+    function fallback() { selectEl(t.el); flash(btn, '已選取，按 Ctrl+C'); PK.announce('已選取文字，請按 Ctrl+C 複製。'); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t.text).then(function () { flash(btn, '已複製'); PK.announce('已複製到剪貼簿。'); }, fallback);
+      } else fallback();
+    } catch (err) { fallback(); }
+  });
+
+  PK.onMotionChange(function (r) { if (r) PK.reveal(); });
+  renderHist();
+})();
+</script>
+</body>
+</html>

@@ -45,6 +45,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:none;border-ra
 
 .reveal{max-width:600px;margin:60px auto 0;padding:0 22px;opacity:0;transform:translateY(24px);transition:opacity .8s,transform .8s}
 .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{transition:none;opacity:1;transform:none}.home{transition:none}}
 .reveal p{font-size:1.04rem;color:var(--dim);margin:0 0 16px}
 .reveal p em{color:var(--ink);font-style:normal}
 .reveal .big{font-family:var(--serif);font-size:clamp(1.5rem,4.2vw,2.1rem);color:var(--ink);margin:0 0 16px;text-align:center}
@@ -68,9 +69,9 @@ footer .src{opacity:.8;margin-top:4px}
 <main class="studio">
   <div class="easel">
     <div class="frames">
-      <div class="fr"><canvas id="orig" aria-label="原圖（完整）"></canvas><div class="cap">完整原圖</div></div>
+      <div class="fr"><canvas id="orig" role="img" aria-label="原圖（完整）"></canvas><div class="cap">完整原圖</div></div>
       <div class="arrow">→</div>
-      <div class="fr"><canvas id="sketch" aria-label="速寫（低秩重建）"></canvas><div class="cap" id="scap">速寫 · 4 筆</div></div>
+      <div class="fr"><canvas id="sketch" role="img" aria-label="速寫（低秩重建）"></canvas><div class="cap" id="scap">速寫 · 4 筆</div></div>
     </div>
     <p class="say" id="say"><b>先給他一筆。</b>認得出來嗎？往右加幾筆看看。</p>
     <div class="strokes">
@@ -139,10 +140,15 @@ if(typeof document!=='undefined')(function(){
     else { s.className='say'; s.innerHTML='加到 <b>'+rank+' 筆</b>，越來越像了。'; }
   }
   document.getElementById('rank').addEventListener('input',function(){ rank=+this.value; update(); });
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
-  io.observe(document.getElementById('rev'));
-  window.addEventListener('resize',update);
-  mR.addEventListener('change',function(e){reduced=e.matches;});
+  var rev=document.getElementById('rev');
+  if(reduced||!('IntersectionObserver' in window)){ rev.classList.add('in'); }
+  else{
+    var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
+    io.observe(rev);
+  }
+  var rq=0; window.addEventListener('resize',function(){ if(!rq) rq=requestAnimationFrame(function(){ rq=0; update(); }); });
+  function onRM(e){ reduced=e.matches; if(reduced) rev.classList.add('in'); }
+  if(mR.addEventListener) mR.addEventListener('change',onRM); else if(mR.addListener) mR.addListener(onRM);
   update();
 })();
 </script>

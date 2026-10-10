@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>沒有幫浦｜每日小專案</title>
+<meta name="description" content="1914 年，安孔號要爬上 26 公尺高的加通湖，整座船閘裡找不到一台幫浦。閥門在你手上。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#08121b; --pk-ink:#efe9dc; --pk-dim:#9aa6a8; --pk-accent:#e8b65a;
+  --pk-line:rgba(239,233,220,.14);
+  --glass:rgba(8,18,27,.72);
+  --water:#7fd0d2;
+}
+html,body{height:100%}
+body{overflow:hidden; background:var(--pk-bg); overscroll-behavior:none}
+#cv{position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none}
+
+/* ── 第一屏：鉤子 ── */
+#hook{position:fixed; inset:0; z-index:5; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(120% 90% at 50% 60%, rgba(8,18,27,.78), #050b10 70%);
+  padding:24px; transition:opacity .9s ease, visibility .9s}
+#hook.gone{opacity:0; visibility:hidden}
+#hook .in{max-width:560px}
+#hook p{font-family:var(--pk-serif); font-size:clamp(17px,4.4vw,22px); line-height:1.9; margin:0 0 14px;
+  opacity:0; transform:translateY(10px); animation:up .9s cubic-bezier(.2,.7,.3,1) forwards}
+#hook p:nth-child(1){animation-delay:.2s; color:var(--pk-dim); font-family:var(--pk-sans); font-size:13px; letter-spacing:.24em}
+#hook p:nth-child(2){animation-delay:.9s}
+#hook p:nth-child(3){animation-delay:1.8s}
+#hook .no{animation-delay:2.9s; font-size:clamp(46px,13vw,84px); line-height:1.2; color:var(--pk-accent); margin:22px 0 30px; letter-spacing:.08em}
+#hook .go{animation-delay:3.7s}
+@keyframes up{to{opacity:1; transform:none}}
+
+/* ── 儀表 ── */
+#hud{position:fixed; top:14px; right:14px; z-index:3; text-align:right; font:12px/1.7 ui-monospace,Menlo,Consolas,monospace;
+  color:var(--pk-dim); letter-spacing:.06em; pointer-events:none}
+#hud b{display:block; font-size:clamp(22px,5vw,30px); color:var(--pk-ink); font-weight:500; letter-spacing:.02em}
+#hud .ve{opacity:.65}
+
+/* ── 敘事面板 ── */
+#panel{position:fixed; z-index:4; left:50%; bottom:max(16px, env(safe-area-inset-bottom)); transform:translateX(-50%);
+  width:min(600px, calc(100% - 24px)); background:var(--glass); border:1px solid var(--pk-line); border-radius:18px;
+  padding:18px 22px 18px; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  box-shadow:0 18px 50px rgba(0,0,0,.35); transition:opacity .5s ease}
+#panel.off{opacity:0; pointer-events:none}
+.kick{margin:0 0 4px; font-size:12px; letter-spacing:.22em; color:var(--pk-accent)}
+.cap{margin:0; font-family:var(--pk-serif); font-size:clamp(16px,3.9vw,19px); line-height:1.8; min-height:3.6em}
+.kick,.cap,.big{transition:opacity .22s ease, transform .22s ease}
+#panel.swap .kick,#panel.swap .cap,#panel.swap .big{opacity:0; transform:translateY(4px)}
+.big{font-family:var(--pk-serif); font-size:clamp(30px,8vw,46px); line-height:1.25; color:var(--water); margin:6px 0 2px; font-variant-numeric:tabular-nums}
+.big small{font-size:.38em; color:var(--pk-dim); letter-spacing:.1em; margin-left:.4em}
+.row{display:flex; align-items:center; gap:14px; margin-top:14px}
+.row[hidden]{display:none}
+.row label{font-size:13px; letter-spacing:.12em; color:var(--pk-dim); white-space:nowrap}
+.row output{font:13px ui-monospace,Menlo,Consolas,monospace; color:var(--pk-ink); min-width:3.2em; text-align:right}
+#next{margin-top:14px}
+#next[hidden]{display:none}
+
+/* 滑桿 */
+input[type=range]{flex:1; -webkit-appearance:none; appearance:none; height:34px; background:transparent; cursor:pointer; margin:0}
+input[type=range]:disabled{cursor:default; opacity:.35}
+input[type=range]::-webkit-slider-runnable-track{height:6px; border-radius:6px;
+  background:linear-gradient(90deg,var(--water) var(--p,0%), rgba(255,255,255,.14) var(--p,0%))}
+input[type=range]::-moz-range-track{height:6px; border-radius:6px; background:rgba(255,255,255,.14)}
+input[type=range]::-moz-range-progress{height:6px; border-radius:6px; background:var(--water)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:26px; height:26px; margin-top:-10px; border-radius:50%;
+  background:var(--pk-ink); border:5px solid var(--pk-accent); box-shadow:0 2px 10px rgba(0,0,0,.4); transition:transform .15s}
+input[type=range]::-moz-range-thumb{width:16px; height:16px; border-radius:50%; background:var(--pk-ink); border:5px solid var(--pk-accent)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.12)}
+input[type=range]:focus-visible{outline:2px solid var(--pk-accent); outline-offset:4px; border-radius:8px}
+.hint input[type=range]:not(:disabled)::-webkit-slider-thumb{animation:nudge 1.6s ease-in-out infinite}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(9px)}}
+
+/* ── 結尾 ── */
+#end{position:fixed; inset:0; z-index:6; display:flex; align-items:center; justify-content:center; padding:70px 22px 24px;
+  overflow:auto; background:linear-gradient(180deg, rgba(5,11,16,.15), rgba(5,11,16,.72) 55%, rgba(5,11,16,.9));
+  opacity:0; visibility:hidden; transition:opacity 1.4s ease, visibility 1.4s}
+#end.on{opacity:1; visibility:visible}
+#end .in{max-width:560px; margin:auto 0}
+#end h2{font-family:var(--pk-serif); font-weight:600; font-size:clamp(46px,13vw,80px); line-height:1.15; margin:0 0 22px; color:var(--pk-ink)}
+#end p{font-family:var(--pk-serif); font-size:clamp(16px,4vw,19px); line-height:1.95; margin:0 0 16px}
+#end .last{color:var(--pk-accent); font-size:clamp(19px,5vw,25px); margin:28px 0 22px}
+#end .tally{font-family:var(--pk-sans); font-size:13px; color:var(--pk-dim); letter-spacing:.06em}
+#end .pk-foot{margin:36px 0 0}
+
+@media (max-width:560px){
+  #panel{padding:15px 16px 14px; border-radius:16px}
+  .cap{min-height:5.4em}
+  #hud{top:12px; right:12px}
+}
+@media (prefers-reduced-motion: reduce){
+  #hook p{animation:none; opacity:1; transform:none}
+  #hook,#end,#panel,.kick,.cap,.big{transition:none}
+  .hint input[type=range]::-webkit-slider-thumb{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<canvas id="cv" role="img" aria-label="加通船閘剖面：安孔號停在海面高度的第一格閘室"></canvas>
+
+<div id="hud" aria-hidden="true">
+  <span>船的海拔</span>
+  <b id="alt">+0.0 m</b>
+  <span id="clock">閘內經過 0 分鐘</span><br>
+  <span class="ve">垂直放大約 11 倍</span>
+</div>
+
+<section id="hook" aria-labelledby="hookNo">
+  <div class="in">
+    <p>1914 · 08 · 15 · 巴拿馬</p>
+    <p>一艘叫安孔號的蒸汽船，要從大西洋出發，翻過一座山，去太平洋。</p>
+    <p>山頂是一座湖，比海面高 26 公尺——差不多九層樓。</p>
+    <p class="no" id="hookNo">沒有幫浦。</p>
+    <p class="go"><button class="pk-btn" id="start">上船</button></p>
+  </div>
+</section>
+
+<section id="panel" class="off" aria-label="航程">
+  <p class="kick" id="kick"></p>
+  <p class="cap" id="cap" aria-live="polite"></p>
+  <div class="big" id="big" hidden></div>
+  <div class="row" id="vrow" hidden>
+    <label for="valve" id="vlab">閥門</label>
+    <input type="range" id="valve" min="0" max="100" step="1" value="0" disabled>
+    <output id="vout" for="valve">0%</output>
+  </div>
+  <button class="pk-btn" id="next" hidden>繼續</button>
+</section>
+
+<section id="end" aria-labelledby="endH" aria-hidden="true">
+  <div class="in">
+    <h2 id="endH">在天上。</h2>
+    <p>加通湖裡的每一滴，都是落在查格雷斯河流域的雨。1914 年那個早上如此，今天也一樣。</p>
+    <p>雨少的年份，運河就得少放船。2023 年 12 月，平常一天 36 艘的航道只放行 22 艘；今年 9 月聖嬰現象又來，36 艘先減成 34，再減成 32。</p>
+    <p class="last">這座 26 公尺高的山，引擎叫做雨季。</p>
+    <p class="tally" id="tally"></p>
+    <p><button class="pk-btn" id="again">再送一艘船上山</button></p>
+    <footer class="pk-foot">資料來源：巴拿馬運河管理局〈Design of the Locks〉；Wikipedia: Panama Canal locks／Panama Canal／Gatun Lake。</footer>
+  </div>
+</section>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'gatun14.';
+const store = PK.store(LS);
+
+/*<core>*/
+const CORE = (function () {
+  const AREA = 320 * 33.5;     /* 閘室可用面積 m²（320 m × 33.5 m） */
+  const STEP = 26 / 3;         /* 加通三階，每階約 8.67 m */
+  const POOL = 2500;           /* 奧運標準泳池最小容積 m³ */
+  /* 兩格水之間開閥：流量 ∝ 開度 × √水位差；固定端（湖、海）水位不變；不會衝過頭 */
+  function flowStep(up, low, open, dt, k, upFixed, lowFixed) {
+    const d = up - low;
+    if (d <= 0 || open <= 0 || dt <= 0) return [up, low, 0];
+    let q = k * open * Math.sqrt(d) * dt;
+    const cap = (upFixed || lowFixed) ? d : d / 2;
+    if (q > cap) q = cap;
+    return [upFixed ? up : up - q, lowFixed ? low : low + q, q];
+  }
+  function settled(up, low) { return up - low < 0.005; }
+  function volumeM3(dh) { return Math.max(0, dh) * AREA; }
+  function perShipM3() { return 2 * volumeM3(STEP); }       /* 上山倒一格、下山再倒一格 */
+  function fmtZh(n) {
+    if (n >= 1e8) return (n / 1e8).toFixed(n >= 1e9 ? 0 : 1) + ' 億';
+    if (n >= 1e4) return (n / 1e4).toFixed(1) + ' 萬';
+    return String(Math.round(n));
+  }
+  function grp(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+  return { AREA, STEP, POOL, flowStep, settled, volumeM3, perShipM3, fmtZh, grp };
+})();
+/*</core>*/
+
+/* ── 幾何（x：世界單位；y：公尺） ── */
+const ST = CORE.STEP, VE = 9, K = 0.85, TIME_X = 100;
+const B = [120, 380, 640, 900];                                   /* 海|一|二|三|湖 的分界 */
+const FLOOR = [-14, -12.5, -12.5 + ST, -12.5 + 2 * ST, 12];
+const TOP = [0, ST + 2.5, 2 * ST + 2.5, 3 * ST + 2.5, 28.5];
+const XR = [[-900, 120], [120, 380], [380, 640], [640, 900], [900, 2000]];
+const CENTER = [-200, 250, 510, 770, 1110];
+const L0 = () => [0, 0, 2 * ST, 26, 26];
+
+const $ = (id) => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const ui = { panel: $('panel'), kick: $('kick'), cap: $('cap'), big: $('big'), vrow: $('vrow'), vlab: $('vlab'),
+  valve: $('valve'), vout: $('vout'), next: $('next'), alt: $('alt'), clock: $('clock'), hook: $('hook'),
+  end: $('end'), tally: $('tally') };
+
+const STEPS = [
+  { kick: '第一格閘室 · 海拔 0 m',
+    before: '你和大西洋一樣高。前面那扇鋼門後面，水比你高出 17 公尺。門推不動——水正從另一邊壓著它。能動的，是你手邊那個閥門。',
+    during: '水從牆裡的涵洞往下衝。那條管子直徑將近 7 公尺，一列火車開得進去。',
+    after: '兩邊一樣高的那一刻，門才推得開。人字形的兩扇門板，平常是被水壓擠得死緊的。' },
+  { kick: '第二格閘室',
+    before: '門後的水又比你高。看清楚它是從哪來的：上一格。水只會往下走——你想往上，就得讓上面的水往下掉。',
+    during: '每格地板底下藏著 70 個出水孔，水從你腳底整片湧上來，船身幾乎不晃。',
+    after: '又上了一層。身後那格，正好落回你剛才的高度。' },
+  { kick: '最後一扇門',
+    before: '門後不是閘室，是一座湖：加通湖。1913 年攔下查格雷斯河蓄成，當年世上最大的人工湖。最後這一格，直接向湖借水。',
+    during: '真的閘室灌滿，最快也要十分鐘左右。這段時間裡，機器只負責開關閥門和門——水自己走。',
+    after: '水位齊平。門開了。' }
+];
+
+const S = {};
+let runId = 0;
+function reset() {
+  runId++;
+  Object.assign(S, { phase: 'hook', r: 1, L: L0(), open: 0, flow: 0, shipX: -260, gate: [1, 0, 0, 0], gateT: [1, 0, 0, 0],
+    secs: 0, during: false, drained: 0, tally: 0, sky: 0, pull: 0 });
+  setValve(0, false);
+}
+reset();
+
+/* ── 文字與控制 ── */
+function say(kick, text, opt) {
+  opt = opt || {};
+  const apply = () => {
+    ui.kick.textContent = kick || '';
+    ui.cap.textContent = text || '';
+    if (opt.big) { ui.big.hidden = false; rollBig(opt.big); } else { ui.big.hidden = true; }
+    ui.vrow.hidden = !opt.valve;
+    if (opt.valve) ui.vlab.textContent = opt.valve;
+    ui.next.hidden = !opt.next;
+    if (opt.next) ui.next.textContent = opt.next;
+    ui.panel.classList.remove('swap');
+    if (opt.focus) { const el = opt.focus === 'next' ? ui.next : ui.valve; if (!el.disabled) el.focus({ preventScroll: true }); }
+  };
+  ui.panel.classList.remove('off');
+  if (PK.reduced()) return apply();
+  ui.panel.classList.add('swap');
+  setTimeout(apply, 230);
+}
+function rollBig(b) {
+  const from = 0, to = b.n, t0 = performance.now(), dur = PK.reduced() ? 0 : 1100;
+  const draw = (v) => { ui.big.innerHTML = b.fmt(v) + '<small>' + b.unit + '</small>'; };
+  if (!dur) return draw(to);
+  const f = () => {
+    const k = PK.clamp((performance.now() - t0) / dur, 0, 1);
+    draw(PK.lerp(from, to, 1 - Math.pow(1 - k, 3)));
+    if (k >= 1) PK.untick(f);
+  };
+  PK.tick(f);
+}
+function setValve(v, enabled) {
+  S.open = v / 100;
+  ui.valve.value = v;
+  ui.valve.disabled = !enabled;
+  ui.valve.style.setProperty('--p', v + '%');
+  ui.vout.textContent = v + '%';
+  ui.panel.classList.toggle('hint', enabled && v === 0);
+}
+ui.valve.addEventListener('input', () => {
+  const v = +ui.valve.value;
+  S.open = v / 100;
+  ui.valve.style.setProperty('--p', v + '%');
+  ui.vout.textContent = v + '%';
+  ui.panel.classList.remove('hint');
+});
+function later(ms, fn) { const id = runId; setTimeout(() => { if (id === runId) fn(); }, PK.reduced() ? Math.min(ms, 250) : ms); }
+function label(t) { cv.setAttribute('aria-label', t); }
+
+/* ── 劇情 ── */
+$('start').addEventListener('click', () => {
+  ui.hook.classList.add('gone');
+  S.phase = 'enter';
+  say('大西洋端 · 加通船閘', '安孔號慢慢駛進第一格閘室。岸上的電動「騾子」拉住纜繩，替它穩住方向。');
+});
+
+function beginStep() {
+  const st = STEPS[S.r - 1];
+  S.phase = 'lift'; S.during = false;
+  setValve(0, true);
+  say(st.kick, st.before, { valve: '閥門', focus: 'valve' });
+  label('第 ' + S.r + ' 格閘室，船在海拔 ' + S.L[S.r].toFixed(1) + ' 公尺；拖動閥門滑桿放水');
+}
+function stepDone() {
+  const st = STEPS[S.r - 1];
+  S.phase = 'wait';
+  setValve(0, false);
+  say(st.kick, st.after, { valve: '閥門' });
+  PK.announce('水位齊平，門可以開了');
+  later(1300, () => { S.gateT[S.r] = 1; later(1100, () => { S.phase = 'move'; }); });
+}
+function arrived() {
+  S.gateT[S.r] = 0;
+  S.r++;
+  if (S.r <= 3) later(700, beginStep);
+  else {
+    S.phase = 'top';
+    const n = store.get('ships', 0) + 1;
+    store.set('ships', n);
+    say('海拔 26 公尺 · 加通湖', '你翻上來了。九層樓的高度，三格水，一台幫浦都沒開。前方是湖，再過去才是往太平洋的下坡。', { next: '回頭看', focus: 'next' });
+    label('安孔號已駛入海拔 26 公尺的加通湖');
+  }
+}
+ui.next.addEventListener('click', () => {
+  if (S.phase === 'top') {
+    S.phase = 'drain';
+    setValve(0, true);
+    say('等一下', '下一艘船正從海上開過來。要讓它進門，第一格得先放空——放回海裡。這次輪到排水閥。', { valve: '排水閥 → 大西洋', focus: 'valve' });
+  } else if (S.phase === 'tally') {
+    S.tally++;
+    tallyShow(true);
+  }
+});
+function drainDone() {
+  S.phase = 'tally'; S.tally = 0;
+  setValve(0, false);
+  tallyShow();
+}
+function tallyShow(f) {
+  const fo = f ? 'next' : null;
+  const v = CORE.volumeM3(ST), per = CORE.perShipM3() * 1000, pools = Math.round(v / CORE.POOL);
+  if (S.tally === 0) say('流進大西洋的', '剛才那一格的水，大約 ' + pools + ' 座奧運泳池。它們本來在湖裡。', {
+    big: { n: v, unit: '立方公尺', fmt: CORE.grp }, next: '然後呢', focus: 'next' });
+  else if (S.tally === 1) say('每一艘船', '到了另一頭，往太平洋下山，同一筆帳要再付一次。一進一出，湖就少了將近 2 億公升淡水。', {
+    big: { n: per, unit: '公升', fmt: CORE.fmtZh }, next: '一天呢', focus: fo });
+  else if (S.tally === 2) say('每一天', '平常一天放行 36 艘。全部順著閘室，一格一格流進海裡，回不來了。', {
+    big: { n: per * 36, unit: '公升', fmt: CORE.fmtZh }, next: '那幫浦呢', focus: fo });
+  else if (S.tally === 3) say('所以', '要把這麼多水再搬回 26 公尺高的湖裡，總得有一台機器吧？', { next: '抬頭', focus: fo });
+  else {
+    S.phase = 'rain';
+    ui.panel.classList.add('off');
+    const n = store.get('ships', 1);
+    ui.tally.textContent = '你已經送 ' + n + ' 艘船上山，倒進海裡的湖水約 ' + CORE.fmtZh(n * CORE.perShipM3() * 1000) + '公升。';
+    ui.end.classList.add('on'); ui.end.setAttribute('aria-hidden', 'false');
+    label('雨落在加通湖上');
+    later(600, () => $('again').focus({ preventScroll: true }));
+  }
+}
+$('again').addEventListener('click', () => {
+  ui.end.classList.remove('on'); ui.end.setAttribute('aria-hidden', 'true');
+  reset();
+  S.phase = 'enter';
+  say('又一艘船', '閘門重新歸位：第一格空著，第二格停在半山腰，第三格和湖齊平。下一艘船進來了。');
+});
+
+/* ── 模擬 ── */
+function step(dt) {
+  S.flow = 0;
+  if (S.phase === 'lift') {
+    const lo = S.r, up = S.r + 1;
+    const res = CORE.flowStep(S.L[up], S.L[lo], S.open, dt, K, up === 4, false);
+    S.L[up] = res[0]; S.L[lo] = res[1]; S.flow = dt ? res[2] / dt : 0;
+    if (res[2] > 0) {
+      S.secs += dt * TIME_X;
+      if (!S.during && S.open > 0.05) { S.during = true; say(STEPS[S.r - 1].kick, STEPS[S.r - 1].during, { valve: '閥門' }); }
+    }
+    if (CORE.settled(S.L[up], S.L[lo])) {
+      if (up === 4) S.L[lo] = S.L[up]; else { const m = (S.L[up] + S.L[lo]) / 2; S.L[up] = S.L[lo] = m; }
+      stepDone();
+    }
+  } else if (S.phase === 'drain') {
+    const res = CORE.flowStep(S.L[1], S.L[0], S.open, dt, K, false, true);
+    S.L[1] = res[0]; S.flow = dt ? res[2] / dt : 0;
+    S.drained = ST - S.L[1];
+    if (res[2] > 0) { ui.big.hidden = false; ui.big.innerHTML = CORE.grp(CORE.volumeM3(S.drained)) + '<small>立方公尺 → 海</small>'; }
+    if (CORE.settled(S.L[1], S.L[0])) { S.L[1] = 0; drainDone(); }
+  } else if (S.phase === 'enter' || S.phase === 'move') {
+    const tgt = S.phase === 'enter' ? CENTER[1] : CENTER[S.r + 1];
+    const d = tgt - S.shipX, v = PK.reduced() ? 900 : Math.max(26, Math.min(140, Math.abs(d) * 1.4));
+    S.shipX += Math.sign(d) * Math.min(Math.abs(d), v * dt);
+    if (Math.abs(tgt - S.shipX) < 0.5) {
+      S.shipX = tgt;
+      if (S.phase === 'enter') { S.phase = 'wait'; S.gateT[0] = 0; later(900, beginStep); }
+      else { S.phase = 'wait'; arrived(); }
+    }
+  }
+  for (let i = 0; i < 4; i++) {
+    const g = S.gateT[i] - S.gate[i];
+    S.gate[i] += PK.reduced() ? g : Math.sign(g) * Math.min(Math.abs(g), dt * 0.9);
+  }
+  const pullT = /drain|tally|rain/.test(S.phase) ? 1 : 0;
+  const skyT = S.phase === 'rain' ? 1 : 0;
+  const ease = PK.reduced() ? 1 : Math.min(1, dt * 1.6);
+  S.pull += (pullT - S.pull) * ease;
+  S.sky += (skyT - S.sky) * (PK.reduced() ? 1 : Math.min(1, dt * .7));
+}
+function shipRegion() { for (let i = 4; i >= 0; i--) if (S.shipX >= XR[i][0]) return i; return 0; }
+
+/* ── 繪圖 ── */
+let vw = 0, vh = 0, dpr = 1;
+const cam = { x: 250, y: 2, sc: 1 };
+function resize() { const r = PK.fitCanvas(cv); vw = r.w; vh = r.h; dpr = r.dpr; }
+window.addEventListener('resize', resize);
+resize();
+
+function camTarget() {
+  const wide = vw / vh > 1.1;
+  const fw = wide ? 1050 : 560, pw = wide ? 1650 : 1180;
+  const vis = PK.lerp(fw, pw, S.pull);
+  const scH = (vh * (wide ? .62 : .5)) / (46 * VE);
+  const sc = Math.min(vw / vis, PK.lerp(scH, scH * .72, S.pull));
+  const half = vw / sc / 2;
+  const fx = PK.clamp(S.shipX, -260 + half, 1350 - half);
+  const reg = shipRegion();
+  const fy = (reg === 0 ? 0 : S.L[reg]) + 3;
+  return { x: PK.lerp(fx, 500, S.pull), y: PK.lerp(fy, 8, S.pull), sc };
+}
+const X = (x) => (x - cam.x) * cam.sc + vw / 2;
+const Y = (y) => vh * (vw / vh > 1.1 ? .45 : .36) - (y - cam.y) * VE * cam.sc;
+
+const rain = [];
+for (let i = 0; i < 170; i++) rain.push({ x: (i * .618034) % 1, y: (i * .754878 + PK.hash('r' + i) * .3) % 1, s: .6 + PK.hash('rs' + i) * .7 });
+
+function draw(t) {
+  const c = ctx;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  /* 天空：清晨 → 雨天 */
+  const hz = Math.max(Y(0), vh * .3);
+  const g = c.createLinearGradient(0, 0, 0, hz);
+  const k = S.sky;
+  g.addColorStop(0, mix('#0b1a2a', '#0c1218', k));
+  g.addColorStop(.5, mix('#2c3d50', '#222b32', k));
+  g.addColorStop(.86, mix('#c98656', '#3d474e', k));
+  g.addColorStop(1, mix('#f0c48a', '#4f5a61', k));
+  c.fillStyle = g; c.fillRect(0, 0, vw, vh);
+  if (k < .99) {   /* 低垂的太陽 */
+    const sx = vw * .8 - cam.x * cam.sc * .05, sy = hz;
+    const rg = c.createRadialGradient(sx, sy, 0, sx, sy, Math.max(vw, vh) * .45);
+    rg.addColorStop(0, 'rgba(255,206,140,' + (.5 * (1 - k)) + ')'); rg.addColorStop(1, 'rgba(255,214,150,0)');
+    c.fillStyle = rg; c.fillRect(0, 0, vw, vh);
+  }
+  hills(c, .25, 24, '#24343a', 11);
+  hills(c, .5, 15, '#1a2a2c', 37);
+
+  const reg = shipRegion();
+  /* 閘室遠側牆 */
+  for (let i = 1; i <= 3; i++) {
+    const x0 = X(XR[i][0]), x1 = X(XR[i][1]), y0 = Y(TOP[i]), y1 = Y(FLOOR[i]);
+    c.fillStyle = '#7d776c'; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+    c.strokeStyle = 'rgba(0,0,0,.12)'; c.lineWidth = 1;
+    for (let y = FLOOR[i] + 3; y < TOP[i]; y += 3) { c.beginPath(); c.moveTo(x0, Y(y)); c.lineTo(x1, Y(y)); c.stroke(); }
+  }
+  /* 船（畫在水之前，水下半截才會被水色蓋住） */
+  const lvl = reg === 0 ? 0 : S.L[reg];
+  const bob = PK.reduced() ? 0 : Math.sin(t / 900) * .9 + S.flow * Math.sin(t / 160) * .5;
+  ship(c, X(S.shipX), Y(lvl) - bob, cam.sc);
+  /* 水 */
+  for (let i = 0; i <= 4; i++) {
+    const x0 = Math.max(X(XR[i][0]), -10), x1 = Math.min(X(XR[i][1]), vw + 10);
+    if (x1 <= x0) continue;
+    const top = Y(S.L[i]), bot = Y(FLOOR[i]);
+    const wg = c.createLinearGradient(0, top, 0, bot);
+    wg.addColorStop(0, i === 0 ? 'rgba(48,120,140,.88)' : 'rgba(96,180,186,.82)');
+    wg.addColorStop(1, 'rgba(14,52,70,.95)');
+    c.fillStyle = wg; c.fillRect(x0, top, x1 - x0, bot - top);
+    c.fillStyle = 'rgba(220,250,245,.55)'; c.fillRect(x0, top - 1, x1 - x0, 1.5);
+  }
+  /* 地板下的出水孔：水湧上來 */
+  if (S.flow > .01 && (S.phase === 'lift')) {
+    const i = S.r, n = 7, a = Math.min(1, S.flow * 1.4);
+    for (let h = 0; h < n; h++) {
+      const x = PK.lerp(XR[i][0] + 25, XR[i][1] - 25, h / (n - 1));
+      for (let b = 0; b < 3; b++) {
+        const p = ((t / 1400) * (0.6 + S.flow) + h * .37 + b * .33) % 1;
+        const y = PK.lerp(FLOOR[i], S.L[i], p);
+        c.fillStyle = 'rgba(230,255,250,' + (a * (1 - p) * .7) + ')';
+        c.beginPath(); c.arc(X(x) + Math.sin(p * 9 + h) * 3, Y(y), 1.6 + p * 2.2, 0, 7); c.fill();
+      }
+    }
+  }
+  /* 地面混凝土 */
+  c.beginPath();
+  c.moveTo(X(-900), Y(FLOOR[0])); c.lineTo(X(B[0]), Y(FLOOR[0]));
+  for (let i = 1; i <= 4; i++) { c.lineTo(X(XR[i][0]), Y(FLOOR[i])); c.lineTo(X(XR[i][1]), Y(FLOOR[i])); }
+  c.lineTo(X(2000), Y(-70)); c.lineTo(X(-900), Y(-70)); c.closePath();
+  const cg = c.createLinearGradient(0, Y(10), 0, Y(-40));
+  cg.addColorStop(0, '#6d675d'); cg.addColorStop(1, '#2a2824');
+  c.fillStyle = cg; c.fill();
+  /* 涵洞 */
+  const vi = S.phase === 'drain' ? 0 : (S.r <= 3 ? S.r : -1);
+  for (let i = 0; i < 4; i++) culvert(c, i, i === vi, t);
+  /* 閘門 */
+  for (let i = 0; i < 4; i++) {
+    const a = 1 - .86 * S.gate[i];
+    const x = X(B[i]), w = Math.max(4, 9 * cam.sc), y0 = Y(TOP[i + 1] + .5), y1 = Y(FLOOR[i + 1]);
+    c.globalAlpha = a;
+    c.fillStyle = '#23282d'; c.fillRect(x - w / 2, y0, w, y1 - y0);
+    c.strokeStyle = '#59616a'; c.lineWidth = 1; c.strokeRect(x - w / 2, y0, w, y1 - y0);
+    c.globalAlpha = 1;
+  }
+  /* 牆頂與騾子 */
+  c.fillStyle = '#a49d90';
+  for (let i = 1; i <= 3; i++) c.fillRect(X(XR[i][0]), Y(TOP[i]) - 2, X(XR[i][1]) - X(XR[i][0]), 3);
+  if (reg >= 1 && reg <= 3 || S.phase === 'enter') mules(c, lvl + bob / (VE * cam.sc));
+  /* 雨 */
+  if (k > .02) {
+    c.strokeStyle = 'rgba(200,220,230,' + (.45 * k) + ')'; c.lineWidth = 1;
+    c.beginPath();
+    for (const d of rain) {
+      if (!PK.reduced()) { d.y += .012 * d.s; if (d.y > 1) { d.y -= 1; d.x = (d.x + .618) % 1; } }
+      const x = d.x * vw, y = d.y * vh, l = 14 * d.s;
+      c.moveTo(x, y); c.lineTo(x - l * .18, y + l);
+    }
+    c.stroke();
+  }
+}
+function hills(c, par, hgt, col, seed) {
+  const base = Y(0) + 2, s = cam.sc;
+  c.fillStyle = col; c.beginPath(); c.moveTo(0, vh);
+  for (let x = 0; x <= vw + 20; x += 20) {
+    const wx = (x - vw / 2) / s + cam.x * par;
+    const h = (Math.sin(wx / 210 + seed) + Math.sin(wx / 97 + seed * 2) * .5 + 1.6) * hgt;
+    c.lineTo(x, base - h * VE * s * .55);
+  }
+  c.lineTo(vw, vh); c.closePath(); c.fill();
+}
+function culvert(c, i, on, t) {
+  /* 分界 B[i]：上游 i+1 → 下游 i */
+  const up = i + 1, lo = i;
+  const ix = B[i] + (up === 4 ? 60 : 40), ox = lo === 0 ? B[0] - 90 : B[i] - 170;
+  const depth = FLOOR[lo] - 4.5;
+  const pts = [[ix, FLOOR[up]], [ix, depth], [ox, depth], [ox, FLOOR[lo]]];
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  const path = () => { c.beginPath(); c.moveTo(X(pts[0][0]), Y(pts[0][1])); for (let j = 1; j < 4; j++) c.lineTo(X(pts[j][0]), Y(pts[j][1])); };
+  path(); c.strokeStyle = on ? '#141a1e' : 'rgba(20,26,30,.55)'; c.lineWidth = Math.max(4, 3.2 * VE * cam.sc * .5); c.stroke();
+  if (on && S.flow > 0.002) {
+    path(); c.strokeStyle = 'rgba(140,225,225,.9)'; c.lineWidth = Math.max(1.5, 1.2 * VE * cam.sc * .4);
+    c.setLineDash([6, 9]); c.lineDashOffset = PK.reduced() ? 0 : -(t / 1000) * 60 * (0.4 + S.open); c.stroke(); c.setLineDash([]);
+  }
+  if (on) {   /* 閥門 */
+    const vx = X(ix), vy = Y(depth + 2.2), r = Math.max(4, 5.5 * cam.sc);
+    c.fillStyle = '#141a1e'; c.beginPath(); c.arc(vx, vy, r + 2, 0, 7); c.fill();
+    c.fillStyle = 'rgba(232,182,90,' + (.35 + .65 * S.open) + ')'; c.beginPath(); c.arc(vx, vy, r, 0, 7); c.fill();
+  }
+}
+function ship(c, x, wl, s) {
+  const ys = s * 1.5;   /* 船身垂直放大，配合剖面的垂直誇張 */
+  const P = (pts, col) => { c.beginPath(); pts.forEach((p, j) => c[j ? 'lineTo' : 'moveTo'](x + p[0] * s, wl - p[1] * ys)); c.closePath(); c.fillStyle = col; c.fill(); };
+  c.strokeStyle = '#2b2b2b'; c.lineWidth = Math.max(1, s);
+  c.beginPath(); c.moveTo(x - 60 * s, wl - 10 * ys); c.lineTo(x - 60 * s, wl - 66 * ys); c.moveTo(x + 56 * s, wl - 12 * ys); c.lineTo(x + 56 * s, wl - 68 * ys);
+  c.moveTo(x - 60 * s, wl - 66 * ys); c.lineTo(x + 56 * s, wl - 68 * ys); c.stroke();
+  P([[-84, 10], [90, 13], [82, -6], [70, -16], [-74, -16], [-86, -3]], '#17191b');
+  P([[-86, 0], [86, 0], [82, -6], [70, -16], [-74, -16], [-86, -3]], '#7a2a1f');
+  P([[-42, 10], [32, 10], [32, 22], [-42, 22]], '#ece5d6');
+  P([[-26, 22], [16, 22], [16, 30], [-26, 30]], '#ece5d6');
+  P([[-9, 30], [4, 30], [4, 54], [-9, 54]], '#c9a24a');
+  P([[-9, 48], [4, 48], [4, 54], [-9, 54]], '#17191b');
+  c.fillStyle = '#3b4650';
+  for (let i = -38; i < 30; i += 7) c.fillRect(x + i * s, wl - 18 * ys, 3 * s, 3 * ys);
+}
+function mules(c, lvl) {
+  const reg = shipRegion();
+  const top = TOP[PK.clamp(reg, 1, 3)];
+  const deckY = Y(lvl) - 16 * cam.sc;
+  [[-70, -110], [80, 120]].forEach(([at, off]) => {
+    const mx = S.shipX + off, sx = X(mx), sy = Y(top) - 2;
+    const w = 16 * cam.sc, h = 9 * cam.sc;
+    c.strokeStyle = 'rgba(30,30,30,.7)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(sx, sy - h * .5); c.lineTo(X(S.shipX + at), deckY); c.stroke();
+    c.fillStyle = '#c4c1b6'; c.fillRect(sx - w / 2, sy - h, w, h);
+    c.fillStyle = '#23282d'; c.fillRect(sx - w / 2, sy - h * .45, w, h * .2);
+  });
+}
+function mix(a, b, k) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = (s) => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k);
+  return 'rgb(' + ch(16) + ',' + ch(8) + ',' + ch(0) + ')';
+}
+
+/* ── 主迴圈 ── */
+let lastHud = '';
+function frame(dt, t) {
+  step(dt);
+  const tg = camTarget(), e = PK.reduced() ? 1 : Math.min(1, dt * 2.2);
+  if (!cam.init) { Object.assign(cam, tg); cam.init = true; }
+  cam.x += (tg.x - cam.x) * e; cam.y += (tg.y - cam.y) * e; cam.sc += (tg.sc - cam.sc) * e;
+  draw(t);
+  const reg = shipRegion();
+  const alt = reg === 0 ? 0 : S.L[reg];
+  const hud = (alt >= 0 ? '+' : '') + alt.toFixed(1) + ' m|閘內經過 ' + Math.round(S.secs / 60) + ' 分鐘';
+  if (hud !== lastHud) { const p = hud.split('|'); ui.alt.textContent = p[0]; ui.clock.textContent = p[1]; lastHud = hud; }
+}
+PK.tick(frame);
+PK.onMotionChange(() => { cam.init = false; });
+</script>
+</body>
+</html>

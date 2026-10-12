@@ -155,6 +155,9 @@ if(typeof document!=='undefined')(function(){
   var injectI=0, injLeft=0, oneShot=false, training=false, firedOnce=false, flareT=0;
   var raf=0, last=0;
 
+  /* 保養 2026-10-13：旁白只在內容改變時才寫入，避免 aria-live 每幀重播 */
+  function setNarr(cls,html){ if(narr.className===cls && narr.innerHTML===html) return; narr.className=cls; narr.innerHTML=html; }
+
   var dpr=1,W=0,H=0;
   function size(){ dpr=Math.min(2,window.devicePixelRatio||1);
     var w=Math.max(1,Math.round(cv.clientWidth*dpr)),h=Math.max(1,Math.round(cv.clientHeight*dpr));
@@ -169,7 +172,7 @@ if(typeof document!=='undefined')(function(){
   }
   function onFire(){
     if(!firedOnce){ firedOnce=true; document.getElementById('more').classList.add('show'); document.getElementById('cue').classList.add('show'); }
-    narr.className='narr hit'; narr.innerHTML='<b>砰！</b>看到沒有——它整個炸上去。你再用力，那一下也不會更大。';
+    setNarr('narr hit','<b>砰！</b>看到沒有——它整個炸上去。你再用力，那一下也不會更大。');
   }
 
   var cx,cy,pulse=0;
@@ -209,10 +212,10 @@ if(typeof document!=='undefined')(function(){
     vnow.textContent=Math.round(V);
     if(!spiking){
       if(training) { }
-      else if(V>VREST+2){ narr.className='narr na'; narr.innerHTML='它在<b>抖</b>……電位在爬，但還沒到那條線。'; }
+      else if(V>VREST+2){ setNarr('narr na','它在<b>抖</b>……電位在爬，但還沒到那條線。'); }
     }
     if(training){ var rr=firingRate(+ampEl.value); rateEl.textContent=Math.round(rr);
-      narr.className='narr hit'; narr.innerHTML='一發接一發——電流越強<b>發得越密</b>，但它得喘（不反應期）。'; }
+      setNarr('narr hit','一發接一發——電流越強<b>發得越密</b>，但它得喘（不反應期）。'); }
     draw();
     if(training||spiking||injLeft>0||V>VREST+0.4||flareT>0.02) schedule();
   }
@@ -221,7 +224,7 @@ if(typeof document!=='undefined')(function(){
   ampEl.addEventListener('input',function(){ ampv.textContent=ampEl.value; });
   document.getElementById('poke').addEventListener('click',function(){
     var I=+ampEl.value; injectI=I; injLeft=24; oneShot=true; last=0;
-    if(I<ITH){ narr.className='narr na'; narr.innerHTML='只是<b>抖了一下</b>——不夠。把力道往上推，越過那條線。'; }
+    if(I<ITH){ setNarr('narr na','只是<b>抖了一下</b>——不夠。把力道往上推，越過那條線。'); }
     schedule();
   });
   var trainBtn=document.getElementById('train');

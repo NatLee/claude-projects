@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>絲線另一頭的胃｜每日小專案</title>
+<meta name="description" content="1822 年，一個毛皮船夫的胃被槍打出一個洞，洞再也沒合起來。一位軍醫拿絲線綁上食物垂進去——這次，順序由你來排。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#120d0b; --pk-ink:#ecdfca; --pk-dim:#9a8b78; --pk-accent:#d29a5c;
+  --pk-line:rgba(236,223,202,.13);
+  --blood:#9e3b3b; --skin:#c79a7d; --silk:#f3e8d2; --cav:#3a1518;
+  --pk-maxw:660px;
+}
+body{
+  background:
+    radial-gradient(120% 70% at 50% 0%, #2a1a12 0%, transparent 60%),
+    var(--pk-bg);
+}
+.pk-hero{position:relative}
+.eyebrow{font-size:13px;letter-spacing:.32em;color:var(--pk-accent);margin:0 0 26px}
+.hero-sub{color:var(--pk-ink);font-size:17px;margin:0 0 14px}
+.hero-dim{color:var(--pk-dim);font-size:15.5px;margin:0}
+.cue{margin-top:46px;font-size:13px;letter-spacing:.2em;color:var(--pk-dim)}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(6px)}}
+
+/* 章節導覽 */
+.chnav{position:fixed;top:12px;right:12px;z-index:9;display:flex;gap:4px;
+  padding:5px 7px;border-radius:999px;background:rgba(18,13,11,.72);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border:1px solid var(--pk-line)}
+.chnav button{appearance:none;border:0;background:transparent;color:var(--pk-dim);
+  font:600 12px/1 var(--pk-serif);width:28px;height:28px;border-radius:50%;cursor:pointer;
+  transition:color .25s,background .25s,opacity .25s}
+.chnav button:disabled{opacity:.28;cursor:default}
+.chnav button.on{color:var(--pk-bg);background:var(--pk-accent)}
+.chnav button:not(:disabled):not(.on):hover{color:var(--pk-ink)}
+
+/* 章 */
+.ch{padding:16vh 0 4vh}
+.ch[hidden]{display:none}
+.ch-head{margin:0 0 30px}
+.ch-no{font:600 12px/1 var(--pk-sans);letter-spacing:.34em;color:var(--pk-accent)}
+.ch-head h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(23px,5.4vw,32px);
+  line-height:1.45;margin:12px 0 4px}
+.ch-yr{color:var(--pk-dim);font-size:13px;letter-spacing:.18em}
+.ch p{font-size:16.5px;margin:0 0 20px}
+.ch p.dim{color:var(--pk-dim)}
+q,.q{color:#f6e3c2}
+blockquote{margin:30px 0;padding:4px 0 4px 18px;border-left:2px solid var(--blood);
+  font-family:var(--pk-serif);font-size:17.5px;line-height:1.8;color:#f3e3c8}
+blockquote cite{display:block;margin-top:8px;font:normal 12.5px var(--pk-sans);color:var(--pk-dim);letter-spacing:.06em}
+.big{display:flex;align-items:baseline;gap:14px;margin:34px 0}
+.big b{font:700 clamp(56px,16vw,96px)/1 var(--pk-serif);color:var(--blood)}
+.big span{color:var(--pk-dim);font-size:15px}
+.turn{font-family:var(--pk-serif);font-size:21px !important;margin:34px 0 !important}
+.next{margin:46px 0 0}
+.next[hidden]{display:none}
+
+/* 時間線 */
+.tl{list-style:none;padding:0;margin:30px 0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tl li{border:1px solid var(--pk-line);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.55;color:var(--pk-dim)}
+.tl b{display:block;font:600 16px var(--pk-serif);color:var(--pk-ink)}
+
+/* 實驗台 */
+.bench{margin:28px 0 8px;border:1px solid var(--pk-line);border-radius:16px;
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(0,0,0,.18));padding:16px 14px 18px}
+.tray{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px}
+.chip{appearance:none;font:14px/1 var(--pk-sans);color:var(--pk-ink);background:rgba(255,255,255,.04);
+  border:1px solid var(--pk-line);border-radius:999px;padding:9px 13px 9px 10px;display:flex;align-items:center;gap:8px;
+  cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;transition:background .2s,border-color .2s,opacity .2s,transform .15s}
+.chip:hover{border-color:var(--pk-accent)}
+.chip:active{cursor:grabbing;transform:scale(.97)}
+.chip i{width:14px;height:14px;border-radius:4px;display:block;flex:none}
+.chip.used{opacity:.4;text-decoration:line-through}
+.chip:disabled{cursor:default;opacity:.25}
+.ghost{position:fixed;left:0;top:0;z-index:20;pointer-events:none;opacity:.92}
+.stagewrap{position:relative;max-width:420px;margin:0 auto}
+#stage,#grave{display:block;width:100%;height:auto;overflow:visible}
+#reel,#tip{cursor:ns-resize;outline:none}
+#reel[aria-disabled="true"]{cursor:default}
+.ring{fill:none;stroke:var(--pk-accent);stroke-width:2;opacity:0;transition:opacity .2s}
+#reel:focus-visible .ring,#tip:focus-visible .ring{opacity:1}
+.pc{transform-box:fill-box;transform-origin:50% 50%;transition:transform 1.1s cubic-bezier(.3,.7,.3,1),opacity 1.1s}
+.lbl{font:10.5px var(--pk-sans);fill:var(--pk-dim);transition:opacity .6s}
+.lbl.gone{opacity:.45}
+.wave{animation:slosh 5s ease-in-out infinite alternate}
+@keyframes slosh{to{transform:translateX(-40px)}}
+.sway{animation:sway 3.2s ease-in-out infinite alternate}
+@keyframes sway{to{transform:translateX(2.5px)}}
+.status{display:flex;align-items:center;gap:12px;margin:8px 0 0}
+.status svg{width:42px;height:42px;flex:none}
+.status .t{font:600 15px var(--pk-serif);color:var(--pk-ink);min-width:6.5em}
+.status .h{font-size:14px;color:var(--pk-accent);line-height:1.5}
+.log{list-style:none;padding:0;margin:18px 0 0}
+.log li{border-top:1px solid var(--pk-line);padding:14px 0 12px;font-size:15px;line-height:1.75;
+  animation:in .7s ease both}
+.log li b{display:block;font:600 12px var(--pk-sans);letter-spacing:.2em;color:var(--pk-accent);margin-bottom:4px}
+.log li .v{display:block;margin-top:8px;color:#f6e3c2;font-family:var(--pk-serif)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+.redo{font-size:13px;padding:8px 16px;margin-top:10px}
+.after[hidden]{display:none}
+
+/* 尾章 */
+.final{font-family:var(--pk-serif);font-size:clamp(20px,4.8vw,25px) !important;line-height:1.75;margin:40px 0 0 !important}
+.final[hidden]{display:none}
+.final.show{animation:in 1.4s ease both}
+
+@media (max-width:560px){
+  .tl{grid-template-columns:repeat(2,1fr)}
+  .ch{padding-top:12vh}
+  .chnav{top:auto;bottom:12px;right:50%;transform:translateX(50%)}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue span,.wave,.sway{animation:none}
+  .pc{transition:none}
+  .log li,.final.show{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<nav class="chnav" aria-label="章節">
+  <button type="button" data-go="1" class="on" aria-label="第一章：伸得進一根食指">Ⅰ</button>
+  <button type="button" data-go="2" disabled aria-label="第二章：手指按得開的門">Ⅱ</button>
+  <button type="button" data-go="3" disabled aria-label="第三章：正午">Ⅲ</button>
+  <button type="button" data-go="4" disabled aria-label="第四章：兩百次">Ⅳ</button>
+  <button type="button" data-go="5" disabled aria-label="第五章：八英尺">Ⅴ</button>
+</nav>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="eyebrow rv">絲線另一頭的胃</p>
+    <h1 class="rv">1822 年 6 月 6 日早上，<br>一把獵槍在三英尺外走火。</h1>
+    <p class="hero-sub rv">中彈的是個二十歲的毛皮船夫。襯衫著了火，他倒在毛皮公司店裡的地板上，在場的人都當他死了。</p>
+    <p class="hero-dim rv">他活下來了。而接下來十一年，會有一條絲線，一次又一次垂進他身上的那個洞。</p>
+    <p class="cue rv" aria-hidden="true">第一章 <span>↓</span></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+<section class="ch" id="ch1" data-ch="1" aria-labelledby="h1t">
+  <div class="ch-head rv"><span class="ch-no">第一章</span><h2 id="h1t">伸得進一根食指</h2><span class="ch-yr">麥基諾島・1822</span></div>
+  <p class="rv">島上堡壘的軍醫威廉・博蒙特趕到時，傷者剛被抬上帆布床。</p>
+  <p class="rv">槍彈打斷了幾根肋骨，撕開橫膈膜。一團肺從傷口鼓出來，博蒙特寫它<q>有火雞蛋那麼大</q>。再往下，胃也破了，早餐正從破口往外淌——那個口子，他記下來，<q>伸得進一根食指</q>。</p>
+  <div class="big rv"><b>36</b><span>小時。博蒙特估計，他撐不過這麼久。</span></div>
+  <p class="turn rv">他撐過了。</p>
+  <p class="rv">高燒、化膿，碎骨一片片從傷口裡排出來。頭十七天，他吃下去的東西，全從洞口流回來。</p>
+  <p class="rv">後來傷口收了——偏偏漏了一處。胃壁沒有自己長回去，而是和肚皮的邊緣黏在一起。洞留了下來，從皮膚外直通胃裡。</p>
+  <p class="next rv"><button class="pk-btn" type="button" data-next="2">翻到第二章</button></p>
+</section>
+
+<section class="ch" id="ch2" data-ch="2" hidden aria-labelledby="h2t">
+  <div class="ch-head rv"><span class="ch-no">第二章</span><h2 id="h2t">手指按得開的門</h2><span class="ch-yr">1822 – 1825</span></div>
+  <p class="rv">博蒙特提議把洞縫起來。亞歷克西斯・聖馬丁拒絕了：他已經受夠了。</p>
+  <p class="rv">幾個月後，胃自己想了辦法。洞口內側長出一片肉瓣，像一扇只往裡開的門：食物漏不出來，但照博蒙特的說法，它<q>手指一按就開</q>。</p>
+  <p class="rv">聖馬丁再也划不了獨木舟。他不識字，簽下一紙合約，搬進博蒙特家當僕人——劈柴、扛重物，空檔時，當實驗對象。</p>
+  <blockquote class="rv">他側躺的時候，我可以直接看進胃裡，幾乎看得見消化在進行。<cite>— 博蒙特的信</cite></blockquote>
+  <p class="rv">那個年代，沒人說得清胃在做什麼。有人說胃在「燉」食物；有人說是發酵，有人說是腐爛；還有人說，那是一股講不明白的生命力。</p>
+  <p class="rv">另有一種流行說法：胃一次只處理一樣食物，排隊，一樣接一樣——所以一頓飯吃太多種，才會消化不良。</p>
+  <p class="turn rv">1825 年 8 月 1 日，正午。<br>博蒙特拿出一條絲線。</p>
+  <p class="next rv"><button class="pk-btn" type="button" data-next="3">翻到第三章</button></p>
+</section>
+
+<section class="ch" id="ch3" data-ch="3" hidden aria-labelledby="h3t">
+  <div class="ch-head rv"><span class="ch-no">第三章</span><h2 id="h3t">正午</h2><span class="ch-yr">1825 年 8 月 1 日</span></div>
+  <p class="rv">六樣食物，每塊大約七公克，隔一段距離綁在絲線上，<q>好讓它們不痛地通過洞口</q>。</p>
+  <p class="rv">如果胃真的在排隊，最先進去的——掛在最底下那一塊——就會最先被吃掉。<strong>順序由你來排。</strong></p>
+
+  <div class="bench rv" id="bench">
+    <div class="tray" id="tray" role="group" aria-label="食物（拖到絲線上，或點一下由下往上綁）"></div>
+    <div class="stagewrap">
+      <svg id="stage" viewBox="0 0 360 420" role="img" aria-labelledby="stageT">
+        <title id="stageT">側剖面：絲線從皮膚上的洞垂進胃裡</title>
+        <defs>
+          <radialGradient id="cavG" cx="180" cy="300" r="170" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#5a2026"/><stop offset="1" stop-color="#25090c"/>
+          </radialGradient>
+          <clipPath id="cavClip"><ellipse cx="180" cy="318" rx="150" ry="92"/></clipPath>
+        </defs>
+        <!-- 胃腔 -->
+        <ellipse cx="180" cy="318" rx="150" ry="92" fill="url(#cavG)"/>
+        <g clip-path="url(#cavClip)" fill="none" stroke="#7a3036" stroke-width="1.4" opacity=".55">
+          <path d="M40 280 C90 300 120 262 170 286 S260 300 330 270"/>
+          <path d="M34 322 C80 340 130 306 180 330 S270 344 334 312"/>
+          <path d="M60 372 C110 386 150 360 200 378 S280 384 320 362"/>
+        </g>
+        <!-- 絲線與食物 -->
+        <g id="lineG"><g id="lineIn"></g></g>
+        <!-- 胃液 -->
+        <g clip-path="url(#cavClip)">
+          <g class="wave"><path d="M0 352 Q20 344 40 352 T80 352 T120 352 T160 352 T200 352 T240 352 T280 352 T320 352 T360 352 T400 352 L400 420 L0 420Z" fill="#c9a24a" opacity=".22"/></g>
+          <ellipse cx="180" cy="318" rx="150" ry="92" fill="#120607" opacity=".42"/>
+        </g>
+        <!-- 皮膚 -->
+        <rect x="14" y="200" width="154" height="22" rx="8" fill="var(--skin)"/>
+        <rect x="192" y="200" width="154" height="22" rx="8" fill="var(--skin)"/>
+        <path d="M14 204 H168 M192 204 H346" stroke="#e0b99c" stroke-width="1.2" opacity=".7"/>
+        <text x="342" y="196" text-anchor="end" class="lbl">皮膚</text>
+        <text x="324" y="404" text-anchor="end" class="lbl">胃</text>
+        <!-- 把手 -->
+        <g id="reel" tabindex="0" role="slider" aria-label="絲線：上下拖曳，放進胃裡或拉出來" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-disabled="true">
+          <rect x="110" y="-6" width="140" height="52" fill="transparent"/>
+          <rect class="ring" x="138" y="6" width="84" height="30" rx="15"/>
+          <rect x="148" y="14" width="64" height="14" rx="7" fill="#b07a45"/>
+          <rect x="148" y="14" width="64" height="5" rx="2.5" fill="#e3b57f" opacity=".6"/>
+          <circle cx="180" cy="21" r="4" fill="#3a2414"/>
+        </g>
+      </svg>
+    </div>
+    <div class="status">
+      <svg viewBox="0 0 44 44" aria-hidden="true">
+        <circle cx="22" cy="22" r="19" fill="none" stroke="var(--pk-dim)" stroke-width="1.5"/>
+        <g stroke="var(--pk-dim)" stroke-width="1.5"><path d="M22 5v3M22 36v3M5 22h3M36 22h3"/></g>
+        <line id="minH" x1="22" y1="22" x2="22" y2="8" stroke="var(--pk-ink)" stroke-width="1.2" stroke-linecap="round"/>
+        <line id="hourH" x1="22" y1="22" x2="22" y2="12" stroke="var(--pk-accent)" stroke-width="2.4" stroke-linecap="round"/>
+        <circle cx="22" cy="22" r="2" fill="var(--pk-accent)"/>
+      </svg>
+      <span class="t" id="clockT">正午 12:00</span>
+      <span class="h" id="hint">把六樣食物綁上絲線。</span>
+    </div>
+    <ol class="log" id="log" aria-label="博蒙特的紀錄"></ol>
+  </div>
+
+  <div class="after" id="after3" hidden>
+    <p>他把線又放了回去。過了一陣，男孩開始喊胃裡難受、渾身沒力、頭痛。第四次拉出來，剩下兩塊肉跟上次差不多，胃液更酸、更嗆。</p>
+    <blockquote>男孩仍在喊不舒服，我便沒再把它們放回去。<cite>— 博蒙特，實驗一</cite></blockquote>
+    <p>胃沒在排隊。它同時對付每一樣東西，快慢各不相同——決定先後的是吃了什麼，不是先吃了什麼。</p>
+    <p class="dim">那是兩百次的第一次。</p>
+    <button class="pk-btn redo" type="button" id="redo">換個順序再綁一次</button>
+    <p class="next"><button class="pk-btn" type="button" data-next="4">翻到第四章</button></p>
+  </div>
+</section>
+
+<section class="ch" id="ch4" data-ch="4" hidden aria-labelledby="h4t">
+  <div class="ch-head rv"><span class="ch-no">第四章</span><h2 id="h4t">兩百次</h2><span class="ch-yr">1825 – 1853</span></div>
+  <p class="rv">同一年，聖馬丁跑了。他跟著博蒙特到了紐約州的普拉茨堡，加拿大就在湖對岸；他沒打招呼，回了家。</p>
+  <p class="rv">兩年後，一位毛皮商朋友替博蒙特找到他：結了婚，<q>窮困得難以形容</q>。又過兩年，窮到撐不下去的聖馬丁回來了。</p>
+  <p class="rv">接著是大約十年、兩百次左右的實驗。禁食十七個小時再取胃液；把裝胃液的小瓶夾在他腋下，看體溫怎麼影響消化。博蒙特連那液體都嘗過：清澈、沒有氣味，<q>微鹹，明顯帶酸</q>。</p>
+  <p class="rv">1833 年，書出版了，五十一條結論。一年前才被化學家普勞特在動物胃液裡找到的鹽酸，博蒙特在一個活人身上坐實了，還看見那酸是胃壁自己分泌的。</p>
+  <ol class="tl rv" aria-label="兩人的年表">
+    <li><b>1822</b>槍響</li>
+    <li><b>1825</b>第一條線；他逃回加拿大</li>
+    <li><b>1829</b>窮到回來</li>
+    <li><b>1833</b>書出版</li>
+    <li><b>1834</b>寄信：不回去了</li>
+    <li><b>1853</b>博蒙特過世</li>
+  </ol>
+  <p class="rv">1834 年 6 月 26 日，聖馬丁從加拿大寄出一封信：不回去了，妻子不肯。博蒙特往後寫了好多年的信，想把他叫到聖路易。</p>
+  <p class="rv">1853 年，博蒙特在結了冰的台階上滑倒，不久就過世了。</p>
+  <p class="turn rv">握線的人先走了。<br>線的另一頭，還活著。</p>
+  <p class="next rv"><button class="pk-btn" type="button" data-next="5">翻到最後一章</button></p>
+</section>
+
+<section class="ch" id="ch5" data-ch="5" hidden aria-labelledby="h5t">
+  <div class="ch-head rv"><span class="ch-no">第五章</span><h2 id="h5t">八英尺</h2><span class="ch-yr">魁北克・1880</span></div>
+  <p class="rv">1880 年 6 月 24 日，亞歷克西斯・聖馬丁在魁北克的聖托馬斯過世，七十八歲。他比博蒙特多活了二十七年。</p>
+  <p class="rv">消息一傳開，醫生們又來了。有人想解剖；名醫奧斯勒想把那個胃收進華盛頓的陸軍醫學博物館。</p>
+  <p class="rv">家人拒絕。他們把遺體留在家裡，一直放到開始腐壞——壞到沒辦法抬進教堂辦彌撒。然後，挖了一個八英尺深的坑。</p>
+  <p class="rv"><strong>最後一次。把線放下去。</strong></p>
+  <div class="stagewrap rv">
+    <svg id="grave" viewBox="0 0 360 430" role="img" aria-labelledby="graveT">
+      <title id="graveT">墓地剖面：地面下八英尺</title>
+      <rect x="0" y="150" width="360" height="280" fill="#2a1c14"/>
+      <rect x="130" y="150" width="100" height="242" fill="#36251a"/>
+      <path d="M130 150 V392 H230 V150" fill="none" stroke="#6b5240" stroke-width="1" stroke-dasharray="4 5"/>
+      <path d="M0 150 H360" stroke="#5c7a45" stroke-width="3"/>
+      <g id="ticks" class="lbl"></g>
+      <rect x="142" y="394" width="76" height="26" rx="4" fill="none" stroke="#7d6450" stroke-width="1.2"/>
+      <g id="gLine"></g>
+      <rect x="150" y="10" width="60" height="12" rx="6" fill="#b07a45"/>
+      <g id="tip" tabindex="0" role="slider" aria-label="絲線末端：往下拖" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <circle class="hit" r="26" fill="transparent"/>
+        <circle class="ring" r="13"/>
+        <circle r="5" fill="var(--silk)"/>
+      </g>
+    </svg>
+  </div>
+  <p class="final" id="final1" hidden>線落在土上，停住了。</p>
+  <p class="final" id="final2" hidden>兩百多次，那扇門被一根手指按開。<br>這一次，門上壓著八英尺的土。</p>
+</section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：W. Beaumont《Experiments and Observations on the Gastric Juice》(1833)；C. Price, <i>Distillations</i> (2018)。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'stmart22.';
+const store = PK.store(LS);
+
+/*<pure>*/
+const FOODS = [
+  { id: 'alamode', name: '重口味燉牛肉', c: '#6e3324' },
+  { id: 'fatpork', name: '生鹹肥豬肉',   c: '#ead2c4' },
+  { id: 'rawbeef', name: '生鹹瘦牛肉',   c: '#a3242c' },
+  { id: 'boiled',  name: '水煮鹹牛肉',   c: '#8c5c45' },
+  { id: 'bread',   name: '隔夜麵包',     c: '#d6ab6f' },
+  { id: 'cabbage', name: '生高麗菜絲',   c: '#93bb63' }
+];
+/* 第 k 次拉出來時每樣食物「被消化掉的比例」（依博蒙特實驗一的文字紀錄量化，見說明.md） */
+const DIGEST = [
+  {},
+  { cabbage: .5, bread: .5 },
+  { cabbage: 1, bread: 1, fatpork: 1, boiled: 1, alamode: .1, rawbeef: .05 },
+  { cabbage: 1, bread: 1, fatpork: 1, boiled: 1, alamode: .45, rawbeef: .15 }
+];
+const MARKS = [
+  { label: '正午 12:00', h: 0 },
+  { label: '下午 1:00', h: 1 },
+  { label: '下午 2:00', h: 2 },
+  { label: '稍後', h: 2.5 }
+];
+const NOTES = [
+  '',
+  '高麗菜和麵包，消化了大約一半。肉，原封不動。',
+  '高麗菜、麵包、肥豬肉、水煮牛肉——消化得乾乾淨淨，從線上不見了。另外兩塊肉幾乎沒動。',
+  '燉牛肉消化了一部分；生牛肉只有表面泡軟，質地依然結實。博蒙特聞了胃液、也嘗了：微微酸腐。男孩說胸口有點痛、不太舒服。'
+];
+function foodName(id) { for (const f of FOODS) if (f.id === id) return f.name; return ''; }
+function digestAt(pull, id) { const d = DIGEST[pull] || {}; return d[id] || 0; }
+/* 第 i 個繩結（0＝最底、最先進胃）的 y；L∈[0,1] 是放下去的程度 */
+function knotY(i, L) { return 60 + (5 - i) * 26 + L * 170; }
+function lowestEmpty(slots) { return slots.indexOf(null); }
+function nearestEmpty(slots, y, L) {
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i]) continue;
+    const d = Math.abs(knotY(i, L) - y);
+    if (d < bd) { bd = d; best = i; }
+  }
+  return best;
+}
+/* 線上空掉的位置（1 起算、由下往上） */
+function goneSlots(slots, pull) {
+  const out = [];
+  slots.forEach(function (id, i) { if (id && digestAt(pull, id) >= 1) out.push(i + 1); });
+  return out;
+}
+/* 「排隊說」的判決：最先進去的那塊，有沒有最先被消化？ */
+function verdict(slots) {
+  const first = slots[0];
+  const pc = slots.indexOf('cabbage') + 1, pb = slots.indexOf('bread') + 1;
+  if (first === 'cabbage' || first === 'bread') {
+    const other = first === 'cabbage' ? 'bread' : 'cabbage';
+    return '你最先放進去的' + foodName(first) + '，確實開始消化了——但排第 ' +
+      (first === 'cabbage' ? pb : pc) + ' 個的' + foodName(other) + '也同時在消化。它們沒在排隊。';
+  }
+  return '你最先放進去的是' + foodName(first) + '，一小時後原封不動。先被消化的，是排第 ' +
+    pc + ' 個的高麗菜和第 ' + pb + ' 個的麵包。胃沒在排隊。';
+}
+/*</pure>*/
+
+/* ── 章節 ── */
+const navBtns = Array.from(document.querySelectorAll('.chnav button'));
+let maxCh = PK.clamp(+store.get('maxCh', 1) || 1, 1, 5);
+function unlock(n) {
+  for (let k = 2; k <= n; k++) {
+    const sec = document.getElementById('ch' + k);
+    if (sec.hidden) { sec.hidden = false; PK.reveal('#ch' + k + ' .rv'); }
+    navBtns[k - 1].disabled = false;
+  }
+  if (n > maxCh) { maxCh = n; store.set('maxCh', n); }
+  if (maxCh > 3) document.getElementById('after3').hidden = false;
+}
+unlock(maxCh);
+document.querySelectorAll('[data-next]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    const n = +b.dataset.next;
+    unlock(n);
+    const sec = document.getElementById('ch' + n);
+    PK.scrollTo(sec);
+    sec.querySelector('h2').setAttribute('tabindex', '-1');
+    setTimeout(function () { sec.querySelector('h2').focus({ preventScroll: true }); }, PK.reduced() ? 0 : 500);
+  });
+});
+navBtns.forEach(function (b) {
+  b.addEventListener('click', function () { PK.scrollTo(document.getElementById('ch' + b.dataset.go)); });
+});
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      const n = +e.target.dataset.ch;
+      navBtns.forEach(function (b, i) { b.classList.toggle('on', i + 1 === n); if (i + 1 === n) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  document.querySelectorAll('.ch').forEach(function (s) { io.observe(s); });
+}
+PK.reveal('.pk-hero .rv, #ch1 .rv');
+
+/* ── 共用：把 SVG 上的元素做成可拖曳／鍵盤操作的「線」 ── */
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+function svgY(svg, clientY) {
+  const m = svg.getScreenCTM();
+  return m ? (clientY - m.f) / m.d : 0;
+}
+function makeReel(svg, handle, span, getL, setL, canMove) {
+  let drag = null;
+  handle.addEventListener('pointerdown', function (e) {
+    if (!canMove()) return;
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    drag = { y: svgY(svg, e.clientY), L: getL() };
+  });
+  handle.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    setL(PK.clamp(drag.L + (svgY(svg, e.clientY) - drag.y) / span, 0, 1), true);
+  });
+  function end() { if (drag) { drag = null; setL(getL(), false); } }
+  handle.addEventListener('pointerup', end);
+  handle.addEventListener('pointercancel', end);
+  handle.addEventListener('keydown', function (e) {
+    if (!canMove()) return;
+    const step = { ArrowDown: .25, ArrowRight: .25, PageDown: 1, End: 1, ArrowUp: -.25, ArrowLeft: -.25, PageUp: -1, Home: -1 }[e.key];
+    if (step === undefined) return;
+    e.preventDefault();
+    setL(PK.clamp(getL() + step, 0, 1), false);
+  });
+  handle.style.touchAction = 'none';
+}
+
+/* ── 第三章：實驗一 ── */
+const stage = document.getElementById('stage');
+const lineG = document.getElementById('lineG');
+const lineIn = document.getElementById('lineIn');
+const reel = document.getElementById('reel');
+const tray = document.getElementById('tray');
+const hintEl = document.getElementById('hint');
+const clockT = document.getElementById('clockT');
+const hourH = document.getElementById('hourH');
+const minH = document.getElementById('minH');
+const logEl = document.getElementById('log');
+
+let slots, L, phase, pulls, clockH;
+const pieces = [];   /* 每個繩結的 {g, pc, lbl} */
+
+function buildLine() {
+  el('line', { x1: 180, y1: 26, x2: 180, y2: knotY(0, 0) + 14, stroke: 'var(--silk)', 'stroke-width': 1.2 }, lineIn);
+  for (let i = 0; i < 6; i++) {
+    const y = knotY(i, 0);
+    const g = el('g', { transform: 'translate(180 ' + y + ')' }, lineIn);
+    el('circle', { r: 2.4, fill: 'var(--silk)' }, g);
+    const pc = el('g', { class: 'pc' }, g);
+    pc.style.opacity = 0;
+    const lbl = el('text', { x: 24, y: 4, class: 'lbl' }, g);
+    pieces.push({ g: g, pc: pc, lbl: lbl });
+  }
+}
+function drawPiece(i) {
+  const p = pieces[i], id = slots[i];
+  p.pc.textContent = '';
+  p.lbl.textContent = id ? foodName(id) : '';
+  if (!id) { p.pc.style.opacity = 0; return; }
+  const f = FOODS.find(function (x) { return x.id === id; });
+  if (id === 'cabbage') {
+    for (let k = -1; k <= 1; k++) el('path', { d: 'M' + (k * 5 - 5) + ' 2 q5 -9 10 0 q-5 8 -10 0', fill: f.c, stroke: '#cfe6a8', 'stroke-width': .6 }, p.pc);
+  } else if (id === 'bread') {
+    el('rect', { x: -10, y: -6, width: 20, height: 13, rx: 4, fill: f.c }, p.pc);
+    el('rect', { x: -10, y: -6, width: 20, height: 3.5, rx: 2, fill: '#9c6a33' }, p.pc);
+  } else {
+    el('rect', { x: -11, y: -6, width: 22, height: 13, rx: 5, fill: f.c }, p.pc);
+    el('path', { d: 'M-7 -1 q4 3 7 -1 t7 1', fill: 'none', stroke: id === 'fatpork' ? '#c99a8a' : '#efe1cf', 'stroke-width': 1.1, opacity: .7 }, p.pc);
+  }
+  applyDigest(i, pulls);
+}
+function applyDigest(i, pull) {
+  const p = pieces[i], id = slots[i];
+  if (!id) return;
+  const d = digestAt(pull, id);
+  p.pc.style.transform = 'scale(' + Math.max(0.001, 1 - d * .85) + ')';
+  p.pc.style.opacity = d >= 1 ? 0 : 1 - d * .4;
+  p.lbl.classList.toggle('gone', d >= 1);
+  p.lbl.textContent = foodName(id) + (d >= 1 ? '（不見了）' : d > 0 ? '（' + Math.round(d * 100) + '%）' : '');
+}
+function renderTray() {
+  tray.textContent = '';
+  FOODS.forEach(function (f) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.dataset.id = f.id;
+    const used = slots.indexOf(f.id) >= 0;
+    if (used) b.classList.add('used');
+    b.disabled = phase !== 'load';
+    b.setAttribute('aria-pressed', used ? 'true' : 'false');
+    b.setAttribute('aria-label', used ? '解開' + f.name : '把' + f.name + '綁上絲線');
+    b.innerHTML = '<i style="background:' + f.c + '"></i>' + f.name;
+    wireChip(b, f);
+    tray.appendChild(b);
+  });
+}
+function attach(id, idx) {
+  const old = slots.indexOf(id);
+  if (old >= 0) { slots[old] = null; drawPiece(old); }
+  if (idx < 0) return;
+  slots[idx] = id; drawPiece(idx);
+  afterLoadChange();
+}
+function afterLoadChange() {
+  renderTray();
+  const n = slots.filter(Boolean).length;
+  if (n === 6) {
+    phase = 'lower';
+    reel.setAttribute('aria-disabled', 'false');
+    tray.querySelectorAll('.chip').forEach(function (c) { c.disabled = true; });
+    hint('綁好了。拖住上面的把手，把線放進洞裡。');
+  } else {
+    hint('還差 ' + (6 - n) + ' 樣。最底下那一塊最先進胃。', true);
+  }
+}
+function wireChip(b, f) {
+  let st = null, ghost = null;
+  b.addEventListener('pointerdown', function (e) {
+    if (b.disabled) return;
+    st = { x: e.clientX, y: e.clientY, moved: false };
+    b.setPointerCapture(e.pointerId);
+  });
+  b.addEventListener('pointermove', function (e) {
+    if (!st) return;
+    const dx = e.clientX - st.x, dy = e.clientY - st.y;
+    if (!st.moved && dx * dx + dy * dy > 36) {
+      st.moved = true;
+      ghost = b.cloneNode(true); ghost.className = 'chip ghost'; ghost.removeAttribute('id');
+      document.body.appendChild(ghost);
+    }
+    if (ghost) ghost.style.transform = 'translate(' + (e.clientX - 30) + 'px,' + (e.clientY - 18) + 'px)';
+  });
+  function finish(e, cancel) {
+    if (!st) return;
+    const moved = st.moved; st = null;
+    if (ghost) { ghost.remove(); ghost = null; }
+    if (cancel || phase !== 'load') return;
+    if (!moved) {
+      if (slots.indexOf(f.id) >= 0) { attach(f.id, -1); afterLoadChange(); }
+      else attach(f.id, lowestEmpty(slots));
+      return;
+    }
+    const r = stage.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) return;
+    const tmp = slots.slice(); const old = tmp.indexOf(f.id); if (old >= 0) tmp[old] = null;
+    attach(f.id, nearestEmpty(tmp, svgY(stage, e.clientY), L));
+  }
+  b.addEventListener('pointerup', function (e) { finish(e, false); });
+  b.addEventListener('pointercancel', function (e) { finish(e, true); });
+  b.addEventListener('click', function (e) { if (e.detail === 0) { /* 鍵盤 Enter/Space */
+    if (phase !== 'load') return;
+    if (slots.indexOf(f.id) >= 0) { attach(f.id, -1); afterLoadChange(); }
+    else attach(f.id, lowestEmpty(slots));
+    const nb = tray.querySelector('[data-id="' + f.id + '"]'); if (nb) nb.focus();
+  } });
+}
+function hint(msg, quiet) { hintEl.textContent = msg; if (!quiet) PK.announce(msg); }
+function setClock(h) {
+  clockH = h;
+  hourH.setAttribute('transform', 'rotate(' + (h * 30) + ' 22 22)');
+  minH.setAttribute('transform', 'rotate(' + (h * 360) + ' 22 22)');
+}
+function tweenClock(to, done) {
+  const from = clockH;
+  if (PK.reduced()) { setClock(to); done(); return; }
+  const dur = 1800 + (to - from) * 600; let t0 = null;
+  function f(dt, t) {
+    if (t0 === null) t0 = t;
+    const k = PK.clamp((t - t0) / dur, 0, 1);
+    const e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    setClock(PK.lerp(from, to, e));
+    if (k >= 1) { PK.untick(f); done(); }
+  }
+  PK.tick(f);
+}
+function renderL() {
+  lineG.setAttribute('transform', 'translate(0 ' + (L * 170).toFixed(1) + ')');
+  reel.setAttribute('aria-valuenow', Math.round(L * 100));
+  reel.setAttribute('aria-valuetext', L > .9 ? '在胃裡' : L < .1 ? '在外面' : '洞口附近');
+  lineIn.classList.toggle('sway', L > .9 && !PK.reduced());
+}
+function setL(v, dragging) {
+  if (phase !== 'lower' && phase !== 'pull') return;
+  L = v;
+  if (phase === 'lower' && L >= .96) {
+    L = 1; phase = 'wait'; renderL();
+    reel.setAttribute('aria-disabled', 'true');
+    hint('線進去了。等。');
+    const next = pulls + 1;
+    tweenClock(MARKS[next].h, function () {
+      clockT.textContent = MARKS[next].label;
+      for (let i = 0; i < 6; i++) applyDigest(i, next);
+      phase = 'pull';
+      reel.setAttribute('aria-disabled', 'false');
+      hint(MARKS[next].label + '。把線拉出來看看。');
+    });
+    return;
+  }
+  if (phase === 'pull' && L <= .04) {
+    L = 0; renderL();
+    pulls++;
+    record(pulls);
+    if (pulls < 3) { phase = 'lower'; hint('記下來了。再把線放回去。', true); }
+    else {
+      phase = 'done'; reel.setAttribute('aria-disabled', 'true');
+      hint('實驗一，到此為止。', true);
+      document.getElementById('after3').hidden = false;
+    }
+    return;
+  }
+  renderL();
+  if (!dragging && phase === 'lower' && L > 0) hint('再往下一點——要整條進去。', true);
+}
+function record(k) {
+  const li = document.createElement('li');
+  let html = '<b>' + MARKS[k].label + '・第 ' + k + ' 次拉出</b>' + NOTES[k];
+  if (k === 1) html += '<span class="v">' + verdict(slots) + '</span>';
+  if (k === 2) html += '<span class="v">線上空了四格：由下往上第 ' + goneSlots(slots, 2).join('、') + ' 個。</span>';
+  li.innerHTML = html;
+  logEl.appendChild(li);
+  PK.announce(li.textContent);
+}
+function resetExp() {
+  slots = [null, null, null, null, null, null];
+  L = 0; phase = 'load'; pulls = 0;
+  setClock(0); clockT.textContent = MARKS[0].label;
+  logEl.textContent = '';
+  for (let i = 0; i < 6; i++) drawPiece(i);
+  renderL();
+  reel.setAttribute('aria-disabled', 'true');
+  renderTray();
+  hint('把六樣食物綁上絲線：拖到線上，或點一下由下往上綁。', true);
+}
+buildLine();
+resetExp();
+makeReel(stage, reel, 170, function () { return L; }, setL,
+  function () { return phase === 'lower' || phase === 'pull'; });
+document.getElementById('redo').addEventListener('click', function () {
+  resetExp(); PK.scrollTo(document.getElementById('bench'));
+});
+
+/* ── 第五章：八英尺 ── */
+const grave = document.getElementById('grave');
+const tip = document.getElementById('tip');
+const gLine = document.getElementById('gLine');
+const ticks = document.getElementById('ticks');
+for (let ft = 1; ft <= 8; ft++) {
+  const y = 150 + ft * 30;
+  el('path', { d: 'M118 ' + y + ' H128', stroke: '#6b5240' }, ticks);
+  const t = el('text', { x: 112, y: y + 3.5, 'text-anchor': 'end' }, ticks);
+  t.textContent = ft + ' 英尺';
+}
+const silk = el('path', { fill: 'none', stroke: 'var(--silk)', 'stroke-width': 1.2, 'stroke-linecap': 'round' }, gLine);
+let G = 0, graveDone = false;
+const G_SPAN = 104;   /* 線端從 y=44 到地面 y=148 */
+function setG(v, dragging) {
+  G = v;
+  const y = 44 + G * G_SPAN;
+  tip.setAttribute('transform', 'translate(180 ' + y.toFixed(1) + ')');
+  tip.setAttribute('aria-valuenow', Math.round(G * 100));
+  /* 到了地面，多出來的線在土上盤成一小團 */
+  silk.setAttribute('d', G >= .99 ? 'M180 22 V146 q-10 6 -2 7 q12 1 6 -6' : 'M180 22 V' + y.toFixed(1));
+  if (G >= .99 && !graveDone) {
+    graveDone = true;
+    tip.setAttribute('aria-valuetext', '停在地面上');
+    const f1 = document.getElementById('final1'), f2 = document.getElementById('final2');
+    f1.hidden = false; f1.classList.add('show');
+    PK.announce(f1.textContent);
+    setTimeout(function () { f2.hidden = false; f2.classList.add('show'); PK.announce(f2.textContent); }, PK.reduced() ? 0 : 1600);
+    store.set('ended', true);
+  }
+}
+setG(0);
+makeReel(grave, tip, G_SPAN, function () { return G; }, setG, function () { return true; });
+
+PK.onMotionChange(function () { lineIn.classList.toggle('sway', L > .9 && !PK.reduced()); });
+</script>
+</body>
+</html>

@@ -63,6 +63,7 @@ h1{font-family:var(--serif);font-size:clamp(2rem,6vw,3.1rem);margin:0 0 12px;lin
 .reveal p{font-size:1.04rem;color:var(--dim);margin:0 0 16px}.reveal p em{color:var(--ink);font-style:normal}
 .coda{font-family:var(--serif);font-size:1.1rem;line-height:1.9;color:var(--dim);text-align:center;border-top:1px solid var(--line);padding-top:24px;margin-top:8px}.coda b{color:var(--ink)}
 footer{text-align:center;padding:36px 22px 60px;color:var(--faint);font-size:.78rem}footer .src{opacity:.8;margin-top:4px}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.score.show{animation:none}.round .f,.pbar i{transition:none}}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
@@ -135,7 +136,7 @@ if(typeof document!=='undefined')(function(){
     screen.innerHTML='<div class="rule">說出<b>字的顏色</b>，不是字寫什麼</div>'+
       '<div class="word" id="word" role="status" aria-live="assertive"></div>'+
       '<div class="pads" id="pads"></div>'+
-      '<div class="fb" id="fb">&nbsp;</div>'+
+      '<div class="fb" id="fb" aria-live="polite">&nbsp;</div>'+
       '<div class="prog"><span id="pnum">1 / '+N+'</span><span class="pbar"><i id="pbar" style="width:0"></i></span></div>';
     var pads=document.getElementById('pads');
     COLORS.forEach(function(c,i){ var b=document.createElement('button'); b.className='pad '+c.key; b.textContent=c.name; b.setAttribute('aria-label','顏色 '+c.name); b.addEventListener('click',function(){ answer(i); }); pads.appendChild(b); });
@@ -158,8 +159,10 @@ if(typeof document!=='undefined')(function(){
   function begin(){ quiz=makeQuiz(N,(Date.now()>>>0)^0x9e3779b9); idx=0; records=[]; document.getElementById('scoreSec').classList.remove('show'); tauntEl.innerHTML='<b>'+TAUNTS[0]+'</b>'; buildArena(); showTrial(); }
   document.getElementById('start').addEventListener('click',begin);
   document.getElementById('again').addEventListener('click',begin);
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
-  io.observe(document.getElementById('rev'));
+  var rev=document.getElementById('rev');
+  if(!('IntersectionObserver' in window)){ rev.classList.add('in'); }
+  else { var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
+  io.observe(rev); }
   mR.addEventListener('change',function(e){reduced=e.matches;});
 })();
 </script>

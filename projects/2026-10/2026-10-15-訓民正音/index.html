@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>「不終朝而會」｜每日小專案</title>
+<meta name="description" content="1446 年，鄭麟趾替一套新字母作保：聰明人學它用不完一個早上。太陽從日出走到正午，你能讀出首爾的招牌嗎？">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#111327; --pk-ink:#efe6d2; --pk-dim:#a29cb2; --pk-accent:#f2b45a;
+  --pk-line:rgba(239,230,210,.14);
+  --vow:#8ec5e8; --coda:#9fd6a8; --tongue:#d9727f; --bone:#efe6d2;
+  --card:rgba(255,255,255,.045);
+  --ko:"AppleMyungjo","Batang","BatangChe","Noto Serif KR","Noto Serif CJK KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",serif;
+  --ko-sans:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif;
+  --pk-maxw:720px;
+}
+body{background:var(--pk-bg)}
+/* ── 天空：兩層交疊，用透明度從黎明換到正午 ── */
+.sky{position:fixed;inset:0;z-index:-1;pointer-events:none}
+.sky i{position:absolute;inset:0;display:block}
+.sky .dawn{background:radial-gradient(120% 70% at 8% 108%,rgba(236,124,84,.30),transparent 62%),
+  radial-gradient(80% 50% at 0% 100%,rgba(140,80,150,.25),transparent 70%)}
+.sky .noon{opacity:0;background:radial-gradient(90% 60% at 50% -12%,rgba(255,214,140,.26),transparent 64%),
+  linear-gradient(180deg,rgba(60,84,140,.30),transparent 70%)}
+
+h2,h3{font-family:var(--pk-serif);font-weight:600;letter-spacing:.02em}
+h2{font-size:clamp(22px,4.6vw,30px);margin:0 0 14px;line-height:1.45}
+h3{font-size:19px;margin:34px 0 10px}
+p{margin:0 0 16px}
+b,strong{color:#fff3da}
+.ko{font-family:var(--ko);font-weight:600}
+.dim{color:var(--pk-dim)}
+.small{font-size:13.5px}
+kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92em;padding:1px 7px;border-radius:5px;
+  border:1px solid var(--pk-line);background:rgba(255,255,255,.06);color:#fff3da}
+.quote{font-family:var(--pk-serif);border-left:2px solid var(--pk-accent);padding:6px 0 6px 16px;margin:18px 0;
+  color:#f6e7c8;font-size:17px;line-height:1.9}
+.quote cite{display:block;font-style:normal;font-size:12.5px;color:var(--pk-dim);margin-top:6px;font-family:var(--pk-sans)}
+
+/* ── 第一屏 ── */
+.hero-in{width:100%}
+.kicker{font-size:13px;letter-spacing:.28em;color:var(--pk-accent);margin-bottom:14px}
+.pk-hero h1{font-size:clamp(40px,11vw,76px);letter-spacing:.06em;margin-bottom:22px;line-height:1.2}
+.lede{font-size:clamp(17px,3.6vw,20px);line-height:1.9;max-width:34em}
+.board{margin:30px 0 22px;display:inline-block;padding:14px 26px 12px;border-radius:6px;position:relative;
+  background:linear-gradient(180deg,#1d2b55,#16214a);border:2px solid #3a4f8c;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.board::before{content:"";position:absolute;inset:5px;border:1px solid rgba(255,255,255,.12);border-radius:3px;pointer-events:none}
+.board span{font-family:var(--ko);font-weight:700;font-size:clamp(34px,10vw,64px);letter-spacing:.14em;color:#fff0cf;
+  display:block;line-height:1.25}
+.hero .board span{opacity:.92}
+.start-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:8px}
+.pk-btn.solid{background:var(--pk-accent);color:#1a1424;font-weight:600}
+.pk-btn.solid:hover{background:#ffd08a}
+.again{margin-top:12px}
+
+/* ── HUD：倒數用的太陽 ── */
+.hud{position:fixed;top:10px;right:10px;z-index:9;display:flex;align-items:center;gap:10px;padding:6px 8px 6px 10px;
+  border-radius:999px;background:rgba(17,19,39,.78);border:1px solid var(--pk-line);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transform:translateY(-8px);
+  transition:opacity .5s,transform .5s,visibility .5s;pointer-events:none;visibility:hidden}
+.hud.on{opacity:1;transform:none;pointer-events:auto;visibility:visible}
+.hud svg{width:58px;height:33px;display:block;overflow:visible}
+.hud .clk{font-variant-numeric:tabular-nums;font-size:13px;line-height:1.3;min-width:86px}
+.hud .clk b{font-size:15px;color:#fff3da;font-weight:600}
+.hud .clk span{display:block;color:var(--pk-dim);font-size:11.5px}
+.hud button{appearance:none;border:1px solid var(--pk-line);background:transparent;color:var(--pk-ink);border-radius:999px;
+  width:34px;height:34px;cursor:pointer;font-size:13px;line-height:1}
+.hud button:hover{border-color:var(--pk-accent);color:var(--pk-accent)}
+.hud.paused .sunG{opacity:.45}
+.toast{position:fixed;left:50%;bottom:18px;z-index:9;transform:translate(-50%,16px);opacity:0;transition:opacity .4s,transform .4s;
+  background:rgba(17,19,39,.92);border:1px solid var(--pk-accent);color:#fff3da;padding:10px 18px;border-radius:12px;
+  font-size:14.5px;max-width:min(92vw,460px);text-align:center;pointer-events:none}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+/* ── 章節 ── */
+.ch{padding:72px 0 24px}
+.ch[hidden]{display:none}
+.chno{font-size:12.5px;letter-spacing:.3em;color:var(--pk-accent);margin-bottom:8px}
+.next{margin-top:18px}
+
+/* ── 第一關：剖面圖 ── */
+.xray{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:start;margin:22px 0 8px}
+.xray-fig{background:radial-gradient(circle at 40% 45%,rgba(120,170,220,.10),transparent 70%),rgba(0,0,0,.25);
+  border:1px solid var(--pk-line);border-radius:14px;padding:6px}
+.xray-fig svg{width:100%;height:auto;display:block;overflow:visible}
+.hd{fill:none;stroke:rgba(239,230,210,.55);stroke-width:2;stroke-linecap:round}
+.hd.faint{stroke:rgba(239,230,210,.22);stroke-dasharray:3 4}
+.velum{fill:none;stroke:rgba(239,230,210,.75);stroke-width:5;stroke-linecap:round}
+.bone{fill:rgba(239,230,210,.85)}
+.lip{fill:#c98a7a}
+.tg{fill:var(--tongue);opacity:0;transition:opacity .45s}
+.lips{opacity:0;transition:opacity .4s}
+.lbl{fill:rgba(239,230,210,.55);font-size:9px;font-family:var(--pk-sans)}
+.glow{fill:var(--pk-accent);opacity:0}
+.flow{fill:none;stroke:var(--vow);stroke-width:1.6;stroke-dasharray:4 4;opacity:0;transition:opacity .4s}
+.ov{fill:none;stroke:var(--pk-accent);stroke-width:7;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.ov.show{opacity:1}
+[data-st="g"] .tg-g,[data-st="n"] .tg-n,[data-st="s"] .tg-s,
+[data-st="m"] .tg-0,[data-st="ng"] .tg-0,[data-st="all"] .tg-0,[data-st=""] .tg-0{opacity:.92}
+[data-st="m"] .lips-c{opacity:1}
+.xray-fig:not([data-st="m"]) .lips-o{opacity:1}
+.glow.on{animation:pulse 1.8s ease-in-out infinite}
+[data-st="n"] .fl-nose,[data-st="m"] .fl-nose,[data-st="ng"] .fl-nose,[data-st="s"] .fl-mouth{opacity:.85}
+[data-st="all"] .ov{opacity:1}
+@keyframes pulse{0%,100%{opacity:.10}50%{opacity:.38}}
+.quiz{background:var(--card);border:1px solid var(--pk-line);border-radius:14px;padding:18px 18px 16px}
+.step{font-size:12.5px;color:var(--pk-dim);letter-spacing:.12em}
+.prompt{font-size:16.5px;line-height:1.85;margin:8px 0 14px;min-height:5.4em}
+.ans{display:flex;gap:8px}
+.ans input{flex:1;min-width:0;font:inherit;font-size:18px;padding:10px 14px;border-radius:10px;border:1px solid rgba(239,230,210,.28);
+  background:rgba(0,0,0,.28);color:#fff;letter-spacing:.06em}
+.ans input:focus-visible{outline:2px solid var(--pk-accent);outline-offset:2px}
+.ans .pk-btn{padding:10px 18px;flex:none}
+.fb{min-height:1.8em;margin:10px 0 0;font-size:14.5px}
+.fb.ok{color:var(--coda)} .fb.no{color:#f3a59a}
+.cap{margin-top:12px;padding-top:12px;border-top:1px dashed var(--pk-line)}
+.cap[hidden]{display:none}
+.cap .big{font-family:var(--ko);font-size:44px;line-height:1;color:var(--pk-accent);float:left;margin:2px 14px 0 0}
+.cap .qt{font-family:var(--pk-serif);color:#f6e7c8}
+.cap::after{content:"";display:block;clear:both}
+.twist{margin-top:26px}
+.twist[hidden]{display:none}
+.twist .bang{font-family:var(--pk-serif);font-size:clamp(22px,5vw,30px);color:#fff3da;margin:6px 0 14px;line-height:1.5}
+
+/* ── 第二關：加筆 ── */
+.fam{display:grid;gap:10px;margin:20px 0}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--card);border:1px solid var(--pk-line);border-radius:12px;padding:10px 12px}
+.cell{display:flex;align-items:center;gap:6px}
+.gl{font-family:var(--ko);font-size:32px;line-height:1;width:40px;text-align:center}
+.rd{font-size:13px;color:var(--pk-dim);min-width:20px}
+.arrow{color:var(--pk-dim);font-size:14px}
+.row form{display:flex;gap:6px;align-items:center}
+.row input{width:64px;font:inherit;font-size:16px;padding:6px 8px;border-radius:8px;border:1px solid rgba(239,230,210,.28);background:rgba(0,0,0,.28);color:#fff;text-align:center}
+.row .pk-btn{padding:6px 12px;font-size:13px}
+.row .tip{flex-basis:100%;font-size:13px;color:#f3a59a;min-height:0}
+.row.done{border-color:rgba(159,214,168,.5)}
+.row.done .last .gl{color:var(--pk-accent);transform:scale(1.08);transition:transform .4s,color .4s}
+.row.given{opacity:.85}
+
+/* ── 第三關：天地人 ── */
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.trio div,.vcard{background:var(--card);border:1px solid var(--pk-line);border-radius:12px;padding:12px;text-align:center}
+.trio svg,.vcard svg{width:56px;height:56px;display:block;margin:0 auto 6px}
+.trio b{display:block;font-family:var(--pk-serif);font-size:20px}
+.trio span{font-size:13px;color:var(--pk-dim)}
+.prim{stroke:var(--vow);stroke-width:5;stroke-linecap:round;fill:none}
+.dot{fill:var(--pk-accent)}
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin:16px 0 18px}
+.vcard .pair{display:flex;align-items:center;justify-content:center;gap:4px}
+.vcard .pair svg{width:44px;height:44px;margin:0}
+.vcard .pair i{font-style:normal;color:var(--pk-dim);font-size:12px}
+.vcard b{font-family:var(--ko);font-size:24px;display:block;margin-top:4px}
+.vcard span{font-size:12.5px;color:var(--pk-dim)}
+.layout{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin:14px 0 18px}
+.lay{display:grid;grid-template-columns:28px 28px;grid-template-rows:28px 28px;gap:3px}
+.lay i{display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12px;border-radius:4px}
+.lay .a{background:rgba(242,180,90,.25)} .lay .b{background:rgba(142,197,232,.25)} .lay .c{background:rgba(159,214,168,.25);grid-column:1/3}
+
+/* ── 方塊顯示（組字機） ── */
+.blocks{display:flex;flex-wrap:wrap;gap:10px;min-height:118px;margin:14px 0;align-items:flex-start}
+.blk{min-width:76px;padding:10px 8px 8px;border-radius:12px;background:rgba(0,0,0,.25);border:1px solid var(--pk-line);text-align:center;
+  animation:pop .35s ease}
+.blk .big{font-family:var(--ko);font-size:44px;line-height:1.1;display:block;color:#fff6e0}
+.blk .parts{display:block;font-family:var(--ko-sans);font-size:15px;margin-top:4px;letter-spacing:.1em}
+.blk .pL{color:var(--pk-accent)} .blk .pV{color:var(--vow)} .blk .pT{color:var(--coda)}
+.blk .src{display:block;font-size:11.5px;color:var(--pk-dim);margin-top:2px}
+.blk .org{display:block;font-size:11px;color:var(--pk-dim)}
+.blk.bad{border-color:#f3a59a}
+.gap{width:14px}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.96)}to{opacity:1;transform:none}}
+.compose input{font-size:20px}
+.legend{font-size:12.5px;color:var(--pk-dim)}
+.legend i{font-style:normal}
+.legend .a{color:var(--pk-accent)} .legend .b{color:var(--vow)} .legend .c{color:var(--coda)}
+
+/* ── 第四關：街頭 ── */
+.street{margin:20px 0}
+.dots{display:flex;gap:6px;margin-bottom:14px}
+.dots i{width:22px;height:4px;border-radius:2px;background:var(--pk-line)}
+.dots i.on{background:var(--pk-accent)}
+.signwrap{min-height:180px;display:flex;align-items:center;justify-content:center;margin:6px 0 16px;perspective:600px}
+.sign{position:relative;padding:16px 28px 14px;border-radius:8px;text-align:center;transition:opacity .35s,transform .35s}
+.sign.out{opacity:0;transform:translateX(-24px)}
+.sign.in0{opacity:0;transform:translateX(24px)}
+.sign .w{font-family:var(--ko);font-weight:700;font-size:clamp(40px,12vw,68px);letter-spacing:.12em;line-height:1.2;display:block}
+.sign .m{display:block;font-size:14px;margin-top:6px;opacity:0;transition:opacity .4s}
+.sign.read .m{opacity:1}
+.s-cafe{background:#123a2e;border:2px solid #2f7a5f;color:#f4f0e2}
+.s-bus{background:#1b4fa0;border:2px solid #7fb0ff;color:#fff;border-radius:16px}
+.s-taxi{background:#f0b33a;color:#1b1b1b;border:2px solid #fff1c4;border-radius:12px 12px 4px 4px}
+.s-taxi .m{color:#3a2a00}
+.s-sta{background:#f4f4f0;color:#123;border:2px solid #9aa;border-left:12px solid #2a63b8}
+.s-sta .m{color:#345}
+.s-gate{background:#2a1c14;border:3px double #b48a52;color:#f1d9a8}
+.s-final{background:linear-gradient(180deg,#1d2b55,#16214a);border:2px solid #3a4f8c;color:#fff0cf}
+.s-final .w{font-size:clamp(34px,10vw,60px)}
+.note{min-height:1.6em;font-size:14.5px;color:#f6e7c8}
+.hintbox{margin-top:10px}
+.hintbox[hidden]{display:none}
+.linkbtn{appearance:none;background:none;border:0;color:var(--pk-dim);text-decoration:underline;cursor:pointer;font:inherit;font-size:13.5px;padding:4px 0}
+.linkbtn:hover{color:var(--pk-ink)}
+
+/* ── 結局 ── */
+.end{padding-top:90px}
+.end[hidden]{display:none}
+.big-end{font-family:var(--ko);font-size:clamp(40px,11vw,70px);color:var(--pk-accent);letter-spacing:.1em;margin:0 0 4px;line-height:1.2}
+.big-zh{font-family:var(--pk-serif);font-size:clamp(20px,4.6vw,26px);margin:0 0 20px;color:#fff3da}
+.stamp{display:inline-block;border:1px solid var(--pk-accent);color:var(--pk-accent);border-radius:999px;padding:3px 14px;font-size:13px;margin-bottom:14px;letter-spacing:.1em}
+.seal{font-family:var(--pk-serif);font-size:clamp(22px,5vw,30px);line-height:1.6;color:#fff3da;margin:26px 0}
+.tool{background:var(--card);border:1px solid var(--pk-line);border-radius:16px;padding:18px;margin:18px 0}
+.tool .row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.tool .out{font-family:var(--ko);font-size:clamp(30px,8vw,46px);color:#fff6e0;min-height:1.3em;letter-spacing:.08em;margin:8px 0 0;word-break:break-all}
+.coda{margin-top:44px}
+.coda p:last-child{font-family:var(--pk-serif);font-size:clamp(19px,4.2vw,23px);line-height:1.8;color:#fff3da}
+
+@media (max-width:560px){
+  .xray{grid-template-columns:1fr}
+  .prompt{min-height:0}
+  .trio{gap:8px}
+  .hud .clk{min-width:0}
+  .hud .clk span{display:none}
+  .board{padding:12px 16px 10px}
+}
+@media (prefers-reduced-motion:reduce){
+  .glow.on{animation:none;opacity:.3}
+  .blk{animation:none}
+  .sign,.hud,.toast,.tg,.lips,.flow{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="sky" aria-hidden="true"><i class="dawn"></i><i class="noon" id="skyNoon"></i></div>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<div class="hud" id="hud" role="group" aria-label="倒數：太陽的位置">
+  <svg viewBox="0 0 100 56" aria-hidden="true">
+    <path d="M2 50 H98" stroke="rgba(239,230,210,.35)" stroke-width="2"/>
+    <path d="M6 50 A44 44 0 0 1 50 6" fill="none" stroke="rgba(242,180,90,.35)" stroke-width="2" stroke-dasharray="3 4"/>
+    <g class="sunG" id="sunG" transform="translate(6 50)"><circle r="7" fill="#f2b45a"/><circle r="11" fill="#f2b45a" opacity=".22"/></g>
+  </svg>
+  <div class="clk" aria-live="off"><b id="clk">06:00</b> <small id="sc" class="dim">卯時</small><span id="left">距正午 9:00</span></div>
+  <button type="button" id="pause" aria-pressed="false" aria-label="暫停太陽">❚❚</button>
+</div>
+<div class="toast" id="toast" aria-hidden="true"></div>
+
+<header class="pk-hero hero">
+  <div class="pk-wrap hero-in">
+    <div class="kicker rv">漢城・1446 年九月上旬</div>
+    <h1 class="rv">「不終朝而會」</h1>
+    <p class="lede rv">寫序的人叫鄭麟趾。他替一套新字母作保：聰明人學它，<b>用不完一個早上</b>。</p>
+    <div class="board rv" role="img" aria-label="一塊寫著五個韓文方塊的招牌"><span class="ko" lang="ko">남대문시장</span></div>
+    <p class="rv">正午以前，你會讀出這塊招牌。現在它在你眼裡，還是五團看不懂的方格。</p>
+    <div class="start-row rv">
+      <button type="button" class="pk-btn solid" id="startBtn">讓太陽升起</button>
+      <span class="dim small">倒數約九分鐘，可隨時暫停；全程用鍵盤打拉丁字母作答。</span>
+    </div>
+    <p class="dim small again" id="again" hidden></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+<!-- 壹 -->
+<section class="ch" id="ch1" hidden aria-labelledby="h1t">
+  <div class="chno">壹・五張剖面圖</div>
+  <h2 id="h1t">先別看字，看嘴</h2>
+  <p>下面是一顆頭的側面剖面：臉朝左，你從耳朵的位置往裡看。嘴唇、門牙、牙齦、軟顎、舌頭、喉嚨，都在。</p>
+  <p>我描述一個動作，你說它發出什麼音——打拉丁字母就行。</p>
+
+  <div class="xray">
+    <div class="xray-fig" id="fig" data-st="">
+      <svg viewBox="30 0 290 300" role="img" aria-labelledby="figT">
+        <title id="figT">頭部側面剖面圖，臉朝左</title>
+        <!-- 輪廓 -->
+        <path class="hd" d="M150 0 C130 18 112 38 106 58 C102 72 96 82 84 92 L60 106 C56 110 60 118 80 122 C80 128 78 134 72 140"/>
+        <path class="hd" d="M72 172 C70 186 72 198 76 208 C82 222 96 230 116 232 C140 234 158 240 166 256 L172 300"/>
+        <path class="hd" d="M300 0 C306 90 292 150 266 200 L262 300"/>
+        <path class="hd faint" d="M84 118 C120 100 180 96 236 104"/>
+        <path class="hd faint" d="M92 174 C110 196 150 214 196 222"/>
+        <!-- 顎、軟顎、咽壁 -->
+        <path class="hd" d="M96 142 C100 134 108 130 122 127 C146 122 170 122 186 125"/>
+        <path class="velum" d="M186 125 C204 127 216 136 222 152"/>
+        <circle cx="222" cy="155" r="3.5" class="bone" opacity=".7"/>
+        <path class="hd" d="M236 104 C246 150 248 210 242 290"/>
+        <path class="hd" d="M214 262 C220 250 226 246 232 248"/>
+        <path class="hd faint" d="M214 278 L240 278"/>
+        <!-- 氣流 -->
+        <path class="flow fl-nose" d="M228 196 C232 140 214 112 180 106 C140 100 100 108 66 112"/>
+        <path class="flow fl-mouth" d="M150 152 C126 154 106 156 54 156"/>
+        <!-- 舌頭（五種姿勢，用透明度切換） -->
+        <path class="tg tg-0" d="M96 168 C110 160 136 156 162 156 C188 156 204 166 210 188 C214 210 214 236 214 262 C196 246 160 222 130 208 C112 200 100 188 96 168 Z"/>
+        <path class="tg tg-g" d="M98 170 C112 166 132 160 150 146 C166 132 186 126 202 132 C212 140 214 170 214 200 C214 225 214 245 214 262 C196 246 160 222 130 208 C112 200 100 188 98 170 Z"/>
+        <path class="tg tg-n" d="M97 145 C102 156 112 166 134 168 C170 170 198 172 208 192 C214 212 214 236 214 262 C196 246 160 222 130 208 C112 200 96 170 97 145 Z"/>
+        <path class="tg tg-s" d="M99 157 C110 158 134 158 160 158 C188 158 204 168 210 190 C214 212 214 236 214 262 C196 246 160 222 130 208 C112 200 100 182 99 157 Z"/>
+        <!-- 牙齒 -->
+        <path class="bone" d="M88 142 L96 142 L95 155 L90 155 Z"/>
+        <path class="bone" d="M89 160 L95 160 L96 171 L88 171 Z"/>
+        <!-- 嘴唇：張開／閉上 -->
+        <g class="lips lips-o"><path class="lip" d="M72 140 C62 143 61 151 68 153 L88 152 L88 144 Z"/><path class="lip" d="M68 161 C61 164 62 171 72 172 L88 168 L88 161 Z"/></g>
+        <g class="lips lips-c"><path class="lip" d="M72 140 C62 143 60 152 68 156 L88 156 L88 144 Z"/><path class="lip" d="M68 156 C61 160 62 170 72 172 L88 168 L88 156 Z"/></g>
+        <!-- 標籤 -->
+        <text class="lbl" x="196" y="116">軟顎</text>
+        <text class="lbl" x="130" y="118">硬顎</text>
+        <text class="lbl" x="98" y="124">牙齦</text>
+        <text class="lbl" x="150" y="190">舌</text>
+        <text class="lbl" x="250" y="236">喉</text>
+        <!-- 重點光暈 -->
+        <circle class="glow gl-g" cx="196" cy="129" r="17"/>
+        <circle class="glow gl-n" cx="98" cy="143" r="15"/>
+        <circle class="glow gl-m" cx="68" cy="156" r="17"/>
+        <circle class="glow gl-s" cx="94" cy="155" r="15"/>
+        <circle class="glow gl-ng" cx="229" cy="226" r="18"/>
+        <!-- 字母（答對才畫出來） -->
+        <path class="ov" id="ov-g" data-len="162" d="M150 130 H209 V232"/>
+        <path class="ov" id="ov-n" data-len="128" d="M100 140 V172 H196"/>
+        <path class="ov" id="ov-m" data-len="156" d="M56 134 H90 V178 H56 Z"/>
+        <path class="ov" id="ov-s" data-len="78" d="M80 176 L94 140 L108 176"/>
+        <path class="ov" id="ov-ng" data-len="82" d="M216 226 A13 13 0 1 0 242 226 A13 13 0 1 0 216 226"/>
+      </svg>
+    </div>
+
+    <div class="quiz">
+      <div class="step" id="q1step">1／5</div>
+      <p class="prompt" id="q1prompt"></p>
+      <form class="ans" id="q1form" autocomplete="off">
+        <label class="pk-sr" for="q1in">這個動作發出的音（拉丁字母）</label>
+        <input id="q1in" type="text" inputmode="latin" spellcheck="false" autocapitalize="off" maxlength="8" placeholder="例如 b">
+        <button class="pk-btn" type="submit">確認</button>
+      </form>
+      <p class="fb" id="q1fb" aria-live="polite"></p>
+      <div class="cap" id="q1cap" hidden>
+        <span class="big ko" id="q1big" lang="ko"></span>
+        <div class="qt" id="q1qt"></div>
+        <div class="dim small" id="q1note"></div>
+        <button type="button" class="pk-btn next" id="q1next">下一張 →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="twist" id="twist1" hidden>
+    <p>停一下。看上面那張圖：五個金色的形狀疊在同一顆頭上。</p>
+    <p class="bang">你剛才沒有在背字母。<br>你在看 X 光片。</p>
+    <p>ㄱ 是舌根拱上軟顎的那個拐角；ㄴ 是舌尖翹起、貼住牙齦的那條線；ㅁ 是嘴；ㅅ 是門牙；ㅇ 是喉嚨的那個洞。跟這套字母一起頒布的說明書《解例》，開宗明義：</p>
+    <div class="quote">正音二十八字，各象其形而制之。<cite>《訓民正音・解例・制字解》，1446</cite></div>
+    <p>二十八個字，每一個都照著某個形狀做出來。剛才那五個，是子音的母型。</p>
+    <button type="button" class="pk-btn" id="go2">多一筆會怎樣 →</button>
+  </div>
+</section>
+
+<!-- 貳 -->
+<section class="ch" id="ch2" hidden aria-labelledby="h2t">
+  <div class="chno">貳・聲出稍厲，故加畫</div>
+  <h2 id="h2t">多一筆，多一口氣</h2>
+  <p>說明書的第二招濃縮成一句：<b>聲音越衝，筆畫越多。</b></p>
+  <div class="quote">ㅋ比ㄱ，聲出稍厲，故加畫。<cite>《解例・制字解》</cite></div>
+  <p>這招你早就會。注音的 ㄍ 和 ㄎ、ㄉ 和 ㄊ、ㄅ 和 ㄆ：手掌擋在嘴前唸唸看，後面那個會多噴出一口氣。韓文把那口氣，畫成一筆。</p>
+  <p>下面每一排最右邊那個字，照這條規則猜它的讀音：</p>
+  <div class="fam" id="fam"></div>
+  <div class="twist" id="twist2" hidden>
+    <p>數一下：五個母型、一條規則，你手上已經有十三個子音。再補一個例外——<span class="ko" lang="ko">ㄹ</span>，舌尖輕彈一下，r 或 l，叫「半舌音」，不走加筆的路。</p>
+    <p class="bang">十四個子音。<br>你背的是五個形狀、一條規則。</p>
+    <p>「不終朝」的底氣就在這裡。順帶一提：1446 年原本有十七個初聲，其中 ㆆ、ㅿ、ㆁ 後來都退休了；當年 ㆁ 管 ng、ㅇ 管不出聲，今天兩個合併成一個 ㅇ。</p>
+    <button type="button" class="pk-btn" id="go3">母音呢 →</button>
+  </div>
+</section>
+
+<!-- 參 -->
+<section class="ch" id="ch3" hidden aria-labelledby="h3t">
+  <div class="chno">參・三才</div>
+  <h2 id="h3t">天、地、人</h2>
+  <p>母音更省。整套只用了三個零件：</p>
+  <div class="trio">
+    <div><svg viewBox="0 0 60 60" aria-hidden="true"><circle class="dot" cx="30" cy="30" r="8"/></svg><b>天</b><span>圓的點</span></div>
+    <div><svg viewBox="0 0 60 60" aria-hidden="true"><path class="prim" d="M8 30 H52"/></svg><b>地</b><span>平的橫</span></div>
+    <div><svg viewBox="0 0 60 60" aria-hidden="true"><path class="prim" d="M30 6 V54"/></svg><b>人</b><span>站著的直</span></div>
+  </div>
+  <div class="quote">形之圓，象乎天也……形之平，象乎地也……形之立，象乎人也。<cite>《解例・制字解》</cite></div>
+  <p>把「天」那個點放到「人」或「地」旁邊，就長出新的母音。點在外面、上面的，屬陽；點在裡面、下面的，屬陰。後來點被寫成短短一橫，就成了今天的樣子：</p>
+  <div class="vgrid" id="vgrid"></div>
+
+  <h3>疊成方塊</h3>
+  <p>韓文不把字母排成一長條，而是疊成方塊：</p>
+  <div class="layout">
+    <div class="lay" aria-hidden="true"><i class="a">子</i><i class="b">母</i><i class="c">收尾</i></div>
+    <p class="small" style="margin:0;flex:1;min-width:220px">子音在左上；直立的母音（ㅏ ㅓ ㅣ ㅐ）站右邊，躺平的母音（ㅗ ㅜ ㅡ）墊下面；收尾的子音壓在最底。</p>
+  </div>
+  <p>試試看。打出這套字母今天的名字：<kbd>hangeul</kbd></p>
+  <form class="ans compose" id="cform" autocomplete="off">
+    <label class="pk-sr" for="cin">輸入拉丁字母，自動疊成韓文方塊</label>
+    <input id="cin" type="text" spellcheck="false" autocapitalize="off" maxlength="40" placeholder="hangeul">
+    <button class="pk-btn" type="submit">疊</button>
+  </form>
+  <div class="blocks" id="cout" aria-live="polite"></div>
+  <p class="legend"><i class="a">■ 初聲</i>　<i class="b">■ 中聲</i>　<i class="c">■ 終聲</i></p>
+  <p class="fb" id="cfb" aria-live="polite"></p>
+  <div class="twist" id="twist3" hidden>
+    <p class="bang"><span class="ko" lang="ko">한글</span>，Hangeul。</p>
+    <p>字母自己疊好了。你剛用的這台小機器，背後是 Unicode 的一條算式：</p>
+    <div class="quote" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px">0xAC00 ＋（初聲 × 21 ＋ 中聲）× 28 ＋ 終聲<cite>19 個初聲 × 21 個中聲 × 28 種收尾（含不收尾）＝ 11,172 個方塊，一個不漏</cite></div>
+    <p>規則夠整齊，才放得進一行算式。</p>
+    <button type="button" class="pk-btn" id="go4">上街去 →</button>
+  </div>
+</section>
+
+<!-- 肆 -->
+<section class="ch" id="ch4" hidden aria-labelledby="h4t">
+  <div class="chno">肆・街頭</div>
+  <h2 id="h4t">抬頭，一塊一塊讀</h2>
+  <p>你現在站在首爾街頭。招牌一塊一塊出現，把讀音用拉丁字母打出來。拼法不必完美：ㅓ 打 eo 或 o 都算，ㄱ 打 g 或 k 都算。</p>
+  <div class="street">
+    <div class="dots" id="sdots" aria-hidden="true"></div>
+    <div class="signwrap"><div class="sign" id="sign"><span class="w" id="sw" lang="ko"></span><span class="m" id="sm"></span></div></div>
+    <form class="ans" id="sform" autocomplete="off">
+      <label class="pk-sr" for="sin">招牌的讀音（拉丁字母）</label>
+      <input id="sin" type="text" spellcheck="false" autocapitalize="off" maxlength="40" placeholder="讀出來">
+      <button class="pk-btn" type="submit">讀</button>
+    </form>
+    <p class="fb" id="sfb" aria-live="polite"></p>
+    <p class="note" id="snote"></p>
+    <button type="button" class="pk-btn next" id="snext" hidden>下一塊 →</button>
+    <button type="button" class="linkbtn" id="shint">拆開給我看</button>
+    <div class="hintbox" id="hintbox" hidden><div class="blocks" id="hblocks"></div></div>
+  </div>
+</section>
+
+<!-- 結局 -->
+<section class="end" id="end" hidden aria-labelledby="endT">
+  <div class="stamp" id="stamp"></div>
+  <p class="big-end ko" lang="ko">남대문시장</p>
+  <h2 class="big-zh" id="endT">南大門市場。</h2>
+  <p id="endLine"></p>
+  <div class="quote">故智者不終朝而會，愚者可浹旬而學。<cite>鄭麟趾〈訓民正音序〉，落款「正統十一年九月上澣」（1446 年九月上旬）</cite></div>
+  <p id="endGloss"></p>
+
+  <h3>「太容易」，正是罪名</h3>
+  <p>往前倒兩年。1444 年二月，集賢殿副提學崔萬理領著幾位學士聯名上疏，反對這套字母。理由列了一長串：有違事奉中國之禮；蒙古、西夏、女真、日本、西藏才各造文字，那是夷狄的事；吏讀用得好好的，何必另起爐灶……</p>
+  <p>其中一條，大意是這樣的：</p>
+  <div class="quote">要是學會二十七個諺文就足以立身處世，誰還肯苦心勞神，去鑽研聖賢的學問？<cite>崔萬理等上疏（大意），《世宗實錄》世宗二十六年二月二十日（1444）。上疏寫「二十七字」，一般認為是筆誤，頒布時是二十八字。</cite></div>
+  <p class="seal">他擔心的不是它難學。<br>是它太好學。</p>
+  <p>世宗把幾位上疏的學士關了一天。兩年半後，書照樣頒布。</p>
+  <p>至於你剛讀出來的那座市場——這一帶的市集 1414 年就開張了，比這本說明書早三十二年。那時候在攤子前討價還價的平民，大多不識字。</p>
+
+  <h3>雞鳴狗吠，皆可得而書</h3>
+  <p>鄭麟趾的序裡還有一句更狂的：</p>
+  <div class="quote">雖風聲鶴唳，雞鳴狗吠，皆可得而書矣。<cite>鄭麟趾〈訓民正音序〉</cite></div>
+  <p>風聲、鶴叫、雞啼、狗吠，全寫得下來。那你的名字，當然也行。</p>
+  <div class="tool">
+    <form class="ans" id="nform" autocomplete="off">
+      <label class="pk-sr" for="nin">你的名字（拉丁字母）</label>
+      <input id="nin" type="text" spellcheck="false" autocapitalize="off" maxlength="40" placeholder="lin xiao ming／anna／kim min-ji">
+      <button class="pk-btn" type="button" id="ncopy">複製</button>
+    </form>
+    <p class="out ko" id="nout" lang="ko" aria-live="polite"></p>
+    <div class="blocks" id="nblocks"></div>
+    <p class="dim small">照讀音打拼音或英文名都行；空格分開字詞，<kbd>-</kbd> 強制切開音節（例如 <kbd>jeong-eum</kbd>）。韓語沒有 f、v、z 這些音，機器會借最接近的字母——韓國人寫外來語也這麼做。得到的是近似寫法，不是官方譯名。</p>
+  </div>
+
+  <div class="coda">
+    <p>這份說明書後來失傳了幾百年，1940 年才重新被找到。韓國取它落款「九月上旬」的最後一天，換算成公曆 10 月 9 日，定為韓文日——六天前，這本說明書剛滿 580 歲。</p>
+    <p>鄭麟趾賭的，是隨便哪一個人的早上。1446 年九月的、580 年後的，包括你今天這一個。</p>
+  </div>
+  <button type="button" class="pk-btn" id="restart">再看一次日出</button>
+</section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：《訓民正音》解例本（韓文維基文庫）、《世宗實錄》崔萬理上疏、英文維基百科 Hunminjeongeum／Origin of Hangul／Namdaemun Market 條目。
+</footer>
+<script id="core">
+'use strict';
+/* ── 純函式（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var L = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'.split('');
+  var V = 'ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ'.split('');
+  var T = ['', 'ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  var BASE = 0xAC00, LAST = 0xD7A3;
+
+  /* Unicode 合成：0xAC00 + (初聲×21 + 中聲)×28 + 終聲 */
+  function compose(l, v, t) {
+    t = t || 0;
+    if (!(l >= 0 && l < 19 && v >= 0 && v < 21 && t >= 0 && t < 28)) return '';
+    if (l % 1 || v % 1 || t % 1) return '';
+    return String.fromCharCode(BASE + (l * 21 + v) * 28 + t);
+  }
+  function decompose(ch) {
+    if (typeof ch !== 'string' || ch.length !== 1) return null;
+    var c = ch.charCodeAt(0);
+    if (c < BASE || c > LAST) return null;
+    var s = c - BASE;
+    return { l: Math.floor(s / 588), v: Math.floor((s % 588) / 28), t: s % 28 };
+  }
+  function jamo(ch) {
+    var d = decompose(ch);
+    return d ? [L[d.l], V[d.v], T[d.t]] : null;
+  }
+
+  /* ── 拉丁字母 → 韓文方塊 ── */
+  var ONSET = { g:0, kk:1, n:2, d:3, tt:4, r:5, l:5, m:6, b:7, pp:8, s:9, ss:10, j:12, jj:13, ch:14, k:15, t:16, p:17, h:18,
+                f:17, v:7, z:12, zh:12, x:9, sh:9, q:14, c:15 };
+  var CODA = { g:1, k:1, kk:2, n:4, d:7, l:8, r:8, m:16, b:17, p:17, s:19, t:19, ss:20, ng:21 };
+  var VOW = { a:0, ae:1, ya:2, yae:3, eo:4, e:5, yeo:6, ye:7, o:8, wa:9, wae:10, oe:11, yo:12, u:13, wo:14, we:15, wi:16,
+              yu:17, eu:18, ui:19, i:20, oo:13, ee:20 };
+  var VKEYS = Object.keys(VOW).sort(function (a, b) { return b.length - a.length; });
+  var CKEYS = ['kk','tt','pp','ss','jj','ch','sh','zh'];
+
+  function tokenize(seg) {
+    var out = [], i = 0, k, m;
+    while (i < seg.length) {
+      m = null;
+      for (k = 0; k < VKEYS.length; k++) {
+        if (seg.substr(i, VKEYS[k].length) === VKEYS[k]) { m = VKEYS[k]; break; }
+      }
+      if (m) { out.push({ k: 'V', s: m }); i += m.length; continue; }
+      var c = seg[i];
+      if (c === 'y' || c === 'w') {           /* 落單的半母音 */
+        var nx = seg[i + 1];
+        if ((c === 'y' && nx === 'i') || (c === 'w' && (nx === 'u' || nx === 'o'))) { i++; continue; }
+        out.push({ k: 'V', s: c === 'y' ? 'i' : 'u' }); i++; continue;
+      }
+      m = null;
+      for (k = 0; k < CKEYS.length; k++) if (seg.substr(i, 2) === CKEYS[k]) { m = CKEYS[k]; break; }
+      if (!m && ONSET.hasOwnProperty(c)) m = c;
+      if (m) { out.push({ k: 'C', s: m }); i += m.length; continue; }
+      i++;                                   /* 其他符號略過 */
+    }
+    return out;
+  }
+  function epi(c) { return { l: ONSET[c.s], v: /^(ch|j|jj|sh|zh)$/.test(c.s) ? 20 : 18, t: 0, src: c.s }; }
+  function takeCoda(run) {   /* 從 run 開頭取最長合法收尾；回傳 [t, 用掉幾個] */
+    if (run.length >= 2 && CODA.hasOwnProperty(run[0].s + run[1].s)) return [CODA[run[0].s + run[1].s], 2];
+    if (run.length >= 1 && CODA.hasOwnProperty(run[0].s)) return [CODA[run[0].s], 1];
+    return [0, 0];
+  }
+  function segSyllables(seg) {
+    var tk = tokenize(seg), syl = [], run = [], i, cur = null;
+    function flushBetween(r, last) {
+      /* r：上一個母音之後、下一個母音之前的子音串 */
+      var onset = null, rest = r;
+      if (!last && r.length) { onset = r[r.length - 1]; rest = r.slice(0, -1); }
+      if (last) {   /* 字尾：去掉連續重複、單獨的 h 不出聲 */
+        rest = rest.filter(function (c, j) { return j === 0 || c.s !== rest[j - 1].s; });
+        if (rest.length === 1 && rest[0].s === 'h' && cur) rest = [];
+        if (rest.length === 1 && (rest[0].s === 'tt' || rest[0].s === 'pp')) rest = [{ k: 'C', s: rest[0].s[0] }];
+      }
+      if (cur) {
+        var tc = takeCoda(rest);
+        cur.t = tc[0];
+        if (tc[1]) cur.src += rest.slice(0, tc[1]).map(function (c) { return c.s; }).join('');
+        rest = rest.slice(tc[1]);
+      }
+      rest.forEach(function (c) { syl.push(epi(c)); });
+      return onset;
+    }
+    for (i = 0; i < tk.length; i++) {
+      if (tk[i].k === 'C') { run.push(tk[i]); continue; }
+      var on = flushBetween(run, false);
+      run = [];
+      cur = { l: on ? ONSET[on.s] : 11, v: VOW[tk[i].s], t: 0, src: (on ? on.s : '') + tk[i].s };
+      syl.push(cur);
+    }
+    flushBetween(run, true);
+    return syl;
+  }
+  /* 回傳 [{ch, l, v, t, src}] 與空白 {space:true} */
+  function parseLatin(str) {
+    var out = [];
+    String(str == null ? '' : str).toLowerCase().split(/\s+/).filter(Boolean).forEach(function (word) {
+      var w = [];
+      word.split(/[-'’.]+/).forEach(function (seg) {
+        segSyllables(seg).forEach(function (s) {
+          w.push({ ch: compose(s.l, s.v, s.t), l: s.l, v: s.v, t: s.t, src: s.src });
+        });
+      });
+      if (!w.length) return;              /* 整個字詞沒有可拼的字母就略過，不留空格 */
+      if (out.length) out.push({ space: true });
+      out.push.apply(out, w);
+    });
+    return out;
+  }
+  function toHangul(str) {
+    return parseLatin(str).map(function (x) { return x.space ? ' ' : x.ch; }).join('');
+  }
+
+  /* ── 讀音比對（容錯：每個字母允許幾種常見拼法） ── */
+  var LA = { 'ㄱ':['g','k'], 'ㄲ':['kk','gg'], 'ㄴ':['n'], 'ㄷ':['d','t'], 'ㄸ':['tt'], 'ㄹ':['r','l'], 'ㅁ':['m'], 'ㅂ':['b','p'],
+             'ㅃ':['pp'], 'ㅅ':['s'], 'ㅆ':['ss'], 'ㅇ':[''], 'ㅈ':['j','ch','z'], 'ㅉ':['jj'], 'ㅊ':['ch','c'], 'ㅋ':['k'],
+             'ㅌ':['t'], 'ㅍ':['p','f'], 'ㅎ':['h'] };
+  var VA = { 'ㅏ':['a'], 'ㅐ':['ae','e'], 'ㅑ':['ya'], 'ㅒ':['yae'], 'ㅓ':['eo','o','u'], 'ㅔ':['e'], 'ㅕ':['yeo','yo'],
+             'ㅖ':['ye'], 'ㅗ':['o'], 'ㅘ':['wa'], 'ㅙ':['wae'], 'ㅚ':['oe','we'], 'ㅛ':['yo'], 'ㅜ':['u','oo'], 'ㅝ':['wo'],
+             'ㅞ':['we'], 'ㅟ':['wi'], 'ㅠ':['yu'], 'ㅡ':['eu','u'], 'ㅢ':['ui'], 'ㅣ':['i','ee'] };
+  var TA = { '':[''], 'ㄱ':['k','g'], 'ㄲ':['k'], 'ㄴ':['n'], 'ㄷ':['t','d'], 'ㄹ':['l','r'], 'ㅁ':['m'], 'ㅂ':['p','b'],
+             'ㅅ':['t','s'], 'ㅆ':['t','ss'], 'ㅇ':['ng'], 'ㅈ':['t','j'], 'ㅊ':['t','ch'], 'ㅋ':['k'], 'ㅌ':['t'], 'ㅍ':['p'], 'ㅎ':['t','h'] };
+  function sylAlts(ch) {
+    var j = jamo(ch); if (!j) return null;
+    var la = LA[j[0]] || [''], va = VA[j[1]] || [''], ta = TA[j[2]] || [''], out = [];
+    la.forEach(function (a) { va.forEach(function (b) { ta.forEach(function (c) {
+      var s = a + b + c; if (out.indexOf(s) < 0) out.push(s);
+    }); }); });
+    return out;
+  }
+  function norm(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^a-z]/g, ''); }
+  function canonical(word) {
+    return Array.from(String(word)).map(function (ch) { var a = sylAlts(ch); return a ? a[0] : ''; }).join('');
+  }
+  function editDistance(a, b) {
+    a = String(a); b = String(b);
+    var prev = [], cur, i, j;
+    for (j = 0; j <= b.length; j++) prev[j] = j;
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  /* 回傳 {ok, upTo: 從頭連續讀對幾個方塊, near: 只差一兩個字母} */
+  function matchReading(input, word) {
+    var s = norm(input);
+    var syl = Array.from(String(word)).filter(function (ch) { return !!decompose(ch); });
+    var alts = syl.map(sylAlts), n = syl.length, best = 0, memo = {};
+    function go(i, p) {
+      var key = i + ':' + p;
+      if (memo.hasOwnProperty(key)) return memo[key];
+      if (i > best) best = i;
+      var r = false;
+      if (i === n) r = (p === s.length);
+      else {
+        for (var k = 0; k < alts[i].length && !r; k++) {
+          var a = alts[i][k];
+          if (s.substr(p, a.length) === a) r = go(i + 1, p + a.length);
+        }
+      }
+      memo[key] = r; return r;
+    }
+    var ok = n > 0 && s.length > 0 && go(0, 0);
+    var canon = canonical(syl.join(''));
+    var d = editDistance(s, canon);
+    return { ok: ok, upTo: ok ? n : best, near: !ok && s.length > 0 && d <= Math.max(1, Math.floor(canon.length / 5)), canon: canon };
+  }
+
+  /* 第一、二關：單一字母的音 */
+  var LETTER = { 'ㄱ':['g','k'], 'ㄴ':['n'], 'ㅁ':['m'], 'ㅅ':['s'], 'ㅇ':['ng'],
+                 'ㅋ':['k','kh'], 'ㅌ':['t','th'], 'ㅍ':['p','ph'], 'ㅊ':['ch','c','chh'] };
+  function letterOK(letter, input) {
+    var a = LETTER[letter]; if (!a) return false;
+    return a.indexOf(norm(input)) >= 0;
+  }
+
+  /* 器官（五音）分類：依初聲 */
+  function organOf(l) {
+    var ch = typeof l === 'number' ? L[l] : l;
+    if ('ㄱㄲㅋ'.indexOf(ch) >= 0) return '牙音・舌根';
+    if ('ㄴㄷㄸㅌ'.indexOf(ch) >= 0) return '舌音・舌尖';
+    if (ch === 'ㄹ') return '半舌音';
+    if ('ㅁㅂㅃㅍ'.indexOf(ch) >= 0) return '脣音・嘴唇';
+    if ('ㅅㅆㅈㅉㅊ'.indexOf(ch) >= 0) return '齒音・門牙';
+    if ('ㅇㅎ'.indexOf(ch) >= 0) return '喉音・喉嚨';
+    return '';
+  }
+
+  /* ── 太陽：日出 06:00 → 正午 12:00 ── */
+  var SHICHEN = [[5, '卯'], [7, '辰'], [9, '巳'], [11, '午']];
+  function sunAt(elapsed, total) {
+    var f = total > 0 ? Math.max(0, Math.min(1, (+elapsed || 0) / total)) : 1;
+    var mins = Math.round(360 + f * 360);
+    if (mins > 720) mins = 720;
+    var h = Math.floor(mins / 60), m = mins % 60, sc = '卯';
+    SHICHEN.forEach(function (p) { if (h >= p[0]) sc = p[1]; });
+    var th = Math.PI - f * Math.PI / 2;
+    return { frac: f, clock: (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m, shichen: sc + '時',
+             x: 50 + 44 * Math.cos(th), y: 50 - 44 * Math.sin(th), noon: f >= 1 };
+  }
+  function verdict(elapsed, total) { return sunAt(elapsed, total).noon ? 'yu' : 'zhi'; }
+
+  return { L: L, V: V, T: T, compose: compose, decompose: decompose, jamo: jamo, tokenize: tokenize,
+           parseLatin: parseLatin, toHangul: toHangul, sylAlts: sylAlts, norm: norm, canonical: canonical,
+           editDistance: editDistance, matchReading: matchReading, letterOK: letterOK, organOf: organOf,
+           sunAt: sunAt, verdict: verdict };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'hunmin1446.';
+const store = PK.store(LS);
+const $ = function (id) { return document.getElementById(id); };
+const TOTAL = 540;                      /* 日出到正午：真實 9 分鐘 */
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+
+PK.reveal();
+
+/* ── 倒數：太陽 ── */
+const S = { started: false, paused: false, elapsed: 0, done: false, noon: false, lastClock: '', lastSc: '' };
+let toastT = 0;
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(function () { t.classList.remove('on'); }, 3600);
+  PK.announce(msg);
+}
+function fmtLeft(sec) { sec = Math.max(0, Math.ceil(sec)); const s = sec % 60; return Math.floor(sec / 60) + ':' + (s < 10 ? '0' : '') + s; }
+function renderSun(force) {
+  const s = Core.sunAt(S.elapsed, TOTAL);
+  /* 減少動態：太陽不連續移動，只在換時辰時跳一格 */
+  if (!PK.reduced() || s.shichen !== S.lastSc || force) {
+    $('sunG').setAttribute('transform', 'translate(' + s.x.toFixed(2) + ' ' + s.y.toFixed(2) + ')');
+  }
+  $('skyNoon').style.opacity = s.frac.toFixed(3);
+  if (s.clock !== S.lastClock) { S.lastClock = s.clock; $('clk').textContent = s.clock; }
+  if (s.shichen !== S.lastSc) { S.lastSc = s.shichen; $('sc').textContent = s.shichen; }
+  const left = s.noon ? '正午已過' : '距正午 ' + fmtLeft(TOTAL - S.elapsed);
+  if ($('left').textContent !== left) $('left').textContent = left;
+  if (s.noon && !S.noon) { S.noon = true; toast('正午了。別急，序文還有下半句。'); }
+}
+function tick(dt) {
+  if (S.paused || S.done) return;
+  S.elapsed += dt;
+  renderSun();
+}
+PK.onMotionChange(function () { renderSun(true); });
+
+$('pause').addEventListener('click', function () {
+  if (S.done) return;
+  S.paused = !S.paused;
+  this.setAttribute('aria-pressed', String(S.paused));
+  this.setAttribute('aria-label', S.paused ? '讓太陽繼續走' : '暫停太陽');
+  this.textContent = S.paused ? '▶' : '❚❚';
+  $('hud').classList.toggle('paused', S.paused);
+  toast(S.paused ? '太陽停住了。序文沒說不行。' : '太陽繼續走。');
+});
+
+function unlock(id, focusEl) {
+  const el = $(id); el.hidden = false;
+  PK.scrollTo(el);
+  if (focusEl) setTimeout(function () { try { focusEl.focus({ preventScroll: true }); } catch (e) { focusEl.focus(); } }, 450);
+}
+
+const best = store.get('best', null);
+if (best) { $('again').hidden = false; $('again').textContent = '上次你在 ' + best + ' 讀出了它。這次能更早嗎？'; }
+
+$('startBtn').addEventListener('click', function () {
+  if (S.started) { PK.scrollTo($('ch1')); return; }
+  S.started = true;
+  this.textContent = '太陽升起了 ↓';
+  $('hud').classList.add('on');
+  renderSun(true);
+  PK.tick(tick);
+  showQ1(0);
+  unlock('ch1', $('q1in'));
+  PK.announce('太陽升起。距正午九分鐘。');
+});
+
+/* ── 壹：五張剖面圖 ── */
+const G1 = [
+  { k: 'ㄱ', st: 'g', p: '舌根往上拱，頂住後面的軟顎，把氣整個堵住——再一口氣放開。', hint: ['像注音的 ㄍ。', '打 g 或 k 都算。'],
+    qt: '牙音ㄱ，象舌根閉喉之形。', note: 'ㄱ＝g；壓在方塊底下收尾時，唸短促的 k。' },
+  { k: 'ㄴ', st: 'n', p: '舌尖翹起來，貼住上排門牙後面的牙齦；嘴裡的路封住，氣改從鼻子出去。', hint: ['像注音的 ㄋ。', '打 n。'],
+    qt: '舌音ㄴ，象舌附上腭之形。', note: 'ㄴ＝n。豎的那筆是翹起的舌尖，橫的那筆是舌面。' },
+  { k: 'ㅁ', st: 'm', p: '雙唇閉上，氣從鼻子出去：嗯——', hint: ['像注音的 ㄇ。', '打 m。'],
+    qt: '脣音ㅁ，象口形。', note: 'ㅁ＝m。這一個畫的是嘴的輪廓。' },
+  { k: 'ㅅ', st: 's', p: '舌尖靠近門牙，留一條窄縫，讓氣從牙縫擠出去：嘶——', hint: ['像注音的 ㄙ。', '打 s。'],
+    qt: '齒音ㅅ，象齒形。', note: 'ㅅ＝s。尖尖的形狀，就是一顆門牙。' },
+  { k: 'ㅇ', st: 'ng', p: '什麼都不擋，喉嚨整條打開。這個字母放在開頭時不出聲、負責佔位；壓在底下收尾時，是英文 sing 結尾那個鼻音。打收尾那個音。',
+    hint: ['注音 ㄥ 的尾巴，兩個字母。', '打 ng。'], qt: '喉音ㅇ，象喉形。', note: 'ㅇ＝開頭不出聲、收尾唸 ng。一個圓圈，就是喉嚨的截面。' }
+];
+let q1 = 0, q1tries = 0;
+function showQ1(i) {
+  q1 = i; q1tries = 0;
+  const g = G1[i];
+  $('fig').setAttribute('data-st', g.st);
+  document.querySelectorAll('.glow').forEach(function (c) { c.classList.toggle('on', c.classList.contains('gl-' + g.st)); });
+  document.querySelectorAll('.ov').forEach(function (o) { o.classList.remove('show'); });
+  $('q1step').textContent = (i + 1) + '／5';
+  $('q1prompt').textContent = g.p;
+  $('q1in').value = ''; $('q1in').disabled = false;
+  $('q1fb').textContent = ''; $('q1fb').className = 'fb';
+  $('q1cap').hidden = true;
+}
+$('q1form').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const g = G1[q1], v = $('q1in').value;
+  if (!v.trim() || $('q1in').disabled) return;
+  if (Core.letterOK(g.k, v)) {
+    $('q1fb').textContent = '對。看圖——'; $('q1fb').className = 'fb ok';
+    $('q1in').disabled = true;
+    const ov = $('ov-' + g.st); ov.classList.add('show'); PK.replayDash(ov, 1100);
+    $('q1big').textContent = g.k; $('q1qt').textContent = g.qt; $('q1note').textContent = g.note;
+    $('q1next').textContent = q1 < G1.length - 1 ? '下一張 →' : '五張都看完了 →';
+    $('q1cap').hidden = false;
+    PK.announce('答對，字母 ' + g.k + ' 畫在剖面圖上。' + g.qt);
+    setTimeout(function () { $('q1next').focus({ preventScroll: true }); }, 60);
+  } else {
+    q1tries++;
+    $('q1fb').textContent = '還不對。' + g.hint[Math.min(q1tries - 1, 1)]; $('q1fb').className = 'fb no';
+  }
+});
+$('q1next').addEventListener('click', function () {
+  if (q1 < G1.length - 1) { showQ1(q1 + 1); $('q1in').focus(); return; }
+  $('fig').setAttribute('data-st', 'all');
+  document.querySelectorAll('.glow').forEach(function (c) { c.classList.remove('on'); });
+  document.querySelectorAll('.ov').forEach(function (o) { o.classList.add('show'); });
+  $('q1cap').hidden = true;
+  $('q1prompt').textContent = '五個母型：ㄱ ㄴ ㅁ ㅅ ㅇ。';
+  $('q1step').textContent = '完成';
+  $('twist1').hidden = false;
+  PK.scrollTo($('fig'));
+  PK.announce('五個字母疊在同一張剖面圖上。');
+});
+$('go2').addEventListener('click', function () { buildFam(); unlock('ch2', $('f0')); });
+
+/* ── 貳：加一筆 ── */
+const FAM = [
+  { cells: [['ㄱ', 'g']], last: 'ㅋ', hint: ['ㄍ 多一口氣是 ㄎ。', '打 k。'] },
+  { cells: [['ㄴ', 'n'], ['ㄷ', 'd']], last: 'ㅌ', hint: ['ㄉ 多一口氣是 ㄊ。', '打 t。'] },
+  { cells: [['ㅁ', 'm'], ['ㅂ', 'b']], last: 'ㅍ', hint: ['ㄅ 多一口氣是 ㄆ。', '打 p。'] },
+  { cells: [['ㅅ', 's'], ['ㅈ', 'j']], last: 'ㅊ', hint: ['ㄐ 多一口氣是 ㄑ；羅馬字用兩個字母寫。', '打 ch。'] },
+  { cells: [['ㅇ', '不出聲'], ['ㅎ', 'h']], given: true }
+];
+let famBuilt = false, famLeft = 4;
+function cellHTML(c) { return '<span class="cell"><span class="gl ko" lang="ko">' + c[0] + '</span><span class="rd">' + c[1] + '</span></span>'; }
+function buildFam() {
+  if (famBuilt) return; famBuilt = true;
+  $('fam').innerHTML = FAM.map(function (f, i) {
+    let h = f.cells.map(cellHTML).join('<span class="arrow" aria-hidden="true">＋一筆 →</span>');
+    if (f.given) {
+      return '<div class="row given">' + h + '<span class="dim small">（中間原本還有一個 ㆆ，後來失傳）</span></div>';
+    }
+    h += '<span class="arrow" aria-hidden="true">＋一筆 →</span><span class="cell last"><span class="gl ko" lang="ko">' + f.last + '</span>' +
+      '<form data-i="' + i + '"><label class="pk-sr" for="f' + i + '">' + f.last + ' 的讀音</label>' +
+      '<input id="f' + i + '" type="text" spellcheck="false" autocapitalize="off" maxlength="4" placeholder="?">' +
+      '<button class="pk-btn" type="submit">對</button></form></span><p class="tip" id="tip' + i + '" aria-live="polite"></p>';
+    return '<div class="row" id="row' + i + '">' + h + '</div>';
+  }).join('');
+  $('fam').querySelectorAll('form').forEach(function (fm) {
+    let tries = 0;
+    fm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const i = +fm.getAttribute('data-i'), f = FAM[i], inp = fm.querySelector('input');
+      if (!inp.value.trim()) return;
+      if (Core.letterOK(f.last, inp.value)) {
+        const rd = document.createElement('span'); rd.className = 'rd'; rd.style.color = 'var(--pk-accent)';
+        rd.textContent = Core.norm(inp.value).charAt(0) === 'c' ? 'ch' : Core.norm(inp.value).charAt(0);
+        fm.replaceWith(rd);
+        $('row' + i).classList.add('done'); $('tip' + i).textContent = '';
+        famLeft--;
+        PK.announce(f.last + ' 答對。還剩 ' + famLeft + ' 個。');
+        if (famLeft === 0) {
+          $('twist2').hidden = false;
+          setTimeout(function () { PK.scrollTo($('twist2')); }, 300);
+        } else {
+          const nx = $('fam').querySelector('form input'); if (nx) nx.focus({ preventScroll: true });
+        }
+      } else {
+        tries++;
+        $('tip' + i).textContent = '還不對。' + f.hint[Math.min(tries - 1, 1)];
+      }
+    });
+  });
+}
+$('go3').addEventListener('click', function () { buildVowels(); unlock('ch3', null); });
+
+/* ── 參：天地人 ── */
+const VW = [
+  ['ㅏ', 'a', '人＋天在外', 'M24 8 V52', [40, 30], 'M24 30 H42'],
+  ['ㅓ', 'eo（介於喔和啊）', '天在內＋人', 'M36 8 V52', [20, 30], 'M18 30 H36'],
+  ['ㅗ', 'o', '天在上＋地', 'M8 40 H52', [30, 24], 'M30 22 V40'],
+  ['ㅜ', 'u', '地＋天在下', 'M8 22 H52', [30, 37], 'M30 22 V40'],
+  ['ㅡ', 'eu（咧嘴的ㄜ）', '地', 'M8 30 H52', null, ''],
+  ['ㅣ', 'i', '人', 'M30 8 V52', null, ''],
+  ['ㅐ', 'ae（像「欸」）', 'ㅏ＋ㅣ', 'M18 8 V52 M38 8 V52', [28, 30], 'M18 30 H30']
+];
+let vowBuilt = false;
+function vsvg(base, dot, stroke) {
+  return '<svg viewBox="0 0 60 60" aria-hidden="true"><path class="prim" d="' + base + (stroke ? ' ' + stroke : '') + '"/>' +
+    (dot ? '<circle class="dot" cx="' + dot[0] + '" cy="' + dot[1] + '" r="5.5"/>' : '') + '</svg>';
+}
+function buildVowels() {
+  if (vowBuilt) return; vowBuilt = true;
+  $('vgrid').innerHTML = VW.map(function (v) {
+    const pair = v[4] ? vsvg(v[3], v[4], '') + '<i>1446<br>→今</i>' + vsvg(v[3], null, v[5]) : vsvg(v[3], null, '');
+    return '<div class="vcard"><div class="pair">' + pair + '</div><b lang="ko">' + v[0] + '</b><span>' + v[1] + '<br>' + v[2] + '</span></div>';
+  }).join('');
+}
+/* 方塊渲染（只換有變的那幾塊，避免每打一字就全部重跳） */
+function renderBlocks(box, items, opt) {
+  opt = opt || {};
+  const kids = box.children;
+  items.forEach(function (it, i) {
+    const key = it.space ? '_' : it.ch + '|' + (it.src || '') + '|' + (opt.bad === i ? 'b' : '') + (opt.src ? 's' : '');
+    if (kids[i] && kids[i].getAttribute('data-k') === key) return;
+    let el;
+    if (it.space) { el = document.createElement('div'); el.className = 'gap'; }
+    else {
+      const j = Core.jamo(it.ch) || ['', '', ''];
+      el = document.createElement('div'); el.className = 'blk' + (opt.bad === i ? ' bad' : '');
+      el.innerHTML = '<span class="big" lang="ko">' + esc(it.ch) + '</span><span class="parts" lang="ko"><i class="pL">' + j[0] +
+        '</i><i class="pV">' + j[1] + '</i>' + (j[2] ? '<i class="pT">' + j[2] + '</i>' : '') + '</span>' +
+        (opt.src && it.src ? '<span class="src">' + esc(it.src) + '</span>' : '') +
+        (opt.organ ? '<span class="org">' + esc(Core.organOf(it.l)) + '</span>' : '');
+    }
+    el.setAttribute('data-k', key);
+    if (kids[i]) box.replaceChild(el, kids[i]); else box.appendChild(el);
+  });
+  while (box.children.length > items.length) box.removeChild(box.lastChild);
+}
+let composed = false;
+function onCompose() {
+  const v = $('cin').value;
+  renderBlocks($('cout'), Core.parseLatin(v), { src: true });
+  if (!composed && Core.toHangul(v).replace(/\s/g, '') === '한글') {
+    composed = true;
+    $('cfb').textContent = '疊好了。'; $('cfb').className = 'fb ok';
+    $('twist3').hidden = false;
+    PK.announce('한글，Hangeul，疊好了。');
+    setTimeout(function () { PK.scrollTo($('twist3')); }, 500);
+  }
+}
+$('cin').addEventListener('input', onCompose);
+$('cform').addEventListener('submit', function (e) {
+  e.preventDefault(); onCompose();
+  if (!composed) { $('cfb').textContent = '還不是 한글。照著打：h-a-n-g-e-u-l。'; $('cfb').className = 'fb no'; }
+});
+$('go4').addEventListener('click', function () { showSign(0); unlock('ch4', $('sin')); });
+
+/* ── 肆：街頭 ── */
+const SIGNS = [
+  { w: '커피', cls: 's-cafe', m: 'coffee・咖啡', note: '外來語。ㅋ 是 ㄱ 加一筆的送氣音；ㅓ 介於「喔」和「啊」之間。' },
+  { w: '버스', cls: 's-bus', m: 'bus・公車', note: '韓語不讓子音落單：s 後面墊了一個 ㅡ，唸成 beo-seu。' },
+  { w: '택시', cls: 's-taxi', m: 'taxi・計程車', note: 'ㄱ 壓在 ㅐ 底下收尾，唸成短促的 k。' },
+  { w: '서울', cls: 's-sta', m: 'Seoul・首爾', note: '第二塊開頭的 ㅇ 不出聲，負責佔位；ㄹ 壓在底下收尾。' },
+  { w: '대학', cls: 's-gate', m: 'dae-hak・大學', note: '唸出聲：dae-hak……大學。韓語裡有大量漢字詞，唸起來像中文的遠房親戚。' },
+  { w: '남대문시장', cls: 's-final', m: 'namdaemun sijang', note: '' }
+];
+let si = 0, stries = 0;
+function showSign(i) {
+  si = i; stries = 0;
+  const g = SIGNS[i], sign = $('sign');
+  sign.className = 'sign ' + g.cls + (PK.reduced() ? '' : ' in0');
+  $('sw').textContent = g.w; $('sm').textContent = g.m;
+  sign.setAttribute('aria-label', '招牌：' + g.w);
+  requestAnimationFrame(function () { requestAnimationFrame(function () { sign.classList.remove('in0'); }); });
+  $('sin').value = ''; $('sin').disabled = false;
+  $('sfb').textContent = ''; $('sfb').className = 'fb';
+  $('snote').textContent = i === SIGNS.length - 1 ? '最後一塊。比較長，從左往右一個方塊一個方塊讀；空格打不打都行。' : '';
+  $('snext').hidden = true;
+  $('hintbox').hidden = true; $('hblocks').innerHTML = '';
+  $('sdots').innerHTML = SIGNS.map(function (_, k) { return '<i class="' + (k < i ? 'on' : '') + '"></i>'; }).join('');
+}
+function drawHint(bad) {
+  const g = SIGNS[si];
+  const items = Array.from(g.w).map(function (ch) { const d = Core.decompose(ch); return { ch: ch, l: d.l, src: Core.sylAlts(ch)[0] }; });
+  renderBlocks($('hblocks'), items, { src: stries >= 2, bad: bad });
+}
+$('shint').addEventListener('click', function () {
+  $('hintbox').hidden = !$('hintbox').hidden;
+  if (!$('hintbox').hidden) drawHint(-1);
+});
+$('sform').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const g = SIGNS[si], v = $('sin').value;
+  if (!v.trim() || $('sin').disabled) return;
+  const r = Core.matchReading(v, g.w);
+  if (r.ok) {
+    $('sin').disabled = true;
+    $('sign').classList.add('read');
+    $('sfb').textContent = '讀對了。'; $('sfb').className = 'fb ok';
+    if (si === SIGNS.length - 1) { finish(); return; }
+    $('snote').textContent = g.note;
+    $('snext').hidden = false;
+    PK.announce('讀對了：' + g.m + '。' + g.note);
+    setTimeout(function () { $('snext').focus({ preventScroll: true }); }, 60);
+    return;
+  }
+  stries++;
+  const n = Array.from(g.w).length;
+  let msg;
+  if (r.near) msg = '差一點，第 ' + (r.upTo + 1) + ' 個方塊再看一眼。';
+  else if (r.upTo > 0) msg = '前 ' + r.upTo + ' 個方塊讀對了，卡在第 ' + (r.upTo + 1) + ' 個。';
+  else msg = '還不對。按下面「拆開給我看」，看每個方塊由哪些字母組成。';
+  if (stries >= 2) msg += '（拆解圖附上讀音了）';
+  $('sfb').textContent = msg; $('sfb').className = 'fb no';
+  if (stries >= 2) $('hintbox').hidden = false;
+  if (!$('hintbox').hidden) drawHint(r.upTo < n ? r.upTo : -1);
+});
+$('snext').addEventListener('click', function () {
+  const sign = $('sign');
+  if (PK.reduced()) { showSign(si + 1); $('sin').focus(); return; }
+  sign.classList.add('out');
+  setTimeout(function () { sign.classList.remove('out'); showSign(si + 1); $('sin').focus({ preventScroll: true }); }, 320);
+});
+
+/* ── 結局 ── */
+function finish() {
+  S.done = true; PK.untick(tick); renderSun(true);
+  $('pause').disabled = true;
+  const s = Core.sunAt(S.elapsed, TOTAL), v = Core.verdict(S.elapsed, TOTAL);
+  if (v === 'zhi') {
+    const b = store.get('best', null);
+    if (!b || s.clock < b) store.set('best', s.clock);
+    $('stamp').textContent = '上午 ' + s.clock + '・' + s.shichen;
+    $('endLine').innerHTML = '你在 <b>' + s.clock + '</b> 讀出了它。太陽還沒到頂——鄭麟趾的賭注，你替他贏了。';
+    $('endGloss').textContent = '聰明人用不完一個早上就會；慢一點的人，十天也學得成。他連慢的人都算進去了。';
+  } else {
+    $('stamp').textContent = '正午之後・浹旬';
+    $('endLine').textContent = '太陽比你早一步到頂。不要緊，序文的下半句是寫給你的。';
+    $('endGloss').textContent = '聰明人用不完一個早上就會；慢一點的人，十天也學得成。你只多用了幾分鐘，離十天還遠得很。';
+  }
+  $('sdots').innerHTML = SIGNS.map(function () { return '<i class="on"></i>'; }).join('');
+  unlock('end', null);
+  PK.announce('讀出來了：南大門市場。' + $('endLine').textContent);
+}
+
+/* ── 工具：寫下你的名字 ── */
+function onName() {
+  const v = $('nin').value;
+  $('nout').textContent = Core.toHangul(v);
+  renderBlocks($('nblocks'), Core.parseLatin(v), { src: true, organ: true });
+  store.set('name', v);
+}
+$('nin').value = store.get('name', '') || '';
+if ($('nin').value) onName();
+$('nin').addEventListener('input', onName);
+$('nform').addEventListener('submit', function (e) { e.preventDefault(); onName(); });
+$('ncopy').addEventListener('click', function () {
+  const t = $('nout').textContent.trim();
+  if (!t) { toast('先在左邊打你的名字。'); return; }
+  function fallback() {
+    try {
+      const r = document.createRange(); r.selectNodeContents($('nout'));
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      toast(document.execCommand('copy') ? '已複製：' + t : '已選取，按 Ctrl＋C 複製。');
+    } catch (e) { toast('已顯示在上方，手動選取即可複製。'); }
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { toast('已複製：' + t); }, fallback);
+    else fallback();
+  } catch (e) { fallback(); }
+});
+$('restart').addEventListener('click', function () { window.scrollTo(0, 0); location.reload(); });
+</script>
+</body>
+</html>

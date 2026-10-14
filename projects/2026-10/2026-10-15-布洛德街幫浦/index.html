@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>那條線是用腳量的｜每日小專案</title>
+<meta name="description" content="1854 年倫敦蘇活區，三天死了 127 人，全城都說是臭氣。你手上只有一張街圖和一枚圖釘：把它拖到死者的中心，再看看「最近」到底該怎麼量。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#f1e9d6; --pk-ink:#231d16; --pk-dim:#6f6352; --pk-accent:#a3352a;
+  --pk-line:rgba(35,29,22,.16); --pk-maxw:1180px;
+  --paper:#f1e9d6; --paper2:#e6dbc1; --ink:#231d16; --ink2:#3d342a;
+  --red:#a3352a; --blue:#2e6a86; --street:#fbf6ea; --fog:#8a8f6a;
+  --card:rgba(251,247,236,.94);
+}
+body{
+  background:
+    radial-gradient(900px 600px at 15% 0%, rgba(255,255,255,.55), transparent 60%),
+    radial-gradient(1000px 700px at 100% 100%, rgba(150,120,80,.12), transparent 60%),
+    var(--paper);
+  font-family:var(--pk-serif);
+}
+.pk-home{background:rgba(241,233,214,.8)}
+
+/* ── 第一屏 ── */
+.hero{position:relative;min-height:100svh;display:flex;align-items:center;overflow:hidden}
+.hero .pk-wrap{max-width:760px}
+.big127{position:absolute;right:-2vw;top:50%;transform:translateY(-52%);font-size:min(46vw,460px);
+  line-height:1;font-weight:700;color:rgba(163,53,42,.07);letter-spacing:-.04em;pointer-events:none;user-select:none}
+.kicker{font-family:var(--pk-sans);font-size:12.5px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 26px}
+.hero p{font-size:clamp(18px,4.4vw,22px);line-height:1.75;margin:0 0 14px;max-width:30em}
+.hero p em{font-style:normal;color:var(--red)}
+.hero .turn{margin-top:30px;font-size:clamp(20px,5vw,26px);color:var(--ink)}
+.hero h1{margin:34px 0 0;font-size:clamp(34px,8.6vw,64px);line-height:1.2;letter-spacing:.04em}
+.hero h1 span{display:block;font-family:var(--pk-sans);font-size:13px;letter-spacing:.3em;color:var(--pk-dim);font-weight:400;margin-top:18px}
+.cue{margin-top:44px;font-family:var(--pk-sans);font-size:13px;letter-spacing:.2em;color:var(--pk-dim)}
+.cue i{display:inline-block;font-style:normal;animation:bob 2.2s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+.record{font-family:var(--pk-sans);font-size:13px;color:var(--pk-dim);margin-top:10px}
+
+/* ── 捲動敘事：左文右圖（手機：圖釘在上方、文字從下方捲過） ── */
+.scrolly{position:relative;max-width:1180px;margin:0 auto;padding:0 22px}
+.stage{position:sticky;top:0;z-index:2;height:100svh;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.mapbox{position:relative;width:min(88vh,100%);aspect-ratio:1/1}
+#map{display:block;width:100%;height:100%;overflow:visible;touch-action:pan-y;
+  filter:drop-shadow(0 14px 28px rgba(60,40,20,.16))}
+.readout{position:absolute;left:10px;right:10px;bottom:10px;padding:9px 13px 10px;border-radius:6px;
+  background:rgba(35,29,22,.86);color:#f4ecda;font-family:var(--pk-sans);font-size:13.5px;line-height:1.55;
+  box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.readout b{color:#ffd9a8;font-weight:600}
+#roSub{color:#c9bda6;font-size:12px}
+.meter{height:5px;border-radius:3px;background:rgba(255,255,255,.14);margin:6px 0 5px;overflow:hidden;display:none}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4b7a90,#d79a4c,#d0452f);transform-origin:0 50%}
+.mode-center .meter{display:block}
+.story{position:relative;z-index:1}
+.step{min-height:82vh;display:flex;align-items:center;padding:6vh 0}
+.step:first-child{padding-top:30vh}
+.card{background:var(--card);border:1px solid rgba(35,29,22,.1);border-radius:8px;padding:22px 22px 18px;
+  box-shadow:0 10px 30px rgba(60,40,20,.10);max-width:30em;transition:opacity .5s,transform .5s;opacity:.38;transform:translateY(8px)}
+.step.on .card{opacity:1;transform:none}
+.card p{margin:0 0 13px;font-size:17px;line-height:1.85}
+.card p:last-child{margin-bottom:0}
+.card .lead{font-size:clamp(20px,4.8vw,24px);line-height:1.55;color:var(--ink);margin-bottom:16px}
+.card .small{font-family:var(--pk-sans);font-size:13px;color:var(--pk-dim);line-height:1.7}
+.card .k{font-family:var(--pk-sans);font-size:11.5px;letter-spacing:.3em;color:var(--red);margin:0 0 10px}
+.card q{quotes:"「" "」";color:var(--ink2)}
+.card blockquote{margin:6px 0 14px;padding:4px 0 4px 16px;border-left:2px solid var(--red);font-size:16.5px;line-height:1.85;color:var(--ink2)}
+.card .stat{font-family:var(--pk-sans);display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px}
+.card .stat span{background:rgba(35,29,22,.06);border-radius:5px;padding:6px 10px;font-size:13px;color:var(--ink2)}
+.card .stat b{display:block;font-size:22px;color:var(--ink);font-family:var(--pk-serif)}
+.card .stat .hot b{color:var(--red)}
+.task{border-top:1px dashed rgba(35,29,22,.25);margin-top:14px;padding-top:12px}
+.task .go{font-family:var(--pk-sans);font-size:14px;color:var(--red);font-weight:600;margin:0 0 8px}
+.pk-btn{font-family:var(--pk-sans);font-size:13.5px;padding:8px 16px;color:var(--red);border-color:var(--red)}
+.pk-btn:hover{background:var(--red);color:#fbf6ea}
+.gate[hidden]{display:none}
+.ok{font-family:var(--pk-sans);font-size:13.5px;color:#2f6b3a;margin:10px 0 0}
+.ok[hidden]{display:none}
+
+/* ── 地圖圖層 ── */
+.layer{opacity:0;transition:opacity .7s ease;pointer-events:none}
+.show-fog #L-fog,.show-bars #L-bars,.show-pumps #L-pumps,.show-broad #L-broad,.show-ring #L-ring,
+.show-vor #L-vor,.show-route #L-route,.show-snow #L-snow,.show-sites #L-sites,.show-far #L-far,
+.show-h40 #L-h40{opacity:1}
+.show-pin #pin{opacity:1;pointer-events:auto}
+#pin{opacity:0;transition:opacity .4s;cursor:grab;outline:none}
+#pin.snap{transition:opacity .4s,transform .55s cubic-bezier(.2,.8,.3,1)}
+.dragging #pin{cursor:grabbing}
+#pin .pin-body{fill:var(--red);stroke:#5d1a12;stroke-width:1.2}
+#pin:focus-visible .pin-ring{opacity:1}
+.pin-ring{opacity:0;fill:none;stroke:var(--red);stroke-width:2;stroke-dasharray:3 3}
+.st-out{fill:none;stroke:#8d7e66;stroke-width:15;stroke-linecap:square}
+.st-in{fill:none;stroke:var(--street);stroke-width:12.6;stroke-linecap:square}
+.lbl{font-family:var(--pk-sans);font-size:11px;letter-spacing:.18em;fill:#7a6c56}
+.bars{fill:none;stroke:#18130e;stroke-width:1.9}
+.pump circle{fill:#2b241c;stroke:#f6efde;stroke-width:1.5}
+.pump .handle{stroke:#2b241c;stroke-width:2.4;stroke-linecap:round;transition:opacity .6s,transform .6s;transform-box:view-box}
+.pump .plbl{font-family:var(--pk-sans);font-size:12.5px;fill:#2b241c;font-weight:600}
+.pump.foul circle{fill:#6a7a3a}
+#L-broad .halo{fill:none;stroke:var(--red);stroke-width:2}
+.nohandle .handle{opacity:0}
+.ring{fill:none;stroke:var(--red);stroke-width:1.2;stroke-dasharray:5 5}
+.cell{fill:none;stroke:var(--blue);stroke-width:1.4;stroke-dasharray:6 4}
+.cell.mine{fill:rgba(46,106,134,.09)}
+.snowline{fill:none;stroke:var(--red);stroke-width:2.4;stroke-linecap:round;stroke-dasharray:.1 5.2}
+.site rect{fill:url(#hatch);stroke:#5b4d3b;stroke-width:1}
+.site text{font-family:var(--pk-sans);font-size:12.5px;font-weight:600;fill:#3a3026;letter-spacing:.1em}
+.site.hi rect{stroke:var(--red);stroke-width:2.2}
+.crow{stroke:var(--blue);stroke-width:2;stroke-dasharray:2 4}
+.walk{fill:none;stroke:var(--red);stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round;opacity:.85}
+.far-line{fill:none;stroke:var(--red);stroke-width:1.8;stroke-dasharray:6 5}
+.far-line.thin{stroke:var(--blue);stroke-width:1.4}
+.far text{font-family:var(--pk-sans);font-size:12px;fill:#2b241c}
+.far .sm{font-size:10.5px;fill:#6f6352}
+.far circle{fill:#2b241c}
+#city{transform-box:view-box;transform-origin:0 0;transition:transform 1.1s cubic-bezier(.3,.7,.2,1)}
+#cityFrame{fill:none;stroke:#8d7e66;stroke-width:3;opacity:0;transition:opacity .6s}
+.zoom-out #cityFrame{opacity:1}
+.h40 text{font-family:var(--pk-sans);font-size:4.6px;fill:#2b241c}
+.h40 .house{fill:#e9dcc0;stroke:#2b241c;stroke-width:.6}
+.h40 .pit{fill:#6b5a3e}
+.h40 .seep{fill:none;stroke:var(--red);stroke-width:.7;stroke-dasharray:1 1}
+.fogb{fill:url(#fogG)}
+.fogd{animation:drift 14s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:50% 50%}
+.fogd:nth-child(2){animation-duration:17s}.fogd:nth-child(3){animation-duration:11s}
+@keyframes drift{to{transform:translate(18px,-10px) scale(1.08)}}
+.fogtxt{font-family:var(--pk-sans);font-size:12px;letter-spacing:.4em;fill:#5f6447}
+
+/* ── 結尾 ── */
+.coda{max-width:720px;margin:0 auto;padding:16vh 22px 4vh}
+.coda p{font-size:18px;line-height:1.9;margin:0 0 18px}
+.coda .lead{font-size:clamp(26px,6.4vw,40px);line-height:1.35;margin:0 0 28px}
+.coda .last{font-size:clamp(20px,5vw,25px);color:var(--red);margin-top:34px}
+.coda .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:30px}
+.coda .rec{font-family:var(--pk-sans);font-size:13px;color:var(--pk-dim)}
+.pk-foot{max-width:720px}
+
+@media (min-width:920px){
+  .scrolly{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:40px}
+  .story{grid-column:1;grid-row:1}
+  .stage{grid-column:2;grid-row:1;align-self:start}
+}
+@media (max-width:919px){
+  .stage{height:auto;padding:8px 0 6px;background:linear-gradient(var(--paper) 88%,rgba(241,233,214,0));}
+  .mapbox{width:min(52svh,100%)}
+  .readout{font-size:12.5px;padding:7px 10px;left:6px;right:6px;bottom:6px}
+  .step{min-height:70vh;align-items:flex-start;padding:8vh 0 4vh}
+  .step:first-child{padding-top:6vh}
+  .card{padding:18px 16px 15px}
+  .card p{font-size:16px}
+}
+@media (max-width:560px){
+  .scrolly{padding:0 12px}
+  .coda{padding:12vh 16px 4vh}
+  .hero .pk-wrap{padding:0 18px}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue i,.fogd{animation:none}
+  .layer,#pin,#pin.snap,#city,.card,.pump .handle,#cityFrame{transition:none}
+  .card{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="big127" aria-hidden="true">127</div>
+  <div class="pk-wrap">
+    <p class="kicker rv">倫敦・蘇活區・1854 年 8 月 31 日</p>
+    <p class="rv">星期四夜裡開始。三天之內，布洛德街一帶死了 <em>127</em> 個人。</p>
+    <p class="rv">能走的都走了。不到六天，最慘的幾條街空掉四分之三。</p>
+    <p class="rv">醫生們很篤定兇手是什麼：街上的臭氣。</p>
+    <p class="turn rv">住在附近的一位醫師不去聞。他攤開一張街圖，開始量。</p>
+    <h1 class="rv">那條線是用腳量的<span>一張街圖・一枚圖釘・八支幫浦</span></h1>
+    <p class="cue rv">往下捲 <i>↓</i></p>
+    <p class="record" id="heroRec" hidden></p>
+  </div>
+</header>
+
+<section class="scrolly" id="scrolly">
+  <div class="stage" id="stage">
+    <div class="mapbox">
+      <svg id="map" viewBox="0 0 600 600" role="group" aria-label="示意街圖：蘇活區布洛德街一帶（非真實比例）">
+        <defs>
+          <radialGradient id="fogG"><stop offset="0" stop-color="#7d845c" stop-opacity=".55"/><stop offset="1" stop-color="#7d845c" stop-opacity="0"/></radialGradient>
+          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="#e3d6b8"/><line x1="0" y1="0" x2="0" y2="6" stroke="#b9a782" stroke-width="1.2"/>
+          </pattern>
+        </defs>
+        <rect x="0" y="0" width="600" height="600" rx="6" fill="#ece2c9" stroke="#cdbf9f"/>
+        <g id="city">
+          <rect id="cityFrame" x="0" y="0" width="600" height="600"/>
+          <g id="L-streets"></g>
+          <g id="L-labels"></g>
+          <g id="L-sites" class="layer"></g>
+          <g id="L-vor" class="layer"></g>
+          <g id="L-ring" class="layer"></g>
+          <g id="L-bars" class="layer"></g>
+          <g id="L-snow" class="layer"></g>
+          <g id="L-pumps" class="layer"></g>
+          <g id="L-broad" class="layer"></g>
+          <g id="L-h40" class="layer h40"></g>
+          <g id="L-fog" class="layer"></g>
+        </g>
+        <g id="L-far" class="layer far"></g>
+        <g id="L-route" class="layer">
+          <line id="crow" class="crow" x1="0" y1="0" x2="0" y2="0"/>
+          <polyline id="walk" class="walk" points=""/>
+        </g>
+        <g id="pin" tabindex="0" role="button" aria-label="紅色圖釘。用方向鍵移動，Shift 加速，Enter 放下" aria-describedby="roMain">
+          <g transform="scale(1.35)">
+            <circle class="pin-ring" cx="0" cy="-20" r="17"/>
+            <circle cx="0" cy="-18" r="24" fill="transparent" style="touch-action:none"/>
+            <path class="pin-body" d="M0 0 C-3-8-10-12-10-20 A10 10 0 1 1 10-20 C10-12 3-8 0 0Z" style="touch-action:none"/>
+            <circle cx="0" cy="-20" r="3.6" fill="#fbf6ea"/>
+          </g>
+        </g>
+      </svg>
+      <div class="readout" id="readout">
+        <div id="roMain"></div>
+        <div class="meter" aria-hidden="true"><i id="meterFill"></i></div>
+        <div id="roSub"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="story" id="story">
+    <div class="step" data-scene="fog"><div class="card">
+      <p class="k">一・照當時的常識</p>
+      <p class="lead">霍亂是一團壞空氣。</p>
+      <p>腐爛的東西冒出毒氣，飄到哪、病到哪。這叫瘴氣說，1854 年的醫界主流。倫敦衛生局後來替這場疫情寫的正式報告，也把帳算在空氣頭上。</p>
+      <p>街坊還有更玄的版本：據說兩百年前，這附近埋過一坑鼠疫死者，地底的東西被翻了出來。</p>
+    </div></div>
+
+    <div class="step" data-scene="deaths"><div class="card">
+      <p class="k">二・換一種看法</p>
+      <p class="lead">霧先散掉。每死一個人，在他家門口畫一道黑槓。</p>
+      <p>John Snow 就是這樣畫的：把一筆筆死亡登記，變成門牌旁一道道短短的黑線。同一戶死得越多，槓就疊得越厚。</p>
+      <p class="small">右邊（手機在上方）是示意街圖：街道、門牌、槓數都是重畫的，不是真實比例，也不是真實死亡位置。</p>
+    </div></div>
+
+    <div class="step" data-scene="center" id="stepCenter"><div class="card">
+      <p class="k">三・圖釘</p>
+      <p class="lead">圖上沒有水管，沒有幫浦，只有街和槓。</p>
+      <p>如果瘴氣說對了，兇手應該像霧一樣到處都是。如果不是，這些槓會繞著某個東西。</p>
+      <div class="task">
+        <p class="go">把紅色圖釘拖到「離每一道槓平均最近」的那一點。</p>
+        <p class="small">讀數會告訴你平均距離，越熱越接近。也可以直接點地圖放圖釘；鍵盤用 Tab 選到圖釘，再按方向鍵。</p>
+        <button class="pk-btn" id="hint1" type="button" hidden>給我一點提示</button>
+        <p class="ok" id="ok1" hidden>找到了。繼續往下捲。</p>
+      </div>
+    </div></div>
+
+    <div class="gate" id="gate1" hidden>
+      <div class="step" data-scene="pumps"><div class="card">
+        <p class="k">四・圖釘底下</p>
+        <p class="lead">是一支幫浦。</p>
+        <p>布洛德街和劍橋街的路口，一支公用手壓幫浦。附近的人每天提著桶子來打水；不少人特別愛它的水，寧可多走幾步。</p>
+        <p>Snow 寫：以這個路口為中心，兩百五十碼之內，十天裡有五百多人死於霍亂。</p>
+        <p class="small">現在把附近所有公用幫浦都畫上去。這張示意圖上一共八支。</p>
+      </div></div>
+
+      <div class="step" data-scene="voronoi"><div class="card">
+        <p class="k">五・還不夠</p>
+        <p class="lead">瘴氣派可以聳聳肩：「臭氣也是從某個中心散開的啊。」</p>
+        <p>要分出水和空氣，得換個問題：每一戶人家，平常去哪支幫浦打水？最省事的猜法是「去最近的那支」。照直線距離，把地圖切成八塊——數學上這叫 Voronoi 圖，後人重畫 Snow 的地圖時最愛用它。</p>
+        <div class="stat"><span>落在布洛德街這一格的死者<b id="stEu">–</b></span></div>
+        <p>剩下的死者，落在別支幫浦的地盤裡。瘴氣派正等著這一點。</p>
+      </div></div>
+
+      <div class="step" data-scene="route" id="stepRoute"><div class="card">
+        <p class="k">六・人不是用飛的</p>
+        <p class="lead">把圖釘當成一戶人家，拖著它到處走走。</p>
+        <p>藍色點線是烏鴉飛過去的距離；紅線是提著水桶、沿著街走的路。兩條線常常指向同一支幫浦——但不是每次。</p>
+        <div class="task">
+          <p class="go">找一戶「直線說該去別家，走路卻是布洛德街最近」的人家，把圖釘放在那裡。</p>
+          <button class="pk-btn" id="hint2" type="button" hidden>提示：往哪裡找？</button>
+          <p class="ok" id="ok2" hidden>就是這種地方。繼續往下捲。</p>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="gate" id="gate2" hidden>
+      <div class="step" data-scene="snowline"><div class="card">
+        <p class="k">七・那條線</p>
+        <p class="lead">1855 年，Snow 交給教區調查委員會的地圖上，多了一條虛線。</p>
+        <p>線上的每一點，<q>沿最近的路</q>走到布洛德街幫浦，和走到旁邊別支幫浦一樣遠——那是一段一段仔細量出來的。他還特別點名南邊的魯珀特街幫浦：有些街在圖上離它很近，走過去卻得繞一大圈。</p>
+        <div class="stat">
+          <span>直線分區<b id="stEu2">–</b></span>
+          <span class="hot">走路分區<b id="stWalk">–</b></span>
+          <span>扣掉髒水幫浦<b id="stFoul">–</b></span>
+        </div>
+        <p>走路分區外剩下的槓，大多擠在西北角。那裡的馬爾博羅街幫浦，水髒到很多人寧可多走幾步；Snow 查過，在那支幫浦附近死去的人，喝的是布洛德街的水。</p>
+        <p class="small">Snow 的真實數字：明顯離別支幫浦比較近的房子裡，只死了十個人。其中五家說，他們一向專程去布洛德街打水；另有三個，是在那支幫浦附近上學的孩子。</p>
+      </div></div>
+
+      <div class="step" data-scene="workhouse"><div class="card">
+        <p class="k">八・三個怪地方（一）</p>
+        <p class="lead">救濟院就在線裡面，緊貼著疫區。</p>
+        <p>波蘭街救濟院，四分之三被死過人的房子包圍。院裡 535 人，只有 5 人死於霍亂。Snow 算過：要是死亡率跟三面街道一樣，該死一百人以上。</p>
+        <p>院裡有自己的井，另外接自來水公司的水。從來不派人去布洛德街打水。</p>
+        <p class="small">拖圖釘進那塊斜線方框看看。</p>
+      </div></div>
+
+      <div class="step" data-scene="brewery"><div class="card">
+        <p class="k">九・三個怪地方（二）</p>
+        <p class="lead">離幫浦幾步路的啤酒廠，七十多個工人，沒有一個病重。</p>
+        <p>老闆 Huggins 告訴 Snow：工人每天配給麥芽酒，他相信他們根本不喝水；廠裡也有自己的深井。</p>
+        <p>同一條街的雷帽工廠（做槍用的火帽），兩百來個工人，廠裡擺兩桶幫浦水讓人隨便喝——18 個人死在自己家裡。</p>
+        <p class="small">兩座廠都在線裡。差別不在住哪，在喝什麼。</p>
+      </div></div>
+
+      <div class="step" data-scene="widow"><div class="card">
+        <p class="k">十・三個怪地方（三）</p>
+        <p class="lead">第三個在地圖外面。</p>
+        <p>西北方好幾公里外，漢普斯特德的 West End。9 月 2 日，一位 59 歲的寡婦死於霍亂，丈夫生前是雷帽匠。那一帶當時沒有霍亂。</p>
+        <p>她兒子告訴 Snow：母親好幾個月沒靠近布洛德街。但每天有一輛車從布洛德街開去 West End，車上會帶一大瓶幫浦水——她喜歡那個味道。8 月 31 日那瓶送到，她當晚喝了，隔天又喝；星期五晚上發病，星期六走了。</p>
+        <p>來作客的姪女也喝了。她回到伊斯林頓<q>地勢高、空氣好</q>的家，也死了。</p>
+        <p class="lead">臭氣飄不了那麼遠。一瓶水可以。</p>
+      </div></div>
+
+      <div class="step" data-scene="handle"><div class="card">
+        <p class="k">十一・9 月 7 日</p>
+        <p class="lead">星期四晚上，Snow 站到教區濟貧委員會面前。</p>
+        <p>他把上面這些攤開。據後來的記載，在場幾乎無人相信他。但第二天，9 月 8 日，幫浦的把手還是被拆掉了。</p>
+      </div></div>
+
+      <div class="step" data-scene="decline"><div class="card">
+        <p class="k">十二・Snow 不肯領的功勞</p>
+        <p class="lead">課本通常停在這裡：拆了把手，疫情結束。</p>
+        <p>Snow 自己寫的是另一回事：</p>
+        <blockquote>居民外逃，無疑讓死亡少了很多……但在停用這口井之前，發病已經少到一個程度，以致無法斷定：當時井裡的霍亂毒是否還有活性，還是它因為某種原因，已經變乾淨了。</blockquote>
+        <p>他量得出距離，卻不替自己多算一分。</p>
+      </div></div>
+
+      <div class="step" data-scene="whitehead"><div class="card">
+        <p class="k">十三・最後一段距離</p>
+        <p class="lead">補上最後一塊的，是一個起初不信 Snow 的人。</p>
+        <p>聖路加教堂的助理牧師亨利・懷特黑德，挨家挨戶問。他在每週死亡報告裡找到一行：<q>布洛德街 40 號，9 月 2 日，女嬰，五個月大，腹瀉四天後衰竭。</q></p>
+        <p>40 號，緊貼著幫浦。孩子的媽媽說：她 8 月 28 日星期一就發病了——比大爆發早了 78 個小時。換下的尿布泡在桶裡，泡過的水，一部分倒進前院的化糞池。</p>
+        <p>化糞池離井不到一公尺。孩子的父親，在幫浦上鎖那天發病。</p>
+        <p class="small">懷特黑德也誠實：為什麼後來又有病人的排泄物倒進同一處，發病卻還是迅速減少？他寫，他答不出來。</p>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<section class="coda" id="coda" hidden>
+  <p class="lead rv">那條線是用腳量的。</p>
+  <p class="rv">救濟院和啤酒廠在線裡面，沒事——他們不走那段路。寡婦在線外好幾公里，死了——水坐車去找她。</p>
+  <p class="rv">最短的一段距離不在地圖上。它在 40 號的地底下：一桶洗尿布水，到井，不到一公尺。</p>
+  <p class="rv">疫情退了以後，把手又被裝了回去。衛生局的正式報告，把 1854 年的流行歸給了空氣。</p>
+  <p class="last rv">下次你看到地圖上一團點，先別急著找圓心。問問它們：你們平常，走哪條路？</p>
+  <div class="row rv">
+    <button class="pk-btn" id="replay" type="button">把圖釘拔起來，再找一次</button>
+    <span class="rec" id="codaRec"></span>
+  </div>
+</section>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：John Snow《On the Mode of Communication of Cholera》第二版（1855）；St James 教區霍亂調查委員會報告（1855，含 Snow 與 H. Whitehead 的章節）；英文維基百科「1854 Broad Street cholera outbreak」「John Snow」。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+'use strict';
+var Core = (function () {
+  var VB = 600;
+  /* ── 示意街圖：7×7 格點，拿掉幾段路製造「隔壁很近、走過去很遠」 ── */
+  var XS = [40, 127, 213, 300, 387, 473, 560];
+  function nid(i, j) { return j * 7 + i; }
+  function buildMap() {
+    var nodes = [];
+    for (var j = 0; j < 7; j++) for (var i = 0; i < 7; i++) nodes.push([XS[i], XS[j]]);
+    var cut = {};
+    /* 拿掉的路段：彼得街（第 4 列）往南全封死，住這排的人要去魯珀特街幫浦得繞一大圈；
+       北邊那支幫浦只從東側進得去。地圖上看很近，走過去很遠。 */
+    [[3,0,3,1],[2,0,3,0],[2,4,2,5],[3,4,3,5],[4,4,4,5],[5,4,5,5],[6,4,6,5],[4,5,5,5],[3,5,4,5],
+     [0,0,1,0],[5,0,6,0],[6,2,6,3],[0,6,1,6],[5,6,6,6],[1,1,1,2],[4,1,4,2],[5,2,5,3]
+    ].forEach(function (c) { cut[nid(c[0],c[1]) + '-' + nid(c[2],c[3])] = 1; });
+    var edges = [];
+    for (j = 0; j < 7; j++) for (i = 0; i < 7; i++) {
+      if (i < 6 && !cut[nid(i,j) + '-' + nid(i+1,j)]) edges.push([nid(i,j), nid(i+1,j)]);
+      if (j < 6 && !cut[nid(i,j) + '-' + nid(i,j+1)]) edges.push([nid(i,j), nid(i,j+1)]);
+    }
+    return { nodes: nodes, edges: edges };
+  }
+  var MAP = buildMap();
+  var PUMPS = [
+    { key: 'broad', name: '布洛德街', node: nid(2,3) },
+    { key: 'marl', name: '馬爾博羅街', node: nid(0,1), foul: true },
+    { key: 'north', name: '北邊那支', node: nid(3,0) },
+    { key: 'ne', name: '東北那支', node: nid(6,1) },
+    { key: 'east', name: '東邊那支', node: nid(6,3) },
+    { key: 'rupert', name: '魯珀特街', node: nid(4,5) },
+    { key: 'sw', name: '西南那支', node: nid(1,6) },
+    { key: 'west', name: '西邊那支', node: nid(0,4) }
+  ];
+  PUMPS.forEach(function (p) { p.x = MAP.nodes[p.node][0]; p.y = MAP.nodes[p.node][1]; });
+  /* 建築（矩形 x,y,w,h）——救濟院、啤酒廠、雷帽工廠 */
+  var SITES = {
+    workhouse: { x: 304, y: 217, w: 79, h: 79 },
+    brewery:   { x: 217, y: 304, w: 79, h: 79 },
+    factory:   { x: 131, y: 217, w: 78, h: 79 }
+  };
+
+  function dist(a, b) { var dx = a[0]-b[0], dy = a[1]-b[1]; return Math.sqrt(dx*dx + dy*dy); }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function inRect(p, r) { return !!r && p[0] >= r.x && p[0] <= r.x + r.w && p[1] >= r.y && p[1] <= r.y + r.h; }
+  function siteAt(p, sites) { for (var k in sites) if (inRect(p, sites[k])) return k; return null; }
+
+  function nearestEuclid(p, pumps) {
+    var best = -1, bd = Infinity;
+    for (var i = 0; i < pumps.length; i++) { var d = dist(p, [pumps[i].x, pumps[i].y]); if (d < bd) { bd = d; best = i; } }
+    return { idx: best, d: bd };
+  }
+  /* 鄰接表 */
+  function graph(map) {
+    var adj = map.nodes.map(function () { return []; });
+    map.edges.forEach(function (e) {
+      var w = dist(map.nodes[e[0]], map.nodes[e[1]]);
+      adj[e[0]].push([e[1], w]); adj[e[1]].push([e[0], w]);
+    });
+    return adj;
+  }
+  /* Dijkstra（節點數少，用 O(n²) 版即可） */
+  function dijkstra(adj, src) {
+    var n = adj.length, d = [], prev = [], done = [];
+    for (var i = 0; i < n; i++) { d[i] = Infinity; prev[i] = -1; done[i] = false; }
+    if (src < 0 || src >= n) return { dist: d, prev: prev };
+    d[src] = 0;
+    for (var k = 0; k < n; k++) {
+      var u = -1, bd = Infinity;
+      for (i = 0; i < n; i++) if (!done[i] && d[i] < bd) { bd = d[i]; u = i; }
+      if (u < 0) break;
+      done[u] = true;
+      adj[u].forEach(function (e) { if (d[u] + e[1] < d[e[0]]) { d[e[0]] = d[u] + e[1]; prev[e[0]] = u; } });
+    }
+    return { dist: d, prev: prev };
+  }
+  /* 點投影到最近的街段 */
+  function project(p, map) {
+    var best = null;
+    map.edges.forEach(function (e, ei) {
+      var a = map.nodes[e[0]], b = map.nodes[e[1]];
+      var dx = b[0]-a[0], dy = b[1]-a[1], L2 = dx*dx + dy*dy;
+      var t = L2 ? clamp(((p[0]-a[0])*dx + (p[1]-a[1])*dy) / L2, 0, 1) : 0;
+      var q = [a[0] + t*dx, a[1] + t*dy], off = dist(p, q);
+      if (!best || off < best.off) best = { edge: ei, t: t, q: q, off: off, len: Math.sqrt(L2) };
+    });
+    return best;
+  }
+  /* 走路距離：先走到街上，再沿街到幫浦 */
+  function walkTo(p, pumpIdx, ctx) {
+    if (!ctx.trees[pumpIdx]) return null;
+    var pr = project(p, ctx.map), e = ctx.map.edges[pr.edge], tree = ctx.trees[pumpIdx];
+    var viaA = pr.off + pr.t * pr.len + tree.dist[e[0]];
+    var viaB = pr.off + (1 - pr.t) * pr.len + tree.dist[e[1]];
+    return viaA <= viaB ? { d: viaA, end: e[0], pr: pr } : { d: viaB, end: e[1], pr: pr };
+  }
+  function nearestWalk(p, ctx, skipFoul) {
+    var pr = project(p, ctx.map), e = ctx.map.edges[pr.edge], best = -1, bd = Infinity;
+    for (var i = 0; i < ctx.pumps.length; i++) {
+      if (skipFoul && ctx.pumps[i].foul) continue;
+      var tr = ctx.trees[i].dist;
+      var w = pr.off + Math.min(pr.t * pr.len + tr[e[0]], (1 - pr.t) * pr.len + tr[e[1]]);
+      if (w < bd) { bd = w; best = i; }
+    }
+    return { idx: best, d: bd };
+  }
+  /* 路線（給畫圖）：p → 街上投影點 → 節點 … → 幫浦 */
+  function walkRoute(p, pumpIdx, ctx) {
+    var w = walkTo(p, pumpIdx, ctx);
+    if (!w) return [];
+    var pts = [p.slice(), w.pr.q.slice()], n = w.end, prev = ctx.trees[pumpIdx].prev, guard = 0;
+    while (n >= 0 && guard++ < 200) { pts.push(ctx.map.nodes[n].slice()); n = prev[n]; }
+    return pts;
+  }
+  function makeCtx(map, pumps) {
+    var adj = graph(map);
+    return { map: map, pumps: pumps, trees: pumps.map(function (pp) { return dijkstra(adj, pp.node); }) };
+  }
+
+  /* ── 死亡分布（示意）：決定性亂數 ── */
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function houses(map, step, off) {
+    var out = [];
+    map.edges.forEach(function (e, ei) {
+      var a = map.nodes[e[0]], b = map.nodes[e[1]], L = dist(a, b), n = Math.floor(L / step);
+      var ux = (b[0]-a[0]) / L, uy = (b[1]-a[1]) / L;
+      for (var k = 1; k < n; k++) {
+        var t = k / n, cx = a[0] + (b[0]-a[0]) * t, cy = a[1] + (b[1]-a[1]) * t;
+        out.push({ x: cx - uy * off, y: cy + ux * off, nx: -uy, ny: ux, edge: ei });
+        out.push({ x: cx + uy * off, y: cy - ux * off, nx: uy, ny: -ux, edge: ei });
+      }
+    });
+    return out;
+  }
+  function genDeaths(ctx, sites, seed) {
+    var r = rng(seed), hs = houses(ctx.map, 17, 9), out = [];
+    var broad = 0; /* PUMPS[0] */
+    hs.forEach(function (h) {
+      var p = [h.x, h.y];
+      if (siteAt(p, sites)) { h.n = 0; return; }
+      var nw = nearestWalk(p, ctx, true), w = walkTo(p, broad, ctx).d;
+      var lam = nw.idx === broad ? 7.5 * Math.exp(-w / 115) : 0.02;
+      /* Poisson 抽樣（λ 小，用乘積法） */
+      var n = 0, L = Math.exp(-lam), pr = 1;
+      do { n++; pr *= r(); } while (pr > L && n < 16);
+      h.n = n - 1;
+      if (h.n > 0) out.push(h);
+    });
+    return out;
+  }
+  function expand(deaths) {
+    var pts = [];
+    deaths.forEach(function (h) { for (var k = 0; k < h.n; k++) pts.push([h.x, h.y]); });
+    return pts;
+  }
+  function meanDist(p, pts) {
+    if (!pts.length) return 0;
+    var s = 0; for (var i = 0; i < pts.length; i++) s += dist(p, pts[i]);
+    return s / pts.length;
+  }
+  /* Weiszfeld：幾何中位數＝「到所有死者距離總和最小」的點 */
+  function geoMedian(pts, iters) {
+    if (!pts.length) return null;
+    var x = 0, y = 0; pts.forEach(function (q) { x += q[0]; y += q[1]; }); x /= pts.length; y /= pts.length;
+    for (var k = 0; k < (iters || 80); k++) {
+      var nx = 0, ny = 0, den = 0;
+      for (var i = 0; i < pts.length; i++) {
+        var d = Math.max(dist([x, y], pts[i]), 1e-6);
+        nx += pts[i][0] / d; ny += pts[i][1] / d; den += 1 / d;
+      }
+      x = nx / den; y = ny / den;
+    }
+    return [x, y];
+  }
+  /* 「溫度」：0（最遠）～1（最佳點） */
+  function warmth(md, best, worst) {
+    if (!(worst > best)) return 1;
+    return clamp(1 - Math.sqrt(clamp((md - best) / (worst - best), 0, 1)), 0, 1);
+  }
+  function share(pts, fn, target) {
+    if (!pts.length) return 0;
+    var c = 0; for (var i = 0; i < pts.length; i++) if (fn(pts[i]) === target) c++;
+    return c / pts.length;
+  }
+  /* 直線 Voronoi：以半平面裁切矩形（Sutherland–Hodgman） */
+  function clipHalf(poly, a, b) {
+    /* 保留比 b 更靠近 a 的那一側 */
+    var mx = (a[0]+b[0]) / 2, my = (a[1]+b[1]) / 2, nx = b[0]-a[0], ny = b[1]-a[1];
+    function side(p) { return (p[0]-mx) * nx + (p[1]-my) * ny; }
+    var out = [];
+    for (var i = 0; i < poly.length; i++) {
+      var P = poly[i], Q = poly[(i + 1) % poly.length], sp = side(P), sq = side(Q);
+      if (sp <= 0) out.push(P);
+      if ((sp < 0 && sq > 0) || (sp > 0 && sq < 0)) {
+        var t = sp / (sp - sq); out.push([P[0] + (Q[0]-P[0]) * t, P[1] + (Q[1]-P[1]) * t]);
+      }
+    }
+    return out;
+  }
+  function voronoiCell(i, pumps, size) {
+    var poly = [[0,0],[size,0],[size,size],[0,size]], a = [pumps[i].x, pumps[i].y];
+    for (var j = 0; j < pumps.length && poly.length; j++) if (j !== i) poly = clipHalf(poly, a, [pumps[j].x, pumps[j].y]);
+    return poly;
+  }
+  function polyArea(poly) {
+    var s = 0; for (var i = 0; i < poly.length; i++) { var p = poly[i], q = poly[(i+1) % poly.length]; s += p[0]*q[1] - q[0]*p[1]; }
+    return Math.abs(s) / 2;
+  }
+  /* 走路分區邊界：取樣格點，相鄰格歸屬不同就畫一小段 */
+  function walkBoundary(ctx, target, step, size) {
+    var n = Math.floor(size / step), cls = [], i, j, segs = [];
+    for (j = 0; j < n; j++) { cls.push([]); for (i = 0; i < n; i++) cls[j].push(nearestWalk([(i+.5)*step, (j+.5)*step], ctx).idx === target); }
+    for (j = 0; j < n; j++) for (i = 0; i < n; i++) {
+      if (i < n-1 && cls[j][i] !== cls[j][i+1]) segs.push([[(i+1)*step, j*step], [(i+1)*step, (j+1)*step]]);
+      if (j < n-1 && cls[j][i] !== cls[j+1][i]) segs.push([[i*step, (j+1)*step], [(i+1)*step, (j+1)*step]]);
+    }
+    return segs;
+  }
+  /* 「直線說別家、走路說布洛德街」的點 */
+  function crowLies(p, ctx, target) {
+    return nearestEuclid(p, ctx.pumps).idx !== target && nearestWalk(p, ctx).idx === target;
+  }
+  /* 螢幕座標 → viewBox 座標（preserveAspectRatio xMidYMid meet） */
+  function clientToView(cx, cy, rect, vb) {
+    if (!rect || !(rect.width > 0) || !(rect.height > 0)) return null;
+    var s = Math.min(rect.width / vb, rect.height / vb);
+    var ox = (rect.width - vb * s) / 2, oy = (rect.height - vb * s) / 2;
+    return [clamp((cx - rect.left - ox) / s, 0, vb), clamp((cy - rect.top - oy) / s, 0, vb)];
+  }
+  function yards(u) { return Math.round(u); }
+
+  return { VB: VB, MAP: MAP, PUMPS: PUMPS, SITES: SITES, nid: nid,
+    dist: dist, clamp: clamp, inRect: inRect, siteAt: siteAt, nearestEuclid: nearestEuclid,
+    graph: graph, dijkstra: dijkstra, project: project, walkTo: walkTo, nearestWalk: nearestWalk,
+    walkRoute: walkRoute, makeCtx: makeCtx, rng: rng, houses: houses, genDeaths: genDeaths, expand: expand,
+    meanDist: meanDist, geoMedian: geoMedian, warmth: warmth, share: share, clipHalf: clipHalf,
+    voronoiCell: voronoiCell, polyArea: polyArea, walkBoundary: walkBoundary, crowLies: crowLies,
+    clientToView: clientToView, yards: yards };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+<script>
+'use strict';
+const LS = 'snow1854.';
+const store = PK.store(LS);
+PK.reveal();
+
+(function () {
+  const C = Core, $ = (id) => document.getElementById(id);
+  const ctx = C.makeCtx(C.MAP, C.PUMPS);
+  const SEED = 1801;
+  const HOUSES = C.genDeaths(ctx, C.SITES, SEED);
+  const PTS = C.expand(HOUSES);
+  const MED = C.geoMedian(PTS);
+  const BEST = C.meanDist(MED, PTS);
+  let WORST = 0;
+  for (let y = 0; y <= 600; y += 60) for (let x = 0; x <= 600; x += 60) WORST = Math.max(WORST, C.meanDist([x, y], PTS));
+  const BROAD = 0, BP = [C.PUMPS[0].x, C.PUMPS[0].y];
+  const pct = (v) => Math.round(v * 100) + '%';
+  const S_EU = C.share(PTS, (p) => C.nearestEuclid(p, C.PUMPS).idx, BROAD);
+  const S_WALK = C.share(PTS, (p) => C.nearestWalk(p, ctx).idx, BROAD);
+  const S_FOUL = C.share(PTS, (p) => C.nearestWalk(p, ctx, true).idx, BROAD);
+  $('stEu').textContent = pct(S_EU); $('stEu2').textContent = pct(S_EU);
+  $('stWalk').textContent = pct(S_WALK); $('stFoul').textContent = pct(S_FOUL);
+  /* 「直線騙人」的取樣點（給提示用） */
+  const LIES = [];
+  for (let y = 15; y < 600; y += 15) for (let x = 15; x < 600; x += 15) if (C.crowLies([x, y], ctx, BROAD) && !C.siteAt([x, y], C.SITES)) LIES.push([x, y]);
+
+  const stage = $('stage'), svg = $('map'), city = $('city'), pinEl = $('pin');
+  const f1 = (n) => Math.round(n);
+  const pathOf = (pts) => 'M' + pts.map((p) => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('L');
+
+  /* ── 畫街道 ── */
+  const segD = C.MAP.edges.map((e) => { const a = C.MAP.nodes[e[0]], b = C.MAP.nodes[e[1]]; return 'M' + a[0] + ' ' + a[1] + 'L' + b[0] + ' ' + b[1]; }).join('');
+  $('L-streets').innerHTML = '<path class="st-out" d="' + segD + '"/><path class="st-in" d="' + segD + '"/>';
+  const LABELS = [
+    [170, 300, 0, '布洛德街'], [213, 170, 90, '劍橋街'], [387, 256, 90, '波蘭街'],
+    [430, 387, 0, '彼得街'], [387, 516, 90, '魯珀特街'], [84, 127, 0, '馬爾博羅街'], [430, 300, 0, '布洛德街']
+  ];
+  $('L-labels').innerHTML = LABELS.map((l) => '<text class="lbl" text-anchor="middle" dominant-baseline="central" transform="translate(' + l[0] + ' ' + l[1] + ') rotate(' + l[2] + ')">' + l[3] + '</text>').join('');
+
+  /* ── 建築 ── */
+  const SITE_NAME = { workhouse: '救濟院', brewery: '啤酒廠', factory: '雷帽工廠' };
+  $('L-sites').innerHTML = Object.keys(C.SITES).map((k) => {
+    const r = C.SITES[k];
+    return '<g class="site" data-site="' + k + '"><rect x="' + r.x + '" y="' + r.y + '" width="' + r.w + '" height="' + r.h + '" rx="2"/>' +
+      '<text x="' + (r.x + r.w / 2) + '" y="' + (r.y + r.h / 2) + '" text-anchor="middle" dominant-baseline="central">' + SITE_NAME[k] + '</text></g>';
+  }).join('');
+
+  /* ── 死亡黑槓（一道一人，沿街排、往外疊） ── */
+  let bd = '';
+  HOUSES.forEach((h) => {
+    const tx = h.ny, ty = -h.nx;          /* 街道方向 */
+    for (let k = 0; k < h.n; k++) {
+      const cx = h.x + h.nx * (1 + k * 2.7), cy = h.y + h.ny * (1 + k * 2.7);
+      bd += 'M' + (cx - tx * 3.6).toFixed(1) + ' ' + (cy - ty * 3.6).toFixed(1) + 'L' + (cx + tx * 3.6).toFixed(1) + ' ' + (cy + ty * 3.6).toFixed(1);
+    }
+  });
+  $('L-bars').innerHTML = '<path class="bars" d="' + bd + '"/>';
+
+  /* ── 幫浦 ── */
+  const pumpSvg = (p, i) => '<g class="pump' + (p.foul ? ' foul' : '') + '" transform="translate(' + p.x + ' ' + p.y + ')">' +
+    '<line class="handle" x1="4" y1="-4" x2="12" y2="-11"/><circle r="' + (i === BROAD ? 6.5 : 5.2) + '"/>' +
+    (/街$/.test(p.name) ? '<text class="plbl" x="9" y="15">' + p.name + (p.foul ? '（水髒）' : '') + '</text>' : '') + '</g>';
+  $('L-pumps').innerHTML = C.PUMPS.map((p, i) => i === BROAD ? '' : pumpSvg(p, i)).join('');
+  $('L-broad').innerHTML = '<circle class="halo" cx="' + BP[0] + '" cy="' + BP[1] + '" r="13"/>' + pumpSvg(C.PUMPS[BROAD], BROAD);
+  $('L-ring').innerHTML = '<circle class="ring" cx="' + BP[0] + '" cy="' + BP[1] + '" r="250"/><text class="lbl" x="' + BP[0] + '" y="' + (BP[1] - 256) + '" text-anchor="middle">250 碼（示意比例）</text>';
+
+  /* ── 直線 Voronoi ── */
+  $('L-vor').innerHTML = C.PUMPS.map((p, i) => {
+    const poly = C.voronoiCell(i, C.PUMPS, 600);
+    return poly.length ? '<path class="cell' + (i === BROAD ? ' mine' : '') + '" d="' + pathOf(poly) + 'Z"/>' : '';
+  }).join('');
+
+  /* ── Snow 的走路等距線（取樣後描邊） ── */
+  const segs = C.walkBoundary(ctx, BROAD, 6, 600);
+  $('L-snow').innerHTML = '<path class="snowline" d="' + segs.map((s) => 'M' + s[0][0] + ' ' + s[0][1] + 'L' + s[1][0] + ' ' + s[1][1]).join('') + '"/>';
+
+  /* ── 40 號（放大後才看得清楚） ── */
+  $('L-h40').innerHTML =
+    '<rect class="house" x="217" y="274" width="22" height="17"/><text x="228" y="284" text-anchor="middle">40 號</text>' +
+    '<circle class="pit" cx="227" cy="294.4" r="2.2"/><path class="seep" d="M227 294.4 Q221 298 215.5 299.6"/>' +
+    '<text x="231" y="298">化糞池</text><text x="196" y="314">井＋幫浦</text>' +
+    '<text x="196" y="322" style="font-size:3.4px;fill:#6f6352">（距離放大示意；實際不到一公尺）</text>';
+
+  /* ── 瘴氣 ── */
+  $('L-fog').innerHTML = '<g>' + [[160, 180, 150], [380, 260, 170], [250, 420, 160], [470, 470, 120], [90, 400, 110]].map((f) =>
+    '<g class="fogd"><circle class="fogb" cx="' + f[0] + '" cy="' + f[1] + '" r="' + f[2] + '"/></g>').join('') + '</g>' +
+    '<text class="fogtxt" x="300" y="70" text-anchor="middle">瘴　氣</text>';
+
+  /* ── 地圖外：漢普斯特德、伊斯林頓（城區縮小後的座標） ── */
+  const Z_OUT = { tx: 250, ty: 360, s: 0.34 };
+  const bpOut = [Z_OUT.tx + BP[0] * Z_OUT.s, Z_OUT.ty + BP[1] * Z_OUT.s];
+  const HAM = [92, 92], ISL = [520, 150];
+  $('L-far').innerHTML =
+    '<path class="far-line" d="M' + bpOut[0] + ' ' + bpOut[1] + ' C' + (bpOut[0] - 40) + ' 300 160 210 ' + HAM[0] + ' ' + HAM[1] + '"/>' +
+    '<path class="far-line thin" d="M' + HAM[0] + ' ' + HAM[1] + ' C 240 40 400 70 ' + ISL[0] + ' ' + ISL[1] + '"/>' +
+    '<circle cx="' + HAM[0] + '" cy="' + HAM[1] + '" r="5"/><text x="' + (HAM[0] - 6) + '" y="' + (HAM[1] - 14) + '">漢普斯特德 West End</text>' +
+    '<text class="sm" x="' + (HAM[0] - 6) + '" y="' + (HAM[1] + 22) + '">寡婦，59 歲，9 月 2 日</text>' +
+    '<circle cx="' + ISL[0] + '" cy="' + ISL[1] + '" r="5"/><text x="' + (ISL[0] - 34) + '" y="' + (ISL[1] - 14) + '">伊斯林頓</text>' +
+    '<text class="sm" x="' + (ISL[0] - 62) + '" y="' + (ISL[1] + 22) + '">姪女回家後也病逝</text>' +
+    '<text class="sm" x="150" y="268">每天一輛車，一大瓶幫浦水</text>' +
+    '<text class="sm" x="' + (Z_OUT.tx) + '" y="' + (Z_OUT.ty + 600 * Z_OUT.s + 16) + '">蘇活區（縮小；距離示意）</text>';
+
+  /* ── 圖釘 ── */
+  const PIN0 = [505, 120];
+  let pin = PIN0.slice(), mode = null, scene = 'fog', dragging = false, grab = [0, 0], justDragged = false;
+  let found = false, crowFound = false, tries = 0, hints1 = 0, hints2 = 0, lastSite = null;
+  function placePin(p, snap) {
+    pin = [C.clamp(p[0], 6, 594), C.clamp(p[1], 26, 594)];
+    pinEl.classList.toggle('snap', !!snap);
+    pinEl.style.transform = 'translate(' + pin[0].toFixed(1) + 'px,' + pin[1].toFixed(1) + 'px)';
+    update();
+  }
+  function setRoute(on, p) {
+    if (!on) { $('crow').setAttribute('x2', 0); $('crow').setAttribute('y2', 0); $('crow').setAttribute('x1', 0); $('crow').setAttribute('y1', 0); $('walk').setAttribute('points', ''); return; }
+    const e = C.nearestEuclid(p, C.PUMPS), w = C.nearestWalk(p, ctx), q = C.PUMPS[e.idx];
+    const c = $('crow');
+    c.setAttribute('x1', p[0]); c.setAttribute('y1', p[1]); c.setAttribute('x2', q.x); c.setAttribute('y2', q.y);
+    $('walk').setAttribute('points', C.walkRoute(p, w.idx, ctx).map((pt) => pt[0].toFixed(1) + ',' + pt[1].toFixed(1)).join(' '));
+  }
+  const CAP = {
+    fog: '1854 年的常識：病從臭氣來',
+    deaths: '示意街圖｜' + PTS.length + ' 道黑槓，一道一位死者（示意分布）',
+    center: '把圖釘拖向死者的中心',
+    pumps: '紅圈：以幫浦為中心 250 碼（示意比例）',
+    voronoi: '藍線：照「直線最近」切出的八塊地盤',
+    route: '藍點線＝直線距離｜紅線＝沿街走的路',
+    snowline: '紅色點線：走路距離相等的分界（示意）',
+    workhouse: '斜線方框：救濟院、啤酒廠、雷帽工廠',
+    brewery: '斜線方框：救濟院、啤酒廠、雷帽工廠',
+    widow: '地圖外的兩個死者（距離示意）',
+    handle: '9 月 8 日：把手拆下',
+    decline: '拆把手之前，發病已經在減少',
+    whitehead: '布洛德街 40 號（放大示意）'
+  };
+  function siteInfo(k) {
+    if (k === 'workhouse') return '<b>救濟院</b>：535 人，5 人死於霍亂。院裡有自己的井。';
+    if (k === 'brewery') return '<b>啤酒廠</b>：七十多個工人，無一病重。他們喝麥芽酒。';
+    if (k === 'factory') return '<b>雷帽工廠</b>：兩桶幫浦水任人喝，18 名工人死亡。';
+    return '';
+  }
+  function update() {
+    const ro = $('roMain');
+    stage.classList.toggle('mode-center', mode === 'center');
+    if (mode === 'center') {
+      const md = C.meanDist(pin, PTS);
+      $('meterFill').style.transform = 'scaleX(' + C.warmth(md, BEST, WORST).toFixed(3) + ')';
+      $('meterFill').style.width = '100%';
+      ro.innerHTML = found ? '平均距離 <b>' + f1(md) + ' 碼</b>｜圖釘底下有東西。' :
+        '圖釘到每道黑槓的平均距離：<b>' + f1(md) + ' 碼</b>';
+    } else if (mode === 'route') {
+      const e = C.nearestEuclid(pin, C.PUMPS), w = C.nearestWalk(pin, ctx);
+      setRoute(true, pin);
+      const lie = e.idx !== w.idx && w.idx === BROAD;
+      ro.innerHTML = '直線最近：<b>' + C.PUMPS[e.idx].name + '</b> ' + f1(e.d) + ' 碼｜走路最近：<b>' + C.PUMPS[w.idx].name + '</b> ' + f1(w.d) + ' 碼' +
+        (lie ? (crowFound ? '<br>直線說別家，腳說布洛德街。' : '<br>直線和走路在吵架——放下圖釘。') : '');
+    } else if (mode === 'free') {
+      const k = C.siteAt(pin, C.SITES);
+      if (k) ro.innerHTML = siteInfo(k);
+      else { const w = C.nearestWalk(pin, ctx); ro.innerHTML = '這戶人家走路最近的幫浦：<b>' + C.PUMPS[w.idx].name + '</b>（' + f1(w.d) + ' 碼）'; }
+      if (k && k !== lastSite) PK.announce(siteInfo(k).replace(/<[^>]+>/g, ''));
+      lastSite = k;
+    } else {
+      ro.textContent = CAP[scene] || '';
+    }
+    $('roSub').textContent = mode ? (CAP[scene] || '') : '示意街圖，非真實比例';
+  }
+  function drop(counted) {
+    if (mode === 'center' && !found) {
+      if (counted) tries++;
+      const md = C.meanDist(pin, PTS);
+      if (md <= BEST + 5) winCenter();
+      else {
+        const w = C.warmth(md, BEST, WORST);
+        PK.announce('平均距離 ' + f1(md) + ' 碼，' + (w > 0.8 ? '很熱' : w > 0.55 ? '溫的' : '還冷'));
+        if (tries >= 3) $('hint1').hidden = false;
+      }
+    } else if (mode === 'route' && !crowFound) {
+      if (counted) tries++;
+      if (C.crowLies(pin, ctx, BROAD)) winRoute();
+      else if (counted && tries >= 2) $('hint2').hidden = false;
+    }
+  }
+  function winCenter() {
+    found = true;
+    placePin(BP, !PK.reduced());
+    stage.classList.add('show-broad');
+    $('ok1').hidden = false; $('hint1').hidden = true; $('gate1').hidden = false;
+    store.set('tries', tries); store.set('hints', hints1);
+    PK.announce('找到了。圖釘底下是一支幫浦：布洛德街幫浦。繼續往下捲。');
+    update();
+  }
+  function winRoute() {
+    crowFound = true; tries = 0;
+    $('ok2').hidden = false; $('hint2').hidden = true; $('gate2').hidden = false; $('coda').hidden = false;
+    PK.announce('就是這種地方：直線說別家，走路是布洛德街最近。繼續往下捲。');
+    update();
+  }
+  $('hint1').addEventListener('click', () => {
+    hints1++;
+    placePin([PK.lerp(pin[0], MED[0], 0.6), PK.lerp(pin[1], MED[1], 0.6)], !PK.reduced());
+    drop(false);
+  });
+  $('hint2').addEventListener('click', () => {
+    hints2++;
+    let best = LIES[0], bd2 = Infinity;
+    LIES.forEach((q) => { const d = C.dist(q, pin); if (d < bd2) { bd2 = d; best = q; } });
+    if (best) placePin(best, !PK.reduced());
+    PK.announce('試試這裡：放下圖釘，看看直線和走路怎麼說。');
+  });
+
+  const pinActive = () => mode === 'center' || mode === 'route' || mode === 'free';
+  const toView = (e) => C.clientToView(e.clientX, e.clientY, svg.getBoundingClientRect(), 600);
+  pinEl.addEventListener('pointerdown', (e) => {
+    if (!pinActive()) return;
+    const v = toView(e); if (!v) return;
+    dragging = true; grab = [pin[0] - v[0], pin[1] - v[1]];
+    stage.classList.add('dragging');
+    if (pinEl.setPointerCapture) try { pinEl.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+  });
+  pinEl.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const v = toView(e); if (v) placePin([v[0] + grab[0], v[1] + grab[1]], false);
+  });
+  const endDrag = () => {
+    if (!dragging) return;
+    dragging = false; justDragged = true; stage.classList.remove('dragging');
+    setTimeout(() => { justDragged = false; }, 50);
+    drop(true);
+  };
+  pinEl.addEventListener('pointerup', endDrag);
+  pinEl.addEventListener('pointercancel', endDrag);
+  svg.addEventListener('click', (e) => {
+    if (justDragged || !pinActive() || pinEl.contains(e.target)) return;
+    const v = toView(e); if (!v) return;
+    placePin([v[0], v[1]], !PK.reduced());
+    drop(true);
+  });
+  pinEl.addEventListener('keydown', (e) => {
+    if (!pinActive()) return;
+    const step = e.shiftKey ? 30 : 10, k = e.key;
+    const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[k];
+    if (d) { e.preventDefault(); placePin([pin[0] + d[0], pin[1] + d[1]], false); drop(false); return; }
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); drop(true); if (mode !== 'center' || found) PK.announce($('roMain').textContent); }
+  });
+
+  /* ── 場景表 ── */
+  const LAYERS = ['fog', 'bars', 'pumps', 'broad', 'ring', 'vor', 'route', 'snow', 'sites', 'far', 'h40', 'pin'];
+  const SCENES = {
+    fog: { show: ['fog'] },
+    deaths: { show: ['bars'] },
+    center: { show: ['bars', 'pin'], mode: 'center' },
+    pumps: { show: ['bars', 'pumps', 'ring', 'pin'], mode: 'free' },
+    voronoi: { show: ['bars', 'pumps', 'vor'] },
+    route: { show: ['bars', 'pumps', 'vor', 'route', 'pin'], mode: 'route' },
+    snowline: { show: ['bars', 'pumps', 'snow', 'pin'], mode: 'free' },
+    workhouse: { show: ['bars', 'pumps', 'snow', 'sites', 'pin'], mode: 'free', hi: 'workhouse' },
+    brewery: { show: ['bars', 'pumps', 'snow', 'sites', 'pin'], mode: 'free', hi: 'brewery' },
+    widow: { show: ['bars', 'pumps', 'far'], zoom: 'out' },
+    handle: { show: ['bars', 'pumps'], nohandle: true },
+    decline: { show: ['bars', 'pumps'], nohandle: true },
+    whitehead: { show: ['bars', 'h40'], zoom: 'in', nohandle: true }
+  };
+  function zoom(z) {
+    let t = 'none';
+    if (z === 'out') t = 'translate(' + Z_OUT.tx + 'px,' + Z_OUT.ty + 'px) scale(' + Z_OUT.s + ')';
+    if (z === 'in') { const s = 2.7; t = 'translate(' + (300 - BP[0] * s) + 'px,' + (300 - BP[1] * s) + 'px) scale(' + s + ')'; }
+    city.style.transform = t;
+    stage.classList.toggle('zoom-out', z === 'out');
+  }
+  function applyScene(name) {
+    const cfg = SCENES[name]; if (!cfg) return;
+    scene = name;
+    LAYERS.forEach((l) => stage.classList.toggle('show-' + l, cfg.show.indexOf(l) >= 0 || (l === 'broad' && found && name !== 'fog' && name !== 'deaths')));
+    mode = cfg.mode || null;
+    if (mode !== 'route') setRoute(false);
+    zoom(cfg.zoom || null);
+    stage.classList.toggle('nohandle', !!cfg.nohandle);
+    document.querySelectorAll('.site').forEach((g) => g.classList.toggle('hi', g.getAttribute('data-site') === cfg.hi));
+    update();
+  }
+
+  /* ── 捲動驅動：IntersectionObserver ── */
+  const steps = Array.prototype.slice.call(document.querySelectorAll('.step'));
+  function activate(el) {
+    steps.forEach((s) => s.classList.toggle('on', s === el));
+    applyScene(el.getAttribute('data-scene'));
+  }
+  if ('IntersectionObserver' in window) {
+    const wide = window.matchMedia && window.matchMedia('(min-width: 920px)').matches;
+    const io = new IntersectionObserver((es) => {
+      es.forEach((en) => { if (en.isIntersecting) activate(en.target); });
+    }, { rootMargin: wide ? '-45% 0px -45% 0px' : '-58% 0px -30% 0px' });
+    steps.forEach((s) => io.observe(s));
+  } else {
+    steps.forEach((s) => s.classList.add('on'));
+  }
+
+  /* ── 重來 ── */
+  $('replay').addEventListener('click', () => {
+    found = false; crowFound = false; tries = 0; hints1 = 0; hints2 = 0;
+    ['gate1', 'gate2', 'coda', 'ok1', 'ok2', 'hint1', 'hint2'].forEach((id) => { $(id).hidden = true; });
+    stage.classList.remove('show-broad');
+    placePin(PIN0, false);
+    PK.scrollTo($('stepCenter'));
+    PK.announce('圖釘拔起來了。再找一次。');
+  });
+
+  /* ── 上次的紀錄 ── */
+  const last = store.get('tries', null);
+  if (last !== null) {
+    $('heroRec').hidden = false;
+    $('heroRec').textContent = '上次你放了 ' + last + ' 次圖釘，找到那支幫浦。';
+  }
+  const showCodaRec = () => {
+    const t = store.get('tries', null);
+    $('codaRec').textContent = t === null ? '' : '這次你放了 ' + t + ' 次圖釘' + (store.get('hints', 0) ? '（用了提示）' : '') + '。';
+  };
+  new MutationObserver(showCodaRec).observe($('coda'), { attributes: true, attributeFilter: ['hidden'] });
+
+  PK.onMotionChange(() => { pinEl.classList.remove('snap'); });
+  placePin(PIN0, false);
+  applyScene('fog');
+
+  window.__snow = { applyScene, activate, get pin() { return pin.slice(); }, placePin, drop, MED, BP, LIES, S_EU, S_WALK, S_FOUL, BEST, get found() { return found; }, get crowFound() { return crowFound; } };
+})();
+</script>
+</body>
+</html>

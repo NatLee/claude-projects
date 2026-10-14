@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>不肯披上別人的國旗起跑｜每日小專案</title>
+<meta name="description" content="1932 年洛杉磯奧運，中華民國只來了一名選手。從「滿洲國」的名單到起跑線，六個岔路口由你替劉長春選，再看他怎麼走、付了什麼。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#ece3cf; --pk-ink:#1d2333; --pk-dim:#6d6658; --pk-accent:#b2372b;
+  --pk-line:rgba(29,35,51,.18);
+  --navy:#1d2333; --paper:#f6f0e2; --paper2:#e3d8bf; --red:#b2372b; --gold:#b98a2e; --sea:#2f5d7c;
+  --pk-maxw:660px;
+}
+body{
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(185,138,46,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(47,93,124,.10), transparent 60%),
+    var(--pk-bg);
+}
+body::before{ /* 紙張纖維 */
+  content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.35;
+  background-image:repeating-linear-gradient(0deg, rgba(29,35,51,.025) 0 1px, transparent 1px 3px),
+                   repeating-linear-gradient(90deg, rgba(29,35,51,.018) 0 1px, transparent 1px 4px);
+}
+.pk-home{ background:color-mix(in srgb, var(--pk-bg) 80%, transparent); }
+main, header, footer{ position:relative; z-index:1; }
+
+/* ── 第一屏 ── */
+.pk-hero{ position:relative; overflow:hidden; }
+.hero-in{ padding:90px 0 60px; }
+.kicker{ font-size:13px; letter-spacing:.22em; color:var(--pk-dim); margin:0 0 22px; }
+.pk-hero h1{ font-size:clamp(25px,6vw,38px); }
+.pk-hero h1 .one{ color:var(--red); }
+.lede{ font-size:17px; color:#3b3a3a; max-width:30em; }
+.hero-act{ margin-top:34px; display:flex; flex-wrap:wrap; gap:14px; align-items:center; }
+.hint{ font-size:13px; color:var(--pk-dim); letter-spacing:.06em; margin:0; }
+.crowd{ position:absolute; inset:auto 0 0 0; height:120px; pointer-events:none; opacity:.55; }
+.crowd i{ position:absolute; bottom:0; width:2px; background:var(--navy); border-radius:2px 2px 0 0; opacity:.22; }
+.crowd .flagger{ width:3px; opacity:1; background:var(--navy); }
+.crowd .flagger::after{ content:""; position:absolute; left:3px; top:0; width:22px; height:14px; background:var(--red); transform-origin:0 50%; animation:wave 2.4s ease-in-out infinite; }
+@keyframes wave{ 0%,100%{ transform:skewY(0) scaleX(1);} 50%{ transform:skewY(6deg) scaleX(.92);} }
+
+/* ── 路線＋儀表（sticky）── */
+#hud{ position:sticky; top:0; z-index:5; background:color-mix(in srgb, var(--pk-bg) 92%, transparent);
+  backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); border-bottom:1px solid var(--pk-line); }
+#hud[hidden]{ display:none; }
+.hud-in{ max-width:var(--pk-maxw); margin:0 auto; padding:10px 22px 10px 22px; }
+.route{ position:relative; height:44px; margin:0 6px; }
+.route .line{ position:absolute; left:0; right:0; top:14px; height:2px;
+  background:repeating-linear-gradient(90deg, var(--navy) 0 6px, transparent 6px 11px); opacity:.35; }
+.route .stop{ position:absolute; top:8px; width:14px; height:14px; margin-left:-7px; border-radius:50%;
+  background:var(--pk-bg); border:2px solid rgba(29,35,51,.4); transition:background .4s, border-color .4s; }
+.route .stop.done{ background:var(--navy); border-color:var(--navy); }
+.route .stop.now{ border-color:var(--red); background:var(--red); }
+.route .lab{ position:absolute; top:26px; font-size:11px; letter-spacing:.04em; color:var(--pk-dim);
+  transform:translateX(-50%); white-space:nowrap; }
+.route .lab.now{ color:var(--red); font-weight:600; }
+.boat-rail{ position:absolute; left:0; top:0; width:100%; height:0; transition:transform 1.2s cubic-bezier(.5,.1,.2,1); }
+.boat{ position:absolute; left:-9px; top:-4px; width:18px; height:10px; }
+.boat svg{ display:block; overflow:visible; }
+.meters{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:4px; }
+.mt{ font-size:12px; color:var(--pk-dim); }
+.mt b{ color:var(--pk-ink); font-variant-numeric:tabular-nums; font-weight:600; margin-left:4px; }
+.mt .bar{ height:5px; background:rgba(29,35,51,.12); border-radius:3px; overflow:hidden; margin-top:4px; }
+.mt .fill{ height:100%; width:100%; background:var(--navy); transform-origin:0 50%; transition:transform .9s cubic-bezier(.3,.7,.2,1); }
+.mt.money .fill{ background:var(--gold); }
+.mt.will .fill{ background:var(--red); }
+.mt .dl{ display:inline-block; min-width:2.6em; font-size:11px; margin-left:4px; opacity:0; transition:opacity .3s; }
+.mt .dl.show{ opacity:1; }
+.mt .dl.up{ color:#2b6a3a; } .mt .dl.down{ color:var(--red); }
+
+/* ── 章節＝車票/船票 ── */
+.chap{ margin:70px 0 0; scroll-margin-top:120px; }
+.chap[hidden]{ display:none; }
+.ticket{ position:relative; background:var(--paper); border:1px solid rgba(29,35,51,.22); border-radius:6px;
+  box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 18px 40px -26px rgba(29,35,51,.55); }
+.stub{ display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 20px;
+  border-bottom:2px dashed rgba(29,35,51,.28); font-size:12px; letter-spacing:.14em; color:var(--pk-dim); }
+.stub .no{ font-family:var(--pk-serif); font-size:15px; color:var(--red); letter-spacing:.1em; }
+.ticket::before, .ticket::after{ /* 打孔 */
+  content:""; position:absolute; top:40px; width:16px; height:16px; border-radius:50%;
+  background:var(--pk-bg); border:1px solid rgba(29,35,51,.22); }
+.ticket::before{ left:-9px; } .ticket::after{ right:-9px; }
+.body{ padding:22px 22px 26px; }
+.chap h2{ font-family:var(--pk-serif); font-size:clamp(22px,5vw,28px); margin:0 0 14px; line-height:1.45; outline:none; }
+.chap p{ margin:0 0 14px; }
+.ask{ font-weight:600; margin-top:22px !important; }
+.opts{ display:grid; gap:10px; margin-top:8px; }
+.opt{ appearance:none; text-align:left; font:inherit; font-size:15.5px; line-height:1.6; color:var(--pk-ink); cursor:pointer;
+  background:#fffaf0; border:1px solid rgba(29,35,51,.3); border-radius:6px; padding:12px 16px 12px 44px; position:relative;
+  transition:background .2s, border-color .2s, transform .12s, opacity .3s; }
+.opt::before{ content:attr(data-k); position:absolute; left:14px; top:12px; font-family:var(--pk-serif); color:var(--red); font-weight:700; }
+.opt:hover:not(:disabled){ background:#fff; border-color:var(--navy); }
+.opt:active:not(:disabled){ transform:translateY(1px); }
+.opt:disabled{ cursor:default; opacity:.45; }
+.opt.picked{ opacity:1; border-color:var(--navy); background:#fff; box-shadow:inset 4px 0 0 var(--navy); }
+.opt.hist{ opacity:1; box-shadow:inset 4px 0 0 var(--red); }
+.opt.picked.hist{ box-shadow:inset 4px 0 0 var(--red), inset 8px 0 0 var(--navy); }
+.opt small{ display:block; font-size:12.5px; color:var(--pk-dim); margin-top:2px; }
+
+.res{ margin-top:22px; border-top:1px solid var(--pk-line); padding-top:18px; }
+.res[hidden]{ display:none; }
+.res .row{ display:grid; grid-template-columns:5.2em 1fr; gap:10px; margin:0 0 12px; opacity:0; transform:translateY(8px);
+  transition:opacity .6s, transform .6s cubic-bezier(.2,.7,.3,1); }
+.res .row.in{ opacity:1; transform:none; }
+.res .tag{ font-size:12px; letter-spacing:.12em; color:var(--pk-dim); padding-top:3px; }
+.res .row.his .tag{ color:var(--red); font-weight:600; }
+.res .row.his .txt{ font-family:var(--pk-serif); font-size:16.5px; }
+.res .row.cost .txt{ color:#4a4438; }
+.stamp{ display:inline-block; margin:6px 0 0; font-family:var(--pk-serif); font-size:13px; letter-spacing:.2em; color:var(--red);
+  border:2px solid var(--red); padding:3px 10px; border-radius:4px; transform:rotate(-4deg); opacity:.85; }
+.next{ margin-top:16px; }
+.next[hidden]{ display:none; }
+
+/* ── 起跑線 ── */
+.gun{ margin-top:22px; text-align:center; padding:22px 12px; border:1px dashed rgba(29,35,51,.35); border-radius:8px; background:#fffaf0; }
+.gun[hidden]{ display:none; }
+.gun .cmd{ font-family:var(--pk-serif); font-size:clamp(22px,6vw,30px); min-height:1.6em; margin:0 0 12px; letter-spacing:.12em; }
+#fire{ font-size:17px; padding:14px 30px; border-width:2px; }
+#fire.ready{ background:var(--red); color:#fff; border-color:var(--red); }
+.flash{ position:fixed; inset:0; background:#fff; pointer-events:none; opacity:0; z-index:20; }
+.flash.go{ animation:flash .5s ease-out; }
+@keyframes flash{ 0%{opacity:.85} 100%{opacity:0} }
+
+.track{ margin-top:18px; background:#b45a3c; border-radius:6px; padding:10px 0 26px; position:relative; overflow:hidden;
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.15); }
+.track[hidden]{ display:none; }
+.lane{ position:relative; height:30px; border-bottom:2px solid rgba(255,255,255,.55); margin:0 44px 0 0; }
+.lane:first-child{ border-top:2px solid rgba(255,255,255,.55); }
+.lane .nm{ position:absolute; left:8px; top:5px; font-size:11px; color:rgba(255,255,255,.85); letter-spacing:.04em; z-index:1; white-space:nowrap; }
+.lane .rail{ position:absolute; left:0; top:0; width:100%; height:100%; }
+.lane .rn{ position:absolute; left:0; top:6px; width:16px; height:16px; margin-left:-8px; border-radius:50%; background:#f6f0e2; box-shadow:0 1px 3px rgba(0,0,0,.35); }
+.lane.liu .rn{ background:#fff; box-shadow:0 0 0 3px var(--navy), 0 1px 3px rgba(0,0,0,.35); }
+.lane.liu .nm{ color:#fff; font-weight:600; }
+.lane.ghost .rn{ background:transparent; border:2px dashed #fff; box-shadow:none; }
+.lane.ghost{ opacity:.9; }
+.finish{ position:absolute; top:0; bottom:0; right:44px; width:6px;
+  background:repeating-linear-gradient(0deg,#fff 0 6px,#1d2333 6px 12px); opacity:.9; }
+.mark{ position:absolute; bottom:4px; font-size:10px; color:rgba(255,255,255,.8); transform:translateX(-50%); }
+.callout{ min-height:3.4em; margin:14px 0 0; font-family:var(--pk-serif); font-size:16px; text-align:center; color:var(--navy); }
+.board{ margin:10px 0 0; width:100%; border-collapse:collapse; font-size:14px; }
+.board[hidden]{ display:none; }
+.board td, .board th{ padding:6px 8px; border-bottom:1px solid var(--pk-line); text-align:left; }
+.board th{ font-size:12px; color:var(--pk-dim); font-weight:500; letter-spacing:.08em; }
+.board tr.liu td{ color:var(--red); font-weight:600; }
+.board tr.ghost td{ color:var(--sea); font-style:italic; }
+.board td.num{ font-variant-numeric:tabular-nums; }
+
+/* ── 尾聲 ── */
+#end{ margin-top:90px; scroll-margin-top:120px; }
+#end[hidden]{ display:none; }
+.zoom{ font-family:var(--pk-serif); }
+.tl{ list-style:none; padding:0; margin:26px 0 0; border-left:2px solid rgba(29,35,51,.25); }
+.tl li{ position:relative; padding:0 0 22px 22px; }
+.tl li::before{ content:""; position:absolute; left:-6px; top:8px; width:10px; height:10px; border-radius:50%; background:var(--navy); }
+.tl li.hot::before{ background:var(--red); box-shadow:0 0 0 4px rgba(178,55,43,.18); }
+.tl .y{ display:block; font-family:var(--pk-serif); font-size:20px; color:var(--red); letter-spacing:.06em; }
+.count{ display:flex; align-items:flex-end; gap:22px; margin:30px 0 8px; flex-wrap:wrap; }
+.count div{ text-align:center; }
+.count b{ display:block; font-family:var(--pk-serif); font-size:clamp(40px,12vw,64px); line-height:1; color:var(--navy); }
+.count span{ font-size:12px; color:var(--pk-dim); letter-spacing:.1em; }
+.count .one b{ color:var(--red); }
+.turn{ margin:56px 0 0; padding:26px 22px; background:var(--navy); color:#f3ecdc; border-radius:6px; }
+.turn p{ margin:0 0 12px; font-family:var(--pk-serif); font-size:clamp(18px,4.6vw,22px); line-height:1.75; }
+.turn p:last-child{ margin:0; }
+.turn em{ font-style:normal; color:#f0b9a7; }
+.vs{ width:100%; border-collapse:collapse; margin-top:18px; font-size:14.5px; }
+.vs th, .vs td{ padding:8px 6px; border-bottom:1px solid var(--pk-line); text-align:left; vertical-align:top; }
+.vs th{ font-size:12px; letter-spacing:.1em; color:var(--pk-dim); font-weight:500; }
+.vs td:first-child{ white-space:nowrap; color:var(--pk-dim); font-size:13px; }
+.vs .same{ color:var(--red); font-weight:600; }
+.vs-sum{ font-family:var(--pk-serif); font-size:17px; margin:16px 0 0; }
+.invite{ margin:40px 0 0; font-size:17px; }
+.again{ margin-top:18px; }
+.rec{ font-size:12.5px; color:var(--pk-dim); margin-top:10px; }
+
+@media (max-width:560px){
+  .hud-in{ padding:8px 16px; }
+  .route .lab{ display:none; }
+  .route .lab.now{ display:block; }
+  .route{ height:40px; }
+  .body{ padding:18px 16px 22px; }
+  .stub{ padding:10px 16px; }
+  .res .row{ grid-template-columns:1fr; gap:2px; }
+  .lane{ margin-right:30px; }
+  .finish{ right:30px; }
+  .meters{ gap:8px; }
+  .count{ gap:14px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .crowd .flagger::after{ animation:none; }
+  .flash.go{ animation:none; }
+  .boat-rail, .mt .fill, .res .row{ transition:none; }
+  .res .row{ opacity:1; transform:none; }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero" id="hero">
+  <div class="pk-wrap hero-in">
+    <p class="kicker rv">洛杉磯紀念體育場・1932 年 7 月 30 日</p>
+    <h1 class="rv">十萬人看著各國隊伍入場。<br>有一面國旗後面，<span class="one">只跟著一名選手。</span></h1>
+    <p class="lede rv">兩個月前，有人替他準備了另一面旗。<br>從那一天起的六個岔路口，換你替他選。</p>
+    <div class="hero-act rv">
+      <button class="pk-btn" id="go" type="button">從那面旗開始</button>
+      <p class="hint">六站・每站一個選擇・選完才揭曉他怎麼走</p>
+    </div>
+  </div>
+  <div class="crowd" id="crowd" aria-hidden="true"></div>
+</header>
+
+<nav id="hud" hidden aria-label="旅程進度與儀表">
+  <div class="hud-in">
+    <div class="route" id="route">
+      <div class="line"></div>
+      <div class="boat-rail" id="boatRail"><div class="boat"><svg viewBox="0 0 18 10" width="18" height="10" aria-hidden="true"><path d="M1 5 H17 L14 9 H4 Z" fill="#1d2333"/><path d="M8 5 V0 L12 4 Z" fill="#b2372b"/></svg></div></div>
+    </div>
+    <div class="meters" id="meters">
+      <div class="mt stamina"><span>體力</span><b id="vStamina">80</b><span class="dl" id="dStamina"></span><div class="bar"><div class="fill" id="fStamina"></div></div></div>
+      <div class="mt money"><span>盤纏</span><b id="vMoney">10</b><span class="dl" id="dMoney"></span><div class="bar"><div class="fill" id="fMoney"></div></div></div>
+      <div class="mt will"><span>心志</span><b id="vWill">50</b><span class="dl" id="dWill"></span><div class="bar"><div class="fill" id="fWill"></div></div></div>
+    </div>
+  </div>
+</nav>
+
+<main class="pk-wrap" id="trip">
+
+  <section class="chap" id="c0" hidden aria-labelledby="h0">
+    <div class="ticket">
+      <div class="stub"><span class="no">第一站</span><span>東北・1932 年 5 月</span></div>
+      <div class="body">
+        <h2 id="h0" tabindex="-1">名單上有你的名字</h2>
+        <p>九一八事變過去半年，東北掛上了「滿洲國」的旗子。日本扶植的這個新政權，急著在世界面前證明自己是一個國家。</p>
+        <p>洛杉磯奧運快開了。新政權對外宣布：要派兩名選手出賽，一個是長跑的于希渭，另一個是手上握著全國紀錄的短跑選手——你，劉長春，二十二歲。</p>
+        <p>答應，就能站上奧運跑道。條件是胸前那面旗由他們決定。</p>
+        <p class="ask">你怎麼回？</p>
+        <div class="opts" role="group" aria-label="第一站的選擇"></div>
+        <div class="res" aria-live="polite" hidden></div>
+        <button class="pk-btn next" type="button" hidden>下一站：船票 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chap" id="c1" hidden aria-labelledby="h1x">
+    <div class="ticket">
+      <div class="stub"><span class="no">第二站</span><span>出發之前・1932 年夏</span></div>
+      <div class="body">
+        <h2 id="h1x" tabindex="-1">船票要錢</h2>
+        <p>拒絕之後，問題變得很實際。南京的國民政府原本不打算派隊，也不肯出這筆旅費。</p>
+        <p>去洛杉磯得橫渡太平洋。船票、食宿、教練，樣樣要錢；離開幕剩不到兩個月。</p>
+        <p class="ask">錢從哪裡來？</p>
+        <div class="opts" role="group" aria-label="第二站的選擇"></div>
+        <div class="res" aria-live="polite" hidden></div>
+        <button class="pk-btn next" type="button" hidden>下一站：太平洋 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chap" id="c2" hidden aria-labelledby="h2x">
+    <div class="ticket">
+      <div class="stub"><span class="no">第三站</span><span>太平洋上・約三週</span></div>
+      <div class="body">
+        <h2 id="h2x" tabindex="-1">甲板不是跑道</h2>
+        <p>船開了。接下來大約三個星期，你的世界剩下一條會晃的走廊、一間船艙，和看不到邊的海。</p>
+        <p>短跑靠爆發力，最怕的就是久坐不動。距離你的第一場預賽，還有二十多天。</p>
+        <p class="ask">在船上，你怎麼練？</p>
+        <div class="opts" role="group" aria-label="第三站的選擇"></div>
+        <div class="res" aria-live="polite" hidden></div>
+        <button class="pk-btn next" type="button" hidden>下一站：洛杉磯 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chap" id="c3" hidden aria-labelledby="h3x">
+    <div class="ticket">
+      <div class="stub"><span class="no">第四站</span><span>洛杉磯・7 月 29 日</span></div>
+      <div class="body">
+        <h2 id="h3x" tabindex="-1">明天開幕</h2>
+        <p>船靠岸時，離開幕只剩一天，離你的第一場預賽只剩兩天。踩在陸地上，腿還在晃。</p>
+        <p>開幕式要有人扛著國旗走進體育場。整個代表團能上場比賽的選手，就你一個。</p>
+        <p class="ask">開幕式，你去不去？</p>
+        <div class="opts" role="group" aria-label="第四站的選擇"></div>
+        <div class="res" aria-live="polite" hidden></div>
+        <button class="pk-btn next" type="button" hidden>下一站：起跑線 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chap" id="c4" hidden aria-labelledby="h4x">
+    <div class="ticket">
+      <div class="stub"><span class="no">第五站</span><span>男子 100 公尺第一輪・第二組・7 月 31 日</span></div>
+      <div class="body">
+        <h2 id="h4x" tabindex="-1">一百公尺</h2>
+        <p>第二組五個人：美國的辛普森、英國的佩吉、捷克斯洛伐克的恩格爾、印度的薩頓，還有你。前三名晉級。</p>
+        <p>你蹲下去。手指碰到跑道的那一刻，腿還記得三週的海。</p>
+        <p class="ask">槍響之前，最後一個決定：</p>
+        <div class="opts" role="group" aria-label="第五站的選擇"></div>
+        <div class="gun" id="gun" hidden>
+          <p class="cmd" id="cmd" aria-live="assertive"></p>
+          <button class="pk-btn" id="fire" type="button" disabled>扣下發令槍</button>
+        </div>
+        <div class="track" id="track" hidden aria-hidden="true"></div>
+        <p class="callout" id="callout" aria-live="polite"></p>
+        <table class="board" id="board" hidden aria-label="第二組成績">
+          <thead><tr><th>名次</th><th>選手</th><th>成績</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="res" aria-live="polite" hidden></div>
+        <button class="pk-btn next" type="button" hidden>最後一站：之後 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="chap" id="c5" hidden aria-labelledby="h5x">
+    <div class="ticket">
+      <div class="stub"><span class="no">第六站</span><span>1932 年 8 月以後</span></div>
+      <div class="body">
+        <h2 id="h5x" tabindex="-1">回程的船上</h2>
+        <p>兩天後還有 200 公尺預賽，報名表上還掛著一項 400 公尺。再之後，是同一片海，往回走一次。</p>
+        <p>報紙會問你：大老遠跑去，第一輪就出局，值得嗎？</p>
+        <p class="ask">接下來的人生，你打算怎麼用這雙腿？</p>
+        <div class="opts" role="group" aria-label="第六站的選擇"></div>
+        <div class="res" aria-live="polite" hidden></div>
+        <button class="pk-btn next" type="button" hidden>把鏡頭拉遠 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="end" hidden aria-labelledby="hEnd">
+    <h2 id="hEnd" class="zoom" tabindex="-1">他沒有停在第五名</h2>
+    <ol class="tl">
+      <li><span class="y">1933</span>他跑出 100 公尺與 200 公尺的全國紀錄，二十多年後才被打破。</li>
+      <li><span class="y">1936</span>柏林。中華民國代表團這回有 54 名選手，他是其中之一，又在預賽出局——這次也是晚到。</li>
+      <li><span class="y">1950</span>到大連工學院任教。文化大革命期間被下放到大連附近的農場勞動，後來才恢復名譽。</li>
+      <li><span class="y">1979 年後</span>中國重返國際奧會，他擔任中國奧委會副主席。</li>
+      <li><span class="y">1983</span>在大連過世，七十三歲。</li>
+      <li class="hot"><span class="y">1984</span>又是洛杉磯。中華人民共和國代表團 215 名選手走進同一座紀念體育場。那屆奧運頒出的第一面金牌，掛上射擊選手許海峰的脖子，也是這個代表團的第一面奧運金牌。他差一年多，沒看到。</li>
+    </ol>
+    <div class="count" aria-label="代表團選手人數">
+      <div class="one"><b>1</b><span>1932 洛杉磯</span></div>
+      <div><b>54</b><span>1936 柏林</span></div>
+      <div><b>215</b><span>1984 洛杉磯</span></div>
+    </div>
+
+    <div class="turn">
+      <p>第五名，手計 11.5 秒。他在預賽就被淘汰。</p>
+      <p>但他贏下的那一場，槍聲早在五月就響了——<em>跑道是一份報紙，對手是一面旗子。</em></p>
+      <p>洛杉磯那一百公尺，是他跑去交的成績單。</p>
+    </div>
+
+    <h3 class="zoom" style="margin-top:56px">你 vs 1932</h3>
+    <table class="vs" id="vs">
+      <thead><tr><th>站</th><th>你</th><th>他</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="vs-sum" id="vsSum"></p>
+    <p class="invite">下回看奧運開幕轉播，等那些只有一兩名選手的隊伍走完再轉台。旗子後面跟著幾個人，有時候比金牌榜更難數。</p>
+    <button class="pk-btn again" id="again" type="button">換一條路，再走一次</button>
+    <p class="rec" id="rec"></p>
+  </section>
+</main>
+
+<div class="flash" id="flash" aria-hidden="true"></div>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Olympedia（Liu Changchun、1932 男子 100 m）、英文維基百科（Liu Changchun、China at the 1932／1936／1984 Summer Olympics）、1932 洛杉磯奧運官方報告名冊。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+'use strict';
+/* ── 純函式（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var START = { stamina: 80, money: 10, will: 50 };
+  var KEYS = ['stamina', 'money', 'will'];
+  var SEA_COST = { stamina: -25 };
+
+  /* 六站資料：fx＝對儀表的影響；hist＝史實上他走的那一個（null＝史料沒寫） */
+  var CH = [
+    { id: 'list', name: '名單', hist: 'refuse', opts: [
+      { id: 'yes', label: '答應。先站上奧運跑道再說', note: '船票有人出，旗子也有人選', fx: { money: 40, will: -40 },
+        say: '你拿到了船票，也拿到一面不是你選的旗子。' },
+      { id: 'quiet', label: '不表態，等風頭過去', note: '不得罪任何一方', fx: { will: -15 },
+        say: '名單上已經印著你的名字。你不開口，別人就替你開口。' },
+      { id: 'refuse', label: '登報拒絕：我只代表中國', note: '話說出去就收不回來', fx: { money: -5, will: 30 },
+        say: '你把話說死了。往後的退路，跟著這篇聲明一起印了出去。' }
+    ],
+      histText: '1932 年 5 月，他在《大公報》上公開表態：不代表「滿洲國」，要代表中國出賽。',
+      cost: '同一份名單上的于希渭，後來雖然報了名，卻被日方扣在東北，沒能出發。' },
+
+    { id: 'fund', name: '船票', hist: 'zhang', opts: [
+      { id: 'self', label: '自己湊：借錢、典當、找同學', note: '湊得到一張單程票', fx: { money: 15, stamina: -10 },
+        say: '四處奔走湊錢，湊出一張單程票，也湊掉了幾週的訓練。' },
+      { id: 'zhang', label: '去找東北大學的校長張學良', note: '一個同樣失去家鄉的人', fx: { money: 60 },
+        say: '你押注在一個同樣被趕出東北的人身上。' },
+      { id: 'wait', label: '這次算了，等四年後的柏林', note: '時間站在誰那邊？', fx: { will: -25 },
+        say: '四年很長。名單上那一格，不會替你空著。' }
+    ],
+      histText: '張學良拿出八千銀元當旅費；另有人趕著向大會申請緊急報名，名額保住了。',
+      cost: '錢買得到船票，買不到時間：報名趕上了，訓練只能在海上度過。' },
+
+    { id: 'sea', name: '海上', hist: null, base: SEA_COST, opts: [
+      { id: 'deck', label: '在甲板上繞圈跑', note: '地板會晃，彎道永遠向左', fx: { stamina: 10 },
+        say: '你跑出一身汗。船身一斜，步幅就亂掉。' },
+      { id: 'cabin', label: '在船艙裡做原地操', note: '高抬腿、蹲跳、壓腿', fx: { stamina: 5, will: 5 },
+        say: '船艙只夠你練起跑後的頭三步。' },
+      { id: 'rest', label: '省點力氣，躺著等靠岸', note: '至少不會受傷', fx: { will: -5 },
+        say: '你省下了力氣，也省掉了腿的記憶。' }
+    ],
+      histText: '他在船上怎麼練，手邊的史料沒寫清楚。寫清楚的是結果：資料庫說他在海上漂了大約三週；他自己在日記裡，把輸掉的原因歸給將近一個月的旅途勞累，和途中沒辦法好好練習。',
+      cost: '不管你選哪一個，太平洋都先扣掉 25 點體力。船不會因為你是短跑選手就開快一點。' },
+
+    { id: 'la', name: '開幕', hist: 'flag', opts: [
+      { id: 'flag', label: '去。我來扛旗走進體育場', note: '十萬人的目光，站一整個下午', fx: { stamina: -5, will: 25 },
+        say: '你扛著旗走過看台，十萬人裡，沒幾個知道這一隊只有你。' },
+      { id: 'rest', label: '不去，留在宿舍睡飽', note: '比賽要緊', fx: { stamina: 10 },
+        say: '你睡了一個好覺。體育場裡，那一格隊伍空著走過。' }
+    ],
+      histText: '7 月 30 日開幕式，他扛著中華民國國旗入場。大會官方報告的名冊上，代表團列了幾位職員，外加教練宋君復；選手那一欄，只有他一個名字。',
+      cost: '那天看台坐了十萬一千零二十二人。同一屆，日本派出一百五十七名選手。' },
+
+    { id: 'start', name: '起跑', hist: 'burst', opts: [
+      { id: 'burst', label: '一出發就全力衝，先搶到前面', note: '賭前半段', fx: { stamina: -10 },
+        say: '你把三週沒用的力氣，全押在頭六十公尺。' },
+      { id: 'pace', label: '前段留力，最後二十公尺再追', note: '賭後半段', fx: {},
+        say: '你壓著步子起跑，等著後段的那一口氣。' },
+      { id: 'quit', label: '舉手退出，反正追不上', note: '保住體面', fx: { will: -40 },
+        say: '你站了起來，沒有蹲回去。' }
+    ],
+      histText: '他起跑就衝到前面，六十公尺前領先整組；八十公尺之後，一個接一個被追過。第二組五個人，他第五，手計 11.5 秒。',
+      cost: '他在日記裡算過差距：冠軍到終點時，大約領先他四碼。' },
+
+    { id: 'after', name: '之後', hist: 'both', opts: [
+      { id: 'teach', label: '不跑了，回去教書', note: '把跑道交給下一個人', fx: {},
+        say: '你把釘鞋收進箱子，打算把跑法教給別人。' },
+      { id: 'again', label: '四年後，再去一次', note: '這次要準時到', fx: {},
+        say: '你在回程的甲板上開始算日子：一千四百多天。' },
+      { id: 'both', label: '兩樣都做', note: '先跑，再教', fx: {},
+        say: '你決定先跑完自己的，再去教別人跑。' }
+    ],
+      histText: '兩天後的 200 公尺預賽，他在第三組排第四，又止步；原本報名的 400 公尺，他累得沒能出賽。四年後他再上柏林的跑道，之後教了一輩子體育。',
+      cost: '回國後沒有獎牌可以交代。他能交代的，只有那一份五月的聲明，和一身旅途的疲憊。' }
+  ];
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function fresh() { return { stamina: START.stamina, money: START.money, will: START.will }; }
+  function applyFx(state, fx) {
+    var out = {};
+    for (var i = 0; i < KEYS.length; i++) {
+      var k = KEYS[i], d = fx && typeof fx[k] === 'number' && isFinite(fx[k]) ? fx[k] : 0;
+      var base = state && typeof state[k] === 'number' && isFinite(state[k]) ? state[k] : START[k];
+      out[k] = clamp(Math.round(base + d), 0, 100);
+    }
+    return out;
+  }
+  function findOpt(ci, oid) {
+    var ch = CH[ci]; if (!ch) return null;
+    for (var i = 0; i < ch.opts.length; i++) if (ch.opts[i].id === oid) return ch.opts[i];
+    return null;
+  }
+  /* 走一站：回傳新儀表、是否與他相同（null＝史料沒寫）、儀表差值 */
+  function step(state, ci, oid) {
+    var ch = CH[ci], opt = findOpt(ci, oid);
+    if (!ch || !opt) return null;
+    var s = state;
+    if (ch.base) s = applyFx(s, ch.base);
+    s = applyFx(s, opt.fx);
+    var prev = applyFx(state, {}), delta = {};
+    for (var i = 0; i < KEYS.length; i++) delta[KEYS[i]] = s[KEYS[i]] - prev[KEYS[i]];
+    return { state: s, same: ch.hist === null ? null : ch.hist === oid, delta: delta };
+  }
+
+  /* 短跑示意模型：d(t)=v·(t−(1−e^(−t)))，v 由完賽時間 T 反推（τ=1 秒的加速段） */
+  function genericV(T) { return 100 / (T - 1 + Math.exp(-T)); }
+  function generic(t, T) {
+    if (!(t > 0)) return 0;
+    var d = genericV(T) * (t - 1 + Math.exp(-t));
+    return Math.min(100, d);
+  }
+  /* 前快後垮：前 60 m 按較快的節奏跑，之後等減速，剛好在 T 秒抵達 */
+  function fadeParams(T) {
+    var Te = T - 1.1, lo = 0, hi = Te;
+    for (var i = 0; i < 60; i++) { var m = (lo + hi) / 2; if (generic(m, Te) < 60) lo = m; else hi = m; }
+    var t60 = (lo + hi) / 2;
+    var v0 = genericV(Te) * (1 - Math.exp(-t60));
+    var D = T - t60;
+    var v1 = 2 * 40 / D - v0;           /* 平均速度＝40/D */
+    return { Te: Te, t60: t60, v0: v0, v1: v1, D: D };
+  }
+  function distAt(t, T, kind) {
+    if (!(T > 2)) return 0;
+    if (!(t > 0)) return 0;
+    if (t >= T) return 100;
+    if (kind !== 'fade') return generic(t, T);
+    var p = fadeParams(T);
+    if (t <= p.t60) return generic(t, p.Te);
+    var u = t - p.t60;
+    return Math.min(100, 60 + p.v0 * u - (p.v0 - p.v1) / (2 * p.D) * u * u);
+  }
+
+  /* 第二組實際名單（Olympedia，手計） */
+  var HEAT = [
+    { name: '辛普森', nat: '美國', time: 10.9, kind: 'even' },
+    { name: '佩吉', nat: '英國', time: 11.1, kind: 'even' },
+    { name: '恩格爾', nat: '捷克斯洛伐克', time: 11.2, kind: 'even' },
+    { name: '薩頓', nat: '英屬印度', time: 11.4, kind: 'even' },
+    { name: '劉長春', nat: '中華民國', time: 11.5, kind: 'fade', liu: true }
+  ];
+
+  /* 你的影子：由儀表推一個示意成績（遊戲化，非史實） */
+  function ghostTime(state, oid) {
+    if (oid === 'quit') return null;
+    var s = applyFx(state, {});
+    var t = 11.3 + (80 - s.stamina) * 0.012 + (50 - s.will) * 0.004 + (s.money < 20 ? 0.2 : 0);
+    if (oid === 'pace') t += 0.05;
+    t = clamp(t, 10.6, 12.8);
+    return Math.round(t * 10) / 10;
+  }
+  /* 在一組成績裡排第幾（同秒者並列，排在對方之後以求保守） */
+  function heatRank(time, field) {
+    if (typeof time !== 'number' || !isFinite(time)) return null;
+    var r = 1;
+    for (var i = 0; i < field.length; i++) if (field[i] <= time) r++;
+    return r;
+  }
+
+  /* 你 vs 1932 */
+  function compare(picks) {
+    var rows = [], same = 0, total = 0;
+    for (var i = 0; i < CH.length; i++) {
+      var ch = CH[i], mine = findOpt(i, picks && picks[i]), his = ch.hist ? findOpt(i, ch.hist) : null;
+      var eq = ch.hist === null ? null : !!(mine && mine.id === ch.hist);
+      if (ch.hist !== null) { total++; if (eq) same++; }
+      rows.push({ name: ch.name, mine: mine ? mine.label : '（沒選）', his: his ? his.label : '史料沒寫', same: eq });
+    }
+    return { rows: rows, same: same, total: total };
+  }
+  function verdict(picks) {
+    var c = compare(picks), n = c.same, line;
+    if (n === c.total) line = '五個有史料的岔路，你都跟他走了同一條。差別在於：你可以按「再走一次」，他不行。';
+    else if (n >= 3) line = '多數路口你跟他同路。分岔的那幾站，正是他付代價的地方。';
+    else if (n >= 1) line = '你走出了另一條路線。他那條之所以難走，是因為每一站都擺著更划算的選項。';
+    else line = '你和他一個路口都沒重疊。換你在 1932 年，那天的開幕式上就少了那面旗。';
+    if (picks && picks[0] === 'yes') line += '你在第一站就答應了那份名單——那條路線通往哪裡，史書上沒有寫。';
+    return line;
+  }
+
+  return { START: START, KEYS: KEYS, CH: CH, HEAT: HEAT, clamp: clamp, fresh: fresh, applyFx: applyFx,
+           findOpt: findOpt, step: step, generic: generic, fadeParams: fadeParams, distAt: distAt,
+           ghostTime: ghostTime, heatRank: heatRank, compare: compare, verdict: verdict };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+<script>
+'use strict';
+const LS = 'liucc1932.';
+const store = PK.store(LS);
+PK.reveal();
+
+const $ = (id) => document.getElementById(id);
+const CH = Core.CH;
+const KEYLAB = { stamina: '體力', money: '盤纏', will: '心志' };
+const STOPS = ['東北', '出發前', '太平洋', '洛杉磯', '起跑線', '之後'];
+let state = Core.fresh();
+let picks = [];
+let at = -1;
+
+/* ── 觀眾剪影（第一屏） ── */
+(function crowd() {
+  const box = $('crowd');
+  let html = '';
+  for (let i = 0; i < 90; i++) {
+    const x = (i / 90) * 100 + PK.hash('x' + i) * 1.1;
+    const h = 18 + PK.hash('h' + i) * 46;
+    html += '<i style="left:' + x.toFixed(2) + '%;height:' + h.toFixed(0) + 'px"></i>';
+  }
+  html += '<i class="flagger" style="left:62%;height:92px"></i>';
+  box.innerHTML = html;
+})();
+
+/* ── 路線 ── */
+(function buildRoute() {
+  const r = $('route');
+  STOPS.forEach((s, i) => {
+    const p = (i / (STOPS.length - 1)) * 100;
+    const dot = document.createElement('span'); dot.className = 'stop'; dot.style.left = p + '%';
+    const lab = document.createElement('span'); lab.className = 'lab'; lab.style.left = p + '%'; lab.textContent = s;
+    if (i === 0) lab.style.transform = 'none';
+    if (i === STOPS.length - 1) lab.style.transform = 'translateX(-100%)';
+    r.appendChild(dot); r.appendChild(lab);
+  });
+})();
+function setRoute(i) {
+  const dots = document.querySelectorAll('#route .stop'), labs = document.querySelectorAll('#route .lab');
+  dots.forEach((d, k) => { d.classList.toggle('done', k < i); d.classList.toggle('now', k === i); });
+  labs.forEach((l, k) => l.classList.toggle('now', k === i));
+  $('boatRail').style.transform = 'translateX(' + (Math.max(0, i) / (STOPS.length - 1) * 100) + '%)';
+}
+
+/* ── 儀表 ── */
+const dlTimers = {};
+function drawMeters(delta) {
+  ['stamina', 'money', 'will'].forEach((k) => {
+    const cap = k[0].toUpperCase() + k.slice(1);
+    $('v' + cap).textContent = state[k];
+    $('f' + cap).style.transform = 'scaleX(' + (state[k] / 100) + ')';
+    const dl = $('d' + cap);
+    const d = delta ? delta[k] : 0;
+    if (d) {
+      dl.textContent = (d > 0 ? '+' : '') + d;
+      dl.className = 'dl show ' + (d > 0 ? 'up' : 'down');
+      clearTimeout(dlTimers[k]);
+      dlTimers[k] = setTimeout(() => { dl.className = 'dl'; }, 2600);
+    }
+  });
+}
+
+/* ── 章節 ── */
+function chapEl(i) { return $('c' + i); }
+function buildOpts(i) {
+  const sec = chapEl(i), box = sec.querySelector('.opts');
+  box.innerHTML = '';
+  CH[i].opts.forEach((o, k) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'opt'; b.dataset.k = '甲乙丙'[k]; b.dataset.id = o.id;
+    b.innerHTML = '<span></span><small></small>';
+    b.firstChild.textContent = o.label; b.lastChild.textContent = o.note;
+    b.addEventListener('click', () => choose(i, o.id));
+    box.appendChild(b);
+  });
+}
+function openChap(i) {
+  at = i;
+  const sec = chapEl(i);
+  buildOpts(i);
+  sec.hidden = false;
+  setRoute(i);
+  PK.scrollTo(sec);
+  setTimeout(() => { const h = sec.querySelector('h2'); if (h) h.focus({ preventScroll: true }); }, PK.reduced() ? 0 : 450);
+}
+
+function showRows(res, rows) {
+  res.innerHTML = '';
+  rows.forEach((r) => {
+    const div = document.createElement('div');
+    div.className = 'row ' + r.cls;
+    div.innerHTML = '<span class="tag"></span><span class="txt"></span>';
+    div.firstChild.textContent = r.tag; div.lastChild.textContent = r.txt;
+    res.appendChild(div);
+  });
+  res.hidden = false;
+  const els = res.querySelectorAll('.row');
+  els.forEach((el, k) => {
+    if (PK.reduced()) el.classList.add('in');
+    else setTimeout(() => el.classList.add('in'), 120 + k * 650);
+  });
+  return PK.reduced() ? 0 : 120 + els.length * 650;
+}
+
+function choose(i, oid) {
+  if (picks[i] !== undefined) return;
+  const r = Core.step(state, i, oid);
+  if (!r) return;
+  picks[i] = oid;
+  state = r.state;
+  const sec = chapEl(i), ch = CH[i], opt = Core.findOpt(i, oid);
+  sec.querySelectorAll('.opt').forEach((b) => {
+    b.disabled = true;
+    if (b.dataset.id === oid) { b.classList.add('picked'); b.setAttribute('aria-pressed', 'true'); }
+  });
+  drawMeters(r.delta);
+  const dtxt = Object.keys(r.delta).filter((k) => r.delta[k]).map((k) => KEYLAB[k] + (r.delta[k] > 0 ? '加' : '減') + Math.abs(r.delta[k])).join('、');
+  PK.announce('你選了：' + opt.label + '。' + (dtxt ? dtxt + '。' : ''));
+
+  if (i === 4) { startGun(oid); return; }
+  revealChap(i, oid, r.same);
+}
+
+function revealChap(i, oid, same) {
+  const sec = chapEl(i), ch = CH[i], opt = Core.findOpt(i, oid);
+  const stampTxt = same === null ? '史料空白' : same ? '同一條路' : '他走了另一條';
+  const wait = showRows(sec.querySelector('.res'), [
+    { cls: 'you', tag: '你', txt: opt.say },
+    { cls: 'his', tag: '1932', txt: ch.histText },
+    { cls: 'cost', tag: '代價', txt: ch.cost }
+  ]);
+  setTimeout(() => {
+    if (ch.hist) sec.querySelectorAll('.opt').forEach((b) => { if (b.dataset.id === ch.hist) b.classList.add('hist'); });
+    const res = sec.querySelector('.res');
+    if (!res.querySelector('.stamp')) {
+      const st = document.createElement('span'); st.className = 'stamp'; st.textContent = stampTxt; res.appendChild(st);
+    }
+    const nx = sec.querySelector('.next'); nx.hidden = false;
+  }, wait);
+}
+
+/* ── 起跑線：口令 → 讀者扣槍 → 比賽 ── */
+let race = null;
+function startGun(oid) {
+  const gun = $('gun'), cmd = $('cmd'), fire = $('fire');
+  gun.hidden = false;
+  fire.disabled = true; fire.classList.remove('ready');
+  fire.textContent = oid === 'quit' ? '看他起跑' : '扣下發令槍';
+  const lines = oid === 'quit' ? ['你站起來，退到場邊。', '第二組少了一個人？'] : ['各就位。', '預備——'];
+  cmd.textContent = lines[0];
+  setTimeout(() => {
+    cmd.textContent = lines[1];
+    if (oid === 'quit') cmd.textContent = '1932 年的他沒有站起來。';
+    fire.disabled = false; fire.classList.add('ready');
+    fire.focus({ preventScroll: true });
+  }, PK.reduced() ? 0 : 1300);
+  fire.onclick = () => { if (!fire.disabled) runRace(oid); };
+}
+
+function laneHTML(cls, label) {
+  return '<div class="lane ' + cls + '"><span class="nm"></span><div class="rail"><span class="rn"></span></div></div>';
+}
+function runRace(oid) {
+  const fire = $('fire');
+  fire.disabled = true; fire.classList.remove('ready');
+  $('cmd').textContent = '砰！';
+  const fl = $('flash'); fl.classList.remove('go'); void fl.offsetWidth; if (!PK.reduced()) fl.classList.add('go');
+  PK.announce('槍響。');
+
+  const gt = Core.ghostTime(state, oid);
+  const runners = Core.HEAT.map((h) => ({ name: h.name + '（' + h.nat + '）', T: h.time, kind: h.kind, liu: !!h.liu }));
+  if (gt !== null) runners.unshift({ name: '你的影子（示意）', T: gt, kind: oid === 'burst' ? 'fade' : 'even', ghost: true });
+  const track = $('track');
+  let html = '';
+  runners.forEach((r) => { html += laneHTML(r.liu ? 'liu' : r.ghost ? 'ghost' : '', r.name); });
+  html += '<div class="finish"></div>';
+  [30, 60, 80].forEach((m) => { html += '<span class="mark" style="left:calc((100% - 44px) * ' + (m / 100) + ')">' + m + ' m</span>'; });
+  track.innerHTML = html;
+  track.querySelectorAll('.lane').forEach((l, k) => { l.querySelector('.nm').textContent = runners[k].name; });
+  track.hidden = false;
+  const rails = [...track.querySelectorAll('.rail')];
+  const place = (t) => rails.forEach((el, k) => {
+    el.style.transform = 'translateX(' + Core.distAt(t, runners[k].T, runners[k].kind).toFixed(2) + '%)';
+  });
+  const calls = [
+    { t: 3.2, txt: '三十公尺。劉長春衝在最前面。' },
+    { t: 6.9, txt: '六十公尺。劉長春還領先整組。' },
+    { t: 9.4, txt: '八十多公尺。海上的三個星期，追上來了。' }
+  ];
+  const finish = () => { place(99); $('callout').textContent = (PK.reduced() ? calls.map((c) => c.txt).join('') : '') + '他第五個衝線。'; endRace(oid, gt, runners); };
+  if (PK.reduced()) { finish(); return; }
+  let t = 0, ci = 0;
+  const SPEED = 1.15;
+  race = (dt) => {
+    t += dt * SPEED;
+    place(t);
+    while (ci < calls.length && t >= calls[ci].t) { $('callout').textContent = calls[ci].txt; ci++; }
+    if (t > 11.9) { PK.untick(race); race = null; finish(); }
+  };
+  PK.tick(race);
+}
+
+function endRace(oid, gt, runners) {
+  const tb = $('board').querySelector('tbody');
+  const rows = Core.HEAT.map((h, k) => ({ pos: String(k + 1), name: h.name + '（' + h.nat + '）', time: h.time.toFixed(1), q: k < 3 ? '晉級' : '', liu: !!h.liu }));
+  let ghostLine = '';
+  if (gt !== null) {
+    const rk = Core.heatRank(gt, Core.HEAT.filter((h) => !h.liu).map((h) => h.time));
+    rows.push({ pos: '—', name: '你的影子（示意）', time: gt.toFixed(1), q: '', ghost: true });
+    ghostLine = '你的影子跑出 ' + gt.toFixed(1) + ' 秒，放進這組排第 ' + rk + '。' +
+      (rk <= 3 ? '影子晉級了——遊戲裡可以，1932 年的太平洋不行。' : gt === 11.5 ? '跟他同一秒。你們在同一片海上累垮了。' : '一樣進不了前三。');
+  } else {
+    ghostLine = '你沒有起跑，所以這張表上沒有你。他起跑了，所以表上有他。';
+  }
+  tb.innerHTML = '';
+  rows.forEach((r) => {
+    const tr = document.createElement('tr'); if (r.liu) tr.className = 'liu'; if (r.ghost) tr.className = 'ghost';
+    [r.pos, r.name, r.time, r.q].forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k === 2) td.className = 'num'; tr.appendChild(td); });
+    tb.appendChild(tr);
+  });
+  $('board').hidden = false;
+  const r = { same: picks[4] === CH[4].hist };
+  const sec = chapEl(4), ch = CH[4], opt = Core.findOpt(4, oid);
+  const wait = showRows(sec.querySelector('.res'), [
+    { cls: 'you', tag: '你', txt: opt.say + ghostLine },
+    { cls: 'his', tag: '1932', txt: ch.histText },
+    { cls: 'cost', tag: '代價', txt: ch.cost }
+  ]);
+  setTimeout(() => {
+    sec.querySelectorAll('.opt').forEach((b) => { if (b.dataset.id === ch.hist) b.classList.add('hist'); });
+    const res = sec.querySelector('.res');
+    if (!res.querySelector('.stamp')) { const st = document.createElement('span'); st.className = 'stamp'; st.textContent = r.same ? '同一條路' : '他走了另一條'; res.appendChild(st); }
+    sec.querySelector('.next').hidden = false;
+  }, wait);
+}
+
+/* ── 尾聲 ── */
+function showEnd() {
+  setRoute(STOPS.length);
+  const end = $('end');
+  const c = Core.compare(picks);
+  const tb = $('vs').querySelector('tbody');
+  tb.innerHTML = '';
+  c.rows.forEach((r) => {
+    const tr = document.createElement('tr');
+    const a = document.createElement('td'); a.textContent = r.name;
+    const b = document.createElement('td'); b.textContent = r.mine; if (r.same) b.className = 'same';
+    const d = document.createElement('td'); d.textContent = r.his;
+    tr.appendChild(a); tr.appendChild(b); tr.appendChild(d); tb.appendChild(tr);
+  });
+  $('vsSum').textContent = '同路 ' + c.same + '／' + c.total + '。' + Core.verdict(picks);
+  const runs = (store.get('runs', 0) | 0) + 1;
+  store.set('runs', runs);
+  store.set('last', { same: c.same, picks: picks.slice() });
+  $('rec').textContent = runs > 1 ? '你已經走完這趟航程 ' + runs + ' 次。' : '';
+  end.hidden = false;
+  PK.scrollTo(end);
+  setTimeout(() => $('hEnd').focus({ preventScroll: true }), PK.reduced() ? 0 : 450);
+  PK.announce('旅程結束。你和他同路 ' + c.same + ' 站，共 ' + c.total + ' 站可比。');
+}
+
+/* ── 事件 ── */
+$('go').addEventListener('click', () => {
+  $('hud').hidden = false;
+  drawMeters(null);
+  if (at < 0) openChap(0); else PK.scrollTo(chapEl(at));
+});
+for (let i = 0; i < CH.length; i++) {
+  chapEl(i).querySelector('.next').addEventListener('click', (e) => {
+    e.currentTarget.disabled = true;
+    if (i < CH.length - 1) openChap(i + 1); else showEnd();
+  });
+}
+$('again').addEventListener('click', () => {
+  if (race) { PK.untick(race); race = null; }
+  state = Core.fresh(); picks = []; at = -1;
+  for (let i = 0; i < CH.length; i++) {
+    const sec = chapEl(i);
+    sec.hidden = true;
+    const res = sec.querySelector('.res'); res.hidden = true; res.innerHTML = '';
+    const nx = sec.querySelector('.next'); nx.hidden = true; nx.disabled = false;
+  }
+  $('gun').hidden = true; $('track').hidden = true; $('track').innerHTML = ''; $('board').hidden = true; $('callout').textContent = '';
+  $('end').hidden = true;
+  drawMeters(null);
+  openChap(0);
+});
+drawMeters(null);
+</script>
+</body>
+</html>

@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>倫敦人喝的綠茶是染過的｜每日小專案</title>
+<meta name="description" content="1848 年，你剃了頭、接上辮子，扮成中國人混進徽州的綠茶作坊。每道目光掃過來，你只有一兩秒能掩飾——工頭研缽裡那團深藍色，要撒進運往倫敦的茶裡。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#efe8d7; --pk-ink:#2b2720; --pk-dim:#71685a; --pk-accent:#1d3d8c;
+  --pk-line:rgba(43,39,32,.16); --pk-maxw:680px;
+  --paper:#f7f2e6; --blue:#1d3d8c; --blue2:#3b62b8; --tea:#6b7d3a; --dye:#2f8f78;
+  --ember:#c8572b; --rust:#9a3b22;
+}
+body{
+  background:
+    radial-gradient(900px 520px at 85% -8%, rgba(29,61,140,.07), transparent 60%),
+    radial-gradient(700px 500px at -10% 40%, rgba(107,125,58,.08), transparent 60%),
+    var(--pk-bg);
+}
+.pk-home{color:var(--pk-dim)}
+.kicker{font-size:12.5px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 22px}
+.scene-line{font-family:var(--pk-serif);font-size:clamp(19px,4.6vw,24px);line-height:1.7;margin:0 0 10px;color:var(--pk-ink)}
+.scene-line.dim{color:var(--pk-dim);font-size:16.5px}
+.pk-hero h1{font-size:clamp(28px,7vw,44px);margin:34px 0 16px;letter-spacing:.02em}
+.pk-hero h1 em{font-style:normal;color:var(--dye);box-shadow:inset 0 -.18em 0 rgba(29,61,140,.28)}
+.hero-sub{font-family:var(--pk-serif);font-size:17px;color:#4a4337;max-width:30em}
+.pk-btn{border-color:var(--blue);color:var(--blue);font-weight:600}
+.pk-btn:hover{background:var(--blue);color:#f7f2e6}
+.go{margin-top:24px}
+
+main.pk-wrap{padding-bottom:10px}
+.act{padding:9vh 0 3vh;scroll-margin-top:16px}
+.act[hidden]{display:none}
+.lab{font-size:12px;letter-spacing:.34em;color:var(--blue);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.lab::before{content:"";width:22px;height:1px;background:var(--blue);opacity:.7}
+.act p{font-family:var(--pk-serif);font-size:17px;margin:0 0 16px;color:#3a342b}
+.act p.big{font-size:clamp(20px,4.8vw,26px);color:var(--pk-ink);line-height:1.6}
+.act p.quiet{color:var(--pk-dim);font-size:15px}
+.en{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:var(--blue);white-space:nowrap}
+.en.wrap{white-space:normal}
+
+/* 操作說明 */
+.legend{list-style:none;padding:0;margin:18px 0;display:grid;gap:10px}
+.legend li{display:flex;gap:14px;align-items:center;font-size:15.5px;color:#3a342b}
+.legend kbd, .act-btn kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;border:1px solid var(--pk-line);
+  border-bottom-width:2px;border-radius:4px;padding:1px 6px;background:var(--paper);color:var(--pk-dim)}
+.legend svg{width:38px;height:28px;flex:none;overflow:visible}
+.toggle{display:inline-flex;gap:10px;align-items:center;font-size:15px;color:#3a342b;cursor:pointer;margin:6px 0 4px}
+.toggle input{width:18px;height:18px;accent-color:var(--blue)}
+
+/* ── 遊戲卡 ── */
+.card{position:relative;background:var(--paper);border:1px solid var(--pk-line);border-radius:10px;
+  box-shadow:0 22px 50px -24px rgba(43,39,32,.45), 0 1px 0 #fff inset;padding:16px 16px 18px;overflow:hidden}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.where{font-family:var(--pk-serif);font-size:19px;margin:0;color:var(--pk-ink)}
+.when{font-size:12.5px;letter-spacing:.18em;color:var(--pk-dim);margin:2px 0 0}
+.route{display:flex;gap:6px;align-items:center;margin:4px 0 0}
+.route i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--pk-dim);display:block;transition:background .3s,border-color .3s}
+.route i.on{background:var(--blue);border-color:var(--blue)}
+.route i.done{background:var(--pk-dim);border-color:var(--pk-dim)}
+.sus{min-width:150px}
+.sus small{display:flex;justify-content:space-between;font-size:12px;color:var(--pk-dim);letter-spacing:.12em;font-variant-numeric:tabular-nums}
+.sus-bar{height:6px;border-radius:3px;background:rgba(43,39,32,.1);overflow:hidden;margin-top:4px}
+.sus-bar i{display:block;height:100%;background:linear-gradient(90deg,#c9a24a,var(--rust));transform-origin:left center;transform:scaleX(0);transition:transform .5s ease}
+
+.stage{margin:12px -4px 4px;position:relative}
+.stage svg{display:block;width:100%;height:auto;overflow:visible}
+.ink{fill:none;stroke:#3a342b;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ink.thin{stroke-width:1.4;opacity:.7}
+.skin{fill:#e8d9bd;stroke:#3a342b;stroke-width:2}
+.robe{fill:#5b6b7d;stroke:#2b2720;stroke-width:2}
+.robe.b{fill:#7d6a52}
+.robe.c{fill:#6e7a5a}
+.hair{fill:#24211c}
+.sc{opacity:0;transition:opacity .45s ease}
+.sc.on{opacity:1}
+
+/* 目光記號 */
+.glyph{opacity:0;transform:scale(.4);transform-box:view-box;transform-origin:0 0;transition:opacity .18s ease, transform .22s cubic-bezier(.3,1.5,.5,1)}
+.glyph.show{opacity:1;transform:scale(1)}
+.g-eye .white{fill:#fffdf7;stroke:var(--rust);stroke-width:2.6}
+.g-eye .iris{fill:var(--rust)}
+.g-shut path{fill:none;stroke:var(--pk-dim);stroke-width:2.6;stroke-linecap:round}
+.g-step path{fill:none;stroke:var(--rust);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.g-talk .bub{fill:#fffdf7;stroke:var(--rust);stroke-width:2.4}
+.g-talk circle{fill:var(--rust)}
+.ring{fill:none;stroke:var(--rust);stroke-width:2;opacity:.35}
+
+.cue{min-height:3.4em;margin:6px 0 10px;font-family:var(--pk-serif);font-size:18px;line-height:1.6;color:var(--pk-ink)}
+.cue.wait{color:var(--pk-dim)}
+.timer{height:4px;border-radius:2px;background:rgba(43,39,32,.08);overflow:hidden;margin:0 0 12px;visibility:hidden}
+.timer.on{visibility:visible}
+.timer i{display:block;height:100%;background:var(--rust);transform-origin:left center;transform:scaleX(1)}
+.acts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.acts.two{grid-template-columns:repeat(2,1fr)}
+.act-btn{appearance:none;cursor:pointer;font:inherit;font-size:17px;letter-spacing:.12em;padding:14px 8px 12px;
+  border-radius:8px;border:1.5px solid var(--blue);background:#fbf8f0;color:var(--blue);
+  display:flex;flex-direction:column;align-items:center;gap:6px;touch-action:manipulation;
+  transition:background .15s, color .15s, transform .1s, opacity .2s}
+.act-btn:hover{background:var(--blue);color:#f7f2e6}
+.act-btn:hover kbd{color:#f7f2e6;background:transparent}
+.act-btn:active{transform:translateY(1px)}
+.acts.idle .act-btn{opacity:.42}
+.act-btn.right{background:var(--dye);border-color:var(--dye);color:#fff}
+.act-btn.wrong{background:var(--rust);border-color:var(--rust);color:#fff}
+.result{min-height:3em;margin:12px 0 0;font-family:var(--pk-serif);font-size:16px;color:#3a342b;line-height:1.7}
+.result b{font-weight:600}
+.result .ok{color:var(--dye)}
+.result .bad{color:var(--rust)}
+.card-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:10px;min-height:46px}
+.card-foot .pk-btn[hidden]{display:none}
+.outro{margin:14px 0 0;padding:14px 16px;border-left:3px solid var(--blue);background:rgba(29,61,140,.05);border-radius:0 6px 6px 0}
+.outro[hidden]{display:none}
+.outro p{font-family:var(--pk-serif);font-size:16.5px;margin:0 0 10px;color:#3a342b}
+.outro p:last-child{margin:0}
+
+/* 作坊 */
+.leaf{transition:opacity 1s ease}
+#dyeLeaves .leaf{opacity:0}
+.mill-dyed #dyeLeaves .leaf{opacity:1}
+.handblue{opacity:0;transition:opacity 1.4s ease 1.2s}
+.mill-dyed .handblue{opacity:.85}
+.pow{opacity:0;transition:opacity .7s ease}
+.st1 .pow1, .st2 .pow2, .st3 .pow3{opacity:1}
+.chunk{opacity:0;transition:opacity .5s ease}
+.st2 .chunk{opacity:1}
+.sprinkle circle{opacity:0;transition:opacity .4s ease}
+.mill-dyed .sprinkle circle{opacity:.9}
+#incense{transform-box:view-box;transform-origin:548px 262px;transition:transform .8s ease}
+#ember{transition:transform .8s ease}
+.glow{animation:flick 2.6s ease-in-out infinite alternate}
+@keyframes flick{from{opacity:.35}to{opacity:.7}}
+.stir{transform-box:view-box;transform-origin:320px 190px}
+.mill-dyed .stir{animation:stir 1.1s ease-in-out 4 alternate}
+@keyframes stir{from{transform:translateX(-7px)}to{transform:translateX(7px)}}
+
+/* 筆記本 */
+.notebook{margin:16px 0 0;padding:14px 16px 12px;background:#fffdf6;border:1px solid var(--pk-line);border-radius:6px;
+  background-image:repeating-linear-gradient(180deg, transparent 0 29px, rgba(29,61,140,.12) 29px 30px);background-position:0 10px}
+.notebook[hidden]{display:none}
+.notebook h3{margin:0 0 6px;font-size:13px;letter-spacing:.28em;color:var(--pk-dim);font-weight:400}
+.notebook ol{margin:0;padding-left:1.4em;font-family:var(--pk-serif);font-size:15.5px;line-height:30px;color:#2b2720}
+.notebook li{opacity:0;transform:translateY(6px);transition:opacity .5s, transform .5s}
+.notebook li.in{opacity:1;transform:none}
+.notebook li.late{color:var(--pk-dim)}
+
+/* 兩堆茶 */
+.piles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0 10px}
+.piles figure{margin:0;background:var(--paper);border:1px solid var(--pk-line);border-radius:8px;padding:10px 10px 8px}
+.piles svg{display:block;width:100%;height:auto}
+.piles figcaption{font-size:13px;color:var(--pk-dim);letter-spacing:.1em;text-align:center;margin-top:4px}
+.ledger{margin:18px 0;padding:16px;border:1px dashed rgba(43,39,32,.3);border-radius:6px;font-family:var(--pk-serif);font-variant-numeric:tabular-nums}
+.ledger div{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--pk-line);font-size:16px}
+.ledger div:last-child{border-bottom:0}
+.ledger b{font-weight:600;color:var(--blue)}
+.ledger .hl b{color:var(--rust)}
+blockquote.q{margin:18px 0;padding:4px 0 4px 18px;border-left:2px solid var(--blue);font-family:var(--pk-serif);font-size:18px;line-height:1.7;color:var(--pk-ink)}
+blockquote.q .en{display:block;font-size:15px;margin-top:4px;white-space:normal}
+.tally{font-family:var(--pk-serif);font-size:clamp(22px,5.6vw,30px);line-height:1.5;margin:10px 0 18px;color:var(--pk-ink)}
+.tally b{color:var(--rust);font-variant-numeric:tabular-nums}
+.final{font-family:var(--pk-serif);font-size:clamp(21px,5vw,27px);line-height:1.65;color:var(--pk-ink);margin:28px 0 14px}
+.final .blue{color:var(--blue)}
+.again{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:20px}
+.record{font-size:13.5px;color:var(--pk-dim)}
+
+@media (max-width:560px){
+  .act{padding:7vh 0 2vh}
+  .acts{gap:7px}
+  .act-btn{font-size:15.5px;letter-spacing:.06em;padding:12px 4px 10px}
+  .sus{min-width:0;width:100%}
+  .piles{gap:8px}
+  .cue{font-size:17px}
+}
+@media (prefers-reduced-motion: reduce){
+  .glow, .mill-dyed .stir{animation:none}
+  .glyph{transition:none}
+  .handblue{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">1848 年秋．上海往西的運河上</p>
+    <p class="scene-line rv">剃刀不是在剃，是在刮。</p>
+    <p class="scene-line dim rv">替你剃頭的苦力大概這輩子第一次拿剃刀。你痛得眼淚直流，艙簾縫裡，船夫們看得津津有味。</p>
+    <h1 class="rv">倫敦人喝的綠茶<br>是<em>染</em>過的</h1>
+    <p class="hero-sub rv">要看見怎麼染，你得先扮成中國人，走進一間洋人不准去的茶作坊——而且路上每一道目光，都不能讓它在你臉上停太久。</p>
+    <button class="pk-btn go rv" id="goStart" type="button">接上辮子</button>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="act" id="pro" hidden aria-labelledby="proH">
+    <p class="lab" id="proH">委託</p>
+    <p>你叫 Robert Fortune，蘇格蘭園丁出身的植物獵人。1848 年 6 月 20 日你從南安普敦上船，8 月 14 日到香港。東印度公司開的單子很清楚：最好的茶樹、茶種、做茶的師傅和工具，統統送去喜馬拉雅山腳下的公司茶園。</p>
+    <p>麻煩在於好茶長在內地，洋人卻只能在通商口岸附近走動。所以你換上清朝的衣服，把前幾年戴過的那條辮子拿去請理髮匠梳亮。內地人叫你 <span class="en">Sing Wa</span>。</p>
+    <p>跟著你的有兩個人：精明的僕人 Wang；還有一個笨手笨腳的苦力，唯一的長處是老家就在你要去的那一帶。</p>
+    <p class="big">接下來三站，每當有人盯上你，你只有一兩秒能做出對的掩飾。</p>
+    <ul class="legend" aria-label="操作說明">
+      <li><svg viewBox="-20 -14 40 28" aria-hidden="true"><g class="g-eye"><path class="white" d="M-17 0 Q0 -13 17 0 Q0 13 -17 0Z"/><circle class="iris" r="5"/></g></svg><span>有人盯著你的臉 → <b>低頭</b> <kbd>1</kbd></span></li>
+      <li><svg viewBox="-20 -14 40 28" aria-hidden="true"><g class="g-step"><path d="M10 -10 L-2 0 L10 10 M-2 -10 L-14 0 L-2 10"/></g></svg><span>有人湊過來 → <b>轉身</b> <kbd>2</kbd></span></li>
+      <li><svg viewBox="-20 -14 40 28" aria-hidden="true"><g class="g-talk"><path class="bub" d="M-16 -11 H16 V7 H-2 L-9 13 V7 H-16Z"/><circle cx="-7" cy="-2" r="2"/><circle cy="-2" r="2"/><circle cx="7" cy="-2" r="2"/></g></svg><span>有人跟你搭話 → <b>開口</b> <kbd>3</kbd></span></li>
+    </ul>
+    <label class="toggle"><input type="checkbox" id="untimed"> 不限時（不倒數，輪流選擇）</label>
+    <p class="quiet">失手不會被抓走——Wang 會想辦法圓場，不過可疑度會往上爬。</p>
+    <button class="pk-btn go" id="goBoard" type="button">上船</button>
+  </section>
+
+  <section class="act" id="game" hidden aria-labelledby="whereTxt">
+    <div class="card" id="card">
+      <div class="card-top">
+        <div>
+          <p class="where" id="whereTxt">運河船艙</p>
+          <p class="when" id="whenTxt">1848 年秋</p>
+          <div class="route" id="route" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        </div>
+        <div class="sus" aria-label="可疑度">
+          <small><span>可疑度</span><span id="susNum">0</span></small>
+          <div class="sus-bar"><i id="susBar"></i></div>
+        </div>
+      </div>
+
+      <div class="stage" aria-hidden="true">
+        <svg viewBox="0 0 600 300" id="art">
+          <defs>
+            <radialGradient id="fireG" gradientUnits="userSpaceOnUse" cx="320" cy="262" r="150">
+              <stop offset="0" stop-color="#e2793a" stop-opacity=".75"/>
+              <stop offset="1" stop-color="#e2793a" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <!-- 第一站：船艙 -->
+          <g class="sc" id="sc-boat">
+            <path class="ink" d="M30 262 V120 Q300 40 570 120 V262"/>
+            <path class="ink" d="M20 262 H580"/>
+            <path class="ink thin" d="M40 132 Q300 62 560 132"/>
+            <g>
+              <rect x="440" y="106" width="96" height="156" fill="#d9c79c" stroke="#3a342b" stroke-width="2"/>
+              <path class="ink thin" d="M452 110 V258 M464 110 V258 M476 110 V258 M496 110 V258 M508 110 V258 M520 110 V258"/>
+              <rect x="482" y="108" width="9" height="152" fill="#2b2720" opacity=".85"/>
+            </g>
+            <g transform="translate(205 170)">
+              <path class="robe" d="M-52 92 Q-48 34 0 28 Q48 34 52 92Z"/>
+              <circle class="skin" r="27"/>
+              <path class="hair" d="M8 -26 A27 27 0 0 1 26 8 L14 4 Q16 -12 8 -26Z"/>
+              <path d="M22 4 Q40 40 30 84" fill="none" stroke="#24211c" stroke-width="6" stroke-linecap="round"/>
+            </g>
+            <g transform="translate(300 152)">
+              <path class="robe b" d="M-40 110 Q-36 40 0 34 Q36 40 40 110Z"/>
+              <circle class="skin" r="22"/>
+              <path class="ink" d="M-26 50 Q-60 20 -78 6"/>
+              <path d="M-84 0 l-14 -10 l4 -4 l14 10z" fill="#9aa3ab" stroke="#3a342b" stroke-width="1.5"/>
+            </g>
+          </g>
+
+          <!-- 第二站：客棧 -->
+          <g class="sc" id="sc-inn">
+            <path class="ink" d="M20 70 H580"/>
+            <g>
+              <path class="ink thin" d="M120 70 V96 M300 70 V92 M480 70 V96"/>
+              <ellipse cx="120" cy="112" rx="15" ry="19" fill="#d8823f" stroke="#3a342b" stroke-width="1.6" opacity=".85"/>
+              <ellipse cx="480" cy="112" rx="15" ry="19" fill="#d8823f" stroke="#3a342b" stroke-width="1.6" opacity=".85"/>
+            </g>
+            <g transform="translate(330 150)"><path class="robe c" d="M-34 74 Q-30 26 0 22 Q30 26 34 74Z"/><circle class="skin" r="19"/><path class="hair" d="M-19 -2 A19 19 0 0 1 19 -2 Q0 -10 -19 -2Z"/></g>
+            <g transform="translate(420 150)"><path class="robe b" d="M-34 74 Q-30 26 0 22 Q30 26 34 74Z"/><circle class="skin" r="19"/><path class="hair" d="M-19 -2 A19 19 0 0 1 19 -2 Q0 -10 -19 -2Z"/></g>
+            <g transform="translate(150 150)">
+              <path class="robe" d="M-38 76 Q-34 26 0 22 Q34 26 38 76Z"/>
+              <circle class="skin" r="21"/>
+              <path class="hair" d="M8 -20 A21 21 0 0 1 21 6 L12 3 Q13 -9 8 -20Z"/>
+            </g>
+            <g transform="translate(520 140)"><path class="robe" style="fill:#8b5a3c" d="M-36 92 Q-32 30 0 26 Q32 30 36 92Z"/><circle class="skin" r="21"/></g>
+            <rect x="60" y="214" width="430" height="16" rx="3" fill="#8a6a45" stroke="#3a342b" stroke-width="2"/>
+            <path class="ink" d="M90 230 V280 M460 230 V280"/>
+            <ellipse cx="200" cy="211" rx="20" ry="7" fill="#f4eee0" stroke="#3a342b" stroke-width="1.6"/>
+            <ellipse cx="270" cy="211" rx="20" ry="7" fill="#f4eee0" stroke="#3a342b" stroke-width="1.6"/>
+            <ellipse cx="370" cy="211" rx="20" ry="7" fill="#f4eee0" stroke="#3a342b" stroke-width="1.6"/>
+            <path class="ink" d="M160 206 L196 190 M163 210 L199 194"/>
+          </g>
+
+          <!-- 第三站：客船 -->
+          <g class="sc" id="sc-river">
+            <path d="M0 268 Q150 256 300 268 T600 268" fill="none" stroke="#3b62b8" stroke-width="2" opacity=".5"/>
+            <path d="M0 284 Q150 272 300 284 T600 284" fill="none" stroke="#3b62b8" stroke-width="1.5" opacity=".35"/>
+            <path class="ink" d="M300 40 V214"/>
+            <path d="M300 48 L420 70 L410 196 L300 200Z" fill="#e4d6b4" stroke="#3a342b" stroke-width="2"/>
+            <path class="ink thin" d="M300 90 L416 104 M300 130 L414 140 M300 168 L412 172"/>
+            <g transform="translate(140 196)"><circle class="skin" r="15"/><path class="hair" d="M-15 -2 A15 15 0 0 1 15 -2 Q0 -8 -15 -2Z"/></g>
+            <g transform="translate(190 192)"><circle class="skin" r="15"/><path class="hair" d="M-15 -2 A15 15 0 0 1 15 -2 Q0 -8 -15 -2Z"/></g>
+            <g transform="translate(250 190)"><circle class="skin" r="17"/><path class="hair" d="M6 -16 A17 17 0 0 1 17 5 L10 2 Q11 -8 6 -16Z"/><path d="M15 4 Q26 22 20 34" fill="none" stroke="#24211c" stroke-width="5" stroke-linecap="round"/></g>
+            <g transform="translate(360 192)"><circle class="skin" r="15"/><path class="hair" d="M-15 -2 A15 15 0 0 1 15 -2 Q0 -8 -15 -2Z"/></g>
+            <g transform="translate(410 196)"><circle class="skin" r="14"/><path class="hair" d="M-14 -2 A14 14 0 0 1 14 -2 Q0 -8 -14 -2Z"/></g>
+            <g transform="translate(470 192)"><circle class="skin" r="16"/></g>
+            <path d="M40 210 H560 L520 254 H84Z" fill="#7a5a3a" stroke="#2b2720" stroke-width="2"/>
+            <path class="ink thin" d="M70 230 H530"/>
+          </g>
+
+          <!-- 第四站：作坊 -->
+          <g class="sc" id="sc-mill">
+            <ellipse cx="320" cy="262" rx="190" ry="40" fill="url(#fireG)" class="glow"/>
+            <g transform="translate(96 150)">
+              <path class="robe" style="fill:#4f5a52" d="M-44 120 Q-40 36 0 30 Q40 36 44 120Z"/>
+              <circle class="skin" r="24"/>
+              <path class="hair" d="M-24 -4 A24 24 0 0 1 24 -4 Q0 -14 -24 -4Z"/>
+            </g>
+            <g>
+              <path d="M66 236 Q66 274 104 274 Q142 274 142 236Z" fill="#f4f1ea" stroke="#3a342b" stroke-width="2"/>
+              <ellipse cx="104" cy="236" rx="38" ry="8" fill="#f4f1ea" stroke="#3a342b" stroke-width="2"/>
+              <ellipse class="pow pow1" cx="104" cy="237" rx="28" ry="5" fill="#1b2f78"/>
+              <ellipse class="pow pow3" cx="104" cy="237" rx="30" ry="5.5" fill="#93a3c7"/>
+              <path d="M118 230 L150 196" stroke="#6b5e4c" stroke-width="7" stroke-linecap="round"/>
+            </g>
+            <g class="chunk"><rect x="200" y="252" width="22" height="13" rx="3" fill="#ece8de" stroke="#3a342b" stroke-width="1.5"/></g>
+            <ellipse class="pow pow2" cx="170" cy="282" rx="16" ry="5" fill="#f2efe6" stroke="#3a342b" stroke-width="1"/>
+            <path d="M160 200 Q320 290 480 200" fill="#2e2b27" stroke="#1d1a16" stroke-width="2"/>
+            <ellipse cx="320" cy="200" rx="160" ry="34" fill="#45403a" stroke="#1d1a16" stroke-width="3"/>
+            <g id="leafBox">
+              <g id="natLeaves"></g>
+              <g id="dyeLeaves"></g>
+            </g>
+            <g class="sprinkle">
+              <circle cx="300" cy="176" r="2.4" fill="#93a3c7"/><circle cx="314" cy="168" r="2" fill="#93a3c7"/>
+              <circle cx="326" cy="180" r="2.6" fill="#93a3c7"/><circle cx="290" cy="186" r="2" fill="#93a3c7"/>
+              <circle cx="338" cy="172" r="2.2" fill="#93a3c7"/>
+            </g>
+            <g class="stir">
+              <g transform="translate(262 186)">
+                <path class="skin" d="M-22 -40 L-14 -4 Q-10 10 4 10 Q18 10 20 -2 L24 -36 Q22 -42 16 -38 L14 -18 L10 -44 Q6 -50 2 -44 L2 -18 L-4 -46 Q-8 -52 -12 -46 L-8 -16 L-14 -40 Q-18 -46 -22 -40Z"/>
+                <path class="handblue" fill="#1d3d8c" d="M-22 -40 L-14 -4 Q-10 10 4 10 Q18 10 20 -2 L24 -36 Q22 -42 16 -38 L14 -18 L10 -44 Q6 -50 2 -44 L2 -18 L-4 -46 Q-8 -52 -12 -46 L-8 -16 L-14 -40 Q-18 -46 -22 -40Z"/>
+              </g>
+              <g transform="translate(378 186) scale(-1 1)">
+                <path class="skin" d="M-22 -40 L-14 -4 Q-10 10 4 10 Q18 10 20 -2 L24 -36 Q22 -42 16 -38 L14 -18 L10 -44 Q6 -50 2 -44 L2 -18 L-4 -46 Q-8 -52 -12 -46 L-8 -16 L-14 -40 Q-18 -46 -22 -40Z"/>
+                <path class="handblue" fill="#1d3d8c" d="M-22 -40 L-14 -4 Q-10 10 4 10 Q18 10 20 -2 L24 -36 Q22 -42 16 -38 L14 -18 L10 -44 Q6 -50 2 -44 L2 -18 L-4 -46 Q-8 -52 -12 -46 L-8 -16 L-14 -40 Q-18 -46 -22 -40Z"/>
+              </g>
+            </g>
+            <g>
+              <rect x="536" y="250" width="24" height="16" rx="3" fill="#8a6a45" stroke="#3a342b" stroke-width="1.6"/>
+              <rect id="incense" x="546" y="130" width="4" height="132" fill="#9b4a2c"/>
+              <circle id="ember" cx="548" cy="130" r="3.2" fill="#e2793a"/>
+            </g>
+          </g>
+
+          <!-- 目光記號（位置由 JS 放） -->
+          <g id="glyphPos" transform="translate(-100 -100)">
+            <g class="glyph g-eye" id="gEye"><circle class="ring" r="26"/><path class="white" d="M-20 0 Q0 -15 20 0 Q0 15 -20 0Z"/><circle class="iris" r="6"/></g>
+            <g class="glyph g-step" id="gStep"><circle class="ring" r="24"/><path d="M12 -12 L-2 0 L12 12 M-4 -12 L-18 0 L-4 12"/></g>
+            <g class="glyph g-talk" id="gTalk"><path class="bub" d="M-22 -16 H22 V10 H0 L-10 19 V10 H-22Z"/><circle cx="-10" cy="-3" r="2.6"/><circle cy="-3" r="2.6"/><circle cx="10" cy="-3" r="2.6"/></g>
+            <g class="glyph g-shut" id="gShut"><path d="M-18 -2 Q0 12 18 -2 M-10 6 L-14 12 M0 9 L0 15 M10 6 L14 12"/></g>
+          </g>
+        </svg>
+      </div>
+
+      <p class="cue wait" id="cue">……</p>
+      <div class="timer" id="timer" aria-hidden="true"><i id="timerBar"></i></div>
+      <div class="acts idle" id="acts" role="group" aria-label="掩飾動作（鍵盤 1、2、3）" tabindex="-1"></div>
+      <p class="result" id="result" aria-live="polite"></p>
+      <div class="outro" id="outro" hidden></div>
+      <div class="notebook" id="notebook" hidden>
+        <h3>FORTUNE 的筆記本</h3>
+        <ol id="notes"></ol>
+      </div>
+      <div class="card-foot">
+        <button class="pk-btn" id="stageGo" type="button">開始</button>
+        <button class="pk-btn" id="beatNext" type="button" hidden>繼續</button>
+        <button class="pk-btn" id="stageNext" type="button" hidden>下一站</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="act" id="why" hidden aria-labelledby="whyH">
+    <p class="lab" id="whyH">為什麼要染</p>
+    <p>後來你讓人去問做茶的人：為什麼要染？不染不是更好嗎？</p>
+    <p>他們很爽快：不摻這些東西，茶好得多；他們自己從來不喝染過的茶。可是洋人似乎就愛茶裡有普魯士藍和石膏，看起來<span class="en">“uniform and pretty”</span>——又齊又好看。材料便宜，染過的茶又總能賣到更高的價錢，何樂而不為？</p>
+    <div class="piles">
+      <figure>
+        <svg viewBox="0 0 200 120" id="pileNat" role="img" aria-label="沒染的茶葉：顏色深淺不一"></svg>
+        <figcaption>沒染：深淺不一</figcaption>
+      </figure>
+      <figure>
+        <svg viewBox="0 0 200 120" id="pileDye" role="img" aria-label="染過的茶葉：每一片都同一個藍綠色"></svg>
+        <figcaption>染過：一模一樣</figcaption>
+      </figure>
+    </div>
+    <blockquote class="q">難怪中國人把西方人當成「蠻夷」。<span class="en">No wonder that the Chinese consider the natives of the west to be a race of ‘barbarians.’</span></blockquote>
+    <p class="quiet">Fortune 在書裡這樣嘀咕。他還把色料樣本寄回倫敦，送去參加 1851 年的萬國工業博覽會；化學家 Warrington 驗出來：煅燒過的纖維石膏、薑黃根、普魯士藍。</p>
+  </section>
+
+  <section class="act" id="count" hidden aria-labelledby="countH">
+    <p class="lab" id="countH">他算了一筆帳</p>
+    <p>Fortune 特地量了用量。他說不是要教誰染茶，是要讓英國、尤其是美國的綠茶客知道，自己一年喝下多少普魯士藍和石膏。</p>
+    <div class="ledger" id="ledger">
+      <div><span>一批茶葉</span><b>14½ 磅</b></div>
+      <div><span>撒進去的色粉</span><b>8 錢 2 分半</b></div>
+      <div><span>換算</span><b id="lgG">約 31 公克（略多於 1 盎司）</b></div>
+      <div class="hl"><span>他的結論：每喝 100 磅染色綠茶</span><b>喝下半磅以上</b></div>
+    </div>
+    <p class="quiet" id="lgNote">用他自己的數字算，每 100 磅算出來是 0.47 磅上下。「半磅以上」多算了一點點——看得出他寫到這裡有點火大。</p>
+    <p>然後他補了一刀：去跟喝這種茶的人說中國人吃貓、吃狗、吃老鼠，他們會舉起雙手大驚小怪，可憐起那些「天朝子民」。</p>
+  </section>
+
+  <section class="act" id="same" hidden aria-labelledby="sameH">
+    <p class="lab" id="sameH">同一棵樹</p>
+    <p>隔年（1849）你又扮裝上路，換了僕人 Sing-Hoo，翻過武夷山。回程經過一座有滿洲駐兵把守的邊城，Sing-Hoo 求你待在轎子裡別下來；一個小官走過來看了看，問了從哪來、往哪去，就走了。出城過了河，轎槓「啪」一聲斷成兩截——你暗自慶幸，還好不是斷在城裡。</p>
+    <p>上過武夷山之後，你把各地採來的乾標本攤開比對：做紅茶的武夷茶樹，和徽州做綠茶的茶樹，差別細到連「變種」都稱不上。紅茶和綠茶的分別，在於怎麼做，<span class="en">“upon manipulation, and upon that only.”</span></p>
+    <p class="big">同一棵樹，炒成綠的，或做成紅的。到了倫敦，人們還嫌它綠得不夠。</p>
+  </section>
+
+  <section class="act" id="ship" hidden aria-labelledby="shipH">
+    <p class="lab" id="shipH">十六只玻璃箱</p>
+    <p>1851 年 2 月 16 日，你帶著簽了約的八位中國師傅與工匠、一整套製茶工具，和塞滿茶苗與種子的十六只玻璃箱離開上海。那叫沃德箱：密封的小溫室，水氣在玻璃裡循環，植物不必澆水也熬得過幾個月的海路。3 月 15 日抵達加爾各答，再往西北，送進喜馬拉雅山麓的公司茶園。</p>
+    <p>結局帶點諷刺：你運去西北諸省的中國茶樹，後來大多沒能活下來；英國人愛喝濃黑的茶，撐起印度茶業的主要是阿薩姆本地的品種。留下來、派上大用場的，是那些師傅帶過去的手藝。</p>
+  </section>
+
+  <section class="act" id="end" hidden aria-labelledby="endH">
+    <p class="lab" id="endH">回頭看</p>
+    <p class="tally" id="tally">這一趟，你被盯了 <b>0</b> 次，閃過 <b>0</b> 次。</p>
+    <p>你一直在躲別人的眼睛。那鍋茶葉也一樣：它被染成那個顏色，為的是通過另一雙眼睛的檢查——倫敦雜貨店櫃台前，那雙要「又齊又好看」的眼睛。</p>
+    <p>而那雙眼睛的主人，正在可憐「吃貓的中國人」。</p>
+    <p class="final">下次有東西綠得特別整齊、特別好看，<br>想想那幾雙<span class="blue">藍色的手</span>。</p>
+    <div class="again">
+      <button class="pk-btn" id="replay" type="button">再扮一次</button>
+      <span class="record" id="record"></span>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Robert Fortune, <i>A Journey to the Tea Countries of China</i> (1852)；Sarah Rose, <i>For All the Tea in China</i> (2010)；Wikipedia “Robert Fortune”。
+</footer>
+
+<script id="core">
+'use strict';
+/* ── 純函式與資料（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var ACTIONS = {
+    duck: { label: '低頭', glyph: 'eye' },
+    turn: { label: '轉身', glyph: 'step' },
+    talk: { label: '開口', glyph: 'talk' },
+    note: { label: '記下', glyph: 'shut' }
+  };
+
+  /* 每站：基準反應窗（毫秒）、動作、節拍。eye = 記號位置（viewBox 座標） */
+  var STAGES = [
+    { id: 'boat', where: '運河船艙', when: '1848 年秋．離開上海不久', base: 2600,
+      acts: ['duck', 'turn', 'talk'],
+      intro: '船走遠了，船家提醒你：照約定，該換衣服了。偏偏 Wang 那天早上發燒倒下，剃頭的差事落到苦力手上。他先剪掉前後左右的頭髮，只留頭頂一塊，然後拿起剃刀。',
+      beats: [
+        { cue: '剃刀刮過頭皮，你眼眶發熱。簾縫裡有一雙眼睛，正盯著你的臉。', ok: 'duck', at: [486, 150],
+          yes: '你把臉埋低，讓苦力繼續刮。簾縫那頭只看見一顆發亮的腦門。',
+          no: '你抬頭瞪了回去。那個船夫咧嘴一笑，縮回簾後——他好像一點也不意外。' },
+        { cue: '另一個船夫掀開簾子，探身進來看熱鬧。', ok: 'turn', at: [420, 196],
+          yes: '你側過身，用背擋住他。剃到一半的頭，沒讓他看全。',
+          no: '他看得一清二楚，回頭跟同伴笑成一團。苦力手一抖，你又疼得吸了口氣。' },
+        { cue: '苦力停下剃刀嘆氣：「Hai-yah——很糟，很糟。」船夫們等著聽你回什麼。', ok: 'talk', at: [330, 88],
+          yes: '你擠出一句「不礙事」。苦力聳聳肩，繼續刮。',
+          no: '你一聲不吭，艙裡安靜得尷尬。苦力自己接話：「頭一回，頭一回。」大家笑了，話題過去了。' }
+      ],
+      outro: ['後來你才想通：提醒你「照約定換衣服」的，就是船家自己。雇船時說好的事，他早知道艙裡坐的是洋人。',
+              '那天下午他們不是在識破你，是在看戲。Fortune 記下船夫的反應：<span class="en">“thinking it capital sport.”</span>']
+    },
+    { id: 'inn', where: '杭州附近的客棧', when: '1848 年秋．正午', base: 2200,
+      acts: ['duck', 'turn', 'talk'],
+      intro: '一早沒吃東西，到客棧正好趕上午飯。滿桌菜，你卻高興不起來：你已經三年沒拿過筷子。在這裡，最讓人側目的，莫過於一個大人筷子拿得笨手笨腳。',
+      beats: [
+        { cue: '圍坐的旅客打量你這身衣裳，視線從衣領移到你的臉。', ok: 'duck', at: [330, 108],
+          yes: '你低頭整理袖口。他們看了兩眼，轉去聊天了。',
+          no: '你和其中一人對上了眼。他愣了一下——Wang 剛好進門，大聲問店家要熱水，把他的注意力拉走了。' },
+        { cue: '店家扯開嗓門：「Sing Wa，Sing Wa，過來坐下吃飯！」', ok: 'talk', at: [520, 86],
+          yes: '「不了，謝謝，等我的僕人回來再吃。」旅人各吃各的時辰本來就不稀奇，誰也沒多看你一眼。',
+          no: '你下意識走過去拿起筷子。第一塊肉掉回盤裡，桌邊安靜了半拍。店家趕緊端上下一道菜，大家的筷子又動了起來。' },
+        { cue: '鄰座一位客人端著茶，往你這邊挪過來。', ok: 'turn', at: [262, 182],
+          yes: '你轉身去翻行李，背對著他。他端著茶又坐回去了。',
+          no: '他湊得很近，盯著你的鼻樑看了好一會兒。Wang 遞上一支菸，跟他聊起了今年的茶價。' }
+      ],
+      outro: ['Fortune 寧可餓肚子，也不在一桌陌生人面前用生疏的筷子。那一章的小標寫得很老實：「我沒吃到早飯，正餐也丟了」。',
+              '到了下一條船上，他已經跟乘客圍著同一鍋稀飯，一人一副筷子。']
+    },
+    { id: 'river', where: '往徽州的客船', when: '1848 年秋．逆流而上', base: 1900,
+      acts: ['duck', 'turn', 'talk'],
+      intro: '換了一條客船往上游走。對面鋪位睡著一個侏儒；早上廚子把稀飯盛進大碗放涼，乘客四人一組圍著吃。你端著碗、拿著筷子，自覺已經是個很像樣的中國人了。可是那個苦力憋不住了。',
+      beats: [
+        { cue: '對面的乘客趁你低頭喝粥，偷瞄了你一眼。', ok: 'duck', at: [150, 150],
+          yes: '你把碗端得更高，整張臉藏在碗後。',
+          no: '他看見了你的眼睛，眉頭一皺。Wang 在旁邊大聲咳嗽，說你是北邊來的，水土不服。' },
+        { cue: '苦力和一個船夫咬耳朵，兩人一起轉頭，朝你走過來。', ok: 'turn', at: [440, 168],
+          yes: '你轉身望向河岸，假裝在看山。他們在你背後站了一會兒，走開了。',
+          no: '船夫把你從頭看到腳，看得很仔細。Wang 塞給他幾個銅錢，請他去幫忙看舵。' },
+        { cue: '一位乘客搭話：「客官打哪兒來？」', ok: 'talk', at: [230, 132],
+          yes: '你含糊應了一聲，Wang 立刻接上：「很遠很遠的省份。」對方點點頭，不再追問。',
+          no: '你沒接話，他又問了一遍，聲音更大。Wang 搶著回答，說老爺耳朵不大好。' },
+        { cue: '整條船的人都在偷看。有人假裝看風景，眼角一直往你這邊飄。', ok: 'duck', at: [400, 130],
+          yes: '你閉上眼睛裝睡。偷看的人沒了對象，漸漸無聊了。',
+          no: '你和三四雙眼睛同時對上。這下全船都確定了。' }
+      ],
+      outro: ['祕密是苦力洩漏的。他私下跟船夫說，你是上海那些「紅毛」之一——當然，叮囑人家千萬別說出去。',
+              'Wang 把你拉到一旁，用洋涇浜英語下了結論：<span class="en">“that coolie he too much a fool-o”</span>。那苦力是個傻瓜，最好打發他走，免得鬧事。']
+    },
+    { id: 'mill', where: '徽州．綠茶作坊', when: '1848 年秋．松蘿山所在的徽州茶區', base: 1800,
+      acts: ['note', 'duck'],
+      intro: '你終於站進一間做出口綠茶的作坊。炭火上一排鐵鍋，工人赤手翻炒。上色的工序由工頭親自掌管，他的瓷研缽就擺在你三步外。你袖子裡有本筆記本：他背過身時就記（<kbd>1</kbd>）；他轉頭看你時，收好本子、低頭（<kbd>2</kbd>）。',
+      beats: [
+        { cue: '工頭背過身，把一塊深藍色的東西丟進瓷研缽，開始磨。', ok: 'note', at: [96, 100], step: 1,
+          yes: '你飛快記下。', no: '' },
+        { cue: '他忽然抬起頭，朝你這邊看。', ok: 'duck', at: [96, 100],
+          yes: '你低頭盯著鍋，筆記本已經縮回袖子裡。',
+          no: '他瞇起眼睛看你手上的本子。Wang 笑著搶話：「我家老爺遠道來的，愛記些新鮮事。」工頭聳聳肩。' },
+        { cue: '他把一塊石膏扔進炒茶的炭火裡，轉身去顧鍋。', ok: 'note', at: [96, 100], step: 2,
+          yes: '你記下。', no: '' },
+        { cue: '他端著研缽走過來，眼光掃過你的手。', ok: 'duck', at: [96, 100],
+          yes: '你的手已經揣進袖子裡了。',
+          no: '他停在你面前，看了你的筆一眼。Wang 遞過去一杯茶，問他這批茶要賣到哪裡。' },
+        { cue: '兩種粉倒在一起，他低頭專心地調。', ok: 'note', at: [96, 100], step: 3,
+          yes: '你記下。', no: '' },
+        { cue: '一炷香快燒到底了。他拿起一支小瓷匙，背對著你走向鍋子。', ok: 'note', at: [96, 100], step: 4,
+          yes: '你記下最後一筆。', no: '' }
+      ],
+      outro: ['工人們用兩隻手飛快地翻炒，讓顏色均勻散開。一鍋鍋茶葉，在你眼前綠得又齊又亮。',
+              '你看著他們的手。<span class="en">“The hands of the workmen were quite blue.”</span>']
+    }
+  ];
+
+  /* 作坊四道工序（Fortune 1852 筆記內容的意譯） */
+  var STEPS = [
+    '',
+    '普魯士藍放進瓷缽，磨成極細的粉。',
+    '石膏丟進炒茶的炭火裡燒，燒軟了再磨成粉。',
+    '石膏四份、普魯士藍三份，調成淡藍色的粉。',
+    '起鍋前約五分鐘（看香計時），用瓷匙把粉撒進每一口鍋。'
+  ];
+
+  function h32(s) {
+    var h = 2166136261 >>> 0;
+    s = String(s);
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    /* 尾端再攪一次（murmur3 fmix），相近字串的高位元才會散開 */
+    h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b) >>> 0;
+    h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35) >>> 0;
+    h ^= h >>> 16;
+    return h >>> 0;
+  }
+  function u01(s) { return h32(s) / 4294967296; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  var STEP_MS = 140, MIN_MS = 1000, MAX_MS = 4000;
+  /* 反應窗：越後面的節拍越短；不限時模式回傳 Infinity */
+  function windowMs(si, bi, untimed) {
+    var s = STAGES[si];
+    if (!s || !(bi >= 0) || bi >= s.beats.length) return null;
+    if (untimed) return Infinity;
+    return clamp(s.base - bi * STEP_MS, MIN_MS, MAX_MS);
+  }
+  /* 目光出現前的停頓（固定抖動，避免節奏可預測但每次載入一致） */
+  function cueDelay(si, bi) { return 700 + (h32('cue|' + si + '|' + bi) % 600); }
+
+  /* 判定：沒選或超時＝late；選錯＝wrong */
+  function judge(expected, chosen, elapsed, win) {
+    if (chosen == null) return 'late';
+    if (!(elapsed >= 0) || !(elapsed <= win)) return 'late';
+    return chosen === expected ? 'ok' : 'wrong';
+  }
+  var SUS_DELTA = { ok: -3, wrong: 14, late: 18 };
+  function nextSus(s, verdict) {
+    var d = SUS_DELTA[verdict];
+    s = Number(s) || 0;
+    return clamp(s + (d || 0), 0, 100);
+  }
+  function rankOf(s) {
+    if (s <= 10) return '像個本地人';
+    if (s <= 35) return '有幾個人起了疑';
+    if (s <= 65) return '船上開始竊竊私語';
+    return '整條街都知道來了個紅毛';
+  }
+  /* 鍵盤 1/2/3 → 動作序號 */
+  function keyToIndex(key, n) {
+    key = String(key);
+    var i = key.length === 1 ? '123'.indexOf(key) : -1;
+    return (i >= 0 && i < n) ? i : -1;
+  }
+  function tally(log) {
+    var seen = 0, dodged = 0;
+    (log || []).forEach(function (v) { if (v === 'ok' || v === 'wrong' || v === 'late') { seen++; if (v === 'ok') dodged++; } });
+    return { seen: seen, dodged: dodged };
+  }
+
+  /* 鍋裡的茶葉：位置在橢圓內（固定雜湊，不隨載入跳） */
+  function leafLayout(n, cx, cy, rx, ry, seed) {
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var a = u01(seed + 'a' + i) * Math.PI * 2;
+      var r = Math.sqrt(u01(seed + 'r' + i)) * 0.88;
+      out.push({
+        x: +(cx + Math.cos(a) * r * rx).toFixed(1),
+        y: +(cy + Math.sin(a) * r * ry).toFixed(1),
+        rot: Math.round(u01(seed + 't' + i) * 180),
+        len: +(7 + u01(seed + 'l' + i) * 6).toFixed(1)
+      });
+    }
+    return out;
+  }
+  var DYED = 'hsl(166,52%,42%)';
+  /* 茶葉顏色：本色深淺不一；染過的一律同一個藍綠 */
+  function leafColors(n, dyed, seed) {
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      if (dyed) { out.push(DYED); continue; }
+      var h = 58 + Math.round(u01(seed + 'h' + i) * 30);
+      var s = 18 + Math.round(u01(seed + 's' + i) * 22);
+      var l = 32 + Math.round(u01(seed + 'v' + i) * 18);
+      out.push('hsl(' + h + ',' + s + '%,' + l + '%)');
+    }
+    return out;
+  }
+  /* 色粉：石膏（白）與普魯士藍按份數混 */
+  var GYPSUM = [238, 236, 228], PRUSSIAN = [18, 43, 107];
+  function powderMix(gyp, blue) {
+    gyp = Math.max(0, +gyp || 0); blue = Math.max(0, +blue || 0);
+    var t = gyp + blue;
+    if (!t) return null;
+    return [0, 1, 2].map(function (k) { return Math.round((GYPSUM[k] * gyp + PRUSSIAN[k] * blue) / t); });
+  }
+  /* Fortune 的帳：1 錢 ≈ 3.78 g（1 兩 ≈ 37.8 g），1 磅 = 453.6 g，1 盎司 = 28.35 g */
+  function dyeLoad(teaLb, mace) {
+    if (!(teaLb > 0) || !(mace >= 0)) return null;
+    var g = mace * 3.78;
+    return { grams: g, oz: g / 28.35, perHundredLb: g / (teaLb * 453.6) * 100 };
+  }
+
+  return {
+    ACTIONS: ACTIONS, STAGES: STAGES, STEPS: STEPS, DYED: DYED,
+    h32: h32, windowMs: windowMs, cueDelay: cueDelay, judge: judge, nextSus: nextSus, rankOf: rankOf,
+    keyToIndex: keyToIndex, tally: tally, leafLayout: leafLayout, leafColors: leafColors,
+    powderMix: powderMix, dyeLoad: dyeLoad
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'fortune48.';
+const store = PK.store(LS);
+const $ = (id) => document.getElementById(id);
+const SVGNS = 'http://www.w3.org/2000/svg';
+
+PK.reveal();
+
+/* ── 狀態 ── */
+const S = { si: 0, bi: 0, sus: 0, log: [], phase: 'idle', elapsed: 0, win: Infinity, cueTimer: 0, autoTimer: 0, chosen: null };
+const untimedBox = $('untimed');
+untimedBox.checked = PK.reduced() || !!store.get('untimed', false);
+untimedBox.addEventListener('change', () => {
+  store.set('untimed', untimedBox.checked);
+  if (untimedBox.checked && S.phase === 'cue') { PK.untick(tick); $('timer').classList.remove('on'); S.win = Infinity; }
+});
+PK.onMotionChange((m) => { if (m && !untimedBox.checked) { untimedBox.checked = true; untimedBox.dispatchEvent(new Event('change')); } });
+const untimed = () => untimedBox.checked;
+
+/* ── 作坊茶葉 ── */
+(function buildLeaves() {
+  const L = Core.leafLayout(46, 320, 196, 140, 26, 'pan');
+  const nat = Core.leafColors(L.length, false, 'pan');
+  const dye = Core.leafColors(L.length, true, 'pan');
+  const mk = (p, fill, i, layer) => {
+    const e = document.createElementNS(SVGNS, 'ellipse');
+    e.setAttribute('class', 'leaf');
+    e.setAttribute('cx', 0); e.setAttribute('cy', 0);
+    e.setAttribute('rx', p.len); e.setAttribute('ry', (p.len * 0.32).toFixed(1));
+    e.setAttribute('fill', fill);
+    e.setAttribute('transform', 'translate(' + p.x + ' ' + p.y + ') rotate(' + p.rot + ')');
+    if (layer === 'dye') e.style.transitionDelay = (Core.h32('d' + i) % 1200) + 'ms';
+    return e;
+  };
+  L.forEach((p, i) => { $('natLeaves').appendChild(mk(p, nat[i], i, 'nat')); $('dyeLeaves').appendChild(mk(p, dye[i], i, 'dye')); });
+  /* 「為什麼要染」的兩堆茶 */
+  const pile = (svg, dyed) => {
+    const P = Core.leafLayout(38, 100, 66, 84, 40, 'pile');
+    const C = Core.leafColors(P.length, dyed, 'pile');
+    P.forEach((p, i) => svg.appendChild(mk(p, C[i], i, 'pile')));
+  };
+  pile($('pileNat'), false); pile($('pileDye'), true);
+  const mix = Core.powderMix(4, 3);
+  document.querySelectorAll('.pow3, .sprinkle circle').forEach((el) => el.setAttribute('fill', 'rgb(' + mix.join(',') + ')'));
+})();
+
+/* ── 帳本數字 ── */
+(function ledger() {
+  const d = Core.dyeLoad(14.5, 8.25);
+  $('lgG').textContent = '約 ' + Math.round(d.grams) + ' 公克（略多於 1 盎司）';
+  $('lgNote').textContent = '用他自己的數字算，每 100 磅算出來是 ' + d.perHundredLb.toFixed(2) + ' 磅上下。「半磅以上」多算了一點點——看得出他寫到這裡有點火大。';
+})();
+
+/* ── 畫面 ── */
+function setSus(v) {
+  S.sus = v;
+  $('susNum').textContent = v;
+  $('susBar').style.transform = 'scaleX(' + (v / 100) + ')';
+}
+function showGlyph(type, at) {
+  ['gEye', 'gStep', 'gTalk', 'gShut'].forEach((id) => $(id).classList.remove('show'));
+  if (!type) return;
+  $('glyphPos').setAttribute('transform', 'translate(' + at[0] + ' ' + at[1] + ')');
+  const id = { eye: 'gEye', step: 'gStep', talk: 'gTalk', shut: 'gShut' }[type];
+  /* 下一幀才加 class，讓縮放進場重播 */
+  requestAnimationFrame(() => $(id).classList.add('show'));
+}
+function glyphFor(beat) {
+  if (beat.ok === 'note') return 'shut';
+  if (beat.ok === 'duck') return 'eye';
+  return Core.ACTIONS[beat.ok].glyph;
+}
+function buildActs(stage) {
+  const box = $('acts');
+  box.innerHTML = '';
+  box.classList.toggle('two', stage.acts.length === 2);
+  stage.acts.forEach((a, i) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'act-btn';
+    b.dataset.act = a;
+    b.setAttribute('aria-keyshortcuts', String(i + 1));
+    b.innerHTML = '<span>' + Core.ACTIONS[a].label + '</span><kbd>' + (i + 1) + '</kbd>';
+    b.addEventListener('click', () => choose(a));
+    box.appendChild(b);
+  });
+}
+function setIdle(on) { $('acts').classList.toggle('idle', on); }
+
+function renderStage() {
+  const st = Core.STAGES[S.si];
+  $('whereTxt').textContent = st.where;
+  $('whenTxt').textContent = st.when;
+  [...$('route').children].forEach((d, i) => { d.className = i < S.si ? 'done' : (i === S.si ? 'on' : ''); });
+  Core.STAGES.forEach((s) => $('sc-' + s.id).classList.toggle('on', s.id === st.id));
+  buildActs(st);
+  setIdle(true);
+  showGlyph(null);
+  $('cue').className = 'cue';
+  $('cue').innerHTML = st.intro;
+  $('result').textContent = '';
+  $('outro').hidden = true;
+  $('timer').classList.remove('on');
+  $('stageGo').hidden = false; $('stageGo').textContent = S.si === 3 ? '看工頭動手' : '開始';
+  $('beatNext').hidden = true; $('stageNext').hidden = true;
+  $('notebook').hidden = st.id !== 'mill';
+  if (st.id === 'mill') resetMill();
+}
+
+function beginBeat() {
+  const fe = document.activeElement;
+  $('stageGo').hidden = true; $('beatNext').hidden = true;
+  /* 原本聚焦的按鈕被藏起來時，把焦點交給動作組，Tab 一下就到按鈕 */
+  if (fe === $('stageGo') || fe === $('beatNext') || fe === document.body) $('acts').focus({ preventScroll: true });
+  [...$('acts').children].forEach((b) => b.classList.remove('right', 'wrong'));
+  S.phase = 'wait';
+  $('cue').className = 'cue wait';
+  $('cue').textContent = '……';
+  $('result').textContent = '';
+  if (untimed()) showCue();
+  else S.cueTimer = setTimeout(showCue, Core.cueDelay(S.si, S.bi));
+}
+function showCue() {
+  const st = Core.STAGES[S.si], beat = st.beats[S.bi];
+  S.phase = 'cue';
+  S.elapsed = 0;
+  S.win = Core.windowMs(S.si, S.bi, untimed());
+  $('cue').className = 'cue';
+  $('cue').textContent = beat.cue;
+  showGlyph(glyphFor(beat), beat.at);
+  setIdle(false);
+  if (st.id === 'mill') setIncense(1 - (S.bi + 1) / (st.beats.length + 0.4));
+  PK.announce(beat.cue);
+  if (isFinite(S.win)) {
+    $('timer').classList.add('on');
+    $('timerBar').style.transform = 'scaleX(1)';
+    PK.tick(tick);
+  }
+}
+function tick(dt) {
+  if (S.phase !== 'cue') { PK.untick(tick); return; }
+  S.elapsed += dt * 1000;
+  $('timerBar').style.transform = 'scaleX(' + Math.max(0, 1 - S.elapsed / S.win).toFixed(3) + ')';
+  if (S.elapsed >= S.win) resolve(null);
+}
+function choose(a) { if (S.phase === 'cue') resolve(a); }
+
+function resolve(a) {
+  PK.untick(tick);
+  const st = Core.STAGES[S.si], beat = st.beats[S.bi];
+  const v = Core.judge(beat.ok, a, S.elapsed, S.win);
+  S.phase = 'result';
+  S.log.push(v);
+  setSus(Core.nextSus(S.sus, v));
+  setIdle(true);
+  $('timer').classList.remove('on');
+  showGlyph(null);
+  [...$('acts').children].forEach((b) => {
+    if (b.dataset.act === beat.ok) b.classList.add('right');
+    else if (b.dataset.act === a) b.classList.add('wrong');
+  });
+  const head = v === 'ok' ? '<b class="ok">躲過了。</b>' : (v === 'late' ? '<b class="bad">慢了一拍。</b>' : '<b class="bad">露了餡。</b>');
+  let body;
+  if (beat.step) body = millStep(beat.step, v);
+  else body = v === 'ok' ? beat.yes : beat.no;
+  $('result').innerHTML = head + ' ' + body;
+  PK.announce($('result').textContent);
+  if (untimed()) { $('beatNext').hidden = false; $('beatNext').focus(); }
+  else S.autoTimer = setTimeout(nextBeat, beat.step === 4 ? 2200 : 1600);
+}
+function nextBeat() {
+  clearTimeout(S.autoTimer);
+  if (S.phase !== 'result') return;
+  S.bi++;
+  if (S.bi < Core.STAGES[S.si].beats.length) beginBeat();
+  else stageOutro();
+}
+function stageOutro() {
+  const st = Core.STAGES[S.si];
+  S.phase = 'outro';
+  $('beatNext').hidden = true;
+  $('outro').innerHTML = st.outro.map((p) => '<p>' + p + '</p>').join('');
+  $('outro').hidden = false;
+  $('cue').className = 'cue wait';
+  $('cue').textContent = '';
+  $('stageNext').hidden = false;
+  $('stageNext').textContent = S.si < Core.STAGES.length - 1 ? '下一站' : '問工頭：為什麼？';
+  $('stageNext').focus();
+  PK.announce($('outro').textContent);
+}
+
+/* ── 作坊 ── */
+const card = $('card');
+/* 香：本體由底部往下縮，火頭跟著往下移（香長 132 單位） */
+function setIncense(k) {
+  k = PK.clamp(k, 0, 1);
+  $('incense').style.transform = 'scaleY(' + +k.toFixed(3) + ')';
+  $('ember').style.transform = 'translateY(' + ((1 - k) * 132).toFixed(1) + 'px)';
+}
+function resetMill() {
+  card.classList.remove('st1', 'st2', 'st3', 'mill-dyed');
+  setIncense(1);
+  $('notes').innerHTML = '';
+}
+function millStep(n, v) {
+  card.classList.add('st' + Math.min(n, 3));
+  if (n === 3) card.classList.remove('st1');
+  const li = document.createElement('li');
+  li.textContent = Core.STEPS[n] + (v === 'ok' ? '' : '（Wang 事後補述）');
+  if (v !== 'ok') li.className = 'late';
+  $('notes').appendChild(li);
+  requestAnimationFrame(() => li.classList.add('in'));
+  if (n === 4) {
+    setIncense(0.04);
+    card.classList.add('mill-dyed');
+  }
+  const okTxt = Core.STAGES[3].beats.find((b) => b.step === n).yes + Core.STEPS[n];
+  const noTxt = v === 'late'
+    ? '你等了一下才掏本子，他的手法已經做完。好在 Wang 在旁邊看得仔細，晚上替你補記：' + Core.STEPS[n]
+    : '你低頭等著，錯過了他這一手。好在 Wang 看得仔細，晚上替你補記：' + Core.STEPS[n];
+  return (v === 'ok' ? okTxt : noTxt) + (n === 4 ? ' 鍋裡的茶葉，綠了。' : '');
+}
+
+/* ── 鍵盤 ── */
+document.addEventListener('keydown', (e) => {
+  if (S.phase !== 'cue' || e.altKey || e.ctrlKey || e.metaKey) return;
+  const st = Core.STAGES[S.si];
+  const i = Core.keyToIndex(e.key, st.acts.length);
+  if (i >= 0) { e.preventDefault(); choose(st.acts[i]); }
+});
+
+/* ── 流程 ── */
+function show(id) { const el = $(id); el.hidden = false; PK.reveal('#' + id + ' .rv'); return el; }
+$('goStart').addEventListener('click', () => { PK.scrollTo(show('pro')); });
+$('goBoard').addEventListener('click', () => {
+  clearTimeout(S.cueTimer); clearTimeout(S.autoTimer); PK.untick(tick); S.phase = 'idle';
+  S.si = 0; S.bi = 0; S.log = []; setSus(0);
+  show('game'); renderStage(); PK.scrollTo($('game'));
+  $('stageGo').focus({ preventScroll: true });
+});
+$('stageGo').addEventListener('click', () => { S.bi = 0; beginBeat(); });
+$('beatNext').addEventListener('click', nextBeat);
+$('stageNext').addEventListener('click', () => {
+  if (S.si < Core.STAGES.length - 1) { S.si++; S.bi = 0; renderStage(); $('stageGo').focus({ preventScroll: true }); PK.scrollTo($('game')); return; }
+  finale();
+});
+
+function finale() {
+  $('stageNext').hidden = true;
+  ['why', 'count', 'same', 'ship', 'end'].forEach(show);
+  const t = Core.tally(S.log);
+  $('tally').innerHTML = '這一趟，你被盯了 <b>' + t.seen + '</b> 次，閃過 <b>' + t.dodged + '</b> 次。<br>可疑度 <b>' + S.sus + '</b>：' + Core.rankOf(S.sus) + '。';
+  const best = store.get('best', null);
+  if (best === null || S.sus < best) store.set('best', S.sus);
+  store.set('runs', (store.get('runs', 0) || 0) + 1);
+  $('record').textContent = '你扮過 ' + store.get('runs', 1) + ' 次，最低可疑度 ' + store.get('best', S.sus) + '。';
+  PK.scrollTo($('why'));
+}
+$('replay').addEventListener('click', () => {
+  clearTimeout(S.cueTimer); clearTimeout(S.autoTimer); PK.untick(tick);
+  ['why', 'count', 'same', 'ship', 'end'].forEach((id) => { $(id).hidden = true; });
+  S.si = 0; S.bi = 0; S.log = []; setSus(0); S.phase = 'idle';
+  renderStage(); PK.scrollTo($('game')); $('stageGo').focus({ preventScroll: true });
+});
+</script>
+</body>
+</html>

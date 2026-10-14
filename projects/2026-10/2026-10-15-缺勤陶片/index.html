@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>釀啤酒能請假嗎？｜每日小專案</title>
+<meta name="description" content="你是工頭，出勤表上有幾格紅色的缺勤等你審。點開每一格，理由一條比一條離譜——直到書記補登的那一疊紀錄送進來。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#eceef1; --pk-ink:#1d2433; --pk-dim:#6b7385; --pk-accent:#2f6fed;
+  --pk-line:rgba(20,30,60,.12); --pk-maxw:720px;
+  --ui:#fff; --ui-2:#f6f7f9; --ok:#e7f3ec; --ok-ink:#2e7d4f;
+  --red:#d93a2b; --red-soft:#fde8e6;
+  --ink-red:#b4291c; --ink-black:#2a211b;
+  --stone:#e8dcc3; --stone-2:#d6c3a0; --night:#1b1612; --night-ink:#efe6d6; --night-dim:#a89a86;
+  --serif:"Songti TC","Noto Serif TC","Source Han Serif TC","PMingLiU",Georgia,serif;
+}
+body{background:var(--pk-bg)}
+[hidden]{display:none !important}
+button{font-family:inherit}
+
+/* ── 假介面：SaaS 視窗 ── */
+.app{background:var(--ui);border-radius:14px;overflow:hidden;
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 18px 48px -18px rgba(20,30,60,.35);
+  transition:transform 1s cubic-bezier(.3,.7,.2,1),opacity 1s ease}
+.app-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--pk-line);
+  font-size:12.5px;color:var(--pk-dim);background:var(--ui-2)}
+.dots{display:flex;gap:5px}.dots i{width:9px;height:9px;border-radius:50%;background:#d5d8de;display:block}
+.brand{font-weight:700;color:var(--pk-ink);letter-spacing:.02em}
+.brand b{display:inline-block;width:16px;height:16px;border-radius:4px;background:var(--pk-accent);vertical-align:-3px;margin-right:6px}
+.crumb{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.avatar{width:24px;height:24px;border-radius:50%;background:#ffd9a8;color:#7a4a10;font-size:11px;display:grid;place-items:center;font-weight:700}
+
+/* 第一屏 */
+.pk-hero{padding:72px 0 40px}
+.pk-hero .pk-wrap{width:100%}
+.notice{padding:26px 26px 28px}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--red);font-weight:600;letter-spacing:.04em}
+.kicker::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--red)}
+.pk-hero h1{margin:12px 0 6px;font-family:var(--pk-sans);font-weight:800;letter-spacing:.01em;font-size:clamp(30px,7.4vw,48px)}
+.lead{margin:0 0 18px;color:var(--pk-dim);font-size:15px}
+.notice p{margin:0 0 14px}
+.cta{appearance:none;border:0;cursor:pointer;background:var(--pk-accent);color:#fff;font-size:15px;font-weight:600;
+  padding:11px 20px;border-radius:9px;transition:transform .15s,opacity .2s}
+.cta:hover{opacity:.92}.cta:active{transform:translateY(1px)}
+.cta:disabled{opacity:.4;cursor:default}
+.back{margin-top:14px;font-size:13px;color:var(--pk-dim)}
+.back:empty{display:none}
+
+/* 出勤表 */
+#sheet{margin:0 auto 40px;scroll-margin-top:20px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:16px 18px 6px}
+.toolbar h2{margin:0;font-size:17px;font-weight:700}
+.pill{font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--red-soft);color:var(--red)}
+.pill.zero{background:var(--ok);color:var(--ok-ink)}
+.sheet-body{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:18px;padding:8px 18px 20px}
+.grid{display:grid;grid-template-columns:62px repeat(7,minmax(0,1fr));gap:5px;align-items:center}
+.gh{font-size:11px;color:var(--pk-dim);text-align:center}
+.gh.month{text-align:left;font-size:10.5px;line-height:1.3}
+.rn{font-size:12px;line-height:1.25;color:var(--pk-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rn small{display:block;color:var(--pk-dim);font-size:10px}
+.cap{font-size:11.5px;color:var(--pk-dim);margin:10px 0 0}
+
+.cell{position:relative;aspect-ratio:1;perspective:420px;padding:0;border:0;background:none;display:block;width:100%}
+button.cell{cursor:pointer}
+button.cell:disabled{cursor:default}
+.cell .in{position:absolute;inset:0;transform-style:preserve-3d;transition:transform .65s cubic-bezier(.3,.7,.2,1)}
+.cell.flip .in{transform:rotateY(180deg)}
+.f{position:absolute;inset:0;border-radius:7px;display:grid;place-items:center;backface-visibility:hidden;-webkit-backface-visibility:hidden;font-size:12px}
+.f-b{transform:rotateY(180deg);background:
+  radial-gradient(circle at 30% 25%,rgba(255,255,255,.35),transparent 60%),
+  radial-gradient(circle at 80% 90%,rgba(120,90,50,.18),transparent 55%),var(--stone);
+  box-shadow:inset 0 0 0 1px rgba(120,90,50,.25)}
+.f-b svg{width:72%;height:72%;overflow:visible}
+.f-b path{fill:none;stroke:var(--ink-red);stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+.ok .f-a{background:var(--ok);color:var(--ok-ink)}
+.blank .f-a{background:var(--ui-2);color:#b3b8c2;box-shadow:inset 0 0 0 1px #e2e5ea}
+.abs .f-a{background:var(--red-soft);color:var(--red);font-weight:700;box-shadow:inset 0 0 0 1.5px var(--red)}
+.abs:not(.flip)::after{content:"";position:absolute;inset:-2px;border-radius:9px;border:2px solid var(--red);opacity:0;
+  animation:ring 1.8s ease-out infinite;pointer-events:none}
+@keyframes ring{0%{transform:scale(.88);opacity:.6}100%{transform:scale(1.22);opacity:0}}
+button.cell:hover .f-a{filter:brightness(.97)}
+
+/* 統計條 */
+.tally{display:grid;gap:7px;margin:0 0 14px;font-size:12px}
+.trow{display:grid;grid-template-columns:64px 1fr 40px;align-items:center;gap:8px}
+.track{height:8px;border-radius:9px;background:var(--ui-2);overflow:hidden;box-shadow:inset 0 0 0 1px #e6e8ec}
+.fill{height:100%;transform-origin:left center;transform:scaleX(0);transition:transform .9s cubic-bezier(.3,.7,.2,1);border-radius:9px}
+.fill.excuse{background:#f0a23b}.fill.ill{background:var(--red)}.fill.care{background:#6b8bd6}.fill.boss{background:#8a6fc4}
+.tv{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+
+/* 審核紀要 */
+.side h3{margin:0 0 8px;font-size:13px;color:var(--pk-dim);font-weight:600;letter-spacing:.05em}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:10px;max-height:460px;overflow:auto}
+.log .empty{font-size:13px;color:var(--pk-dim);border:1px dashed #d5d9e0;border-radius:10px;padding:12px}
+.entry{border-radius:10px;background:var(--ui-2);padding:10px 12px 12px;border-left:3px solid var(--ink-red);
+  opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease}
+.entry.in{opacity:1;transform:none}
+.e-head{display:flex;justify-content:space-between;gap:8px;font-size:11.5px}
+.tag{color:var(--pk-dim)}
+.src{font-weight:700;color:#7a5a2a}
+.src.ext{color:#8b8f99;font-weight:600}
+.ink{margin:4px 0 4px;font-family:var(--serif);color:var(--ink-red);font-size:19px;line-height:1.45;opacity:0;transition:opacity .6s ease .35s}
+.entry.in .ink{opacity:1}
+.nar{margin:0;font-size:13.5px;line-height:1.75;color:#3a4256;min-height:1.75em}
+
+.bar-msg{margin:0 18px 18px;padding:14px 16px;border-radius:12px;background:#fff7e6;box-shadow:inset 0 0 0 1px #f3d79c;
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.bar-msg p{margin:0;flex:1 1 240px;font-size:14px}
+.bar-msg.dark{background:#1f2433;color:#e8ebf2;box-shadow:none}
+
+.app.peel{transform:perspective(900px) rotateX(7deg) translateY(-8px) scale(.97);opacity:.4}
+
+/* ── 原始檔：石片 ── */
+.dark{background:var(--night);color:var(--night-ink);padding:64px 0 24px}
+.dark .pk-wrap{--pk-maxw:640px}
+.dark h2{font-family:var(--serif);font-weight:600;font-size:clamp(24px,5.6vw,34px);line-height:1.45;margin:0 0 18px}
+.dark p{margin:0 0 18px}
+.dark .dim{color:var(--night-dim);font-size:14px}
+.err{display:inline-block;font-size:12px;letter-spacing:.06em;color:#ffb3a8;border:1px solid rgba(255,179,168,.4);padding:3px 10px;border-radius:999px;margin-bottom:14px}
+figure.ost{margin:10px auto 26px;max-width:380px}
+figure.ost svg{width:100%;height:auto;display:block;overflow:visible}
+.om{opacity:0;transition:opacity .5s ease}
+.om.show{opacity:1}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--night-dim);margin-top:12px;justify-content:center}
+.legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px;background:var(--ink-black);box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.legend .lr::before{background:var(--ink-red)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:8px 0 28px}
+.stat{border:1px solid rgba(239,230,214,.16);border-radius:12px;padding:14px 12px}
+.stat b{display:block;font-family:var(--serif);font-size:26px;color:#ffcf9e;line-height:1.3}
+.stat span{font-size:12.5px;color:var(--night-dim);line-height:1.5;display:block}
+
+/* 最後一列 */
+#you{padding-top:30px;border-top:1px solid rgba(239,230,214,.14);margin-top:30px}
+.yrow{display:grid;grid-template-columns:48px repeat(7,minmax(0,1fr));gap:5px;align-items:center;max-width:420px;margin:6px 0 18px}
+.yrow .rn{color:var(--night-ink);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 22px}
+.chip{appearance:none;cursor:pointer;border:1px solid rgba(239,230,214,.35);background:transparent;color:var(--night-ink);
+  border-radius:999px;padding:8px 14px;font-size:14px;transition:background .2s,color .2s}
+.chip:hover,.chip[aria-pressed="true"]{background:var(--night-ink);color:var(--night)}
+.flake{position:relative;margin:6px 0 22px;padding:26px 24px 22px;max-width:440px;color:var(--ink-black);
+  background:radial-gradient(circle at 20% 15%,rgba(255,255,255,.45),transparent 55%),
+             radial-gradient(circle at 85% 85%,rgba(110,80,40,.22),transparent 60%),var(--stone);
+  clip-path:polygon(2% 8%,18% 0,46% 4%,77% 1%,99% 10%,96% 46%,100% 82%,84% 100%,52% 95%,22% 100%,0 88%,4% 52%);
+  transform:rotate(-1.2deg)}
+.flake .fd{font-size:13px;letter-spacing:.08em;color:var(--ink-black);opacity:.8}
+.flake .fr{font-family:var(--serif);color:var(--ink-red);font-size:clamp(22px,5.4vw,30px);line-height:1.4;margin:6px 0 0}
+.echo{font-size:15px}
+.closing{font-family:var(--serif);font-size:clamp(18px,4.4vw,22px);line-height:1.8;color:#fff3e2}
+.again{appearance:none;cursor:pointer;background:none;border:0;color:var(--night-dim);text-decoration:underline;font-size:13px;padding:4px 0}
+
+@media (max-width:640px){
+  .sheet-body{grid-template-columns:1fr}
+  .log{max-height:none}
+}
+@media (max-width:560px){
+  .notice{padding:20px 18px 22px}
+  .toolbar,.sheet-body{padding-left:12px;padding-right:12px}
+  .bar-msg{margin:0 12px 14px}
+  .grid{grid-template-columns:52px repeat(7,minmax(0,1fr));gap:4px}
+  .rn{font-size:11px}
+  .crumb{display:none}
+  .stats{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){
+  .cell .in,.fill,.entry,.ink,.om,.app{transition:none !important}
+  .abs:not(.flip)::after{animation:none;opacity:.5;transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <div class="app" role="region" aria-label="出勤系統通知">
+      <div class="app-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="brand"><b aria-hidden="true"></b>真理之地 HR</span>
+        <span class="crumb">王陵工程 › 出勤 › 第 40 年</span>
+        <span class="avatar" aria-hidden="true">工頭</span></div>
+      <div class="notice">
+        <span class="kicker">未讀通知・剛剛</span>
+        <h1 class="rv">他去釀啤酒了</h1>
+        <p class="lead rv">請假單的理由欄，就寫了這幾個字。</p>
+        <p class="rv">工頭，你這一隊這期還有三筆缺勤沒審。主管下午要看報表——每一格紅色，你都得點開，看看書記寫了什麼。</p>
+        <button class="cta rv" id="open" type="button">打開出勤表</button>
+        <p class="back" id="back"></p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="pk-wrap">
+    <section class="app" id="sheet" aria-labelledby="sheetTitle">
+      <div class="app-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="brand"><b aria-hidden="true"></b>真理之地 HR</span>
+        <span class="crumb">王陵工程 › 出勤表</span><span class="avatar" aria-hidden="true">工頭</span></div>
+      <div class="toolbar">
+        <h2 id="sheetTitle">出勤表｜第 40 年</h2>
+        <span class="pill" id="pending">待審 3</span>
+      </div>
+      <div class="sheet-body">
+        <div>
+          <div class="tally" id="tally" aria-label="缺勤理由統計"></div>
+          <div class="grid" id="grid" role="group" aria-label="出勤格：紅色格子可點開"></div>
+          <p class="cap">＊格位為示意排列；只有潘努布那四天的日期出自原件。</p>
+        </div>
+        <div class="side">
+          <h3>審核紀要</h3>
+          <ul class="log" id="log"><li class="empty" id="logEmpty">點開紅格，理由會記在這裡。</li></ul>
+        </div>
+      </div>
+      <div class="bar-msg" id="floodBar" hidden>
+        <p>別急著存檔。書記那邊還壓著一疊沒登進系統的紀錄——「補登：一百多筆」。</p>
+        <button class="cta" id="loadFlood" type="button">載入補登紀錄</button>
+      </div>
+      <div class="bar-msg dark" id="exportBar" hidden>
+        <p>最後一筆審完。你準備交報表，系統卻跳出一個從沒見過的按鈕。</p>
+        <button class="cta" id="export" type="button">匯出原始檔</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="dark" id="darkZone" hidden>
+    <div class="pk-wrap">
+      <section id="stone" aria-labelledby="stoneTitle">
+        <span class="err">匯出失敗：格式不支援</span>
+        <h2 id="stoneTitle">原始檔不是檔案，是一塊石頭。</h2>
+        <figure class="ost">
+          <div id="ostBox"></div>
+          <figcaption class="legend"><span>右側直排：40 個名字</span><span>黑：日期</span><span class="lr">紅：缺勤理由</span></figcaption>
+        </figure>
+        <p class="rv">高 38.5 公分，寬 33 公分。大家叫它「陶片」（ostracon），它卻是一片石灰岩。在古埃及，這種白色石片又輕又多，常拿來寫收據、便條、練習字。</p>
+        <p class="rv">上面是新埃及語的草書，從右往左讀，正面 24 行、背面 21 行。右邊直排著 40 個名字；往左，一條黑墨水寫的日期；日期上方的紅字，就是那天沒來的理由。</p>
+        <p class="rv">它標著「第 40 年」——拉美西斯二世在位第 40 年，約西元前 1250 年；學者認為內容多半記的是前一年。一共 280 天，很可能是把平常記在小石片上的每日輪值，抄整成一張總表。</p>
+        <div class="stats rv">
+          <div class="stat"><b>100+</b><span>「生病」被寫下的次數，排第一</span></div>
+          <div class="stat"><b>第 2 名</b><span>跟上司在一起，替他做私活</span></div>
+          <div class="stat"><b>≈ 70 / 280</b><span>看起來算得上完整工作日的天數</span></div>
+        </div>
+        <p class="rv">翻回你剛審的報表：顧啤酒、宿醉、跟老婆吵架，這三筆來自村裡的其他紀錄。這塊石片本身寫滿的，是病、是眼睛、是蠍子、是照顧同事；第二名，是被上司借去辦私事——博物館的註記說，只要不過量，這不算違規。</p>
+        <p class="rv">病也有人管。村裡的紀錄提到一位會看診、開藥方的醫生，還有一位專治蠍螫的術士。至於那個 SaaS 的名字：「真理之地」（Set Maat），是這座工匠村在官方文書裡的稱呼。</p>
+        <p class="rv dim">1823 年隨 Salt 收藏進入大英博物館，館藏編號 EA 5634，今天陳列在 61 號展廳。</p>
+      </section>
+
+      <section id="you" aria-labelledby="youTitle">
+        <h2 id="youTitle">最後一列是你。</h2>
+        <p>報表還差一列。日期是今天，第四格是紅的。</p>
+        <div class="yrow" id="yrow"></div>
+        <div id="choiceWrap" hidden>
+          <p>理由欄要寫什麼？</p>
+          <div class="chips" id="chips" role="group" aria-label="選一個請假理由"></div>
+        </div>
+        <div id="yours" hidden>
+          <div class="flake" aria-live="polite">
+            <div class="fd" id="fDate"></div>
+            <p class="fr" id="fInk"></p>
+          </div>
+          <p class="echo" id="echo"></p>
+          <p class="closing">書記用黑墨水寫日期，用紅墨水寫理由。三千兩百多年後，讓人在博物館櫃子前停下腳步的，是紅字。</p>
+          <button class="again" id="again" type="button">換一個理由</button>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：大英博物館館藏 EA 5634；Wikipedia〈Deir el-Medina〉〈Ostracon〉〈Hieratic〉。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+'use strict';
+/* ── 純函式（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var ROWS = [
+    { name: '潘努布', en: 'Pennub' }, { name: '阿佩赫提', en: 'Aapehti' },
+    { name: '工號 03' }, { name: '工號 04' }, { name: '工號 05' },
+    { name: '工號 06' }, { name: '工號 07' }, { name: '工號 08' }
+  ];
+  var DAYS = [21, 22, 23, 24, 25, 26, 27];
+  /* . 出席　x 補登的病　其餘字母＝可點開的缺勤 */
+  var LAYOUT = [
+    'CCCC...',
+    'xxxxx..',
+    '.B..x..',
+    '..E...x',
+    'x....H.',
+    '.x..S..',
+    '...W.xx',
+    'K..x...'
+  ];
+  var FLOOD = 100; /* 「一百多次」：以 100 計，顯示為 100+ */
+  var ENTRIES = {
+    B: { id: 'beer', act: 1, cat: 'excuse', tag: '事假｜家務', ink: '去盯家裡釀的啤酒', src: '村中紀錄', ext: true,
+         nar: '第一筆就讓你挑眉。村裡釀啤酒通常歸女主人管，可男人們認定「去盯著發酵」是正當的請假理由。' },
+    H: { id: 'hangover', act: 1, cat: 'excuse', tag: '病假（？）', ink: '宿醉', src: '墓地書記的紀錄', ext: true,
+         nar: '第二筆，書記照實寫：前一晚喝多了。誠實得讓你不知道該不該扣分。' },
+    W: { id: 'wife', act: 1, cat: 'excuse', tag: '家庭因素', ink: '跟妻子吵架', src: '墓地書記的紀錄', ext: true,
+         nar: '第三筆：跟老婆吵架。你在備註欄打了一行字——「這村子很會找藉口」。' },
+    E: { id: 'eye', act: 2, cat: 'ill', tag: '病假｜眼', ink: '他的眼睛不好', src: 'EA 5634',
+         nar: '眼睛出狀況。對一群在王陵裡鑿石、畫壁畫的人，看不清楚就等於沒法上工。' },
+    S: { id: 'scorpion', act: 2, cat: 'ill', tag: '工傷', ink: '蠍子螫了他', src: 'EA 5634',
+         nar: '村子貼著沙漠，蠍子幾乎算同事。村裡的紀錄甚至提到一位專治蠍螫的術士。' },
+    K: { id: 'boss', act: 2, cat: 'boss', tag: '公出', ink: '跟他的上司在一起', src: 'EA 5634',
+         nar: '第二常見的理由：被上司叫去替他做私活。背面第 11 行的紅字裡，還寫著書記肯赫克佩謝夫的名字。' },
+    C: { id: 'care', act: 2, cat: 'care', tag: '照護假', ink: '照顧生病的阿佩赫提', src: 'EA 5634',
+         nar: '潘努布連請四天（氾濫季第三月 21 到 24 日），去照顧生病的同事阿佩赫提。三千兩百多年前，已經有人請照護假。' }
+  };
+  var FLOOD_ENTRY = { id: 'flood', tag: '補登', ink: '病', src: 'EA 5634',
+    nar: '病。病。病。同一個字寫了一百多次。這塊石片上最常出現的缺勤理由不是啤酒，是生病——你剛寫的那行備註，看起來有點尷尬。' };
+  var ENDINGS = {
+    sick:     { label: '病了', ink: '病了', echo: '跟石片上那一百多筆紅字，寫的是同一個字。' },
+    doctor:   { label: '去看醫生', ink: '去看醫生', echo: '德爾麥地那的人也有醫生可看：村裡的紀錄提到一位看診開藥的醫生。' },
+    family:   { label: '家人生病，去照顧', ink: '照顧生病的家人', echo: '潘努布也請過，連四天，去照顧生病的阿佩赫提。' },
+    boss:     { label: '被老闆叫去辦他的事', ink: '跟上司在一起', echo: '石片上的第二名。博物館的註記說：不算違規，只要別太常。' },
+    hangover: { label: '宿醉（誠實版）', ink: '宿醉', echo: '墓地書記也記過這一條。至少你們都很老實。' },
+    never:    { label: '我沒請過假', ink: '—', echo: '那你那一列全是黑字。這塊石片涵蓋 280 天，看起來算得上完整工作日的，大約 70 天——你比三千年前的工地還勤快。' }
+  };
+
+  function h32(s) {
+    var h = 2166136261 >>> 0; s = String(s);
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function rng(seed) {
+    var a = h32(seed) || 1;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function cells() {
+    var out = [];
+    for (var r = 0; r < LAYOUT.length; r++)
+      for (var c = 0; c < LAYOUT[r].length; c++) out.push({ r: r, c: c, code: LAYOUT[r][c] });
+    return out;
+  }
+  function idsOfAct(act) {
+    var o = [];
+    for (var k in ENTRIES) if (ENTRIES[k].act === act) o.push(ENTRIES[k].id);
+    return o;
+  }
+  function entryById(id) {
+    for (var k in ENTRIES) if (ENTRIES[k].id === id) return ENTRIES[k];
+    return null;
+  }
+  function floodCount() {
+    return cells().filter(function (x) { return x.code === 'x'; }).length;
+  }
+  /* 劇情階段：act1 → flood（等讀者載入補登）→ act2 → done */
+  function stage(st) {
+    st = st || {}; var rev = st.revealed || {};
+    var a1 = idsOfAct(1), a2 = idsOfAct(2);
+    if (a1.some(function (id) { return !rev[id]; })) return 'act1';
+    if (!st.flood) return 'flood';
+    if (a2.some(function (id) { return !rev[id]; })) return 'act2';
+    return 'done';
+  }
+  function pending(st) {
+    var s = stage(st), rev = (st && st.revealed) || {};
+    if (s === 'act1' || s === 'act2') {
+      return idsOfAct(s === 'act1' ? 1 : 2).filter(function (id) { return !rev[id]; }).length;
+    }
+    return 0;
+  }
+  function tally(st) {
+    var t = { excuse: 0, ill: 0, care: 0, boss: 0 }, rev = (st && st.revealed) || {};
+    for (var k in ENTRIES) if (rev[ENTRIES[k].id]) t[ENTRIES[k].cat] += 1;
+    if (st && st.flood) t.ill += FLOOD;
+    return t;
+  }
+  function scales(t) {
+    var max = Math.max(1, t.excuse, t.ill, t.care, t.boss);
+    return { excuse: t.excuse / max, ill: t.ill / max, care: t.care / max, boss: t.boss / max };
+  }
+  function label(n, flood) { return flood && n >= FLOOD ? FLOOD + '+' : String(n); }
+  /* 示意筆觸：24×24 內 2–3 筆紅墨（非真實草書） */
+  function glyph(seed) {
+    var R = rng('g' + seed), n = 2 + Math.floor(R() * 2), d = '';
+    for (var i = 0; i < n; i++) {
+      var x0 = 3 + R() * 8, y0 = 4 + i * 6 + R() * 3;
+      var x1 = 13 + R() * 8, y1 = y0 + (R() - .5) * 6;
+      var cx = (x0 + x1) / 2 + (R() - .5) * 6, cy = y0 - 3 + R() * 6;
+      d += 'M' + x0.toFixed(1) + ' ' + y0.toFixed(1) + 'Q' + cx.toFixed(1) + ' ' + cy.toFixed(1) + ' ' + x1.toFixed(1) + ' ' + y1.toFixed(1);
+    }
+    return d;
+  }
+  /* 石片示意：viewBox 330×385（＝ 33×38.5 公分），24 行，右側 40 個名字 */
+  function ostracon(seed) {
+    var R = rng('o' + seed), W = 330, H = 385, pts = [], N = 16;
+    for (var i = 0; i < N; i++) {
+      var a = (i / N) * Math.PI * 2 - Math.PI / 2;
+      var rx = W / 2 - 6 - R() * 16, ry = H / 2 - 6 - R() * 18;
+      var k = 1.18; /* 把橢圓推成圓角方形 */
+      var cx = Math.cos(a), sy = Math.sin(a);
+      var x = W / 2 + Math.sign(cx) * Math.min(1, Math.abs(cx) * k) * rx;
+      var y = H / 2 + Math.sign(sy) * Math.min(1, Math.abs(sy) * k) * ry;
+      pts.push(x.toFixed(1) + ' ' + y.toFixed(1));
+    }
+    var outline = 'M' + pts.join('L') + 'Z';
+    var names = [], dates = [], reds = [];
+    for (var r = 0; r < 24; r++) {
+      var y = 52 + r * 12.2;
+      names.push({ x: 276, y: y, w: 20 + R() * 12 });
+      if (r < 16) names.push({ x: 240, y: y, w: 18 + R() * 10 });
+      var x = 44 + R() * 8, lim = r < 16 ? 226 : 262;
+      while (x < lim - 14) {
+        var w = 5 + R() * 7;
+        dates.push({ x: x, y: y + 2.5, w: w });
+        if (R() < .42) reds.push({ x: x - 1, y: y - 3.2, w: 6 + R() * 9 });
+        x += w + 7 + R() * 9;
+      }
+    }
+    return { w: W, h: H, outline: outline, names: names, dates: dates, reds: reds };
+  }
+  function yearsAgo(bc, ad) {
+    if (!(bc > 0 && ad > 0) || bc % 1 || ad % 1) return NaN;
+    return bc + ad - 1; /* 沒有西元 0 年 */
+  }
+  function pct(a, b) { return b > 0 && a >= 0 ? Math.round(a / b * 100) : NaN; }
+  function ending(key) { return Object.prototype.hasOwnProperty.call(ENDINGS, key) ? ENDINGS[key] : null; }
+  function cellLabel(r, c, code, revealedInk) {
+    var row = ROWS[r], day = DAYS[c];
+    if (!row || day === undefined) return '';
+    var who = row.name + '，' + day + ' 日，';
+    if (code === '.') return who + '出席';
+    if (code === 'x') return who + (revealedInk ? '補登：病' : '未登錄');
+    return who + (revealedInk ? '理由：' + revealedInk : '缺勤，點開看理由');
+  }
+  return { ROWS: ROWS, DAYS: DAYS, LAYOUT: LAYOUT, FLOOD: FLOOD, ENTRIES: ENTRIES, FLOOD_ENTRY: FLOOD_ENTRY, ENDINGS: ENDINGS,
+    cells: cells, idsOfAct: idsOfAct, entryById: entryById, floodCount: floodCount, stage: stage, pending: pending,
+    tally: tally, scales: scales, label: label, glyph: glyph, ostracon: ostracon, yearsAgo: yearsAgo, pct: pct,
+    ending: ending, cellLabel: cellLabel };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+<script>
+'use strict';
+const LS = 'ostr1250.';
+const store = PK.store(LS);
+PK.reveal();
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const st = { revealed: {}, flood: false };
+  let exported = false;
+  const els = [];          /* {el, r, c, code} */
+  const grid = $('grid');
+
+  function svgGlyph(seed) {
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+    const p = document.createElementNS(NS, 'path'); p.setAttribute('d', Core.glyph(seed));
+    s.appendChild(p); return s;
+  }
+  function makeCell(code, r, c, isButton) {
+    const el = document.createElement(isButton ? 'button' : 'span');
+    el.className = 'cell';
+    if (isButton) el.type = 'button';
+    const inn = document.createElement('span'); inn.className = 'in';
+    const a = document.createElement('span'); a.className = 'f f-a';
+    const b = document.createElement('span'); b.className = 'f f-b'; b.appendChild(svgGlyph(code + r + '-' + c));
+    inn.appendChild(a); inn.appendChild(b); el.appendChild(inn);
+    return { el, a };
+  }
+
+  /* ── 建表 ── */
+  const head = document.createElement('div'); head.className = 'gh month'; head.textContent = '氾濫季三月';
+  grid.appendChild(head);
+  Core.DAYS.forEach((d) => { const h = document.createElement('div'); h.className = 'gh'; h.textContent = d; h.setAttribute('aria-hidden', 'true'); grid.appendChild(h); });
+  Core.ROWS.forEach((row, r) => {
+    const rn = document.createElement('div'); rn.className = 'rn';
+    rn.innerHTML = row.name + (row.en ? '<small>' + row.en + '</small>' : '');
+    grid.appendChild(rn);
+    for (let c = 0; c < 7; c++) {
+      const code = Core.LAYOUT[r][c];
+      const ent = Core.ENTRIES[code];
+      const { el, a } = makeCell(code, r, c, !!ent);
+      if (code === '.') { el.classList.add('ok'); a.textContent = '✓'; }
+      else if (code === 'x') { el.classList.add('blank'); a.textContent = '—'; }
+      else if (ent.act === 1) { el.classList.add('abs'); a.textContent = '缺'; }
+      else { el.classList.add('blank'); a.textContent = '—'; el.disabled = true; }
+      if (!ent) el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', Core.cellLabel(r, c, code, null));
+      if (ent) el.addEventListener('click', () => reveal(code));
+      grid.appendChild(el);
+      els.push({ el, a, r, c, code });
+    }
+  });
+
+  /* ── 統計條 ── */
+  const CATS = [['excuse', '像藉口的'], ['ill', '病痛'], ['care', '照護'], ['boss', '上司私事']];
+  const tallyEls = {};
+  CATS.forEach(([k, name]) => {
+    const row = document.createElement('div'); row.className = 'trow';
+    row.innerHTML = '<span>' + name + '</span><span class="track"><span class="fill ' + k + '"></span></span><span class="tv">0</span>';
+    $('tally').appendChild(row);
+    tallyEls[k] = { fill: row.querySelector('.fill'), v: row.querySelector('.tv') };
+  });
+
+  function update() {
+    const t = Core.tally(st), s = Core.scales(t);
+    CATS.forEach(([k]) => {
+      tallyEls[k].fill.style.transform = 'scaleX(' + s[k].toFixed(3) + ')';
+      tallyEls[k].v.textContent = k === 'ill' ? Core.label(t.ill, st.flood) : String(t[k]);
+    });
+    const stage = Core.stage(st), n = Core.pending(st);
+    const pill = $('pending');
+    pill.textContent = stage === 'flood' ? '補登待載入' : (stage === 'done' ? '全部審完' : '待審 ' + n);
+    pill.classList.toggle('zero', stage === 'done');
+    $('floodBar').hidden = stage !== 'flood';
+    $('exportBar').hidden = stage !== 'done' || exported;
+    return stage;
+  }
+
+  function addLog(e) {
+    const empty = $('logEmpty'); if (empty) empty.remove();
+    const li = document.createElement('li'); li.className = 'entry';
+    li.innerHTML = '<div class="e-head"><span class="tag"></span><span class="src"></span></div><p class="ink"></p><p class="nar"></p>';
+    li.querySelector('.tag').textContent = e.tag;
+    const src = li.querySelector('.src'); src.textContent = '出處：' + e.src; if (e.ext) src.classList.add('ext');
+    li.querySelector('.ink').textContent = '「' + e.ink + '」';
+    const log = $('log'); log.insertBefore(li, log.firstChild);
+    requestAnimationFrame(() => li.classList.add('in'));
+    PK.type(li.querySelector('.nar'), e.nar, 20);
+    PK.announce('理由：' + e.ink + '。' + e.nar);
+  }
+
+  function reveal(code) {
+    const e = Core.ENTRIES[code];
+    if (!e || st.revealed[e.id]) return;
+    if (e.act === 2 && !st.flood) return;
+    st.revealed[e.id] = true;
+    els.filter((x) => x.code === code).forEach((x) => {
+      x.el.classList.add('flip'); x.el.classList.remove('abs');
+      x.el.setAttribute('aria-label', Core.cellLabel(x.r, x.c, code, e.ink));
+    });
+    addLog(e);
+    update();
+  }
+
+  function loadFlood() {
+    if (st.flood) return;
+    st.flood = true;
+    $('loadFlood').disabled = true;
+    const red = PK.reduced();
+    els.filter((x) => x.code === 'x').forEach((x, i) => {
+      x.el.querySelector('.in').style.transitionDelay = red ? '0ms' : (i * 70) + 'ms';
+      x.el.classList.add('flip');
+      x.el.setAttribute('aria-label', Core.cellLabel(x.r, x.c, 'x', '病'));
+    });
+    addLog(Core.FLOOD_ENTRY);
+    const wake = () => {
+      els.filter((x) => Core.ENTRIES[x.code] && Core.ENTRIES[x.code].act === 2).forEach((x) => {
+        x.el.disabled = false; x.el.classList.remove('blank'); x.el.classList.add('abs'); x.a.textContent = '缺';
+      });
+      update();
+      PK.announce('補登完成，又多了幾格紅色缺勤可以點開。');
+    };
+    update();
+    if (red) wake(); else setTimeout(wake, 1100);
+  }
+
+  /* ── 匯出：石片 ── */
+  function drawOstracon() {
+    const o = Core.ostracon('EA5634');
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', '0 0 ' + o.w + ' ' + o.h);
+    s.setAttribute('role', 'img');
+    s.setAttribute('aria-label', '石灰岩片示意圖：右側直排名字，往左是黑色日期，日期上方有紅色理由');
+    s.innerHTML =
+      '<defs><filter id="ostGrain" x="0" y="0" width="100%" height="100%">' +
+      '<feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7"/>' +
+      '<feColorMatrix type="matrix" values="0 0 0 0 .35  0 0 0 0 .26  0 0 0 0 .16  0 0 0 .5 0"/>' +
+      '<feComposite in2="SourceGraphic" operator="in"/></filter></defs>' +
+      '<g style="filter:drop-shadow(0 14px 18px rgba(0,0,0,.45))"><path d="' + o.outline + '" fill="#e8dcc3"/></g>' +
+      '<path d="' + o.outline + '" fill="#000" filter="url(#ostGrain)" opacity=".55"/>';
+    const add = (arr, color, sw, base, step) => arr.forEach((m, i) => {
+      const l = document.createElementNS(NS, 'line');
+      l.setAttribute('x1', m.x.toFixed(1)); l.setAttribute('y1', m.y.toFixed(1));
+      l.setAttribute('x2', (m.x + m.w).toFixed(1)); l.setAttribute('y2', (m.y + .6).toFixed(1));
+      l.setAttribute('stroke', color); l.setAttribute('stroke-width', sw); l.setAttribute('stroke-linecap', 'round');
+      l.setAttribute('class', 'om');
+      if (!PK.reduced()) l.style.transitionDelay = (base + i * step) + 'ms';
+      s.appendChild(l);
+    });
+    add(o.names, '#2a211b', 3.2, 0, 14);
+    add(o.dates, '#2a211b', 2.2, 650, 4);
+    add(o.reds, '#b4291c', 2.6, 1500, 9);
+    $('ostBox').appendChild(s);
+    requestAnimationFrame(() => requestAnimationFrame(() => s.querySelectorAll('.om').forEach((m) => m.classList.add('show'))));
+  }
+  function doExport() {
+    if (exported) return;
+    exported = true;
+    $('exportBar').hidden = true;
+    $('sheet').classList.add('peel');
+    $('darkZone').hidden = false;
+    drawOstracon();
+    PK.reveal('#darkZone .rv');
+    PK.scrollTo($('darkZone'));
+    PK.announce('匯出失敗。原始檔是一塊石灰岩片。');
+    store.set('exported', 1);
+  }
+
+  /* ── 最後一列：你 ── */
+  const yrow = $('yrow');
+  const yn = document.createElement('div'); yn.className = 'rn'; yn.textContent = '你'; yrow.appendChild(yn);
+  let youCell = null;
+  for (let c = 0; c < 7; c++) {
+    const isYou = c === 3;
+    const { el, a } = makeCell(isYou ? 'Y' : '.', 9, c, isYou);
+    if (isYou) {
+      el.classList.add('abs'); a.textContent = '缺';
+      el.setAttribute('aria-label', '你，今天，缺勤，點開填理由');
+      el.addEventListener('click', () => { $('choiceWrap').hidden = false; const f = $('chips').querySelector('.chip'); if (f) f.focus(); });
+      youCell = el;
+    } else { el.classList.add('ok'); a.textContent = '✓'; el.setAttribute('role', 'img'); el.setAttribute('aria-label', '出席'); }
+    yrow.appendChild(el);
+  }
+  Object.keys(Core.ENDINGS).forEach((k) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'chip';
+    b.textContent = Core.ENDINGS[k].label; b.dataset.k = k; b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', () => choose(k));
+    $('chips').appendChild(b);
+  });
+  function today() {
+    const d = new Date();
+    return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
+  }
+  function choose(k) {
+    const e = Core.ending(k); if (!e) return;
+    $('chips').querySelectorAll('.chip').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.k === k)));
+    youCell.classList.add('flip'); youCell.classList.remove('abs');
+    youCell.setAttribute('aria-label', '你，今天，理由：' + e.ink);
+    $('fDate').textContent = today() + '｜你';
+    $('fInk').textContent = e.ink;
+    $('echo').textContent = e.echo;
+    $('yours').hidden = false;
+    $('choiceWrap').hidden = true;
+    store.set('choice', k);
+    PK.announce('你的理由：' + e.ink + '。' + e.echo);
+  }
+  $('again').addEventListener('click', () => { $('choiceWrap').hidden = false; const f = $('chips').querySelector('[aria-pressed="true"]') || $('chips').querySelector('.chip'); f.focus(); });
+
+  /* ── 開場與回訪 ── */
+  $('open').addEventListener('click', () => PK.scrollTo($('sheet')));
+  $('loadFlood').addEventListener('click', loadFlood);
+  $('export').addEventListener('click', doExport);
+  const prev = Core.ending(store.get('choice', null));
+  if (prev) $('back').textContent = '上次你在最後一列寫下：「' + prev.ink + '」。';
+  update();
+})();
+</script>
+</body>
+</html>

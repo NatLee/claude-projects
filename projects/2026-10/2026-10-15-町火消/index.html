@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>把隔壁拆了｜每日小專案</title>
+<meta name="description" content="享保年間的江戶冬夜，半鐘響了。你是町火消的頭，手上沒有水——在屋頂上畫一道線，決定先拆哪幾間，讓火停在那裡。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#070a12; --pk-ink:#efe8da; --pk-dim:#9a917f; --pk-accent:#f0a04b;
+  --pk-line:rgba(239,232,218,.14);
+  --night:#0b1020; --ember:#ff7a2a; --shu:#d9452b; --chalk:#f3eee0;
+}
+html,body{height:100%}
+body{background:var(--pk-bg);overflow:hidden}
+.pk-home{z-index:30}
+
+/* ── 舞台：視窗即那一夜 ── */
+.stage{position:fixed;inset:0;display:flex;flex-direction:column;overflow:hidden;
+  background:radial-gradient(120% 80% at 15% 10%,#2a1408 0%,#0d0f1a 38%,#06080f 100%)}
+.top{flex:0 0 auto;display:flex;justify-content:flex-end;align-items:center;gap:14px;
+  padding:14px 16px 6px 120px;font-size:13px;color:var(--pk-dim);letter-spacing:.08em;min-height:46px}
+.top .ttl{font-family:var(--pk-serif);color:var(--pk-ink);font-size:15px;letter-spacing:.2em}
+.wind{display:inline-flex;align-items:center;gap:6px}
+.wind svg{width:22px;height:22px;overflow:visible}
+.wind .arr{transform-box:view-box;transform-origin:12px 12px;transform:rotate(20deg)}
+.area{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:4px 10px;position:relative}
+.board{position:relative;width:300px;height:200px;transition:transform 1.4s cubic-bezier(.2,.7,.2,1),opacity 1.4s ease;
+  border-radius:6px;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 30px 80px rgba(0,0,0,.6)}
+.board canvas{display:block;width:100%;height:100%;touch-action:none;border-radius:6px;cursor:crosshair}
+.board canvas:focus-visible{outline:2px solid var(--pk-accent);outline-offset:4px}
+.stage[data-scene="ledger"] .board{transform:scale(.46) translateY(-38%);opacity:.32}
+
+/* 纏 */
+.matoi{position:absolute;width:13%;aspect-ratio:40/96;transform:translate(-50%,-100%);pointer-events:none;
+  filter:drop-shadow(0 0 10px rgba(255,190,120,.55))}
+.matoi[hidden]{display:none}
+.matoi .rise{transform-origin:50% 100%;animation:rise 1.2s cubic-bezier(.2,.8,.25,1) both, sway 3.2s ease-in-out 1.2s infinite}
+.matoi svg{display:block;width:100%;height:auto;overflow:visible}
+.matoi .fringe{transform-box:view-box;transform-origin:20px 34px;animation:fr 1.6s ease-in-out 1.2s infinite}
+@keyframes rise{from{opacity:0;transform:translateY(40%)}to{opacity:1;transform:none}}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+@keyframes fr{0%,100%{transform:rotate(4deg)}50%{transform:rotate(-5deg)}}
+
+/* ── 字幕面板 ── */
+.panel{flex:0 0 auto;padding:10px 16px 18px;background:linear-gradient(rgba(6,8,15,0),rgba(6,8,15,.92) 26%);position:relative;z-index:5}
+.panel .in{max-width:680px;margin:0 auto}
+.cap{font-family:var(--pk-serif);font-size:clamp(16px,2.3vw,19px);line-height:1.8;margin:0 0 10px;min-height:3.6em}
+.cap b{color:var(--pk-accent);font-weight:600}
+.cap .hint{display:block;margin-top:6px;font-family:var(--pk-sans);font-size:14px;color:#f4c58f}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.row .sp{flex:1 1 auto}
+.pk-btn{padding:10px 20px;font-size:14px}
+.pk-btn.solid{background:var(--pk-accent);color:#1a0f05}
+.pk-btn.solid:hover{background:#ffbb6e}
+.ghost{appearance:none;background:none;border:0;color:var(--pk-dim);font:inherit;font-size:13px;cursor:pointer;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
+.ghost:hover{color:var(--pk-ink)}
+.hud{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;font-size:13.5px;color:var(--pk-dim);margin:0 0 10px}
+.hud strong{color:var(--pk-ink);font-weight:600}
+.bar{font-size:11px;letter-spacing:1px;color:var(--pk-accent);word-break:break-all;max-width:100%}
+.toast{color:#f4c58f;font-size:13px;min-height:1.4em;margin:0 0 6px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--pk-dim);margin:0 0 10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.kbd{font-size:12px;color:var(--pk-dim);margin:8px 0 0}
+[hidden]{display:none!important}
+
+/* ── 第一屏（鉤子） ── */
+.hook{position:absolute;inset:0;z-index:10;display:flex;align-items:center;overflow-y:auto;
+  background:linear-gradient(100deg,rgba(6,8,15,.96) 0%,rgba(6,8,15,.88) 55%,rgba(6,8,15,.35) 100%);
+  transition:opacity .9s ease}
+.hook.gone{opacity:0;pointer-events:none}
+.hook .pk-wrap{max-width:720px;width:100%}
+.kick{font-size:13px;letter-spacing:.3em;color:var(--pk-accent);margin:0 0 18px}
+.hook h1{font-size:clamp(26px,5.6vw,44px);line-height:1.45;margin:0 0 18px}
+.hook p{margin:0 0 14px;color:#d8cfbd;font-size:clamp(15px,2.2vw,18px)}
+.hook .t{display:block;font-family:var(--pk-serif);font-size:clamp(46px,11vw,96px);letter-spacing:.12em;color:var(--chalk);
+  line-height:1.1;margin:0 0 22px;text-shadow:0 0 40px rgba(255,120,40,.35)}
+.fadeup{opacity:0;transform:translateY(12px);animation:fu .9s cubic-bezier(.2,.7,.3,1) forwards}
+.d1{animation-delay:.3s}.d2{animation-delay:1.1s}.d3{animation-delay:2s}.d4{animation-delay:2.8s}.d5{animation-delay:3.4s}
+@keyframes fu{to{opacity:1;transform:none}}
+
+/* ── 天亮以後（結尾） ── */
+.ledger{position:absolute;inset:0;z-index:12;overflow-y:auto;overscroll-behavior:contain;
+  background:linear-gradient(rgba(6,8,15,.55),rgba(6,8,15,.94) 30%)}
+.ledger:focus{outline:none}
+.ledger .pk-wrap{max-width:660px;padding-top:min(34vh,260px);padding-bottom:20px}
+.ledger h2{font-family:var(--pk-serif);font-size:clamp(22px,4.4vw,30px);line-height:1.5;margin:0 0 14px;font-weight:600}
+.ledger h3{font-family:var(--pk-serif);font-size:18px;margin:44px 0 12px;color:var(--pk-accent);font-weight:600;letter-spacing:.08em}
+.ledger p{margin:0 0 14px}
+.years{list-style:none;margin:0;padding:0;border-left:1px solid var(--pk-line)}
+.years li{position:relative;padding:0 0 18px 22px}
+.years li::before{content:"";position:absolute;left:-4px;top:.65em;width:7px;height:7px;border-radius:50%;background:var(--shu)}
+.years .y{display:block;font-family:var(--pk-serif);color:var(--pk-accent);font-size:15px;letter-spacing:.1em}
+.quote{margin:34px 0 10px;padding:22px 20px;border:1px solid var(--pk-line);border-radius:6px;text-align:center}
+.quote .jp{font-family:var(--pk-serif);font-size:clamp(20px,4vw,26px);letter-spacing:.14em;display:block;margin-bottom:6px}
+.quote .zh{color:var(--pk-dim);font-size:14px}
+.turn{margin-top:46px;padding-top:26px;border-top:1px solid var(--pk-line)}
+.turn p{font-family:var(--pk-serif);font-size:clamp(17px,2.6vw,20px);line-height:1.9}
+.addr{list-style:none;margin:14px 0 24px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px 16px;
+  font-size:12.5px;color:var(--pk-dim);font-variant-numeric:tabular-nums}
+.addr li::before{content:"□ ";color:#5a5246}
+.coda{font-family:var(--pk-serif);font-size:clamp(17px,2.6vw,20px);line-height:1.9;margin:30px 0}
+
+@media (max-width:560px){
+  .top{padding-left:110px;font-size:12px}
+  .top .ttl{display:none}
+  .hook .pk-wrap{margin-top:auto}
+  .hook{align-items:flex-start;padding:70px 0 6vh;background:linear-gradient(180deg,rgba(6,8,15,.4) 0%,rgba(6,8,15,.94) 38%)}
+  .panel{padding:8px 14px 14px}
+  .cap{min-height:0}
+  .stage[data-scene="ledger"] .board{transform:scale(.6) translateY(-50%)}
+}
+@media (prefers-reduced-motion:reduce){
+  .fadeup{animation:none;opacity:1;transform:none}
+  .matoi .rise,.matoi .fringe{animation:none}
+  .board,.hook{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<div class="stage" id="stage" data-scene="hook">
+  <div class="top" aria-hidden="true">
+    <span class="ttl">把隔壁拆了</span>
+    <span class="wind">
+      <svg viewBox="0 0 24 24"><g class="arr"><path d="M3 12h15M13 6l6 6-6 6" fill="none" stroke="#f0a04b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g></svg>
+      西北風・往你家吹
+    </span>
+  </div>
+
+  <div class="area" id="area">
+    <div class="board" id="board">
+      <canvas id="cv" tabindex="-1" role="application"
+        aria-label="江戶長屋的屋頂俯瞰圖，24 欄 16 列。火在左上角，風往右下吹，你家在右側。用方向鍵移動游標，Enter 或空白鍵標記要拆的房子。"
+        aria-describedby="kbdHelp"></canvas>
+      <div class="matoi" id="matoi" hidden>
+        <div class="rise">
+          <svg viewBox="0 0 40 96" aria-hidden="true">
+            <line x1="20" y1="14" x2="20" y2="96" stroke="#c9a26a" stroke-width="2.4" stroke-linecap="round"/>
+            <rect x="12" y="2" width="16" height="12" rx="2" fill="#f6f1e4"/>
+            <circle cx="20" cy="20" r="7" fill="#f6f1e4"/>
+            <rect x="17" y="5" width="6" height="6" fill="#1b1b1b"/>
+            <rect x="9" y="28" width="22" height="4" rx="1.5" fill="#e9e1cf"/>
+            <g class="fringe">
+              <path d="M10 32v26M13 32v28M16 32v27M19 32v29M22 32v28M25 32v29M28 32v27M31 32v26" stroke="#f6f1e4" stroke-width="2.2" stroke-linecap="round"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="panel" id="panel" hidden aria-label="字幕與操作">
+    <div class="in">
+      <p class="cap" id="cap" aria-live="polite"></p>
+      <div class="hud" id="hud" hidden></div>
+      <p class="toast" id="toast" hidden></p>
+      <div class="legend" id="legend" hidden>
+        <span><i style="background:#232b3e"></i>長屋</span>
+        <span><i style="background:#3a3326"></i>大路</span>
+        <span><i style="background:#13314d"></i>隅田川</span>
+        <span><i style="background:#ffcf7a;border-radius:50%"></i>你家</span>
+        <span><i style="background:repeating-linear-gradient(45deg,#f3eee0 0 2px,#232b3e 2px 4px)"></i>待拆</span>
+      </div>
+      <div class="row" id="ctrl"></div>
+      <p class="kbd" id="kbdHelp" hidden>鍵盤：先按「用鍵盤畫」或 Tab 到地圖，方向鍵移動游標，Enter／空白鍵標記或取消，Shift＋方向鍵邊走邊畫。</p>
+    </div>
+  </section>
+
+  <section class="hook" id="hook" aria-labelledby="hookT">
+    <div class="pk-wrap">
+      <p class="kick fadeup d1">享保五年（1720）・江戶・某個冬夜</p>
+      <h1 id="hookT" class="fadeup d2"><span class="t">把隔壁拆了</span>江戶的火消趕到火場，<br>靠的不是水。</h1>
+      <p class="fadeup d3">是爬上<em style="font-style:normal;color:var(--ember)">火還沒燒到</em>的屋頂，把它拆掉。</p>
+      <p class="fadeup d4">半鐘敲得又急又密。火在西北角的巷子裡，風正往你家的方向吹。</p>
+      <p class="fadeup d5" style="margin-top:26px"><button class="pk-btn solid" id="goUp" type="button">上屋頂 →</button></p>
+    </div>
+  </section>
+
+  <section class="ledger" id="ledger" hidden aria-labelledby="ledT" tabindex="-1">
+    <div class="pk-wrap">
+      <p class="kick">天亮以後</p>
+      <h2 id="ledT"></h2>
+      <p id="ledSub"></p>
+
+      <h3>同一招，江戶用了兩百多年</h3>
+      <ol class="years">
+        <li><span class="y">1657・明曆大火</span>本郷一帶起火，強勁的西北風颳了兩天，江戶大半成了灰，連江戶城天守也燒掉。死者據說超過十萬。</li>
+        <li><span class="y">1658</span>幕府設立直屬的常設消防「定火消」。</li>
+        <li><span class="y">1718</span>町奉行大岡忠相下令設置「町火消」：町人自己組隊，救町人的屋子。</li>
+        <li><span class="y">1720 前後</span>編成「いろは」四十七組，用假名當組名；「へ」「ら」「ひ」不用，以「百」「千」「万」代替；隅田川東岸的本所、深川另編十六組。各組從這時起有了自己的纏。</li>
+        <li><span class="y">1730</span>四十七組再編成十個大組。後來再添「本」組，成為人稱的「いろは四十八組」。</li>
+        <li><span class="y">1764</span>幕府採用手壓水箱「龍吐水」。水柱細、壓力弱，火消信得過的仍是拆屋；水多半拿來把要衝進火場的人淋濕。</li>
+        <li><span class="y">1601–1867</span>江戶的大火 49 場。房子多半塗泥、蓋瓦的大阪，同一段時間只有 6 場。</li>
+      </ol>
+
+      <div class="quote">
+        <span class="jp">火事と喧嘩は江戸の華</span>
+        <span class="zh">火災和打架，是江戶的花。</span>
+      </div>
+      <p>花的一部分，就是火消。各組搶著上屋頂、搶著插纏——火滅之後，沒燒到的人家會送酒、送錢給火消組，所以那面旗插得越快越好。</p>
+
+      <div class="turn">
+        <p id="turn1"></p>
+        <p id="turn2"></p>
+        <p>這張圖替他們留下的，就這些：</p>
+        <ul class="addr" id="addr"></ul>
+      </div>
+
+      <p class="coda">江戶的「広小路」，多半是大火後把燒掉的町家遷走、拓寬出來的空地，不准再蓋長久的房子。上野広小路就是其中一條。<br>下次走過那條特別寬的路，你會知道：那片空，原本住著人。</p>
+
+      <div class="row">
+        <button class="pk-btn solid" id="again" type="button">再守一夜</button>
+        <a class="ghost" href="../../../index.html">回首頁</a>
+      </div>
+
+      <footer class="pk-foot">
+        資料來源：English Wikipedia〈Hikeshi〉〈Great Fire of Meireki〉〈Matoi〉；コトバンク（改訂新版 世界大百科事典、日本大百科全書、ブリタニカ國際大百科事典、山川 日本史小辭典）。
+      </footer>
+    </div>
+  </section>
+</div>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+'use strict';
+/* ── 純函式（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var W = 24, H = 16;
+  var HOUSE = 0, FIRE = 1, ASH = 2, GAP = 3, ROAD = 4, WATER = 5;
+  /* 參數：一步＝一「息」；風從西北偏西吹來 */
+  var P = { wind: [0.94, 0.34], base: 0.30, k: 0.40, pMin: 0.03, pMax: 0.95,
+            burn: 4, cost: 1, crew: 0.72, maxMarks: 40, maxSteps: 600 };
+  var HOME = 6 * W + 19;
+  var START = [4 * W + 2, 4 * W + 3, 5 * W + 2];
+
+  function idx(x, y) { return (x < 0 || y < 0 || x >= W || y >= H) ? -1 : y * W + x; }
+  function xy(i) { return [i % W, (i / W) | 0]; }
+
+  /* mulberry32：可設種子的亂數，同種子同一場火 */
+  function rng(seed) {
+    var a = (seed >>> 0) || 1;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* 地圖：右側隅田川、左下大路（広小路），其餘皆長屋 */
+  function makeMap() {
+    var type = [], i;
+    for (i = 0; i < W * H; i++) type.push(HOUSE);
+    for (var y = 0; y < H; y++) { type[idx(22, y)] = WATER; type[idx(23, y)] = WATER; }
+    for (var x = 0; x <= 12; x++) type[idx(x, 9)] = ROAD;
+    return type;
+  }
+
+  function init() {
+    var type = makeMap(), burn = [];
+    for (var i = 0; i < W * H; i++) burn.push(0);
+    START.forEach(function (s) { type[s] = FIRE; burn[s] = P.burn; });
+    return { type: type, burn: burn, marks: [], work: 0, t: 0, cleared: [], lost: [], homeLost: false };
+  }
+
+  /* 風向加權的延燒機率；dx,dy ∈ 四方位 */
+  function spreadP(dx, dy, prm) {
+    prm = prm || P;
+    var d = dx * prm.wind[0] + dy * prm.wind[1];
+    var p = prm.base + prm.k * d;
+    return Math.max(prm.pMin, Math.min(prm.pMax, p));
+  }
+
+  /* 兩格之間的 4 連通路徑（畫線補點用；斜走時補一格，防火帶才不會有對角縫） */
+  function pathCells(x0, y0, x1, y1) {
+    var out = [[x0, y0]], x = x0, y = y0, guard = 0;
+    while ((x !== x1 || y !== y1) && guard++ < 200) {
+      var dx = x1 - x, dy = y1 - y;
+      if (Math.abs(dx) >= Math.abs(dy)) x += dx > 0 ? 1 : -1; else y += dy > 0 ? 1 : -1;
+      out.push([x, y]);
+    }
+    return out;
+  }
+
+  function canMark(type, i) { return i >= 0 && i !== HOME && type[i] === HOUSE; }
+
+  /* 標記／取消：回傳新的 marks 陣列（不改原陣列） */
+  function toggleMark(type, marks, i, on, prm) {
+    prm = prm || P;
+    var at = marks.indexOf(i);
+    if (on) {
+      if (at >= 0 || !canMark(type, i) || marks.length >= prm.maxMarks) return marks;
+      return marks.concat([i]);
+    }
+    if (at < 0) return marks;
+    var m = marks.slice(); m.splice(at, 1); return m;
+  }
+
+  function distToFire(type, i) {
+    var best = 1e9, p = xy(i);
+    for (var j = 0; j < type.length; j++) if (type[j] === FIRE) {
+      var q = xy(j), d = Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
+  /* 一步模擬：先拆（鳶挑離火最近的那間），再延燒，再計時燒盡 */
+  function step(s, rand, prm) {
+    prm = prm || P;
+    var type = s.type.slice(), burn = s.burn.slice(), marks = s.marks.slice();
+    var cleared = s.cleared.slice(), lost = s.lost.slice();
+    var work = s.work + prm.crew, i, j;
+    /* 已著火的標記作廢 */
+    marks = marks.filter(function (m) { if (type[m] !== HOUSE) { lost.push(m); return false; } return true; });
+    while (marks.length && work >= prm.cost) {
+      var bi = 0, bd = 1e9;
+      for (j = 0; j < marks.length; j++) { var d = distToFire(type, marks[j]); if (d < bd) { bd = d; bi = j; } }
+      type[marks[bi]] = GAP; cleared.push(marks[bi]); marks.splice(bi, 1); work -= prm.cost;
+    }
+    if (!marks.length) work = 0;
+    var ign = [], dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+    for (i = 0; i < type.length; i++) {
+      if (s.type[i] !== FIRE) continue;
+      var c = xy(i);
+      for (j = 0; j < 4; j++) {
+        var n = idx(c[0] + dirs[j][0], c[1] + dirs[j][1]);
+        var r = rand();
+        if (n >= 0 && type[n] === HOUSE && r < spreadP(dirs[j][0], dirs[j][1], prm)) ign.push(n);
+      }
+    }
+    for (i = 0; i < type.length; i++) if (s.type[i] === FIRE) { burn[i]--; if (burn[i] <= 0) type[i] = ASH; }
+    ign.forEach(function (n) { if (type[n] === HOUSE) { type[n] = FIRE; burn[n] = prm.burn; } });
+    return { type: type, burn: burn, marks: marks, work: work, t: s.t + 1,
+             cleared: cleared, lost: lost, homeLost: s.homeLost || type[HOME] !== HOUSE };
+  }
+
+  function burning(s) { for (var i = 0; i < s.type.length; i++) if (s.type[i] === FIRE) return true; return false; }
+  function over(s) { return s.homeLost || !burning(s); }
+
+  function count(type, v) { var n = 0; for (var i = 0; i < type.length; i++) if (type[i] === v) n++; return n; }
+  function stats(s) {
+    return { cleared: s.cleared.length, burnt: count(s.type, ASH) + count(s.type, FIRE),
+             saved: count(s.type, HOUSE), home: !s.homeLost, steps: s.t };
+  }
+
+  /* 從火源沿可燃格做 BFS：home 是否可達（把 marks 視為已拆） */
+  function sealed(type, marks) {
+    var block = {}, seen = {}, q = [], i;
+    (marks || []).forEach(function (m) { block[m] = 1; });
+    for (i = 0; i < type.length; i++) if (type[i] === FIRE) { q.push(i); seen[i] = 1; }
+    while (q.length) {
+      var c = q.shift(); if (c === HOME) return false;
+      var p = xy(c), nb = [idx(p[0] + 1, p[1]), idx(p[0] - 1, p[1]), idx(p[0], p[1] + 1), idx(p[0], p[1] - 1)];
+      for (var k = 0; k < 4; k++) {
+        var n = nb[k];
+        if (n < 0 || seen[n] || block[n]) continue;
+        if (type[n] === HOUSE || type[n] === FIRE) { seen[n] = 1; q.push(n); }
+      }
+    }
+    return true;
+  }
+
+  /* 一口氣跑完（測試與預估用） */
+  function run(marks, seed, prm) {
+    prm = prm || P;
+    var s = init(), rand = rng(seed);
+    marks.forEach(function (m) { s.marks = toggleMark(s.type, s.marks, m, true, prm); });
+    while (!over(s) && s.t < prm.maxSteps) s = step(s, rand, prm);
+    return s;
+  }
+
+  /* 失敗診斷：none 沒畫／gap 線有缺口／late 線對但拆不及 */
+  function diagnose(startType, marks, final) {
+    if (!marks.length) return 'none';
+    if (!sealed(startType, marks)) return 'gap';
+    if (final && final.homeLost) return 'late';
+    return 'ok';
+  }
+
+  /* 給被拆的房子一個「門牌」：座標換算成町名 */
+  var CHO = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十', '二十一', '二十二', '二十三', '二十四'];
+  function address(i) {
+    var p = xy(i);
+    return (CHO[(p[0] / 4) | 0] || '?') + '丁目・' + CHO[p[1]] + '之巷・第' + CHO[p[0] % 4] + '戶';
+  }
+
+  /* 纏要立在哪：線邊、火燒到過、還站著的那間屋頂 */
+  function matoiSpot(st) {
+    var best = -1, score = -1, d4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    st.cleared.forEach(function (c) {
+      var p = xy(c), nb = [];
+      d4.forEach(function (d) { var n = idx(p[0] + d[0], p[1] + d[1]); if (n >= 0) nb.push(n); });
+      var ash = nb.filter(function (n) { return st.type[n] === ASH; }).length;
+      if (!ash) return;
+      nb.forEach(function (n) { if (st.type[n] === HOUSE && ash > score) { score = ash; best = n; } });
+    });
+    if (best < 0) best = st.cleared.length ? st.cleared[0] : HOME;
+    return best;
+  }
+
+  /* 保住多少：most 大半條街／some 一部分／home 只剩你家那一圈 */
+  function verdict(saved) { return saved >= 220 ? 'most' : saved >= 120 ? 'some' : 'home'; }
+
+  function workBar(n) { var s = ''; for (var i = 0; i < n; i++) s += '▮'; return s; }
+  function etaSteps(n, prm) { prm = prm || P; return n <= 0 ? 0 : Math.ceil(n * prm.cost / prm.crew); }
+
+  return { W: W, H: H, HOUSE: HOUSE, FIRE: FIRE, ASH: ASH, GAP: GAP, ROAD: ROAD, WATER: WATER,
+           P: P, HOME: HOME, START: START, idx: idx, xy: xy, rng: rng, makeMap: makeMap, init: init,
+           spreadP: spreadP, pathCells: pathCells, canMark: canMark, toggleMark: toggleMark,
+           step: step, burning: burning, over: over, stats: stats, sealed: sealed, run: run,
+           diagnose: diagnose, address: address, matoiSpot: matoiSpot, verdict: verdict, workBar: workBar, etaSteps: etaSteps };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+<script>
+'use strict';
+(function () {
+  const LS = 'hikeshi1720.';
+  const store = PK.store(LS);
+  const C = Core, W = C.W, H = C.H;
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage'), cv = $('cv'), board = $('board'), area = $('area'), panel = $('panel'),
+        cap = $('cap'), hud = $('hud'), toastEl = $('toast'), legend = $('legend'), ctrl = $('ctrl'),
+        kbd = $('kbdHelp'), matoi = $('matoi'), hook = $('hook'), ledger = $('ledger');
+  let ctx = null;
+  try { ctx = cv.getContext ? cv.getContext('2d') : null; } catch (e) { ctx = null; }
+
+  let reduced = PK.reduced();
+  let scene = 'hook';
+  let s = C.init();
+  let draft = [];
+  let seed = 1 + (store.get('tries', 0) | 0);
+  let rand = C.rng(seed);
+  let briefI = 0, winI = 0, events = {}, startType = null;
+  let cur = { x: 12, y: 4 }, curOn = false;
+  let geo = { w: 0, h: 0, cs: 0, dpr: 1 };
+  let acc = 0, toastT = 0;
+  const STEP = 0.36;
+  const sparks = [];
+  const HS = [], ROOF = [];
+  for (let i = 0; i < W * H; i++) {
+    HS.push(PK.hash('hk' + i));
+    const k = HS[i];
+    ROOF.push('rgb(' + Math.round(28 + k * 9) + ',' + Math.round(34 + k * 9) + ',' + Math.round(50 + k * 12) + ')');
+  }
+
+  /* ── 版面：棋盤吃滿可用空間，維持 3:2 ── */
+  function layout() {
+    const r = area.getBoundingClientRect();
+    if (r.width < 80 || r.height < 60) return;
+    const w = Math.floor(Math.min(r.width - 16, (r.height - 8) * 1.5, 1000));
+    const h = Math.round(w / 1.5);
+    board.style.width = w + 'px';
+    board.style.height = h + 'px';
+    const f = PK.fitCanvas(cv, h);
+    geo = { w: f.w, h: f.h, cs: f.w / W, dpr: f.dpr };
+    draw(0);
+  }
+
+  /* ── 繪製 ── */
+  function draw(t) {
+    if (!ctx || geo.cs <= 0) return;
+    const cs = geo.cs, T = s.type;
+    if (reduced) t = 0;
+    ctx.setTransform(geo.dpr, 0, 0, geo.dpr, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#080b14';
+    ctx.fillRect(0, 0, geo.w, geo.h);
+    const fires = [];
+    for (let i = 0; i < T.length; i++) {
+      const x = i % W, y = (i / W) | 0, px = x * cs, py = y * cs, v = T[i], k = HS[i];
+      if (v === C.HOUSE) {
+        const gl = x % 4 === 0 ? 1.6 : .5, gr = x % 4 === 3 ? 1.6 : .5;
+        const gt = y % 2 === 0 ? 1.4 : .4, gb = y % 2 === 1 ? 1.4 : .4;
+        const w = cs - gl - gr, h = cs - gt - gb;
+        ctx.fillStyle = ROOF[i];
+        ctx.fillRect(px + gl, py + gt, w, h);
+        ctx.fillStyle = 'rgba(255,255,255,.045)';
+        ctx.fillRect(px + gl, py + gt, w, h * .42);
+        ctx.fillStyle = 'rgba(0,0,0,.28)';
+        ctx.fillRect(px + gl, py + gt + h * (y % 2 ? .3 : .7), w, 1);
+      } else if (v === C.ROAD) {
+        ctx.fillStyle = '#3a3326';
+        ctx.fillRect(px, py + .5, cs, cs - 1);
+        ctx.fillStyle = 'rgba(0,0,0,.25)';
+        ctx.fillRect(px + cs * k, py + cs * .5, 2, 2);
+      } else if (v === C.WATER) {
+        ctx.fillStyle = '#0e2238';
+        ctx.fillRect(px, py, cs, cs);
+        ctx.strokeStyle = 'rgba(130,180,230,.16)';
+        ctx.lineWidth = 1;
+        const yy = py + cs * (((k + t * .25) % 1));
+        ctx.beginPath(); ctx.moveTo(px + cs * .15, yy); ctx.lineTo(px + cs * .7, yy); ctx.stroke();
+      } else if (v === C.GAP) {
+        ctx.fillStyle = '#251d16';
+        ctx.fillRect(px + .5, py + .5, cs - 1, cs - 1);
+        ctx.strokeStyle = '#6e5539';
+        ctx.lineWidth = Math.max(1, cs * .08);
+        ctx.beginPath();
+        ctx.moveTo(px + cs * .18, py + cs * (.3 + k * .3)); ctx.lineTo(px + cs * .82, py + cs * (.55 + k * .2));
+        ctx.moveTo(px + cs * .3, py + cs * .82); ctx.lineTo(px + cs * .7, py + cs * .25);
+        ctx.stroke();
+      } else if (v === C.ASH) {
+        ctx.fillStyle = '#100d0c';
+        ctx.fillRect(px + .5, py + .5, cs - 1, cs - 1);
+        if (((k * 7 + t * .6) % 1) < .18) {
+          ctx.fillStyle = 'rgba(255,90,30,.55)';
+          ctx.fillRect(px + cs * k, py + cs * (1 - k), 2, 2);
+        }
+      } else if (v === C.FIRE) {
+        ctx.fillStyle = '#4a1206';
+        ctx.fillRect(px, py, cs, cs);
+        fires.push(i);
+      }
+    }
+    /* 待拆：粉筆斜線＋虛線框 */
+    const ms = s.marks;
+    ctx.lineWidth = 1;
+    for (let j = 0; j < ms.length; j++) {
+      const m = ms[j]; if (T[m] !== C.HOUSE) continue;
+      const px = (m % W) * cs, py = ((m / W) | 0) * cs;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(px + 1, py + 1, cs - 2, cs - 2); ctx.clip();
+      ctx.strokeStyle = 'rgba(243,238,224,.5)';
+      ctx.beginPath();
+      for (let d = -cs; d < cs; d += 4) { ctx.moveTo(px + d, py + cs); ctx.lineTo(px + d + cs, py); }
+      ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle = 'rgba(243,238,224,.9)';
+      ctx.setLineDash([3, 2]);
+      ctx.strokeRect(px + 1.5, py + 1.5, cs - 3, cs - 3);
+      ctx.setLineDash([]);
+    }
+    /* 標籤 */
+    if (scene === 'brief' || scene === 'draw') {
+      ctx.fillStyle = 'rgba(239,232,218,.5)';
+      ctx.font = Math.max(10, cs * .55) + 'px system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('大路', cs * .4, cs * 9.5);
+      ctx.save(); ctx.translate(cs * 22.6, cs * 6); ctx.fillText('隅', 0, 0); ctx.fillText('田', 0, cs * .9); ctx.fillText('川', 0, cs * 1.8); ctx.restore();
+    }
+    /* 你家的燈籠 */
+    const hx = (C.HOME % W + .5) * cs, hy = (((C.HOME / W) | 0) + .5) * cs;
+    if (s.type[C.HOME] === C.HOUSE) {
+      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, cs * 1.6);
+      g.addColorStop(0, 'rgba(255,207,122,.55)'); g.addColorStop(1, 'rgba(255,207,122,0)');
+      ctx.fillStyle = g; ctx.fillRect(hx - cs * 2, hy - cs * 2, cs * 4, cs * 4);
+      ctx.fillStyle = '#ffcf7a';
+      ctx.beginPath(); ctx.arc(hx, hy, Math.max(2.5, cs * .2), 0, Math.PI * 2); ctx.fill();
+      if (scene === 'brief' || scene === 'draw') {
+        ctx.fillStyle = 'rgba(255,214,150,.95)';
+        ctx.font = Math.max(10, cs * .55) + 'px system-ui, sans-serif';
+        ctx.textAlign = 'center'; ctx.fillText('你家', hx, hy - cs * .95); ctx.textAlign = 'left';
+      }
+    }
+    /* 火光（加色） */
+    ctx.globalCompositeOperation = 'lighter';
+    for (let j = 0; j < fires.length; j++) {
+      const i = fires[j], k = HS[i];
+      const cx = (i % W + .5) * cs, cy = (((i / W) | 0) + .5) * cs;
+      const life = s.burn[i] / C.P.burn;
+      const fl = reduced ? .9 : .72 + .28 * Math.sin(t * 11 + k * 40);
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, cs * 1.9);
+      g.addColorStop(0, 'rgba(255,170,70,' + (.25 + .45 * fl * life).toFixed(3) + ')');
+      g.addColorStop(1, 'rgba(255,70,20,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(cx - cs * 2, cy - cs * 2, cs * 4, cs * 4);
+      ctx.fillStyle = 'rgba(255,210,140,' + (.35 * fl).toFixed(3) + ')';
+      ctx.fillRect(cx - cs * .32, cy - cs * .32, cs * .64, cs * .64);
+    }
+    for (let j = 0; j < sparks.length; j++) {
+      const p = sparks[j];
+      ctx.fillStyle = 'rgba(255,180,90,' + Math.max(0, p.l).toFixed(3) + ')';
+      ctx.fillRect(p.x * cs, p.y * cs, 1.6, 1.6);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    /* 鍵盤游標 */
+    if (curOn && scene === 'draw') {
+      ctx.strokeStyle = '#f0a04b'; ctx.lineWidth = 2;
+      ctx.strokeRect(cur.x * cs + 1, cur.y * cs + 1, cs - 2, cs - 2);
+    }
+    /* 暗角 */
+    const v = ctx.createRadialGradient(geo.w * .45, geo.h * .45, geo.h * .3, geo.w * .5, geo.h * .5, geo.w * .75);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.45)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, geo.w, geo.h);
+  }
+
+  function updateSparks(dt) {
+    const wx = C.P.wind[0], wy = C.P.wind[1];
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const p = sparks[i];
+      p.x += (wx * 2.4 + p.j) * dt; p.y += (wy * 2.4 - .6 + p.j) * dt; p.l -= dt * .7;
+      if (p.l <= 0 || p.x > W || p.y > H || p.y < 0) sparks.splice(i, 1);
+    }
+    if (sparks.length < 90) {
+      for (let n = 0; n < 3; n++) {
+        const i = (Math.random() * W * H) | 0;
+        if (s.type[i] === C.FIRE) sparks.push({ x: i % W + Math.random(), y: ((i / W) | 0) + Math.random(), j: (Math.random() - .5) * 1.2, l: .6 + Math.random() * .6 });
+      }
+    }
+  }
+
+  function tick(dt, t) {
+    if (scene === 'run' && !reduced) {
+      acc += dt;
+      while (acc >= STEP && scene === 'run') { acc -= STEP; advance(); }
+    }
+    updateSparks(dt);
+    draw(t / 1000);
+  }
+  function syncLoop() {
+    if (!reduced) PK.tick(tick); else { PK.untick(tick); sparks.length = 0; draw(0); }
+  }
+  const redraw = () => { if (reduced) draw(0); };
+
+  /* ── 字幕／按鈕 ── */
+  function say(html) { cap.innerHTML = html; }
+  function btn(label, fn, cls) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = cls || 'pk-btn'; b.textContent = label;
+    b.addEventListener('click', fn);
+    ctrl.appendChild(b); return b;
+  }
+  function toast(msg) {
+    if (!msg) return;
+    toastEl.hidden = false; toastEl.textContent = msg;
+    clearTimeout(toastT); toastT = setTimeout(() => { toastEl.hidden = true; }, 2400);
+    PK.announce(msg);
+  }
+  function setScene(n) { scene = n; stage.dataset.scene = n; cv.tabIndex = n === 'draw' ? 0 : -1; }
+
+  const BRIEF = [
+    '你是這一帶<b>町火消</b>的頭（かしら）。底下一群<b>鳶</b>（とび），人手一支長柄的鳶口，專爬屋頂、拆屋子。',
+    '水呢？井裡打上來的一桶水，潑上燒紅的木板，嘶一聲就沒了。能壓出水柱的<b>龍吐水</b>，還要再過四十多年才被幕府採用。',
+    '長屋是木頭和紙，屋頂鋪的是木板或茅草。火要吃這些才走得動——把下風處的房子先拆光，火走到那裡沒東西吃，就停。這叫<b>破壞消防</b>。',
+    '難處在拆哪裡。太近，鳶還沒拆完火就到；太遠，火已經燒寬，線得畫得更長——<b>每多畫一間，就多一份工夫</b>。'
+  ];
+
+  function goBrief() {
+    setScene('brief');
+    hook.classList.add('gone');
+    setTimeout(() => { hook.hidden = true; }, reduced ? 0 : 900);
+    panel.hidden = false;
+    layout();
+    briefI = 0; showBrief();
+  }
+  function showBrief() {
+    say(BRIEF[briefI]);
+    ctrl.innerHTML = '';
+    const last = briefI === BRIEF.length - 1;
+    const b = btn(last ? '開始畫線 →' : '繼續 →', () => { if (last) goDraw(); else { briefI++; showBrief(); } }, 'pk-btn solid');
+    b.focus({ preventScroll: true });
+    redraw();
+  }
+
+  function goDraw(keep) {
+    setScene('draw');
+    s = C.init();
+    if (!keep) draft = [];
+    draft = draft.filter((i) => C.canMark(s.type, i));
+    s.marks = draft;
+    matoi.hidden = true;
+    ledger.hidden = true;
+    events = {};
+    say('在屋頂上<b>畫出要拆的那一排</b>（按住拖曳；點已畫的格子可擦掉）。火會找縫鑽——線要接上大路、河或地圖邊。');
+    legend.hidden = false; kbd.hidden = false; hud.hidden = false;
+    ctrl.innerHTML = '';
+    const go = btn('開拆', startRun, 'pk-btn solid');
+    btn('清掉重畫', () => { draft = []; s.marks = draft; updateDrawHud(); redraw(); PK.announce('已清空'); }, 'ghost');
+    btn('用鍵盤畫', () => { cv.focus(); curOn = true; redraw(); }, 'ghost');
+    updateDrawHud();
+    go.focus({ preventScroll: true });
+    layout();
+  }
+  function updateDrawHud() {
+    const n = draft.length;
+    hud.innerHTML = '<span>待拆 <strong>' + n + '</strong> 間</span><span>鳶要花 <strong>約 ' + C.etaSteps(n) +
+      ' 息</strong></span><span class="bar" aria-hidden="true">' + C.workBar(n) + '</span>';
+  }
+
+  function startRun() {
+    setScene('run');
+    startType = s.type.slice();
+    seed = 1 + (store.get('tries', 0) | 0);
+    rand = C.rng(seed);
+    acc = 0; curOn = false;
+    legend.hidden = true; kbd.hidden = true;
+    say(draft.length ? '鳶上了屋頂。<b>誰離火最近，就先拆誰。</b>' : '你一間都沒畫。鳶站在巷口，看著火過來。');
+    renderRunCtrl();
+    updateRunHud();
+    PK.announce('開始拆屋，火也在走。');
+  }
+  function renderRunCtrl() {
+    if (scene !== 'run') return;
+    ctrl.innerHTML = '';
+    if (reduced) {
+      btn('下一息', () => { if (scene === 'run') advance(); redraw(); }, 'pk-btn solid').focus({ preventScroll: true });
+    }
+    btn('快轉到天亮', fastForward, reduced ? 'ghost' : 'pk-btn');
+  }
+  function updateRunHud() {
+    const st = C.stats(s);
+    hud.innerHTML = '<span>第 <strong>' + s.t + '</strong> 息</span><span>已拆 <strong>' + st.cleared + '</strong>／' +
+      draft.length + '</span><span>燒掉 <strong>' + st.burnt + '</strong> 間</span>';
+  }
+  function advance() {
+    const prevLost = s.lost.length, prevClr = s.cleared.length;
+    s = C.step(s, rand);
+    if (s.cleared.length && !prevClr && !events.clr) { events.clr = 1; say('第一間倒了。梁木拖到巷子裡，<b>那一格空了</b>。'); }
+    if (draft.length && !s.marks.length && !events.done && s.cleared.length && !s.lost.length) { events.done = 1; say('線拆完了，<b>一條空帶橫在火的前面</b>。剩下的交給風。'); }
+    if (s.lost.length > prevLost && !events.lost) { events.lost = 1; say('來不及——<b>有一間還沒拆完就燒起來了</b>。'); PK.announce('有一間來不及拆，著火了。'); }
+    updateRunHud();
+    if (C.over(s) || s.t >= C.P.maxSteps) finish();
+  }
+  function fastForward() {
+    while (scene === 'run' && !C.over(s) && s.t < C.P.maxSteps) advance();
+    redraw();
+  }
+
+  function finish() {
+    if (scene !== 'run') return;
+    const tries = (store.get('tries', 0) | 0) + 1;
+    store.set('tries', tries);
+    const st = C.stats(s);
+    updateRunHud();
+    if (!st.home) {
+      setScene('fail');
+      const dg = C.diagnose(startType, draft, s);
+      const hint = dg === 'none' ? '一間都沒拆，火就照著風走到你家門口。破壞消防，得先有東西可以拆。'
+        : dg === 'gap' ? '火從線的缺口繞過去了。線的兩頭要接上大路、河或地圖邊，中間也不能斷。'
+        : '線的位置對了，可是鳶還沒拆完，火先到了。畫遠一點讓他們有時間，或把線縮短。';
+      say('<b>你家門口的燈籠被火吞了。</b>這一夜燒掉 ' + st.burnt + ' 間。<span class="hint">' + hint + '</span>');
+      ctrl.innerHTML = '';
+      btn('改線再來', () => goDraw(true), 'pk-btn solid').focus({ preventScroll: true });
+      PK.announce('失敗：你家燒掉了。' + hint);
+    } else {
+      setScene('win');
+      const best = store.get('best', null);
+      if (!best || st.saved > best.saved) store.set('best', { saved: st.saved, cleared: st.cleared });
+      winI = 0; showWin();
+    }
+    redraw();
+  }
+
+  function showWin() {
+    const st = C.stats(s), vd = C.verdict(st.saved);
+    const tailTxt = vd === 'most' ? '大半條街都還站著。' : vd === 'some' ? '保住了一部分街坊。' : '你家保住了，四周差不多燒光了。';
+    const lines = [
+      '火舔到你拆出來的那片空地，找不到東西吃，縮了回去。<b>' + tailTxt + '</b>',
+      '<b>纏持</b>扛著纏，爬上線邊還站著的屋頂，把它立起來。',
+      '纏插在哪，就是在向別組、向整座城宣告：<b>這一段，歸我們守。</b>'
+    ];
+    say(lines[winI]);
+    if (winI === 1) placeMatoi(C.matoiSpot(s));
+    ctrl.innerHTML = '';
+    const last = winI === lines.length - 1;
+    btn(last ? '天亮了 →' : '繼續 →', () => { if (last) goLedger(); else { winI++; showWin(); } }, 'pk-btn solid').focus({ preventScroll: true });
+    PK.announce(cap.textContent);
+  }
+  function placeMatoi(i) {
+    const p = C.xy(i);
+    matoi.style.left = ((p[0] + .5) / W * 100) + '%';
+    matoi.style.top = ((p[1] + .8) / H * 100) + '%';
+    matoi.hidden = false;
+  }
+
+  function goLedger() {
+    setScene('ledger');
+    const st = C.stats(s), best = store.get('best', null);
+    panel.hidden = true;
+    $('ledT').textContent = '你這一夜：拆了 ' + st.cleared + ' 間，燒掉 ' + st.burnt + ' 間，保住 ' + st.saved + ' 間。';
+    $('ledSub').textContent = '你剛才做的，江戶的火消做了兩百多年：不跟火硬碰，先拿走它要吃的東西。' +
+      (best ? '（你最好的一夜：保住 ' + best.saved + ' 間。）' : '');
+    $('turn1').textContent = '送酒來的，是那 ' + st.saved + ' 戶。';
+    $('turn2').textContent = '你拆掉的那 ' + st.cleared + ' 戶，是今晚最早失去房子的人——拿走它們的不是火，是你畫的那條線。';
+    const ul = $('addr'); ul.innerHTML = '';
+    s.cleared.forEach((i) => { const li = document.createElement('li'); li.textContent = C.address(i); ul.appendChild(li); });
+    ledger.hidden = false; ledger.scrollTop = 0;
+    ledger.focus({ preventScroll: true });
+    PK.announce($('ledT').textContent);
+  }
+
+  /* ── 繪製互動：指標 ── */
+  let stroke = null;
+  function cellAt(e) {
+    const r = cv.getBoundingClientRect();
+    if (r.width < 80) return -1;
+    return C.idx(Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H));
+  }
+  function why(i) {
+    const v = s.type[i];
+    return i === C.HOME ? '那是你家。' : v === C.FIRE ? '那間已經燒起來了，拆不了。'
+      : v === C.ROAD ? '大路上沒有房子可拆——它本身就擋得住火。' : v === C.WATER ? '那是隅田川。' : '';
+  }
+  function apply(i, st) {
+    if (i < 0) return;
+    if (st.on) {
+      if (!C.canMark(s.type, i)) { if (!st.warned) { toast(why(i)); st.warned = true; } return; }
+      if (draft.length >= C.P.maxMarks && draft.indexOf(i) < 0) { if (!st.warned) { toast('鳶就這麼多人，一夜最多拆 ' + C.P.maxMarks + ' 間。'); st.warned = true; } return; }
+    }
+    draft = C.toggleMark(s.type, draft, i, st.on);
+    s.marks = draft;
+    updateDrawHud(); redraw();
+  }
+  cv.addEventListener('pointerdown', (e) => {
+    if (scene !== 'draw') return;
+    const i = cellAt(e); if (i < 0) return;
+    e.preventDefault();
+    stroke = { on: draft.indexOf(i) < 0, last: i, warned: false };
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    apply(i, stroke);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!stroke || scene !== 'draw') return;
+    const i = cellAt(e); if (i < 0 || i === stroke.last) return;
+    const a = C.xy(stroke.last), b = C.xy(i);
+    C.pathCells(a[0], a[1], b[0], b[1]).slice(1).forEach((p) => apply(C.idx(p[0], p[1]), stroke));
+    stroke.last = i;
+  });
+  const endStroke = () => { if (stroke) { stroke = null; PK.announce('待拆 ' + draft.length + ' 間'); } };
+  cv.addEventListener('pointerup', endStroke);
+  cv.addEventListener('pointercancel', endStroke);
+
+  /* ── 繪製互動：鍵盤替代 ── */
+  const KIND = (i) => i === C.HOME ? '你家' : draft.indexOf(i) >= 0 ? '待拆的長屋'
+    : ['長屋', '著火', '燒毀', '已拆', '大路', '隅田川'][s.type[i]];
+  cv.addEventListener('keydown', (e) => {
+    if (scene !== 'draw') return;
+    const mv = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+    if (mv) {
+      e.preventDefault();
+      cur.x = PK.clamp(cur.x + mv[0], 0, W - 1); cur.y = PK.clamp(cur.y + mv[1], 0, H - 1); curOn = true;
+      const i = C.idx(cur.x, cur.y);
+      if (e.shiftKey) apply(i, { on: true, warned: false });
+      PK.announce('第 ' + (cur.x + 1) + ' 欄第 ' + (cur.y + 1) + ' 列，' + KIND(i));
+      redraw();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const i = C.idx(cur.x, cur.y);
+      apply(i, { on: draft.indexOf(i) < 0, warned: false });
+      PK.announce(KIND(i) + '，待拆 ' + draft.length + ' 間');
+    }
+  });
+  cv.addEventListener('focus', () => { if (scene === 'draw') { curOn = true; redraw(); } });
+  cv.addEventListener('blur', () => { curOn = false; redraw(); });
+
+  $('goUp').addEventListener('click', goBrief);
+  $('again').addEventListener('click', () => { panel.hidden = false; goDraw(false); });
+
+  PK.onMotionChange((m) => { reduced = m; syncLoop(); renderRunCtrl(); redraw(); });
+  window.addEventListener('resize', layout);
+  if ('ResizeObserver' in window) new ResizeObserver(layout).observe(area);
+  layout();
+  syncLoop();
+
+  /* 給測試與除錯用的唯讀窺孔 */
+  window.__hk = { get scene() { return scene; }, get state() { return s; }, get draft() { return draft.slice(); } };
+})();
+</script>
+</body>
+</html>

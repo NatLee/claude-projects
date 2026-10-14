@@ -987,16 +987,17 @@
     var ro=new ResizeObserver(function(){ layout(); if(REDUCE) renderStatic(); });
     ro.observe(stageEl);
   }
-  document.addEventListener('visibilitychange', function(){ if(document.hidden) stopLoop(); else if(!REDUCE) startLoop(); });
+  var inView = true; // 保養 2026-10-15：切回分頁時，畫布不在視窗內就不重啟迴圈
+  document.addEventListener('visibilitychange', function(){ if(document.hidden) stopLoop(); else if(!REDUCE && inView) startLoop(); });
   if('IntersectionObserver' in window){
     new IntersectionObserver(function(es){
-      es.forEach(function(en){ if(en.isIntersecting){ if(!REDUCE) startLoop(); } else stopLoop(); });
+      es.forEach(function(en){ inView = en.isIntersecting; if(en.isIntersecting){ if(!REDUCE) startLoop(); } else stopLoop(); });
     }, {threshold:0.04}).observe(canvas);
   }
   function onReduceChange(){
     REDUCE=reduceMQ.matches;
     if(REDUCE){ stopLoop(); if(state.phase>=3) simulateTrails(); renderStatic(); }
-    else { startLoop(); }
+    else if(inView) { startLoop(); }
   }
   if(reduceMQ.addEventListener) reduceMQ.addEventListener('change', onReduceChange);
   else if(reduceMQ.addListener) reduceMQ.addListener(onReduceChange);

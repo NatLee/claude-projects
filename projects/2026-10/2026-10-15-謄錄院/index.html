@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你的筆跡進不了考官的房間｜每日小專案</title>
+<meta name="description" content="西元 1015 年，你的同鄉當上考官，約好認出你的卷子。朝廷一道一道把你從卷面上抹掉——你還剩最後一招。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#12100d; --pk-ink:#ebe3d2; --pk-dim:#9a9080; --pk-accent:#d9a441;
+  --pk-line:rgba(235,227,210,.13); --pk-maxw:680px;
+  --paper:#efe5cf; --paper2:#e6d9bd; --ink:#1f1a14; --seal:#b8322a; --gold:#d9a441;
+  --kai:"Kaiti TC","BiauKai","DFKai-SB","STKaiti","KaiTi","TW-Kai",var(--pk-serif);
+}
+body{
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(217,164,65,.08), transparent 60%),
+    var(--pk-bg);
+}
+.kicker{font-size:12.5px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 18px}
+.pk-hero h1{font-size:clamp(25px,6vw,38px)}
+.pk-hero p{font-family:var(--pk-serif);font-size:17px;color:#d6cdbb;max-width:34em}
+.hero-turn{margin-top:34px;font-size:clamp(20px,4.6vw,26px)!important;color:var(--pk-ink)!important}
+.pk-btn{border-color:var(--gold);color:var(--gold)}
+.pk-btn:hover{background:var(--gold);color:var(--pk-bg)}
+.go{margin-top:26px}
+
+main.pk-wrap{padding-bottom:20px}
+.act{padding:12vh 0 4vh;scroll-margin-top:20px}
+.act[hidden]{display:none}
+.lab{font-size:12px;letter-spacing:.34em;color:var(--gold);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+.lab::before{content:"";width:22px;height:1px;background:var(--gold);opacity:.7}
+.act p{font-family:var(--pk-serif);font-size:17px;margin:0 0 18px;color:#ddd4c2}
+.act p.big{font-size:clamp(21px,5vw,27px);color:var(--pk-ink);line-height:1.6}
+.act p.quiet{color:var(--pk-dim);font-size:15px}
+q, .q{font-family:var(--kai);color:#f3e7c6}
+blockquote.vow{margin:22px 0 26px;padding:6px 0 6px 20px;border-left:2px solid var(--seal);
+  font-family:var(--kai);font-size:clamp(21px,5vw,27px);line-height:1.6;color:#f3e7c6}
+.cite{font-family:var(--kai);color:#f0d9a6;background:rgba(217,164,65,.08);padding:0 .25em;border-radius:3px}
+.after{margin-top:26px}
+.after[hidden]{display:none}
+
+/* ── 紙張 ── */
+.paper{
+  position:relative;background:var(--paper);color:var(--ink);border-radius:3px;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 37px, rgba(160,60,40,.16) 37px 38px),
+    radial-gradient(140% 90% at 30% 10%, #f6eedb, var(--paper2));
+  box-shadow:0 18px 40px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.5) inset;
+  padding:22px 20px;
+}
+.paper .tag{position:absolute;top:10px;right:12px;font-size:11px;letter-spacing:.2em;color:#8a6d4a}
+
+/* 卷首家狀 */
+.head-sheet{max-width:420px;padding:30px 24px 26px;overflow:hidden}
+.head-row{display:flex;align-items:baseline;gap:12px;font-family:var(--kai);font-size:18px;margin:0 0 8px}
+.head-row b{font-weight:400;color:#6d5537;min-width:3.4em}
+.name-ink{font-family:var(--kai);font-size:30px;letter-spacing:.12em;min-height:1.3em}
+.strip{position:absolute;left:-4%;right:-4%;top:18px;height:96px;
+  background:linear-gradient(180deg,#ddd0b0,#d4c49f);box-shadow:0 2px 6px rgba(0,0,0,.25);
+  transform:scaleX(0);transform-origin:left center;transition:transform .9s cubic-bezier(.6,.1,.2,1)}
+.strip::after{content:"封彌";position:absolute;right:16%;top:50%;transform:translateY(-50%);
+  font-family:var(--kai);font-size:14px;letter-spacing:.4em;color:rgba(110,80,40,.6)}
+.sealed .strip{transform:scaleX(1)}
+.stamp{position:absolute;right:18px;bottom:16px;width:66px;height:66px;border:3px solid var(--seal);
+  color:var(--seal);font-family:var(--kai);font-size:17px;line-height:1.15;display:grid;place-items:center;
+  text-align:center;border-radius:4px;opacity:0;transform:scale(1.8) rotate(-12deg);
+  transition:opacity .25s ease .8s, transform .35s cubic-bezier(.3,1.6,.5,1) .8s}
+.sealed .stamp{opacity:.88;transform:scale(1) rotate(-8deg)}
+.seatno{font-family:var(--kai);font-size:clamp(28px,7vw,40px);color:#f3e7c6;letter-spacing:.08em;margin:8px 0 18px}
+
+/* 表單 */
+.field{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:16px 0 8px}
+.field label{font-size:14px;color:var(--pk-dim);width:100%}
+input[type=text], textarea{
+  font-family:var(--kai);font-size:20px;color:var(--ink);background:#f4ecd9;
+  border:1px solid #c7b48f;border-radius:4px;padding:10px 12px;outline:none;
+  transition:box-shadow .2s, border-color .2s}
+input[type=text]{width:12em;max-width:100%}
+textarea{width:100%;min-height:96px;resize:vertical;line-height:1.6}
+input[type=text]:focus, textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(217,164,65,.3)}
+.hint{font-size:13.5px;color:var(--pk-dim);min-height:1.6em;margin:4px 0 0}
+.hint.bad{color:#e08a6e}
+.checks{display:flex;flex-wrap:wrap;gap:8px 18px;margin:12px 0 4px;font-size:15px;color:#d6cdbb}
+.checks label{display:flex;gap:8px;align-items:center;cursor:pointer}
+.checks input{accent-color:var(--seal);width:17px;height:17px}
+
+/* 直書卷面 */
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.vpaper{writing-mode:vertical-rl;height:300px;min-width:150px;width:max-content;max-width:none;
+  padding:26px 22px;font-size:24px;line-height:1.55;margin-left:auto}
+.hand{font-family:var(--kai);color:#17110b}
+.hand span{display:inline-block;transform:rotate(var(--r)) translate(var(--x),0) scale(var(--s));text-shadow:0 0 .6px rgba(0,0,0,.6)}
+.clerk{font-family:var(--pk-serif);color:#2a2620;letter-spacing:.12em}
+.clerk .ph{opacity:.25}
+.fold::before{content:"";position:absolute;left:0;bottom:0;width:38px;height:38px;
+  background:linear-gradient(45deg,#cbb98f 50%,transparent 50%);box-shadow:2px -2px 3px rgba(0,0,0,.18)}
+.blot::after{content:"";position:absolute;right:30px;bottom:26px;width:14px;height:12px;border-radius:50% 46% 52% 40%;background:#120c06;opacity:.9}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;margin:18px 0 8px}
+.pair figcaption{font-size:12.5px;color:var(--pk-dim);letter-spacing:.2em;margin:8px 2px 0;text-align:right}
+.pair figure{margin:0;transition:opacity .9s ease, transform .9s cubic-bezier(.6,.1,.2,1)}
+.pair .gone{opacity:.18;transform:translateY(18px) scale(.94)}
+.locked-lbl{display:inline-block;margin-top:6px;font-size:12px;color:var(--seal);letter-spacing:.3em;opacity:0;transition:opacity .4s ease .6s}
+.gone + .locked-lbl, .pair .gone .locked-lbl{opacity:1}
+
+/* 考官桌 */
+.desk{position:relative;margin:20px 0 10px;padding:16px;border-radius:6px;
+  background:radial-gradient(120% 90% at 50% 0%, #2b231a, #17130e);border:1px solid var(--pk-line)}
+.desk-grid{display:grid;grid-template-columns:repeat(16,1fr);gap:5px}
+.sheet{aspect-ratio:3/4;border-radius:2px;background:#d9ccad;opacity:.78;position:relative;
+  background-image:repeating-linear-gradient(90deg, transparent 0 22%, rgba(40,30,20,.32) 22% 27%);
+  background-size:100% 80%;background-repeat:no-repeat;background-position:center 30%;
+  transition:opacity .25s, transform .25s}
+.sheet.read{opacity:.2}
+.sheet.hit{opacity:1;background-color:#f6e2a8;transform:scale(1.5);z-index:2;
+  box-shadow:0 0 0 2px var(--gold), 0 0 24px 6px rgba(217,164,65,.55)}
+.desk-meta{display:flex;justify-content:space-between;font-size:13px;color:var(--pk-dim);margin:10px 2px 0;font-variant-numeric:tabular-nums}
+.found{margin:22px 0 6px;opacity:0;transform:translateY(10px);transition:opacity .7s, transform .7s}
+.found.show{opacity:1;transform:none}
+.found .paper{font-family:var(--pk-serif);font-size:20px;line-height:1.9;letter-spacing:.06em}
+.found mark{background:none;color:var(--ink);box-shadow:inset 0 -.5em 0 rgba(217,164,65,.6);border-radius:1px}
+.grade-stamp{display:inline-block;margin-top:12px;padding:4px 12px;border:2px solid var(--seal);color:var(--seal);
+  font-family:var(--kai);font-size:20px;letter-spacing:.2em;transform:rotate(-4deg)}
+
+/* 覆考與定等 */
+.slips{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}
+.slip{padding:18px 16px;border-radius:4px;background:var(--paper);color:var(--ink);text-align:center;
+  box-shadow:0 12px 28px rgba(0,0,0,.4);opacity:0;transform:translateY(12px);transition:opacity .7s, transform .7s}
+.slip.show{opacity:1;transform:none}
+.slip small{display:block;font-size:12px;letter-spacing:.3em;color:#8a6d4a}
+.slip strong{display:block;font-family:var(--kai);font-size:30px;font-weight:400;margin:6px 0 2px;color:var(--seal)}
+.slip span{font-family:var(--kai);font-size:15px;color:#4c3d2b}
+.rules{list-style:none;padding:0;margin:18px 0}
+.rules li{position:relative;padding:10px 0 10px 28px;border-top:1px solid var(--pk-line);font-family:var(--pk-serif);
+  color:#d6cdbb;opacity:0;transform:translateX(-8px);transition:opacity .6s, transform .6s}
+.rules li.show{opacity:1;transform:none}
+.rules li::before{content:"";position:absolute;left:4px;top:19px;width:10px;height:10px;border-radius:50%;border:1.5px solid var(--gold)}
+.rules li.on::before{background:var(--gold)}
+.rules li.skip{color:var(--pk-dim);text-decoration:line-through;text-decoration-color:rgba(154,144,128,.5)}
+.final{margin:26px 0 8px;padding:26px 22px;text-align:center;opacity:0;transform:scale(.97);transition:opacity .9s, transform .9s}
+.final.show{opacity:1;transform:none}
+.final .who{font-family:var(--kai);font-size:clamp(26px,7vw,36px);letter-spacing:.16em;margin:6px 0}
+.final .line{font-family:var(--kai);font-size:17px;color:#4c3d2b}
+
+/* 結尾 */
+.coda{padding:16vh 0 4vh}
+.coda .last{font-family:var(--pk-serif);font-size:clamp(23px,5.6vw,32px);line-height:1.55;color:var(--pk-ink);margin:40px 0 10px}
+.coda .last2{font-family:var(--kai);font-size:clamp(18px,4.4vw,22px);color:var(--gold)}
+.again{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.ghost{border-color:var(--pk-line)!important;color:var(--pk-dim)!important}
+.ghost:hover{background:rgba(255,255,255,.06)!important;color:var(--pk-ink)!important}
+.record{font-size:13px;color:var(--pk-dim);margin-top:14px;font-variant-numeric:tabular-nums}
+
+/* 線索面板（遊戲 HUD） */
+.clues{position:fixed;right:14px;bottom:14px;z-index:8;width:178px;padding:12px 14px 10px;border-radius:10px;
+  background:rgba(22,19,15,.86);border:1px solid var(--pk-line);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  font-size:13px;opacity:0;transform:translateY(10px);transition:opacity .5s, transform .5s;pointer-events:none}
+.clues.show{opacity:1;transform:none;pointer-events:auto}
+.clues h3{margin:0 0 6px;font-size:11px;letter-spacing:.26em;color:var(--pk-dim);font-weight:400}
+.clues ul{list-style:none;margin:0;padding:0}
+.clues li{display:flex;justify-content:space-between;padding:3px 0;color:var(--pk-ink);transition:color .4s}
+.clues li i{font-style:normal;font-size:12px;color:var(--gold)}
+.clues li.dead{color:#6d665b;text-decoration:line-through}
+.clues li.dead i{color:var(--seal);text-decoration:none}
+.clues li.wait{color:#6d665b}
+.clues li.wait i{color:#6d665b}
+.clues li.flash{animation:flash .9s ease}
+@keyframes flash{0%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-2px)}100%{transform:none}}
+
+@media (max-width:560px){
+  .pair{grid-template-columns:1fr}
+  .vpaper{height:250px;font-size:21px}
+  .desk-grid{grid-template-columns:repeat(10,1fr);gap:4px}
+  .slips{grid-template-columns:1fr 1fr;gap:10px}
+  .clues{left:0;right:0;bottom:0;width:auto;border-radius:0;border-width:1px 0 0;padding:8px 14px}
+  .clues h3{display:none}
+  .clues ul{display:flex;justify-content:space-between;gap:6px}
+  .clues li{gap:4px}
+  body{padding-bottom:44px}
+}
+@media (prefers-reduced-motion: reduce){
+  .strip,.stamp,.pair figure,.sheet,.found,.slip,.rules li,.final,.clues{transition:none!important}
+  .clues li.flash{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<aside class="clues" id="clues" aria-label="他還認得出你的線索">
+  <h3>他認得你的線索</h3>
+  <ul>
+    <li data-k="name">名字 <i>可辨</i></li>
+    <li data-k="hand">筆跡 <i>可辨</i></li>
+    <li data-k="mark">記號 <i>可辨</i></li>
+    <li data-k="code" class="wait">暗號 <i>未用</i></li>
+  </ul>
+</aside>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">開寶六年・西元 973</p>
+    <h1 class="rv">主考官放了一個同鄉上榜。<br>皇帝把那個人叫來，問了幾句。</h1>
+    <p class="rv">他答得前言不對後語。皇帝把他刷掉，再把三百六十個落榜考生召進宮裡，挑出一百九十五人重考。從那一科起，皇帝親自坐鎮的殿試成了定制。</p>
+    <p class="rv hero-turn">四十二年後，輪到你了。</p>
+    <button class="pk-btn go rv" id="goStart" type="button">走進考場 ↓</button>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- 序：約定 -->
+  <section class="act" id="act0" hidden>
+    <p class="lab">大中祥符八年・開封</p>
+    <p>你的同鄉剛被點為考官。他臨走前湊到你耳邊，說了一句：</p>
+    <blockquote class="vow">「只要我認得出你的卷子，第一等就是你的。」</blockquote>
+    <p>他認得你的名字。他看過你寫字。你們還能約好在卷子上做個記號。</p>
+    <p class="big">三條路，總有一條走得通。</p>
+    <button class="pk-btn" id="go1" type="button">翻開試卷</button>
+  </section>
+
+  <!-- 第一招：名字 -->
+  <section class="act" id="act1" hidden aria-labelledby="t1">
+    <p class="lab" id="t1">第一招・名字</p>
+    <p>試卷第一頁要寫姓名、鄉貫。照規矩，一個字都不能錯。</p>
+    <div class="paper head-sheet" id="headSheet">
+      <span class="tag">家狀</span>
+      <div class="head-row"><b>姓名</b><span class="name-ink" id="nameInk">　</span></div>
+      <div class="head-row"><b>鄉貫</b><span>與考官同鄉</span></div>
+      <div class="strip" aria-hidden="true"></div>
+      <div class="stamp" aria-hidden="true">御書<br>院印</div>
+    </div>
+    <div class="field">
+      <label for="nameIn">寫上你的名字（或任何你想被認出來的稱呼）</label>
+      <input type="text" id="nameIn" maxlength="6" placeholder="王二" autocomplete="off">
+      <button class="pk-btn" id="sign" type="button">署名，交卷</button>
+    </div>
+    <p class="hint" id="nameHint" aria-live="polite"></p>
+
+    <div class="after" id="after1" hidden>
+      <p>卷子收走以後，第一個經手的人沒有讀你的文章。他把你寫名字的那一頁撕下來、糊住，給這份卷子換上一個號碼：</p>
+      <p class="seatno" id="seatNo">—</p>
+      <p>淳化三年（992），殿試開始糊名。景德四年（1007）的《親試進士條制》寫得更細：編排官<span class="cite">「去其卷首鄉貫狀，別以字號第之」</span>。考官桌上沒有人名，只有號碼。</p>
+      <p class="big">名字，沒了。</p>
+      <p>沒關係。他看過你寫字。</p>
+      <button class="pk-btn" id="go2" type="button">提筆</button>
+    </div>
+  </section>
+
+  <!-- 第二招：筆跡＋記號 -->
+  <section class="act" id="act2" hidden aria-labelledby="t2">
+    <p class="lab" id="t2">第二招・筆跡與記號</p>
+    <p>寫一句你的策論。寫什麼都行——他認的是字形，不是內容。</p>
+    <div class="field">
+      <label for="essayIn">你的一句（最多 80 字）</label>
+      <textarea id="essayIn" maxlength="80" placeholder="民為邦本，本固邦寧，治國先治倉廩。"></textarea>
+    </div>
+    <div class="checks" role="group" aria-label="額外的記號">
+      <label><input type="checkbox" id="cFold"> 在卷角折一道痕</label>
+      <label><input type="checkbox" id="cBlot"> 在行末點一滴墨</label>
+    </div>
+    <div class="pair" id="pair2">
+      <figure id="figHand">
+        <div class="scroll-x"><div class="paper vpaper hand" id="handPaper" aria-label="你的手寫卷面"></div></div>
+        <figcaption>你的原卷</figcaption>
+      </figure>
+      <figure id="figClerk" hidden>
+        <div class="scroll-x"><div class="paper vpaper clerk" id="clerkPaper" aria-label="書吏重抄的卷面"></div></div>
+        <figcaption>書吏的抄本</figcaption>
+      </figure>
+    </div>
+    <button class="pk-btn" id="submit2" type="button">寫完，交卷</button>
+    <p class="hint" id="essayHint" aria-live="polite"></p>
+
+    <div class="after" id="after2" hidden>
+      <p>你的卷子沒有送到考官桌上。它先進了另一個房間：一排書吏，把每份卷子一字一字重抄一遍。</p>
+      <p>景德四年起，殿試卷<span class="cite">「付封彌官謄寫校勘」</span>。大中祥符八年——就是今年——朝廷又設了謄錄院，<span class="cite">「集書吏錄本，監以內侍二人」</span>。</p>
+      <p id="markLine">你的原卷鎖進櫃子。你寫「之」字的那個習慣，跟著它一起鎖進去。</p>
+      <p class="big">筆跡，沒了。記號，也沒了。</p>
+      <p>可是書吏抄的是字。你寫了什麼，他就抄什麼。</p>
+      <button class="pk-btn" id="go3" type="button">還有最後一招</button>
+    </div>
+  </section>
+
+  <!-- 第三招：暗號（高潮） -->
+  <section class="act" id="act3" hidden aria-labelledby="t3">
+    <p class="lab" id="t3">最後一招・暗號</p>
+    <p>你們早就約好了：文章裡會出現某幾個字。字跡可以被抄掉，字本身抄不掉。</p>
+    <div class="field">
+      <label for="codeIn">和他約好的暗號（2～4 個字）</label>
+      <input type="text" id="codeIn" maxlength="4" placeholder="青梅竹馬" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="planIn">把暗號藏進句子裡（整句會被抄進抄本）</label>
+      <textarea id="planIn" maxlength="120"></textarea>
+    </div>
+    <p class="hint" id="codeHint" aria-live="polite"></p>
+    <button class="pk-btn" id="submit3" type="button" disabled>送進考官房間</button>
+
+    <div class="after" id="after3" hidden>
+      <p>考官的房間。今科的卷子堆在桌上，每一份都是同一種楷書、同一種墨色。他一份一份翻。</p>
+      <div class="desk" aria-hidden="true">
+        <div class="desk-grid" id="deskGrid"></div>
+        <div class="desk-meta"><span id="readCount">翻過 0 份</span><span id="seatEcho"></span></div>
+      </div>
+      <div class="found" id="found">
+        <div class="paper" id="foundPaper"></div>
+        <div class="grade-stamp">初考・第一等</div>
+      </div>
+      <div id="after3b" hidden>
+        <p class="big">他找到你了。</p>
+        <p>名字、筆跡、記號全被抹掉，暗號活下來。你贏了。</p>
+        <p class="quiet">……先別急著放鞭炮。</p>
+        <button class="pk-btn" id="go4" type="button">看看卷子接下來去哪</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 轉折：覆考 -->
+  <section class="act" id="act4" hidden aria-labelledby="t4">
+    <p class="lab" id="t4">轉折・隔壁房間</p>
+    <p>他寫下第一等。另一個人走過來，把他寫的等第也糊住，連卷子一起送去隔壁。</p>
+    <p>《宋史》只用了一句：<span class="cite">「復封彌送覆考官再定等」</span>。隔壁那位不認識你，不知道暗號，也看不見前一位給了幾等。他手上只有你寫的那 <b id="nChars">0</b> 個字。</p>
+    <div class="slips">
+      <div class="slip" id="slipA"><small>初考</small><strong>第一等</strong><span>學識優長、詞理精絕</span></div>
+      <div class="slip" id="slipB"><small>覆考</small><strong id="bGrade">—</strong><span id="bTitle"></span></div>
+    </div>
+    <p>兩個等第攤在編排官面前。規矩是這樣的：</p>
+    <ol class="rules" id="rules">
+      <li data-r="same"><span class="cite">「閱其同異」</span>——兩個等第一樣，就這麼定了。</li>
+      <li data-r="again"><span class="cite">「未同者再考之」</span>——不一樣，兩人各看一次。兩人都不改口。</li>
+      <li data-r="near"><span class="cite">「如復不同，即以相附近者為定」</span>——還是不同，就往中間取。</li>
+    </ol>
+    <div class="paper final" id="final">
+      <div class="line" id="finalPre">直到這一刻，編排官才把撕下來的那頁家狀拿出來，照字號對回去——</div>
+      <div class="who" id="finalWho">—</div>
+      <div class="line" id="finalGrade">—</div>
+    </div>
+    <p class="after" id="after4" hidden>整場考試裡，頭一回有人同時看見這張卷子和你的名字。</p>
+  </section>
+
+  <!-- 尾聲 -->
+  <section class="coda" id="coda" hidden aria-label="尾聲">
+    <p>你的同鄉賭上了官位，換來一個被拉回中間的等第。這套設計從來不指望考官誠實——它讓任何一個考官單獨作弊都不夠用。</p>
+    <p>後來賈昌朝上奏：既然有了封彌、謄錄，<span class="cite">「一切考諸試篇」</span>，只看卷面。連考前投遞作品、經營名聲用的「公卷」都一併廢掉。再後來有人提議恢復唐朝那套看名聲取人、撤掉封彌，蘇軾把它列進<span class="cite">「此數者皆非也」</span>。</p>
+    <p class="last">一千年後，你在答題卷上貼過的那張條碼，做的是同一樁差事。</p>
+    <p class="last2">讓改卷的人只認得字，不認得你。</p>
+    <p class="quiet">想換個定等？覆考官手上只有字——下一次，多給他一點字。</p>
+    <div class="again">
+      <button class="pk-btn" id="retry" type="button">換個暗號，再闖一次</button>
+      <button class="pk-btn ghost" id="restart" type="button">從卷首重來</button>
+    </div>
+    <p class="record" id="record" aria-live="polite"></p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：《宋史・選舉志一》；Wikipedia〈Imperial examination〉。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+'use strict';
+/* ── 純函式（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var DIG = '零一二三四五六七八九';
+  var SEAT = '天地玄黃宇宙洪荒日月盈昃辰宿列張';
+  var TITLES = ['', '學識優長、詞理精絕', '才思該通、文理周率', '文理俱通', '文理中平', '文理疏淺'];
+  var HAN = ['', '第一等', '第二等', '第三等', '第四等', '第五等'];
+
+  function h32(s) {
+    var h = 2166136261 >>> 0;
+    s = String(s);
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  /* 1–999 轉中文數字（一百零五、一百一十、十二） */
+  function toHan(n) {
+    n = Math.floor(n);
+    if (n <= 0) return DIG[0];
+    var b = Math.floor(n / 100), t = Math.floor(n % 100 / 10), o = n % 10, s = '';
+    if (b) s += DIG[b] + '百';
+    if (t) s += (t === 1 && !b ? '' : DIG[t]) + '十';
+    else if (b && o) s += '零';
+    if (o) s += DIG[o];
+    return s;
+  }
+  function seatNo(name) {
+    var h = h32('seat|' + name);
+    return { ch: SEAT[h % SEAT.length], num: 1 + (h >>> 5) % 480 };
+  }
+  function seatText(name) { var s = seatNo(name); return s.ch + '字 第' + toHan(s.num) + '號'; }
+  /* 「你的筆跡」：每個字的歪斜、位移、大小，由字與位置決定 */
+  function jitter(ch, i) {
+    var h = h32(ch + '#' + i);
+    return {
+      r: ((h % 1300) / 100 - 6.5).toFixed(1),            // -6.5° ~ 6.5°
+      x: (((h >>> 11) % 60) / 10 - 3).toFixed(1),        // -3 ~ 3 px
+      s: (0.9 + ((h >>> 19) % 22) / 100).toFixed(2)      // 0.90 ~ 1.11
+    };
+  }
+  /* 計字：去掉空白與標點 */
+  function countChars(t) {
+    return String(t).replace(/[\s　-〿＀-／：-＠［-｀｛-･.,;:!?'"()\[\]{}\-—…·、「」『』]/g, '').length;
+  }
+  /* 覆考官：看不到暗號、看不到初考，只看卷面（遊戲以字數粗估文理） */
+  function blindGrade(text) {
+    var n = countChars(text);
+    if (n >= 100) return 2;
+    if (n >= 50) return 3;
+    if (n >= 20) return 4;
+    return 5;
+  }
+  /* 編排官：同則已；未同再考（皆不改）；再不同取相附近者（遊戲取中間、偏嚴） */
+  function settle(a, b) {
+    if (a === b) return { grade: a, path: ['same'] };
+    return { grade: Math.ceil((a + b) / 2), path: ['again', 'near'] };
+  }
+  function rankOf(g) { return g <= 2 ? '進士及第' : g === 3 ? '進士出身' : '同進士出身'; }
+  function codeCheck(code, text) {
+    code = String(code).trim(); text = String(text);
+    var n = countChars(code);
+    if (n < 2 || n > 4) return { ok: false, why: '暗號要 2～4 個字' };
+    if (text.indexOf(code) < 0) return { ok: false, why: '句子裡還沒藏進「' + code + '」' };
+    if (countChars(text) <= n) return { ok: false, why: '只寫暗號太顯眼了，替它圍上幾個字' };
+    return { ok: true, why: '藏好了' };
+  }
+  function segments(text, code) {
+    var out = [], i = 0, k;
+    if (!code) return [{ t: text, hit: false }];
+    while ((k = text.indexOf(code, i)) >= 0) {
+      if (k > i) out.push({ t: text.slice(i, k), hit: false });
+      out.push({ t: code, hit: true });
+      i = k + code.length;
+    }
+    if (i < text.length) out.push({ t: text.slice(i), hit: false });
+    return out;
+  }
+  function hitIndex(code, total) { return Math.floor(total * 0.55) + h32('hit|' + code) % Math.floor(total * 0.4); }
+  return { h32: h32, toHan: toHan, seatNo: seatNo, seatText: seatText, jitter: jitter, countChars: countChars,
+    blindGrade: blindGrade, settle: settle, rankOf: rankOf, codeCheck: codeCheck, segments: segments,
+    hitIndex: hitIndex, TITLES: TITLES, HAN: HAN };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+<script>
+'use strict';
+const LS = 'humg1015.';
+const store = PK.store(LS);
+PK.reveal();
+
+const $ = (id) => document.getElementById(id);
+const st = { name: '', essay: '', code: '', plan: '' };
+const wait = (ms) => new Promise((r) => setTimeout(r, PK.reduced() ? Math.min(ms, 60) : ms));
+
+function show(id) { const el = $(id); el.hidden = false; return el; }
+function go(id) { const el = show(id); requestAnimationFrame(() => PK.scrollTo(el)); return el; }
+
+/* 線索面板 */
+const clues = $('clues');
+function clue(k, state) {
+  const li = clues.querySelector('[data-k="' + k + '"]');
+  li.classList.remove('dead', 'wait', 'flash');
+  void li.offsetWidth;
+  if (state === 'dead') { li.classList.add('dead', 'flash'); li.querySelector('i').textContent = '抹掉'; }
+  else if (state === 'live') { li.classList.add('flash'); li.querySelector('i').textContent = '認出'; }
+  else if (state === 'reset') { li.querySelector('i').textContent = '可辨'; }
+  else if (state === 'wait') { li.classList.add('wait'); li.querySelector('i').textContent = '未用'; }
+}
+
+/* 序 */
+$('goStart').addEventListener('click', () => { go('act0'); clues.classList.add('show'); });
+$('go1').addEventListener('click', () => { go('act1'); setTimeout(() => $('nameIn').focus({ preventScroll: true }), 500); });
+
+/* 第一招：名字 */
+$('nameIn').addEventListener('input', (e) => { $('nameInk').textContent = e.target.value || '　'; });
+$('sign').addEventListener('click', async () => {
+  const v = $('nameIn').value.trim() || $('nameIn').placeholder;
+  st.name = v; $('nameIn').value = v; $('nameInk').textContent = v;
+  $('nameIn').disabled = true; $('sign').disabled = true;
+  $('headSheet').classList.add('sealed');
+  await wait(1300);
+  $('seatNo').textContent = Core.seatText(v);
+  show('after1');
+  clue('name', 'dead');
+  PK.announce('名字被糊住了，卷子改用字號：' + Core.seatText(v));
+});
+$('nameIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('sign').click(); });
+$('go2').addEventListener('click', () => { go('act2'); setTimeout(() => $('essayIn').focus({ preventScroll: true }), 500); });
+
+/* 第二招：筆跡＋記號 */
+function renderHand(text) {
+  const p = $('handPaper');
+  p.textContent = '';
+  const t = text || $('essayIn').placeholder;
+  [...t].forEach((ch, i) => {
+    const s = document.createElement('span');
+    const j = Core.jitter(ch, i);
+    s.style.setProperty('--r', j.r + 'deg'); s.style.setProperty('--x', j.x + 'px'); s.style.setProperty('--s', j.s);
+    s.textContent = ch; p.appendChild(s);
+  });
+}
+function syncMarks() {
+  $('handPaper').classList.toggle('fold', $('cFold').checked);
+  $('handPaper').classList.toggle('blot', $('cBlot').checked);
+}
+$('essayIn').addEventListener('input', (e) => renderHand(e.target.value));
+$('cFold').addEventListener('change', syncMarks);
+$('cBlot').addEventListener('change', syncMarks);
+renderHand('');
+
+$('submit2').addEventListener('click', async () => {
+  const v = $('essayIn').value.trim() || $('essayIn').placeholder;
+  st.essay = v; $('essayIn').value = v; renderHand(v);
+  ['essayIn', 'cFold', 'cBlot', 'submit2'].forEach((id) => { $(id).disabled = true; });
+  const marks = [$('cFold').checked && '折痕', $('cBlot').checked && '墨點'].filter(Boolean);
+  if (marks.length) $('markLine').textContent = '你的原卷鎖進櫃子。' + marks.join('、') + '，還有你寫「之」字的那個習慣，跟著它一起鎖進去。';
+  const clerk = $('clerkPaper');
+  clerk.textContent = '';
+  show('figClerk');
+  await new Promise((done) => PK.type(clerk, v, 70, done));
+  $('figHand').classList.add('gone');
+  const lb = document.createElement('span'); lb.className = 'locked-lbl'; lb.textContent = '封存';
+  $('figHand').querySelector('figcaption').appendChild(lb);
+  await wait(700);
+  show('after2');
+  clue('hand', 'dead'); await wait(250); clue('mark', 'dead');
+  PK.announce('書吏重抄了卷子，原卷封存：筆跡與記號都被抹掉了');
+});
+$('go3').addEventListener('click', () => {
+  go('act3');
+  if (!$('planIn').value) $('planIn').value = st.essay;
+  validate();
+  setTimeout(() => $('codeIn').focus({ preventScroll: true }), 500);
+});
+
+/* 第三招：暗號 */
+function validate() {
+  const r = Core.codeCheck($('codeIn').value, $('planIn').value);
+  $('codeHint').textContent = ($('codeIn').value.trim() ? r.why : '先想一組暗號');
+  $('codeHint').classList.toggle('bad', !r.ok && !!$('codeIn').value.trim());
+  $('submit3').disabled = !r.ok;
+  return r.ok;
+}
+$('codeIn').addEventListener('input', validate);
+$('planIn').addEventListener('input', validate);
+
+const TOTAL = 160;
+const grid = $('deskGrid');
+for (let i = 0; i < TOTAL; i++) { const d = document.createElement('div'); d.className = 'sheet'; grid.appendChild(d); }
+
+let scanFn = null;
+function scanDesk(target) {
+  return new Promise((done) => {
+    const cells = grid.children;
+    for (const c of cells) c.classList.remove('read', 'hit');
+    if (scanFn) PK.untick(scanFn);
+    if (PK.reduced()) {
+      for (let i = 0; i < target; i++) cells[i].classList.add('read');
+      cells[target].classList.add('hit'); $('readCount').textContent = '翻過 ' + (target + 1) + ' 份';
+      return done();
+    }
+    let p = 0;
+    scanFn = function (dt) {
+      if (PK.reduced()) p = target;
+      const left = target - p;
+      p = Math.min(target, p + dt * (left > 20 ? 60 : 16));   // dt 為秒；越接近越慢
+      const k = Math.floor(p);
+      for (let i = 0; i < k; i++) cells[i].classList.add('read');
+      $('readCount').textContent = '翻過 ' + k + ' 份';
+      if (p >= target) {
+        PK.untick(scanFn); scanFn = null;
+        cells[target].classList.add('hit'); $('readCount').textContent = '翻過 ' + (target + 1) + ' 份';
+        done();
+      }
+    };
+    PK.tick(scanFn);
+  });
+}
+
+$('submit3').addEventListener('click', async () => {
+  if (!validate()) return;
+  st.code = $('codeIn').value.trim(); st.plan = $('planIn').value.trim();
+  ['codeIn', 'planIn', 'submit3'].forEach((id) => { $(id).disabled = true; });
+  $('found').classList.remove('show'); $('after3b').hidden = true;
+  $('seatEcho').textContent = Core.seatText(st.name);
+  const fp = $('foundPaper'); fp.textContent = '';
+  Core.segments(st.plan, st.code).forEach((s) => {
+    const el = document.createElement(s.hit ? 'mark' : 'span'); el.textContent = s.t; fp.appendChild(el);
+  });
+  go('after3');
+  clue('code', 'reset');
+  await wait(900);
+  await scanDesk(Core.hitIndex(st.code, TOTAL));
+  await wait(500);
+  $('found').classList.add('show');
+  clue('code', 'live');
+  PK.announce('考官在抄本裡認出了暗號「' + st.code + '」，初考第一等');
+  await wait(900);
+  $('after3b').hidden = false;
+});
+
+/* 轉折：覆考與定等 */
+$('go4').addEventListener('click', async () => {
+  $('go4').disabled = true;
+  ['slipA', 'slipB', 'final'].forEach((id) => $(id).classList.remove('show'));
+  $('rules').querySelectorAll('li').forEach((li) => li.classList.remove('show', 'on', 'skip'));
+  $('after4').hidden = true;
+  const b = Core.blindGrade(st.plan);
+  const res = Core.settle(1, b);
+  $('nChars').textContent = Core.countChars(st.plan);
+  $('bGrade').textContent = Core.HAN[b];
+  $('bTitle').textContent = Core.TITLES[b];
+  go('act4');
+  await wait(1100); $('slipA').classList.add('show');
+  await wait(600); $('slipB').classList.add('show');
+  PK.announce('覆考給了' + Core.HAN[b]);
+  await wait(1000);
+  for (const li of $('rules').children) {
+    li.classList.add('show');
+    if (res.path.includes(li.dataset.r)) li.classList.add('on'); else li.classList.add('skip');
+    await wait(900);
+  }
+  $('finalWho').textContent = st.name;
+  $('finalGrade').textContent = Core.seatText(st.name) + '・' + Core.HAN[res.grade] + '・' + Core.rankOf(res.grade);
+  $('final').classList.add('show');
+  PK.announce('定等：' + Core.HAN[res.grade] + '，' + Core.rankOf(res.grade));
+  await wait(1100);
+  $('after4').hidden = false;
+
+  const runs = store.get('runs', 0) + 1;
+  const best = Math.min(store.get('best', 9), res.grade);
+  store.set('runs', runs); store.set('best', best);
+  $('record').textContent = '你進過 ' + runs + ' 次考場，最好的定等是' + Core.HAN[best] + '。';
+  await wait(600);
+  show('coda');
+});
+
+/* 再來 */
+$('retry').addEventListener('click', () => {
+  ['codeIn', 'planIn'].forEach((id) => { $(id).disabled = false; });
+  $('codeIn').value = ''; $('go4').disabled = false;
+  $('after3').hidden = true; $('act4').hidden = true; $('coda').hidden = true;
+  clue('code', 'wait'); validate();
+  PK.scrollTo($('act3')); setTimeout(() => $('codeIn').focus({ preventScroll: true }), 500);
+});
+$('restart').addEventListener('click', () => { location.reload(); });
+
+(function initRecord() {
+  const runs = store.get('runs', 0);
+  if (runs) $('record').textContent = '你進過 ' + runs + ' 次考場，最好的定等是' + Core.HAN[store.get('best', 5)] + '。';
+})();
+</script>
+</body>
+</html>

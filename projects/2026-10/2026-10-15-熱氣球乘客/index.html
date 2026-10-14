@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>牠們比人先上天｜每日小專案</title>
+<meta name="description" content="1783 年凡爾賽，一隻羊、一隻鴨、一隻公雞被吊上熱氣球。火盆在你腳邊：按住添柴，看升力什麼時候贏過載重。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0d1320; --pk-ink:#ece5d3; --pk-dim:#93a0b4; --pk-accent:#e3b04b;
+  --pk-line:rgba(236,229,211,.13);
+  --sky:#6ea2e0; --sky-deep:#2c5a93; --ember:#ff8a3d; --hot:#ff5a36;
+  --paper:#f1e8d0; --paper-ink:#2b241a; --paper-dim:#7b6c55; --brass:#b98f45;
+}
+body{background:
+  radial-gradient(120% 60% at 50% 0%,#1b2a44 0%,rgba(13,19,32,0) 70%),
+  var(--pk-bg);}
+h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(21px,4.6vw,28px);line-height:1.5;margin:0 0 14px}
+p{margin:0 0 14px}
+em{font-style:normal;color:var(--pk-accent)}
+.kick{font-size:13px;letter-spacing:.22em;color:var(--pk-dim);margin:0 0 18px}
+
+/* ── 第一屏 ── */
+.hero-in{display:grid;grid-template-columns:1fr auto;gap:18px;align-items:center;width:100%}
+.hero-in p{color:#cfd6e2;max-width:30em}
+.hero-in .last{color:var(--pk-accent);font-family:var(--pk-serif);font-size:19px;margin-top:22px}
+.cue{display:inline-block;margin-top:26px;color:var(--pk-dim);text-decoration:none;font-size:14px;letter-spacing:.12em;border-bottom:1px dashed var(--pk-line);padding-bottom:3px}
+.cue:hover,.cue:focus-visible{color:var(--pk-ink)}
+.mini{width:118px;height:auto;overflow:visible}
+.mini .float{transform-box:view-box;transform-origin:60px 90px;animation:bob 6s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(4px) rotate(-1.5deg)}50%{transform:translateY(-8px) rotate(1.5deg)}}
+
+/* ── 敘事段落 ── */
+.beat{padding:70px 0 10px}
+.beat[hidden]{display:none}
+.recipe{border-left:2px solid var(--brass);padding:4px 0 4px 16px;margin:20px 0;color:#d9d2bf}
+.recipe b{color:var(--pk-accent);font-weight:600}
+
+/* ── 實驗台 ── */
+.bench-wrap{max-width:1060px;margin:40px auto 0;padding:0 22px}
+.bench{
+  position:relative;border:1px solid rgba(185,143,69,.45);border-radius:14px;
+  background:linear-gradient(180deg,#141d2e,#0f1626);
+  box-shadow:0 30px 80px -40px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.04);
+  padding:16px;
+}
+.bench-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:2px 4px 12px;border-bottom:1px dashed rgba(185,143,69,.35);margin-bottom:14px}
+.bench-head h2{font-size:18px;margin:0;letter-spacing:.05em}
+.bench-head .no{font-size:12px;letter-spacing:.2em;color:var(--brass)}
+.bench-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:16px}
+.stage{position:relative;border-radius:10px;overflow:hidden;background:#20324f}
+#scene{display:block;width:100%;height:min(66vh,540px);touch-action:none}
+.hud{position:absolute;left:10px;top:10px;display:flex;gap:6px;flex-wrap:wrap;pointer-events:none}
+.hud span{font-size:12px;background:rgba(10,15,26,.62);color:#e9e2cf;border-radius:999px;padding:3px 10px;letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.panel{display:flex;flex-direction:column;gap:12px;min-width:0}
+.gauge{background:rgba(255,255,255,.03);border:1px solid var(--pk-line);border-radius:10px;padding:10px 12px}
+.gauge .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:13px;color:var(--pk-dim)}
+.gauge .big{font-size:26px;color:var(--pk-ink);font-variant-numeric:tabular-nums;font-family:var(--pk-serif)}
+.gauge .big small{font-size:13px;color:var(--pk-dim);margin-left:2px}
+.bar{position:relative;height:10px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:8px;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:100%;border-radius:6px;transform-origin:0 50%;transform:scaleX(0);background:linear-gradient(90deg,#4f7fb8,var(--ember))}
+.bar .mark{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--pk-ink);opacity:.85}
+.bar .zone{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(135deg,rgba(255,90,54,.45) 0 4px,rgba(255,90,54,.15) 4px 8px)}
+.bar.lift i{background:linear-gradient(90deg,#3d6a9e,var(--sky))}
+.bar.lift.ok i{background:linear-gradient(90deg,#4c8a5a,#8fd18a)}
+.bar.smoke i{background:linear-gradient(90deg,#6f6a64,#b9b2a6)}
+.gauge .note{font-size:12px;color:var(--pk-dim);margin-top:6px;line-height:1.6}
+.dens{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+.dens div{font-size:12px;color:var(--pk-dim)}
+.dens b{display:block;font-size:17px;color:var(--pk-ink);font-weight:500;font-variant-numeric:tabular-nums}
+fieldset.fuel{border:1px solid var(--pk-line);border-radius:10px;padding:8px 12px 10px;margin:0}
+fieldset.fuel legend{font-size:12px;color:var(--pk-dim);padding:0 6px;letter-spacing:.1em}
+.fuel label{display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:14px;cursor:pointer}
+.fuel input:disabled+span{opacity:.5}
+.fuel .lock{font-size:12px;color:var(--pk-dim)}
+
+.stoke{
+  position:relative;appearance:none;border:0;cursor:pointer;width:100%;
+  padding:16px 14px;border-radius:12px;font:inherit;font-size:17px;letter-spacing:.14em;color:#1b130a;
+  background:linear-gradient(180deg,#f2c46a,#d99a3a);
+  box-shadow:0 6px 0 #8a5a1d, 0 10px 30px -8px rgba(255,138,61,.6);
+  touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  transition:transform .08s, box-shadow .08s, filter .2s;
+}
+.stoke small{display:block;font-size:12px;letter-spacing:.06em;opacity:.75;margin-top:2px}
+.stoke.on{transform:translateY(5px);box-shadow:0 1px 0 #8a5a1d, 0 0 40px -4px rgba(255,120,50,.9);filter:saturate(1.2)}
+.stoke:disabled{cursor:default;filter:grayscale(.7) brightness(.7);box-shadow:none;transform:none}
+.stoke:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.status{min-height:3.4em;font-size:14px;line-height:1.7;color:#d8d0bc;padding:2px 2px 0}
+.status.warn{color:#ffb08a}
+.status.good{color:#a8e0a0}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions[hidden]{display:none}
+
+/* 記錄紙（升力 vs 溫度） */
+.sheet{background:var(--paper);color:var(--paper-ink);border-radius:8px;padding:10px 12px 8px;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.sheet .row{display:flex;justify-content:space-between;font-size:12px;color:var(--paper-dim);gap:8px;flex-wrap:wrap}
+.sheet .row b{color:var(--paper-ink);font-weight:600}
+#chart{display:block;width:100%;height:170px;margin-top:4px}
+.legend{font-size:12px;color:var(--paper-dim)}
+.legend .w{color:#9a5a1e}.legend .d{color:#2f6aa8}
+
+/* 實驗記錄簿 */
+.notebook{margin-top:16px;background:var(--paper);color:var(--paper-ink);border-radius:10px;padding:14px 18px 6px;
+  background-image:repeating-linear-gradient(180deg,transparent 0 27px,rgba(80,110,160,.18) 27px 28px);
+  font-family:var(--pk-serif)}
+.notebook h3{margin:0 0 6px;font-size:14px;letter-spacing:.2em;color:var(--paper-dim);font-weight:600}
+.notebook ol{margin:0;padding-left:1.4em;line-height:28px;font-size:15px}
+.notebook li{margin:0}
+.notebook li.new{animation:ink .9s ease}
+@keyframes ink{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+
+/* 載重表 */
+.manifest{width:100%;border-collapse:collapse;font-size:14px;margin:18px 0 6px}
+.manifest td{padding:8px 4px;border-bottom:1px dashed var(--pk-line);vertical-align:top}
+.manifest td:first-child{white-space:nowrap;color:var(--pk-ink)}
+.manifest td:nth-child(2){color:var(--pk-dim);font-size:13px}
+.manifest td:last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--pk-accent)}
+.manifest tr.sum td{border-bottom:0;font-weight:600}
+.fine{font-size:12.5px;color:var(--pk-dim)}
+
+.btn-ghost{appearance:none;font:inherit;font-size:14px;color:var(--pk-ink);background:transparent;border:1px solid var(--pk-line);border-radius:999px;padding:9px 18px;cursor:pointer}
+.btn-ghost:hover{border-color:var(--pk-accent);color:var(--pk-accent)}
+
+.verdict{font-family:var(--pk-serif);font-size:clamp(22px,5.4vw,30px);line-height:1.55;margin:28px 0;color:var(--pk-ink)}
+.coda-line{font-family:var(--pk-serif);font-size:clamp(20px,4.8vw,26px);line-height:1.7;margin:34px 0 20px;color:var(--pk-accent)}
+.name{font-family:Georgia,var(--pk-serif);font-style:italic;letter-spacing:.02em}
+
+@media (max-width:860px){
+  .bench-grid{grid-template-columns:1fr}
+  #scene{height:min(58vh,440px)}
+}
+@media (max-width:560px){
+  .bench-wrap{padding:0 10px}
+  .bench{padding:10px}
+  .hero-in{grid-template-columns:1fr}
+  .mini{width:84px;order:-1}
+  .gauge .big{font-size:22px}
+}
+@media (prefers-reduced-motion: reduce){
+  .mini .float{animation:none}
+  .notebook li.new{animation:none}
+  .stoke{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap hero-in">
+    <div>
+      <p class="kick rv">1783 年 9 月 19 日・凡爾賽宮前院</p>
+      <h1 class="rv">牠們比人先上天</h1>
+      <p class="rv">國王與王后在看台上。前院中央，一顆天藍色、描著金色太陽的大布球，底下吊著一只柳條籃。籃裡關著一隻羊、一隻鴨、一隻公雞。</p>
+      <p class="rv">幾百公尺高的空氣，吸進去會不會死？誰也說不準。所以先送牠們上去。</p>
+      <p class="rv last">火盆在你腳邊。</p>
+      <p class="rv fine" id="memo" hidden></p>
+      <a class="cue rv" href="#prep">往下，走到火盆邊 ↓</a>
+    </div>
+    <svg class="mini rv" viewBox="0 0 120 180" aria-hidden="true">
+      <g class="float">
+        <path d="M60 8C30 8 12 30 12 56c0 26 22 42 34 62h28c12-20 34-36 34-62C108 30 90 8 60 8Z" fill="#5d93d6" stroke="#e3b04b" stroke-width="1.5"/>
+        <path d="M14 50h92M18 72h84" stroke="#e3b04b" stroke-width="2" fill="none"/>
+        <circle cx="60" cy="61" r="7" fill="#e3b04b"/>
+        <path d="M46 118h28" stroke="#e3b04b" stroke-width="2"/>
+        <path d="M50 118l-4 26M70 118l4 26" stroke="#c9b48a" stroke-width="1"/>
+        <rect x="42" y="144" width="36" height="16" rx="3" fill="#8a6a3e"/>
+      </g>
+    </svg>
+  </div>
+</header>
+
+<main>
+  <section class="pk-wrap beat" id="prep">
+    <h2 class="rv">乘客名單</h2>
+    <p class="rv">據說路易十六先提議：讓兩個死囚上去。最後籃子裡換成了動物，而且每一隻都有分工。</p>
+    <table class="manifest rv" aria-label="載重表">
+      <tr><td>球皮</td><td>棉布裱紙，約 1,400 立方公尺，前一個被雨淋破，五天趕出新的</td><td data-kg="env">400 kg</td></tr>
+      <tr><td>柳條籃＋繩</td><td>圓籃，一條繩吊在球下</td><td data-kg="basket">20 kg</td></tr>
+      <tr><td>🐑 羊</td><td>身體構造跟人夠接近。牠若好好的，人大概也行</td><td data-kg="sheep">35 kg</td></tr>
+      <tr><td>🦆 鴨</td><td>會飛、不怕高。牠若出事，問題在這台機器，不在天空</td><td data-kg="duck">2.5 kg</td></tr>
+      <tr><td>🐓 公雞</td><td>是鳥，卻不往高處飛。再多一組對照</td><td data-kg="rooster">2.5 kg</td></tr>
+      <tr class="sum"><td>合計</td><td>升力要超過這個數，繩子才鬆得開</td><td id="sumKg">460 kg</td></tr>
+    </table>
+    <p class="fine rv">籃子與動物的重量是估計值；球皮數據取自法文史料，另有資料記為 1,000 立方公尺。</p>
+
+    <h2 class="rv" style="margin-top:46px">兄弟的配方</h2>
+    <p class="rv">約瑟夫・孟格菲相信，讓球升起的是<em>煙</em>。煙裡藏著一種特別的氣，他叫它「孟格菲氣」，帶著一種他稱為 <span class="name">levity</span>（輕性）的性質。</p>
+    <div class="recipe rv">
+      <p style="margin:0">所以火要悶、煙要濃：<b>濕稻草、羊毛</b>。傳說試驗時連舊鞋、爛肉都往火裡丟過。</p>
+    </div>
+    <p class="rv">今天照兄弟的配方燒。按住按鈕添柴，盯著溫度計。升力贏過 460 公斤，<em>放手</em>——地上的人就會鬆開繩子。</p>
+    <p class="rv fine">別貪：球皮是布和紙糊的，燒太燙會著火。</p>
+  </section>
+
+  <div class="bench-wrap" id="benchWrap">
+    <section class="bench" id="bench" aria-labelledby="benchTitle">
+      <div class="bench-head">
+        <h2 id="benchTitle">實驗台・凡爾賽前院</h2>
+        <span class="no" id="trialNo">試飛 No.1</span>
+      </div>
+      <div class="bench-grid">
+        <div class="stage">
+          <canvas id="scene" role="img" aria-label="凡爾賽前院的熱氣球、火盆與籃中的三隻動物"></canvas>
+          <div class="hud" aria-hidden="true">
+            <span id="hudAlt">高度 0 m</span><span id="hudClock">飛行 0:00</span><span id="hudDist">漂移 0.0 km</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="gauge">
+            <div class="row"><span>球內溫度</span><span>外面 <span id="tAmb">18</span>°C</span></div>
+            <div class="big"><span id="tIn">18</span><small>°C</small></div>
+            <div class="bar" aria-hidden="true"><i id="tBar"></i><span class="zone" id="tZone"></span><span class="mark" id="tMark" title="起飛線"></span></div>
+            <div class="note">白線＝起飛線 <span id="reqT">126</span>°C；斜紋＝球皮著火區</div>
+          </div>
+          <div class="gauge">
+            <div class="row"><span>空氣密度（kg/m³）</span></div>
+            <div class="dens"><div>球外<b id="rhoOut">1.212</b></div><div>球內<b id="rhoIn">1.212</b></div></div>
+          </div>
+          <div class="gauge">
+            <div class="row"><span>升力 ／ 載重</span><span><b id="liftKg" style="color:var(--pk-ink)">0</b> ／ <span id="massKg">460</span> kg</span></div>
+            <div class="bar lift" id="liftBarWrap" aria-hidden="true"><i id="liftBar"></i><span class="mark" id="liftMark"></span></div>
+          </div>
+          <div class="gauge">
+            <div class="row"><span>煙量</span><span id="smokeTxt">0%</span></div>
+            <div class="bar smoke" aria-hidden="true"><i id="smokeBar"></i></div>
+          </div>
+          <fieldset class="fuel">
+            <legend>燃料</legend>
+            <label><input type="radio" name="fuel" value="wet" checked disabled><span>濕稻草＋羊毛</span></label>
+            <label><input type="radio" name="fuel" value="dry" disabled><span>乾稻草</span></label>
+            <div class="lock" id="fuelLock">今天照兄弟的配方燒</div>
+          </fieldset>
+          <button class="stoke" id="stoke" type="button" aria-describedby="status">按住・添柴<small>放開＝喊「放繩」｜空白鍵也能按住</small></button>
+          <div class="status" id="status">按住按鈕，火就會旺起來。</div>
+          <div class="actions" id="actions" hidden>
+            <button class="btn-ghost" id="again" type="button">重新上火盆</button>
+            <button class="btn-ghost" id="next" type="button">往下讀 ↓</button>
+          </div>
+          <div class="sheet">
+            <div class="row"><span>記錄紙：升力 vs 球內溫度</span><span class="legend"><span class="w">● 濕稻草</span>　<span class="d">○ 乾稻草</span></span></div>
+            <canvas id="chart" role="img" aria-label="升力對溫度的記錄圖，兩種燃料的點各自標記"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="notebook">
+        <h3>實驗記錄簿</h3>
+        <ol id="log" aria-live="polite"></ol>
+      </div>
+    </section>
+  </div>
+
+  <section class="pk-wrap beat" id="turn" hidden>
+    <h2 class="rv">等一下，煙出了多少力？</h2>
+    <p class="rv">約瑟夫把功勞記在煙頭上。煙越濃，「輕性」越多，球就越有力。</p>
+    <p class="rv">回頭看你的記錄紙。剛才煙量表幾乎一直頂到底，可是那串點……乖乖沿著溫度排成一條線。煙多煙少，點沒有跳。</p>
+    <p class="rv">要分辨兩個嫌疑犯，最乾脆的辦法是拿掉一個。</p>
+    <p class="rv"><button class="pk-btn" id="toDry" type="button">換乾稻草，再燒一次</button></p>
+  </section>
+
+  <section class="pk-wrap beat" id="reveal" hidden>
+    <p class="verdict rv">兩種燃料的點，疊在同一條線上。<br>煙沒有出力。</p>
+    <p class="rv" id="revealNums"></p>
+    <p class="rv">升力的來源是熱。空氣受熱膨脹，球口朝下開著，裡外壓力一樣，熱的那一球就裝不下那麼多空氣分子。150°C 時，球裡的空氣只剩外面的 <em id="ratio">69%</em> 重；少掉的那三成，就是把籃子拉起來的力。記錄紙上的公式，從頭到尾沒有「煙」這一項。</p>
+    <p class="rv">燃料不是沒差——差在<em>熱得多快</em>。濕稻草得先把自己的水燒乾，熱就被分走了。十月的試驗裡，團隊改燒乾稻草：煙少了，效率反而更好。</p>
+  </section>
+
+  <section class="pk-wrap beat" id="after" hidden>
+    <h2 class="rv">落地之後</h2>
+    <p class="rv">那天的球飛了大約八分鐘，升到約 500 公尺，落在三公里多外。起飛時球皮還扯出一道裂口。</p>
+    <p class="rv">Pilâtre de Rozier 頭一個跑到籃邊。羊正在嚼籃裡的稻草。鴨沒事。</p>
+    <p class="rv">公雞受了傷。幾位目擊者說，落地那一下，羊一屁股坐到牠身上，壓斷了牠的喙；後來的轉述裡，還有「被羊踢傷」的版本。</p>
+    <p class="verdict rv">高空沒傷到誰。<br>傷到公雞的，是同一個籃子裡的羊。</p>
+    <p class="rv">羊被送進王室動物園養老。牠有名字：<span class="name">Montauciel</span>，法文的意思是「升上天」。鴨和公雞叫什麼，我們沒查到。</p>
+  </section>
+
+  <section class="pk-wrap beat" id="coda" hidden>
+    <h2 class="rv">兩個月後</h2>
+    <p class="rv">動物平安回來，國王點頭了。1783 年 11 月 21 日下午，巴黎西郊的米埃特堡（Château de la Muette）。教化學與物理的 Pilâtre de Rozier 和軍官達朗德侯爵（marquis d'Arlandes）站上球底環著火盆的走道，自己往火裡添柴。</p>
+    <p class="rv">他們在巴黎上空飛了約二十五分鐘、九公里。帶上去的燃料還剩一大堆；倒是火星一直燙到球皮，得拿海綿去撲。</p>
+    <p class="rv">他們在天上做的，就是你剛才在地上做的：添柴，看溫度，再添一把。</p>
+    <p class="coda-line rv">人類航空史的乘客名單，第一行寫的是一隻羊。</p>
+    <p class="rv"><button class="pk-btn" id="replay" type="button">回到火盆，再燒一次</button></p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia〈Montgolfier brothers〉〈Frères Montgolfier〉（法文）〈Jean-François Pilâtre de Rozier〉、Encyclopædia Britannica〈Montgolfier brothers〉。
+</footer>
+
+<script id="core">
+'use strict';
+/* ── 純函式（node 斷言用；不碰 DOM、不碰 PK） ── */
+var Core = (function () {
+  var R = 287.05, P0 = 101325, HS = 8400, G = 9.81, K0 = 273.15;
+  var CFG = {
+    V: 1400, tAmb: 18,
+    heat: { wet: 10, dry: 14 },   /* 添柴時每秒升溫（°C/s）——濕柴的熱有一部分拿去蒸水 */
+    loss: 0.03,                   /* 地面散熱係數（1/s） */
+    flightLoss: 0.0006,           /* 飛行中散熱（1/遊戲秒，含裂口） */
+    smoke: { wet: 1, dry: 0.12 },
+    warnT: 155, burnT: 165,
+    wind: 6, Cd: 0.5, timeScale: 12
+  };
+  var PAYLOAD = [
+    { id: 'env', kg: 400 }, { id: 'basket', kg: 20 },
+    { id: 'sheep', kg: 35 }, { id: 'duck', kg: 2.5 }, { id: 'rooster', kg: 2.5 }
+  ];
+  function num(x, d) { x = Number(x); return isFinite(x) ? x : d; }
+  /* 等溫大氣：高度 h（m）處的氣壓 */
+  function pressure(h) { h = Math.max(0, num(h, 0)); return P0 * Math.exp(-h / HS); }
+  /* 理想氣體 ρ = P / (R·T) */
+  function density(tC, h) {
+    var T = num(tC, NaN) + K0;
+    if (!(T > 0)) return NaN;
+    return pressure(h) / (R * T);
+  }
+  /* 浮力淨升力（kg）：裡外同壓，差在溫度；沒有「煙」這個參數 */
+  function liftKg(tIn, tOut, V, h) {
+    var ro = density(tOut, h), ri = density(tIn, h);
+    if (!isFinite(ro) || !isFinite(ri)) return 0;
+    return (ro - ri) * Math.max(0, num(V, 0));
+  }
+  function totalMass(list) {
+    var s = 0;
+    (list || []).forEach(function (p) { s += Math.max(0, num(p && p.kg, 0)); });
+    return s;
+  }
+  /* 升力剛好等於載重的球內溫度；不可能時回 Infinity */
+  function requiredTemp(mass, tOut, V, h) {
+    var cap = density(tOut, h) * num(V, 0);
+    mass = num(mass, NaN);
+    if (!(cap > 0) || !(mass >= 0)) return Infinity;
+    var k = mass / cap;
+    if (k >= 1) return Infinity;
+    return (tOut + K0) / (1 - k) - K0;
+  }
+  /* 地面加熱一步：添柴加熱、對外散熱，不低於外氣溫 */
+  function heatStep(T, dt, opt) {
+    opt = opt || {};
+    dt = Math.max(0, num(dt, 0));
+    var amb = num(opt.tAmb, CFG.tAmb), loss = num(opt.loss, CFG.loss);
+    var gain = opt.fire ? (CFG.heat[opt.fuel] || 0) : 0;
+    var t = num(T, amb);
+    var n = t + (gain - loss * (t - amb)) * dt;
+    return Math.max(amb, n);
+  }
+  function smokeLevel(fuel, fire) { return fire ? (CFG.smoke[fuel] || 0) : 0; }
+  /* 依溫度判斷地面狀態 */
+  function groundState(T, req) {
+    T = num(T, 0);
+    if (T >= CFG.burnT) return 'burn';
+    if (T >= CFG.warnT) return 'warn';
+    if (T >= req) return 'ready';
+    return 'cold';
+  }
+  /* 飛行一步（dt＝遊戲秒）：球冷卻、浮力對重力、速度趨近終端速度；地面與 3000 m 為邊界 */
+  function flightStep(s, dt, opt) {
+    opt = opt || {};
+    dt = Math.max(0, num(dt, 0));
+    var V = num(opt.V, CFG.V), m = num(opt.mass, 460), amb = num(opt.tAmb, CFG.tAmb);
+    var T = amb + (num(s.T, amb) - amb) * Math.exp(-num(opt.loss, CFG.flightLoss) * dt);
+    var L = liftKg(T, amb, V, s.h);
+    var F = (L - m) * G;
+    var r = Math.cbrt(3 * V / (4 * Math.PI)), A = Math.PI * r * r;
+    var rho = density(amb, s.h);
+    var vt = (F < 0 ? -1 : 1) * Math.sqrt(2 * Math.abs(F) / (rho * CFG.Cd * A));
+    var v = s.v + (vt - s.v) * Math.min(1, dt / 4);
+    var h = s.h + v * dt, landed = false, vLand = 0;
+    if (h <= 0) { h = 0; if (v < 0 && s.t > 5) { landed = true; vLand = v; } v = Math.max(0, v); }
+    if (h > 3000) { h = 3000; v = Math.min(0, v); }
+    return {
+      T: T, h: h, v: v, t: s.t + dt,
+      x: s.x + CFG.wind * dt,
+      peak: Math.max(s.peak || 0, h), lift: L, landed: landed, vLand: vLand
+    };
+  }
+  function simulateFlight(T0, opt) {
+    var s = { T: T0, h: 0, v: 0, t: 0, x: 0, peak: 0 }, n = 0;
+    while (!s.landed && n < 40000) { s = flightStep(s, 0.25, opt); n++; }
+    return s;
+  }
+  function clock(sec) {
+    sec = Math.max(0, Math.floor(num(sec, 0)));
+    var m = Math.floor(sec / 60), r = sec % 60;
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+  return {
+    CFG: CFG, PAYLOAD: PAYLOAD, pressure: pressure, density: density, liftKg: liftKg,
+    totalMass: totalMass, requiredTemp: requiredTemp, heatStep: heatStep, smokeLevel: smokeLevel,
+    groundState: groundState, flightStep: flightStep, simulateFlight: simulateFlight, clock: clock
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Core;
+</script>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'mont1783.';
+const store = PK.store(LS);
+const $ = (id) => document.getElementById(id);
+const C = Core.CFG;
+const MASS = Core.totalMass(Core.PAYLOAD);
+const REQ = Core.requiredTemp(MASS, C.tAmb, C.V, 0);
+const T_MIN = C.tAmb, T_MAX = 175;
+
+/* ── 狀態 ── */
+const S = {
+  phase: 'ground',          /* ground | flight | landed | burnt */
+  trial: 1,                 /* 1＝濕稻草、2＝乾稻草、3＝自由 */
+  fuel: 'wet',
+  T: C.tAmb, holding: false, smoke: 0,
+  heldSec: 0, reachSec: null, launchT: 0,
+  fl: null, tether: 0, burnTimer: 0,
+  pts: [], logAcc: 0, results: {}
+};
+let reduced = PK.reduced();
+PK.onMotionChange((m) => { reduced = m; });
+
+/* ── 記憶 ── */
+const memo = store.get('best', null);
+if (memo && memo.alt) {
+  $('memo').hidden = false;
+  $('memo').textContent = '上次你的羊升到 ' + memo.alt + ' 公尺，飛了 ' + memo.time + '。';
+}
+
+/* ── 儀表 ── */
+$('sumKg').textContent = MASS + ' kg';
+$('massKg').textContent = MASS;
+$('reqT').textContent = Math.round(REQ);
+$('tAmb').textContent = C.tAmb;
+const tPos = (t) => PK.clamp((t - T_MIN) / (T_MAX - T_MIN), 0, 1);
+$('tMark').style.left = (tPos(REQ) * 100) + '%';
+$('tZone').style.width = ((1 - tPos(C.burnT)) * 100) + '%';
+const LIFT_MAX = 700;
+$('liftMark').style.left = (MASS / LIFT_MAX * 100) + '%';
+
+function setStatus(msg, cls) {
+  const el = $('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+function addLog(msg) {
+  const li = document.createElement('li');
+  li.textContent = msg;
+  li.className = reduced ? '' : 'new';
+  $('log').appendChild(li);
+}
+const FUEL_NAME = { wet: '濕稻草＋羊毛', dry: '乾稻草' };
+
+function updateGauges() {
+  const h = S.fl ? S.fl.h : 0;
+  const T = S.phase === 'flight' || S.phase === 'landed' ? S.fl.T : S.T;
+  const L = Math.max(0, Core.liftKg(T, C.tAmb, C.V, h));
+  $('tIn').textContent = Math.round(T);
+  $('tBar').style.transform = 'scaleX(' + tPos(T).toFixed(3) + ')';
+  $('rhoOut').textContent = Core.density(C.tAmb, h).toFixed(3);
+  $('rhoIn').textContent = Core.density(T, h).toFixed(3);
+  $('liftKg').textContent = Math.round(L);
+  $('liftBar').style.transform = 'scaleX(' + PK.clamp(L / LIFT_MAX, 0, 1).toFixed(3) + ')';
+  $('liftBarWrap').classList.toggle('ok', L >= MASS);
+  $('smokeBar').style.transform = 'scaleX(' + S.smoke.toFixed(3) + ')';
+  $('smokeTxt').textContent = Math.round(S.smoke * 100) + '%';
+  const f = S.fl || { h: 0, t: 0, x: 0 };
+  $('hudAlt').textContent = '高度 ' + Math.round(f.h) + ' m';
+  $('hudClock').textContent = '飛行 ' + Core.clock(f.t);
+  $('hudDist').textContent = '漂移 ' + (f.x / 1000).toFixed(1) + ' km';
+}
+
+/* ── 按住添柴 ── */
+const btn = $('stoke');
+function startHold() {
+  if (S.phase !== 'ground' || S.holding) return;
+  S.holding = true;
+  btn.classList.add('on');
+  if (S.heldSec === 0) addLog('開始添柴：' + FUEL_NAME[S.fuel] + '。');
+}
+function endHold() {
+  if (!S.holding) return;
+  S.holding = false;
+  btn.classList.remove('on');
+  if (S.phase !== 'ground') return;
+  const L = Core.liftKg(S.T, C.tAmb, C.V, 0);
+  if (L >= MASS) launch();
+  else setStatus('升力 ' + Math.round(L) + ' kg，還拉不動 ' + MASS + ' kg。繩子沒鬆，球皮在變冷——再按住。');
+}
+btn.addEventListener('pointerdown', (e) => {
+  if (btn.disabled) return;
+  e.preventDefault();
+  try { btn.setPointerCapture(e.pointerId); } catch (err) { /* 舊瀏覽器 */ }
+  startHold();
+});
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach((ev) => btn.addEventListener(ev, endHold));
+btn.addEventListener('contextmenu', (e) => e.preventDefault());
+btn.addEventListener('keydown', (e) => {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) startHold(); }
+});
+btn.addEventListener('keyup', (e) => {
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); endHold(); }
+});
+btn.addEventListener('blur', endHold);
+btn.addEventListener('click', (e) => e.preventDefault());
+/* 焦點不在任何控制項時，空白鍵也能添柴（實驗台在畫面上時） */
+let benchVisible = false;
+if ('IntersectionObserver' in window) {
+  new IntersectionObserver((es) => { benchVisible = es[0].isIntersecting; }, { threshold: .25 }).observe($('bench'));
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key !== ' ' || e.repeat || !benchVisible) return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (/^(BUTTON|INPUT|A|TEXTAREA|SELECT)$/.test(tag)) return;
+  if (S.phase !== 'ground') return;
+  e.preventDefault(); startHold();
+});
+document.addEventListener('keyup', (e) => {
+  if (e.key !== ' ' || document.activeElement === btn) return;
+  endHold();
+});
+
+/* ── 燃料切換（第二次試飛後開放） ── */
+document.querySelectorAll('input[name=fuel]').forEach((r) => r.addEventListener('change', () => {
+  if (r.checked && S.phase === 'ground') { S.fuel = r.value; setStatus('燃料換成' + FUEL_NAME[S.fuel] + '。按住添柴。'); }
+}));
+function syncFuelUI() {
+  document.querySelectorAll('input[name=fuel]').forEach((r) => {
+    r.checked = r.value === S.fuel;
+    r.disabled = S.trial < 3 || S.phase !== 'ground';
+  });
+  $('fuelLock').textContent = S.trial === 1 ? '今天照兄弟的配方燒' : S.trial === 2 ? '這次拿掉煙：乾稻草' : '自由切換';
+}
+
+/* ── 階段轉換 ── */
+function resetGround(msg) {
+  S.phase = 'ground'; S.T = C.tAmb; S.heldSec = 0; S.reachSec = null;
+  S.fl = null; S.tether = 0; S.smoke = 0; S.holding = false;
+  btn.classList.remove('on');
+  btn.disabled = false;
+  $('actions').hidden = true;
+  $('trialNo').textContent = S.trial <= 2 ? '試飛 No.' + S.trial : '自由試驗';
+  syncFuelUI();
+  setStatus(msg || '按住按鈕，火就會旺起來。');
+}
+function launch() {
+  S.phase = 'flight';
+  S.launchT = S.T;
+  S.fl = { T: S.T, h: 0, v: 0, t: 0, x: 0, peak: 0 };
+  btn.disabled = true;
+  syncFuelUI();
+  addLog('放繩！球內 ' + Math.round(S.T) + '°C，升力 ' + Math.round(Core.liftKg(S.T, C.tAmb, C.V, 0)) + ' kg。');
+  setStatus('繩子鬆開了。火留在地上，接下來只能看著球慢慢變冷。', 'good');
+  PK.announce('起飛。球內 ' + Math.round(S.T) + ' 度。');
+}
+function burn() {
+  S.phase = 'burnt'; S.holding = false; btn.classList.remove('on'); btn.disabled = true;
+  S.burnTimer = 2.6;
+  addLog('球皮燒焦了——火太猛。換一顆新球。');
+  setStatus('冒煙了！球皮著火。布和紙經不起這個溫度。', 'warn');
+  PK.announce('球皮著火了，重來。');
+}
+function land() {
+  const f = S.fl;
+  S.phase = 'landed';
+  const res = {
+    fuel: S.fuel, launchT: Math.round(S.launchT), peak: Math.round(f.peak),
+    time: Core.clock(f.t), km: (f.x / 1000).toFixed(1), reach: S.reachSec
+  };
+  S.results[S.trial] = res;
+  addLog('落地。最高 ' + res.peak + ' m，飛了 ' + res.time + '，落在 ' + res.km + ' km 外。羊、鴨、公雞都還在籃裡。');
+  PK.announce('落地，最高 ' + res.peak + ' 公尺，飛行 ' + res.time + '。');
+  const best = store.get('best', null);
+  if (!best || res.peak > best.alt) store.set('best', { alt: res.peak, time: res.time });
+  $('actions').hidden = false;
+  if (S.trial === 1) {
+    setStatus('落地了。往下讀，看看記錄紙在說什麼。', 'good');
+    $('again').hidden = true; $('next').hidden = false;
+    showBeat('turn');
+  } else if (S.trial === 2) {
+    setStatus('落地了。兩張記錄疊在一起，往下讀。', 'good');
+    $('again').hidden = false; $('next').hidden = false;
+    fillReveal();
+    showBeat('reveal'); showBeat('after'); showBeat('coda');
+    store.set('done', true);
+    S.trial = 3;
+  } else {
+    setStatus('落地。想試別的火候，就重新上火盆。', 'good');
+    $('again').hidden = false; $('next').hidden = true;
+  }
+}
+function showBeat(id) {
+  const el = $(id);
+  if (!el.hidden) return;
+  el.hidden = false;
+  PK.reveal('#' + id + ' .rv');
+}
+function fillReveal() {
+  const a = S.results[1], b = S.results[2];
+  let txt = '';
+  if (a && b) {
+    txt = '濕稻草那次，煙量表幾乎全滿；乾稻草那次，只剩一成多。';
+    if (a.reach != null && b.reach != null) {
+      txt += '可是升到起飛線，濕稻草花了 ' + a.reach.toFixed(1) + ' 秒，乾稻草只要 ' + b.reach.toFixed(1) + ' 秒。';
+    }
+  }
+  $('revealNums').textContent = txt;
+  const T = 150;
+  $('ratio').textContent = Math.round(Core.density(T, 0) / Core.density(C.tAmb, 0) * 100) + '%';
+}
+$('next').addEventListener('click', () => {
+  const tgt = S.trial === 1 ? $('turn') : $('reveal');
+  PK.scrollTo(tgt);
+});
+$('again').addEventListener('click', () => resetGround());
+$('toDry').addEventListener('click', () => {
+  if (S.trial !== 1) return;
+  S.trial = 2; S.fuel = 'dry';
+  resetGround('換上乾稻草。火苗乾淨，幾乎不冒煙。按住添柴——看記錄紙上的點會不會落在別處。');
+  addLog('第二次：拿掉煙，只留火。');
+  $('toDry').disabled = true;
+  PK.scrollTo($('bench'));
+  setTimeout(() => btn.focus({ preventScroll: true }), 50);
+});
+$('replay').addEventListener('click', () => {
+  S.trial = 3;
+  resetGround('自由試驗：燃料隨你選。');
+  PK.scrollTo($('bench'));
+});
+
+/* ── 主迴圈 ── */
+function step(dt) {
+  if (S.phase === 'ground') {
+    const before = S.T;
+    S.T = Core.heatStep(S.T, dt, { fire: S.holding, fuel: S.fuel });
+    if (S.holding) {
+      S.heldSec += dt;
+      if (S.reachSec == null && S.T >= REQ) S.reachSec = S.heldSec;
+    }
+    const L = Core.liftKg(S.T, C.tAmb, C.V, 0);
+    S.tether = PK.clamp((L - MASS) / 60, 0, 1);
+    const g = Core.groundState(S.T, REQ);
+    if (g === 'burn') { burn(); }
+    else if (S.holding) {
+      if (g === 'warn') setStatus('球皮發燙，開始冒焦味！再撐就要著火——放手！', 'warn');
+      else if (g === 'ready') setStatus('繩子繃緊了。現在放手就飛；多撐一下，飛得更高。', 'good');
+      else setStatus('火旺了。升力 ' + Math.round(L) + ' kg，還差 ' + Math.round(MASS - L) + ' kg。');
+    }
+    /* 記錄紙打點（地面加熱階段） */
+    S.logAcc += dt;
+    if (S.logAcc >= .25 && (S.holding || S.T > before)) {
+      S.logAcc = 0;
+      if (S.pts.length < 900) S.pts.push({ T: S.T, L: L, fuel: S.fuel });
+    }
+  } else if (S.phase === 'flight') {
+    S.fl = Core.flightStep(S.fl, dt * C.timeScale, { mass: MASS });
+    if (S.fl.landed) land();
+  } else if (S.phase === 'burnt') {
+    S.T = Math.max(C.tAmb, S.T - 60 * dt);
+    S.burnTimer -= dt;
+    if (S.burnTimer <= 0) resetGround('新球掛好了（史實上，他們被雨淋破一顆後，五天就趕出新的）。這次早點放手。');
+  }
+  const target = Core.smokeLevel(S.fuel, S.holding && S.phase === 'ground');
+  S.smoke += (target - S.smoke) * Math.min(1, dt * 3);
+}
+
+/* ── 場景繪製 ── */
+const cv = $('scene'), ctx = cv.getContext('2d');
+const parts = [];
+let sway = 0, time = 0;
+function drawScene() {
+  const rect = cv.getBoundingClientRect();
+  if (rect.width < 80) return;
+  const dim = PK.fitCanvas(cv, rect.height);
+  const W = dim.w, H = dim.h;
+  ctx.setTransform(dim.dpr, 0, 0, dim.dpr, 0, 0);
+  const f = S.fl || { h: 0, x: 0, t: 0 };
+  const lift = S.phase === 'ground' ? S.tether * 1.4 : 0;
+  const h = f.h + lift;
+  const mv = 40 + f.h * 0.3;                /* 視野高度（公尺），越高拉越遠 */
+  const s = H / mv;
+  const camB = Math.max(-3, h - mv * 0.18);
+  const sy = (y) => H - (y - camB) * s;
+  const bx = f.x;
+  const sx = (x, par) => W * 0.5 + (x - bx * (par == null ? 1 : par)) * s;
+
+  /* 天空：越高越深 */
+  const k = PK.clamp(f.h / 700, 0, 1);
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, 'rgb(' + Math.round(70 - 30 * k) + ',' + Math.round(118 - 40 * k) + ',' + Math.round(178 - 30 * k) + ')');
+  sky.addColorStop(1, 'rgb(' + Math.round(205 - 40 * k) + ',' + Math.round(200 - 30 * k) + ',' + Math.round(185 - 10 * k) + ')');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+
+  /* 雲（視差） */
+  const clouds = [[-80, 140, 30], [60, 260, 44], [-30, 390, 38], [120, 520, 50], [-140, 650, 46]];
+  ctx.fillStyle = 'rgba(255,255,255,.55)';
+  clouds.forEach((c) => {
+    const x = sx(c[0], 0.35), y = sy(c[1]);
+    if (y < -60 || y > H + 60) return;
+    const r = c[2] * s * 0.5 + 12;
+    ctx.beginPath();
+    ctx.ellipse(x, y, r * 1.6, r * 0.45, 0, 0, Math.PI * 2);
+    ctx.ellipse(x + r * 0.7, y - r * 0.2, r * 0.9, r * 0.38, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  /* 高度尺 */
+  ctx.font = '11px system-ui,sans-serif';
+  ctx.textAlign = 'right';
+  const stepM = mv > 160 ? 100 : 50;
+  for (let m = Math.ceil(camB / 10) * 10; m < camB + mv; m += 10) {
+    const y = sy(m);
+    const major = m % stepM === 0;
+    ctx.strokeStyle = 'rgba(20,30,45,' + (major ? .55 : .2) + ')';
+    ctx.beginPath(); ctx.moveTo(W - (major ? 16 : 8), y); ctx.lineTo(W, y); ctx.stroke();
+    if (major && m > 0) { ctx.fillStyle = 'rgba(20,30,45,.7)'; ctx.fillText(m + ' m', W - 20, y + 4); }
+  }
+
+  /* 地面與宮殿 */
+  const gy = sy(0);
+  if (gy < H + 40) {
+    /* 宮殿立面（遠景，視差 0.5） */
+    const px = sx(-10, 0.5), pw = 150 * s * 0.5 + 0, ph = 16 * s;
+    ctx.fillStyle = '#c9b996';
+    ctx.fillRect(px - pw * 0.5, gy - ph, pw, ph);
+    ctx.fillStyle = '#b5a37c';
+    ctx.fillRect(px - 14 * s, gy - ph - 6 * s, 28 * s, 6 * s);
+    ctx.beginPath(); ctx.moveTo(px - 16 * s, gy - ph - 6 * s); ctx.lineTo(px, gy - ph - 11 * s); ctx.lineTo(px + 16 * s, gy - ph - 6 * s); ctx.fill();
+    ctx.fillStyle = '#3d4a63';
+    const n = Math.floor(pw / (4 * s));
+    for (let i = 1; i < n; i++) {
+      const wx = px - pw * 0.5 + i * 4 * s;
+      ctx.fillRect(wx - 0.8 * s, gy - ph + 3 * s, 1.6 * s, 4 * s);
+      ctx.fillRect(wx - 0.8 * s, gy - ph + 9.5 * s, 1.6 * s, 4 * s);
+    }
+    /* 前院地面 */
+    ctx.fillStyle = '#b8a47a'; ctx.fillRect(0, gy, W, H - gy + 2);
+    ctx.fillStyle = '#6f8a4e';
+    const fieldX = sx(400, 1);
+    if (fieldX < W) ctx.fillRect(Math.max(0, fieldX), gy, W, H - gy + 2);
+    /* 看台人群（小點） */
+    ctx.fillStyle = 'rgba(40,35,50,.75)';
+    for (let i = -18; i <= 18; i++) {
+      if (Math.abs(i) < 4) continue;
+      const cx = sx(i * 1.7, 1), hh = (1.5 + PK.hash('p' + i) * 0.3) * s;
+      ctx.beginPath(); ctx.arc(cx, gy - hh, Math.max(1.2, 0.35 * s), 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(cx - 0.3 * s, gy - hh, 0.6 * s, hh);
+    }
+    /* 火盆 */
+    const fx = sx(0, 1);
+    ctx.fillStyle = '#2b2622';
+    ctx.beginPath(); ctx.moveTo(fx - 1.6 * s, gy - 1.2 * s); ctx.lineTo(fx + 1.6 * s, gy - 1.2 * s); ctx.lineTo(fx + 1.0 * s, gy); ctx.lineTo(fx - 1.0 * s, gy); ctx.fill();
+    if (S.holding && S.phase === 'ground') {
+      const fl = reduced ? 1 : 0.8 + 0.25 * Math.sin(time * 23) + 0.1 * Math.sin(time * 37);
+      const gr = ctx.createRadialGradient(fx, gy - 1.5 * s, 0, fx, gy - 1.5 * s, 5 * s);
+      gr.addColorStop(0, 'rgba(255,170,60,.55)'); gr.addColorStop(1, 'rgba(255,120,40,0)');
+      ctx.fillStyle = gr; ctx.fillRect(fx - 5 * s, gy - 7 * s, 10 * s, 7 * s);
+      ctx.fillStyle = S.fuel === 'wet' ? '#e0782f' : '#ffb347';
+      ctx.beginPath(); ctx.moveTo(fx - 1.2 * s, gy - 1.2 * s); ctx.quadraticCurveTo(fx, gy - (1.2 + 2.6 * fl) * s, fx + 1.2 * s, gy - 1.2 * s); ctx.fill();
+      ctx.fillStyle = '#ffe28a';
+      ctx.beginPath(); ctx.moveTo(fx - 0.6 * s, gy - 1.2 * s); ctx.quadraticCurveTo(fx, gy - (1.2 + 1.5 * fl) * s, fx + 0.6 * s, gy - 1.2 * s); ctx.fill();
+    }
+    /* 煙 */
+    drawSmoke(fx, gy, s, h);
+  }
+
+  /* 氣球 */
+  const nx = W * 0.5 + (reduced ? 0 : Math.sin(sway) * 0.4 * s);
+  const neckY = sy(h + 5.5);
+  drawBalloon(nx, neckY, s);
+
+  /* 繫留繩 */
+  if (S.phase === 'ground' && gy < H + 40) {
+    ctx.strokeStyle = 'rgba(60,45,30,.8)'; ctx.lineWidth = 1;
+    [-1, 1].forEach((d) => {
+      const ax = nx + d * 2.2 * s, ay = neckY - 2 * s, gx = sx(d * 10, 1);
+      ctx.beginPath(); ctx.moveTo(ax, ay);
+      const sag = (1 - S.tether) * 2.4 * s;
+      ctx.quadraticCurveTo((ax + gx) / 2, (ay + gy) / 2 + sag, gx, gy);
+      ctx.stroke();
+      ctx.fillStyle = '#3a2f22'; ctx.fillRect(gx - 0.3 * s, gy - 1.2 * s, 0.6 * s, 1.2 * s);
+    });
+  }
+  /* 燒焦 */
+  if (S.phase === 'burnt') {
+    ctx.fillStyle = 'rgba(40,20,10,' + PK.clamp(1 - S.burnTimer / 2.6, 0, .6).toFixed(2) + ')';
+    ctx.fillRect(0, 0, W, H);
+  }
+}
+function drawBalloon(nx, neckY, s) {
+  const T = S.fl ? S.fl.T : S.T;
+  const full = S.phase === 'burnt' ? 0.55 : PK.clamp(0.55 + (T - C.tAmb) / 70, 0.55, 1);
+  const R = 7.2 * s * (0.6 + 0.4 * full), nr = 2.2 * s, top = 19 * s;
+  const cy = neckY - top + R * (0.9 + 0.1 * full);
+  ctx.save();
+  const body = new Path2D();
+  body.moveTo(nx - nr, neckY);
+  body.bezierCurveTo(nx - nr - 1 * s, neckY - 4 * s, nx - R, cy + R * 0.7, nx - R, cy);
+  body.arc(nx, cy, R, Math.PI, 0, false);
+  body.bezierCurveTo(nx + R, cy + R * 0.7, nx + nr + 1 * s, neckY - 4 * s, nx + nr, neckY);
+  body.closePath();
+  const warm = PK.clamp((T - 60) / 100, 0, 1);
+  const g = ctx.createLinearGradient(nx - R, 0, nx + R, 0);
+  g.addColorStop(0, 'rgb(' + Math.round(54 + 40 * warm) + ',98,160)');
+  g.addColorStop(0.45, 'rgb(' + Math.round(110 + 40 * warm) + ',160,222)');
+  g.addColorStop(1, 'rgb(' + Math.round(42 + 30 * warm) + ',78,135)');
+  ctx.fillStyle = S.phase === 'burnt' ? '#4a3a2c' : g;
+  ctx.fill(body);
+  ctx.clip(body);
+  /* 金色裝飾帶與太陽 */
+  ctx.strokeStyle = 'rgba(232,184,80,.9)'; ctx.lineWidth = Math.max(1, 0.35 * s);
+  [0.15, 0.55].forEach((p) => {
+    const y = cy - R + (R * 2) * p;
+    ctx.beginPath(); ctx.moveTo(nx - R * 1.2, y); ctx.lineTo(nx + R * 1.2, y); ctx.stroke();
+  });
+  ctx.beginPath(); ctx.moveTo(nx - R, neckY - 6 * s); ctx.lineTo(nx + R, neckY - 6 * s); ctx.stroke();
+  ctx.fillStyle = 'rgba(240,196,90,.95)';
+  const sunY = cy + R * 0.12;
+  [-0.55, 0, 0.55].forEach((p, i) => {
+    const x = nx + R * p, r = (i === 1 ? 1.4 : 1) * s;
+    ctx.beginPath(); ctx.arc(x, sunY, r, 0, Math.PI * 2); ctx.fill();
+    for (let a = 0; a < 8; a++) {
+      const an = a * Math.PI / 4;
+      ctx.beginPath(); ctx.moveTo(x + Math.cos(an) * r * 1.3, sunY + Math.sin(an) * r * 1.3);
+      ctx.lineTo(x + Math.cos(an) * r * 2, sunY + Math.sin(an) * r * 2); ctx.stroke();
+    }
+  });
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(20,30,50,.5)'; ctx.lineWidth = 1; ctx.stroke(body);
+  /* 吊繩與籃子（吊在球口一側，避開火盆） */
+  const bxk = nx + 3.4 * s, byk = neckY + 5.5 * s;
+  ctx.strokeStyle = 'rgba(70,55,35,.9)';
+  ctx.beginPath(); ctx.moveTo(nx + nr * 0.8, neckY); ctx.lineTo(bxk, byk - 1.1 * s); ctx.stroke();
+  ctx.fillStyle = '#8a6a3e';
+  ctx.beginPath(); ctx.moveTo(bxk - 1.3 * s, byk - 1.1 * s); ctx.lineTo(bxk + 1.3 * s, byk - 1.1 * s); ctx.lineTo(bxk + 1.1 * s, byk); ctx.lineTo(bxk - 1.1 * s, byk); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(50,35,20,.6)';
+  ctx.beginPath(); ctx.moveTo(bxk - 1.2 * s, byk - 0.55 * s); ctx.lineTo(bxk + 1.2 * s, byk - 0.55 * s); ctx.stroke();
+  const fs = Math.max(9, 0.85 * s);
+  ctx.font = fs + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  ctx.textAlign = 'center';
+  if (fs > 9.5) ctx.fillText('🐑🦆🐓', bxk, byk - 1.05 * s);
+}
+function drawSmoke(fx, gy, s, h) {
+  const neckWorld = h + 5.5;
+  if (reduced) {
+    if (S.smoke > .05) {
+      ctx.fillStyle = 'rgba(110,105,100,' + (S.smoke * 0.35).toFixed(2) + ')';
+      ctx.fillRect(fx - 1.2 * s, gy - neckWorld * s, 2.4 * s, (neckWorld - 1) * s);
+    }
+    return;
+  }
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    const x = fx + p.x * s, y = gy - p.y * s;
+    ctx.fillStyle = 'rgba(' + p.c + ',' + (p.a * (1 - p.life)).toFixed(3) + ')';
+    ctx.beginPath(); ctx.arc(x, y, (0.6 + p.life * 1.4) * s, 0, Math.PI * 2); ctx.fill();
+  }
+}
+function stepSmoke(dt) {
+  if (reduced) { parts.length = 0; return; }
+  const neckWorld = (S.fl ? S.fl.h : 0) + 5.5;
+  const rate = S.phase === 'ground' && S.holding ? (S.fuel === 'wet' ? 40 : 6) : 0;
+  let n = rate * dt;
+  while (n > 0 && parts.length < 160) {
+    if (n < 1 && Math.random() > n) break;
+    parts.push({ x: (Math.random() - .5) * 1.4, y: 1.3, vx: (Math.random() - .5) * .6, vy: 2.4 + Math.random() * 1.2, life: 0,
+      a: S.fuel === 'wet' ? .5 : .22, c: S.fuel === 'wet' ? '95,90,86' : '230,225,215' });
+    n -= 1;
+  }
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.life += dt * 0.55;
+    p.x += (p.vx - p.x * 0.8) * dt;
+    p.y += p.vy * dt;
+    if (S.phase !== 'ground') p.x += 3 * dt;
+    if (p.life >= 1 || p.y > neckWorld + 2 || p.y > 40) parts.splice(i, 1);
+  }
+}
+
+/* ── 記錄紙 ── */
+const ch = $('chart'), cx2 = ch.getContext('2d');
+function drawChart() {
+  const rect = ch.getBoundingClientRect();
+  if (rect.width < 80) return;
+  const d = PK.fitCanvas(ch, rect.height);
+  const W = d.w, H = d.h;
+  cx2.setTransform(d.dpr, 0, 0, d.dpr, 0, 0);
+  cx2.clearRect(0, 0, W, H);
+  const L = 32, B = 18, T0 = C.tAmb, T1 = T_MAX, Lmax = LIFT_MAX;
+  const X = (t) => L + (t - T0) / (T1 - T0) * (W - L - 6);
+  const Y = (v) => H - B - v / Lmax * (H - B - 6);
+  cx2.font = '10px system-ui,sans-serif';
+  cx2.fillStyle = '#7b6c55'; cx2.strokeStyle = 'rgba(80,60,40,.18)'; cx2.lineWidth = 1;
+  for (let v = 0; v <= Lmax; v += 100) {
+    cx2.beginPath(); cx2.moveTo(L, Y(v)); cx2.lineTo(W - 6, Y(v)); cx2.stroke();
+    if (v % 200 === 0) { cx2.textAlign = 'right'; cx2.fillText(v, L - 4, Y(v) + 3); }
+  }
+  cx2.textAlign = 'center';
+  for (let t = 40; t <= 160; t += 40) cx2.fillText(t + '°', X(t), H - 4);
+  /* 載重線 */
+  cx2.strokeStyle = 'rgba(43,36,26,.7)'; cx2.setLineDash([4, 3]);
+  cx2.beginPath(); cx2.moveTo(L, Y(MASS)); cx2.lineTo(W - 6, Y(MASS)); cx2.stroke();
+  cx2.setLineDash([]);
+  cx2.textAlign = 'left'; cx2.fillStyle = '#2b241a'; cx2.fillText('載重 ' + MASS + ' kg', L + 4, Y(MASS) - 4);
+  /* 著火區 */
+  cx2.fillStyle = 'rgba(255,90,54,.14)';
+  cx2.fillRect(X(C.burnT), 6, W - 6 - X(C.burnT), H - B - 6);
+  /* 理論曲線（揭曉後） */
+  if (S.trial >= 3) {
+    cx2.strokeStyle = 'rgba(43,36,26,.55)'; cx2.lineWidth = 1.2;
+    cx2.beginPath();
+    for (let t = T0; t <= T1; t += 2) {
+      const v = Core.liftKg(t, C.tAmb, C.V, 0);
+      if (t === T0) cx2.moveTo(X(t), Y(v)); else cx2.lineTo(X(t), Y(v));
+    }
+    cx2.stroke();
+  }
+  for (let i = 0; i < S.pts.length; i++) {
+    const p = S.pts[i];
+    const x = X(PK.clamp(p.T, T0, T1)), y = Y(PK.clamp(p.L, 0, Lmax));
+    cx2.beginPath(); cx2.arc(x, y, p.fuel === 'wet' ? 2.6 : 3.4, 0, Math.PI * 2);
+    if (p.fuel === 'wet') { cx2.fillStyle = 'rgba(154,90,30,.75)'; cx2.fill(); }
+    else { cx2.strokeStyle = '#2f6aa8'; cx2.lineWidth = 1.3; cx2.stroke(); }
+  }
+}
+
+let chartAcc = 0;
+function frame(dt, t) {
+  time = t / 1000;
+  sway += dt * 0.9;
+  step(dt);
+  stepSmoke(dt);
+  updateGauges();
+  drawScene();
+  chartAcc += dt;
+  if (chartAcc > .2) { chartAcc = 0; drawChart(); }
+}
+PK.tick(frame);
+window.addEventListener('resize', () => { drawScene(); drawChart(); });
+
+resetGround();
+PK.reveal();
+drawChart();
+</script>
+</body>
+</html>

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>最後一根手指｜每日小專案</title>
+<meta name="description" content="四個人一張帳單，有人掏出硬幣——先別丟。三種老辦法各藏一個破綻，最後讓大家一起按住同一張桌子。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b1310; --pk-ink:#ebe6d6; --pk-dim:#8b9488; --pk-accent:#d9b25f;
+  --pk-line:rgba(235,230,214,.12);
+  --felt:#123a2b; --felt2:#0c2a1f; --rim:#3a2416; --card:#f3ecd9; --cardInk:#1d1a14; --red:#b8463a;
+}
+body{background:
+  radial-gradient(120% 80% at 50% 0%, #10241b 0%, var(--pk-bg) 60%) fixed;}
+h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(21px,4.6vw,28px);line-height:1.5;margin:0 0 14px}
+p{margin:0 0 16px}
+.dim{color:var(--pk-dim)}
+.gold{color:var(--pk-accent)}
+em{font-style:normal;color:var(--pk-accent)}
+
+/* ── 第一屏 ── */
+.pk-hero{position:relative}
+.hero-felt{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.hero-felt::before{content:"";position:absolute;left:50%;top:56%;width:min(140vw,980px);aspect-ratio:1.6;
+  transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(closest-side,var(--felt) 0%,var(--felt2) 78%,transparent 80%),
+             radial-gradient(closest-side,var(--rim) 81%,transparent 84%);
+  opacity:.55}
+.coin-hero{display:inline-block;width:46px;height:46px;border-radius:50%;vertical-align:-12px;margin-left:6px;
+  background:radial-gradient(circle at 35% 30%,#f6e1a2,#b8913f 60%,#7b5e22);
+  box-shadow:inset 0 0 0 3px rgba(0,0,0,.18),0 4px 14px rgba(0,0,0,.5)}
+.lede{font-size:18px;color:#d6d0bf}
+.hint{margin-top:42px;font-size:13px;letter-spacing:.2em;color:var(--pk-dim)}
+.skip{display:inline-block;margin-top:14px;font-size:13px;color:var(--pk-dim);background:none;border:0;
+  border-bottom:1px dashed currentColor;padding:2px 0;cursor:pointer;font-family:inherit}
+.skip:hover,.skip:focus-visible{color:var(--pk-ink)}
+
+/* ── 三張牌 ── */
+.deck-intro{margin:10vh 0 26px}
+.card{position:relative;margin:0 0 54px}
+.hold{position:relative;display:flex;align-items:center;gap:18px;width:100%;text-align:left;
+  appearance:none;font:inherit;color:var(--cardInk);cursor:pointer;
+  border:0;border-radius:14px;padding:22px 22px;min-height:118px;overflow:hidden;
+  background:var(--card);box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 0 0 6px var(--card),inset 0 0 0 7px rgba(29,26,20,.25);
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  transition:transform .2s ease, box-shadow .2s ease}
+.hold:hover{transform:translateY(-2px)}
+.hold.pressing{transform:translateY(1px) scale(.992)}
+.hold .back{flex:0 0 64px;height:84px;border-radius:8px;
+  background:
+    repeating-linear-gradient(45deg,rgba(184,70,58,.85) 0 6px,transparent 6px 12px),
+    repeating-linear-gradient(-45deg,rgba(184,70,58,.85) 0 6px,transparent 6px 12px),#efe3c8;
+  box-shadow:inset 0 0 0 3px #efe3c8,inset 0 0 0 4px rgba(184,70,58,.6)}
+.hold b{display:block;font-family:var(--pk-serif);font-size:22px;letter-spacing:.06em}
+.hold small{display:block;font-size:13px;color:#6d6555;letter-spacing:.12em;margin-top:4px}
+.hold .bar{position:absolute;left:0;bottom:0;height:5px;width:100%;background:var(--red);
+  transform-origin:0 50%;transform:scaleX(0)}
+.card.open .hold{display:none}
+.face{display:none}
+.card.open .face{display:block}
+.face .suit{font-family:var(--pk-serif);font-size:13px;letter-spacing:.3em;color:var(--pk-dim);margin-bottom:6px}
+
+/* 硬幣比例尺 */
+.ratio{margin:20px 0 8px}
+.ratio .track{position:relative;height:30px;border-radius:6px;overflow:hidden;display:flex;background:#22302a}
+.ratio .same{background:var(--pk-accent);width:50.8%;transform-origin:0 50%}
+.ratio .diff{flex:1;background:#33443b}
+.ratio .mid{position:absolute;left:50%;top:-6px;bottom:-6px;width:2px;background:var(--pk-ink);opacity:.7}
+.ratio .legend{display:flex;justify-content:space-between;font-size:13px;color:var(--pk-dim);margin-top:6px}
+.big{font-family:var(--pk-serif);font-size:clamp(30px,8vw,46px);color:var(--pk-accent);font-variant-numeric:tabular-nums;line-height:1.3}
+
+/* 猜拳記分板 */
+.score{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:18px 0;padding:16px 18px;border:1px solid var(--pk-line);border-radius:10px;font-size:15px}
+.score .h{font-size:20px;letter-spacing:.2em}
+.score .tag{color:var(--pk-dim);font-size:13px}
+
+/* 點兵點將 */
+.ring{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:18px 0}
+.ring svg{width:220px;height:220px;flex:0 0 auto;overflow:visible}
+.seat{fill:#22302a;stroke:rgba(235,230,214,.35);stroke-width:1.5;transition:fill .15s}
+.seat.on{fill:var(--pk-accent)}
+.seat.land{fill:var(--red);stroke:var(--pk-ink)}
+.seat-l{font-size:12px;fill:var(--pk-ink);text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.syl{font-family:var(--pk-serif);font-size:34px;fill:var(--pk-accent);text-anchor:middle;dominant-baseline:central}
+.npick{display:flex;gap:6px;flex-wrap:wrap}
+.npick button{appearance:none;font:inherit;font-size:14px;cursor:pointer;color:var(--pk-ink);background:transparent;
+  border:1px solid var(--pk-line);border-radius:999px;padding:6px 13px;transition:border-color .2s,background .2s}
+.npick button[aria-pressed="true"]{border-color:var(--pk-accent);color:var(--pk-accent)}
+.npick button:hover{border-color:var(--pk-ink)}
+.ring-note{min-height:3.6em;font-size:15px}
+
+/* ── 轉折 ── */
+.turn{margin:12vh 0 8vh;font-family:var(--pk-serif);font-size:clamp(20px,4.8vw,27px);line-height:1.7}
+
+/* ── 桌子 ── */
+.table-sec{padding:0 12px}
+.table-head{max-width:640px;margin:0 auto 18px;padding:0 10px}
+.table{position:relative;margin:0 auto;max-width:980px;height:min(78svh,640px);min-height:360px;border-radius:44px;
+  background:radial-gradient(90% 80% at 50% 45%,#17513b 0%,var(--felt) 55%,var(--felt2) 100%);
+  box-shadow:inset 0 0 0 14px var(--rim),inset 0 0 0 16px #5b3a22,inset 0 0 80px rgba(0,0,0,.55),0 24px 60px rgba(0,0,0,.55);
+  overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:crosshair}
+.table:focus-visible{outline:2px solid var(--pk-accent);outline-offset:4px}
+.table::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;
+  background-image:radial-gradient(rgba(255,255,255,.35) 1px,transparent 1.2px);background-size:5px 5px}
+.t-msg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(80%,420px);text-align:center;
+  font-family:var(--pk-serif);font-size:clamp(18px,4.2vw,24px);color:rgba(235,230,214,.78);pointer-events:none;
+  transition:opacity .4s}
+.t-msg small{display:block;font-family:var(--pk-sans);font-size:13px;color:rgba(235,230,214,.5);margin-top:10px;letter-spacing:.05em}
+.table.busy .t-msg{opacity:0}
+.f{position:absolute;left:0;top:0;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;pointer-events:none;
+  border:3px solid var(--c);box-shadow:0 0 22px var(--c),inset 0 0 18px var(--c);
+  display:flex;align-items:center;justify-content:center;font:600 22px/1 var(--pk-sans);color:var(--c);
+  transition:opacity .35s ease}
+.f i{position:absolute;inset:-12px;border-radius:50%;border:2px solid var(--c);opacity:0}
+.f.wait i{animation:breathe 1.3s ease-in-out infinite}
+.f.hop{background:color-mix(in srgb,var(--c) 35%,transparent)}
+.f.out{opacity:.12}
+.f.win{background:var(--c);color:#0b1310}
+.f.win i{opacity:1;animation:ring 1.1s ease-out infinite}
+@keyframes breathe{0%,100%{opacity:0;transform:scale(.9)}50%{opacity:.6;transform:scale(1.05)}}
+@keyframes ring{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(2.2)}}
+.burst{position:absolute;left:0;top:0;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,var(--c) 0%,transparent 70%);opacity:0}
+.burst.go{animation:burst 1s ease-out forwards}
+@keyframes burst{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(40)}}
+.t-status{max-width:640px;margin:14px auto 0;padding:0 10px;min-height:1.9em;text-align:center;color:var(--pk-dim);font-size:14px}
+.t-note{max-width:640px;margin:6px auto 0;padding:0 10px;text-align:center;font-size:12.5px;color:var(--pk-dim)}
+
+/* ── 結尾 ── */
+.coda{margin-top:14vh}
+.coda .big2{font-family:var(--pk-serif);font-size:clamp(24px,6vw,36px);line-height:1.5;margin:0 0 22px}
+.tally{margin-top:30px;padding-top:16px;border-top:1px solid var(--pk-line);font-size:14px;color:var(--pk-dim)}
+
+@media (max-width:560px){
+  .table{border-radius:28px;height:72svh}
+  .ring svg{width:190px;height:190px}
+  .hold{padding:18px}
+}
+@media (prefers-reduced-motion: reduce){
+  .f.wait i,.f.win i{animation:none}
+  .f.win i{opacity:.6}
+  .burst.go{animation:none;opacity:0}
+  .hold,.seat,.t-msg{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="hero-felt" aria-hidden="true"></div>
+  <div class="pk-wrap">
+    <h1 class="rv">四個人，一張帳單，<br>一陣很長的安靜。</h1>
+    <p class="rv lede">有人從口袋摸出一枚十元<span class="coin-hero" aria-hidden="true"></span><br>「猜正反，輸的請。」</p>
+    <p class="rv lede gold">先別丟。</p>
+    <p class="rv hint">往下 ↓ 桌上還有三張牌</p>
+    <button class="skip rv" id="skip" hidden>上次來過了——直接上桌</button>
+  </div>
+</header>
+
+<main>
+  <div class="pk-wrap">
+    <p class="deck-intro rv">每一種「公平」的老辦法，都藏著一個小破綻。三張牌面朝下，<em>按住</em>就會翻開。</p>
+
+    <!-- 第一張：硬幣 -->
+    <section class="card rv" id="c1">
+      <button class="hold" type="button" aria-describedby="holdtip">
+        <span class="back" aria-hidden="true"></span>
+        <span><b>硬幣</b><small>按住翻開</small></span>
+        <span class="bar" aria-hidden="true"></span>
+      </button>
+      <div class="face">
+        <div class="suit">第一張 · 硬幣</div>
+        <h2>它記得自己是哪一面朝上。</h2>
+        <p>2007 年，史丹佛的數學家 Persi Diaconis 拿高速攝影機拍人拋硬幣。硬幣在空中不只翻跟斗，還會像陀螺一樣歪著晃——晃到最後，落回起手那一面的機會比較大，他算出來大約 51%。</p>
+        <p>十六年後，48 個人分頭拋了</p>
+        <div class="big" data-count="350757">0</div>
+        <p>次，就為了驗這一個數字。</p>
+        <div class="ratio" aria-label="同一面落地 50.8%，另一面 49.2%">
+          <div class="track"><div class="same"></div><div class="diff"></div><div class="mid"></div></div>
+          <div class="legend"><span>落回起手那面 50.8%</span><span>翻到另一面 49.2%</span></div>
+        </div>
+        <p>差不到一個百分點，聽起來像沒差。可是起手那面，<em>拋的人看得見，你看不見。</em></p>
+      </div>
+    </section>
+
+    <!-- 第二張：猜拳 -->
+    <section class="card rv" id="c2">
+      <button class="hold" type="button" aria-describedby="holdtip">
+        <span class="back" aria-hidden="true"></span>
+        <span><b>猜拳</b><small>按住翻開</small></span>
+        <span class="bar" aria-hidden="true"></span>
+      </button>
+      <div class="face">
+        <div class="suit">第二張 · 猜拳</div>
+        <h2>那就猜拳，至少兩邊同時出手。</h2>
+        <p>2014 年，浙江大學找了 360 個學生，六人一組、隨機配對，一組猜 300 輪，贏一把就多拿一點現金。</p>
+        <div class="score" role="group" aria-label="實驗觀察">
+          <span class="h" aria-hidden="true">✊→✊</span><span>上一把<b>贏</b>了：下一把最常出<b>同一手</b>。<br><span class="tag">贏了不換</span></span>
+          <span class="h" aria-hidden="true">✊→✋</span><span>上一把<b>輸</b>了：比較常<b>換掉</b>。<br><span class="tag">輸了就換</span></span>
+        </div>
+        <p>兩個人同時出手沒錯，可是上一把留下了線索。誰把上一把記得比較清楚，<em>誰就早一步知道下一把。</em></p>
+      </div>
+    </section>
+
+    <!-- 第三張：點兵點將 -->
+    <section class="card rv" id="c3">
+      <button class="hold" type="button" aria-describedby="holdtip">
+        <span class="back" aria-hidden="true"></span>
+        <span><b>點兵點將</b><small>按住翻開</small></span>
+        <span class="bar" aria-hidden="true"></span>
+      </button>
+      <div class="face">
+        <div class="suit">第三張 · 點兵點將</div>
+        <h2>八個字，一個一個點過去。</h2>
+        <p>「點、兵、點、將、騎、馬、打、仗。」手指從自己開始，繞著桌子一字點一個人。選桌上人數，看第八個字落在誰身上：</p>
+        <div class="ring">
+          <svg id="ringSvg" viewBox="-110 -110 220 220" role="img" aria-label="點兵點將示意圖"></svg>
+          <div>
+            <div class="npick" role="group" aria-label="桌上人數">
+              <button type="button" data-n="3">3 人</button><button type="button" data-n="4" aria-pressed="true">4 人</button>
+              <button type="button" data-n="5">5 人</button><button type="button" data-n="6">6 人</button>
+              <button type="button" data-n="7">7 人</button>
+            </div>
+            <p class="ring-note" id="ringNote" aria-live="polite"></p>
+          </div>
+        </div>
+        <p>點的人不必作弊，他只要先知道歌有幾個字、桌上有幾個人。<em>從哪裡起點，就決定了點到誰。</em></p>
+      </div>
+    </section>
+    <p id="holdtip" class="pk-sr">按住這張牌不放，大約半秒後翻開；鍵盤可按住空白鍵或 Enter。</p>
+  </div>
+
+  <div id="after" hidden>
+    <div class="pk-wrap">
+      <p class="turn rv">三張牌，同一個破綻：<br>總有一個人，比別人<span class="gold">早知道一點點</span>。<br><br>這次，別讓任何人拿著硬幣。</p>
+    </div>
+
+    <section class="table-sec" id="tableSec" aria-labelledby="tableH">
+      <div class="table-head">
+        <h2 id="tableH">每個人，一根手指。</h2>
+        <p class="dim">手機：大家把手指同時按在桌面上，別放。電腦：點一下桌面，每人按住一個鍵。<br>人到齊、手不動，桌子自己會挑。中途有人放開，就重來。</p>
+      </div>
+      <div class="table" id="table" tabindex="0" role="application"
+           aria-label="選人桌面。觸控時每人按住一根手指；鍵盤時每人按住一個字母或數字鍵。" aria-describedby="tStatus">
+        <div class="t-msg" id="tMsg">把手指放上來<small>至少兩個人</small></div>
+      </div>
+      <p class="t-status" id="tStatus" aria-live="polite">等人上桌……</p>
+      <p class="t-note">有些鍵盤同時只認得幾個鍵；人多的話，用手機比較穩。</p>
+    </section>
+
+    <div class="pk-wrap">
+      <section class="coda" id="coda" hidden>
+        <p class="big2 rv">帳單，在那根手指前面。</p>
+        <p class="rv">它被挑中的理由，跟其他每一根手指一樣多：零。誰先按、按在哪、按了多久，這張桌子一概不看；挑人的是瀏覽器裡的密碼學亂數，在所有手指都按定之後才抽。</p>
+        <p class="rv">硬幣、拳頭、兒歌，都需要有個人站在前面。這張桌子把所有人放在同一個位置：<em>一起按住，一起不知道。</em></p>
+        <p class="rv">下次有人從口袋摸出硬幣，你可以先問他一句——</p>
+        <p class="rv big2 gold">「起手，是哪一面？」</p>
+        <p class="tally rv" id="tally"></p>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Diaconis、Holmes、Montgomery（2007，SIAM Review）；Bartoš 等（2023／2025，JASA）；Wang、Xu、Zhou（2014，Scientific Reports）。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'lastf.';
+const store = PK.store(LS);
+
+/* ══ 純函式（node 斷言用；PURE:start → PURE:end）══ */
+/* PURE:start */
+/* 無偏抽籤：拒絕取樣，避免 2^32 % n 造成的偏差。next() 回傳 0..2^32-1 的整數 */
+function pickIndex(n, next) {
+  if (!(n >= 1)) return -1;
+  const limit = Math.floor(4294967296 / n) * n;
+  for (let guard = 0; guard < 64; guard++) {
+    const r = next() >>> 0;
+    if (r < limit) return r % n;
+  }
+  return 0;
+}
+/* 點兵點將：n 人、s 個字、從第 start 人（含）起點，回傳落點座位 */
+function rhymeLand(n, s, start) { return ((start + s - 1) % n + n) % n; }
+/* 鍵盤位置 → 桌面相對座標（0..1），讓按 Q 的人出現在左上、按 M 的人出現在右下 */
+const KEY_ROWS = ['1234567890', 'QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+const ROW_SHIFT = [0, 0.5, 0.75, 1.25];
+function keyPos(ch) {
+  ch = String(ch || '').toUpperCase();
+  for (let r = 0; r < KEY_ROWS.length; r++) {
+    const c = KEY_ROWS[r].indexOf(ch);
+    if (c >= 0 && ch.length === 1) return { x: 0.1 + 0.8 * (c + ROW_SHIFT[r]) / 10.5, y: 0.16 + 0.68 * r / 3 };
+  }
+  return null;
+}
+/* 手指集合穩定多久才開抽 */
+function readyToDraw(count, stableMs, needMs) { return count >= 2 && stableMs >= needMs; }
+/* 讓跳燈落在 winner：回傳依序要亮的手指索引 */
+function hopSequence(n, winner, laps) {
+  const seq = [];
+  const total = laps * n + winner + 1;
+  for (let i = 0; i < total; i++) seq.push(i % n);
+  return seq;
+}
+/* PURE:end */
+
+const cryptoNext = () => {
+  const a = new Uint32Array(1);
+  (window.crypto || window.msCrypto).getRandomValues(a);
+  return a[0];
+};
+
+PK.reveal();
+
+/* ══ 按住翻牌 ══ */
+const HOLD_MS = 550;
+function openCard(card, quiet) {
+  if (card.classList.contains('open')) return;
+  card.classList.add('open');
+  const face = card.querySelector('.face');
+  face.setAttribute('tabindex', '-1');
+  if (!quiet) face.focus({ preventScroll: true });
+  const big = card.querySelector('[data-count]');
+  if (big) countUp(big, +big.dataset.count, quiet);
+  const sameBar = card.querySelector('.ratio .same');
+  if (sameBar && !quiet && !PK.reduced()) {
+    sameBar.style.transform = 'scaleX(0)';
+    sameBar.getBoundingClientRect();
+    requestAnimationFrame(() => { sameBar.style.transition = 'transform 1.4s cubic-bezier(.2,.7,.3,1)'; sameBar.style.transform = 'scaleX(1)'; });
+  }
+  if (card.id === 'c3') runRing(quiet);
+  if (!quiet) PK.announce(card.querySelector('h2').textContent);
+  checkAllOpen(quiet);
+}
+function countUp(el, to, quiet) {
+  if (quiet || PK.reduced()) { el.textContent = to.toLocaleString('en-US'); return; }
+  let t0 = 0;
+  const f = (dt, t) => {
+    if (!t0) t0 = t;
+    const k = Math.min(1, (t - t0) / 1600);
+    el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))).toLocaleString('en-US');
+    if (k >= 1) PK.untick(f);
+  };
+  PK.tick(f);
+}
+document.querySelectorAll('.card').forEach(card => {
+  const btn = card.querySelector('.hold');
+  const bar = btn.querySelector('.bar');
+  let p = 0, holding = false;
+  const f = (dt) => {
+    const ms = dt * 1000;   /* PK.tick 的 dt 單位是秒 */
+    p = PK.clamp(p + (holding ? ms / HOLD_MS : -ms / 250), 0, 1);
+    bar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+    if (p >= 1) { PK.untick(f); holding = false; openCard(card); }
+    else if (p <= 0 && !holding) PK.untick(f);
+  };
+  const start = () => { holding = true; btn.classList.add('pressing'); PK.tick(f); };
+  const stop = () => { holding = false; btn.classList.remove('pressing'); };
+  btn.addEventListener('pointerdown', e => { if (e.button > 0) return; btn.setPointerCapture && btn.setPointerCapture(e.pointerId); start(); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => btn.addEventListener(ev, stop));
+  btn.addEventListener('contextmenu', e => e.preventDefault());
+  btn.addEventListener('keydown', e => {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) start(); }
+  });
+  btn.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') stop(); });
+  btn.addEventListener('blur', stop);
+  btn.addEventListener('click', e => { e.preventDefault(); if (e.detail === 0) openCard(card); });  /* 輔助科技的虛擬點擊沒有「按住」可言，直接翻 */
+});
+
+/* ══ 點兵點將 ══ */
+const SYL = '點兵點將騎馬打仗';
+const svg = document.getElementById('ringSvg');
+const ringNote = document.getElementById('ringNote');
+let ringN = 4, ringTimer = 0;
+function drawRing(n) {
+  const NS = 'http://www.w3.org/2000/svg';
+  svg.textContent = '';
+  const g = document.createElementNS(NS, 'g');
+  for (let i = 0; i < n; i++) {
+    /* 座位 0（你）在正下方，順時針點過去 */
+    const a = Math.PI / 2 + i * 2 * Math.PI / n;
+    const x = Math.cos(a) * 80, y = Math.sin(a) * 80;
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); c.setAttribute('r', 17);
+    c.setAttribute('class', 'seat');
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', x.toFixed(1)); t.setAttribute('y', y.toFixed(1)); t.setAttribute('class', 'seat-l');
+    t.textContent = i === 0 ? '你' : String(i + 1);
+    g.appendChild(c); g.appendChild(t);
+  }
+  const s = document.createElementNS(NS, 'text');
+  s.setAttribute('x', 0); s.setAttribute('y', 0); s.setAttribute('class', 'syl'); s.id = 'syl';
+  g.appendChild(s);
+  svg.appendChild(g);
+}
+function ringMessage(n, land) {
+  if (land === 0) return '七個人：第八個字點回你自己。所以點的人開口之前，會先數一數桌上有幾個人。';
+  return n + ' 個人：第八個字落在第 ' + (land + 1) + ' 位。從自己點起，永遠點不到自己——除非桌上剛好七個人。';
+}
+function runRing(quiet) {
+  clearTimeout(ringTimer);
+  drawRing(ringN);
+  const seats = svg.querySelectorAll('.seat');
+  const syl = svg.querySelector('#syl');
+  const land = rhymeLand(ringN, SYL.length, 0);
+  const finish = () => {
+    seats.forEach(c => c.classList.remove('on'));
+    seats[land].classList.add('land');
+    syl.textContent = '仗';
+    ringNote.textContent = ringMessage(ringN, land);
+  };
+  if (quiet || PK.reduced()) { finish(); return; }
+  ringNote.textContent = '';
+  let i = 0;
+  const step = () => {
+    seats.forEach(c => c.classList.remove('on'));
+    if (i >= SYL.length) { finish(); return; }
+    seats[i % ringN].classList.add('on');
+    syl.textContent = SYL[i];
+    i++;
+    ringTimer = setTimeout(step, 260);
+  };
+  step();
+}
+document.querySelectorAll('.npick button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.npick button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  ringN = +b.dataset.n;
+  runRing(false);
+}));
+
+/* ══ 三張都翻開 → 轉折與桌子 ══ */
+const after = document.getElementById('after');
+function checkAllOpen(quiet) {
+  if (!after.hidden) return;
+  if (document.querySelectorAll('.card.open').length < 3) return;
+  after.hidden = false;
+  store.set('seen', true);
+  PK.reveal('#after .rv');
+  if (!quiet) setTimeout(() => PK.scrollTo(after), PK.reduced() ? 0 : 900);
+}
+const skip = document.getElementById('skip');
+if (store.get('seen', false)) skip.hidden = false;
+skip.addEventListener('click', () => {
+  document.querySelectorAll('.card').forEach(c => openCard(c, true));
+  PK.scrollTo(document.getElementById('tableSec'));
+  setTimeout(() => document.getElementById('table').focus({ preventScroll: true }), 400);
+});
+
+/* ══ 桌子 ══ */
+const table = document.getElementById('table');
+const tStatus = document.getElementById('tStatus');
+const COLORS = ['#e8b04a', '#5fc6c0', '#e86a5a', '#9f8cf0', '#7fd36a', '#f08cc0', '#6aa8f0', '#f0e06a', '#c7a07a', '#a0e0d0'];
+const fingers = new Map();   /* id → {el, x, y, color, label} */
+let colorIx = 0, phase = 'idle', changedAt = 0, timers = [], winnerId = null;
+const NEED_MS = 1300;
+
+function say(msg) { tStatus.textContent = msg; }
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+function place(f) { f.el.style.transform = 'translate(' + f.x.toFixed(1) + 'px,' + f.y.toFixed(1) + 'px)'; }
+function addFinger(id, x, y, label) {
+  if (fingers.has(id)) return;
+  if (phase === 'chosen') return;            /* 已選出：等大家放開再開新局 */
+  const el = document.createElement('div');
+  const color = COLORS[colorIx++ % COLORS.length];
+  el.className = 'f';
+  el.style.setProperty('--c', color);
+  el.innerHTML = '<i></i>' + (label ? label : '');
+  table.appendChild(el);
+  const f = { el, x, y, color };
+  fingers.set(id, f);
+  place(f);
+  changed();
+}
+function moveFinger(id, x, y) {
+  const f = fingers.get(id); if (!f) return;
+  f.x = x; f.y = y; place(f);
+}
+function removeFinger(id) {
+  const f = fingers.get(id); if (!f) return;
+  fingers.delete(id);
+  if (phase === 'chosen') {
+    if (id !== winnerId) f.el.style.opacity = '0';
+    setTimeout(() => f.el.remove(), 400);
+    if (fingers.size === 0) endRound();
+    return;
+  }
+  f.el.remove();
+  changed(true);
+}
+function changed(lifted) {
+  clearTimers();
+  table.classList.toggle('busy', fingers.size > 0);
+  fingers.forEach(f => { f.el.classList.remove('hop', 'out', 'win'); f.el.classList.toggle('wait', fingers.size >= 2); });
+  const wasDrawing = phase === 'drawing';
+  phase = fingers.size >= 2 ? 'waiting' : 'idle';
+  changedAt = performance.now();
+  if (fingers.size === 0) { say('等人上桌……'); return; }
+  if (fingers.size === 1) { say(lifted && wasDrawing ? '有人放開了，重來。' : '一根手指。還要至少一個人。'); return; }
+  say((lifted && wasDrawing ? '有人放開了，重來。' : '') + fingers.size + ' 根手指。還有人要上桌嗎？');
+  timers.push(setTimeout(tryDraw, NEED_MS + 20));
+}
+function tryDraw() {
+  if (!readyToDraw(fingers.size, performance.now() - changedAt, NEED_MS)) return;
+  phase = 'drawing';
+  say('別動——');
+  const ids = [...fingers.keys()];
+  const w = pickIndex(ids.length, cryptoNext);   /* 這時才抽，之後一概不看手指順序 */
+  if (PK.reduced()) { timers.push(setTimeout(() => choose(ids[w]), 500)); return; }
+  const seq = hopSequence(ids.length, w, ids.length > 4 ? 2 : 3);
+  let k = 0;
+  const hop = () => {
+    if (phase !== 'drawing') return;
+    ids.forEach(id => fingers.get(id) && fingers.get(id).el.classList.remove('hop'));
+    const f = fingers.get(ids[seq[k]]);
+    if (f) f.el.classList.add('hop');
+    k++;
+    if (k >= seq.length) { timers.push(setTimeout(() => choose(ids[w]), 260)); return; }
+    const left = seq.length - k;
+    timers.push(setTimeout(hop, 70 + Math.max(0, 6 - left) * 55));
+  };
+  hop();
+}
+function choose(id) {
+  if (phase !== 'drawing' || !fingers.has(id)) return;
+  phase = 'chosen'; winnerId = id;
+  const order = [...fingers.keys()].indexOf(id) + 1;
+  fingers.forEach((f, k) => { f.el.classList.remove('wait', 'hop'); f.el.classList.add(k === id ? 'win' : 'out'); });
+  const wf = fingers.get(id);
+  const b = document.createElement('div');
+  b.className = 'burst';
+  b.style.setProperty('--c', wf.color);
+  b.style.left = wf.x + 'px'; b.style.top = wf.y + 'px';
+  table.appendChild(b);
+  requestAnimationFrame(() => b.classList.add('go'));
+  setTimeout(() => b.remove(), 1200);
+  if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+  const n = fingers.size;
+  const who = String(id).startsWith('k:') ? '按住「' + String(id).slice(2) + '」的人' : '第 ' + order + ' 根放上來的手指';
+  say('就是你：' + who + '。（' + n + ' 選 1）大家可以放開了。');
+  const tally = store.get('tally', { n: 0, people: 0 });
+  tally.n += 1; tally.people += n;
+  store.set('tally', tally);
+  showCoda(tally);
+}
+function endRound() {
+  clearTimers();
+  phase = 'idle'; winnerId = null;
+  table.querySelectorAll('.f').forEach(el => setTimeout(() => el.remove(), 400));
+  table.classList.remove('busy');
+  say('等人上桌……再來一局也行。');
+}
+const coda = document.getElementById('coda');
+function showCoda(t) {
+  document.getElementById('tally').textContent =
+    '這張桌子已經替 ' + t.people + ' 根手指做過 ' + t.n + ' 次決定。';
+  if (!coda.hidden) return;
+  coda.hidden = false;
+  PK.reveal('#coda .rv');
+}
+
+/* 觸控／滑鼠：每個 pointer 一根手指 */
+function local(e) { const r = table.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+table.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (e.pointerType === 'mouse') table.focus({ preventScroll: true });   /* 讓「點一下再按鍵」成立 */
+  try { table.setPointerCapture(e.pointerId); } catch (err) {}
+  const [x, y] = local(e);
+  addFinger('p:' + e.pointerId, x, y, '');
+});
+table.addEventListener('pointermove', e => {
+  if (!fingers.has('p:' + e.pointerId)) return;
+  const [x, y] = local(e);
+  moveFinger('p:' + e.pointerId, x, y);
+});
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev =>
+  table.addEventListener(ev, e => removeFinger('p:' + e.pointerId)));
+table.addEventListener('contextmenu', e => e.preventDefault());
+
+/* 鍵盤：每人按住一個鍵，位置照鍵盤排列 */
+table.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { [...fingers.keys()].forEach(removeFinger); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const pos = keyPos(e.key);
+  if (!pos) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  const r = table.getBoundingClientRect();
+  addFinger('k:' + e.key.toUpperCase(), pos.x * r.width, pos.y * r.height, e.key.toUpperCase());
+});
+table.addEventListener('keyup', e => { if (keyPos(e.key)) removeFinger('k:' + e.key.toUpperCase()); });
+table.addEventListener('blur', () => [...fingers.keys()].filter(k => k.startsWith('k:')).forEach(removeFinger));
+window.addEventListener('blur', () => [...fingers.keys()].forEach(removeFinger));
+document.addEventListener('visibilitychange', () => { if (document.hidden) [...fingers.keys()].forEach(removeFinger); });
+
+PK.onMotionChange(() => { if (phase === 'drawing') changed(); });
+</script>
+</body>
+</html>

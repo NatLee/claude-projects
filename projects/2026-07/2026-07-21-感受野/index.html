@@ -45,6 +45,7 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border:none;border-ra
 
 .reveal{max-width:600px;margin:64px auto 0;padding:0 22px;opacity:0;transform:translateY(24px);transition:opacity .8s,transform .8s}
 .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}body{transition:none}}
 .reveal .big{font-family:var(--serif);font-size:clamp(1.5rem,4.2vw,2.1rem);color:var(--ink);margin:0 0 16px;text-align:center}
 .reveal p{font-size:1.04rem;color:var(--dim);margin:0 0 16px}
 .reveal p em{color:var(--ink);font-style:normal}
@@ -154,7 +155,8 @@ if(typeof document!=='undefined')(function(){
       ctx.fillRect(Math.round((x+1)/2*W-1),Math.round((y+1)/2*H-1),Math.ceil(W/N)+1,Math.ceil(H/N)+1);
     }
     /* 光棒 */
-    ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(-theta+Math.PI/2);
+    /* 旋轉 theta：光棒法線 = (cosθ, sinθ)，與 bar()/gabor() 的座標系一致（原本 -θ+π/2 會讓畫面與反應錯開） */
+    ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(theta);
     var bw=0.16*W; ctx.translate(off*W/2,0);
     var grd=ctx.createLinearGradient(-bw/2,0,bw/2,0);
     grd.addColorStop(0,'rgba(255,255,255,0)');grd.addColorStop(.5,'rgba(255,255,255,.95)');grd.addColorStop(1,'rgba(255,255,255,0)');
@@ -174,11 +176,12 @@ if(typeof document!=='undefined')(function(){
   /* 拖曳：旋轉光棒到指標方向 */
   var dragging=false;
   function ptr(e){ var rc=cv.getBoundingClientRect(); var mx=(e.clientX-rc.left)/rc.width*2-1, my=(e.clientY-rc.top)/rc.height*2-1;
-    var ang=Math.atan2(my,mx); var deg=((ang*180/Math.PI)%180+180)%180; theta=deg*Math.PI/180;
+    var ang=Math.atan2(my,mx); var deg=((ang*180/Math.PI+90)%180+180)%180; theta=deg*Math.PI/180; /* 讓光棒長軸指向游標 */
     angEl.value=Math.round(deg); document.getElementById('angv').textContent=Math.round(deg)+'°'; update(); }
   cv.addEventListener('pointerdown',function(e){ dragging=true; cv.setPointerCapture(e.pointerId); ptr(e); });
   cv.addEventListener('pointermove',function(e){ if(dragging) ptr(e); });
   cv.addEventListener('pointerup',function(){ dragging=false; });
+  cv.addEventListener('pointercancel',function(){ dragging=false; });
 
   /* 揭曉區的小方向盤 */
   function drawMini(){
@@ -187,7 +190,7 @@ if(typeof document!=='undefined')(function(){
     if(mc.width!==w||mc.height!==h){mc.width=w;mc.height=h;}
     m.clearRect(0,0,w,h);
     var cols=13; for(var k=0;k<cols;k++){ var a=k/cols*Math.PI, cx=(k+0.5)/cols*w, cy=h/2, len=h*0.32;
-      m.strokeStyle='rgba(106,208,255,'+(0.35+0.45*Math.abs(Math.cos(a-PREF))).toFixed(2)+')'; m.lineWidth=2*dpr;
+      m.strokeStyle='rgba(106,208,255,'+(0.35+0.45*Math.abs(Math.sin(a-PREF))).toFixed(2)+')'; m.lineWidth=2*dpr;
       m.beginPath(); m.moveTo(cx-Math.cos(a)*len,cy-Math.sin(a)*len); m.lineTo(cx+Math.cos(a)*len,cy+Math.sin(a)*len); m.stroke(); }
   }
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in'); drawMini();}});},{rootMargin:'0px 0px -12% 0px'});

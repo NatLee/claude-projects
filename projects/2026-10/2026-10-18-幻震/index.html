@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我發誓它震了一下｜每日小專案</title>
+<meta name="description" content="口袋嗡一聲，拿出來零則通知。用兩輪咖啡店雜音裡的聽力小實驗，看你的大腦怎麼在一分鐘內替你造出幻震。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#08090d; --pk-ink:#ebe7df; --pk-dim:#8d8a93; --pk-accent:#7fd6c2;
+  --pk-line:rgba(255,255,255,.1);
+  --ghost:#c7a6ff; --warn:#ff8a7a; --glass:rgba(255,255,255,.06);
+}
+body{background:
+  radial-gradient(900px 520px at 50% -10%,rgba(127,214,194,.07),transparent 70%),
+  var(--pk-bg);}
+
+/* ── 手機外殼（假介面） ── */
+.phone{position:relative;width:min(280px,74vw);aspect-ratio:9/18.5;margin:0 auto;
+  border-radius:44px;padding:10px;background:#15161c;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 30px 80px rgba(0,0,0,.6),inset 0 0 0 2px #0b0c10}
+.screen{position:relative;height:100%;border-radius:35px;overflow:hidden;
+  background:radial-gradient(120% 70% at 30% 0%,#1f2a3a 0%,#11141c 55%,#0b0c11 100%);
+  display:flex;flex-direction:column;align-items:center;padding:34px 14px 18px;color:#f3f1ec}
+.screen::before{content:"";position:absolute;top:10px;left:50%;width:84px;height:22px;margin-left:-42px;border-radius:12px;background:#000}
+.ls-date{font-size:12.5px;letter-spacing:.08em;opacity:.75;margin-top:14px}
+.ls-time{font-family:var(--pk-sans);font-weight:300;font-size:clamp(46px,15vw,62px);line-height:1.1;letter-spacing:.02em}
+.ls-note{font-size:12px;opacity:.55;margin-top:6px;letter-spacing:.06em}
+.ls-bar{position:absolute;bottom:9px;left:50%;width:96px;height:4px;margin-left:-48px;border-radius:3px;background:rgba(255,255,255,.55)}
+
+.glow{position:absolute;inset:0;border-radius:35px;pointer-events:none;opacity:0;
+  box-shadow:inset 0 0 26px 6px rgba(127,214,194,.9),inset 0 0 0 2px rgba(127,214,194,.8)}
+
+/* 通知卡 */
+.notes{width:100%;margin-top:18px;display:flex;flex-direction:column;gap:7px}
+.note{background:rgba(255,255,255,.12);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border-radius:16px;padding:9px 12px;font-size:12.5px;line-height:1.5;text-align:left;
+  transform:translateY(-8px);opacity:0;transition:transform .45s cubic-bezier(.2,.8,.3,1),opacity .45s}
+.note.on{transform:none;opacity:1}
+.note b{display:block;font-size:11px;letter-spacing:.06em;opacity:.7;font-weight:500}
+.note.miss{background:rgba(255,138,122,.2)}
+.note.miss b{color:var(--warn);opacity:1}
+
+/* ── 第一屏 ── */
+.hero{min-height:100svh;display:grid;place-items:center;padding:70px 0 40px}
+.hero-in{text-align:center}
+.hum{font-family:var(--pk-serif);font-size:clamp(46px,13vw,84px);margin:0 0 6px;letter-spacing:.1em;font-weight:600}
+.hero p{margin:0;color:var(--pk-dim)}
+.hero p.lead{color:var(--pk-ink);font-size:18px}
+.hero .phone{margin-top:34px;width:min(230px,60vw)}
+.phone.jolt{animation:jolt .5s ease-out 2}
+@keyframes jolt{0%,100%{transform:none}20%{transform:translateX(-2px) rotate(-.4deg)}40%{transform:translateX(2px) rotate(.4deg)}60%{transform:translateX(-1.5px)}80%{transform:translateX(1px)}}
+.down{display:block;margin-top:26px;font-size:12px;letter-spacing:.3em;color:var(--pk-dim)}
+
+/* ── 敘事段 ── */
+.beat{padding:13vh 0 0}
+.beat h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(22px,5.4vw,30px);line-height:1.5;margin:0 0 18px}
+.beat p{margin:0 0 16px;font-size:16.5px}
+.beat .k{color:var(--pk-accent)}
+.stat{display:flex;align-items:baseline;gap:14px;margin:26px 0;padding:18px 0;border-top:1px solid var(--pk-line);border-bottom:1px solid var(--pk-line)}
+.stat .n{font-family:var(--pk-serif);font-size:clamp(48px,14vw,72px);line-height:1;color:var(--pk-accent)}
+.stat .t{font-size:14px;color:var(--pk-dim);line-height:1.7}
+.aside{font-size:14px;color:var(--pk-dim);border-left:2px solid var(--pk-line);padding-left:14px}
+
+/* ── 實驗台 ── */
+.lab{padding:14vh 0 0}
+.lab .phone{width:min(224px,60vw);aspect-ratio:9/16.5}
+.lab .screen{padding-top:40px}
+.st-round{font-size:11px;letter-spacing:.24em;opacity:.6;margin-top:8px;text-transform:uppercase}
+.st-main{font-family:var(--pk-serif);font-size:24px;margin-top:22px;min-height:2.6em;text-align:center;line-height:1.35}
+.st-sub{font-size:12px;opacity:.6;text-align:center;min-height:1.6em}
+.dot{width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,.18);margin:16px auto 0;transition:background .2s}
+.dot.live{background:var(--pk-accent);animation:breathe 1s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.5);opacity:.55}}
+.pips{display:flex;gap:4px;justify-content:center;margin-top:auto;flex-wrap:wrap;max-width:200px}
+.pip{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.14)}
+.pip.done{background:rgba(255,255,255,.55)}
+.pip.now{background:var(--pk-accent)}
+
+.ctrl{margin:24px auto 0;max-width:420px;text-align:center}
+.ctrl .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.ans{min-width:132px;font-size:17px;padding:16px 22px}
+.ans kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;opacity:.6;margin-left:8px;border:1px solid currentColor;border-radius:4px;padding:0 4px}
+.ans.yes{border-color:var(--pk-accent);color:var(--pk-accent)}
+.ans.no{border-color:var(--pk-dim);color:var(--pk-ink)}
+.ans.no:hover{background:var(--pk-ink);color:var(--pk-bg)}
+.small{font-size:13px;color:var(--pk-dim);margin-top:14px}
+.linkish{background:none;border:0;color:var(--pk-dim);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font:inherit;font-size:13px;padding:4px}
+.linkish:hover{color:var(--pk-ink)}
+.brief{font-size:15px;margin:0 0 6px}
+.stake{margin:22px auto 0;max-width:420px;padding:16px 18px;border-radius:14px;background:var(--glass);border:1px solid var(--pk-line);font-size:15px;text-align:left}
+.stake b{color:var(--warn);font-weight:600}
+[hidden]{display:none!important}
+
+/* ── 揭曉 ── */
+.reveal{padding:12vh 0 0}
+.big2{font-family:var(--pk-serif);font-size:clamp(24px,6vw,34px);line-height:1.5;margin:0 0 10px}
+.big2 .g{color:var(--ghost)}
+.chart{width:100%;height:auto;display:block;margin:20px 0 6px;overflow:visible}
+.chart .ax{stroke:rgba(255,255,255,.2)}
+.chart .cn{fill:none;stroke:#8d8a93;stroke-width:2}
+.chart .cs{fill:none;stroke:var(--pk-accent);stroke-width:2}
+.chart .fa{fill:var(--ghost);opacity:.32}
+.chart text{fill:var(--pk-dim);font-size:15px;font-family:var(--pk-sans)}
+.chart .lbl2{fill:var(--ghost)}
+#crit2{transition:transform 1.8s cubic-bezier(.6,0,.2,1)}
+.chart .k1{stroke:rgba(255,255,255,.45);stroke-dasharray:4 5;stroke-width:1.5}
+.chart .k2{stroke:var(--ghost);stroke-width:2.5}
+.legend{font-size:13px;color:var(--pk-dim);margin:0 0 18px}
+
+.strips{margin:24px 0 8px;display:grid;gap:12px}
+.strip{display:grid;grid-template-columns:4.6em 1fr;align-items:center;gap:8px;font-size:13px;color:var(--pk-dim)}
+.cells{display:grid;grid-template-columns:repeat(16,1fr);gap:4px}
+.cell{aspect-ratio:1;border-radius:50%;border:1.5px solid rgba(255,255,255,.22);position:relative}
+.cell.sig{border-color:rgba(127,214,194,.6)}
+.cell.sig.said{background:var(--pk-accent);border-color:var(--pk-accent)}
+.cell.said.fa{border-color:var(--ghost);background:transparent}
+.cell.fa.boo{animation:ghost 2.2s ease-in-out infinite;background:rgba(199,166,255,.28)}
+@keyframes ghost{50%{box-shadow:0 0 0 5px rgba(199,166,255,.18);}}
+.key{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--pk-dim);margin-bottom:20px}
+.key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px;border:1.5px solid}
+.verdict{font-size:16.5px}
+
+/* ── 結尾 ── */
+.coda{padding:16vh 0 0;text-align:center}
+.coda p{font-family:var(--pk-serif);font-size:19px;line-height:1.9;margin:0 0 6px}
+.coda .phone{margin-top:34px;width:min(230px,60vw)}
+.coda .note{max-width:100%}
+.past{font-size:12.5px;color:var(--pk-dim);margin-top:22px}
+
+@media (max-width:560px){
+  .ans{min-width:0;flex:1}
+  .cells{gap:3px}
+  .strip{grid-template-columns:3.8em 1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  .phone.jolt,.dot.live,.cell.fa.boo{animation:none}
+  .note{transition:none;transform:none}
+  #crit2{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hero">
+  <div class="hero-in pk-wrap">
+    <p class="hum rv" aria-hidden="true">嗡。</p>
+    <h1 class="pk-sr">我發誓它震了一下</h1>
+    <p class="lead rv">你的手已經伸進口袋了。</p>
+    <p class="rv">螢幕是暗的。零則通知。</p>
+    <div class="phone rv" id="heroPhone" role="img" aria-label="一支鎖定中的手機，沒有任何通知">
+      <div class="screen">
+        <div class="ls-date" id="hDate">　</div>
+        <div class="ls-time" id="hTime">--:--</div>
+        <div class="ls-note">沒有新通知</div>
+        <div class="ls-bar"></div>
+      </div>
+    </div>
+    <span class="down rv">往下</span>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section class="beat">
+    <h2 class="rv">2010 年，麻州斯普林菲爾德。</h2>
+    <p class="rv">Baystate 醫療中心的內科醫師 Michael Rothberg 發了一份問卷給院內醫師與護理人員，裡面有一題很怪：<span class="k">你有沒有覺得呼叫器或手機在震，拿出來卻什麼也沒有？</span></p>
+    <div class="stat rv"><span class="n" data-to="68">68%</span><span class="t">答了這題的 169 人裡，115 人說有。<br>其中 13% 每天都遇到。</span></div>
+    <p class="rv">兩年後，印第安納的心理學家 Michelle Drouin 去問大學生：將近十個裡有九個。同一年，澳洲的 Macquarie 辭典把「phantom vibration syndrome」選為年度詞彙。</p>
+    <p class="aside rv">更早的 1996 年，呆伯特漫畫已經替它取過名字：phantom-pager syndrome，幻影呼叫器症候群。</p>
+  </section>
+
+  <section class="beat">
+    <h2 class="rv">你的神經沒有壞掉。</h2>
+    <p class="rv">此刻你的大腿上就有上百個小訊號在排隊：布料摩擦、肌肉抽一下、公車壓過坑洞。大腦得替每一個做裁決——<span class="k">是它，還是不是它？</span></p>
+    <p class="rv">這是一場賭局。漏接一通電話很痛；摸一下空口袋，幾乎不花錢。於是大腦悄悄把門檻往下壓。</p>
+    <p class="rv">心理學把這叫<span class="k">訊號偵測</span>：你的耳朵（或皮膚）有多靈是一回事，你願意在多模糊的時候喊「有」，是另一回事。</p>
+    <p class="rv">不用相信我。我們用耳朵做一次。</p>
+  </section>
+
+  <section class="lab" id="lab" aria-labelledby="labTitle">
+    <h2 class="pk-sr" id="labTitle">聽力實驗</h2>
+    <div class="phone rv" id="labPhone">
+      <div class="screen">
+        <div class="glow" id="glow" aria-hidden="true"></div>
+        <div class="st-round" id="stRound">準備</div>
+        <div class="st-main" id="stMain">把聲音打開</div>
+        <div class="st-sub" id="stSub">耳機更好</div>
+        <div class="dot" id="dot" aria-hidden="true"></div>
+        <div class="notes" id="labNotes" aria-hidden="true"></div>
+        <div class="pips" id="pips" aria-hidden="true"></div>
+        <div class="ls-bar"></div>
+      </div>
+    </div>
+
+    <div class="ctrl rv" id="ctrl">
+      <div id="pre">
+        <p class="brief">接下來是一間吵雜的咖啡店。每一次「聆聽」的兩秒鐘裡，口袋裡的手機<b>可能</b>震一下，也可能沒有。</p>
+        <p class="small">先聽一次清楚的震動，把音量調到聽得到、但不刺耳。</p>
+        <div class="row" style="margin-top:14px">
+          <button class="pk-btn" id="btnDemo" type="button">先聽一次震動</button>
+          <button class="pk-btn" id="btnGo" type="button">開始第一輪</button>
+        </div>
+        <p class="small"><button class="linkish" id="btnEye" type="button" aria-pressed="false">沒辦法開聲音？改用眼睛看手機邊框</button></p>
+      </div>
+
+      <div id="answer" hidden>
+        <div class="row">
+          <button class="pk-btn ans no" id="btnNo" type="button" disabled>沒震<kbd>F</kbd></button>
+          <button class="pk-btn ans yes" id="btnYes" type="button" disabled>震了<kbd>J</kbd></button>
+        </div>
+        <p class="small" id="hintKeys">聽完兩秒再回答。這一輪不告訴你對錯。</p>
+      </div>
+
+      <div id="mid" hidden>
+        <p class="brief">第一輪結束。分數先不給你看。</p>
+        <div class="stake">第二輪，情況變了。<br>你在等面試結果。人資早上說：「<b>今天會打給你。</b>」<br><span class="small">漏接一次，螢幕會記下來；摸空了，沒人知道。</span></div>
+        <div class="row" style="margin-top:18px"><button class="pk-btn" id="btnGo2" type="button">開始第二輪</button></div>
+      </div>
+
+      <div id="fin" hidden>
+        <p class="brief">兩輪都結束了。</p>
+        <div class="row" style="margin-top:12px"><button class="pk-btn" id="btnOpen" type="button">翻開口袋</button></div>
+      </div>
+
+      <p class="small" id="skipRow"><button class="linkish" id="btnSkip" type="button">現在不方便？用一組示範作答直接看結果</button></p>
+    </div>
+  </section>
+
+  <section class="reveal" id="reveal" hidden aria-live="polite">
+    <p class="big2" id="bigLine"></p>
+    <p class="verdict" id="verdict"></p>
+
+    <svg class="chart" id="chart" viewBox="0 0 600 250" role="img" aria-labelledby="chartDesc">
+      <desc id="chartDesc">兩條鐘形曲線：灰色是「沒有震動時」大腦收到的訊號強度，綠色是「有震動時」。直線是你喊「震了」的門檻，門檻右邊、灰色曲線下的紫色區域就是幻震。</desc>
+      <line class="ax" x1="20" y1="210" x2="580" y2="210"/>
+      <path class="fa" id="faArea" d=""/>
+      <path class="cn" id="curveN" d=""/>
+      <path class="cs" id="curveS" d=""/>
+      <text id="tN" x="0" y="0" text-anchor="middle">沒震的時候</text>
+      <text id="tS" x="0" y="0" text-anchor="middle">真的震了</text>
+      <g id="crit1"><line class="k1" x1="0" y1="30" x2="0" y2="214"/><text x="0" y="232" text-anchor="middle">第一輪門檻</text></g>
+      <g id="crit2"><line class="k2" x1="0" y1="22" x2="0" y2="214"/><text class="lbl2" x="0" y="16" text-anchor="middle">第二輪門檻</text></g>
+    </svg>
+    <p class="legend">門檻右邊都算「震了」。紫色那塊落在「沒震」的曲線下——那就是幻震。</p>
+
+    <div class="key"><span><i style="border-color:var(--pk-accent);background:var(--pk-accent)"></i>真的震、你聽到</span><span><i style="border-color:var(--pk-accent)"></i>真的震、你漏掉</span><span><i style="border-color:var(--ghost);background:rgba(199,166,255,.28)"></i>沒震、你說震了</span><span><i style="border-color:rgba(255,255,255,.22)"></i>沒震、你說沒震</span></div>
+    <div class="strips">
+      <div class="strip"><span>第一輪</span><div class="cells" id="cells1"></div></div>
+      <div class="strip"><span>第二輪</span><div class="cells" id="cells2"></div></div>
+    </div>
+  </section>
+
+  <section class="beat" id="after" hidden>
+    <h2 class="rv">最常被騙的，是最怕漏接的人。</h2>
+    <p class="rv">Rothberg 的問卷裡，幻震跟四件事一起出現：住院醫師比主治醫師多、手機放胸前口袋比掛腰帶多、帶得越久越多、越常開震動越多。住院醫師，正是半夜一被呼叫就得衝的那一群。</p>
+    <p class="rv">大多數人在帶手機一個月到一年之間開始「被震」。那段時間，大腦正在學一件事：這個位置的這種感覺，值得你立刻伸手。</p>
+    <p class="rv">想讓它停下來？在試過的人裡，最有效的是關掉震動模式，其次是換個口袋放。不過有 39% 的人根本沒試——因為多數人並不覺得困擾。</p>
+  </section>
+
+  <section class="coda" id="coda" hidden>
+    <p class="rv">所以下次口袋又嗡一聲，</p>
+    <p class="rv">先別急著拿出來。</p>
+    <div class="phone" id="codaPhone" role="img" aria-label="鎖定中的手機，跳出一則通知">
+      <div class="screen">
+        <div class="ls-date" id="cDate">　</div>
+        <div class="ls-time" id="cTime">--:--</div>
+        <div class="notes"><div class="note" id="lastNote"><b>你的大腦 · 現在</b>剛剛那一下是我。寧可錯一百次，也不想漏掉你在等的那一通。</div></div>
+        <div class="ls-bar"></div>
+      </div>
+    </div>
+    <p class="past" id="past"></p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Rothberg et al., BMJ (2010)；Drouin et al., Computers in Human Behavior (2012)；Deb, Asia-Pacific Psychiatry (2014)。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'pvs10.';
+
+/* ═════════ 純函式（node 斷言用） ═════════ */
+const N_TRIALS = 16, WIN = 2.0;
+const LEVELS = [0.30, 0.11, 0.055, 0.03];          /* 震動音量（音訊增益） */
+const VLEVELS = [0.55, 0.22, 0.11, 0.06];          /* 眼睛模式：邊框亮度 */
+const SIG_LV = [0, 1, 1, 2, 2, 3, 3, 3];           /* 8 次真震動的強度分佈 */
+const PULSES = [[0, 0.32], [0.48, 0.80]];          /* 嗡—嗡 兩段（秒，相對起點） */
+
+function rng(seed) { let a = seed >>> 0; return function () { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function shuffle(arr, rand) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+
+/* 一輪：8 次真震、8 次空窗；空窗一半混入「公車壓過坑」的低頻干擾，真震裡兩次也有 */
+function makeRound(rand) {
+  const list = [];
+  SIG_LV.forEach((lv, i) => list.push({ sig: true, lvl: lv, dist: i === 2 || i === 6 }));
+  for (let i = 0; i < 8; i++) list.push({ sig: false, lvl: -1, dist: i < 4 });
+  return shuffle(list, rand).map(t => Object.assign(t, {
+    onset: 0.25 + rand() * 0.55,
+    dOn: 0.15 + rand() * 1.1,
+    dLen: 0.35 + rand() * 0.25
+  }));
+}
+
+/* 震動包絡：t 秒時 0..1 */
+function envAt(t) {
+  for (const [a, b] of PULSES) {
+    if (t >= a && t <= b) return Math.min(1, (t - a) / 0.025, (b - t) / 0.04);
+  }
+  return 0;
+}
+
+/* Acklam 反常態分佈 */
+function invNorm(p) {
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239];
+  const b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572];
+  const c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783];
+  const d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const pl = 0.02425;
+  if (p <= 0) return -Infinity; if (p >= 1) return Infinity;
+  let q, r;
+  if (p < pl) { q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  if (p > 1 - pl) { q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+  q = p - 0.5; r = q * q;
+  return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+}
+
+/* 計分：回答 true＝震了 */
+function score(trials, answers) {
+  const s = { hit: 0, miss: 0, fa: 0, cr: 0, nS: 0, nN: 0 };
+  trials.forEach((t, i) => {
+    const y = !!answers[i];
+    if (t.sig) { s.nS++; y ? s.hit++ : s.miss++; } else { s.nN++; y ? s.fa++ : s.cr++; }
+  });
+  return s;
+}
+
+/* 訊號偵測：log-linear 校正避免 0／1 爆掉。k＝門檻位置（以「沒震」分佈為 0、標準差 1） */
+function sdt(s) {
+  const H = (s.hit + 0.5) / (s.nS + 1), F = (s.fa + 0.5) / (s.nN + 1);
+  const zH = invNorm(H), zF = invNorm(F);
+  return { H, F, dp: zH - zF, c: -(zH + zF) / 2, k: -zF };
+}
+
+function verdictKey(s1, s2, r1, r2) {
+  const dFa = s2.fa - s1.fa, dc = r2.c - r1.c;
+  if (dFa >= 2 || (dFa >= 1 && dc <= -0.3)) return 'shift';
+  if (dFa <= -1 && dc >= 0.2) return 'strict';
+  return 'steady';
+}
+
+function normPdf(x, m) { return Math.exp(-0.5 * (x - m) * (x - m)) / Math.sqrt(2 * Math.PI); }
+
+if (typeof module === 'object' && module.exports) {
+  module.exports = { rng, makeRound, envAt, invNorm, score, sdt, verdictKey, normPdf, N_TRIALS, SIG_LV };
+}
+
+/* ═════════ 瀏覽器端 ═════════ */
+if (typeof document !== 'undefined') (function () {
+  const store = PK.store(LS);
+  const $ = id => document.getElementById(id);
+  PK.reveal();
+
+  /* 時鐘（三支手機共用） */
+  function clock() {
+    const d = new Date();
+    const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const wd = '日一二三四五六'[d.getDay()];
+    const ds = (d.getMonth() + 1) + '月' + d.getDate() + '日 星期' + wd;
+    ['hTime', 'cTime'].forEach(id => $(id).textContent = hm);
+    ['hDate', 'cDate'].forEach(id => $(id).textContent = ds);
+  }
+  clock(); setInterval(clock, 20000);
+
+  /* 第一屏：手機輕輕抖兩下（減少動態時不抖） */
+  setTimeout(() => { if (!PK.reduced()) $('heroPhone').classList.add('jolt'); }, 1400);
+
+  /* 68% 數字滾動 */
+  (function () {
+    const el = document.querySelector('.stat .n'); if (!el) return;
+    const to = +el.dataset.to;
+    if (PK.reduced() || !('IntersectionObserver' in window)) return;
+    el.textContent = '0%';
+    const io = new IntersectionObserver(es => {
+      if (!es[0].isIntersecting) return; io.disconnect();
+      let t0 = 0;
+      const f = (dt, t) => { if (!t0) t0 = t; const k = Math.min(1, (t - t0) / 1100); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))) + '%'; if (k >= 1) PK.untick(f); };
+      PK.tick(f);
+    }, { threshold: .6 });
+    io.observe(el);
+  })();
+
+  /* ── 音訊 ── */
+  let ctx = null, master = null, noiseBuf = null, brownBuf = null, noiseSrc = null, noiseGain = null;
+  function audioInit() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return true; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    ctx = new AC();
+    master = ctx.createGain(); master.gain.value = 0.9; master.connect(ctx.destination);
+    const sr = ctx.sampleRate, len = sr * 4;
+    noiseBuf = ctx.createBuffer(1, len, sr);
+    const d = noiseBuf.getChannelData(0);
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < len; i++) {          /* 粉紅雜訊（Paul Kellet） */
+      const w = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + w * 0.0555179; b1 = 0.99332 * b1 + w * 0.0750759; b2 = 0.969 * b2 + w * 0.153852;
+      b3 = 0.8665 * b3 + w * 0.3104856; b4 = 0.55 * b4 + w * 0.5329522; b5 = -0.7616 * b5 - w * 0.016898;
+      d[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11; b6 = w * 0.115926;
+    }
+    brownBuf = ctx.createBuffer(1, sr, sr);
+    const e = brownBuf.getChannelData(0); let last = 0, peak = 0;
+    for (let i = 0; i < sr; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; e[i] = last; peak = Math.max(peak, Math.abs(last)); }
+    for (let i = 0; i < sr; i++) e[i] /= peak || 1;
+    return true;
+  }
+  function noiseOn() {
+    if (!ctx || noiseSrc) return;
+    noiseSrc = ctx.createBufferSource(); noiseSrc.buffer = noiseBuf; noiseSrc.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+    noiseGain = ctx.createGain(); noiseGain.gain.value = 0;
+    noiseSrc.connect(lp); lp.connect(noiseGain); noiseGain.connect(master);
+    noiseSrc.start();
+    noiseGain.gain.setTargetAtTime(0.5, ctx.currentTime, 0.3);
+  }
+  function noiseOff() {
+    if (!noiseSrc) return;
+    const s = noiseSrc, g = noiseGain; noiseSrc = null;
+    g.gain.setTargetAtTime(0, ctx.currentTime, 0.2);
+    setTimeout(() => { try { s.stop(); } catch (e) {} }, 900);
+  }
+  function buzzAt(t0, gain) {
+    const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 158;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 11; const lg = ctx.createGain(); lg.gain.value = 6;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 560; lp.Q.value = 1.2;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t0);
+    for (const [a, b] of PULSES) {
+      g.gain.setValueAtTime(0, t0 + a); g.gain.linearRampToValueAtTime(gain, t0 + a + 0.025);
+      g.gain.setValueAtTime(gain, t0 + b - 0.04); g.gain.linearRampToValueAtTime(0, t0 + b);
+    }
+    o.connect(lp); lp.connect(g); g.connect(master);
+    o.start(t0); lfo.start(t0); o.stop(t0 + 0.9); lfo.stop(t0 + 0.9);
+  }
+  function rumbleAt(t0, len) {
+    const s = ctx.createBufferSource(); s.buffer = brownBuf;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 240;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(0.42, t0 + len * 0.4); g.gain.linearRampToValueAtTime(0, t0 + len);
+    s.connect(lp); lp.connect(g); g.connect(master);
+    s.start(t0, Math.random() * 0.4); s.stop(t0 + len + 0.05);
+  }
+
+  /* ── 眼睛模式：手機邊框微光（只動 opacity，慢速、低對比） ── */
+  let eye = false, vis = null;
+  const glow = $('glow');
+  let gNow = 0, gTarget = 0, gAcc = 0;
+  function eyeTick(dt) {
+    gAcc += dt;
+    if (gAcc > 130) { gAcc = 0; gTarget = Math.random() * 0.09; }
+    let extra = 0;
+    if (vis) {
+      const t = (performance.now() - vis.t0) / 1000;
+      if (vis.trial.sig) extra += envAt(t - vis.trial.onset) * VLEVELS[vis.trial.lvl];
+      if (vis.trial.dist) { const u = (t - vis.trial.dOn) / vis.trial.dLen; if (u > 0 && u < 1) extra += 0.07 * Math.sin(Math.PI * u); }
+    }
+    gNow = PK.lerp(gNow, gTarget, Math.min(1, dt / 90));
+    glow.style.opacity = Math.min(1, gNow + extra).toFixed(3);
+  }
+
+  /* ── 實驗流程 ── */
+  const R = { round: 0, idx: -1, trials: [[], []], answers: [[], []], phase: 'idle' };
+  const stRound = $('stRound'), stMain = $('stMain'), stSub = $('stSub'), dot = $('dot'), pips = $('pips');
+
+  function setScreen(r, m, s) { stRound.textContent = r; stMain.textContent = m; stSub.textContent = s || ''; }
+  function drawPips() {
+    pips.innerHTML = '';
+    for (let i = 0; i < N_TRIALS; i++) {
+      const p = document.createElement('span');
+      p.className = 'pip' + (i < R.idx ? ' done' : i === R.idx ? ' now' : '');
+      pips.appendChild(p);
+    }
+  }
+
+  $('btnDemo').addEventListener('click', () => {
+    if (eye) {
+      vis = { t0: performance.now(), trial: { sig: true, lvl: 0, onset: 0.2, dist: false } };
+      PK.tick(eyeTick); setTimeout(() => { vis = null; }, 1300);
+      setScreen('示範', '看邊框', '這是一次清楚的震動');
+      return;
+    }
+    if (!audioInit()) { setScreen('示範', '這台裝置放不出聲音', '改用眼睛模式吧'); return; }
+    noiseOn(); buzzAt(ctx.currentTime + 0.6, LEVELS[0]);
+    setScreen('示範', '嗡——嗡', '雜音裡最清楚的一次');
+    setTimeout(() => { if (R.phase === 'idle') noiseOff(); }, 2200);
+  });
+
+  $('btnEye').addEventListener('click', function () {
+    eye = !eye; this.setAttribute('aria-pressed', String(eye));
+    this.textContent = eye ? '改回用耳朵聽' : '沒辦法開聲音？改用眼睛看手機邊框';
+    $('btnDemo').textContent = eye ? '先看一次震動' : '先聽一次震動';
+    setScreen('準備', eye ? '盯著手機邊框' : '把聲音打開', eye ? '震動會讓邊框亮兩下' : '耳機更好');
+    if (eye) PK.tick(eyeTick); else { PK.untick(eyeTick); glow.style.opacity = 0; }
+  });
+
+  function startRound(r) {
+    R.round = r; R.idx = -1;
+    R.trials[r] = makeRound(rng((Date.now() ^ (r + 1) * 2654435761) >>> 0));
+    R.answers[r] = [];
+    $('pre').hidden = true; $('mid').hidden = true; $('answer').hidden = false;
+    $('hintKeys').textContent = r === 0 ? '聽完兩秒再回答。這一輪不告訴你對錯。' : '漏接的，螢幕會記下來。';
+    if (!eye) { if (!audioInit()) { eye = true; } else noiseOn(); }
+    if (eye) PK.tick(eyeTick);
+    setTimeout(nextTrial, 900);
+  }
+
+  function nextTrial() {
+    R.idx++;
+    if (R.idx >= N_TRIALS) return endRound();
+    const t = R.trials[R.round][R.idx];
+    R.phase = 'listen';
+    drawPips();
+    setScreen(R.round === 0 ? '第一輪 · 平常日' : '第二輪 · 等電話', eye ? '看' : '聽', '第 ' + (R.idx + 1) + '／' + N_TRIALS + ' 次');
+    dot.classList.add('live');
+    $('btnYes').disabled = $('btnNo').disabled = true;
+    if (eye) { vis = { t0: performance.now(), trial: t }; }
+    else {
+      const t0 = ctx.currentTime + 0.05;
+      if (t.sig) buzzAt(t0 + t.onset, LEVELS[t.lvl]);
+      if (t.dist) rumbleAt(t0 + t.dOn, t.dLen);
+    }
+    setTimeout(() => {
+      vis = null;
+      R.phase = 'answer';
+      dot.classList.remove('live');
+      setScreen(stRound.textContent, '有震嗎？', '第 ' + (R.idx + 1) + '／' + N_TRIALS + ' 次');
+      $('btnYes').disabled = $('btnNo').disabled = false;
+      PK.announce('第 ' + (R.idx + 1) + ' 次結束，震了還是沒震？');
+    }, WIN * 1000 + 80);
+  }
+
+  const PITCH = ['接起來了——是推銷電話', '接起來了——是銀行的貸款專員', '接起來了——是你媽，問你吃飯沒', '接起來了——是外送員找不到門'];
+  let pitchI = 0, missN = 0;
+  function pushNote(cls, head, body, list) {
+    const n = document.createElement('div');
+    n.className = 'note ' + cls;
+    n.innerHTML = '<b>' + head + '</b>' + body;
+    list.prepend(n);
+    while (list.children.length > 2) list.lastChild.remove();
+    requestAnimationFrame(() => requestAnimationFrame(() => n.classList.add('on')));
+  }
+
+  function answer(yes) {
+    if (R.phase !== 'answer') return;
+    R.phase = 'between';
+    $('btnYes').disabled = $('btnNo').disabled = true;
+    R.answers[R.round][R.idx] = yes;
+    const t = R.trials[R.round][R.idx];
+    if (R.round === 1) {
+      const list = $('labNotes');
+      if (t.sig && !yes) { missN++; pushNote('miss', '未接來電（' + missN + '）', '人資 · 剛剛', list); PK.announce('漏接了，未接來電 ' + missN + ' 通'); }
+      else if (t.sig && yes) { pushNote('', '通話', PITCH[pitchI++ % PITCH.length], list); }
+      else if (!t.sig && yes) { setScreen(stRound.textContent, '…', '摸了一下口袋，什麼也沒有'); }
+    }
+    setTimeout(nextTrial, R.round === 1 && t.sig && !yes ? 1100 : 600);
+  }
+  $('btnYes').addEventListener('click', () => answer(true));
+  $('btnNo').addEventListener('click', () => answer(false));
+  document.addEventListener('keydown', e => {
+    if (R.phase !== 'answer' || e.altKey || e.ctrlKey || e.metaKey) return;
+    const k = e.key.toLowerCase();
+    if (k === 'j') { e.preventDefault(); answer(true); }
+    else if (k === 'f') { e.preventDefault(); answer(false); }
+  });
+
+  function endRound() {
+    R.phase = 'idle'; drawPips();
+    $('answer').hidden = true;
+    if (R.round === 0) {
+      setScreen('第一輪', '結束', '休息一下');
+      $('mid').hidden = false; $('btnGo2').focus();
+    } else {
+      noiseOff(); PK.untick(eyeTick); glow.style.opacity = 0;
+      setScreen('第二輪', '結束', missN ? '未接來電 ' + missN + ' 通' : '一通都沒漏');
+      $('fin').hidden = false; $('btnOpen').focus();
+    }
+  }
+
+  $('btnGo').addEventListener('click', () => startRound(0));
+  $('btnGo2').addEventListener('click', () => startRound(1));
+  $('btnOpen').addEventListener('click', openPocket);
+
+  /* 示範作答：典型的人——第一輪謹慎，第二輪門檻下壓 */
+  $('btnSkip').addEventListener('click', () => {
+    const rand = rng(20101215);
+    for (let r = 0; r < 2; r++) {
+      R.trials[r] = makeRound(rand);
+      R.answers[r] = R.trials[r].map(t => {
+        const s = t.sig ? [2.6, 1.7, 1.0, 0.4][t.lvl] : 0;
+        const x = s + (t.dist ? 0.6 : 0) + (rand() + rand() + rand() - 1.5);
+        return x > (r === 0 ? 1.1 : 0.5);
+      });
+    }
+    noiseOff(); PK.untick(eyeTick);
+    ['pre', 'answer', 'mid'].forEach(id => $(id).hidden = true);
+    setScreen('示範數據', '翻開看看', '這是一位典型受試者');
+    openPocket(true);
+  });
+
+  /* ── 揭曉（高潮） ── */
+  function openPocket(demo) {
+    $('fin').hidden = true; $('skipRow').hidden = true;
+    const s1 = score(R.trials[0], R.answers[0]), s2 = score(R.trials[1], R.answers[1]);
+    const r1 = sdt(s1), r2 = sdt(s2);
+    const key = verdictKey(s1, s2, r1, r2);
+    const who = demo === true ? '這位受試者' : '你';
+    const totalFa = s1.fa + s2.fa;
+
+    $('bigLine').innerHTML = totalFa
+      ? who + '有 <span class="g">' + totalFa + '</span> 次，聽見了不存在的震動。'
+      : who + '一次也沒被騙。';
+    const dpTxt = Math.abs(r2.dp - r1.dp) < 0.5 ? '幾乎一樣靈' : (r2.dp > r1.dp ? '其實還更靈了一點' : '稍微鈍了一點');
+    const V = {
+      shift: '第一輪 ' + s1.fa + ' 次，第二輪 ' + s2.fa + ' 次。耳朵' + dpTxt + '；變的是那條線。等電話的時候，' + who + '願意在更模糊的地方喊「有」。',
+      strict: '第二輪反而更謹慎：幻震從 ' + s1.fa + ' 次降到 ' + s2.fa + ' 次。代價在這裡——漏接了 ' + s2.miss + ' 通。門檻往右推，假警報少了，真電話也跟著溜走。',
+      steady: '兩輪幻震分別是 ' + s1.fa + ' 次和 ' + s2.fa + ' 次，門檻幾乎沒動。' + (totalFa ? '但注意：就算什麼都沒押，雜音本身就足夠騙人。' : '在 Rothberg 的醫院裡，你屬於那三成。')
+    };
+    $('verdict').textContent = V[key];
+    if (demo !== true) store.set('last', { fa1: s1.fa, fa2: s2.fa, miss2: s2.miss, at: Date.now() });
+
+    drawChart(r1, r2, s2);
+    fillCells($('cells1'), R.trials[0], R.answers[0], false);
+    fillCells($('cells2'), R.trials[1], R.answers[1], true);
+
+    ['reveal', 'after', 'coda'].forEach(id => $(id).hidden = false);
+    PK.reveal('#after .rv, #coda .rv');
+    PK.scrollTo($('reveal'));
+    PK.announce($('bigLine').textContent);
+    setTimeout(() => {
+      $('crit2').style.transform = 'translateX(' + (xOf(r2.k) - xOf(r1.k)).toFixed(1) + 'px)';
+      document.querySelectorAll('#cells2 .fa').forEach(c => c.classList.add('boo'));
+    }, PK.reduced() ? 0 : 900);
+  }
+
+  let X0 = -3, X1 = 5;
+  function xOf(v) { return 20 + (PK.clamp(v, X0, X1) - X0) / (X1 - X0) * 560; }
+  function yOf(p) { return 210 - p / 0.4 * 170; }
+  function drawChart(r1, r2, s2) {
+    const m = PK.clamp((r1.dp + r2.dp) / 2, 0.3, 3.6);
+    X0 = -3; X1 = m + 3;
+    const k1 = PK.clamp(r1.k, -2.6, m + 2.6), k2 = PK.clamp(r2.k, -2.6, m + 2.6);
+    const path = mu => { let s = ''; for (let i = 0; i <= 120; i++) { const v = X0 + (X1 - X0) * i / 120; s += (i ? 'L' : 'M') + xOf(v).toFixed(1) + ' ' + yOf(normPdf(v, mu)).toFixed(1); } return s; };
+    $('curveN').setAttribute('d', path(0));
+    $('curveS').setAttribute('d', path(m));
+    let a = 'M' + xOf(k2).toFixed(1) + ' 210';
+    for (let i = 0; i <= 60; i++) { const v = k2 + (X1 - k2) * i / 60; a += 'L' + xOf(v).toFixed(1) + ' ' + yOf(normPdf(v, 0)).toFixed(1); }
+    a += 'L' + xOf(X1).toFixed(1) + ' 210Z';
+    $('faArea').setAttribute('d', a);
+    $('tN').setAttribute('x', xOf(0)); $('tN').setAttribute('y', yOf(0.4) - 10);
+    $('tS').setAttribute('x', xOf(m)); $('tS').setAttribute('y', yOf(0.4) - 10);
+    if (Math.abs(xOf(m) - xOf(0)) < 90) $('tS').setAttribute('y', yOf(0.4) - 28);
+    const place = (g, k) => g.querySelectorAll('line,text').forEach(el => {
+      if (el.tagName === 'line') { el.setAttribute('x1', xOf(k)); el.setAttribute('x2', xOf(k)); } else el.setAttribute('x', xOf(k));
+    });
+    place($('crit1'), k1); place($('crit2'), k1);
+    $('crit2').style.transform = 'translateX(0px)';
+    r1.k = k1; r2.k = k2;
+  }
+  function fillCells(el, trials, ans, ghost) {
+    el.innerHTML = '';
+    trials.forEach((t, i) => {
+      const c = document.createElement('span');
+      const y = !!ans[i];
+      c.className = 'cell' + (t.sig ? ' sig' : '') + (y ? ' said' : '') + (!t.sig && y ? ' fa' : '');
+      c.title = (t.sig ? '真的震了' : '沒震') + '・你答' + (y ? '震了' : '沒震');
+      if (!t.sig && y && !ghost) c.style.background = 'rgba(199,166,255,.28)';
+      el.appendChild(c);
+    });
+  }
+
+  /* ── 結尾：最後一則通知，回扣開頭的「嗡」 ── */
+  const last = store.get('last', null);
+  if (last && last.at) {
+    $('past').textContent = '上一次來這裡，你在第二輪聽見 ' + last.fa2 + ' 次不存在的震動。';
+  }
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(es => {
+      if (!es[0].isIntersecting) return; io.disconnect();
+      setTimeout(() => {
+        $('lastNote').classList.add('on');
+        if (ctx && !eye) { if (ctx.state === 'suspended') ctx.resume(); buzzAt(ctx.currentTime + 0.05, LEVELS[1]); }
+        if (!PK.reduced()) { $('codaPhone').classList.add('jolt'); }
+      }, PK.reduced() ? 0 : 900);
+    }, { threshold: .55 });
+    io.observe($('codaPhone'));
+  } else $('lastNote').classList.add('on');
+})();
+</script>
+</body>
+</html>

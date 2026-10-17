@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>吐司為什麼專挑你轉身時焦？｜每日小專案</title>
+<meta name="description" content="三個早晨、三片吐司，由你決定何時彈起。烤麵包機的前兩分鐘，吐司其實在忙另一件事。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#16110d; --pk-ink:#efe4d0; --pk-dim:#9c8c76; --pk-accent:#e3a548;
+  --pk-line:rgba(239,228,208,.13);
+  --crumb:#f0e2c4; --gold:#d9a04e; --steel1:#cfd3d6; --steel2:#7d848a;
+  --hot:#ff7a2e; --water:#7fb8d8;
+}
+body{background:
+  radial-gradient(120% 60% at 50% 0%, #241a12 0%, transparent 60%),
+  var(--pk-bg)}
+.eyebrow{font-size:12.5px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 18px}
+.pk-hero h1 em{font-style:normal;color:var(--pk-accent)}
+.hero-q{font-family:var(--pk-serif);font-size:clamp(19px,4.6vw,24px);color:var(--pk-ink);margin-top:34px}
+.cue{display:inline-block;margin-top:40px;color:var(--pk-dim);font-size:13.5px;letter-spacing:.12em;text-decoration:none;border-bottom:1px dashed var(--pk-line);padding-bottom:3px}
+.cue:hover{color:var(--pk-ink)}
+
+/* ── 章節 ── */
+.morning{padding:72px 0 24px;border-top:1px solid var(--pk-line)}
+.morning[hidden]{display:none}
+.stamp{display:flex;gap:12px;align-items:baseline;margin-bottom:8px;color:var(--pk-dim);font-size:13px;letter-spacing:.18em}
+.stamp b{font-family:var(--pk-serif);font-weight:600;font-size:26px;letter-spacing:.04em;color:var(--pk-ink)}
+.morning p{margin:0 0 1.1em}
+.aside{font-size:13.5px;color:var(--pk-dim);border-left:2px solid var(--pk-line);padding-left:12px}
+.big{font-family:var(--pk-serif);font-size:clamp(20px,4.8vw,25px);line-height:1.6}
+.hl{color:var(--pk-accent)}
+.wt{color:var(--water)}
+
+/* ── 烤麵包機舞台 ── */
+.stage{margin:34px -6px 10px;padding:22px 16px 18px;border-radius:22px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));
+  border:1px solid var(--pk-line)}
+.stage svg.toaster{display:block;width:min(300px,78vw);height:auto;margin:0 auto;overflow:visible}
+.toast-g{transition:transform .5s cubic-bezier(.3,1.6,.5,1)}
+.toast-g.down{transform:translateY(30px);transition:transform .35s cubic-bezier(.5,0,.7,.4)}
+.lever{transition:transform .3s ease}
+.lever.down{transform:translateY(44px)}
+.slot-glow{transition:opacity .6s}
+.steam path{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;opacity:.0}
+.steam{transition:opacity .4s}
+.steam.run path{animation:rise 2.2s ease-out infinite}
+.steam.run path:nth-child(2){animation-delay:.7s}
+.steam.run path:nth-child(3){animation-delay:1.4s}
+@keyframes rise{0%{transform:translateY(8px);opacity:0}25%{opacity:.5}100%{transform:translateY(-34px);opacity:0}}
+
+.dash{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:16px;flex-wrap:wrap}
+.clock{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:34px;letter-spacing:.04em;font-variant-numeric:tabular-nums;color:var(--pk-ink)}
+.clock small{font-size:12px;color:var(--pk-dim);letter-spacing:.2em;margin-left:6px}
+.go{font-size:16px;padding:14px 28px;min-width:150px}
+.go.pop{background:var(--pk-accent);color:var(--pk-bg);font-weight:700;letter-spacing:.2em}
+.go.pop:hover{filter:brightness(1.1)}
+.track{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.07);margin-top:16px;overflow:visible}
+.track .fill{position:absolute;inset:0;border-radius:6px;background:linear-gradient(90deg,#6b5640,var(--pk-accent));transform-origin:0 50%;transform:scaleX(0)}
+.ghost{position:absolute;top:-6px;width:2px;height:18px;background:var(--pk-ink);opacity:.55}
+.ghost span{position:absolute;top:-19px;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--pk-dim)}
+.track-lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--pk-dim);margin-top:4px;font-variant-numeric:tabular-nums}
+
+.result{display:flex;gap:16px;align-items:center;margin:26px 0 8px;opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s}
+.result.in{opacity:1;transform:none}
+.swatch{flex:none;width:58px;height:58px;border-radius:14px 14px 10px 10px;box-shadow:inset 0 0 0 3px rgba(0,0,0,.18),0 6px 18px rgba(0,0,0,.35)}
+.result .g{font-family:var(--pk-serif);font-size:21px}
+.result .s{font-size:13px;color:var(--pk-dim)}
+
+/* ── 曲線 ── */
+.reveal[hidden]{display:none}
+.chart{display:block;width:100%;height:auto;margin:22px 0 8px;overflow:visible}
+.chart text{font-size:12px;fill:var(--pk-dim);font-family:var(--pk-sans)}
+.chart .ax{stroke:var(--pk-line);stroke-width:1}
+.chart .boil{stroke:var(--water);stroke-width:1;stroke-dasharray:4 4;opacity:.7}
+.chart .gold-band{fill:var(--gold);opacity:.16}
+.chart .curve{fill:none;stroke-width:2.6;stroke-linejoin:round;stroke-linecap:round}
+.chart .popline{stroke:var(--pk-ink);stroke-width:1.4}
+.chart .popdot{fill:var(--pk-ink)}
+.chart .plateau-lbl{fill:var(--water)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--pk-dim);margin:0 0 18px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.cv{transition:transform 1.6s cubic-bezier(.6,0,.2,1)}
+.next{margin-top:22px}
+
+/* ── 結尾 ── */
+.three{display:flex;gap:14px;justify-content:center;margin:30px 0 8px;flex-wrap:wrap}
+.three figure{margin:0;text-align:center;width:96px}
+.three .swatch{width:72px;height:72px;margin:0 auto 8px}
+.three figcaption{font-size:12px;color:var(--pk-dim);line-height:1.5}
+.finale{font-family:var(--pk-serif);font-size:clamp(22px,5.4vw,30px);line-height:1.6;margin:48px 0 0}
+.prev{font-size:12.5px;color:var(--pk-dim);text-align:center}
+
+@media (max-width:560px){
+  .stage{margin:28px -4px 8px;padding:18px 10px 14px}
+  .clock{font-size:28px}
+  .go{flex:1}
+}
+@media (prefers-reduced-motion: reduce){
+  .steam.run path{animation:none;opacity:.35}
+  .steam.run path:nth-child(2){transform:translateY(-14px)}
+  .steam.run path:nth-child(3){transform:translateY(-26px);opacity:.2}
+  .toast-g,.toast-g.down,.lever,.cv,.result{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="eyebrow rv">三個早晨</p>
+    <h1 class="rv">吐司在烤麵包機裡待了兩分鐘，<br>一點顏色都不給你看。</h1>
+    <p class="rv">你轉身倒杯咖啡。<br>回頭——黑了。</p>
+    <p class="hero-q rv">它是算準了你轉身的那一秒嗎？</p>
+    <a class="cue rv" href="#m1">往下，第一個早晨 ↓</a>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- ═══ 第一個早晨 ═══ -->
+  <section class="morning" id="m1" aria-labelledby="m1h">
+    <div class="stamp rv"><b id="m1h">第一個早晨</b><span>07:12</span></div>
+    <p class="rv">一片白吐司，室溫。拉桿壓下去，旋鈕不用管——今天由你決定什麼時候彈起。</p>
+    <p class="rv">目標只有一個：<span class="hl">金黃</span>。</p>
+    <p class="rv aside">沒有溫度計，沒有提示音。跟每個早上一樣，你只有一雙眼睛。時鐘照實走，畫面快轉五倍。</p>
+    <div class="stage rv" data-round="fresh"></div>
+    <div class="reveal" hidden>
+      <p class="big">現在，把你剛才看不見的東西攤開。</p>
+      <p>這條線是吐司<b>表面</b>的溫度。</p>
+      <svg class="chart" viewBox="0 0 600 270" role="img" aria-label="第一片吐司的表面溫度曲線"></svg>
+      <p>前二十秒，表面從室溫一路衝到 100°C。然後——<span class="wt">停住了</span>。</p>
+      <p>將近一百秒，它卡在 100°C，一度都不肯多。</p>
+      <p>一片吐司有三分之一以上是水。只要表面還是濕的，烤麵包機丟進去的熱，全被拿去把水燒成蒸氣；水沸騰時溫度不會再升，表面就被釘在 100°C。</p>
+      <p>可是上色要的是另一場化學——糖和胺基酸在一百四十度以上才開始認真反應，叫<b>梅納反應</b>。在 100°C 的平台上，它幾乎沒有開工。</p>
+      <p class="big">所以前兩分鐘，你的吐司不是在烤。<br>它在<span class="wt">燒開水</span>。</p>
+      <p>水一燒乾，溫度計才鬆開。溫度往上爬，反應速度跟著翻倍再翻倍——顏色從「還沒」到「太遲」，中間只隔十來秒。</p>
+      <button class="pk-btn next" data-next="m2" type="button">隔天早上 →</button>
+    </div>
+  </section>
+
+  <!-- ═══ 第二個早晨 ═══ -->
+  <section class="morning" id="m2" aria-labelledby="m2h" hidden>
+    <div class="stamp"><b id="m2h">第二個早晨</b><span>07:05</span></div>
+    <p>你記住了：上一片是在 <span class="hl" data-fill="lastFresh">—</span> 彈起的。</p>
+    <p>今天的吐司剛從冷凍庫拿出來，硬得能敲桌子。不過沒關係，你已經有時間可以參考了。</p>
+    <p class="aside">軌道上那條細線，是你昨天的時間。</p>
+    <div class="stage" data-round="frozen"></div>
+    <div class="reveal" hidden>
+      <svg class="chart" viewBox="0 0 600 270" role="img" aria-label="室溫與冷凍吐司的表面溫度曲線比較"></svg>
+      <div class="legend"><span><i style="background:#c9b89c"></i>昨天：室溫</span><span><i style="background:var(--water)"></i>今天：冷凍</span></div>
+      <p>看那條藍線一開始的小台階：它先卡在 <b>0°C</b>——冰要先融化，融完的水才輪到被燒開。</p>
+      <p>兩段都是在「等水」，平台往後推了 <span class="hl" data-fill="frozenShift">—</span> 秒。昨天的時間，今天派不上用場。</p>
+      <p class="aside">這也是很多烤麵包機上有個雪花按鈕的原因：它多給你的那段時間，是留給冰的。</p>
+      <button class="pk-btn next" data-next="m3" type="button">再隔一天 →</button>
+    </div>
+  </section>
+
+  <!-- ═══ 第三個早晨 ═══ -->
+  <section class="morning" id="m3" aria-labelledby="m3h" hidden>
+    <div class="stamp"><b id="m3h">第三個早晨</b><span>07:20</span></div>
+    <p>昨晚袋子沒綁。最上面那片敞著放了一夜，摸起來乾乾的。</p>
+    <p class="aside">（變硬和變乾是兩回事：麵包放久變硬，主要是澱粉重新排列結晶。但敞著放一整晚，表面的水是真的跑掉了。）</p>
+    <p class="big">這次給你一條線索：<br>別看時鐘，看<span class="wt">蒸氣</span>。</p>
+    <p>蒸氣還在冒，表面就還在燒水。蒸氣一停，溫度才開始爬——從那一刻起，你大約還有二十秒，然後有十秒的金黃。</p>
+    <div class="stage" data-round="dried"></div>
+    <div class="reveal" hidden>
+      <svg class="chart" id="allChart" viewBox="0 0 600 270" role="img" aria-label="三片吐司的表面溫度曲線"></svg>
+      <div class="legend"><span><i style="background:#c9b89c"></i>室溫</span><span><i style="background:var(--water)"></i>冷凍</span><span><i style="background:var(--pk-accent)"></i>敞著放一晚</span></div>
+      <p>三片吐司、三個完全不同的金黃時刻。以時鐘來看，最早和最晚差了 <span class="hl" data-fill="spread">—</span> 秒。</p>
+      <p>但三條線的後半段，形狀看起來是不是有點眼熟？</p>
+      <button class="pk-btn" id="alignBtn" type="button">把三條線對齊「蒸氣停下」那一秒</button>
+      <div class="reveal" id="afterAlign" hidden>
+        <p class="big" style="margin-top:26px">疊在一起了。</p>
+        <p>水燒乾之後的路，三片吐司走得一模一樣：同樣的爬升、同樣的十秒金黃、同樣在 <span class="hl" data-fill="burnAfter">—</span> 秒後變成炭。</p>
+        <p>差別全在前面那段平台——冷凍的多了冰，敞著放的少了水。<b>時間，從頭到尾都量錯了東西。</b></p>
+        <button class="pk-btn next" data-next="m4" type="button">那麼 →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ 結尾 ═══ -->
+  <section class="morning" id="m4" aria-labelledby="m4h" hidden>
+    <h2 class="pk-sr" id="m4h">結尾</h2>
+    <p>烤麵包機的旋鈕上刻的是時間。吐司不看時間，它看水。</p>
+    <p>同一個 100°C 的平台，藏在很多廚房裡：下鍋前要拍乾的牛排、炒了半小時才肯轉褐的洋蔥、一直不脆的濕薯條。它們都得先把水燒完，才輪得到顏色。</p>
+    <div class="three" id="three" aria-label="你的三片吐司"></div>
+    <p class="prev" id="prev" hidden></p>
+    <p class="finale">它不是算準你轉身才焦的。<br>它在等水燒完——<br>而水燒完的那一刻，<span class="hl">一點聲音也沒有</span>。</p>
+    <p style="margin-top:28px;color:var(--pk-dim)">明天早上轉身之前，先看一眼蒸氣。</p>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia〈Maillard reaction〉〈Toast (food)〉；Newborough、Batty、Probert（1987）烤麵包機設計研究。曲線為簡化熱模型。
+</footer>
+
+<template id="stageTpl">
+  <svg class="toaster" viewBox="0 0 300 250" aria-hidden="true">
+    <defs>
+      <linearGradient id="SID-body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#e3e6e8"/><stop offset=".55" stop-color="#9aa1a7"/><stop offset="1" stop-color="#5f666c"/>
+      </linearGradient>
+      <radialGradient id="SID-glow" cx=".5" cy=".5" r=".6">
+        <stop offset="0" stop-color="#ffb070" stop-opacity=".95"/><stop offset="1" stop-color="#ff5a1a" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <g class="steam"><path d="M128 66 q-9 -11 0 -22 q9 -11 0 -22"/><path d="M150 62 q-9 -11 0 -22 q9 -11 0 -22"/><path d="M172 66 q-9 -11 0 -22 q9 -11 0 -22"/></g>
+    <ellipse class="slot-glow" cx="150" cy="104" rx="80" ry="15" fill="url(#SID-glow)" opacity="0"/>
+    <rect x="80" y="104" width="140" height="12" rx="6" fill="#2a2420"/>
+    <g class="toast-g">
+      <path class="toast" d="M96 196 V96 C80 92 78 58 104 52 C120 40 180 40 196 52 C222 58 220 92 204 96 V196 Z" stroke-width="5"/>
+      <g class="pores" fill="rgba(90,55,20,.13)">
+        <ellipse cx="128" cy="80" rx="4" ry="2.5"/><ellipse cx="166" cy="72" rx="3" ry="2"/><ellipse cx="148" cy="96" rx="5" ry="2.6"/>
+        <ellipse cx="180" cy="98" rx="3.5" ry="2"/><ellipse cx="118" cy="104" rx="3" ry="2"/>
+      </g>
+    </g>
+    <rect x="36" y="108" width="228" height="128" rx="36" fill="url(#SID-body)"/>
+    <rect x="52" y="124" width="196" height="6" rx="3" fill="rgba(255,255,255,.35)"/>
+    <circle cx="96" cy="190" r="13" fill="#3a3632"/><line x1="96" y1="190" x2="96" y2="180" stroke="#cfd3d6" stroke-width="3" stroke-linecap="round"/>
+    <rect class="lever" x="264" y="132" width="22" height="14" rx="5" fill="#2f2b28"/>
+    <rect x="62" y="236" width="30" height="8" rx="3" fill="#2a2420"/><rect x="208" y="236" width="30" height="8" rx="3" fill="#2a2420"/>
+  </svg>
+  <div class="track"><div class="fill"></div></div>
+  <div class="track-lbl"><span>0:00</span><span>2:00</span><span>4:00</span></div>
+  <div class="dash">
+    <div class="clock" aria-hidden="true"><span class="t">0:00</span><small>模擬時間</small></div>
+    <button class="pk-btn go" type="button">壓下拉桿</button>
+  </div>
+  <div class="result" aria-hidden="true"><div class="swatch"></div><div><div class="g"></div><div class="s"></div></div></div>
+</template>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'toast100.';
+const store = PK.store(LS);
+
+/* ══ 純函式（node 斷言用；PURE:start → PURE:end）══ */
+/* PURE:start */
+/* 簡化熱模型（單位：秒、°C）。表面溫度以一階牛頓加熱逼近等效熱源 ENV；
+   表面有冰時卡在 0°C 直到融完，表面有水時卡在 100°C 直到燒乾；
+   上色速率在 110°C 以下視為 0，以上每升 DBL°C 翻倍。參數為示意，非實測。 */
+const P = { ENV: 300, TAU: 60, LV: 330, LF: 49, KB: 0.05, DBL: 30, DT: 0.05, SPEED: 5, TMAX: 240, AUTO: 4.2 };
+const BREADS = {
+  fresh:  { name: '室溫', T0: 22,  ice: 0, W0: 1    },
+  frozen: { name: '冷凍', T0: -18, ice: 1, W0: 1.15 },
+  dried:  { name: '敞著放一晚', T0: 22, ice: 0, W0: 0.4 }
+};
+function initState(key) {
+  const b = BREADS[key];
+  return { t: 0, T: b.T0, ice: b.ice, W: b.W0, B: 0, dryAt: null, phase: 'heat' };
+}
+function browningRate(T) { return T < 110 ? 0 : P.KB * Math.pow(2, (T - 150) / P.DBL); }
+function step(s, dt) {
+  let T = s.T + (P.ENV - s.T) / P.TAU * dt, ice = s.ice, W = s.W, dryAt = s.dryAt, phase = 'heat';
+  if (ice > 0 && T > 0) { ice -= T / P.LF; T = 0; phase = 'ice'; if (ice < 0) { T = -ice * P.LF; ice = 0; } }
+  if (W > 0 && T > 100) { W -= (T - 100) / P.LV; T = 100; phase = 'boil'; if (W < 0) { T = 100 - W * P.LV; W = 0; dryAt = s.t + dt; } }
+  return { t: s.t + dt, T, ice, W, B: s.B + browningRate(T) * dt, dryAt, phase };
+}
+/* 一路跑到 B 達 untilB 或 t 達 tMax；every 秒取一個樣本 */
+function simulate(key, opts) {
+  const o = Object.assign({ untilB: P.AUTO, tMax: P.TMAX, every: 1 }, opts || {});
+  let s = initState(key); const pts = [{ t: 0, T: s.T, B: 0 }]; let next = o.every;
+  let gold0 = null, gold1 = null;
+  while (s.t < o.tMax && s.B < o.untilB) {
+    s = step(s, P.DT);
+    if (gold0 === null && s.B >= 0.7) gold0 = s.t;
+    if (gold1 === null && s.B >= 1.6) gold1 = s.t;
+    if (s.t >= next - 1e-9) { pts.push({ t: s.t, T: s.T, B: s.B }); next += o.every; }
+  }
+  return { pts, dryAt: s.dryAt, gold0, gold1, end: s.t };
+}
+/* 蒸氣強度 0..1：只在燒水階段冒，水快乾時漸弱 */
+function steamLevel(s) { return s.phase === 'boil' ? Math.min(1, s.W / 0.15) : 0; }
+function grade(B) {
+  if (B < 0.25) return { k: 0, g: '還是麵包。', s: '表面還沒乾，顏色根本還沒開始。' };
+  if (B < 0.7)  return { k: 1, g: '淡淡的，像沒睡醒。', s: '再多幾秒就到了。' };
+  if (B < 1.6)  return { k: 2, g: '金黃。漂亮。', s: '你抓到了那十秒。' };
+  if (B < 2.5)  return { k: 3, g: '深褐，邊緣有點苦。', s: '晚了幾秒。' };
+  if (B < 3.5)  return { k: 4, g: '焦了。', s: '刮一刮還能吃——大概。' };
+  return { k: 5, g: '炭。', s: '煙霧警報器正在考慮要不要響。' };
+}
+/* 上色程度 → 顏色（麵包心 → 金黃 → 褐 → 深褐 → 炭）；回傳 [r,g,b] */
+const STOPS = [[0, [240, 226, 196]], [1, [214, 160, 78]], [2, [146, 86, 38]], [3, [74, 42, 22]], [4.2, [28, 22, 19]]];
+function toastRGB(B) {
+  const b = Math.max(0, Math.min(B, 4.2));
+  for (let i = 1; i < STOPS.length; i++) {
+    const [b1, c1] = STOPS[i], [b0, c0] = STOPS[i - 1];
+    if (b <= b1) { const k = (b - b0) / (b1 - b0); return c0.map((v, j) => Math.round(v + (c1[j] - v) * k)); }
+  }
+  return STOPS[STOPS.length - 1][1].slice();
+}
+function fmt(t) { const s = Math.max(0, Math.floor(t)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+/* PURE:end */
+
+const rgb = (a) => 'rgb(' + a.join(',') + ')';
+const COLORS = { fresh: '#c9b89c', frozen: '#7fb8d8', dried: '#e3a548' };
+const results = {};
+const NS = 'http://www.w3.org/2000/svg';
+const svgEl = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+
+/* ── 曲線圖座標 ── */
+const CX = (t) => 46 + t / P.TMAX * 534;
+const CY = (T) => 236 - (T + 20) / 270 * 216;
+function drawAxes(svg) {
+  svg.textContent = '';
+  svgEl('line', { class: 'ax', x1: 46, y1: 236, x2: 580, y2: 236 }, svg);
+  svgEl('line', { class: 'ax', x1: 46, y1: 20, x2: 46, y2: 236 }, svg);
+  for (const T of [0, 100, 200]) { const t = svgEl('text', { x: 40, y: CY(T) + 4, 'text-anchor': 'end' }, svg); t.textContent = T + '°'; }
+  for (const s of [0, 60, 120, 180, 240]) { const t = svgEl('text', { x: CX(s), y: 254, 'text-anchor': 'middle' }, svg); t.textContent = fmt(s); }
+  /* 金黃帶：155–190°C（Toast (food) 引 Newborough 1987）*/
+  svgEl('rect', { class: 'gold-band', x: 46, y: CY(190), width: 534, height: CY(155) - CY(190) }, svg);
+  const gl = svgEl('text', { x: 576, y: CY(190) - 6, 'text-anchor': 'end' }, svg); gl.textContent = '表面金黃 155–190°C';
+  svgEl('line', { class: 'boil', x1: 46, y1: CY(100), x2: 580, y2: CY(100) }, svg);
+}
+function curvePath(sim) { return sim.pts.map((p, i) => (i ? 'L' : 'M') + CX(p.t).toFixed(1) + ' ' + CY(p.T).toFixed(1)).join(' '); }
+function addCurve(svg, key, opts) {
+  const sim = simulate(key);
+  const g = svgEl('g', { class: 'cv' }, svg);
+  const path = svgEl('path', { class: 'curve', d: curvePath(sim), stroke: COLORS[key] }, g);
+  if (opts && opts.plateau) {
+    const x0 = CX(sim.pts.find(p => p.T >= 99.9).t), x1 = CX(sim.dryAt);
+    const t = svgEl('text', { class: 'plateau-lbl', x: (x0 + x1) / 2, y: CY(100) + 18, 'text-anchor': 'middle' }, g);
+    t.textContent = '卡在 100°C：' + Math.round(sim.dryAt - sim.pts.find(p => p.T >= 99.9).t) + ' 秒';
+  }
+  const r = results[key];
+  if (r && (!opts || opts.pop !== false)) {
+    svgEl('line', { class: 'popline', x1: CX(r.t), y1: 28, x2: CX(r.t), y2: 236 }, g);
+    const rr = simulate(key, { tMax: r.t + 1e-6, untilB: 99 });
+    const T = rr.pts[rr.pts.length - 1].T;
+    svgEl('circle', { class: 'popdot', cx: CX(r.t), cy: CY(T), r: 4.5 }, g);
+    const lb = svgEl('text', { x: CX(r.t) + 6, y: 36, style: 'fill:var(--pk-ink)' }, g); lb.textContent = '你在這裡彈起';
+  }
+  PK.replayDash(path, 1600);
+  return { g, sim };
+}
+
+/* ── 一個早晨（一輪）── */
+function makeRound(stageEl) {
+  const key = stageEl.dataset.round;
+  const frag = document.getElementById('stageTpl').content.cloneNode(true);
+  frag.querySelectorAll('[id^="SID-"]').forEach(e => { e.id = e.id.replace('SID', key); });
+  frag.querySelectorAll('[fill]').forEach(e => { const f = e.getAttribute('fill'); if (f.indexOf('#SID-') > -1) e.setAttribute('fill', f.replace('#SID-', '#' + key + '-')); });
+  stageEl.appendChild(frag);
+  const $ = (s) => stageEl.querySelector(s);
+  const toastG = $('.toast-g'), toast = $('.toast'), lever = $('.lever'), glow = $('.slot-glow'), steam = $('.steam');
+  const clock = $('.clock .t'), fill = $('.track .fill'), btn = $('.go'), res = $('.result');
+  const section = stageEl.closest('.morning'), reveal = section.querySelector('.reveal');
+  btn.setAttribute('aria-label', '壓下拉桿，開始烤' + BREADS[key].name + '吐司');
+  let s = null, running = false, acc = 0;
+
+  function paint() {
+    const c = toastRGB(s ? s.B : 0);
+    toast.setAttribute('fill', rgb(c));
+    toast.setAttribute('stroke', rgb(toastRGB((s ? s.B : 0) + 0.7)));
+    clock.textContent = fmt(s ? s.t : 0);
+    fill.style.transform = 'scaleX(' + Math.min(1, (s ? s.t : 0) / P.TMAX) + ')';
+    const st = s && running ? steamLevel(s) : 0;
+    steam.style.opacity = st.toFixed(2);
+    steam.classList.toggle('run', st > 0.02);
+    glow.setAttribute('opacity', running ? '0.85' : '0');
+  }
+  function tick(dt) {
+    acc += dt * P.SPEED;
+    while (acc >= P.DT) { s = step(s, P.DT); acc -= P.DT; }
+    paint();
+    if (s.B >= P.AUTO || s.t >= P.TMAX) finish(true);
+  }
+  function start() {
+    s = initState(key); acc = 0; running = true;
+    res.classList.remove('in'); res.setAttribute('aria-hidden', 'true');
+    toastG.classList.add('down'); lever.classList.add('down');
+    btn.textContent = '彈起！'; btn.classList.add('pop');
+    btn.setAttribute('aria-label', '彈起吐司');
+    paint(); PK.tick(tick);
+    PK.announce('拉桿壓下了。覺得是金黃色的時候，按「彈起」。');
+  }
+  function finish(auto) {
+    running = false; PK.untick(tick);
+    toastG.classList.remove('down'); lever.classList.remove('down');
+    paint();
+    const gr = grade(s.B);
+    results[key] = { t: s.t, B: s.B, k: gr.k };
+    const saved = store.get('last', {}); saved[key] = { t: Math.round(s.t * 10) / 10, B: Math.round(s.B * 100) / 100 }; store.set('last', saved);
+    res.querySelector('.swatch').style.background = rgb(toastRGB(s.B));
+    res.querySelector('.g').textContent = (auto ? '冒煙了，自動彈起。' : '') + gr.g;
+    res.querySelector('.s').textContent = '在 ' + fmt(s.t) + ' 彈起。' + gr.s;
+    res.removeAttribute('aria-hidden');
+    requestAnimationFrame(() => res.classList.add('in'));
+    PK.announce('在 ' + fmt(s.t) + ' 彈起：' + gr.g);
+    btn.textContent = '再烤一片'; btn.classList.remove('pop');
+    btn.setAttribute('aria-label', '再烤一片' + BREADS[key].name + '吐司');
+    onRoundDone(key, section, reveal);
+  }
+  btn.addEventListener('click', () => { running ? finish(false) : start(); });
+  stageEl._addGhost = (t, label) => {
+    const gh = document.createElement('div'); gh.className = 'ghost';
+    gh.style.left = (t / P.TMAX * 100) + '%';
+    const sp = document.createElement('span'); sp.textContent = label; gh.appendChild(sp);
+    $('.track').appendChild(gh);
+  };
+  stageEl._isRunning = () => running;
+  stageEl._pop = () => { if (running) finish(false); };
+  paint();
+}
+
+function onRoundDone(key, section, reveal) {
+  const firstTime = reveal.hidden;
+  reveal.hidden = false;
+  const chart = reveal.querySelector('.chart');
+  drawAxes(chart);
+  if (key === 'fresh') addCurve(chart, 'fresh', { plateau: true });
+  if (key === 'frozen') { addCurve(chart, 'fresh', { pop: false }); addCurve(chart, 'frozen', { plateau: true }); }
+  if (key === 'dried') {
+    const g0 = (k) => simulate(k).gold0;
+    document.querySelector('[data-fill="spread"]').textContent = Math.round(Math.max(g0('fresh'), g0('frozen'), g0('dried')) - Math.min(g0('fresh'), g0('frozen'), g0('dried')));
+    drawAll(chart); document.getElementById('afterAlign').hidden = true; alignBtn.disabled = false; }
+  if (firstTime) PK.reveal('#' + section.id + ' .reveal .rv');
+}
+
+/* ── 三條線對齊 ── */
+let allCurves = [];
+const alignBtn = document.getElementById('alignBtn');
+function drawAll(chart) {
+  allCurves = ['fresh', 'frozen', 'dried'].map(k => Object.assign({ key: k }, addCurve(chart, k, { pop: k === 'dried' })));
+}
+alignBtn.addEventListener('click', () => {
+  const ref = simulate('fresh').dryAt;
+  allCurves.forEach(c => { c.g.style.transform = 'translateX(' + (CX(ref) - CX(c.sim.dryAt)).toFixed(1) + 'px)'; });
+  const chart = document.getElementById('allChart');
+  const vl = svgEl('line', { class: 'boil', x1: CX(ref), y1: 24, x2: CX(ref), y2: 236 }, chart);
+  vl.style.stroke = '#fff';
+  const tl = svgEl('text', { x: CX(ref) - 6, y: 22, 'text-anchor': 'end', style: 'fill:var(--pk-ink)' }, chart); tl.textContent = '蒸氣停下';
+  alignBtn.disabled = true;
+  const sim = simulate('fresh');
+  document.querySelector('[data-fill="burnAfter"]').textContent = Math.round(sim.end - sim.dryAt);
+  const aa = document.getElementById('afterAlign');
+  setTimeout(() => { aa.hidden = false; PK.announce('三條曲線對齊後完全重疊。'); }, PK.reduced() ? 0 : 1500);
+});
+
+/* ── 章節推進 ── */
+document.querySelectorAll('.next').forEach(b => b.addEventListener('click', () => {
+  const id = b.dataset.next, sec = document.getElementById(id);
+  sec.hidden = false;
+  if (id === 'm2') {
+    document.querySelector('[data-fill="lastFresh"]').textContent = results.fresh ? fmt(results.fresh.t) : '—';
+    if (results.fresh) document.querySelector('[data-round="frozen"]')._addGhost(results.fresh.t, '昨天 ' + fmt(results.fresh.t));
+    document.querySelector('[data-fill="frozenShift"]').textContent = Math.round(simulate('frozen').dryAt - simulate('fresh').dryAt);
+  }
+  if (id === 'm3') {
+    const st = document.querySelector('[data-round="dried"]');
+    if (results.fresh) st._addGhost(results.fresh.t, '室溫 ' + fmt(results.fresh.t));
+  }
+  if (id === 'm4') buildEnding();
+  b.disabled = true;
+  PK.scrollTo(sec);
+  const h = sec.querySelector('b[id], h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
+}));
+
+function buildEnding() {
+  const box = document.getElementById('three'); box.textContent = '';
+  for (const k of ['fresh', 'frozen', 'dried']) {
+    const r = results[k]; if (!r) continue;
+    const f = document.createElement('figure');
+    const sw = document.createElement('div'); sw.className = 'swatch'; sw.style.background = rgb(toastRGB(r.B));
+    const cap = document.createElement('figcaption'); cap.textContent = BREADS[k].name + '｜' + fmt(r.t) + '｜' + grade(r.B).g;
+    f.append(sw, cap); box.appendChild(f);
+  }
+  const gold = ['fresh', 'frozen', 'dried'].filter(k => results[k] && results[k].k === 2).length;
+  const prev = document.getElementById('prev');
+  prev.textContent = '三個早晨，金黃 ' + gold + ' 片。';
+  prev.hidden = false;
+}
+
+document.querySelectorAll('.stage').forEach(makeRound);
+/* 空白鍵也能彈起（正在烤的那一台） */
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space' || e.target.closest('button,a,input,textarea')) return;
+  const st = [...document.querySelectorAll('.stage')].find(x => x._isRunning && x._isRunning());
+  if (st) { e.preventDefault(); st._pop(); }
+});
+PK.onMotionChange(() => { document.querySelectorAll('.cv').forEach(g => { g.style.transition = PK.reduced() ? 'none' : ''; }); });
+PK.reveal();
+</script>
+</body>
+</html>

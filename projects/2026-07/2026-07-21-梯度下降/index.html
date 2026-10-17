@@ -57,6 +57,7 @@ input[type=range]::-moz-range-thumb{width:20px;height:20px;border:none;border-ra
 
 .reveal{max-width:600px;margin:60px auto 0;padding:0 22px;opacity:0;transform:translateY(24px);transition:opacity .8s,transform .8s}
 .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}}
 .reveal p{font-size:1.06rem;color:var(--dim);margin:0 0 16px}
 .reveal p em{color:var(--ink);font-style:normal}
 .reveal .big{font-family:var(--serif);font-size:clamp(1.5rem,4.2vw,2.1rem);color:var(--ink);margin:0 0 16px;text-align:center}
@@ -81,7 +82,7 @@ footer .src{opacity:.8;margin-top:4px}
   <div class="mtn">
     <div class="mtn-wrap">
       <canvas id="hill" role="img" aria-label="霧中的山稜線與一名下山的登山者。橫軸是位置，縱軸是高度（誤差）。"></canvas>
-      <div class="say" id="say"><b>在山稜上放一個人下去，或直接按「往下走一步」。</b></div>
+      <div class="say" id="say" aria-live="polite"><b>在山稜上放一個人下去，或直接按「往下走一步」。</b></div>
     </div>
   </div>
 
@@ -224,10 +225,13 @@ if(typeof document!=='undefined')(function(){
   cv.addEventListener('click',function(e){ var rc=cv.getBoundingClientRect(); var px=(e.clientX-rc.left)/rc.width;
     var x=XMIN+(px-0.06)/0.88*(XMAX-XMIN); reset(Math.max(XMIN,Math.min(XMAX,x))); });
 
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
-  io.observe(document.getElementById('rev'));
+  var revEl=document.getElementById('rev');
+  if(reduced||!('IntersectionObserver' in window)){ revEl.classList.add('in'); }
+  else { var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
+    io.observe(revEl); }
   document.addEventListener('visibilitychange',function(){ if(document.hidden){ running=false; setAuto(); if(raf){cancelAnimationFrame(raf);raf=0;} } });
-  mR.addEventListener('change',function(e){ reduced=e.matches; });
+  function onMR(e){ reduced=e.matches; if(reduced) revEl.classList.add('in'); }
+  if(mR.addEventListener) mR.addEventListener('change',onMR); else if(mR.addListener) mR.addListener(onMR); /* 舊 Safari */
   window.addEventListener('resize',draw);
   reset(1.9);
 })();

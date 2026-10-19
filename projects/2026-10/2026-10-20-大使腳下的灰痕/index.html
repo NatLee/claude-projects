@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>走到門口再回頭｜每日小專案</title>
+<meta name="description" content="1533 年，Holbein 在兩位大使腳下抹了一道灰。正面看是汙漬；把臉貼到牆邊斜著看，它會站起來。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0e0c0d; --pk-ink:#ece5d6; --pk-dim:#948b7c; --pk-accent:#cfa75a;
+  --wall:#151214; --panel:rgba(20,17,18,.86);
+}
+html,body{height:100%;overflow:hidden}
+.app{position:fixed;inset:0;display:grid;grid-template-columns:1fr minmax(320px,400px);background:var(--wall)}
+/* ── 展廳 ── */
+.stage{position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;outline:none;
+  background:radial-gradient(ellipse 70% 60% at 50% 46%,#221d1c 0%,#151214 60%,#0b0a0b 100%)}
+.stage.live{cursor:grab}
+.stage.live.dragging{cursor:grabbing}
+.stage:focus-visible{box-shadow:inset 0 0 0 2px var(--pk-accent)}
+.stage svg{position:absolute;inset:4% 4% 4% 4%;width:92%;height:92%;overflow:visible}
+#paint{opacity:0;transition:opacity 2.2s ease}
+.lit #paint{opacity:1}
+.dark-veil{position:absolute;inset:0;pointer-events:none;background:#000;opacity:1;transition:opacity 2.4s ease}
+.lit .dark-veil{opacity:0}
+.vig{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease;
+  background:radial-gradient(ellipse 46% 26% at 47% 82%,transparent 0%,rgba(0,0,0,.72) 100%)}
+.focus-floor .vig{opacity:1}
+.hint{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;
+  font-size:13px;letter-spacing:.12em;color:var(--pk-ink);opacity:0;transition:opacity .8s;pointer-events:none;white-space:nowrap;
+  background:rgba(0,0,0,.45);padding:8px 14px;border-radius:999px}
+.show-hint .hint{opacity:.92}
+.hint .ar{display:inline-block;color:var(--pk-accent);animation:nudge 1.8s ease-in-out infinite}
+.hint .ar.b{animation-direction:reverse}
+@keyframes nudge{0%,100%{transform:translate(0,0)}50%{transform:translate(5px,-3px)}}
+.gauge{position:absolute;right:14px;top:12px;display:flex;gap:10px;align-items:center;opacity:0;transition:opacity .6s;pointer-events:none}
+.live .gauge{opacity:1}
+.gauge .deg{font:600 22px/1 var(--pk-serif);font-variant-numeric:tabular-nums;color:var(--pk-ink);min-width:3.2em;text-align:right}
+.gauge .deg small{display:block;font:11px/1.6 var(--pk-sans);letter-spacing:.14em;color:var(--pk-dim)}
+.gauge svg{position:static;width:96px;height:62px;overflow:visible}
+.ring{fill:none;stroke:var(--pk-accent);stroke-width:5;opacity:0}
+.spot .ring{animation:pulse 2.4s ease-in-out infinite}
+.spot .ring.r2{animation-delay:.8s}
+@keyframes pulse{0%,100%{opacity:.15}50%{opacity:.9}}
+#skull,#word{transition:filter .8s}
+.got #skull,.got #word{filter:drop-shadow(0 0 14px rgba(255,236,190,.55))}
+/* ── 語音導覽面板 ── */
+.panel{position:relative;display:flex;flex-direction:column;background:var(--panel);border-left:1px solid var(--pk-line);
+  padding:64px 30px 18px;overflow-y:auto}
+.chap{font-size:11.5px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 18px}
+.chap b{color:var(--pk-accent);font-weight:500}
+.txt{flex:1}
+.txt h2{font:600 clamp(24px,3.2vw,32px)/1.45 var(--pk-serif);margin:0 0 18px;letter-spacing:.02em}
+.txt p{margin:0 0 14px;font-size:15.5px;color:#d9d1c1}
+.txt p.big{font:500 21px/1.6 var(--pk-serif);color:var(--pk-ink)}
+.txt .ln{opacity:0;transform:translateY(8px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1)}
+.txt .ln.in{opacity:1;transform:none}
+.txt em{font-style:normal;color:var(--pk-accent)}
+.ctl{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:10px 0 6px}
+.ctl[hidden]{display:none}
+.pk-btn.solid{background:var(--pk-accent);color:#1a1410}
+.pk-btn.solid:hover{background:#e2bd73}
+.toy{display:flex;gap:10px;margin:6px 0 12px}
+.toy input{flex:1;min-width:0;font:600 20px var(--pk-serif);letter-spacing:.2em;background:transparent;color:var(--pk-ink);
+  border:none;border-bottom:1px solid var(--pk-accent);padding:6px 4px;border-radius:0}
+.toy input:focus-visible{outline:none;border-bottom-width:2px}
+.exit{display:inline-block;margin:8px 0 4px;font:600 20px/1.5 var(--pk-serif);color:var(--pk-accent);text-decoration:none;
+  border-bottom:1px solid currentColor;padding-bottom:2px;transition:letter-spacing .5s ease,color .3s}
+.exit:hover,.exit:focus-visible{letter-spacing:.08em;color:#f0d08e}
+.panel .pk-foot{margin:18px 0 0;padding-top:10px;font-size:11.5px;line-height:1.7}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .panel{border-left:none;border-top:1px solid var(--pk-line);max-height:50svh;padding:16px 18px 10px}
+  .chap{margin-bottom:8px}
+  .txt h2{font-size:22px;margin-bottom:10px}
+  .txt p{font-size:14.5px;margin-bottom:9px}
+  .txt p.big{font-size:18px}
+  .stage svg{inset:9% 3% 3% 3%;width:94%;height:88%}
+  .gauge{top:auto;bottom:10px;right:10px}
+  .hint{bottom:auto;top:12px;font-size:12px}
+}
+@media (prefers-reduced-motion: reduce){
+  #paint,.dark-veil,.vig,.hint,.gauge,.txt .ln{transition:none}
+  .hint .ar,.spot .ring{animation:none}
+  .spot .ring{opacity:.8}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<div class="app">
+  <div class="stage" id="stage" aria-label="展廳：Holbein《大使》（1533）" >
+    <svg id="sv" viewBox="-60 -60 1120 1120" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <defs>
+        <pattern id="damask" width="120" height="150" patternUnits="userSpaceOnUse">
+          <rect width="120" height="150" fill="#1b3628"/>
+          <path d="M60 14 C82 40 82 62 60 76 C38 62 38 40 60 14Z M60 76 C74 92 74 112 60 136 C46 112 46 92 60 76Z" fill="#21422f"/>
+          <path d="M0 75 C14 66 22 52 18 38 M120 75 C106 66 98 52 102 38" stroke="#23452f" stroke-width="5" fill="none"/>
+        </pattern>
+        <pattern id="mosaic" width="90" height="90" patternUnits="userSpaceOnUse">
+          <rect width="90" height="90" fill="#4f3f31"/>
+          <circle cx="45" cy="45" r="32" fill="none" stroke="#b9a27a" stroke-width="5"/>
+          <rect x="31" y="31" width="28" height="28" fill="#7d3328" transform="rotate(45 45 45)"/>
+          <circle cx="45" cy="45" r="6" fill="#c9b48a"/>
+          <circle cx="0" cy="0" r="9" fill="#2f5446"/><circle cx="90" cy="0" r="9" fill="#2f5446"/>
+          <circle cx="0" cy="90" r="9" fill="#2f5446"/><circle cx="90" cy="90" r="9" fill="#2f5446"/>
+        </pattern>
+        <pattern id="carpet" width="40" height="40" patternUnits="userSpaceOnUse">
+          <rect width="40" height="40" fill="#7c1f1f"/>
+          <path d="M20 4 L36 20 L20 36 L4 20Z" fill="#a8452c"/>
+          <path d="M20 13 L27 20 L20 27 L13 20Z" fill="#d7b46a"/>
+        </pattern>
+        <linearGradient id="glare" gradientUnits="userSpaceOnUse" x1="0" y1="1000" x2="1000" y2="0">
+          <stop offset="0" stop-color="#fff6dc" stop-opacity="0"/>
+          <stop offset=".5" stop-color="#fff6dc" stop-opacity=".55"/>
+          <stop offset="1" stop-color="#fff6dc" stop-opacity="0"/>
+        </linearGradient>
+        <radialGradient id="bone" gradientUnits="userSpaceOnUse" cx="-12" cy="-40" r="120">
+          <stop offset="0" stop-color="#cfc9bb"/>
+          <stop offset="1" stop-color="#7c776d"/>
+        </radialGradient>
+      </defs>
+
+      <g id="paint">
+        <!-- 畫框 -->
+        <rect x="-30" y="-30" width="1060" height="1060" fill="#4a3718"/>
+        <rect x="-16" y="-16" width="1032" height="1032" fill="#a07e3a"/>
+        <!-- 綠簾與地面 -->
+        <rect x="0" y="0" width="1000" height="1000" fill="url(#damask)"/>
+        <rect x="0" y="770" width="1000" height="230" fill="url(#mosaic)"/>
+        <rect x="0" y="766" width="1000" height="8" fill="#2a211a"/>
+
+        <!-- 左上角：十字架與簾縫 -->
+        <g id="cross">
+          <rect x="62" y="22" width="9" height="104" fill="#b9b4a8"/>
+          <rect x="44" y="46" width="44" height="8" fill="#b9b4a8"/>
+          <path d="M66 58 L62 84 L70 84Z" fill="#8f897c"/>
+        </g>
+        <path d="M0 0 L68 0 C60 50 72 100 58 150 C40 168 18 170 0 176Z" fill="#244a35"/>
+        <path d="M68 0 C60 50 72 100 58 150" stroke="#2f5b42" stroke-width="4" fill="none"/>
+
+        <!-- 架子（上層：量天；下層：人間）-->
+        <rect x="372" y="424" width="276" height="22" fill="url(#carpet)"/>
+        <rect x="380" y="446" width="260" height="70" fill="url(#carpet)"/>
+        <rect x="380" y="512" width="260" height="6" fill="#d7b46a" opacity=".6"/>
+        <rect x="388" y="518" width="16" height="250" fill="#2e2016"/>
+        <rect x="616" y="518" width="16" height="250" fill="#2e2016"/>
+        <rect x="372" y="652" width="276" height="16" fill="#3b2a1c"/>
+        <!-- 上層器物 -->
+        <rect x="414" y="402" width="22" height="24" fill="#5b4a2a"/>
+        <circle cx="425" cy="364" r="42" fill="#33536b"/>
+        <ellipse cx="425" cy="364" rx="42" ry="14" fill="none" stroke="#c9d6dc" stroke-width="2.5" opacity=".7"/>
+        <ellipse cx="425" cy="364" rx="16" ry="42" fill="none" stroke="#c9d6dc" stroke-width="2.5" opacity=".7"/>
+        <circle cx="410" cy="350" r="3" fill="#e7d9a6"/><circle cx="440" cy="372" r="2.5" fill="#e7d9a6"/><circle cx="428" cy="338" r="2" fill="#e7d9a6"/>
+        <rect x="488" y="352" width="20" height="72" rx="3" fill="#c8b07a"/>
+        <rect x="485" y="346" width="26" height="8" fill="#8b6d3a"/>
+        <path d="M560 372 L594 352 L628 372 L628 410 L594 426 L560 410Z" fill="#b89a5c"/>
+        <path d="M560 372 L594 392 L628 372 M594 392 L594 426" stroke="#6e5631" stroke-width="2.5" fill="none"/>
+        <path d="M522 424 L522 380 A44 44 0 0 1 566 424Z" fill="#a8925d"/>
+        <!-- 下層器物 -->
+        <circle cx="432" cy="612" r="40" fill="#6f8457"/>
+        <path d="M404 596 C418 588 430 600 444 592 C452 606 436 616 426 628 C414 622 404 612 404 596Z" fill="#c8b98a" opacity=".8"/>
+        <path d="M440 630 C450 622 462 628 466 640 C456 646 446 644 440 630Z" fill="#c8b98a" opacity=".8"/>
+        <circle cx="436" cy="586" r="3.5" fill="#7d3328"/>
+        <rect x="428" y="648" width="10" height="6" fill="#5b4a2a"/>
+        <ellipse cx="562" cy="618" rx="54" ry="30" fill="#8a5a2c"/>
+        <circle cx="552" cy="616" r="9" fill="#2a1a0f"/>
+        <path d="M612 604 L660 576 L666 586 L616 616Z" fill="#5d3b1d"/>
+        <path d="M520 610 L662 580 M520 616 L664 583 M520 622 L650 594" stroke="#e8dcbf" stroke-width="1" opacity=".7"/>
+        <path d="M600 626 C614 640 626 642 640 636" stroke="#e8dcbf" stroke-width="1" fill="none" opacity=".8"/>
+        <path d="M462 640 L500 628 L536 640 L500 652Z" fill="#efe7d3"/>
+        <path d="M500 628 L500 652" stroke="#a69b84" stroke-width="2"/>
+        <path d="M470 638 L494 632 M472 643 L494 637 M506 632 L528 638 M506 637 L526 643" stroke="#7a3a2a" stroke-width="1.5"/>
+
+        <!-- 左：Jean de Dinteville，29 歲 -->
+        <g id="jean">
+          <rect x="170" y="760" width="34" height="138" fill="#1a1416"/>
+          <rect x="246" y="760" width="34" height="138" fill="#1a1416"/>
+          <ellipse cx="184" cy="902" rx="30" ry="10" fill="#0d0a0a"/>
+          <ellipse cx="266" cy="902" rx="30" ry="10" fill="#0d0a0a"/>
+          <path d="M118 330 C130 300 172 292 225 292 C278 292 320 300 332 330 L364 766 C300 786 150 786 86 766Z" fill="#17120f"/>
+          <ellipse cx="148" cy="480" rx="46" ry="96" fill="#9a4859"/>
+          <ellipse cx="302" cy="480" rx="46" ry="96" fill="#9a4859"/>
+          <path d="M126 420 L170 420 M126 470 L172 470 M128 520 L170 520 M280 420 L324 420 M278 470 L324 470 M280 520 L322 520" stroke="#5c2532" stroke-width="5"/>
+          <path d="M186 352 L264 352 L276 648 L174 648Z" fill="#b5596d"/>
+          <path d="M118 330 C150 300 300 300 332 330 L322 384 C280 352 170 352 128 384Z" fill="#5b4636"/>
+          <path d="M182 362 Q225 446 268 362" stroke="#d4af37" stroke-width="5" fill="none"/>
+          <circle cx="225" cy="452" r="13" fill="#d4af37"/>
+          <rect x="296" y="540" width="11" height="74" fill="#c9a45c"/>
+          <rect x="290" y="534" width="23" height="7" fill="#8b6d3a"/>
+          <rect x="212" y="276" width="26" height="22" fill="#c99d78"/>
+          <circle cx="225" cy="240" r="42" fill="#d6ad86"/>
+          <path d="M184 244 C188 304 262 304 266 244 C252 270 198 270 184 244Z" fill="#3a2a1e"/>
+          <path d="M188 214 C200 200 250 200 262 214 L262 228 C250 214 200 214 188 228Z" fill="#3a2a1e"/>
+          <ellipse cx="225" cy="198" rx="58" ry="16" fill="#0e0b0a"/>
+          <ellipse cx="225" cy="188" rx="42" ry="13" fill="#0e0b0a"/>
+          <circle id="badge" cx="196" cy="194" r="7" fill="#dcd7cb"/>
+        </g>
+
+        <!-- 右：Georges de Selve，25 歲 -->
+        <g id="georges">
+          <path d="M692 322 C702 302 742 296 776 296 C810 296 850 302 860 322 L902 900 L650 900Z" fill="#4a2c25"/>
+          <path d="M650 900 L902 900 L896 880 L656 880Z" fill="#3a221d"/>
+          <path d="M700 330 L740 314 L776 360 L812 314 L852 330" stroke="#6b4a3c" stroke-width="10" fill="none"/>
+          <ellipse cx="672" cy="452" rx="34" ry="62" fill="#3f2520"/>
+          <rect x="626" y="432" width="52" height="16" fill="#5e4430"/>
+          <rect x="626" y="432" width="52" height="4" fill="#e8dcbf"/>
+          <rect x="764" y="278" width="24" height="22" fill="#c99d78"/>
+          <circle cx="776" cy="244" r="40" fill="#d6ad86"/>
+          <path d="M740 252 C746 296 806 296 812 252 C800 270 752 270 740 252Z" fill="#4a3424"/>
+          <path d="M736 222 L816 222 L808 190 L744 190Z" fill="#0e0b0a"/>
+          <rect x="770" y="176" width="12" height="16" fill="#0e0b0a"/>
+        </g>
+
+        <!-- 腳下那道灰：變形的頭骨（matrix 由 JS 計算） -->
+        <g id="skullwrap">
+          <g id="skull" transform="scale(.82)">
+            <path d="M-62 -8 C-70 -62 -36 -88 0 -88 C36 -88 70 -62 62 -8 C60 14 52 26 44 34 L40 50 C26 56 -26 56 -40 50 L-44 34 C-52 26 -60 14 -62 -8Z" fill="url(#bone)"/>
+            <ellipse cx="-10" cy="-56" rx="30" ry="13" fill="#e4dccb" opacity=".45"/>
+            <path d="M-62 -8 C-60 14 -52 26 -44 34 L-40 50 C-48 40 -58 22 -62 -8Z" fill="#5e574c" opacity=".7"/>
+            <path d="M-36 52 C-34 72 -18 82 0 82 C18 82 34 72 36 52 C22 58 -22 58 -36 52Z" fill="#9c9483"/>
+            <ellipse cx="-24" cy="-6" rx="17" ry="15" fill="#3a352f"/>
+            <ellipse cx="24" cy="-6" rx="17" ry="15" fill="#3a352f"/>
+            <path d="M0 12 C-4 20 -10 30 -9 36 C-5 38 -2 36 0 34 C2 36 5 38 9 36 C10 30 4 20 0 12Z" fill="#3a352f"/>
+            <path d="M-26 50 L26 50" stroke="#3b362f" stroke-width="2"/>
+            <path d="M-18 44 L-18 58 M-9 44 L-9 60 M0 44 L0 60 M9 44 L9 60 M18 44 L18 58" stroke="#3b362f" stroke-width="2"/>
+          </g>
+          <g id="word" style="display:none">
+            <text id="wordtx" x="0" y="0" text-anchor="middle" dominant-baseline="central"
+              font-family="'Noto Serif TC','Songti TC',Georgia,serif" font-weight="700" fill="url(#bone)">死</text>
+          </g>
+        </g>
+
+        <!-- 聚光環（第四章）-->
+        <g id="spots" style="display:none">
+          <circle class="ring" cx="196" cy="194" r="26"/>
+          <circle class="ring r2" cx="66" cy="72" r="58"/>
+        </g>
+        <!-- 斜看時的反光 -->
+        <rect id="glare" x="0" y="0" width="1000" height="1000" fill="url(#glare)" opacity="0" pointer-events="none"/>
+      </g>
+    </svg>
+    <div class="vig"></div>
+    <div class="dark-veil"></div>
+    <div class="hint" aria-hidden="true"><span class="ar b">↙</span>沿著對角線拖過去<span class="ar">↗</span></div>
+    <div class="gauge" aria-hidden="true">
+      <div class="deg"><span id="deg">0°</span><small>離正面</small></div>
+      <svg viewBox="0 0 96 62">
+        <rect x="8" y="6" width="80" height="5" fill="#a07e3a"/>
+        <path d="M48 11 L48 58" stroke="#3a3330" stroke-width="1" stroke-dasharray="3 3"/>
+        <line id="sight" x1="48" y1="54" x2="48" y2="11" stroke="#cfa75a" stroke-width="1.4"/>
+        <circle id="eye" cx="48" cy="54" r="4.5" fill="#ece5d6"/>
+      </svg>
+    </div>
+  </div>
+
+  <aside class="panel" aria-label="語音導覽">
+    <p class="chap" id="chap"><b>I</b> / VII</p>
+    <div class="txt" id="txt" aria-live="polite"></div>
+    <div class="toy" id="toy" hidden>
+      <label class="pk-sr" for="wordIn">想藏進畫裡的字（最多四個）</label>
+      <input id="wordIn" maxlength="4" autocomplete="off" placeholder="寫一個字">
+      <button class="pk-btn" id="wordGo" type="button">抹上去</button>
+    </div>
+    <div class="ctl" id="ctl"><button class="pk-btn solid" id="next" type="button">開燈</button></div>
+    <footer class="pk-foot">資料來源：National Gallery, London；Foister, Roy &amp; Wyld《Making &amp; Meaning: Holbein's Ambassadors》；Samuel (1963)</footer>
+  </aside>
+</div>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'amb1533.';
+const store = PK.store(LS);
+
+/* CORE-START ── 變形透視的幾何（純函式，node 會斷言）── */
+const AX = -27 * Math.PI / 180;   /* 拉長軸：往右上方 27°（SVG 座標 y 向下）*/
+const K = 5;                      /* Holbein 式拉長倍率 */
+const CMIN = 0.12;                /* 最斜時，沿軸只剩 12% */
+const TOL = 0.03;                 /* 誤差容許 */
+function clamp01(v){ return v < 0 ? 0 : v > 1 ? 1 : v; }
+/* 沿 θ 方向縮放 k 倍的 2×2 矩陣，回傳 [a,b,c,d]（SVG matrix 順序） */
+function stretchM(th, k){
+  const c = Math.cos(th), s = Math.sin(th);
+  return [k*c*c + s*s, (k-1)*c*s, (k-1)*c*s, k*s*s + c*c];
+}
+function mul2(m, n){
+  return [m[0]*n[0] + m[2]*n[1], m[1]*n[0] + m[3]*n[1], m[0]*n[2] + m[2]*n[3], m[1]*n[2] + m[3]*n[3]];
+}
+/* 拖曳進度 p(0–1) → 沿軸剩下的比例 c（= cos 視角） */
+function pToC(p){ return 1 - clamp01(p) * (1 - CMIN); }
+function cToDeg(c){ return Math.acos(Math.max(-1, Math.min(1, c))) * 180 / Math.PI; }
+function onTarget(c){ return Math.abs(c - 1 / K) < TOL; }
+function pTarget(){ return (1 - 1 / K) / (1 - CMIN); }
+/* 整張畫的視圖矩陣：以頭骨中心 C 為錨，沿軸壓縮、同時湊近（放大並把 C 移向畫面中心 Pc） */
+function viewMatrix(p, C, Pc){
+  const cv = pToC(p), e = (1 - cv) / (1 - CMIN), s = 1 + 1.4 * e;
+  const L = stretchM(AX, cv).map(function(v){ return v * s; });
+  const P = [C[0] + (Pc[0] - C[0]) * e, C[1] + (Pc[1] - C[1]) * e];
+  return [L[0], L[1], L[2], L[3], P[0] - (L[0]*C[0] + L[2]*C[1]), P[1] - (L[1]*C[0] + L[3]*C[1])];
+}
+/* 拖曳位移投影到對角軸上；sign 決定是往右上(+1)還是左下(-1)才算「湊近」 */
+function axisProj(dx, dy){ return dx * Math.cos(AX) + dy * Math.sin(AX); }
+function dragP(p0, dx, dy, sign, len){ return clamp01(p0 + sign * axisProj(dx, dy) / len); }
+/* 藏字的字級：字越多越小，免得拉長後超出畫面 */
+function wordSize(str){ const n = Math.max(1, Array.from(str).length); return Math.min(100, Math.round(170 / n)); }
+/* CORE-END */
+
+const $ = function(id){ return document.getElementById(id); };
+const stage = $('stage'), sv = $('sv'), txt = $('txt'), next = $('next'), ctl = $('ctl'), chapEl = $('chap');
+const paint = $('paint'), skullWrap = $('skullwrap'), glare = $('glare');
+const C = [480, 838], PC = [500, 470];
+const ROMAN = ['I','II','III','IV','V','VI','VII'];
+
+/* 頭骨被「畫」成拉長的灰痕 */
+(function(){
+  const A = stretchM(AX, K);
+  skullWrap.setAttribute('transform', 'matrix(' + A.concat(C).map(function(v){ return v.toFixed(4); }).join(' ') + ')');
+})();
+
+/* ── 視角狀態 ── */
+let p = 0, goal = 0, side = 1, dragging = false, live = false, onGot = null, gotFired = false, holdView = false;
+function render(){
+  const M = viewMatrix(p, C, PC);
+  paint.setAttribute('transform', 'matrix(' + M.map(function(v){ return v.toFixed(4); }).join(' ') + ')');
+  const cv = pToC(p), deg = cToDeg(cv);
+  glare.setAttribute('opacity', ((1 - cv) * 0.32).toFixed(3));
+  $('deg').textContent = Math.round(deg) + '°';
+  const r = deg * Math.PI / 180, ex = 48 + side * Math.sin(r) * 40, ey = 11 + Math.cos(r) * 43;
+  $('eye').setAttribute('cx', ex.toFixed(1)); $('eye').setAttribute('cy', ey.toFixed(1));
+  $('sight').setAttribute('x1', ex.toFixed(1)); $('sight').setAttribute('y1', ey.toFixed(1));
+  stage.setAttribute('aria-valuenow', String(Math.round(deg)));
+  stage.setAttribute('aria-valuetext', '離正面 ' + Math.round(deg) + ' 度' + (onTarget(cv) ? '，灰痕成形了' : ''));
+  const hit = onTarget(cv);
+  document.body.classList.toggle('got', hit);
+  if (hit && onGot && !gotFired){ gotFired = true; const f = onGot; onGot = null; f(); }
+}
+function ease(dt){
+  if (dragging) return;
+  const k = 1 - Math.exp(-dt * 4.2);
+  p += (goal - p) * k;
+  if (Math.abs(goal - p) < 0.0008){ p = goal; PK.untick(ease); }
+  render();
+}
+function setGoal(g, instant){
+  goal = clamp01(g);
+  if (instant || PK.reduced()){ p = goal; PK.untick(ease); render(); }
+  else PK.tick(ease);
+}
+
+/* 拖曳 */
+let sx = 0, sy = 0, p0 = 0, signSet = false, pid = null;
+function lenPx(){ const r = stage.getBoundingClientRect(); return Math.max(160, Math.min(r.width, r.height) * 0.55); }
+stage.addEventListener('pointerdown', function(e){
+  if (!live) return;
+  dragging = true; pid = e.pointerId; sx = e.clientX; sy = e.clientY; p0 = p; signSet = p > 0.02;
+  stage.classList.add('dragging'); stage.setPointerCapture(pid); PK.untick(ease);
+});
+stage.addEventListener('pointermove', function(e){
+  if (!dragging || e.pointerId !== pid) return;
+  const dx = e.clientX - sx, dy = e.clientY - sy;
+  if (!signSet){
+    const pr = axisProj(dx, dy);
+    if (Math.abs(pr) < 6) return;
+    side = pr > 0 ? 1 : -1; signSet = true;
+  }
+  p = dragP(p0, dx, dy, side, lenPx()); render();
+});
+function endDrag(e){
+  if (!dragging || (e && e.pointerId !== pid)) return;
+  dragging = false; stage.classList.remove('dragging');
+  /* 鬆手＝退後一步，回到正面（第三章與藏字章節可以停住讀） */
+  setGoal(holdView && onTarget(pToC(p)) ? pTarget() : 0);
+}
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
+stage.addEventListener('keydown', function(e){
+  if (!live) return;
+  const step = 0.03;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp'){ side = 1; setGoal(goal + step, true); }
+  else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown'){ setGoal(goal - step, true); }
+  else if (e.key === 'End'){ setGoal(pTarget(), true); }
+  else if (e.key === 'Home' || e.key === 'Escape'){ setGoal(0); }
+  else return;
+  e.preventDefault();
+});
+function setLive(on){
+  live = on; stage.classList.toggle('live', on);
+  if (on){
+    stage.setAttribute('tabindex', '0'); stage.setAttribute('role', 'slider');
+    stage.setAttribute('aria-valuemin', '0'); stage.setAttribute('aria-valuemax', String(Math.round(cToDeg(CMIN))));
+    stage.setAttribute('aria-label', '你的視角：沿對角線拖曳，或用方向鍵湊近牆邊斜看');
+  } else {
+    stage.removeAttribute('tabindex'); stage.removeAttribute('role');
+  }
+}
+
+/* ── 導覽章節 ── */
+const found = store.get('found', false);
+const savedWord = store.get('word', '');
+let ch = -1;
+function lines(arr){
+  txt.innerHTML = '';
+  arr.forEach(function(h, i){
+    const el = document.createElement(h[0] === '#' ? 'h2' : 'p');
+    if (h[0] === '!') el.className = 'big';
+    el.innerHTML = h.replace(/^[#!]/, '');
+    el.classList.add('ln');
+    txt.appendChild(el);
+    if (PK.reduced()) el.classList.add('in');
+    else setTimeout(function(){ el.classList.add('in'); }, 140 + i * 520);
+  });
+  txt.parentNode.scrollTop = 0;
+}
+function showNext(label){ next.textContent = label; ctl.hidden = false; }
+function hideNext(){ ctl.hidden = true; }
+function body(cls, on){ document.body.classList.toggle(cls, on); }
+
+const CH = [
+  function(){
+    lines([
+      '#倫敦，1533 年。',
+      '兩個法國人請宮廷畫家 Hans Holbein 畫一張雙人像。畫板用橡木拼成，兩公尺見方——比站在它前面的你還高。',
+      found ? '（你來過。那道灰還在原地。）' : '燈還沒開。'
+    ]);
+    showNext('開燈');
+  },
+  function(){
+    stage.classList.add('lit');
+    lines([
+      '#兩位大使',
+      '左邊，<em>Jean de Dinteville</em>，法國派駐亨利八世宮廷的大使，二十九歲——數字刻在他的匕首鞘上。',
+      '右邊，他的朋友 <em>Georges de Selve</em>，拉沃爾的主教，二十五歲，寫在他手肘壓著的那本書側。',
+      '中間兩層架子。上層量天：天球儀、日晷、象限儀。下層屬於人間：地球儀、攤開的路德派讚美詩、一把斷了弦的魯特琴。'
+    ]);
+    showNext('往他們腳下看');
+  },
+  function(){
+    body('focus-floor', true);
+    lines([
+      '#腳下那道灰',
+      '畫面正下方，有一道斜斜的灰。像有人拿刷子抹了一下，忘了收拾。',
+      '正面站著，你怎麼退、怎麼瞇眼，它都是一塊汙漬。',
+      '!Holbein 沒打算讓正面的人看懂。把臉貼到牆邊——'
+    ]);
+    hideNext();
+    setLive(true); body('show-hint', true);
+    onGot = function(){ go(3); };
+    setTimeout(function(){ if (ch === 2) stage.focus({ preventScroll: true }); }, 60);
+  },
+  function(){
+    holdView = false;
+    body('show-hint', false); body('focus-floor', false);
+    store.set('found', true);
+    PK.announce('灰痕站起來了：是一顆頭骨。');
+    lines([
+      '#一顆頭骨。',
+      '從右上方貼近，或從左下方仰看，壓扁的灰突然站直，變回一顆完整的骷髏。',
+      '同一瞬間，兩位大使被拉成細長的怪影。整幅畫只有一個角度是對的——那個角度留給了死亡。',
+      '鬆手，你退回正面——它又縮回一道灰。'
+    ]);
+    showNext('還有別的');
+  },
+  function(){
+    holdView = false; setGoal(0);
+    $('spots').style.display = '';
+    body('spot', true);
+    lines([
+      '#它不是畫裡唯一的骷髏',
+      'Dinteville 的黑帽上，別著一枚小小的銀色骷髏徽章。',
+      '左上角，綠簾的縫裡露出半個十字架。被厚厚的舊補筆蓋住好幾代，清洗之後才重新看得清楚。',
+      '有人讀成三層宇宙：上面是天，中間是人間的學問與紛爭，地上是死亡；十字架躲在角落，提醒還有復活。也有人說，Holbein 單純在炫技，好接下一張訂單。'
+    ]);
+    showNext('再一個祕密');
+  },
+  function(){
+    $('spots').style.display = 'none'; body('spot', false);
+    lines([
+      '#1997 年的下巴',
+      '就算你飛到倫敦國家美術館，斜著看那顆骷髏，有一塊也不是 Holbein 畫的。',
+      '1997 年修復時，骷髏的一大片——包括部分下顎和鼻腔——早已剝落。修復師拿一張現代骷髏的照片，照同樣的角度拉長，把缺口補了回去。',
+      '批評者說，這一補，骷髏的比例被改了。也有學者主張，原本根本不該側看，而是透過一根玻璃管正面看。爭論到現在還沒收場。'
+    ]);
+    showNext('輪到我');
+  },
+  function(){
+    holdView = false;
+    lines([
+      '#輪到你藏一個',
+      '寫一個字，兩三個也行。它會被抹成牆上的一道灰——讀得到它的，只有懂得斜著看的人。'
+    ]);
+    hideNext();
+    $('toy').hidden = false;
+    $('wordIn').value = savedWord;
+    setTimeout(function(){ $('wordIn').focus({ preventScroll: true }); }, 80);
+  },
+  function(){
+    holdView = false; setGoal(0);
+    $('toy').hidden = true; body('show-hint', false);
+    lines([
+      '#門',
+      '有一種說法：這幅畫原本掛在門邊，或樓梯旁。',
+      '客人進門，迎面是兩位大使、天球、地球、學問與權力。辦完事往外走，經過畫的左手邊，最後回頭一瞥——',
+      '!看見的是骷髏。',
+      '可惜學者在 Dinteville 的 Polisy 城堡裡，找不到這樣一扇門、一道樓梯。據說，他的座右銘就是 <em>memento mori</em>：記得你會死。',
+      '那扇門，大概從來不在城堡裡。'
+    ]);
+    ctl.innerHTML = '';
+    const a = document.createElement('a');
+    a.className = 'exit'; a.href = '../../../index.html'; a.textContent = '走到門口，再回頭 →';
+    const look = function(){ side = -1; setGoal(pTarget()); };
+    const away = function(){ setGoal(0); };
+    a.addEventListener('mouseenter', look); a.addEventListener('focus', look);
+    a.addEventListener('mouseleave', away); a.addEventListener('blur', away);
+    ctl.appendChild(a); ctl.hidden = false;
+    if (window.matchMedia && matchMedia('(hover: none)').matches){
+      setTimeout(function(){ if (ch === 7) look(); }, PK.reduced() ? 0 : 3600);
+    }
+  }
+];
+function go(i){
+  ch = i;
+  chapEl.innerHTML = '<b>' + ROMAN[i] + '</b> / VII';
+  CH[i]();
+}
+next.addEventListener('click', function(){ if (ch < CH.length - 1) go(ch + 1); });
+
+/* 藏字 */
+function hideWord(){
+  const w = $('wordIn').value.trim();
+  if (!w) { $('wordIn').focus(); return; }
+  store.set('word', w);
+  const t = $('wordtx');
+  t.textContent = w; t.setAttribute('font-size', String(wordSize(w)));
+  $('skull').style.display = 'none'; $('word').style.display = '';
+  setGoal(0, true);
+  gotFired = false;
+  onGot = function(){
+    PK.announce('讀到了：' + w);
+    lines([
+      '#「' + w.replace(/[<>&"]/g, '') + '」',
+      '站正了看，它是汙漬；斜著看，它是你寫的字。Holbein 用的就是這一招，只差他抹的是一顆頭骨。'
+    ]);
+    $('toy').hidden = true;
+    showNext('走吧');
+  };
+  lines([
+    '#抹好了',
+    '現在它跟那顆頭骨一樣，是牆上的一道灰。沿著對角線拖過去，讀讀看。'
+  ]);
+  body('show-hint', true);
+  stage.focus({ preventScroll: true });
+}
+$('wordGo').addEventListener('click', hideWord);
+$('wordIn').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); hideWord(); } });
+
+PK.onMotionChange(function(){ setGoal(goal, true); });
+render();
+go(0);
+</script>
+</body>
+</html>

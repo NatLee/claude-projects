@@ -13,7 +13,7 @@
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.dog,.mood,.reveal{transition:none}.reveal{opacity:1;transform:none}}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.8;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(680px 380px at 50% -6%,rgba(255,206,84,.07),transparent 70%)}
 main{position:relative;z-index:1}
@@ -38,6 +38,7 @@ h1{font-family:var(--serif);font-size:clamp(2rem,6vw,3.1rem);margin:0 0 12px;lin
 .scene{display:flex;justify-content:space-between;font-size:.76rem;color:var(--faint);margin:16px 4px 4px}
 .scene .bell{color:var(--bell)} .scene .treat{color:var(--treat)}
 .canvas-wrap{position:relative;width:100%;aspect-ratio:16/6;max-height:150px}
+.canvas-wrap canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 @media (max-width:560px){.canvas-wrap{aspect-ratio:2/1}}
 #trace{position:absolute;inset:0;width:100%;height:100%;display:block}
 .caplabel{font-size:.72rem;color:var(--faint);text-align:center;margin-top:4px}
@@ -71,7 +72,7 @@ footer{text-align:center;padding:36px 22px 60px;color:var(--faint);font-size:.78
 <div class="wrap" style="padding-top:0">
   <div class="pen">
     <div class="dog" id="dog" aria-hidden="true">🐕</div>
-    <p class="mood" id="mood"><b>牠還不懂鈴聲的意思。</b>搖個鈴、給牠零食試試。</p>
+    <p class="mood" id="mood" aria-live="polite"><b>牠還不懂鈴聲的意思。</b>搖個鈴、給牠零食試試。</p>
     <div class="cnt">已訓練 <span id="n">0</span> 次</div>
 
     <div class="scene"><span class="bell">🔔 鈴響</span><span>時間 →</span><span class="treat" id="treatLab">🦴 零食</span></div>
@@ -160,10 +161,11 @@ if(typeof document!=='undefined')(function(){
   document.getElementById('omit').addEventListener('click',omit);
   document.getElementById('reset').addEventListener('click',reset);
   window.addEventListener('resize',draw);
-  mR.addEventListener('change',function(e){reduced=e.matches;});
+  var onRM=function(e){reduced=e.matches;}; if(mR.addEventListener) mR.addEventListener('change',onRM); else if(mR.addListener) mR.addListener(onRM); /* 舊 Safari */
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) draw(); });
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
-  io.observe(document.getElementById('rev'));
+  if(!('IntersectionObserver' in window)||reduced){ document.getElementById('rev').classList.add('in'); }
+  else { var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
+  io.observe(document.getElementById('rev')); }
   (function(){ var r=tdTrial(V,P,false); delta=r.delta; draw(); })();
 })();
 </script>

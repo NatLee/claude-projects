@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>「嚙踝蕭」｜每日小專案</title>
+<meta name="description" content="1999 年，媽從台北寄來一封信，東京的電腦把它讀成一堆半形片假名。轉動解碼盤把她找回來——再看這封信怎麼變成網路上最有名的亂碼。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0f1113; --pk-ink:#e6e1d6; --pk-dim:#8a857b; --pk-accent:#ffb547;
+  --amber:#ffb547; --amber-dim:rgba(255,181,71,.55);
+  --paper:#f2e9d6; --paper-ink:#2a241c;
+  --fffd:#ef5b5b; --gold:#f5c84c;
+  --mono:"MS Gothic","Osaka-Mono","Noto Sans Mono CJK TC","Noto Sans Mono CJK JP",ui-monospace,"Menlo","Consolas",monospace;
+  --pk-maxw:720px;
+}
+body{background:
+  radial-gradient(1200px 600px at 50% -10%, rgba(255,181,71,.06), transparent 60%), var(--pk-bg);}
+p{margin:0 0 1.1em}
+.pk-foot.pk-wrap{margin-left:auto;margin-right:auto}
+.lede{font-size:clamp(16px,2.2vw,18px)}
+.dim{color:var(--pk-dim)}
+.mono{font-family:var(--mono)}
+em.hl{font-style:normal;color:var(--amber)}
+
+/* ── 第一屏 ── */
+.hook{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding:72px 0 40px}
+.stamp-date{font-family:var(--mono);font-size:12.5px;letter-spacing:.2em;color:var(--pk-dim);margin-bottom:18px}
+.crt{position:relative;font-family:var(--mono);color:var(--amber);
+  font-size:clamp(14px,3.3vw,19px);line-height:1.7;white-space:pre-wrap;word-break:break-all;
+  padding:22px 22px 20px;border-radius:14px;background:#14120e;
+  box-shadow:inset 0 0 0 1px rgba(255,181,71,.18), inset 0 0 60px rgba(255,181,71,.06), 0 30px 80px -40px rgba(0,0,0,.9);
+  text-shadow:0 0 8px rgba(255,181,71,.35);margin:0 0 30px;overflow:hidden}
+.crt::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px);opacity:.55}
+.hook h1{font-family:var(--pk-serif);font-weight:600;font-size:clamp(24px,5.6vw,38px);line-height:1.45;margin:0 0 18px}
+.cue{margin-top:26px;font-size:13px;letter-spacing:.2em;color:var(--pk-dim)}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+
+/* ── 章節 ── */
+.ch{padding:64px 0 10px}
+.ch-no{font-family:var(--mono);font-size:12px;letter-spacing:.24em;color:var(--amber-dim);margin-bottom:10px}
+.ch h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(21px,4.4vw,29px);line-height:1.45;margin:0 0 18px}
+
+/* hex 位元組格 */
+.hex{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:4px;
+  font-family:var(--mono);font-size:11.5px;margin:22px 0 10px}
+.hex i{font-style:normal;text-align:center;padding:5px 0;border-radius:5px;
+  background:rgba(255,255,255,.04);color:#b9b2a4;transition:background .25s,color .25s,transform .25s}
+.hex i.nl{color:#5e5a52}
+.hex i.hi{background:var(--amber);color:#1a140a;transform:translateY(-2px)}
+.hex i.dead{background:rgba(239,91,91,.16);color:var(--fffd)}
+.hex i.flip{animation:flip .5s cubic-bezier(.3,.7,.3,1) both;animation-delay:var(--d,0ms)}
+@keyframes flip{0%{transform:scaleY(1)}45%{transform:scaleY(0)}100%{transform:scaleY(1)}}
+.hex-cap{font-size:12.5px;color:var(--pk-dim)}
+
+/* 字典對照小格 */
+.dict{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:22px 0 26px}
+.dict div{border:1px solid var(--pk-line);border-radius:12px;padding:12px 14px;transition:border-color .3s,transform .3s}
+.dict div:hover{border-color:var(--amber-dim);transform:translateY(-2px)}
+.dict b{display:block;font-family:var(--pk-serif);font-size:30px;line-height:1.3;color:var(--pk-ink);min-height:1.3em}
+.dict small{color:var(--pk-dim);font-size:12px;letter-spacing:.06em}
+
+/* ── 解碼台 ── */
+.bench{margin:26px 0 8px;border-radius:18px;padding:18px;
+  background:linear-gradient(180deg,#1a1c1f,#141618);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 0 1px rgba(255,255,255,.05),0 40px 80px -50px #000}
+.bench-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;color:var(--pk-dim);margin:0 4px 12px}
+.bench-head b{color:var(--amber);font-weight:400}
+.screen{position:relative;min-height:230px;border-radius:12px;padding:20px 20px 18px;overflow:hidden;
+  background:#0e0d0a;box-shadow:inset 0 0 0 1px rgba(255,181,71,.15),inset 0 0 50px rgba(255,181,71,.05)}
+.screen::before{content:"";position:absolute;inset:0;background:var(--paper);opacity:0;transition:opacity .9s ease}
+.screen::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.2) 0 1px, transparent 1px 3px);opacity:.5;transition:opacity .9s}
+.screen.paper::before{opacity:1}
+.screen.paper::after{opacity:0}
+.txt{position:relative;z-index:1;font-family:var(--mono);font-size:clamp(14px,3.1vw,17.5px);line-height:1.75;
+  white-space:pre-wrap;word-break:break-all;color:var(--amber);text-shadow:0 0 7px rgba(255,181,71,.3);transition:color .6s}
+.screen.paper .txt{font-family:var(--pk-serif);color:var(--paper-ink);text-shadow:none;font-size:clamp(16px,3.4vw,19px);line-height:1.95}
+.txt .ln{display:block;min-height:1.75em}
+.txt.anim .ln{animation:chin .45s cubic-bezier(.2,.7,.3,1) both;animation-delay:var(--d,0ms)}
+@keyframes chin{from{opacity:0;transform:translateY(.35em)}to{opacity:1;transform:none}}
+.txt span.ff{color:var(--fffd);text-shadow:0 0 6px rgba(239,91,91,.4)}
+.txt span.sv{color:#1a1408;background:var(--gold);border-radius:3px;text-shadow:none;box-shadow:0 0 14px rgba(245,200,76,.55)}
+.txt span.on{background:rgba(255,181,71,.25);border-radius:3px}
+.static{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;
+  background:repeating-linear-gradient(90deg,rgba(255,255,255,.07) 0 2px,transparent 2px 5px);transition:opacity .18s}
+.static.on{opacity:1;transition:none}
+.seal{position:absolute;right:16px;bottom:14px;z-index:3;font-family:var(--pk-serif);font-weight:700;font-size:15px;
+  color:#b3261e;border:2px solid #b3261e;border-radius:8px;padding:4px 10px;letter-spacing:.12em;
+  opacity:0;transform:rotate(-12deg) scale(1.8);transition:opacity .35s,transform .5s cubic-bezier(.2,1.4,.4,1)}
+.seal.show{opacity:.88;transform:rotate(-12deg) scale(1)}
+
+/* 調頻帶（原生 range 疊在上面，鍵盤/觸控都能用） */
+.tuner{position:relative;margin:20px 4px 4px;padding:0 0 4px}
+.band{position:relative;height:64px;border-radius:10px;background:#0b0c0d;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.band .tick{position:absolute;top:10px;width:1px;height:12px;background:rgba(255,255,255,.25)}
+.band .lab{position:absolute;top:28px;transform:translateX(-50%);text-align:center;white-space:nowrap;
+  font-family:var(--mono);font-size:11px;line-height:1.3;color:#77726a;transition:color .25s}
+.band .lab small{display:block;font-size:9.5px;letter-spacing:.04em;opacity:.8}
+.band .lab.cur{color:var(--amber)}
+.needle{position:absolute;top:3px;height:24px;left:0;width:2px;margin-left:-1px;background:#ff5a3c;border-radius:1px;
+  box-shadow:0 0 10px rgba(255,90,60,.8);transition:transform .32s cubic-bezier(.2,.8,.2,1);will-change:transform}
+.needle::after{content:"";position:absolute;left:-4px;bottom:-5px;border:5px solid transparent;border-top-color:#ff5a3c}
+.tuner input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:grab}
+.tuner input:active{cursor:grabbing}
+.tuner:focus-within .band{box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),0 0 0 2px var(--amber)}
+.readout{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 14px;margin:12px 4px 0;
+  font-family:var(--mono);font-size:12px;color:var(--pk-dim)}
+.readout b{color:var(--pk-ink);font-weight:400}
+.readout .zero b{color:#8fd694}
+.readout .bad b{color:var(--fffd)}
+.hint{font-size:13px;color:var(--pk-dim);margin:10px 4px 0;min-height:1.6em}
+
+/* 解鎖的章節 */
+.locked{display:none}
+.btn-row{margin:24px 0 6px}
+.count{font-family:var(--mono);font-size:clamp(28px,7vw,44px);color:var(--fffd);letter-spacing:.02em;margin:14px 0 2px}
+.count small{font-size:13px;color:var(--pk-dim);letter-spacing:.08em;margin-left:6px}
+
+/* 墓碑 */
+.tomb{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:24px 0 26px}
+.tomb div{text-align:center;padding:18px 6px 14px;border-radius:14px 14px 6px 6px;
+  background:linear-gradient(180deg,#24262a,#1a1b1e);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
+.tomb b{display:block;font-family:var(--pk-serif);font-size:clamp(21px,5vw,30px);font-weight:600;color:#d8d2c4}
+.tomb small{font-size:11.5px;color:var(--pk-dim);letter-spacing:.08em}
+.surv{font-family:var(--pk-serif);font-size:clamp(20px,4.6vw,26px);letter-spacing:.18em;margin:16px 0 20px}
+.surv span{display:inline-block;color:#1a1408;background:var(--gold);border-radius:4px;padding:0 .18em;margin:0 .12em 6px;
+  box-shadow:0 0 16px rgba(245,200,76,.45)}
+.last{font-family:var(--pk-serif);font-size:clamp(22px,5vw,32px);line-height:1.6;margin:40px 0 10px}
+
+/* P.S. */
+.ps{margin-top:54px;padding:20px 20px 16px;border:1px dashed rgba(255,255,255,.16);border-radius:14px}
+.ps label{display:block;font-family:var(--pk-serif);font-size:17px;margin-bottom:10px}
+.ps input{width:100%;font:inherit;font-size:17px;color:var(--pk-ink);background:#0b0c0d;border:1px solid var(--pk-line);
+  border-radius:10px;padding:10px 12px;transition:border-color .2s}
+.ps input:focus{border-color:var(--amber);outline:none}
+.ps-out{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin-top:14px;font-size:14px;align-items:baseline}
+.ps-out dt{font-family:var(--mono);font-size:11.5px;color:var(--pk-dim)}
+.ps-out dd{margin:0;font-family:var(--mono);color:var(--amber);word-break:break-all}
+
+@media (max-width:560px){
+  .bench{padding:12px;margin-left:-8px;margin-right:-8px}
+  .screen{padding:16px 14px;min-height:250px}
+  .band .lab{font-size:9.5px}
+  .band .lab small{display:none}
+  .tomb{gap:6px}
+  .hex{grid-template-columns:repeat(auto-fill,minmax(26px,1fr));font-size:10.5px}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue span{animation:none}
+  .txt.anim .ln{animation:none}
+  .hex i.flip{animation:none}
+  .needle,.seal,.screen::before,.screen::after{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-wrap hook">
+  <div class="stamp-date rv">1999.02.14 ・ 東京・宿舍</div>
+  <div class="crt rv" id="hookCrt" aria-label="一段無法辨識的亂碼文字"></div>
+  <h1 class="rv">媽從台北寄來一封信。<br>你的電腦把它讀成這樣。</h1>
+  <p class="lede rv">你是阿明，在東京念書的第一個冬天。宿舍那台日文版 Windows 98 打開附檔，滿螢幕半形片假名和怪符號。你猜信壞了，或是媽打錯了什麼。</p>
+  <p class="lede rv">都不是。這封信，一個位元組都沒少。</p>
+  <div class="cue rv" aria-hidden="true">往下 <span>↓</span></div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="ch">
+    <div class="ch-no rv">一・電腦收到了什麼</div>
+    <h2 class="rv">它收到的不是字。<br>是 <span id="nBytes">122</span> 個數字。</h2>
+    <p class="rv">每一格是一個位元組，0 到 255 之間的一個數。網路把它們從台北原封不動搬到東京，一格也沒掉。</p>
+    <div class="rv">
+      <div class="hex" id="hex1" aria-label="信件的原始位元組，以十六進位顯示"></div>
+      <div class="hex-cap">十六進位寫法。<span class="mono">0A</span> 是換行，其餘大多兩個一組，組成一個字。</div>
+    </div>
+    <p class="rv" style="margin-top:22px">數字要變成字，得翻一本字典。麻煩在於：1999 年的東亞，每個地方各有一本。</p>
+    <p class="rv">台灣用 <em class="hl">Big5</em>——1984 年由資策會訂下，名字來自一起推動它的五家廠商。日本的 Windows 用 <em class="hl">Shift_JIS</em>，ASCII 公司和微軟合作的產物；日本的 Unix 機器又用另一本 <em class="hl">EUC-JP</em>。中國用 <em class="hl">GB</em> 家族。</p>
+    <p class="rv">同兩個數字，翻開不同的字典，就是不同的字。看看這一組：<span class="mono hl" id="pairHex">A7 4E</span></p>
+    <div class="dict rv" id="dict"></div>
+    <p class="rv">沒有哪一本是「錯的」。錯的是寄的人和收的人，手上拿的不是同一本。</p>
+  </section>
+
+  <section class="ch" id="ch2">
+    <div class="ch-no rv">二・解碼台</div>
+    <h2 class="rv">媽沒有寫錯。<br>換一本字典試試。</h2>
+    <p class="rv">下面是同一份 122 個位元組。指針停在你電腦的預設——Shift_JIS。拖動調頻帶（或用方向鍵），像轉收音機找電台那樣，一格一格換字典。</p>
+
+    <div class="bench rv" id="bench1">
+      <div class="bench-head"><span>DECODER BENCH ・ 1999</span><span>字典：<b class="encName">—</b></span></div>
+      <div class="screen">
+        <div class="txt" aria-live="off"></div>
+        <div class="static"></div>
+        <div class="seal" aria-hidden="true">對上了</div>
+      </div>
+      <div class="tuner">
+        <div class="band"><div class="needle"></div></div>
+        <input type="range" min="0" max="5" step="1" value="3" aria-label="選擇解碼用的字典">
+      </div>
+      <div class="readout">
+        <span>轉動：<b class="turns">0</b> 次</span>
+        <span class="zero">位元組變動：<b class="changed">0</b>／<b class="total">122</b></span>
+      </div>
+      <p class="hint" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="ch locked" id="ch3">
+    <div class="ch-no rv">三・七年後</div>
+    <h2 class="rv">你把這封信留了七年。</h2>
+    <p class="rv">2006 年，你換了新電腦，把舊信匣搬進新的郵件軟體。新軟體很現代：它認定所有信都是 <em class="hl">UTF-8</em>——那本後來統一世界的字典。</p>
+    <p class="rv">它打開媽的信，讀不懂的地方，很貼心地換成一個標準記號：<span class="mono" style="color:var(--fffd)">�</span>（替換字元，存起來是三個位元組 <span class="mono">EF BF BD</span>）。然後，按下儲存。</p>
+    <div class="rv">
+      <div class="hex" id="hex2" aria-label="匯入時被替換的位元組"></div>
+      <div class="count" id="count" aria-live="polite">122<small>位元組</small></div>
+    </div>
+    <div class="btn-row rv"><button class="pk-btn" id="importBtn">匯入舊信匣</button></div>
+
+    <div class="locked" id="ch3b">
+      <p style="margin-top:26px">現在，你再打開它。這次你學乖了，指針直接轉到 Big5。</p>
+      <div class="bench" id="bench2">
+        <div class="bench-head"><span>DECODER BENCH ・ 2006</span><span>字典：<b class="encName">—</b></span></div>
+        <div class="screen">
+          <div class="txt" aria-live="off"></div>
+          <div class="static"></div>
+        </div>
+        <div class="tuner">
+          <div class="band"><div class="needle"></div></div>
+          <input type="range" min="0" max="5" step="1" value="5" aria-label="選擇解碼用的字典（2006 年那份）">
+        </div>
+        <div class="readout">
+          <span>試過：<b class="tried">1</b>／6 本字典</span>
+          <span class="bad">位元組：<b class="total">—</b>（原本 122）</span>
+        </div>
+        <p class="hint" aria-live="polite">再轉轉看。每一本都試。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch locked" id="ch4">
+    <div class="ch-no rv">四・墓碑</div>
+    <h2 class="rv">哪一本字典都救不回來，<br>因為字已經不在了。</h2>
+    <p class="rv">第一次是<em class="hl">讀錯</em>：位元組都在，換本字典就回來。第二次是<em class="hl">改掉</em>：<span id="nDead">57</span> 個位元組被換成同一組 <span class="mono">EF BF BD</span>，原本是什麼，再也查不到。</p>
+    <p class="rv">那三個位元組太常見了，在不同地方長出了不同的名字——</p>
+    <div class="tomb rv" id="tomb"></div>
+    <p class="rv">下次在舊論壇看到這幾個字，你會知道：那不是亂碼。亂碼還有救。那是一塊墓碑，底下壓著一個被「好心」換掉的字。</p>
+    <p class="rv">那封信最後活下來的，只剩這些——它們的位元組碰巧也長得像合法的 UTF-8，被放過了：</p>
+    <div class="surv rv" id="surv" aria-label="倖存的字"></div>
+    <p class="rv dim">還記得第一章那組 <span class="mono">A7 4E</span> 嗎？它也在裡面。</p>
+    <p class="rv">2026 年 10 月，全世界 99.1% 的網站用同一本字典：UTF-8。像那年冬天那樣的信，大概不會再被讀錯了。</p>
+    <p class="last rv">媽說：「不是媽寫錯字，是電腦認錯字。」<br>她說對了一半。<br>下次看到亂碼，先別按儲存。</p>
+
+    <div class="ps rv">
+      <label for="psName">P.S. 你的名字，如果被 1999 年的字典讀到——</label>
+      <p class="dim" style="font-size:13.5px;margin:-4px 0 12px">今天它用 UTF-8 存著。拿舊字典去讀同一串位元組：</p>
+      <input id="psName" type="text" maxlength="24" autocomplete="off" placeholder="打一個名字，例如：陳阿明" spellcheck="false">
+      <dl class="ps-out" id="psOut" aria-live="polite"></dl>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  阿明與媽媽的信為虛構；位元組與解碼全部由瀏覽器即時計算。<br>
+  資料來源：WHATWG Encoding Standard、W3Techs（2026-10）、Wikipedia〈Mojibake〉〈Big5〉〈Shift JIS〉。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'mojibk.';
+const store = PK.store(LS);
+
+/* <core> ── 純函式（node 斷言用）── */
+const LETTER_HEX = 'aafca9faa1470aaa46a8caa74ea4a3a74ea148a578a55fa4b5a4d1a455ab42a1430ab36fabcaab48a141a741acddb16fc0b4b6dca1480aa670aa47acddb05fa8d3b3a3ac4fa9c7a672a1410aa8baa4a3ac4fb6fdbc67bff9a672a141ac4fb971b8a3bb7bbff9a672a1430ab6fd20313939392e322e3134203a29';
+const STATIONS = [
+  { enc: 'windows-1252', name: 'Windows-1252', where: '西歐' },
+  { enc: 'utf-8',        name: 'UTF-8',        where: '未來' },
+  { enc: 'euc-jp',       name: 'EUC-JP',       where: '日本 Unix' },
+  { enc: 'shift_jis',    name: 'Shift_JIS',    where: '日本 Windows' },
+  { enc: 'gbk',          name: 'GBK',          where: '中國' },
+  { enc: 'big5',         name: 'Big5',         where: '台灣' }
+];
+function hexToBytes(h) {
+  const out = new Uint8Array(h.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(h.substr(i * 2, 2), 16);
+  return out;
+}
+function bytesToHex(b) { return Array.from(b, x => x.toString(16).toUpperCase().padStart(2, '0')); }
+/* 把位元組切成「一個字對應哪幾個位元組」；串起來必須和 TextDecoder 整段解碼完全相同 */
+function segment(bytes, enc) {
+  const out = []; let i = 0;
+  const strict = new TextDecoder(enc, { fatal: true }), loose = new TextDecoder(enc);
+  while (i < bytes.length) {
+    let done = false;
+    for (let n = 1; n <= 4 && i + n <= bytes.length; n++) {
+      try { const s = strict.decode(bytes.subarray(i, i + n)); out.push({ ch: s, start: i, len: n, bad: false }); i += n; done = true; break; }
+      catch (e) { /* 這幾個位元組還湊不成一個字 */ }
+    }
+    if (done) continue;
+    /* 解不出來：照 WHATWG 的錯誤規則，找出這個 � 吃掉幾個位元組
+       （取最短的 k，使「� ＋ 後面重新解碼」與整段解碼一致） */
+    const full = loose.decode(bytes.subarray(i));
+    let len = 1;
+    for (let k = 1; k <= Math.min(4, bytes.length - i); k++) {
+      if ('�' + loose.decode(bytes.subarray(i + k)) === full) { len = k; break; }
+    }
+    out.push({ ch: '�', start: i, len: len, bad: true }); i += len;
+  }
+  return out;
+}
+/* 2006 年的匯入程式：用 UTF-8 讀、讀不懂就換成 U+FFFD、再存回 UTF-8。prov 記下每個新位元組來自原本的哪一格（-1＝新造的） */
+function migrate(bytes) {
+  const segs = segment(bytes, 'utf-8'); const out = [], prov = [], killed = [];
+  for (const s of segs) {
+    if (s.bad) { out.push(0xEF, 0xBF, 0xBD); prov.push(-1, -1, -1); for (let k = 0; k < s.len; k++) killed.push(s.start + k); }
+    else for (let k = 0; k < s.len; k++) { out.push(bytes[s.start + k]); prov.push(s.start + k); }
+  }
+  return { bytes: Uint8Array.from(out), prov: prov, killed: killed, replacements: segs.filter(s => s.bad).length };
+}
+/* 倖存者：在新位元組裡，某個字的位元組全部來自原檔、而且在原檔用同一本字典讀也正好是同一個字 */
+function survivors(orig, mig, enc) {
+  const o = new Map(); segment(orig, enc).forEach(s => o.set(s.start + ':' + s.len, s.ch));
+  const res = [];
+  segment(mig.bytes, enc).forEach((s, idx) => {
+    const p0 = mig.prov[s.start]; if (p0 < 0) return;
+    for (let k = 1; k < s.len; k++) if (mig.prov[s.start + k] !== p0 + k) return;
+    if (o.get(p0 + ':' + s.len) === s.ch) res.push(idx);
+  });
+  return res;
+}
+function countDiff(a, b) {
+  if (a.length !== b.length) return Math.abs(a.length - b.length) + Math.min(a.length, b.length);
+  let n = 0; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) n++; return n;
+}
+/* </core> */
+
+const ORIG = hexToBytes(LETTER_HEX);
+const MIG = migrate(ORIG);
+const $ = (s, r) => (r || document).querySelector(s);
+const enc = i => STATIONS[i].enc;
+
+/* ── 第一屏：電腦讀成的樣子（即時用 Shift_JIS 解） ── */
+$('#hookCrt').textContent = new TextDecoder('shift_jis').decode(ORIG).split('\n').slice(0, 4).join('\n');
+$('#nBytes').textContent = ORIG.length;
+
+/* ── 位元組格 ── */
+function buildHex(el, bytes) {
+  el.textContent = '';
+  const cells = bytesToHex(bytes).map((h, i) => {
+    const c = document.createElement('i'); c.textContent = h; if (bytes[i] === 0x0A) c.className = 'nl'; el.appendChild(c); return c;
+  });
+  return cells;
+}
+const hex1 = buildHex($('#hex1'), ORIG);
+
+/* ── 字典對照：A7 4E ── */
+(function () {
+  const pair = Uint8Array.from([0xA7, 0x4E]);
+  const pick = [3, 0, 1, 5];
+  $('#dict').innerHTML = pick.map(i => {
+    const s = STATIONS[i]; const t = new TextDecoder(s.enc).decode(pair);
+    return '<div><b>' + t.replace(/[<&]/g, '') + '</b><small>' + s.name + '・' + s.where + '</small></div>';
+  }).join('');
+})();
+
+/* ── 解碼台 ── */
+function Bench(root, bytes, opt) {
+  const txt = $('.txt', root), screen = $('.screen', root), stat = $('.static', root);
+  const band = $('.band', root), needle = $('.needle', root), input = $('input', root), nameEl = $('.encName', root);
+  const labs = STATIONS.map((s, i) => {
+    const t = document.createElement('div'); t.className = 'tick';
+    const l = document.createElement('div'); l.className = 'lab'; l.innerHTML = s.name + '<small>' + s.where + '</small>';
+    band.appendChild(t); band.appendChild(l); return { t: t, l: l };
+  });
+  function layout() {
+    const w = band.getBoundingClientRect().width; if (w < 80) return;
+    const pad = Math.min(46, w * 0.09);
+    labs.forEach((o, i) => { const x = pad + (w - pad * 2) * i / (STATIONS.length - 1); o.t.style.left = x + 'px'; o.l.style.left = x + 'px'; });
+    const x = pad + (w - pad * 2) * (+input.value) / (STATIONS.length - 1);
+    needle.style.transform = 'translateX(' + x + 'px)';
+  }
+  if ('ResizeObserver' in window) new ResizeObserver(layout).observe(band); else window.addEventListener('resize', layout);
+  let cur = -1, segs = [];
+  function render(i, animate) {
+    cur = i; const s = STATIONS[i];
+    nameEl.textContent = s.name + '（' + s.where + '）';
+    labs.forEach((o, k) => o.l.classList.toggle('cur', k === i));
+    segs = segment(bytes, s.enc);
+    const mark = opt.mark ? opt.mark(i) : null;
+    /* 一行一個 .ln（逐行進場），行內一字一個 span（滑過可對到位元組） */
+    const frag = document.createDocumentFragment();
+    let line = null, nLine = 0;
+    const newLine = () => { line = document.createElement('span'); line.className = 'ln'; line.style.setProperty('--d', (nLine++ * 70) + 'ms'); frag.appendChild(line); };
+    newLine();
+    segs.forEach((g, k) => {
+      if (g.ch === '\n') { newLine(); return; }
+      const sp = document.createElement('span');
+      sp.textContent = g.ch;
+      if (g.ch === '�') sp.className = 'ff';
+      if (mark && mark.has(k)) sp.classList.add('sv');
+      sp.dataset.k = k; line.appendChild(sp);
+    });
+    txt.textContent = ''; txt.appendChild(frag);
+    txt.classList.toggle('anim', !!animate && !PK.reduced());
+    screen.classList.toggle('paper', !!(opt.paper && opt.paper(i)));
+    layout();
+    if (animate && !PK.reduced()) { stat.classList.add('on'); requestAnimationFrame(() => requestAnimationFrame(() => stat.classList.remove('on'))); }
+  }
+  input.addEventListener('input', () => { const i = +input.value; if (i !== cur) { render(i, true); opt.onTune && opt.onTune(i); } });
+  /* 滑過字 → 亮出它用了哪幾個位元組 */
+  if (opt.cells) {
+    let lit = [];
+    txt.addEventListener('pointerover', e => {
+      const k = e.target.dataset && e.target.dataset.k; if (k == null) return;
+      lit.forEach(c => c.classList.remove('hi')); txt.querySelectorAll('.on').forEach(x => x.classList.remove('on'));
+      const g = segs[+k]; lit = opt.cells.slice(g.start, g.start + g.len); lit.forEach(c => c.classList.add('hi')); e.target.classList.add('on');
+    });
+    txt.addEventListener('pointerleave', () => { lit.forEach(c => c.classList.remove('hi')); lit = []; txt.querySelectorAll('.on').forEach(x => x.classList.remove('on')); });
+  }
+  render(+input.value, false);
+  return { render: render, layout: layout, get cur() { return cur; } };
+}
+
+/* 第一台：1999 */
+let turns = 0, solved = false;
+const b1root = $('#bench1');
+$('.total', b1root).textContent = ORIG.length;
+const HINTS = {
+  'windows-1252': '西歐字典只認單一位元組：每個數字都變成一個帶重音的拉丁字母。',
+  'utf-8': '連未來的字典都讀不懂——Big5 的位元組不符合 UTF-8 的規則，到處是 �。',
+  'euc-jp': '日本 Unix 的字典：有些位元組湊得成假名，其餘全是 �。',
+  'shift_jis': '你電腦的預設。大量半形片假名，是 Shift_JIS 把 Big5 的位元組拆錯了邊。',
+  'gbk': '很接近了——同樣是中文字典，字形看起來像中文，意思卻全不對。'
+};
+const bench1 = Bench(b1root, ORIG, {
+  cells: hex1,
+  paper: i => enc(i) === 'big5',
+  onTune: i => {
+    turns++; $('.turns', b1root).textContent = turns;
+    const hint = $('.hint', b1root);
+    $('.changed', b1root).textContent = countDiff(ORIG, ORIG);
+    if (enc(i) === 'big5') {
+      hint.textContent = '122 個位元組，一個都沒動。你做的，就是換一本字典。';
+      if (!solved) {
+        solved = true;
+        $('.seal', b1root).classList.add('show');
+        PK.announce('對上了：Big5。媽的信讀得懂了——東京冷不冷？台北今天下雨。');
+        const best = store.get('best', 0);
+        if (!best || turns < best) store.set('best', turns);
+        unlock('#ch3');
+      }
+    } else hint.textContent = HINTS[enc(i)] || '';
+  }
+});
+(function () {
+  const best = store.get('best', 0);
+  $('.hint', b1root).textContent = best ? '上次你轉了 ' + best + ' 次才找到她。' : '轉到對的那本字典，故事才會往下走。';
+})();
+
+function unlock(sel) {
+  const el = $(sel); if (!el.classList.contains('locked')) return;
+  el.classList.remove('locked');
+  PK.reveal(sel + ' .rv');
+}
+
+/* ── 第三章：匯入 ── */
+const hex2 = buildHex($('#hex2'), ORIG);
+const killedSet = new Set(MIG.killed);
+let imported = false, bench2 = null;
+const tried = new Set();
+function animateCount(from, to, ms) {
+  const el = $('#count');
+  if (PK.reduced()) { el.innerHTML = to + '<small>位元組</small>'; return; }
+  let t0 = null;
+  function f(dt, t) { if (t0 == null) t0 = t; const k = Math.min(1, (t - t0) / ms); el.innerHTML = Math.round(from + (to - from) * k) + '<small>位元組</small>'; if (k >= 1) PK.untick(f); }
+  PK.tick(f);
+}
+$('#importBtn').addEventListener('click', () => {
+  if (imported) return; imported = true;
+  const btn = $('#importBtn'); btn.disabled = true; btn.textContent = '已匯入・已儲存';
+  let n = 0;
+  hex2.forEach((c, i) => {
+    if (!killedSet.has(i)) return;
+    c.style.setProperty('--d', (n++ * 28) + 'ms');
+    c.classList.add('flip');
+    const swap = () => { c.textContent = '�'; c.classList.add('dead'); c.title = '→ EF BF BD'; };
+    if (PK.reduced()) swap(); else setTimeout(swap, n * 28 + 200);
+  });
+  animateCount(ORIG.length, MIG.bytes.length, PK.reduced() ? 0 : n * 28 + 500);
+  PK.announce(MIG.replacements + ' 處被換成替換字元，檔案從 ' + ORIG.length + ' 個位元組變成 ' + MIG.bytes.length + ' 個。');
+  setTimeout(() => {
+    unlock('#ch3b');
+    const r2 = $('#bench2');
+    $('.total', r2).textContent = MIG.bytes.length;
+    const svBig5 = new Set(survivors(ORIG, MIG, 'big5'));
+    bench2 = Bench(r2, MIG.bytes, {
+      mark: i => enc(i) === 'big5' ? svBig5 : null,
+      onTune: i => {
+        tried.add(i); $('.tried', r2).textContent = tried.size;
+        const hint = $('.hint', r2);
+        const names = { 'gbk': '锟斤拷', 'big5': '嚙踝蕭', 'euc-jp': '鐃緒申', 'utf-8': '�', 'shift_jis': '�ｽ', 'windows-1252': 'ï¿½' };
+        hint.textContent = '「' + names[enc(i)] + '」到處都是。' + (tried.size >= 4 ? '轉遍了，也回不來。' : '再試別本。');
+        if (tried.size >= 4) unlock('#ch4');
+      }
+    });
+    tried.add(5);
+    PK.scrollTo($('#ch3b'));
+  }, PK.reduced() ? 50 : n * 28 + 900);
+});
+
+/* ── 第四章：墓碑與倖存者 ── */
+(function () {
+  const tomb = Uint8Array.from([0xEF, 0xBF, 0xBD, 0xEF, 0xBF, 0xBD]);
+  const rows = [['big5', '台灣・Big5'], ['gbk', '中國・GBK'], ['euc-jp', '日本・EUC-JP']];
+  $('#tomb').innerHTML = rows.map(r => '<div><b>' + new TextDecoder(r[0]).decode(tomb) + '</b><small>' + r[1] + '</small></div>').join('');
+  $('#nDead').textContent = MIG.killed.length;
+  const segs = segment(MIG.bytes, 'big5');
+  const sv = survivors(ORIG, MIG, 'big5').map(k => segs[k].ch).filter(c => /[^\x00-\x7f]/.test(c));
+  $('#surv').innerHTML = sv.map(c => '<span>' + c + '</span>').join('') + '<span class="mono" style="letter-spacing:0">1999.2.14 :)</span>';
+})();
+
+/* ── P.S. 名字 ── */
+(function () {
+  const inp = $('#psName'), out = $('#psOut');
+  const te = new TextEncoder();
+  const show = [3, 4, 5, 0];
+  function upd() {
+    const v = inp.value.trim();
+    if (!v) { out.innerHTML = ''; return; }
+    const b = te.encode(v);
+    out.innerHTML = show.map(i => '<dt>' + STATIONS[i].name + '</dt><dd></dd>').join('');
+    out.querySelectorAll('dd').forEach((dd, k) => { dd.textContent = new TextDecoder(STATIONS[show[k]].enc).decode(b); });
+  }
+  inp.addEventListener('input', upd);
+})();
+
+PK.reveal();
+PK.onMotionChange(() => { bench1.layout(); bench2 && bench2.layout(); });
+</script>
+</body>
+</html>

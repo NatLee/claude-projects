@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一萬發子彈打不贏兩萬隻鳥｜每日小專案</title>
+<meta name="description" content="1932 年，西澳出動兩挺機槍對付吃麥子的鴯鶓。你接下指揮權，看著彈藥倒數，找出機槍為什麼輸。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#17100b; --pk-ink:#efe3cc; --pk-dim:#a8957a; --pk-accent:#d9822b;
+  --pk-line:rgba(239,227,204,.14);
+  --red:#c2513a; --wheat:#d8b45a; --paper:#efe3cc; --paper-ink:#2a1d12;
+  --stencil:"Impact","Haettenschweiler","Arial Narrow Bold",var(--pk-sans);
+}
+body{background:radial-gradient(120% 70% at 50% 0%,#2a1a10 0%,var(--pk-bg) 60%) fixed,var(--pk-bg);}
+
+/* ── 第一屏 ── */
+.pk-hero .stamp-date{font:600 .78rem/1 var(--pk-sans);letter-spacing:.32em;color:var(--pk-accent);text-transform:uppercase;margin:0 0 1.6rem}
+.pk-hero h1{font-size:clamp(2rem,7vw,3.3rem);line-height:1.18;margin:0 0 1.2rem}
+.pk-hero .lede{font-size:1.15rem;line-height:1.85;color:var(--pk-dim);margin:0 0 2.2rem}
+.pk-hero .lede b{color:var(--pk-ink);font-weight:600}
+.horizon{position:absolute;left:0;right:0;bottom:0;height:34vh;pointer-events:none;opacity:.9}
+.horizon svg{width:100%;height:100%;display:block}
+.horizon .walker{animation:stroll 26s linear infinite}
+@keyframes stroll{from{transform:translateX(-60px)}to{transform:translateX(1260px)}}
+
+/* ── 頂部倒數 HUD ── */
+.hud{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;justify-content:center;gap:clamp(14px,4vw,40px);
+  padding:10px 16px 9px;background:rgba(23,16,11,.88);backdrop-filter:blur(6px);border-bottom:1px solid var(--pk-line);
+  transform:translateY(-110%);transition:transform .5s cubic-bezier(.2,.7,.3,1)}
+.hud.on{transform:none}
+.hud div{text-align:center;min-width:72px}
+.hud small{display:block;font:500 .66rem/1 var(--pk-sans);letter-spacing:.2em;color:var(--pk-dim);margin-bottom:5px}
+.hud output{font:400 1.45rem/1 var(--stencil);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.hud .ammo output{color:var(--wheat)}
+.hud .ammo.low output{color:var(--red)}
+.hud .bump{animation:bump .45s ease}
+@keyframes bump{50%{transform:scale(1.14)}}
+.hud output{display:inline-block}
+
+/* ── 簡報段 ── */
+main.pk-wrap{padding-bottom:4rem}
+.brief p{font-size:1.06rem;line-height:1.95;margin:0 0 1.2rem}
+.brief .q{border-left:2px solid var(--pk-accent);padding:.2rem 0 .2rem 1rem;color:var(--pk-dim);font-style:italic}
+.take{margin:2.4rem 0 1rem}
+
+/* ── 戰況日誌 ── */
+.log{margin-top:3rem}
+.round{margin:0 0 3.6rem;opacity:0;transform:translateY(16px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.3,1)}
+.round.in{opacity:1;transform:none}
+.round .date{display:inline-block;font:400 1.05rem/1 var(--stencil);letter-spacing:.12em;color:var(--pk-bg);background:var(--pk-accent);padding:6px 10px 5px;transform:rotate(-1.5deg)}
+.round h3{font:600 1.32rem/1.5 var(--pk-serif);margin:1rem 0 .6rem}
+.round p{line-height:1.9;margin:0 0 1rem}
+.field{display:block;width:100%;height:auto;margin:1rem 0 1.2rem;border:1px solid var(--pk-line);border-radius:6px;background:#22170f;overflow:hidden}
+.field .emu{color:#cdbb9c;transition:transform 1.4s cubic-bezier(.25,.8,.3,1),opacity 1.2s ease}
+.field .emu.down{opacity:.18}
+.field .emu.sentry{color:#f3e7cf}
+.field .flash{opacity:0;transition:opacity .25s ease}
+.field.firing .flash{animation:muzzle .18s steps(2) 6}
+@keyframes muzzle{0%{opacity:.95}100%{opacity:0}}
+.opts{display:grid;gap:10px;margin:1.2rem 0}
+.opt{all:unset;box-sizing:border-box;cursor:pointer;display:block;padding:14px 16px;border:1px solid var(--pk-line);border-radius:8px;line-height:1.6;
+  background:rgba(239,227,204,.03);transition:border-color .2s,background .2s,transform .15s}
+.opt b{display:block;font-weight:600;margin-bottom:2px}
+.opt span{color:var(--pk-dim);font-size:.92rem}
+.opt:hover{border-color:var(--pk-accent);background:rgba(217,130,43,.08)}
+.opt:focus-visible{outline:2px solid var(--pk-accent);outline-offset:2px}
+.opt:active{transform:translateY(1px)}
+.opt[aria-pressed="true"]{border-color:var(--pk-accent);background:rgba(217,130,43,.14)}
+.opts.done .opt:not([aria-pressed="true"]){opacity:.35;pointer-events:none}
+.out{border-top:1px dashed var(--pk-line);padding-top:1rem;margin-top:.4rem}
+.out .tag{font:600 .7rem/1 var(--pk-sans);letter-spacing:.18em;padding:3px 7px;border-radius:3px;margin-right:6px;vertical-align:2px}
+.tag.real{background:var(--wheat);color:var(--paper-ink)}
+.tag.sim{border:1px solid var(--pk-dim);color:var(--pk-dim)}
+.out .cost{font:400 1rem/1 var(--stencil);letter-spacing:.06em;color:var(--wheat);margin:.2rem 0 .8rem}
+.clue{display:flex;gap:12px;align-items:flex-start;background:var(--paper);color:var(--paper-ink);padding:14px 16px;border-radius:4px;margin:1.2rem 0 0;
+  box-shadow:0 8px 24px rgba(0,0,0,.35);transform:rotate(.6deg)}
+.clue .n{font:400 1.6rem/1 var(--stencil);color:var(--red)}
+.clue p{margin:0;line-height:1.7;font-size:.97rem}
+.next{margin-top:1.4rem}
+
+/* ── 第二階段快轉 ── */
+.ff{margin:1rem 0 1.2rem;height:8px;border-radius:4px;background:rgba(239,227,204,.1);overflow:hidden}
+.ff i{display:block;height:100%;width:100%;background:var(--wheat);transform-origin:0 50%;transform:scaleX(0);transition:transform 3.2s linear}
+
+/* ── 報告書 ── */
+.report{background:var(--paper);color:var(--paper-ink);border-radius:3px;padding:26px 22px 22px;margin:1.4rem 0;position:relative;
+  box-shadow:0 14px 40px rgba(0,0,0,.45);font-family:"Courier New",ui-monospace,monospace}
+.report h4{font:700 .95rem/1.4 "Courier New",ui-monospace,monospace;letter-spacing:.14em;margin:0 0 1rem;border-bottom:1px solid #2a1d1255;padding-bottom:.6rem}
+.report dl{display:grid;grid-template-columns:1fr auto;gap:.5rem 1rem;margin:0;font-size:1rem}
+.report dd{margin:0;text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.report .mine{color:#7a5a3a;font-weight:400}
+.report .div{grid-column:1/-1;border-top:1px solid #2a1d1255;margin:.3rem 0}
+.report .ratio{font-size:1.25rem}
+.seal{position:absolute;right:18px;top:16px;font:400 1.1rem/1 var(--stencil);letter-spacing:.1em;color:var(--red);border:3px solid var(--red);padding:6px 10px;
+  transform:rotate(-12deg) scale(1.8);opacity:0;transition:transform .35s cubic-bezier(.3,1.6,.5,1),opacity .2s}
+.seal.on{transform:rotate(-12deg) scale(1);opacity:.9}
+
+/* ── 情報板＋謎題 ── */
+.board{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:1.2rem 0}
+.board div{border:1px dashed var(--pk-line);border-radius:6px;padding:12px;font-size:.92rem;line-height:1.6;color:var(--pk-dim);min-height:64px}
+.board div.got{border-style:solid;border-color:rgba(216,180,90,.5);color:var(--pk-ink)}
+.board div b{display:block;font:400 .95rem/1 var(--stencil);letter-spacing:.08em;color:var(--wheat);margin-bottom:6px}
+.verdict{margin:1rem 0;min-height:1.5em;line-height:1.85}
+
+/* ── 拉遠：賞金地圖 ── */
+.finale{margin-top:3rem}
+.map{display:block;width:100%;height:auto;border-radius:8px;background:#20160e;border:1px solid var(--pk-line)}
+.map .dot{opacity:0;transition:opacity .5s ease}
+.map .dot.on{opacity:.85}
+.map .gun{transition:opacity 1s ease}
+.big{font:400 clamp(2.4rem,10vw,4rem)/1 var(--stencil);color:var(--wheat);letter-spacing:.02em;margin:1.4rem 0 .4rem;font-variant-numeric:tabular-nums}
+.finale p{line-height:1.95;font-size:1.06rem}
+.coda{font:600 1.35rem/1.7 var(--pk-serif);margin:3rem 0 1rem}
+.hidden{display:none}
+
+@media (max-width:560px){
+  .board{grid-template-columns:1fr}
+  .hud div{min-width:60px}
+  .hud output{font-size:1.2rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .horizon .walker{animation:none}
+  .field .emu,.round,.map .dot,.seal,.ff i,.hud{transition:none}
+  .field.firing .flash,.hud .bump{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<div class="hud" id="hud" aria-label="戰況倒數">
+  <div class="ammo" id="hudAmmo"><small>剩餘子彈</small><output id="vAmmo">10,000</output></div>
+  <div><small>確認擊斃</small><output id="vKills">0</output></div>
+  <div><small>距撤收</small><output id="vDays">38 天</output></div>
+</div>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="stamp-date rv">1932 · 11 · 02 ／ 西澳 坎皮恩</p>
+    <h1 class="rv">三個軍人，兩挺機槍，<br>一萬發子彈。</h1>
+    <p class="lede rv">對面的敵軍大約<b>兩萬名</b>。身高一米八，跑得比卡車穩，<b>不會飛</b>。<br>今天早上，指揮權交到你手上。</p>
+    <button class="pk-btn rv" id="start" type="button">接下指揮權</button>
+  </div>
+  <div class="horizon" aria-hidden="true">
+    <svg viewBox="0 0 1200 260" preserveAspectRatio="xMidYMax slice">
+      <defs>
+        <symbol id="emuS" viewBox="0 0 20 24"><ellipse cx="9" cy="13" rx="7" ry="5"/><path d="M13.5 11 L16 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16.4" cy="2.8" r="1.7"/><path d="M8 17 L7 23.5 M11 17 L12.4 23.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></symbol>
+      </defs>
+      <rect x="0" y="200" width="1200" height="60" fill="#2a1b10"/>
+      <rect x="0" y="198" width="1200" height="3" fill="#4a2f18"/>
+      <g class="walker" style="color:#3b2716"><use href="#emuS" x="0" y="160" width="34" height="40"/></g>
+    </svg>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section class="brief hidden" id="brief">
+    <p>先把仗從頭說起。第一次世界大戰打完，澳洲政府把西澳內陸的荒地分給退伍軍人種小麥。1929 年大蕭條來了，政府叫他們多種一點，答應給補貼——補貼沒來，麥價一直往下掉。</p>
+    <p>1932 年，麥子快熟的時候，<b>約兩萬隻鴯鶓</b>依循每年繁殖季後的老路線從內陸往海岸走。半路上，牠們發現人類替牠們清好了地、挖好了水塘，還種滿了吃的。</p>
+    <p>牠們踩倒麥子、撞破圍籬，兔子跟著從破口鑽進來。農夫們打過仗，知道機槍能做什麼，派代表去坎培拉找國防部長皮爾斯。部長點頭了，條件是：槍由軍人操作，彈藥錢農夫出。</p>
+    <p class="q">報上說，部隊另有一項任務：帶回一百張鴯鶓皮，羽毛拿去裝飾輕騎兵的帽子。</p>
+    <p class="take">你是梅雷迪斯少校，皇家澳洲砲兵。兩名部下，兩挺路易斯機槍。<br>每一回合，你下一道命令；頂上的數字會替你記帳。</p>
+  </section>
+
+  <div class="log" id="log" aria-live="polite"></div>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Johnson (2006) <i>Journal of Australian Studies</i>、<i>Boom and Bust</i>（CSIRO）、Trove 1932 年報紙。
+</footer>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="emu" viewBox="0 0 20 24"><ellipse cx="9" cy="13" rx="7" ry="5" fill="currentColor"/><path d="M13.5 11 L16 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/><circle cx="16.4" cy="2.8" r="1.7" fill="currentColor"/><path d="M8 17 L7 23.5 M11 17 L12.4 23.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/></symbol>
+    <pattern id="wheat" width="14" height="10" patternUnits="userSpaceOnUse"><rect width="14" height="10" fill="#2b1e12"/><path d="M3 10 L4 3 M10 10 L9 4" stroke="#5b4422" stroke-width="1.2"/></pattern>
+  </defs>
+</svg>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+/*CORE-START*/
+/* 核心邏輯：純函式，不碰 DOM（node 斷言用） */
+var CORE = (function(){
+  var START_AMMO = 10000, REPORT_ROUNDS = 9860, REPORT_KILLS = 986, REPORT_WOUNDED = 2500;
+  var END = Date.UTC(1932, 11, 10);
+  /* 第二階段（11/13–12/10）擊斃數推估：頭兩天約 40，之後每週約 100，約 3.6 週 */
+  var P2_KILLS = 40 + Math.round(100 * 25 / 7);
+
+  var ROUNDS = [
+    { date:'1932-11-02', title:'坎皮恩，第一天。遠處約有五十隻，在射程外低頭吃麥子。',
+      field:{n:50, cx:470, spread:60},
+      opts:[
+        { k:'農夫包抄', d:'請當地農夫從後面把牠們趕向你的槍口。', ammo:650, kills:8, real:true, fx:'split',
+          t:'鳥群一受驚就拆成十幾個小隊，各往不同方向跑。槍口找不到一個值得扣扳機的「中心」。' },
+        { k:'立刻開火', d:'遠是遠了點，兩挺一起掃。', ammo:700, kills:6, real:true, fx:'split',
+          t:'第一輪齊射距離太遠，全落空；第二輪才打倒「幾隻」。傍晚又遇上一小群，報上說大概打倒十來隻。' },
+        { k:'等牠們走近', d:'機槍省著用，讓鳥自己過來。', ammo:0, kills:0, real:false, fx:'flee',
+          t:'牠們吃完這片就往下一片走，從頭到尾沒有走進射程。你白白耗掉一個下午。' }
+      ],
+      fact:'史實：當天農夫試著把鳥趕進伏擊圈，鳥群立刻拆成小群四散。',
+      clue:{id:1, h:'牠們不排隊', b:'一受驚，大群立刻拆成許多小群，各自跑開。'} },
+
+    { date:'1932-11-04', title:'水壩邊的伏擊點。地平線上，一千多隻正朝你走來。',
+      field:{n:120, cx:520, spread:70},
+      opts:[
+        { k:'等到極近再開火', d:'這次不犯第一天的錯。', ammo:150, kills:12, real:true, fx:'jam',
+          t:'鳥群走進射程，你下令開火。倒下十二隻——然後機槍卡彈。等你把槍弄好，一千多隻已經全散了。' },
+        { k:'先打領頭的', d:'前排一倒，後面會亂。', ammo:450, kills:5, real:false, fx:'split',
+          t:'前排一倒，後面沒有亂成一團，而是整齊地從兩翼繞開。牠們不需要隊形也知道要往哪跑。' },
+        { k:'叫農夫敲鍋子', d:'把牠們嚇成一團，再掃。', ammo:380, kills:4, real:false, fx:'split',
+          t:'噪音讓牠們更散，不是更密。你在打一片會移動的霧。' }
+      ],
+      fact:'史實：11 月 4 日的水壩伏擊打倒 12 隻後機槍卡彈，其餘全數逃散，當天再也沒看到鳥。',
+      clue:{id:2, h:'機槍等不起', b:'路易斯機槍一卡彈，整群鳥幾秒內就走光；牠們不會等你修好。'} },
+
+    { date:'1932-11-06', title:'往南移動，聽說那邊的鳥「相當溫馴」。隨行觀察員寫下一段話。',
+      field:{n:36, cx:420, spread:55, sentry:true},
+      opts:[
+        { k:'先打哨兵', d:'那隻最高的，一直站著沒低頭的。', ammo:300, kills:2, real:false, fx:'flee',
+          t:'第一槍響之前，哨兵已經叫了。整群在你瞄準鏡裡掉頭。' },
+        { k:'照計畫往南掃', d:'溫馴的鳥，應該好打。', ammo:1500, kills:15, real:true, fx:'split',
+          t:'溫馴是相對的。連著幾天，你打倒十幾隻，子彈卻一盤一盤地空。' },
+        { k:'改成夜襲', d:'趁牠們睡覺。', ammo:250, kills:0, real:false, fx:'flee',
+          t:'麥田沒有月光就是一片黑。你朝聲音開了兩百多槍，天亮後一隻也找不到。' }
+      ],
+      fact:'史實：觀察員記錄「每一群現在似乎都有自己的領袖——一隻足有六呎高的黑羽大鳥，負責站崗，看到我們靠近就示警」。往南的戰果有限。',
+      clue:{id:3, h:'每群都有哨兵', b:'一隻高大的黑羽鳥不吃東西、專門把風，一見人就示警。'} },
+
+    { date:'1932-11-07', title:'你決定換個打法：機動戰。',
+      field:{n:30, cx:300, spread:50},
+      opts:[
+        { k:'機槍架上卡車', d:'牠們跑，我們追。', ammo:200, kills:0, real:true, fx:'flee',
+          t:'卡車在麥田裡追不上，而且顛得太厲害，槍手幾乎沒能好好打出一發。' },
+        { k:'改在圍籬缺口埋伏', d:'牠們總要從破洞進來。', ammo:420, kills:9, real:false, fx:'split',
+          t:'圍籬有幾百個破洞，你只有兩挺槍。牠們從你沒守的那一個進來。' },
+        { k:'朝帶頭的開槍', d:'中了就會倒吧？', ammo:300, kills:3, real:false, fx:'split',
+          t:'有幾隻明明中了槍，還能繼續跑，消失在灌木裡，沒算進戰果。' }
+      ],
+      fact:'史實：梅雷迪斯真的把機槍架上卡車，追不上，也顛到打不了。他後來說：「如果我們有一個師能像這些鳥一樣扛子彈，就能面對世上任何軍隊……牠們面對機槍，像坦克一樣刀槍不入。」',
+      clue:{id:4, h:'中彈還能跑', b:'少校自己承認：許多鳥中槍後照樣跑掉，帳面記不到。'} },
+
+    { date:'1932-11-08', title:'坎培拉的眾議院在質詢這場「戰爭」。報紙說，只死了「幾隻」。',
+      field:{n:0},
+      opts:[
+        { k:'請求增援', d:'再給我兩挺槍。', ammo:0, kills:0, real:false, fx:'none',
+          t:'電報回來了，不是增援，是撤軍令。' },
+        { k:'上報戰果', d:'帳面數字要好看一點。', ammo:0, kills:0, real:false, fx:'none',
+          t:'不管你寫多少，部長已經決定撤了。' },
+        { k:'什麼也不說', d:'先把槍擦乾淨。', ammo:0, kills:0, real:false, fx:'none',
+          t:'撤軍令還是來了。' }
+      ],
+      fact:'史實：11 月 8 日，第一次出擊六天後，已經打掉約 2,500 發子彈；國防部長同日撤回部隊與機槍。少校的報告說：我方無人傷亡——除了尊嚴。',
+      clue:null }
+  ];
+
+  function newState(){ return { ammo:START_AMMO, kills:0, round:0, picks:[], clues:[] }; }
+
+  function apply(s, r, i){
+    var R = ROUNDS[r], o = R.opts[i];
+    var spent = Math.min(s.ammo, o.ammo);
+    return { ammo:s.ammo - spent, kills:s.kills + o.kills, round:r + 1,
+             picks:s.picks.concat([i]), clues:R.clue ? s.clues.concat([R.clue.id]) : s.clues.slice() };
+  }
+
+  /* 第二階段：不管你前面怎麼打，帳面最後都湊到報告上的 9,860 發 */
+  function phase2(s){
+    var used = START_AMMO - s.ammo;
+    var spend = Math.max(0, Math.min(s.ammo, REPORT_ROUNDS - used));
+    return { ammo:s.ammo - spend, kills:s.kills + P2_KILLS, round:s.round, picks:s.picks.slice(), clues:s.clues.slice(), p2spent:spend };
+  }
+
+  function daysLeft(iso){
+    var p = iso.split('-'), t = Date.UTC(+p[0], +p[1] - 1, +p[2]);
+    return Math.max(0, Math.round((END - t) / 864e5));
+  }
+
+  function perKill(rounds, kills){ return kills > 0 ? rounds / kills : Infinity; }
+
+  function fmt(n){
+    var s = String(Math.round(Math.abs(n))), out = '';
+    while (s.length > 3){ out = ',' + s.slice(-3) + out; s = s.slice(0, -3); }
+    return (n < 0 ? '-' : '') + s + out;
+  }
+
+  /* 決定性亂數（同一回合每次畫面一樣） */
+  function rng(seed){
+    var a = seed >>> 0;
+    return function(){ a = (a + 0x6D2B79F5) >>> 0; var t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+
+  /* 把 n 隻鳥分成 k 小隊，回傳每隻的位移（往四面散開） */
+  function scatter(n, k, seed){
+    var R = rng(seed), dirs = [], out = [];
+    for (var g = 0; g < k; g++){ var a = (g / k) * Math.PI * 2 + R() * .6; dirs.push([Math.cos(a), Math.sin(a) * .35]); }
+    for (var i = 0; i < n; i++){
+      var d = dirs[i % k], dist = 150 + R() * 140;
+      out.push([Math.round(d[0] * dist + (R() - .5) * 30), Math.round(d[1] * dist + (R() - .5) * 16)]);
+    }
+    return out;
+  }
+
+  var VERDICTS = [
+    { k:'子彈不夠', ok:false,
+      t:'九千八百六十發換到一個漂亮的整數。再多十倍，鳥一樣會先散開——問題不在你有多少發，在你打得到幾隻。' },
+    { k:'鳥太耐打', ok:false,
+      t:'少校自己也這麼覺得，還拿坦克來比。但中彈還能跑的鳥頂多讓帳面難看；更多的鳥，根本沒進過你的準星。' },
+    { k:'機槍在等一支會排隊的軍隊', ok:true,
+      t:'對。機槍是為了打密集隊形發明的。這支「敵軍」一受驚就拆成上百個小隊、每隊有哨兵、從不集結。鳥類學家瑟文提的評語是：鴯鶓指揮部顯然下令打游擊。' }
+  ];
+
+  /* 1934 年六個月內申領的賞金數；地圖上一點代表 100 份 */
+  var BOUNTIES_1934 = 57034;
+  function bountyDots(per){ return Math.ceil(BOUNTIES_1934 / per); }
+
+  return { START_AMMO:START_AMMO, REPORT_ROUNDS:REPORT_ROUNDS, REPORT_KILLS:REPORT_KILLS, REPORT_WOUNDED:REPORT_WOUNDED,
+           P2_KILLS:P2_KILLS, ROUNDS:ROUNDS, VERDICTS:VERDICTS, BOUNTIES_1934:BOUNTIES_1934,
+           newState:newState, apply:apply, phase2:phase2, daysLeft:daysLeft, perKill:perKill, fmt:fmt,
+           rng:rng, scatter:scatter, bountyDots:bountyDots };
+})();
+if (typeof module !== 'undefined') module.exports = CORE;
+/*CORE-END*/
+
+(function(){
+  if (typeof document === 'undefined') return;
+  var LS = 'emu32.';
+  var store = PK.store(LS);
+  var NS = 'http://www.w3.org/2000/svg';
+  var C = CORE, S = C.newState();
+  var $ = function(id){ return document.getElementById(id); };
+  var log = $('log'), hud = $('hud');
+
+  PK.reveal();
+
+  /* ── HUD 數字滾動 ── */
+  var shown = { ammo:S.ammo, kills:0 }, target = { ammo:S.ammo, kills:0 };
+  function paintHud(){
+    $('vAmmo').textContent = C.fmt(shown.ammo);
+    $('vKills').textContent = C.fmt(shown.kills);
+    $('hudAmmo').classList.toggle('low', shown.ammo < 1000);
+  }
+  function roll(dt){
+    var done = true;
+    ['ammo','kills'].forEach(function(k){
+      var d = target[k] - shown[k];
+      if (Math.abs(d) < 1){ shown[k] = target[k]; return; }
+      done = false; shown[k] += d * Math.min(1, dt * 7);
+    });
+    paintHud(); if (done) PK.untick(roll);
+  }
+  function setHud(s, iso){
+    target.ammo = s.ammo; target.kills = s.kills;
+    if (iso) $('vDays').textContent = C.daysLeft(iso) + ' 天';
+    if (PK.reduced()){ shown.ammo = s.ammo; shown.kills = s.kills; paintHud(); }
+    else { PK.tick(roll); bump('vAmmo'); }
+  }
+  function bump(id){
+    if (PK.reduced()) return;
+    var el = $(id); el.classList.remove('bump'); void el.getBoundingClientRect(); el.classList.add('bump');
+  }
+
+  function el(tag, cls, html){ var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function show(node, still){
+    log.appendChild(node);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ node.classList.add('in'); }); });
+    if (!still && !PK.reduced()) setTimeout(function(){ node.scrollIntoView({behavior:'smooth', block:'start'}); }, 60);
+  }
+
+  /* ── 戰場小圖 ── */
+  function buildField(cfg, seed){
+    var svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 600 200'); svg.setAttribute('class', 'field');
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', '麥田上約 ' + cfg.n + ' 隻鴯鶓');
+    var ground = document.createElementNS(NS, 'rect');
+    ground.setAttribute('x', 0); ground.setAttribute('y', 90); ground.setAttribute('width', 600); ground.setAttribute('height', 110); ground.setAttribute('fill', 'url(#wheat)');
+    svg.appendChild(ground);
+    /* 機槍陣地與槍口火光 */
+    var gun = document.createElementNS(NS, 'g');
+    gun.innerHTML = '<rect x="22" y="150" width="34" height="9" rx="2" fill="#6b5a44"/><rect x="50" y="152" width="30" height="4" fill="#8a7658"/><circle class="flash" cx="86" cy="154" r="7" fill="#f6d27a"/>';
+    svg.appendChild(gun);
+    var R = C.rng(seed), birds = [];
+    for (var i = 0; i < cfg.n; i++){
+      var u = document.createElementNS(NS, 'use');
+      var x = cfg.cx + (R() - .5) * cfg.spread * 2, y = 110 + R() * 70;
+      var w = 13 + (y - 110) / 70 * 7;
+      u.setAttribute('href', '#emu'); u.setAttribute('x', (x - w / 2).toFixed(1)); u.setAttribute('y', (y - w * 1.2).toFixed(1));
+      u.setAttribute('width', w.toFixed(1)); u.setAttribute('height', (w * 1.2).toFixed(1));
+      u.setAttribute('class', 'emu' + (cfg.sentry && i === 0 ? ' sentry' : ''));
+      if (cfg.sentry && i === 0){ u.setAttribute('width', (w * 1.5).toFixed(1)); u.setAttribute('height', (w * 1.8).toFixed(1)); u.setAttribute('y', (y - w * 1.8).toFixed(1)); }
+      svg.appendChild(u); birds.push(u);
+    }
+    return { svg:svg, birds:birds };
+  }
+
+  function playFx(f, fx, kills, seed){
+    if (!f || !f.birds.length) return;
+    if (fx !== 'flee' || kills) { f.svg.classList.add('firing'); }
+    var n = f.birds.length, downN = Math.min(kills, n - 2);
+    var off = C.scatter(n, fx === 'jam' ? 9 : 12, seed + 7);
+    f.birds.forEach(function(b, i){
+      if (i < downN){ b.classList.add('down'); return; }
+      var dx, dy;
+      if (fx === 'flee'){ dx = 380 + (i % 7) * 12; dy = (i % 5) * 3 - 6; }
+      else { dx = off[i][0]; dy = off[i][1]; }
+      b.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      if (fx === 'flee') b.style.opacity = '0';
+    });
+  }
+
+  /* ── 回合 ── */
+  function renderRound(r, still){
+    var R = C.ROUNDS[r], seed = 1932 + r * 31;
+    var sec = el('section', 'round');
+    sec.setAttribute('aria-labelledby', 'r' + r);
+    sec.appendChild(el('span', 'date', R.date.replace(/-/g, ' · ')));
+    var h = el('h3', null, R.title); h.id = 'r' + r; sec.appendChild(h);
+    var f = R.field.n ? buildField(R.field, seed) : null;
+    if (f) sec.appendChild(f.svg);
+    var opts = el('div', 'opts'); opts.setAttribute('role', 'group'); opts.setAttribute('aria-label', '你的命令');
+    R.opts.forEach(function(o, i){
+      var b = el('button', 'opt', '<b>' + o.k + '</b><span>' + o.d + '</span>');
+      b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', function(){ choose(r, i, sec, opts, f, seed); });
+      opts.appendChild(b);
+    });
+    sec.appendChild(opts);
+    show(sec, still);
+    setHud(S, R.date);
+  }
+
+  function choose(r, i, sec, opts, f, seed){
+    if (opts.classList.contains('done')) return;
+    opts.classList.add('done');
+    opts.children[i].setAttribute('aria-pressed', 'true');
+    var R = C.ROUNDS[r], o = R.opts[i];
+    var before = S.ammo;
+    S = C.apply(S, r, i);
+    playFx(f, o.fx, o.kills, seed);
+    setHud(S, R.date);
+    var out = el('div', 'out');
+    out.innerHTML = '<p><span class="tag ' + (o.real ? 'real">史實' : 'sim">推演') + '</span>' + o.t + '</p>' +
+      '<p class="cost">−' + C.fmt(before - S.ammo) + ' 發　＋' + o.kills + ' 隻</p>' +
+      '<p style="color:var(--pk-dim)">' + R.fact + '</p>';
+    if (R.clue){
+      out.appendChild(el('div', 'clue', '<span class="n">' + R.clue.id + '</span><p><b>情報：' + R.clue.h + '</b><br>' + R.clue.b + '</p>'));
+    }
+    var nx = el('button', 'pk-btn next', r + 1 < C.ROUNDS.length ? '下一道命令' : '撤軍令');
+    nx.type = 'button';
+    nx.addEventListener('click', function(){ nx.disabled = true; if (r + 1 < C.ROUNDS.length) renderRound(r + 1); else renderPhase2(); });
+    out.appendChild(nx);
+    sec.appendChild(out);
+    PK.announce(o.k + '。' + (o.real ? '史實。' : '推演。') + o.t);
+    store.set('picks', S.picks);
+  }
+
+  /* ── 第二階段：撤軍四天後又被派回去 ── */
+  function renderPhase2(){
+    var sec = el('section', 'round');
+    sec.appendChild(el('span', 'date', '1932 · 11 · 13'));
+    sec.appendChild(el('h3', null, '四天後，你又被派回去了。'));
+    sec.appendChild(el('p', null, '農夫說天氣熱、又旱，鴯鶓成千地湧進農場。西澳總理出面施壓，基地指揮官的報告說第一輪其實打死了 300 隻。部長在參議院替這場仗辯護，槍又送了回來——州裡找不到別的熟手機槍兵，所以還是你。'));
+    var bar = el('div', 'ff', '<i></i>'); sec.appendChild(bar);
+    var go = el('button', 'pk-btn', '一直打到 12 月 10 日'); go.type = 'button';
+    sec.appendChild(go);
+    show(sec);
+    setHud(S, '1932-11-13');
+    go.addEventListener('click', function(){
+      go.disabled = true;
+      var fill = bar.firstChild;
+      var finish = function(){
+        S = C.phase2(S);
+        setHud(S, '1932-12-10');
+        sec.appendChild(el('p', null, '前兩天打倒約四十隻；第三天幾乎沒有收穫；到了十二月初，每週大約一百隻。12 月 10 日，你被召回。'));
+        sec.appendChild(el('p', 'cost', '這一段又打掉 ' + C.fmt(S.p2spent) + ' 發。'));
+        var nx = el('button', 'pk-btn next', '寫戰果報告'); nx.type = 'button';
+        nx.addEventListener('click', function(){ nx.disabled = true; renderReport(); });
+        sec.appendChild(nx);
+        PK.announce('第二階段結束，剩餘子彈 ' + C.fmt(S.ammo) + ' 發。');
+      };
+      if (PK.reduced()) finish();
+      else {
+        requestAnimationFrame(function(){ fill.style.transform = 'scaleX(1)'; });
+        /* 子彈倒數跟著進度條走 */
+        var t0 = 0, from = S.ammo, to = from - Math.max(0, Math.min(from, C.REPORT_ROUNDS - (C.START_AMMO - from)));
+        var drain = function(dt, t){
+          if (!t0) t0 = t;
+          var p = Math.min(1, (t - t0) / 3200);
+          shown.ammo = target.ammo = from + (to - from) * p; paintHud();
+          $('vDays').textContent = Math.round(27 * (1 - p)) + ' 天';
+          if (p >= 1){ PK.untick(drain); finish(); }
+        };
+        PK.tick(drain);
+      }
+    });
+  }
+
+  /* ── 報告書：中段轉折 ── */
+  function renderReport(){
+    var sec = el('section', 'round');
+    sec.appendChild(el('span', 'date', '1932 · 12 · 10'));
+    sec.appendChild(el('h3', null, '你的帳本，和你簽名的那一份。'));
+    var rep = el('div', 'report');
+    rep.innerHTML = '<span class="seal" id="seal">剛好十發一隻</span><h4>OPERATIONS REPORT · 7TH HEAVY BTY</h4>' +
+      '<dl><dt>耗用子彈</dt><dd>' + C.fmt(C.REPORT_ROUNDS) + ' 發</dd>' +
+      '<dt>確認擊斃</dt><dd>' + C.fmt(C.REPORT_KILLS) + ' 隻</dd>' +
+      '<dt>傷重後死亡（估）</dt><dd>' + C.fmt(C.REPORT_WOUNDED) + ' 隻</dd>' +
+      '<dt class="mine">你這一頁的帳</dt><dd class="mine">' + C.fmt(S.kills) + ' 隻</dd>' +
+      '<div class="div"></div><dt>每隻耗彈</dt><dd class="ratio" id="ratio">？</dd></dl>';
+    sec.appendChild(rep);
+    var chk = el('button', 'pk-btn', '核對這份報告'); chk.type = 'button';
+    sec.appendChild(chk);
+    show(sec);
+    chk.addEventListener('click', function(){
+      chk.disabled = true;
+      var v = C.perKill(C.REPORT_ROUNDS, C.REPORT_KILLS);
+      $('ratio').textContent = v.toFixed(3) + ' 發';
+      $('seal').classList.add('on');
+      sec.appendChild(el('p', null, '九千八百六十除以九百八十六，<b>一發不多、一發不少，剛好十</b>。傷重死亡的估計，也剛好是兩千五百整。'));
+      sec.appendChild(el('p', null, '史學家對這組數字的評語是：高度可疑，很可能灌了水。你在這一頁老老實實數到 ' + C.fmt(S.kills) + ' 隻，跟報告差多少，就是帳面想像出來的那一截。'));
+      sec.appendChild(el('p', null, '數字再漂亮，鳥還在。農夫隔年又來要機槍。'));
+      var nx = el('button', 'pk-btn next', '攤開情報'); nx.type = 'button';
+      nx.addEventListener('click', function(){ nx.disabled = true; renderPuzzle(); });
+      sec.appendChild(nx);
+      PK.announce('每隻耗彈 10.000 發，剛好十發一隻。');
+    });
+  }
+
+  /* ── 解謎：四條情報，一個問題 ── */
+  function renderPuzzle(){
+    var sec = el('section', 'round');
+    sec.appendChild(el('span', 'date', '解 謎'));
+    sec.appendChild(el('h3', null, '兩挺機槍、一萬發子彈，為什麼打不贏一群鳥？'));
+    var board = el('div', 'board');
+    C.ROUNDS.forEach(function(R){
+      if (!R.clue) return;
+      var got = S.clues.indexOf(R.clue.id) >= 0;
+      board.appendChild(el('div', got ? 'got' : '', '<b>情報 ' + R.clue.id + '</b>' + R.clue.h + '：' + R.clue.b));
+    });
+    sec.appendChild(board);
+    var opts = el('div', 'opts'); opts.setAttribute('role', 'group'); opts.setAttribute('aria-label', '你的判斷');
+    var v = el('p', 'verdict'); v.setAttribute('aria-live', 'polite');
+    C.VERDICTS.forEach(function(d, i){
+      var b = el('button', 'opt', '<b>' + d.k + '</b>'); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', function(){
+        if (opts.classList.contains('done')) return;
+        Array.prototype.forEach.call(opts.children, function(x){ x.setAttribute('aria-pressed', 'false'); });
+        b.setAttribute('aria-pressed', 'true');
+        v.textContent = d.t;
+        if (d.ok){ opts.classList.add('done'); store.set('solved', true); setTimeout(renderFinale, PK.reduced() ? 0 : 900); }
+      });
+      opts.appendChild(b);
+    });
+    sec.appendChild(opts); sec.appendChild(v);
+    show(sec);
+  }
+
+  /* ── 高潮：拉遠，散兵打散兵 ── */
+  function renderFinale(){
+    var sec = el('section', 'round finale');
+    sec.appendChild(el('span', 'date', '1934'));
+    sec.appendChild(el('h3', null, '那後來，誰打贏了？'));
+    sec.appendChild(el('p', null, '農夫在 1934、1943、1948 年都再要過軍隊。1943 年那次，他們要的是炸彈。政府一次也沒答應。'));
+    sec.appendChild(el('p', null, '政府改回 1923 年就有的老辦法：<b>賞金</b>。一個農夫、一支步槍、一張收據。'));
+    var map = document.createElementNS(NS, 'svg');
+    map.setAttribute('viewBox', '0 0 600 320'); map.setAttribute('class', 'map');
+    map.setAttribute('role', 'img'); map.setAttribute('aria-label', '每一點代表一百份賞金，散滿整片麥帶；左下角是兩挺機槍的位置');
+    var g = document.createElementNS(NS, 'g');
+    var per = 100, n = C.bountyDots(per), R = C.rng(57034), dots = [];
+    for (var i = 0; i < n; i++){
+      var c = document.createElementNS(NS, 'circle');
+      /* 麥帶大致呈斜帶狀，點沿帶隨機撒開 */
+      var t = R(), w = (R() - .5) * 120;
+      c.setAttribute('cx', (60 + t * 480 + w * .4).toFixed(1));
+      c.setAttribute('cy', (270 - t * 210 + w).toFixed(1));
+      c.setAttribute('r', '2.2'); c.setAttribute('class', 'dot'); c.setAttribute('fill', '#d8b45a');
+      g.appendChild(c); dots.push(c);
+    }
+    map.appendChild(g);
+    var gun = document.createElementNS(NS, 'g'); gun.setAttribute('class', 'gun');
+    gun.innerHTML = '<circle cx="150" cy="210" r="9" fill="none" stroke="#c2513a" stroke-width="2"/><circle cx="168" cy="200" r="9" fill="none" stroke="#c2513a" stroke-width="2"/><text x="182" y="232" fill="#c2513a" font-size="13" font-family="sans-serif">1932 的兩挺機槍</text>';
+    map.appendChild(gun);
+    sec.appendChild(map);
+    var big = el('p', 'big', '0'); sec.appendChild(big);
+    sec.appendChild(el('p', null, '1934 年，<b>六個月內申領的鴯鶓賞金</b>。每一點是一百份。'));
+    show(sec);
+
+    var total = C.BOUNTIES_1934;
+    if (PK.reduced()){
+      dots.forEach(function(d){ d.classList.add('on'); }); big.textContent = C.fmt(total); tail(sec);
+    } else {
+      var t0 = 0, k = 0;
+      var step = function(dt, t){
+        if (!t0) t0 = t;
+        var p = Math.min(1, (t - t0) / 3600), want = Math.floor(p * dots.length);
+        while (k < want){ dots[k++].classList.add('on'); }
+        big.textContent = C.fmt(total * p);
+        if (p >= 1){ PK.untick(step); big.textContent = C.fmt(total); tail(sec); }
+      };
+      setTimeout(function(){ PK.tick(step); }, 500);
+    }
+    PK.announce('1934 年六個月內，申領了 ' + C.fmt(total) + ' 份鴯鶓賞金。');
+  }
+
+  function tail(sec){
+    sec.appendChild(el('p', null, '機槍等的是一支會集結的軍隊。能對付散兵的，是更散的兵——五萬多份收據，分布在幾百座農場，各打各的。後來再加上一道道防獸圍籬，連槍都不太需要了。'));
+    sec.appendChild(el('p', null, '你帳上還剩 <b>' + C.fmt(S.ammo) + ' 發</b>。報告說用了九千八百六十發，從一萬發起算，剩下這些剛好對得上；至於那九百八十六隻，問那隻黑羽哨兵吧。'));
+    sec.appendChild(el('p', 'coda', '牠今天還站在澳洲國徽上，<br>和袋鼠一起扛著那面盾牌。'));
+    var again = el('button', 'pk-btn', '再指揮一次'); again.type = 'button';
+    again.addEventListener('click', function(){ location.hash = ''; location.reload(); });
+    sec.appendChild(again);
+    store.set('done', (store.get('done', 0) || 0) + 1);
+  }
+
+  $('start').addEventListener('click', function(){
+    this.disabled = true;
+    hud.classList.add('on');
+    var b = $('brief'); b.classList.remove('hidden');
+    if (!PK.reduced()) b.scrollIntoView({behavior:'smooth', block:'start'});
+    setTimeout(function(){ renderRound(0, true); }, PK.reduced() ? 0 : 50);
+  });
+  /* 回訪：按鈕文字微調 */
+  if (store.get('solved', false)) $('start').textContent = '再接一次指揮權';
+  paintHud();
+})();
+</script>
+</body>
+</html>

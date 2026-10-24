@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>請先回頭看一眼雨｜每日小專案</title>
+<meta name="description" content="騎樓最後一格，前面三百公尺沒有遮蔽。跑還是走？填好你的案情，讓鑑定書替你算出最乾的速度。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b1016; --pk-ink:#e3e8ee; --pk-accent:#7fb7d9; --pk-dim:#8794a2;
+  --paper:#f1ece1; --paper-ink:#25221d; --paper-dim:#7a7264; --rule:#cfc6b3; --seal:#b3322b;
+  --pk-maxw:720px;
+}
+/* ── 第一屏：雨 ── */
+#rain{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.55}
+.pk-hero{position:relative;z-index:1}
+.pk-hero h1{font-size:clamp(30px,6.4vw,54px);line-height:1.3;letter-spacing:.02em}
+.pk-hero p{color:var(--pk-dim);font-size:17px;max-width:30em}
+.pk-hero .q{color:var(--pk-ink);font-family:var(--pk-serif);font-size:clamp(22px,4vw,30px);margin-top:1.4em}
+.cue{display:inline-block;margin-top:2.2em;font-size:13px;letter-spacing:.2em;color:var(--pk-dim);text-decoration:none;border-bottom:1px solid var(--pk-line);padding-bottom:4px}
+.cue:hover,.cue:focus-visible{color:var(--pk-accent)}
+
+/* ── 卷宗 ── */
+main{position:relative;z-index:1;padding-bottom:40px}
+.dossier{background:var(--paper);color:var(--paper-ink);border-radius:3px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.2);
+  padding:clamp(26px,6vw,58px) clamp(20px,6vw,60px) 50px;position:relative;
+  font-family:var(--pk-serif);line-height:1.95}
+.dossier::before{content:"";position:absolute;inset:10px;border:1px solid var(--rule);pointer-events:none}
+.dhead{text-align:center;border-bottom:3px double var(--paper-ink);padding-bottom:18px;margin-bottom:8px}
+.dhead small{display:block;font-family:var(--pk-sans);font-size:12px;letter-spacing:.3em;color:var(--paper-dim)}
+.dhead h2{font-size:clamp(28px,5vw,38px);letter-spacing:.5em;margin:.25em 0 .1em;padding-left:.5em}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:2px 16px;font-size:14.5px;margin:18px 0 6px;font-family:var(--pk-sans)}
+.meta dt{color:var(--paper-dim)}
+.meta dd{margin:0}
+.dossier h3{font-size:19px;margin:2.1em 0 .5em;letter-spacing:.08em}
+.dossier h3 b{display:inline-block;min-width:3.2em;color:var(--seal);font-weight:600}
+.dossier p{margin:.6em 0}
+.dossier .aside{font-family:var(--pk-sans);font-size:13.5px;color:var(--paper-dim);border-left:2px solid var(--rule);padding-left:12px}
+.redline{background:linear-gradient(transparent 62%,rgba(179,50,43,.18) 62%)}
+.prior{list-style:none;padding:0;margin:.8em 0}
+.prior li{display:grid;grid-template-columns:4.4em 1fr;gap:12px;padding:10px 0;border-top:1px dashed var(--rule)}
+.prior li:last-child{border-bottom:1px dashed var(--rule)}
+.prior .y{font-family:var(--pk-sans);font-weight:700;color:var(--paper-dim)}
+.prior s{color:var(--paper-dim)}
+
+/* 表單＝聲請人陳述 */
+.form{display:grid;grid-template-columns:1fr 1fr;gap:16px 22px;margin:1.2em 0 .4em;font-family:var(--pk-sans)}
+.form label{display:block;font-size:12.5px;letter-spacing:.12em;color:var(--paper-dim);margin-bottom:4px}
+.form input,.form select{width:100%;font:inherit;font-size:16px;color:var(--paper-ink);background:transparent;
+  border:0;border-bottom:1.5px solid var(--paper-ink);padding:6px 2px;border-radius:0;appearance:none;-webkit-appearance:none}
+.form select{background-image:linear-gradient(45deg,transparent 50%,var(--paper-ink) 50%),linear-gradient(135deg,var(--paper-ink) 50%,transparent 50%);
+  background-position:calc(100% - 12px) 55%,calc(100% - 7px) 55%;background-size:5px 5px;background-repeat:no-repeat}
+.form input:focus,.form select:focus{outline:none;border-bottom-color:var(--seal);box-shadow:0 2px 0 var(--seal)}
+.form .wide{grid-column:1/-1}
+.windrow{display:grid;grid-template-columns:1.4fr 1fr;gap:12px}
+.hint{font-size:12px;color:var(--paper-dim);margin-top:4px}
+.submit{margin-top:22px;font-family:var(--pk-sans);font-size:15px;letter-spacing:.2em;color:var(--paper);background:var(--paper-ink);
+  border:0;border-radius:2px;padding:14px 26px;cursor:pointer;transition:transform .15s,background .2s}
+.submit:hover{background:var(--seal)}
+.submit:active{transform:translateY(1px)}
+
+/* 鑑定結果 */
+#result{display:none}
+#result.on{display:block}
+.chartbox{position:relative;margin:1em 0 .4em;border:1px solid var(--rule);background:#f7f3ea}
+#chart{display:block;width:100%;height:260px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--pk-sans);font-size:12.5px;color:var(--paper-dim);margin-bottom:6px}
+.legend i{display:inline-block;width:14px;height:3px;vertical-align:middle;margin-right:6px}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:1em 0;font-family:var(--pk-sans)}
+.num{border-top:2px solid var(--paper-ink);padding-top:8px}
+.num span{display:block;font-size:12px;letter-spacing:.12em;color:var(--paper-dim)}
+.num b{font-size:clamp(24px,5vw,34px);font-variant-numeric:tabular-nums;font-weight:700}
+.num em{font-style:normal;font-size:13px;color:var(--paper-dim);margin-left:3px}
+.num.best b{color:var(--seal)}
+.split{font-family:var(--pk-sans);font-size:13.5px;color:var(--paper-dim)}
+.verdict{position:relative;margin:1.6em 0 .6em;padding:22px 22px 22px 24px;border:1.5px solid var(--paper-ink)}
+.verdict p{margin:0;font-size:clamp(19px,3.4vw,24px);line-height:1.6}
+.verdict .why{font-family:var(--pk-sans);font-size:14px;color:var(--paper-dim);margin-top:10px;line-height:1.8}
+.stamp{position:absolute;right:-6px;top:-30px;width:108px;height:108px;border:3px solid var(--seal);border-radius:50%;
+  color:var(--seal);display:grid;place-items:center;text-align:center;font-family:var(--pk-serif);font-weight:700;
+  font-size:15px;line-height:1.25;letter-spacing:.1em;transform:rotate(-14deg) scale(2.4);opacity:0;
+  transition:transform .42s cubic-bezier(.2,1.6,.4,1),opacity .2s;background:rgba(241,236,225,.6)}
+.stamp::before{content:"";position:absolute;inset:5px;border:1px solid var(--seal);border-radius:50%}
+.stamp.hit{transform:rotate(-14deg) scale(1);opacity:.88}
+.coda{margin-top:2.4em;padding-top:1.4em;border-top:1px solid var(--rule)}
+.coda .last{font-size:clamp(20px,3.6vw,26px);margin-top:1em}
+.sign{text-align:right;font-family:var(--pk-sans);font-size:13px;color:var(--paper-dim);margin-top:2em}
+
+@media (max-width:560px){
+  .form{grid-template-columns:1fr}
+  .nums{grid-template-columns:1fr 1fr}
+  .nums .num:last-child{grid-column:1/-1}
+  .stamp{width:84px;height:84px;font-size:12px;top:-34px;right:-4px}
+  .prior li{grid-template-columns:1fr;gap:2px}
+}
+@media (prefers-reduced-motion: reduce){
+  .stamp{transition:none}
+  .submit{transition:none}
+}
+</style>
+</head>
+<body>
+<canvas id="rain" aria-hidden="true"></canvas>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <h1 class="rv">你站在騎樓的<br>最後一格。</h1>
+    <p class="rv">雨很大。前面還有三百公尺沒有遮蔽，捷運站的燈在雨幕另一頭糊成一團。傘？早上覺得用不到。</p>
+    <p class="rv q">跑，還是走？</p>
+    <a class="cue rv" href="#case">這題有人吵上電視兩季 ↓ 翻開卷宗</a>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <article class="dossier rv" id="case" aria-labelledby="dtitle">
+    <div class="dhead">
+      <small>雨 天 濕 身 鑑 定 所</small>
+      <h2 id="dtitle">鑑定書</h2>
+      <small id="caseNo">案號：雨字第 1 號</small>
+    </div>
+    <dl class="meta">
+      <dt>聲請人</dt><dd>你（目前乾燥程度：尚可）</dd>
+      <dt>案發地點</dt><dd>騎樓盡頭，距遮蔽物若干公尺</dd>
+      <dt>爭點</dt><dd>以何種速度通過雨區，身上最乾</dd>
+    </dl>
+
+    <h3><b>壹、</b>案由</h3>
+    <p>聲請人主張：跑得快，在雨裡待得短，自然淋得少。</p>
+    <p>相對人（聲請人的懶惰）主張：跑起來等於自己撞進前方的雨滴，淋到的反而更多，不如慢慢走，保留體面。</p>
+    <p>雙方各執一詞，在騎樓下已僵持四十秒。</p>
+
+    <h3><b>貳、</b>前案紀錄</h3>
+    <ul class="prior">
+      <li><span class="y">2005</span><span>美國電視節目《流言終結者》在室內架起人造雨，讓兩人穿吸水衣服、一走一跑，衣服過磅。判決：<s>用走的比較乾</s>。</span></li>
+      <li><span class="y">2006</span><span>同一節目重審，這回改到真的雨裡做。判決翻轉：<span class="redline">用跑的比較乾</span>。節目自承，前一次是人造雨害的。</span></li>
+      <li><span class="y">2012</span><span>義大利物理學者 Franco Bocci 在《歐洲物理期刊》把人體當成一個長方盒子重算一次，結論多了一條但書——<span class="redline">風從背後吹的時候，衝刺不一定對</span>。</span></li>
+    </ul>
+
+    <h3><b>參、</b>鑑定方法</h3>
+    <p>把你拆成兩個面：<b>頭頂</b>和<b>前胸</b>。</p>
+    <p>頭頂接的是從天上直直落下的雨，你在雨裡待多久，它就接多久——所以跑越快，頭頂越乾。</p>
+    <p>前胸不一樣。把三百公尺想成一條塞滿懸浮雨滴的隧道，你得把隧道裡擋在你前面的每一滴都撞一遍。<span class="redline">走過去或衝過去，撞到的是同一批雨</span>，速度改變不了它的總量。</p>
+    <p class="aside">所以在無風的日子，跑步只能省下頭頂那一份。至於風一吹，雨絲斜了，帳就不是這樣算了。</p>
+
+    <h3><b>肆、</b>聲請人陳述</h3>
+    <p>請如實填寫你的案情。鑑定人會以你的數字計算。</p>
+    <form class="form" id="f" novalidate>
+      <div>
+        <label for="dist">距離遮蔽處（公尺）</label>
+        <input id="dist" type="number" inputmode="numeric" min="5" max="3000" step="5" value="300">
+      </div>
+      <div>
+        <label for="rainSel">雨勢</label>
+        <select id="rainSel">
+          <option value="0">毛毛雨（約 1 mm/h）</option>
+          <option value="1">中雨（約 8 mm/h）</option>
+          <option value="2" selected>大雨（約 25 mm/h）</option>
+          <option value="3">豪雨（約 60 mm/h）</option>
+        </select>
+      </div>
+      <div class="wide">
+        <label for="windDir">風</label>
+        <div class="windrow">
+          <select id="windDir" aria-label="風向">
+            <option value="1">從背後吹來（雨往前斜）</option>
+            <option value="0">幾乎無風（雨直直落）</option>
+            <option value="-1">迎面吹來（雨往你臉上斜）</option>
+          </select>
+          <input id="windSpd" type="number" inputmode="decimal" min="0" max="20" step="0.5" value="2" aria-label="風速（公尺每秒）">
+        </div>
+        <div class="hint">風速單位：公尺／秒。樹葉沙沙響約 2–3，小樹枝搖約 5–6。</div>
+      </div>
+      <div>
+        <label for="height">身高（公分）</label>
+        <input id="height" type="number" inputmode="numeric" min="100" max="220" step="1" value="170">
+      </div>
+      <div>
+        <label for="runSel">你跑起來多快</label>
+        <select id="runSel">
+          <option value="3">慢跑（3 m/s）</option>
+          <option value="4.5" selected>小跑步衝（4.5 m/s）</option>
+          <option value="6.5">全力衝刺（6.5 m/s）</option>
+        </select>
+      </div>
+      <div class="wide"><button class="submit" type="submit">送交鑑定</button></div>
+    </form>
+
+    <section id="result" aria-labelledby="rtitle">
+      <h3 id="rtitle"><b>伍、</b>鑑定結果</h3>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:#25221d"></i>全身淋到的水量</span>
+        <span><i style="background:#7fb7d9"></i>頭頂</span>
+        <span><i style="background:#b3322b"></i>最乾的速度</span>
+      </div>
+      <div class="chartbox">
+        <canvas id="chart" role="img" aria-label="淋到的水量隨速度變化的曲線"></canvas>
+      </div>
+      <div class="nums">
+        <div class="num"><span>用走的（1.4 m/s）</span><b id="nWalk">0</b><em>mL</em></div>
+        <div class="num"><span id="lRun">用跑的</span><b id="nRun">0</b><em>mL</em></div>
+        <div class="num best"><span id="lBest">最乾的速度</span><b id="nBest">0</b><em>mL</em></div>
+      </div>
+      <p class="split" id="split"></p>
+      <div class="verdict" id="verdict">
+        <div class="stamp" id="stamp" aria-hidden="true">鑑定<br>完畢</div>
+        <p id="vText"></p>
+        <p class="why" id="vWhy"></p>
+      </div>
+      <p class="pk-sr" aria-live="polite" id="live"></p>
+
+      <div class="coda">
+        <h3><b>陸、</b>鑑定人附帶說明</h3>
+        <p>本鑑定不含水坑、不含路過的公車、不含你衝刺時濺起來打在小腿上的那些。</p>
+        <p>另，前案 2005 年那場誤判提醒我們：在一個你自己造出來的雨裡做實驗，雨就會照你的想像下。</p>
+        <p class="last">下次站在騎樓最後一格，先別急著決定。<br>回頭看一眼雨絲往哪邊斜。</p>
+        <p class="sign">鑑定人　雨天濕身鑑定所<br><span id="signDate"></span></p>
+      </div>
+    </section>
+  </article>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：MythBusters（2005、2006）；F. Bocci, European Journal of Physics 33 (2012)。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'rnwk.';
+const store = PK.store(LS);
+
+/*CORE-START*/
+var RAINS = [
+  { name:'毛毛雨', R:1,  vr:4   },
+  { name:'中雨',   R:8,  vr:6   },
+  { name:'大雨',   R:25, vr:7.5 },
+  { name:'豪雨',   R:60, vr:8.5 }
+];
+var WALK = 1.4;
+/* 人體＝長方盒：頭頂面積與正面面積（m²），以 170 公分為基準按身高平方縮放 */
+function body(hCm){ var s = Math.pow(hCm/170, 2); return { top:0.10*s, front:0.55*s }; }
+/* p: {d 公尺, R mm/h, vr 雨滴落速 m/s, u 雨水平速度（順著你前進方向為正）, hCm}
+   v: 你的速度 m/s。回傳各面淋到的水量（mL） */
+function wet(p, v){
+  var b = body(p.hCm);
+  var Rs = p.R / 3.6e6;            /* 降雨率 m/s（單位面積每秒落下的水深） */
+  var L = Rs / p.vr;               /* 每立方公尺空氣含水體積 */
+  var t = p.d / v;
+  var rel = v - p.u;               /* 你相對雨的水平速度 */
+  var top = Rs * b.top * t;
+  var front = rel > 0 ? L * b.front * rel * t : 0;
+  var back  = rel < 0 ? L * b.front * (-rel) * t : 0;
+  return { top:top*1e6, front:front*1e6, back:back*1e6, total:(top+front+back)*1e6 };
+}
+/* 背風臨界：風速超過 u* = A頂·vr / A正，等速順風最乾 */
+function uStar(p){ var b = body(p.hCm); return b.top * p.vr / b.front; }
+function bestSpeed(p, vmax){
+  if (p.u > 0 && p.u >= uStar(p)) return Math.min(p.u, vmax);
+  return vmax;
+}
+function verdictOf(p, vmax){
+  var vb = bestSpeed(p, vmax);
+  if (p.u > 0 && p.u >= uStar(p)) {
+    if (p.u >= vmax) return { kind:'outrun', v:vb };
+    return { kind:'match', v:vb };
+  }
+  return { kind:'run', v:vb };
+}
+/*CORE-END*/
+
+PK.reveal();
+
+/* ── 第一屏的雨（canvas），離屏／分頁隱藏暫停，reduced 時畫一張靜態 ── */
+(function(){
+  var cv = document.getElementById('rain'), ctx = cv.getContext('2d');
+  var drops = [], W = 0, H = 0, slant = 0, running = false;
+  function layout(){
+    var r = PK.fitCanvas(cv); W = r.w; H = r.h;
+    ctx.setTransform(r.dpr,0,0,r.dpr,0,0);
+    var n = Math.round(Math.min(160, W*H/9000));
+    drops = [];
+    for (var i=0;i<n;i++) drops.push({ x:Math.random()*W, y:Math.random()*H, l:8+Math.random()*16, s:500+Math.random()*500, a:.15+Math.random()*.35 });
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.lineWidth = 1;
+    for (var i=0;i<drops.length;i++){
+      var d = drops[i];
+      ctx.strokeStyle = 'rgba(160,200,230,'+d.a+')';
+      ctx.beginPath(); ctx.moveTo(d.x, d.y); ctx.lineTo(d.x + slant*d.l, d.y + d.l); ctx.stroke();
+    }
+  }
+  function step(dt){
+    var s = Math.min(dt, 50)/1000;
+    for (var i=0;i<drops.length;i++){
+      var d = drops[i]; d.y += d.s*s; d.x += slant*d.s*s;
+      if (d.y > H){ d.y = -d.l; d.x = Math.random()*W; }
+      if (d.x > W) d.x -= W; if (d.x < 0) d.x += W;
+    }
+    draw();
+  }
+  function start(){ if (!running && !PK.reduced()){ running = true; PK.tick(step); } }
+  function stop(){ if (running){ running = false; PK.untick(step); } }
+  layout(); draw();
+  window.addEventListener('resize', function(){ layout(); draw(); });
+  PK.onMotionChange(function(){ if (PK.reduced()){ stop(); draw(); } else start(); });
+  /* 卷宗蓋住畫面後雨就停（省電），回到第一屏再下 */
+  var hero = document.querySelector('.pk-hero');
+  new IntersectionObserver(function(es){ es[0].isIntersecting ? start() : stop(); }, { threshold:0.05 }).observe(hero);
+  window.__rainSlant = function(v){ slant = v; if (!running) draw(); };
+})();
+
+/* ── 表單 → 鑑定 ── */
+var $ = function(id){ return document.getElementById(id); };
+var chart = $('chart'), cctx = chart.getContext('2d');
+var caseNo = store.get('cases', 0);
+$('caseNo').textContent = '案號：雨字第 ' + (caseNo + 1) + ' 號';
+var d0 = new Date();
+$('signDate').textContent = d0.getFullYear() + ' 年 ' + (d0.getMonth()+1) + ' 月 ' + d0.getDate() + ' 日';
+
+var last = store.get('last', null);
+if (last) { try {
+  $('dist').value = last.d; $('rainSel').value = last.ri; $('windDir').value = last.wd;
+  $('windSpd').value = last.ws; $('height').value = last.h; $('runSel').value = last.vr;
+} catch(e){} }
+
+function readForm(){
+  var d = PK.clamp(+$('dist').value || 300, 5, 3000);
+  var ri = PK.clamp(+$('rainSel').value || 0, 0, 3);
+  var wd = +$('windDir').value;
+  var ws = PK.clamp(+$('windSpd').value || 0, 0, 20);
+  var h = PK.clamp(+$('height').value || 170, 100, 220);
+  var vr = +$('runSel').value || 4.5;
+  $('dist').value = d; $('windSpd').value = ws; $('height').value = h;
+  var rain = RAINS[ri];
+  return { raw:{ d:d, ri:ri, wd:wd, ws:ws, h:h, vr:vr },
+           p:{ d:d, R:rain.R, vr:rain.vr, u:wd*ws, hCm:h }, vmax:vr, rain:rain };
+}
+
+function fmt(x){ return x >= 100 ? Math.round(x).toString() : x.toFixed(1); }
+
+var anim = null;
+function render(F, progress){
+  var r = PK.fitCanvas(chart, 260), W = r.w, H = r.h;
+  if (W < 80) return;
+  cctx.setTransform(r.dpr,0,0,r.dpr,0,0);
+  cctx.clearRect(0,0,W,H);
+  var pad = { l:44, r:14, t:16, b:34 };
+  var vMin = 0.6, vMax = 8;
+  var N = 120, pts = [], tops = [], yMax = 0;
+  for (var i=0;i<=N;i++){
+    var v = vMin + (vMax-vMin)*i/N, w = wet(F.p, v);
+    pts.push([v, w.total]); tops.push([v, w.top]);
+    yMax = Math.max(yMax, w.total);
+  }
+  /* y 軸頂端：以走路水量的 1.6 倍為上限，避免慢速端把曲線壓扁 */
+  yMax = Math.min(yMax, wet(F.p, WALK).total * 1.6) * 1.08;
+  var X = function(v){ return pad.l + (v-vMin)/(vMax-vMin)*(W-pad.l-pad.r); };
+  var Y = function(y){ return pad.t + (1 - Math.min(y, yMax)/yMax)*(H-pad.t-pad.b); };
+  /* 軸與格線 */
+  cctx.strokeStyle = '#cfc6b3'; cctx.lineWidth = 1; cctx.fillStyle = '#7a7264';
+  cctx.font = '11px system-ui, sans-serif';
+  for (var g=0; g<=4; g++){
+    var yy = yMax*g/4, py = Y(yy);
+    cctx.beginPath(); cctx.moveTo(pad.l, py); cctx.lineTo(W-pad.r, py); cctx.stroke();
+    cctx.textAlign = 'right'; cctx.fillText(Math.round(yy), pad.l-6, py+4);
+  }
+  cctx.textAlign = 'center';
+  for (var s=1; s<=8; s++){ cctx.fillText(s, X(s), H-pad.b+16); }
+  cctx.fillText('速度（m/s）', (W+pad.l)/2, H-4);
+  cctx.save(); cctx.translate(12, (H-pad.b+pad.t)/2); cctx.rotate(-Math.PI/2); cctx.fillText('mL', 0, 0); cctx.restore();
+  /* 曲線（依進度畫到一半） */
+  var upto = Math.max(1, Math.round(N*progress));
+  function line(arr, col, w){
+    cctx.strokeStyle = col; cctx.lineWidth = w; cctx.beginPath();
+    for (var k=0;k<=upto;k++){ var q = arr[k]; k ? cctx.lineTo(X(q[0]), Y(q[1])) : cctx.moveTo(X(q[0]), Y(q[1])); }
+    cctx.stroke();
+  }
+  line(tops, '#7fb7d9', 1.6);
+  line(pts, '#25221d', 2.4);
+  if (progress < 1) return;
+  /* 標記：走、你的跑速、最乾 */
+  var vb = bestSpeed(F.p, F.vmax);
+  function mark(v, col, label, up){
+    var w = wet(F.p, v).total, x = X(v), y = Y(w);
+    cctx.strokeStyle = col; cctx.setLineDash([3,4]); cctx.lineWidth = 1;
+    cctx.beginPath(); cctx.moveTo(x, H-pad.b); cctx.lineTo(x, y); cctx.stroke(); cctx.setLineDash([]);
+    cctx.fillStyle = col; cctx.beginPath(); cctx.arc(x, y, 4.5, 0, Math.PI*2); cctx.fill();
+    cctx.font = '600 12px system-ui, sans-serif';
+    cctx.textAlign = x > W-60 ? 'right' : 'center';
+    cctx.fillText(label, x, y - (up ? 22 : 10));
+  }
+  mark(WALK, '#25221d', '走', false);
+  if (Math.abs(vb - F.vmax) > 1e-6) mark(F.vmax, '#25221d', '跑', false);
+  mark(vb, '#b3322b', '最乾', Math.abs(vb - F.vmax) < 1e-6 ? false : false);
+}
+
+function rollNum(el, to, ms){
+  if (PK.reduced()){ el.textContent = fmt(to); return; }
+  var t0 = 0;
+  function f(dt, t){ if (!t0) t0 = t; var k = Math.min(1, (t - t0)/ms); el.textContent = fmt(to * (1 - Math.pow(1-k, 3))); if (k >= 1) PK.untick(f); }
+  PK.tick(f);
+}
+
+function judge(F){
+  var vb = bestSpeed(F.p, F.vmax), vd = verdictOf(F.p, F.vmax);
+  var ww = wet(F.p, WALK), wr = wet(F.p, F.vmax), wb = wet(F.p, vb);
+  $('lRun').textContent = '用跑的（' + F.vmax + ' m/s）';
+  $('lBest').textContent = '最乾（' + (Math.round(vb*10)/10) + ' m/s）';
+  rollNum($('nWalk'), ww.total, 900); rollNum($('nRun'), wr.total, 900); rollNum($('nBest'), wb.total, 900);
+  var cups = function(ml){ return ml >= 250 ? '約 ' + (ml/250).toFixed(1) + ' 杯水' : '約 ' + Math.round(ml/15) + ' 湯匙'; };
+  $('split').textContent = '走路的帳：頭頂 ' + fmt(ww.top) + '、前胸 ' + fmt(ww.front) + '、背後 ' + fmt(ww.back) +
+    ' mL（' + cups(ww.total) + '）。跑步的帳：頭頂 ' + fmt(wr.top) + '、前胸 ' + fmt(wr.front) + '、背後 ' + fmt(wr.back) + ' mL。';
+  var us = uStar(F.p), saved = ww.total - wb.total;
+  var txt, why;
+  if (vd.kind === 'match'){
+    txt = '別衝。用 ' + (Math.round(vb*10)/10) + ' m/s 前進——剛好跟上背後的風。';
+    why = '雨被風推著往前斜，當你和它同速，前胸和後背都追不上雨、雨也追不上你，只剩頭頂在接。再快，你就會一頭撞進前面的雨裡。這陣風只要超過約 ' + us.toFixed(1) + ' m/s，這條但書就成立。';
+  } else if (vd.kind === 'outrun'){
+    txt = '全速跑。但風比你快，背後注定會濕。';
+    why = '背後的雨以 ' + F.p.u + ' m/s 追著你，你最快只有 ' + F.vmax + ' m/s。能做的就是把落差縮到最小——跑越快，背上被追打的時間越短。';
+  } else {
+    txt = '跑。能跑多快就跑多快。';
+    why = F.p.u < 0
+      ? '迎面風把雨往你臉上送，前胸本來就躲不掉；跑步縮短時間，頭頂和前胸都少挨一點。'
+      : (F.p.u > 0
+        ? '背後這陣風太弱（不到約 ' + us.toFixed(1) + ' m/s），推不動那條但書。前胸那份怎樣都得撞完，能省的只有頭頂。'
+        : '前胸那份怎樣都要撞完，無論你多快；能省的只有頭頂，所以越快越好。');
+  }
+  $('vText').textContent = txt;
+  $('vWhy').textContent = why + (saved > 0.5 ? ' 比起用走的，省下 ' + fmt(saved) + ' mL。' : '');
+  PK.announce('鑑定完畢：' + txt);
+  $('live').textContent = txt;
+  /* 雨絲隨風斜（給捲回第一屏的人看） */
+  if (window.__rainSlant) window.__rainSlant(PK.clamp(F.p.u / 10, -0.6, 0.6));
+}
+
+function stampIt(){
+  var st = $('stamp');
+  st.classList.remove('hit');
+  void st.getBoundingClientRect();
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ st.classList.add('hit'); }); });
+}
+
+var lastF = null;
+$('f').addEventListener('submit', function(e){
+  e.preventDefault();
+  var F = readForm(); lastF = F;
+  caseNo++; store.set('cases', caseNo); store.set('last', F.raw);
+  var res = $('result'); res.classList.add('on');
+  judge(F);
+  PK.scrollTo ? PK.scrollTo(res) : res.scrollIntoView();
+  if (anim) PK.untick(anim);
+  if (PK.reduced()){ render(F, 1); stampIt(); return; }
+  var t0 = 0;
+  anim = function(dt, t){
+    if (!t0) t0 = t;
+    var k = Math.min(1, (t - t0)/1100);
+    render(F, k);
+    if (k >= 1){ PK.untick(anim); anim = null; stampIt(); }
+  };
+  PK.tick(anim);
+  $('caseNo').textContent = '案號：雨字第 ' + caseNo + ' 號';
+});
+window.addEventListener('resize', function(){ if (lastF && !anim) render(lastF, 1); });
+</script>
+</body>
+</html>

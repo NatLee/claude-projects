@@ -44,6 +44,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line
 
 .reveal{max-width:600px;margin:0 auto;padding:70px 22px 0;opacity:0;transform:translateY(24px);transition:opacity .8s,transform .8s}
 .reveal.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{transition:none;opacity:1;transform:none}.title,.cue{transition:none}}
 .reveal .big{font-family:var(--serif);font-size:clamp(1.5rem,4.2vw,2.1rem);color:var(--ink);margin:0 0 16px;text-align:center}
 .reveal p{font-size:1.04rem;color:var(--dim);margin:0 0 16px}
 .reveal p em{color:var(--ink);font-style:normal}
@@ -135,7 +136,9 @@ if(typeof document!=='undefined')(function(){
     render._c.putImageData(img,0,0); ctx.imageSmoothingEnabled=false; ctx.drawImage(render._t,0,0,W,H,0,0,cv.width,cv.height); }
   function frame(){ raf=0; if(playing&&!reduced) stepN(10); render(); if(playing&&!reduced) schedule(); }
   function schedule(){ if(!raf&&!reduced) raf=requestAnimationFrame(frame); }
-  function setPlay(p){ playing=p; var b=document.getElementById('pause'); b.setAttribute('aria-pressed',p?'true':'false'); b.textContent=p?'⏸ 暫停時間':'▶ 讓時間走'; if(p) schedule(); }
+  /* 減少動態：不播動畫，改成一次算完一段時間再顯示靜態結果（以前 reduced 下完全不會長） */
+  function settle(){ if(reduced&&playing){ stepN(1200); render(); } }
+  function setPlay(p){ playing=p; var b=document.getElementById('pause'); b.setAttribute('aria-pressed',p?'true':'false'); b.textContent=p?'⏸ 暫停時間':'▶ 讓時間走'; if(p){ schedule(); settle(); } }
 
   /* 播種 */
   var painting=false;
@@ -144,9 +147,10 @@ if(typeof document!=='undefined')(function(){
     if(!playing) render(); }
   cv.addEventListener('pointerdown',function(e){ painting=true; cv.setPointerCapture(e.pointerId); plant(e); });
   cv.addEventListener('pointermove',function(e){ if(painting) plant(e); });
-  cv.addEventListener('pointerup',function(){ painting=false; });
+  cv.addEventListener('pointerup',function(){ painting=false; settle(); });
+  cv.addEventListener('pointercancel',function(){ painting=false; });
 
-  document.getElementById('wound').addEventListener('click',function(){ if(!seeded){ seedAt(W/2,H/2,10); scatter(16); seeded=true; document.getElementById('title').classList.add('gone'); document.getElementById('cue').classList.add('show'); } setPlay(true); wound(); });
+  document.getElementById('wound').addEventListener('click',function(){ if(!seeded){ seedAt(W/2,H/2,10); scatter(16); seeded=true; document.getElementById('title').classList.add('gone'); document.getElementById('cue').classList.add('show'); } setPlay(true); wound(); settle(); });
   document.getElementById('pause').addEventListener('click',function(){ setPlay(!playing); });
   document.getElementById('seed').addEventListener('click',function(){ clearWorld(); setPlay(false); document.getElementById('title').classList.remove('gone'); myth('一片什麼都沒有。再點一下，重新創世。'); render(); });
   document.querySelectorAll('#worlds button').forEach(function(b){ b.addEventListener('click',function(){ params=Object.assign({},PRESETS[b.dataset.p]);
@@ -156,7 +160,8 @@ if(typeof document!=='undefined')(function(){
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
   io.observe(document.getElementById('rev'));
   document.addEventListener('visibilitychange',function(){ if(document.hidden){ if(raf){cancelAnimationFrame(raf);raf=0;} } else if(playing&&!reduced) schedule(); });
-  mR.addEventListener('change',function(e){ reduced=e.matches; if(reduced&&raf){cancelAnimationFrame(raf);raf=0;} });
+  mR.addEventListener('change',function(e){ reduced=e.matches; if(reduced&&raf){cancelAnimationFrame(raf);raf=0;} if(!reduced&&playing) schedule(); else settle(); if(reduced) document.getElementById('rev').classList.add('in'); });
+  if(reduced) document.getElementById('rev').classList.add('in');
   window.addEventListener('resize',render);
 
   alloc(); render();

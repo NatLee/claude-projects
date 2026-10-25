@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>斜吹的風｜每日小專案</title>
+<meta name="description" content="1978 年，紐約一棟新落成的摩天樓只算過正面來的風。一通學生的電話問：那斜著吹呢？按住按鈕，當一次那陣風。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0a0d13; --pk-ink:#e7e3da; --pk-dim:#8b8f98; --pk-accent:#f0b13a;
+  --pk-line:rgba(255,255,255,.1); --pk-maxw:1040px;
+  --steel:#9fb3c8; --danger:#ff4d3d; --weld:#7fe0c4; --glass:#141a24;
+}
+body{background:radial-gradient(120% 70% at 70% 0%,#121a2a 0%,var(--pk-bg) 60%) fixed,var(--pk-bg)}
+
+/* ── 第一屏 ── */
+.hook{min-height:100svh;display:flex;flex-direction:column;justify-content:center;max-width:680px;margin:0 auto;padding:0 22px}
+.hook .when{font-size:13px;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 26px}
+.hook h1{font-family:var(--pk-serif);font-weight:600;font-size:clamp(26px,6vw,44px);line-height:1.5;margin:0 0 22px}
+.hook h1 em{font-style:normal;color:var(--pk-accent)}
+.hook p{font-family:var(--pk-serif);font-size:clamp(16px,2.6vw,19px);color:#c9c5bb;margin:0 0 10px}
+.cue{margin-top:48px;font-size:12px;letter-spacing:.3em;color:var(--pk-dim)}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(6px)}}
+
+/* ── 捲動舞台 ── */
+.scrolly{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 48px;max-width:var(--pk-maxw);margin:0 auto;padding:0 22px}
+.stage{position:sticky;top:0;height:100svh;display:flex;align-items:center;justify-content:center}
+.stage-in{position:relative;width:100%;max-width:420px;aspect-ratio:400/600;max-height:92svh}
+#tower{width:100%;height:100%;display:block;overflow:visible}
+.steps{padding:30vh 0 20vh}
+.step{min-height:78vh;display:flex;flex-direction:column;justify-content:center}
+.step .box{background:color-mix(in srgb,var(--glass) 82%,transparent);border:1px solid var(--pk-line);border-radius:14px;padding:22px 24px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.step h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(20px,3.4vw,26px);line-height:1.45;margin:0 0 12px}
+.step p{margin:0 0 12px;color:#d5d1c8}
+.step p:last-child{margin-bottom:0}
+.step .tag{font-size:12px;letter-spacing:.22em;color:var(--pk-accent);margin:0 0 10px}
+.step b{color:var(--pk-ink)}
+.step .warn{color:var(--danger)}
+.step .ok{color:var(--weld)}
+.locked{display:none}
+
+/* SVG 各圖層：只動 opacity，場景用 data-scene 切 */
+#tower .lay{transition:opacity .7s ease}
+#tower [data-on]{opacity:0}
+.stage[data-scene="1"] #tower [data-on~="1"],
+.stage[data-scene="2"] #tower [data-on~="2"],
+.stage[data-scene="3"] #tower [data-on~="3"],
+.stage[data-scene="4"] #tower [data-on~="4"],
+.stage[data-scene="5"] #tower [data-on~="5"],
+.stage[data-scene="6"] #tower [data-on~="6"],
+.stage[data-scene="7"] #tower [data-on~="7"],
+.stage[data-scene="8"] #tower [data-on~="8"]{opacity:1}
+#tower .xray{transition:opacity .7s ease}
+.stage[data-scene="1"] #tower .xray{opacity:.0}
+.stage[data-scene="1"] #tower .skin{opacity:1}
+#tower .skin{transition:opacity .7s ease;opacity:.28}
+.joint{transition:fill .25s}
+.joint.hot{fill:var(--danger)}
+.joint.crit.hot{fill:var(--danger)}
+.plate{opacity:0;transition:opacity .4s}
+.plate.on{opacity:1}
+#flash{position:absolute;inset:-8%;border-radius:30px;background:radial-gradient(closest-side,rgba(255,77,61,.35),transparent);opacity:0;pointer-events:none;transition:opacity .5s}
+#flash.on{opacity:1}
+
+/* 小平面圖（俯視） */
+.plan{position:absolute;right:-4px;top:2%;width:26%;max-width:110px;background:rgba(10,13,19,.75);border:1px solid var(--pk-line);border-radius:10px;padding:6px}
+.plan svg{display:block;width:100%;height:auto}
+.plan small{display:block;text-align:center;font-size:10px;letter-spacing:.2em;color:var(--pk-dim);margin-top:2px}
+
+/* 量表 */
+.gauge{position:absolute;left:-2px;top:6%;bottom:16%;width:30px;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;transition:opacity .6s}
+.gauge.show{opacity:1}
+.g-track{position:relative;flex:1;width:10px;border-radius:6px;background:rgba(255,255,255,.07);overflow:hidden}
+.g-fill{position:absolute;left:0;right:0;bottom:0;height:100%;transform-origin:50% 100%;transform:scaleY(0);background:var(--steel);border-radius:6px;transition:background .25s}
+.g-fill.over{background:var(--danger)}
+.g-cap{position:absolute;left:-8px;right:-8px;height:2px;background:var(--pk-accent);transition:bottom .9s cubic-bezier(.2,.7,.3,1)}
+.g-num{font-variant-numeric:tabular-nums;font-size:12px;color:var(--pk-ink);white-space:nowrap}
+.g-lbl{font-size:10px;color:var(--pk-dim);writing-mode:vertical-rl;letter-spacing:.2em}
+
+/* 按住按鈕 */
+.hold{position:relative;overflow:hidden;margin-top:18px;width:100%;max-width:320px;padding:16px 22px;font-size:16px;letter-spacing:.12em;user-select:none;-webkit-user-select:none;touch-action:none}
+.hold .bar{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:0 50%;transform:scaleX(0);background:color-mix(in srgb,var(--pk-accent) 28%,transparent);pointer-events:none}
+.hold span{position:relative}
+.hold[aria-pressed="true"]{background:color-mix(in srgb,var(--pk-accent) 14%,transparent);color:var(--pk-ink)}
+.hold:hover{background:color-mix(in srgb,var(--pk-accent) 14%,transparent);color:var(--pk-ink)}
+.hold.danger{color:var(--danger);border-color:var(--danger)}
+.hold.danger .bar{background:rgba(255,77,61,.28)}
+.hold.weld{color:var(--weld);border-color:var(--weld)}
+.hold.weld .bar{background:rgba(127,224,196,.25)}
+.hint{font-size:13px;color:var(--pk-dim);margin-top:8px!important}
+
+.big{font-family:var(--pk-serif);font-size:clamp(40px,8vw,64px);line-height:1.1;color:var(--danger);margin:4px 0 10px!important;font-variant-numeric:tabular-nums}
+.odds{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px}
+.odds div{flex:1;min-width:120px;border-left:2px solid var(--danger);padding-left:12px}
+.odds strong{display:block;font-family:var(--pk-serif);font-size:28px;color:var(--pk-ink)}
+.odds small{color:var(--pk-dim);font-size:12.5px}
+
+/* 結尾 */
+.coda{max-width:680px;margin:0 auto;padding:18vh 22px 6vh}
+.coda p{font-family:var(--pk-serif);font-size:clamp(17px,2.8vw,21px);line-height:1.9;color:#d5d1c8;margin:0 0 22px}
+.coda .last{font-size:clamp(20px,3.6vw,28px);color:var(--pk-ink)}
+.coda .last em{font-style:normal;color:var(--pk-accent)}
+
+@media (max-width:860px){
+  .scrolly{grid-template-columns:1fr;gap:0}
+  .stage{height:50svh;top:0;z-index:2;background:linear-gradient(var(--pk-bg) 82%,transparent)}
+  .stage-in{height:46svh;width:auto;max-width:none}
+  .steps{padding:10vh 0 30vh;position:relative;z-index:1}
+  .step{min-height:70vh;justify-content:flex-end;padding-bottom:6vh}
+  .plan{width:30%;right:-34%}
+  .gauge{left:-36px}
+}
+@media (max-width:560px){
+  .step .box{padding:18px}
+  .plan{right:-30%;width:28%}
+  .gauge{left:-30px}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue span{animation:none}
+  #tower .lay,#tower .xray,#tower .skin,.plate,#flash,.g-cap,.gauge{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hook">
+  <p class="when rv">紐約・1978 年 6 月</p>
+  <h1 class="rv">電話那頭是個學生。<br>他問的那棟樓，<em>才剛蓋好一年</em>。</h1>
+  <p class="rv">五十九層、兩百七十九公尺，銀色的斜屋頂。設計它的工程師耐心解釋為什麼不必擔心，掛上電話。</p>
+  <p class="rv">一個月後，他坐在辦公室裡，重新拿起計算尺。</p>
+  <p class="cue rv" aria-hidden="true">往下 <span>↓</span></p>
+</header>
+
+<div class="scrolly">
+  <div class="stage" id="stage" data-scene="1" aria-hidden="true">
+    <div class="stage-in">
+      <div id="flash"></div>
+      <svg id="tower" viewBox="0 0 400 600" role="img" aria-label="大樓立面示意圖">
+        <defs>
+          <linearGradient id="gGlass" x1="120" y1="80" x2="280" y2="505" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#3a4558"/><stop offset="1" stop-color="#1a202b"/>
+          </linearGradient>
+        </defs>
+        <!-- 地面 -->
+        <rect x="0" y="560" width="400" height="40" fill="#0e1219"/>
+        <rect x="0" y="559" width="400" height="1.5" fill="#2a3240"/>
+        <!-- 教堂（西北角） -->
+        <g class="lay church">
+          <polygon points="126,560 126,522 152,500 178,522 178,560" fill="#2b2f36" stroke="#6b6f78" stroke-width="1"/>
+          <rect x="146" y="532" width="12" height="28" fill="#0e1219"/>
+        </g>
+        <g class="lay" data-on="2"><polygon points="126,560 126,522 152,500 178,522 178,560" fill="none" stroke="var(--pk-accent)" stroke-width="2"/>
+          <text x="152" y="585" text-anchor="middle" fill="var(--pk-accent)" font-size="11">聖彼得教堂</text></g>
+
+        <!-- 會搖的整棟樓 -->
+        <g id="sway">
+          <!-- 四根腳（立面看到三根：兩側邊中點＋正面中點） -->
+          <g fill="#3b4350">
+            <rect x="120" y="505" width="14" height="55"/>
+            <rect x="189" y="505" width="22" height="55"/>
+            <rect x="266" y="505" width="14" height="55"/>
+          </g>
+          <g class="lay" data-on="2" fill="var(--pk-accent)">
+            <rect x="120" y="505" width="14" height="55"/>
+            <rect x="189" y="505" width="22" height="55"/>
+            <rect x="266" y="505" width="14" height="55"/>
+          </g>
+          <!-- 外殼 -->
+          <g class="skin">
+            <polygon points="120,150 280,150 280,72 " fill="#c9d2dc" opacity=".85"/>
+            <rect x="120" y="150" width="160" height="355" fill="url(#gGlass)"/>
+            <g id="bands" fill="#5d6a7e" opacity=".55"></g>
+            <g id="lights" fill="#f0d48a"></g>
+          </g>
+          <!-- 透視：V 形斜撐與接頭 -->
+          <g class="xray">
+            <g id="braces" stroke="var(--steel)" stroke-width="2" fill="none" stroke-linecap="round"></g>
+            <g id="joints"></g>
+            <g id="plates"></g>
+          </g>
+          <!-- 轉角懸空示意 -->
+          <g class="lay" data-on="2">
+            <path d="M120 498 h-0" />
+            <text x="110" y="498" text-anchor="end" fill="var(--pk-accent)" font-size="10">轉角</text>
+            <text x="110" y="511" text-anchor="end" fill="var(--pk-accent)" font-size="10">懸空 22 m</text>
+          </g>
+        </g>
+
+        <!-- 風 -->
+        <g id="wind" stroke="#cfe3ff" stroke-linecap="round" opacity="0"></g>
+        <!-- 颶風 -->
+        <g class="lay" data-on="7" id="storm">
+          <g id="stormG">
+            <circle cx="0" cy="0" r="26" fill="none" stroke="#cfe3ff" stroke-width="1.5" stroke-dasharray="6 7" opacity=".7"/>
+            <circle cx="0" cy="0" r="12" fill="none" stroke="#cfe3ff" stroke-width="1.5" opacity=".5"/>
+            <text x="0" y="46" text-anchor="middle" fill="#cfe3ff" font-size="11">艾拉</text>
+          </g>
+        </g>
+      </svg>
+
+      <div class="plan" id="plan">
+        <svg viewBox="0 0 100 100">
+          <rect x="24" y="24" width="52" height="52" fill="#1a202b" stroke="#5d6a7e"/>
+          <g fill="var(--pk-accent)">
+            <rect x="45" y="20" width="10" height="8"/><rect x="45" y="72" width="10" height="8"/>
+            <rect x="20" y="45" width="8" height="10"/><rect x="72" y="45" width="8" height="10"/>
+          </g>
+          <polygon points="24,24 36,24 24,36" fill="#6b6f78"/>
+          <g id="arrow"><line x1="50" y1="96" x2="50" y2="84" stroke="#cfe3ff" stroke-width="3"/><polygon points="44,85 56,85 50,78" fill="#cfe3ff"/></g>
+        </svg>
+        <small>俯視・風向</small>
+      </div>
+
+      <div class="gauge" id="gauge">
+        <span class="g-num" id="gNum">0%</span>
+        <div class="g-track"><div class="g-fill" id="gFill"></div><div class="g-cap" id="gCap"></div></div>
+        <span class="g-lbl">接頭負載／容量</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps" id="steps">
+    <section class="step" data-scene="1"><div class="box rv">
+      <p class="tag">I ・ 一棟沒踩在角落的樓</p>
+      <h2>從街上看，它跟其他摩天樓沒兩樣。</h2>
+      <p>花旗銀行總部，Citicorp Center，1977 年落成。結構工程師 William LeMessurier 是業界最會出奇招的人之一。</p>
+      <p>這棟樓最奇怪的地方，你得蹲下來才看得見。</p>
+    </div></section>
+
+    <section class="step" data-scene="2"><div class="box rv">
+      <p class="tag">II ・ 角落讓給了教堂</p>
+      <h2>它的四隻腳，長在每一面牆的正中央。</h2>
+      <p>基地西北角原本有座老教堂。教會願意賣地，條件是新教堂要蓋回原處，而且不能跟大樓的結構連在一起。</p>
+      <p>於是柱子從轉角搬到了四面的中點。轉角懸空二十二公尺，第九層以下整棟樓像踮著腳站著。</p>
+      <p>重量要怎麼送到中間那四根腳？秘密藏在玻璃後面。</p>
+    </div></section>
+
+    <section class="step" data-scene="3"><div class="box rv">
+      <p class="tag">III ・ 照規定算的風</p>
+      <h2>八層 V 字斜撐，把整棟樓的力往中間收。</h2>
+      <p>從外面完全看不見。每一層 V 的尖端，接頭把力交給下一層，最後落到中間那根腳上。</p>
+      <p>當年紐約的建築法規只要求算一種風：<b>垂直吹向牆面</b>的風。LeMessurier 算了，綽綽有餘。</p>
+      <p>你來當那陣風。從正面吹。</p>
+      <button class="pk-btn hold" id="h1" aria-pressed="false" aria-describedby="h1hint"><i class="bar"></i><span>按住・正面吹</span></button>
+      <p class="hint" id="h1hint">按住不放（或按住空白鍵），風會慢慢加到暴風等級。</p>
+    </div></section>
+
+    <section class="step locked" data-scene="3" id="after1"><div class="box rv">
+      <p>量表停在一半出頭。樓輕輕晃了一下，回來。</p>
+      <p>屋頂上還有一塊四百噸的混凝土，裝在油壓軌道上，樓往左晃它就往右推——當年最先進的調諧質量阻尼器。工程師對這棟樓很放心。</p>
+    </div></section>
+
+    <section class="step locked" data-scene="4" id="s4"><div class="box rv">
+      <p class="tag">IV ・ 1974 年的一張變更單</p>
+      <h2>設計圖上，那些接頭是焊死的。</h2>
+      <p>施工時，鋼構廠提議改用螺栓：便宜、快，照法規算的正面風也撐得住。LeMessurier 的事務所同意了。</p>
+      <p>他本人不知道。直到 1978 年夏天，差不多就在那通電話前後，他才聽說這張單子。</p>
+    </div></section>
+
+    <section class="step locked" data-scene="5" id="s5"><div class="box rv">
+      <p class="tag">V ・ 學生的問題</p>
+      <h2>「那如果風從斜角吹過來呢？」</h2>
+      <p>柱子不在角落，從轉角吹來的風會同時推兩面牆，力全擠進幾組特定的斜撐。法規沒要求算這種風，大部分的樓也不必算——它們的柱子站在角落。</p>
+      <p>這棟不一樣。把風轉四十五度，再吹一次。</p>
+      <button class="pk-btn hold danger" id="h2" aria-pressed="false" aria-describedby="h2hint"><i class="bar"></i><span>按住・從轉角吹</span></button>
+      <p class="hint" id="h2hint">一樣按住不放。</p>
+    </div></section>
+
+    <section class="step locked" data-scene="5" id="after2"><div class="box rv">
+      <p class="big" id="mult">×2.6</p>
+      <h2>斜風讓其中四層斜撐受力多了四成，傳到螺栓接頭上，多了一倍半以上。</h2>
+      <p>單看哪一項都不致命。焊接頭撐得住斜風；螺栓接頭撐得住正風。兩件事碰在一起，量表就衝過了那條線。</p>
+      <div class="odds">
+        <div><strong>每 55 年</strong><small>會來一場吹得倒它的風（阻尼器正常）</small></div>
+        <div><strong>每 16 年</strong><small>如果颶風一來就停電，阻尼器罷工</small></div>
+      </div>
+      <p>那是 7 月底。颶風季要開始了。</p>
+    </div></section>
+
+    <section class="step locked" data-scene="6" id="s6"><div class="box rv">
+      <p class="tag">VI ・ 夜班</p>
+      <h2>他自己走進花旗銀行，說：我的樓可能會倒。</h2>
+      <p>八月起，焊工每晚下班時間進場，拆開辦公室的天花板與隔間，把厚鋼板焊在螺栓接頭上；天亮前裝回去，員工照常上班，什麼都不知道。屋頂阻尼器加裝了備用發電機，鋼樑貼上應變計，市府悄悄擬好周邊街區的疏散計畫。</p>
+      <p>紐約那年夏天剛好碰上報業大罷工。沒有記者來問。</p>
+      <p>輪到你上夜班。</p>
+      <button class="pk-btn hold weld" id="h3" aria-pressed="false" aria-describedby="h3hint"><i class="bar"></i><span>按住・焊上鋼板</span></button>
+      <p class="hint" id="h3hint">按住焊接，放開也不會前功盡棄——一晚做不完，明晚接著焊。</p>
+    </div></section>
+
+    <section class="step locked" data-scene="7" id="s7"><div class="box rv">
+      <p class="tag">VII ・ 九月初</p>
+      <h2>颶風艾拉出現在哈特拉斯角外海，朝紐約來了。</h2>
+      <p>焊接才做到一半。疏散計畫只差一聲令下。</p>
+      <p>工程師估算：補到這個程度，樓應該撐得過兩百年一遇的風暴。應該。</p>
+      <p>艾拉在外海轉了個彎，往東，出海。9 月 13 日解除警戒。十月，最後一塊鋼板焊完——以 LeMessurier 的估算，現在要七百年才會來一場吹得倒它的風。</p>
+    </div></section>
+  </div>
+</div>
+
+<section class="coda locked" id="coda">
+  <p class="rv">這件事被瞞了十七年，直到 1995 年《紐約客》刊出長文。工程倫理課從此多了一個案例：你發現自己算錯了，第一通電話打給誰？</p>
+  <p class="rv">故事還有兩個尾巴。</p>
+  <p class="rv">2019 年前後，美國國家標準與技術研究院用現代風洞資料重算了一次：斜風的威脅，<b>沒有當年想的那麼大</b>。那一整個夏天的夜班，也許本來可以不必。</p>
+  <p class="rv">至於電話那頭的學生——普林斯頓的 Diane Hartley 在 2011 年說，那應該是她；她的畢業論文正好算過這棟樓的斜風。2022 年，紐澤西理工的 Lee DeCarolis 也站出來說，打電話的是他。LeMessurier 已在 2007 年過世，沒人能對質。</p>
+  <p class="rv last">打電話的是誰，到今天還有兩個名字。<br>問題倒是只有一個：<em>如果風從斜角吹過來呢？</em></p>
+</section>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Joe Morgenstern〈The Fifty-Nine-Story Crisis〉，《紐約客》1995；NIST 重評報告；Wikipedia「Citicorp Center engineering crisis」。圖中負載為示意比例。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'citi78.';
+const store = PK.store(LS);
+
+/* ── 純函式（node 斷言用）── */
+const M = {
+  BASE: 0.55,            /* 正面暴風時螺栓接頭的示意使用率 */
+  /* 0° 正面 → 1；45° 斜角 → 2.6（接頭負載 +160%） */
+  angleFactor(deg){ const r = Math.max(0, Math.min(45, deg)) * Math.PI / 180; return 1 + 1.6 * Math.sin(2 * r); },
+  /* 風壓 ∝ 風速平方；焊上鋼板後容量加倍（示意） */
+  util(v, deg, cap){ const c = cap === true ? 2 : (+cap || 1); return M.BASE * v * v * M.angleFactor(deg) / c; },
+  /* 按住加速、放開衰減 */
+  step(v, holding, dt){ return Math.max(0, Math.min(1, v + (holding ? dt / 2.6 : -dt / 1.1))); },
+  /* 焊接進度：只進不退 */
+  weld(p, holding, dt){ return holding ? Math.min(1, p + dt / 4.2) : p; },
+  /* 量表 0..160% 對應填滿高度 */
+  gaugeFrac(u){ return Math.max(0, Math.min(1, u / 1.6)); }
+};
+if (typeof module !== 'undefined') module.exports = M;
+
+/* ── 建圖 ── */
+const NS = 'http://www.w3.org/2000/svg';
+const $ = (id) => document.getElementById(id);
+function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; }
+const TOP = 150, BOT = 505, L = 120, R = 280, CX = 200, TIERS = 8, H = (BOT - TOP) / TIERS;
+const CRIT = [4, 5, 6, 7];         /* 下半四層：示意受斜風影響最大的四層 */
+const joints = [], plates = [];
+for (let i = 0; i < TIERS; i++){
+  const y0 = TOP + i * H, y1 = y0 + H;
+  el('path', { d: `M${L} ${y0}L${CX} ${y1}L${R} ${y0}` }, $('braces'));
+  const j = el('circle', { cx: CX, cy: y1, r: 4.2, fill: '#cdd8e4', class: 'joint' + (CRIT.includes(i) ? ' crit' : '') }, $('joints'));
+  joints.push(j);
+  plates.push(el('rect', { x: CX - 9, y: y1 - 9, width: 18, height: 12, rx: 2, fill: 'none', stroke: 'var(--weld)', 'stroke-width': 2.2, class: 'plate' }, $('plates')));
+}
+for (let y = TOP + 8; y < BOT; y += 9) el('rect', { x: L, y, width: R - L, height: 1 }, $('bands'));
+const lights = [];
+for (let n = 0; n < 34; n++){
+  const x = L + 6 + ((n * 37) % 148), y = TOP + 10 + ((n * 53) % 330);
+  lights.push(el('rect', { x, y, width: 6, height: 3, opacity: 0 }, $('lights')));
+}
+const streaks = [];
+for (let n = 0; n < 14; n++){
+  const s = el('line', { x1: 0, y1: 0, x2: 40 + (n % 4) * 12, y2: 0, 'stroke-width': 1 + (n % 3) * .5 }, $('wind'));
+  streaks.push({ s, y: 90 + n * 32, off: (n * 97) % 420, sp: 180 + (n % 5) * 40 });
+}
+
+/* ── 狀態 ── */
+const S = { scene: 1, v: 0, holding: null, angle: 0, angleShown: 0, welded: false, weldP: 0, done: {}, over: false, stormT: 0 };
+const stage = $('stage'), gauge = $('gauge'), gFill = $('gFill'), gCap = $('gCap'), gNum = $('gNum'), flash = $('flash');
+
+function unlock(id){ const n = $(id); if (!n || !n.classList.contains('locked')) return; n.classList.remove('locked'); PK.reveal('#' + id + ' .rv, #' + id + '.rv'); observe(n); }
+
+/* 場景切換：IntersectionObserver，不綁 scroll */
+const io = new IntersectionObserver((es) => {
+  es.forEach((e) => { if (e.isIntersecting) setScene(+e.target.dataset.scene); });
+}, { rootMargin: '-45% 0px -45% 0px' });
+function observe(n){ if (n.dataset.scene) io.observe(n); }
+document.querySelectorAll('.step').forEach(observe);
+const codaIO = new IntersectionObserver((es) => { es.forEach((e) => { if (e.isIntersecting) setScene(8); }); }, { rootMargin: '0px 0px -40% 0px' });
+codaIO.observe($('coda'));
+
+function setScene(n){
+  if (S.scene === n) return;
+  S.scene = n; stage.dataset.scene = n;
+  S.angle = n >= 5 ? 45 : 0;
+  gauge.classList.toggle('show', n >= 3 && n <= 7);
+  if (n === 7) S.stormT = 0;
+  PK.tick(loop);
+  draw();
+}
+
+/* ── 按住按鈕 ── */
+function bindHold(btn, key){
+  const on = () => { if (btn.disabled) return; S.holding = key; btn.setAttribute('aria-pressed', 'true'); PK.tick(loop); };
+  const off = () => { if (S.holding === key){ S.holding = null; } btn.setAttribute('aria-pressed', 'false'); };
+  btn.addEventListener('pointerdown', (e) => { e.preventDefault(); btn.setPointerCapture && btn.setPointerCapture(e.pointerId); on(); });
+  btn.addEventListener('pointerup', off); btn.addEventListener('pointercancel', off); btn.addEventListener('lostpointercapture', off);
+  btn.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ e.preventDefault(); on(); } });
+  btn.addEventListener('keyup', (e) => { if (e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); off(); } });
+  btn.addEventListener('blur', off);
+  btn.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+bindHold($('h1'), 'h1'); bindHold($('h2'), 'h2'); bindHold($('h3'), 'h3');
+
+function loop(dt){
+  dt = Math.min(dt, .05);
+  const blowing = S.holding === 'h1' || S.holding === 'h2';
+  S.v = M.step(S.v, blowing, dt);
+  if (S.holding === 'h1') S.angle = 0;
+  if (S.holding === 'h2') S.angle = 45;
+  if (S.holding === 'h3') S.weldP = M.weld(S.weldP, true, dt);
+  S.angleShown += (S.angle - S.angleShown) * Math.min(1, dt * 4);
+  if (S.scene === 7) S.stormT = Math.min(1, S.stormT + dt / 6);
+  progress();
+  draw(dt);
+  const idle = !S.holding && S.v === 0 && Math.abs(S.angle - S.angleShown) < .2 && !(S.scene === 7 && S.stormT < 1);
+  if (idle) PK.untick(loop);
+}
+
+let windX = 0;
+function draw(dt){
+  dt = dt || 0;
+  /* 第六幕起量表改顯示「斜角暴風下」的接頭負載，焊接讓容量從 1 爬到 2 */
+  const late = S.scene >= 6;
+  const u = late ? M.util(1, 45, 1 + S.weldP) : M.util(S.v, S.angleShown, 1);
+  const capFrac = 1 / 1.6;
+  gFill.style.transform = `scaleY(${M.gaugeFrac(u)})`;
+  gFill.classList.toggle('over', u > 1);
+  gCap.style.bottom = (capFrac * 100) + '%';
+  gNum.textContent = Math.round(u * 100) + '%';
+  joints.forEach((j, i) => j.classList.toggle('hot', u > 1 && CRIT.includes(i) && !(late && plates[i].classList.contains('on'))));
+  const wp = S.weldP;
+  plates.forEach((p, i) => p.classList.toggle('on', wp >= (i + 1) / TIERS - .001));
+  lights.forEach((l, i) => l.setAttribute('opacity', S.scene >= 8 ? ((i * 7) % 10 > 3 ? .85 : .25) : (S.scene === 6 && wp > i / lights.length ? .6 : 0)));
+
+  /* 搖晃：SVG transform 屬性，以地面中點為軸（不用 CSS transform-box） */
+  const sway = PK.reduced() ? 0 : Math.min(1.8, u * 1.2) * Math.sin(performance.now() / 380) * S.v;
+  $('sway').setAttribute('transform', `rotate(${sway.toFixed(3)} 200 560)`);
+  flash.classList.toggle('on', u > 1 && !late);
+
+  /* 風線 */
+  const w = $('wind');
+  w.setAttribute('opacity', (S.v * .75).toFixed(3));
+  if (!PK.reduced()) windX += dt * (0.4 + S.v);
+  const rad = S.angleShown * Math.PI / 180;
+  streaks.forEach((k) => {
+    const x = ((k.off + windX * k.sp) % 460) - 60;
+    const y = k.y + (S.angleShown ? (x - 200) * Math.tan(rad) * .25 : 0);
+    k.s.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${(S.angleShown * .25).toFixed(1)})`);
+  });
+
+  /* 平面圖箭頭：0° 從南面正吹；45° 從西南角斜吹 */
+  $('arrow').setAttribute('transform', `rotate(${S.angleShown.toFixed(1)} 50 50)`);
+
+  /* 颶風：從右下靠近，再轉向東方出海 */
+  const t = PK.reduced() ? 1 : S.stormT;
+  const sx = t < .55 ? 420 - t / .55 * 120 : 300 + (t - .55) / .45 * 160;
+  const sy = t < .55 ? 560 - t / .55 * 140 : 420 - (t - .55) / .45 * 260;
+  $('stormG').setAttribute('transform', `translate(${sx.toFixed(1)} ${sy.toFixed(1)}) rotate(${(t * 540).toFixed(0)})`);
+}
+
+/* ── 劇情推進 ── */
+function progress(){
+  const u = M.util(S.v, S.angleShown, false);
+  if (!S.done.h1 && S.holding === 'h1' && S.v >= .99){
+    S.done.h1 = true; unlock('after1'); unlock('s4'); unlock('s5');
+    PK.announce('正面暴風：接頭負載約 55%，安全。');
+  }
+  if (!S.done.h2 && S.holding === 'h2' && S.angleShown > 40 && u > 1){
+    S.done.h2 = true; unlock('after2'); unlock('s6');
+    countUp();
+    PK.announce('斜角暴風：螺栓接頭負載超過容量。');
+  }
+  if (!S.done.h3 && S.weldP >= 1){
+    S.done.h3 = true; S.welded = true; $('h3').disabled = true; $('h3').querySelector('span').textContent = '焊完了';
+    unlock('s7'); unlock('coda'); store.set('done', 1);
+    PK.announce('鋼板全數焊上，接頭容量加倍。');
+  }
+  const bars = { h1: S.v, h2: S.v, h3: S.weldP };
+  for (const k in bars){ const b = $(k).querySelector('.bar'); const val = (k === 'h3' || S.holding === k) ? bars[k] : (S.done[k] ? 1 : 0); b.style.transform = `scaleX(${val.toFixed(3)})`; }
+}
+
+function countUp(){
+  const m = $('mult');
+  if (PK.reduced()){ m.textContent = '×2.6'; return; }
+  let t0 = null;
+  const f = (now) => { t0 = t0 || now; const k = Math.min(1, (now - t0) / 1100); m.textContent = '×' + (1 + 1.6 * (1 - Math.pow(1 - k, 3))).toFixed(1); if (k < 1) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+}
+
+/* 讀過的人回來，不必再鎖一次 */
+if (store.get('done', 0)){
+  S.done = { h1: true, h2: true, h3: true }; S.welded = true; S.weldP = 1;
+  ['after1', 's4', 's5', 'after2', 's6', 's7', 'coda'].forEach(unlock);
+  $('h3').disabled = true; $('h3').querySelector('span').textContent = '焊完了';
+}
+
+PK.reveal();
+PK.onMotionChange(() => draw());
+draw();
+</script>
+</body>
+</html>

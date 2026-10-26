@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日子為什麼要押韻？｜每日小專案</title>
+<meta name="description" content="光緒年間一封回電只有三個字：「馬電悉」。坐上電報局櫃台，用八個字的錢把船期發出去。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#15100c; --pk-ink:#e9dfcb; --pk-accent:#d4a24c;
+  --paper:#efe4cc; --paper-ink:#2a1f16; --grid:#c4553f; --seal:#b0301f; --muted:#a8987f;
+}
+body{background:radial-gradient(120% 80% at 50% 0%,#241a12 0%,#15100c 60%) fixed,#15100c}
+.serif{font-family:"Noto Serif TC","Songti TC","PMingLiU",serif}
+
+/* ── 第一屏：一截電報紙條 ── */
+.pk-hero{flex-direction:column;justify-content:center;text-align:center}
+.tape{display:inline-flex;gap:.1em;padding:.5em 1.2em;margin:0 auto 2.2rem;background:var(--paper);color:var(--paper-ink);
+  font-size:clamp(2.4rem,9vw,4.6rem);letter-spacing:.25em;box-shadow:0 18px 50px -20px #000;transform:rotate(-1.5deg);
+  border-left:6px dotted #c9b894;border-right:6px dotted #c9b894}
+.tape span{display:inline-block;opacity:0;transform:translateY(-.3em);transition:opacity .5s,transform .5s}
+.tape.on span{opacity:1;transform:none}
+.tape.on span:nth-child(2){transition-delay:.35s}.tape.on span:nth-child(3){transition-delay:.7s}
+.hero-sub{max-width:30em;margin:0 auto;color:var(--muted);line-height:1.9}
+.hero-sub b{color:var(--pk-ink);font-weight:600}
+.cue{margin-top:3rem;font-size:.85rem;color:var(--muted);letter-spacing:.2em}
+
+/* ── 櫃台（假介面） ── */
+.counter{margin:4rem auto 0;max-width:640px;background:var(--paper);color:var(--paper-ink);border-radius:4px;
+  box-shadow:0 30px 80px -30px #000,inset 0 0 0 1px #d8c8a6;padding:28px 26px 30px;position:relative}
+.counter::before{content:"";position:absolute;inset:8px;border:1px solid #cdb995;pointer-events:none;border-radius:2px}
+.form-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;border-bottom:2px solid var(--grid);padding-bottom:.6rem;margin-bottom:1rem}
+.form-head h2{margin:0;font-size:1.35rem;letter-spacing:.3em;color:var(--seal)}
+.form-head small{font-size:.75rem;color:#7a6a52;letter-spacing:.1em}
+.order{font-size:.95rem;line-height:1.85;background:#e6d8b9;padding:.8rem 1rem;border-left:3px solid var(--seal);margin:0 0 1.1rem}
+.order b{color:var(--seal)}
+label.lb{display:block;font-size:.8rem;letter-spacing:.15em;color:#6c5c45;margin-bottom:.35rem}
+.msg{width:100%;font:inherit;font-size:1.15rem;padding:.6rem .75rem;border:1px solid #b9a37c;background:#f7efdc;color:var(--paper-ink);border-radius:2px}
+.msg:focus{outline:2px solid var(--seal);outline-offset:2px}
+.grid{display:flex;flex-wrap:wrap;gap:4px;margin:1rem 0 .4rem;min-height:46px}
+.cell{width:42px;height:42px;display:grid;place-items:center;border:1.5px solid var(--grid);font-size:1.35rem;background:#f6eedb;position:relative;
+  transition:transform .35s cubic-bezier(.2,.8,.3,1),opacity .35s,background .3s}
+.cell.over{background:#f0cfc4;border-color:var(--seal)}
+.cell.date{background:#f3dc9c}
+.cell.date::after{content:"";position:absolute;left:3px;right:3px;bottom:3px;height:2px;background:var(--seal)}
+.cell.fold{transform:scale(.2) rotate(-25deg);opacity:0}
+.cell.sealed{color:#fff;background:var(--seal);border-color:var(--seal);animation:stamp .55s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes stamp{0%{transform:scale(2.2) rotate(-14deg);opacity:0}60%{opacity:1}100%{transform:none}}
+.cell.empty{border-style:dashed;opacity:.35}
+.meter{display:flex;justify-content:space-between;align-items:center;font-size:.9rem;margin-top:.4rem;gap:.8rem;flex-wrap:wrap}
+.meter .n{font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums;color:var(--paper-ink)}
+.meter .n.bad{color:var(--seal)}
+.clerk{min-height:3.4em;margin:1rem 0 0;font-size:.98rem;line-height:1.7;padding:.7rem .9rem;background:#2a1f16;color:#efe4cc;border-radius:3px;position:relative}
+.clerk::before{content:"櫃員";position:absolute;top:-.7em;left:.8em;font-size:.7rem;background:var(--seal);color:#fff;padding:.05em .5em;letter-spacing:.2em}
+.acts{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+.counter .pk-btn{color:var(--paper-ink);border-color:var(--paper-ink)}
+.counter .pk-btn:hover{background:var(--paper-ink);color:var(--paper)}
+.counter .pk-btn.hot{background:var(--seal);border-color:var(--seal);color:#fff}
+.counter .pk-btn.hot:hover{filter:brightness(1.1)}
+.counter .pk-btn:focus-visible{outline:2px solid var(--seal);outline-offset:3px}
+.sent-tape{margin-top:1.2rem;overflow:hidden;height:0;transition:height .6s}
+.sent-tape.on{height:58px}
+.sent-tape div{display:inline-block;white-space:nowrap;background:#fff8e6;border:1px dashed #b9a37c;padding:.6rem 1rem;font-size:1.3rem;letter-spacing:.3em;
+  transform:translateX(-110%);transition:transform 1.4s cubic-bezier(.3,.7,.2,1)}
+.sent-tape.on div{transform:none}
+
+/* ── 揭曉段落 ── */
+.chap{max-width:640px;margin:7rem auto 0;line-height:1.95;font-size:1.05rem}
+.chap h2{font-size:clamp(1.5rem,5vw,2.1rem);line-height:1.4;margin:0 0 1.2rem;letter-spacing:.04em}
+.chap p{margin:0 0 1.1rem}
+.chap .dim{color:var(--muted)}
+.big-reply{display:flex;align-items:center;gap:1.2rem;margin:1.6rem 0;flex-wrap:wrap}
+.big-reply .tape{margin:0;font-size:2.4rem;transform:rotate(1deg)}
+.big-reply .tape span{opacity:1;transform:none}
+.gloss{color:var(--pk-accent);font-size:1.1rem}
+
+.month{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:1.6rem 0 1rem}
+.day{aspect-ratio:1;border:1px solid #4a3a2a;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:#1f1812;cursor:pointer;color:var(--pk-ink);font:inherit;padding:0;transition:transform .25s,background .25s,border-color .25s}
+.day:hover,.day:focus-visible{transform:translateY(-2px);border-color:var(--pk-accent);outline:none}
+.day .c{font-size:clamp(1.1rem,4.4vw,1.6rem);line-height:1.1}
+.day .d{font-size:.66rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.day.ping{background:#3a2a18;border-color:var(--pk-accent)}
+.day.t1 .c{color:#e9dfcb}.day.t2 .c{color:#e8b86a}.day.t3 .c{color:#e07a5f}
+.day.on{background:var(--pk-accent)}.day.on .c,.day.on .d{color:#15100c}
+.legend{display:flex;gap:1.1rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.35em;vertical-align:middle}
+.dayinfo{min-height:3.6em;margin-top:1rem;padding:.8rem 1rem;border-left:2px solid var(--pk-accent);background:#1f1812;font-size:.95rem}
+
+.events{list-style:none;padding:0;margin:1.5rem 0}
+.events li{display:grid;grid-template-columns:4.2rem 1fr;gap:1rem;align-items:start;padding:1rem 0;border-top:1px solid #33271c}
+.events li:last-child{border-bottom:1px solid #33271c}
+.events .k{font-size:2rem;color:var(--seal);text-align:center;background:var(--paper);border-radius:2px;line-height:1.6}
+.events b{color:var(--pk-ink)}
+.events span{color:var(--muted);font-size:.93rem}
+
+.mine{background:var(--paper);color:var(--paper-ink);padding:1.4rem 1.3rem;border-radius:3px;margin-top:1.4rem}
+.mine .row{display:flex;gap:.6rem;flex-wrap:wrap}
+.mine input{flex:1 1 12rem;font:inherit;font-size:1.05rem;padding:.55rem .7rem;border:1px solid #b9a37c;background:#f7efdc;color:var(--paper-ink)}
+.mine input:focus{outline:2px solid var(--seal);outline-offset:2px}
+.mine .pk-btn{color:var(--paper-ink);border-color:var(--paper-ink)}
+.mine .pk-btn:hover{background:var(--paper-ink);color:var(--paper)}
+.mine-out{display:flex;align-items:center;gap:1.2rem;margin-top:1.1rem;min-height:5rem}
+.mine-out .seal{width:4.6rem;height:4.6rem;flex:none;display:grid;place-items:center;background:var(--seal);color:#fff;font-size:2.6rem;border-radius:4px}
+.mine-out .seal.pop{animation:stamp .55s cubic-bezier(.2,.9,.3,1.4)}
+.mine-out p{margin:0;font-size:.98rem;line-height:1.75}
+.coda{text-align:center;margin:8rem auto 2rem;max-width:30em}
+.coda .tape{font-size:clamp(2rem,8vw,3.4rem)}
+.coda .tape span{opacity:1;transform:none}
+.coda p{color:var(--muted);line-height:1.9}
+[hidden]{display:none!important}
+
+@media (max-width:560px){
+  .counter{padding:22px 16px 24px}
+  .cell{width:34px;height:34px;font-size:1.1rem}
+  .month{gap:4px}
+  .events li{grid-template-columns:3.2rem 1fr;gap:.7rem}
+  .events .k{font-size:1.5rem}
+}
+@media (prefers-reduced-motion: reduce){
+  .tape span{transition:none;opacity:1;transform:none}
+  .cell,.day,.sent-tape,.sent-tape div{transition:none}
+  .cell.sealed,.mine-out .seal.pop{animation:none}
+  .sent-tape.on div{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <div class="tape serif" id="heroTape" aria-label="電報紙條：馬電悉"><span>馬</span><span>電</span><span>悉</span></div>
+    <p class="hero-sub rv">想像光緒年間，上海一家商號收到天津分號的回電，<b>就這三個字</b>。<br>收報的掌櫃點點頭，把紙條收進抽屜。<br>他看懂了。你還沒有。</p>
+    <p class="cue rv">往下，到櫃台去 ↓</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section class="counter serif rv" aria-labelledby="formTitle">
+    <div class="form-head"><h2 id="formTitle">發 報 單</h2><small>上海電報局・櫃台</small></div>
+    <p class="order">東家的條子：「貨船<b>二十一日</b>到津，叫天津分號派人去碼頭接。」<br>錢袋裡的錢，<b>只夠拍八個字</b>。電報按字計價，一字一字算。</p>
+    <label class="lb" for="msg">電文（標點不拍，不計字）</label>
+    <input class="msg" id="msg" maxlength="40" autocomplete="off" placeholder="例：貨船二十一日到津請派人接" aria-describedby="clerk">
+    <div class="grid" id="grid" aria-hidden="true"></div>
+    <div class="meter"><span>計 <span class="n" id="cnt">0</span> 字／限 8 字</span><span id="state" class="dim"></span></div>
+    <p class="clerk" id="clerk" aria-live="polite">寫吧。寫多少，我就數多少。</p>
+    <div class="acts">
+      <button class="pk-btn" id="sealBtn" type="button" hidden>蓋代日章</button>
+      <button class="pk-btn hot" id="sendBtn" type="button">交櫃・發報</button>
+    </div>
+    <div class="sent-tape" id="sentTape" aria-hidden="true"><div id="sentText"></div></div>
+  </section>
+
+  <div id="after" hidden>
+    <section class="chap rv">
+      <h2>第二天一早，天津回電。</h2>
+      <div class="big-reply"><div class="tape serif"><span>馬</span><span>電</span><span>悉</span></div><div class="gloss">＝「二十一日那封電報，收到了。」</div></div>
+      <p>開頭那張紙條，現在你讀得懂了。「馬」不是馬，是<b>日子</b>。</p>
+      <p class="dim">清廷剛拉起電報線的年頭，電報按字收錢，貴到「字字是金」。一個「二十一日」要四個字，掌櫃們受不了，有人想出一個辦法：月份借地支，日子借一本讀書人寫詩都得翻的韻書——《平水韻》。</p>
+    </section>
+
+    <section class="chap rv">
+      <h2>一個月三十一天，押著三十一個韻。</h2>
+      <p>《平水韻》把漢字分成 106 個韻部，每部有個代表字，叫「韻目」。電報局照順序借來編號：前十五天用上平聲，從「東」排到「刪」；後半個月改用上聲、去聲。點一天看看。</p>
+      <div class="month serif" id="month" role="group" aria-label="三十一天的代日韻目"></div>
+      <div class="legend"><span><i style="background:#e9dfcb"></i>上平聲</span><span><i style="background:#e8b86a"></i>上聲・去聲</span><span><i style="background:#e07a5f"></i>韻書外的補丁</span></div>
+      <p class="dayinfo serif" id="dayinfo" aria-live="polite">點任何一天。</p>
+    </section>
+
+    <section class="chap rv">
+      <h2>為了省兩三個字的錢，日子有了名字。</h2>
+      <p>這套辦法在電報房用了七十多年，從清末一直到 1950 年代初。電報常以發報日命名，報紙照抄，有些就這麼成了史書上的名字——</p>
+      <ul class="events serif">
+        <li><div class="k">馬</div><div><b>馬日事變</b><br><span>1927 年 5 月 21 日，長沙。發生在「馬」日，事件就叫馬日。</span></div></li>
+        <li><div class="k">巧</div><div><b>巧電</b><br><span>1930 年 9 月 18 日，張學良通電「武裝調停」中原大戰。十八日，巧。</span></div></li>
+        <li><div class="k">文</div><div><b>文夕大火</b><br><span>1938 年 11 月 12 日夜，長沙。「文」是十二日，「夕」是夜裡。</span></div></li>
+        <li><div class="k">艷</div><div><b>艷電</b><br><span>1938 年 12 月 29 日，汪精衛發出的那封電報。二十九日，艷。</span></div></li>
+      </ul>
+      <p class="dim">讀歷史課本時看到「某電」「某日」覺得莫名其妙？那多半是一張電報紙上的日期戳。</p>
+    </section>
+
+    <section class="chap rv">
+      <h2>輪到你了。你是哪一天生的？</h2>
+      <p>寫日期就行，「五月二十一日」「12/3」「17」都認得。</p>
+      <div class="mine serif">
+        <div class="row">
+          <label class="pk-sr" for="bday">你的生日</label>
+          <input id="bday" maxlength="20" autocomplete="off" placeholder="例：十月二十七日">
+          <button class="pk-btn" id="bdayBtn" type="button">查韻目</button>
+        </div>
+        <div class="mine-out" id="mineOut" aria-live="polite" hidden>
+          <div class="seal" id="mineSeal"></div>
+          <p id="mineText"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="coda serif rv">
+      <div class="tape" id="codaTape" aria-label="結尾電報紙條"><span>馬</span><span>電</span><span>悉</span></div>
+      <p id="codaLine">一百多年前，有人為了省一個字的錢，<br>讓一個月裡的每一天都押了韻。</p>
+    </section>
+  </div>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：維基百科「代日韻目」、《電報新編》韻目代日表。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'ymdr1881.';
+const store = PK.store(LS);
+
+/*CORE-START*/
+/* 常用代日字（1–31）；30 本為「陷」，忌用改「卅」；31 韻書無，用「世」（卅一合寫）或「引」 */
+const CODES = '東冬江支微魚虞齊佳灰真文元寒刪銑篠巧皓號馬養漾敬有寢感儉艷卅世'.split('');
+const TONE = function (d) { return d <= 15 ? 1 : (d <= 29 ? 2 : 3); };
+function dayCode(d) { d = Math.floor(d); return (d >= 1 && d <= 31) ? CODES[d - 1] : null; }
+function decodeDay(ch) { var i = CODES.indexOf(ch); if (i >= 0) return i + 1; return ch === '引' ? 31 : (ch === '陷' ? 30 : null); }
+var CN = { '一':1,'二':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9 };
+function cnNum(s) {
+  s = String(s).replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); });
+  if (/^\d+$/.test(s)) return parseInt(s, 10);
+  if (s === '廿') return 20; if (s === '卅') return 30;
+  if (/^廿./.test(s)) return 20 + (CN[s[1]] || NaN);
+  if (/^卅./.test(s)) return 30 + (CN[s[1]] || NaN);
+  var m = /^([一二兩三四五六七八九]?)(十)?([一二三四五六七八九]?)$/.exec(s);
+  if (!m || (!m[2] && (m[1] && m[3]))) return NaN;
+  if (!m[2]) return CN[m[1]] || NaN;
+  return (m[1] ? CN[m[1]] : 1) * 10 + (m[3] ? CN[m[3]] : 0);
+}
+/* 找出電文裡的「日期」：二十一日、廿一號、21日… 回傳 [{start,end,day}] */
+var DATE_RE = /([一二兩三四五六七八九十廿卅]{1,3}|[0-9０-９]{1,2})\s*(日|號|号)/g;
+function findDates(text) {
+  var out = [], m; DATE_RE.lastIndex = 0;
+  while ((m = DATE_RE.exec(text))) {
+    var n = cnNum(m[1]);
+    if (n >= 1 && n <= 31) out.push({ start: m.index, end: m.index + m[0].length, day: n });
+  }
+  return out;
+}
+/* 標點與空白不拍 */
+function telegraphChars(text) { return Array.from(String(text).replace(/[\s，。、！？：；「」『』（）,.!?:;"'()\-—…·]/g, '')); }
+/* 把電文裡的日期換成代日字 */
+function sealDates(text) {
+  var ds = findDates(text), s = text;
+  for (var i = ds.length - 1; i >= 0; i--) s = s.slice(0, ds[i].start) + dayCode(ds[i].day) + s.slice(ds[i].end);
+  return s;
+}
+/* 生日：抓最後一個日期；沒有「日」字就抓最後一組數字 */
+function parseBirthDay(text) {
+  text = String(text).trim();
+  var ds = findDates(text); if (ds.length) return ds[ds.length - 1].day;
+  var m = /(\d{1,2})\s*$/.exec(text.replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }));
+  if (m) { var n = +m[1]; return n >= 1 && n <= 31 ? n : null; }
+  var m2 = /([一二三四五六七八九十廿卅]{1,3})\s*$/.exec(text);
+  if (m2) { var k = cnNum(m2[1]); return k >= 1 && k <= 31 ? k : null; }
+  return null;
+}
+/* 中文寫日期要幾個字：五日=2、十一日=3、二十一日=4 */
+function savedBy(d) { return (d <= 10 ? 2 : (d < 20 || d % 10 === 0 ? 3 : 4)) - 1; }
+/*CORE-END*/
+
+const BUDGET = 8;
+const NOTES = {
+  1:'上平聲第一韻。「東日」就是初一。',
+  12:'文。加個「夕」就是十二日夜裡——文夕大火。',
+  15:'刪。上平聲到這裡用完，下一天換聲調。',
+  16:'銑，上聲。後半個月從這裡起，混用上聲和去聲的韻目。',
+  18:'巧。1930 年張學良的「巧電」。',
+  19:'皓。上聲。也是一封有名的「皓電」的日子。',
+  20:'號。這天借的是去聲。',
+  21:'馬。馬日事變、還有開頭那張紙條。',
+  29:'艷，去聲。1938 年汪精衛的「艷電」。',
+  30:'照順序該用去聲的「陷」——攻陷、陷落，軍中嫌不吉利，換成「卅」。',
+  31:'《平水韻》沒有第三十一個。借「世」——它是「卅」和「一」合寫；也有人用「引」，看起來像阿拉伯數字 31。'
+};
+function noteFor(d) {
+  if (NOTES[d]) return NOTES[d];
+  return (d <= 15 ? '上平聲第 ' + d + ' 個韻目。' : '後半個月的韻目，借自上聲或去聲。');
+}
+
+/* ── 櫃台 ── */
+const $ = (id) => document.getElementById(id);
+const msg = $('msg'), grid = $('grid'), cnt = $('cnt'), clerk = $('clerk'), sealBtn = $('sealBtn'), sendBtn = $('sendBtn');
+let sealedOnce = false, sent = false, lastCount = 0;
+
+function say(t) { clerk.textContent = t; }
+function render(flashSeal) {
+  const raw = msg.value;
+  const dates = findDates(raw);
+  // 標記哪些字屬於日期
+  const marks = [];
+  Array.from(raw).forEach((ch, i) => { marks[i] = dates.some((d) => i >= d.start && i < d.end); });
+  const chars = []; Array.from(raw).forEach((ch, i) => { if (telegraphChars(ch).length) chars.push({ ch, date: marks[i] }); });
+  grid.innerHTML = '';
+  const n = chars.length;
+  chars.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'cell' + (c.date ? ' date' : '') + (i >= BUDGET ? ' over' : '');
+    if (flashSeal && decodeDay(c.ch) && sealedChars.has(i)) el.classList.add('sealed');
+    el.textContent = c.ch; grid.appendChild(el);
+  });
+  for (let i = n; i < BUDGET; i++) { const e = document.createElement('div'); e.className = 'cell empty'; grid.appendChild(e); }
+  cnt.textContent = n; cnt.classList.toggle('bad', n > BUDGET);
+  $('state').textContent = n > BUDGET ? '超出 ' + (n - BUDGET) + ' 字' : (n ? '還剩 ' + (BUDGET - n) + ' 字' : '');
+  sealBtn.hidden = !dates.length || sent;
+  if (n !== lastCount && !sent) hint(raw, n, dates);
+  lastCount = n;
+}
+let sealedChars = new Set();
+function hint(raw, n, dates) {
+  if (!n) return say('寫吧。寫多少，我就數多少。');
+  if (dates.length && n > BUDGET) return say('「' + raw.slice(dates[0].start, dates[0].end) + '」就吃掉 ' + (dates[0].end - dates[0].start) + ' 個字。日子嘛……天津那邊跟我們翻同一本韻書。按「蓋代日章」試試。');
+  if (n > BUDGET) return say('超了。「請」「的」「派人」這種，天津分號自己會意會。');
+  if (!dates.length && !hasCode(raw)) return say('字數夠了，可日子呢？天津得知道船哪天到。');
+  say('八個字以內。可以交櫃了。');
+}
+function hasCode(s) { return Array.from(s).some((c) => decodeDay(c) === 21); }
+
+msg.addEventListener('input', () => render(false));
+sealBtn.addEventListener('click', () => {
+  const raw = msg.value, dates = findDates(raw);
+  if (!dates.length) return;
+  const cells = grid.querySelectorAll('.cell.date');
+  const go = () => {
+    // 新字串中被蓋章字的位置（以拍發字計）
+    const out = sealDates(raw);
+    sealedChars = new Set();
+    let k = 0; const ds = findDates(raw); let shift = 0; const pos = [];
+    ds.forEach((d) => { pos.push(d.start - shift); shift += (d.end - d.start) - 1; });
+    Array.from(out).forEach((ch, i) => { if (telegraphChars(ch).length) { if (pos.includes(i)) sealedChars.add(k); k++; } });
+    msg.value = out;
+    sealedOnce = true;
+    render(true);
+    const d = ds[0];
+    const was = raw.slice(d.start, d.end);
+    say('「' + was + '」→「' + dayCode(d.day) + '」。' + (d.day === 21 ? '二十一日，馬。四個字變一個，天津那頭一翻韻書就懂。' : d.day + ' 日，' + dayCode(d.day) + '。天津那頭一翻韻書就懂。') + (telegraphChars(out).length > BUDGET ? '　還超 ' + (telegraphChars(out).length - BUDGET) + ' 字，再刪一點。' : ''));
+    PK.announce('日期已改成代日字：' + dayCode(d.day));
+  };
+  if (PK.reduced()) go();
+  else { cells.forEach((c) => c.classList.add('fold')); setTimeout(go, 360); }
+});
+sendBtn.addEventListener('click', () => {
+  if (sent) return;
+  const raw = msg.value, n = telegraphChars(raw).length;
+  if (!n) { say('空白的單子，我拍什麼？'); return msg.focus(); }
+  if (n > BUDGET) { say('超出 ' + (n - BUDGET) + ' 個字的錢，東家不會認帳。再刪刪。'); return msg.focus(); }
+  const hasDate = findDates(raw).length || Array.from(raw).some((c) => decodeDay(c));
+  if (!hasDate) { say('船哪天到？沒寫日子，天津分號會在碼頭上站好幾天。'); return msg.focus(); }
+  sent = true; sendBtn.disabled = true; sealBtn.hidden = true; msg.readOnly = true;
+  $('sentText').textContent = telegraphChars(raw).join('');
+  $('sentTape').classList.add('on');
+  say(sealedOnce ? '滴、答、滴滴——拍出去了。等回電吧。' : '拍出去了。下回日子可以只寫一個字——往下看你就知道怎麼寫。');
+  store.set('sent', telegraphChars(raw).join(''));
+  setTimeout(openAfter, PK.reduced() ? 0 : 1300);
+});
+
+function openAfter() {
+  const after = $('after');
+  if (!after.hidden) return;
+  after.hidden = false;
+  PK.reveal('#after .rv');
+  buildMonth();
+  after.querySelector('.chap').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'start' });
+}
+
+/* ── 三十一天 ── */
+function buildMonth() {
+  const box = $('month'); if (box.childElementCount) return;
+  for (let d = 1; d <= 31; d++) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'day t' + TONE(d);
+    b.setAttribute('aria-label', d + ' 日，代日字 ' + dayCode(d));
+    b.innerHTML = '<span class="c">' + dayCode(d) + '</span><span class="d">' + d + '</span>';
+    b.addEventListener('click', () => pick(d));
+    box.appendChild(b);
+  }
+  // 依序點亮（只用 class，reduced 直接略過）
+  if (!PK.reduced()) {
+    const days = box.children; let i = 0;
+    const io = new IntersectionObserver((es) => {
+      if (!es[0].isIntersecting) return; io.disconnect();
+      const t = setInterval(() => { if (i > 0) days[i - 1].classList.remove('ping'); if (i >= days.length) return clearInterval(t); days[i++].classList.add('ping'); }, 55);
+    }, { threshold: .5 });
+    io.observe(box);
+  }
+}
+function pick(d) {
+  document.querySelectorAll('.day.on').forEach((e) => e.classList.remove('on'));
+  $('month').children[d - 1].classList.add('on');
+  $('dayinfo').textContent = d + ' 日 →「' + dayCode(d) + '」　' + noteFor(d);
+}
+
+/* ── 你的生日 ── */
+function showMine(d, pop) {
+  const ch = dayCode(d), out = $('mineOut'), seal = $('mineSeal');
+  out.hidden = false; seal.textContent = ch;
+  seal.classList.remove('pop'); void seal.getBoundingClientRect(); if (pop && !PK.reduced()) seal.classList.add('pop');
+  const tail = d === 21 ? '跟開頭那張紙條同一個字。' : (NOTES[d] && (d >= 29 || d === 12 || d === 18 || d === 19) ? NOTES[d] : '');
+  $('mineText').textContent = '你是「' + ch + '」日生的。當年替你拍賀電，落款會寫「' + ch + '」——一個字，省 ' + savedBy(d) + ' 個字的錢。' + (tail ? '　' + tail : '');
+  const coda = $('codaTape').children; coda[0].textContent = ch;
+  $('codaTape').setAttribute('aria-label', '結尾電報紙條：' + ch + '電悉');
+  $('codaLine').innerHTML = '「' + ch + '電悉」——你生日那天拍的電報，收到了。<br>一百多年前，有人為了省一個字的錢，<br>讓一個月裡的每一天都押了韻。';
+}
+$('bdayBtn').addEventListener('click', () => {
+  const d = parseBirthDay($('bday').value);
+  if (!d) { $('mineOut').hidden = false; $('mineSeal').textContent = '？'; $('mineText').textContent = '這個日子我數不出來。寫成「十月二十七日」或「27」試試。'; return; }
+  store.set('bday', d); showMine(d, true);
+});
+$('bday').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('bdayBtn').click(); });
+
+/* ── 開場 ── */
+PK.reveal();
+requestAnimationFrame(() => $('heroTape').classList.add('on'));
+render(false);
+const prevB = store.get('bday', null);
+if (store.get('sent', null)) { /* 回訪者：櫃台照樣可玩，但下半段先打開 */
+  $('sendBtn').textContent = '交櫃・發報（你上回拍過了）';
+}
+if (prevB) { $('bday').value = prevB + ' 日'; }
+</script>
+</body>
+</html>

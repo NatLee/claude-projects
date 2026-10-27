@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你來排順序｜每日小專案</title>
+<meta name="description" content="1785 年，皮卡第一個村子要用公平的多數決花掉一筆錢。你是書記，負責排投票順序——然後發現，排順序的人說了算。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#16120d; --pk-ink:#efe6d2; --pk-dim:#a3977f; --pk-accent:#d0553a;
+  --pk-line:rgba(239,230,210,.14);
+  --wax:#b8432c; --bridge:#8fa3b8; --well:#5fae9e; --bell:#d6a94a;
+  --paper:#241d15;
+}
+body{
+  background:
+    radial-gradient(1200px 700px at 50% -10%, rgba(214,169,74,.10), transparent 60%),
+    radial-gradient(900px 600px at 50% 120%, rgba(184,67,44,.08), transparent 60%),
+    var(--pk-bg);
+}
+.pk-hero h1{font-family:var(--pk-serif);font-weight:700;letter-spacing:.02em}
+.kicker{font-size:.8rem;letter-spacing:.32em;color:var(--pk-dim);margin:0 0 1.2rem}
+.lede{font-size:1.15rem;color:var(--pk-ink);max-width:30em}
+.lede em{font-style:normal;color:var(--bell)}
+.act{padding:14vh 0 4vh;scroll-margin-top:24px}
+.act[hidden]{display:none}
+.act-no{font-family:var(--pk-serif);color:var(--pk-accent);letter-spacing:.3em;font-size:.82rem;margin:0}
+.act h2{font-family:var(--pk-serif);font-size:clamp(1.5rem,4.6vw,2.1rem);line-height:1.35;margin:.4rem 0 1.4rem}
+.act p{margin:0 0 1.1rem}
+.dim{color:var(--pk-dim)}
+.quote{border-left:2px solid var(--wax);padding:.2rem 0 .2rem 1rem;font-family:var(--pk-serif);color:#e9dcc0;margin:1.4rem 0}
+
+/* 三派 */
+.factions{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:1.6rem 0}
+.fac{background:var(--paper);border:1px solid var(--pk-line);border-radius:10px;padding:14px 12px 12px;
+  transition:transform .4s cubic-bezier(.2,.7,.3,1),border-color .3s}
+.fac:hover{transform:translateY(-3px);border-color:rgba(214,169,74,.4)}
+.fac h3{font-family:var(--pk-serif);font-size:1rem;margin:0 0 .2rem}
+.fac small{display:block;color:var(--pk-dim);font-size:.78rem;line-height:1.5;min-height:3em}
+.rank{display:flex;gap:6px;margin-top:10px;align-items:center}
+.rank i{font-style:normal;color:var(--pk-dim);font-size:.7rem}
+.mini{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-family:var(--pk-serif);
+  font-size:.85rem;color:#16120d;font-weight:700}
+.c-橋{background:var(--bridge)} .c-井{background:var(--well)} .c-鐘{background:var(--bell)}
+
+/* 議程桌 */
+.table{background:linear-gradient(180deg,#2a2118,#211a12);border:1px solid var(--pk-line);border-radius:16px;
+  padding:22px 18px 18px;margin:1.6rem 0;box-shadow:0 30px 60px -30px rgba(0,0,0,.7)}
+.slots{display:grid;grid-template-columns:1fr 1fr auto 1fr;gap:10px;align-items:center}
+.slot{position:relative;height:118px;border:1.5px dashed rgba(239,230,210,.22);border-radius:14px;
+  display:grid;place-items:center;transition:border-color .2s,background .2s}
+.slot.over{border-color:var(--bell);background:rgba(214,169,74,.07)}
+.slot-lab{position:absolute;top:-.75rem;left:.6rem;background:#261e15;padding:0 .4rem;font-size:.72rem;color:var(--pk-dim);letter-spacing:.1em}
+.vs{font-family:var(--pk-serif);color:var(--pk-dim);font-size:.9rem;text-align:center}
+.slot.last{border-color:rgba(184,67,44,.45)}
+.seal{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;cursor:grab;touch-action:none;
+  font-family:var(--pk-serif);font-size:1.9rem;font-weight:700;color:#16120d;user-select:none;-webkit-user-select:none;
+  box-shadow:inset 0 -6px 0 rgba(0,0,0,.18),inset 0 4px 8px rgba(255,255,255,.25),0 8px 18px -6px rgba(0,0,0,.6);
+  transition:transform .25s cubic-bezier(.2,.7,.3,1),box-shadow .25s}
+.seal:hover{transform:scale(1.05) rotate(-3deg)}
+.seal:active,.seal.drag{cursor:grabbing}
+.seal.drag{transition:none;z-index:5;position:relative;box-shadow:0 22px 30px -10px rgba(0,0,0,.7)}
+.seal.pop{animation:pop .45s cubic-bezier(.2,.7,.3,1.4)}
+@keyframes pop{0%{transform:scale(.7)}100%{transform:scale(1)}}
+.hint{font-size:.82rem;color:var(--pk-dim);margin:.9rem 0 0;text-align:center}
+.actions{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+
+/* 開票 */
+.ledger{margin-top:18px;font-family:var(--pk-serif)}
+.duel{border-top:1px solid var(--pk-line);padding:14px 0 6px}
+.duel-h{display:flex;justify-content:space-between;align-items:baseline;font-size:.95rem}
+.duel-h b{font-weight:700}
+.votes{display:flex;gap:8px;margin:10px 0 4px;flex-wrap:wrap}
+.vote{font-family:var(--pk-sans);font-size:.78rem;padding:4px 10px;border-radius:99px;background:rgba(239,230,210,.07);
+  opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
+.vote.in{opacity:1;transform:none}
+.vote span{font-weight:700}
+.verdict{opacity:0;transform:translateX(-6px);transition:opacity .4s,transform .4s;color:var(--bell)}
+.verdict.in{opacity:1;transform:none}
+.decree{margin-top:14px;padding:16px;border-radius:12px;background:rgba(184,67,44,.10);border:1px solid rgba(184,67,44,.35);
+  opacity:0;transform:scale(.98);transition:opacity .5s,transform .5s}
+.decree.in{opacity:1;transform:none}
+.decree strong{font-size:1.15rem}
+.decree .who{font-family:var(--pk-sans);color:var(--pk-dim);font-size:.85rem;margin-top:.4rem}
+
+.tally{display:flex;gap:8px;justify-content:center;margin:1rem 0 0}
+.tally .mini{opacity:.18;transition:opacity .4s,transform .4s;transform:scale(.85)}
+.tally .mini.got{opacity:1;transform:none}
+.tally-lab{text-align:center;font-size:.78rem;color:var(--pk-dim);margin:.4rem 0 0}
+
+/* 三角 */
+.ring{display:block;margin:1.2rem auto;width:min(340px,100%);overflow:visible}
+.ring .edge{fill:none;stroke-width:2.5;stroke-linecap:round}
+.ring .head{opacity:0;transition:opacity .4s}
+.ring.on .head{opacity:1}
+.ring .lab{font-family:var(--pk-sans);font-size:11px;fill:var(--pk-dim);opacity:0;transition:opacity .5s .6s}
+.ring.on .lab{opacity:1}
+.ring .node text{font-family:var(--pk-serif);font-size:22px;font-weight:700;fill:#16120d}
+.ring .node{transition:transform .5s cubic-bezier(.2,.7,.3,1.4);transform-box:fill-box;transform-origin:center}
+.ring.on .node{animation:beat 2.4s ease-in-out 1s infinite}
+.ring.on .node:nth-of-type(2){animation-delay:1.8s}
+.ring.on .node:nth-of-type(3){animation-delay:2.6s}
+@keyframes beat{0%,100%{opacity:1}50%{opacity:.55}}
+
+.final{min-height:80vh;display:flex;flex-direction:column;justify-content:center}
+.final .big{font-family:var(--pk-serif);font-size:clamp(1.6rem,5.4vw,2.4rem);line-height:1.4;margin:1.6rem 0}
+.final .big em{font-style:normal;color:var(--pk-accent)}
+.coffin{font-family:var(--pk-serif);text-align:center;letter-spacing:.4em;color:var(--pk-dim);margin:2rem 0;font-size:.85rem}
+
+@media (max-width:560px){
+  .factions{grid-template-columns:1fr}
+  .fac small{min-height:0}
+  .slots{grid-template-columns:1fr 1fr;row-gap:22px}
+  .vs{display:none}
+  .slot.last{grid-column:1 / -1;width:60%;justify-self:center}
+  .seal{width:68px;height:68px;font-size:1.6rem}
+  .slot{height:100px}
+}
+@media (prefers-reduced-motion: reduce){
+  .seal,.fac,.vote,.verdict,.decree,.ring .head,.ring .lab{transition:none}
+  .seal.pop{animation:none}
+  .ring.on .node{animation:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">一七八五年・皮卡第</p>
+    <h1 class="rv">三個提案，一筆錢，<br>一場完全公平的投票。</h1>
+    <p class="lede rv">村裡每個人都會投票。<br>除了你——你是<em>書記</em>，你只負責決定先投哪一場。</p>
+    <p class="rv"><button class="pk-btn" id="go1">推開議事廳的門</button></p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="act" id="a1" hidden aria-labelledby="h1t">
+    <p class="act-no">第一幕</p>
+    <h2 id="h1t">老領主死了，留下三百里弗爾。</h2>
+    <p>村長把錢袋擱在桌上，說只夠做一件事：在河上修<b>石橋</b>、在廣場挖<b>水井</b>，或者替教堂換一口新<b>鐘</b>。</p>
+    <p>村裡剛好分成人數相同的三派，各自把三個提案排了先後：</p>
+    <div class="factions" id="facs"></div>
+    <p>規則是村長親口定的，聽起來無懈可擊：</p>
+    <p class="quote">「兩個提案先對決，多數勝出；勝者再跟剩下那個對決。誰也不能說不公平。」</p>
+    <p>他把三枚封蠟推到你面前。「順序你排。反正怎麼排都一樣。」</p>
+    <p><button class="pk-btn" id="go2">接過封蠟</button></p>
+  </section>
+
+  <section class="act" id="a2" hidden aria-labelledby="h2t">
+    <p class="act-no">第二幕</p>
+    <h2 id="h2t">把封蠟拖進議程。</h2>
+    <p class="dim">左邊兩格先對決，勝者再迎戰右邊那格。拖曳交換位置；鍵盤可用 Tab 選中封蠟、按 ← → 換位。</p>
+
+    <div class="table">
+      <div class="slots" id="slots" role="list" aria-label="投票議程">
+        <div class="slot" data-i="0" role="listitem"><span class="slot-lab">第一場・甲</span></div>
+        <div class="slot" data-i="1" role="listitem"><span class="slot-lab">第一場・乙</span></div>
+        <div class="vs" aria-hidden="true">勝者<br>迎戰 →</div>
+        <div class="slot last" data-i="2" role="listitem"><span class="slot-lab">第二場</span></div>
+      </div>
+      <div class="actions"><button class="pk-btn" id="run">敲槌，開始投票</button></div>
+      <div class="ledger" id="ledger" aria-live="polite"></div>
+      <div id="tallyBox" hidden>
+        <div class="tally" id="tally" aria-hidden="true"></div>
+        <p class="tally-lab" id="tallyLab"></p>
+      </div>
+    </div>
+    <p id="nudge" class="quote" hidden></p>
+  </section>
+
+  <section class="act" id="a3" hidden aria-labelledby="h3t">
+    <p class="act-no">第三幕</p>
+    <h2 id="h3t">每一場都是二比一。<br>把三場擺在一起，是一個圈。</h2>
+    <svg class="ring" id="ring" viewBox="0 0 320 290" role="img" aria-label="石橋以二比一勝水井，水井以二比一勝鐘，鐘以二比一勝石橋，形成循環">
+      <defs></defs>
+      <g class="spin">
+        <path class="edge" id="e0" d="M178 72 L262 210" stroke="#8fa3b8"/>
+        <path class="edge" id="e1" d="M240 236 L80 236" stroke="#5fae9e"/>
+        <path class="edge" id="e2" d="M58 210 L142 72" stroke="#d6a94a"/>
+        <polygon class="head" points="262,210 250,203 258,198" fill="#8fa3b8"/>
+        <polygon class="head" points="80,236 92,230 92,242" fill="#5fae9e"/>
+        <polygon class="head" points="142,72 141,86 133,80" fill="#d6a94a"/>
+        <text class="lab" x="234" y="132">橋 勝 井</text>
+        <text class="lab" x="136" y="258">井 勝 鐘</text>
+        <text class="lab" x="40" y="132">鐘 勝 橋</text>
+        <g class="node"><circle cx="160" cy="46" r="26" fill="#8fa3b8"/><text x="160" y="54" text-anchor="middle">橋</text></g>
+        <g class="node"><circle cx="270" cy="236" r="26" fill="#5fae9e"/><text x="270" y="244" text-anchor="middle">井</text></g>
+        <g class="node"><circle cx="50" cy="236" r="26" fill="#d6a94a"/><text x="50" y="244" text-anchor="middle">鐘</text></g>
+      </g>
+    </svg>
+    <p>石橋贏水井，水井贏鐘，鐘又贏石橋。三派各自的排序都合情合理，加總起來卻像剪刀石頭布——多數意見<b>沒有頭</b>。</p>
+    <p>所以第一場永遠在淘汰「下一個會被打敗的」，排在最後那枚封蠟，只要等著收割。你剛才看到的規律不是巧合：<b>誰排最後，誰贏。</b></p>
+    <p>同一年，一位數學家把這件事寫進一本四百多頁的書裡。他叫孔多塞侯爵，就出身在皮卡第。</p>
+    <p><button class="pk-btn" id="go4">翻到書的最後一頁</button></p>
+  </section>
+
+  <section class="act" id="a4" hidden aria-labelledby="h4t">
+    <p class="act-no">尾聲</p>
+    <h2 id="h4t">發現多數會打結的人，後來被多數判了罪。</h2>
+    <p>孔多塞在 1785 年的《論多數決的機率分析》裡指出：只要選項有三個以上，「多數的意願」可能根本不存在。後世管這叫<b>孔多塞悖論</b>。</p>
+    <p>革命來了，他進了國民公會。1793 年他反對新憲法，被下令逮捕，躲藏數月後在路邊客棧落網。1794 年 3 月 29 日，人們在布爾－平等鎮的囚室裡發現他的屍體。</p>
+    <p>1951 年，經濟學家阿羅把他的直覺推到盡頭：三個以上選項時，任何只看「排名」的投票規則，都無法同時滿足幾條最起碼的公平條件——除非把決定權交給一個人。</p>
+    <p class="coffin">一九八九・先賢祠</p>
+    <p>法國大革命兩百週年，孔多塞被迎進巴黎先賢祠。棺木是空的：他的遺骨十九世紀就在公墓裡下落不明了。</p>
+    <div class="final">
+      <p class="big" id="endLine">村子最後修了<em>……</em>。<br>每個人都說，這是多數決定的。</p>
+      <p class="dim" id="endSub">而真正做決定的，是那個被說成「怎麼排都一樣」的人。</p>
+      <div class="actions"><button class="pk-btn" id="again">回到議事廳，再排一次</button></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Condorcet, <i>Essai sur l'application de l'analyse…</i>（1785）；K. Arrow, <i>Social Choice and Individual Values</i>（1951）。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'cond1785.';
+const store = PK.store(LS);
+
+/* ===CORE=== 純函式：可在 node 斷言 */
+const FACTIONS = [
+  { name:'磨坊主', note:'河東三座磨坊。「麵粉要過河才賣得掉。」', rank:['橋','井','鐘'] },
+  { name:'牧羊人', note:'高地的羊群。「羊不過河，羊要喝水。」',   rank:['井','鐘','橋'] },
+  { name:'教區',   note:'神父與唱詩班。「舊鐘裂了，喪禮聽起來像敲鍋。」', rank:['鐘','橋','井'] }
+];
+function prefers(f, a, b){ return f.rank.indexOf(a) < f.rank.indexOf(b) ? a : b; }
+function duel(a, b, facs){
+  const votes = facs.map(f => ({ who:f.name, pick:prefers(f, a, b) }));
+  const na = votes.filter(v => v.pick === a).length;
+  return { a, b, votes, na, nb: votes.length - na, winner: na * 2 > votes.length ? a : b };
+}
+function runAgenda(order, facs){
+  const r1 = duel(order[0], order[1], facs);
+  const r2 = duel(r1.winner, order[2], facs);
+  return { r1, r2, winner: r2.winner };
+}
+function isCycle(items, facs){
+  /* 每個選項都恰好被另一個以多數擊敗 → 無孔多塞勝者 */
+  return items.every(x => items.some(y => y !== x && duel(y, x, facs).winner === y));
+}
+function swapAt(order, i, j){ const o = order.slice(); const t = o[i]; o[i] = o[j]; o[j] = t; return o; }
+/* ===END=== */
+
+const $ = s => document.querySelector(s);
+const ITEMS = ['橋','井','鐘'];
+const FULL = { '橋':'石橋', '井':'水井', '鐘':'新鐘' };
+const GRUMBLE = {
+  '橋':'教區的神父站起來：「投票前誰都看得出來，鐘以二比一贏過石橋。」',
+  '井':'磨坊主拍桌：「石橋明明二比一壓過水井！」',
+  '鐘':'牧羊人搖頭：「水井二比一勝過鐘，大家都舉了手的。」'
+};
+let order = store.get('order', ['橋','井','鐘']);
+if (!Array.isArray(order) || order.slice().sort().join() !== ITEMS.slice().sort().join()) order = ['橋','井','鐘'];
+let seen = store.get('seen', []);
+if (!Array.isArray(seen)) seen = [];
+let firstWin = store.get('first', null);
+let busy = false;
+
+/* 三派卡 */
+$('#facs').innerHTML = FACTIONS.map(f =>
+  `<div class="fac"><h3>${f.name}</h3><small>${f.note}</small>
+   <div class="rank" aria-label="${f.name}的偏好：${f.rank.map(r=>FULL[r]).join('勝過')}">
+   ${f.rank.map((r,i)=>`<span class="mini c-${r}">${r}</span>${i<2?'<i>›</i>':''}`).join('')}</div></div>`).join('');
+
+/* 封蠟 */
+const slots = Array.from(document.querySelectorAll('.slot'));
+const seals = {};
+ITEMS.forEach(k => {
+  const el = document.createElement('div');
+  el.className = 'seal c-' + k; el.textContent = k; el.tabIndex = 0;
+  el.setAttribute('role','button'); el.dataset.k = k;
+  seals[k] = el;
+});
+function place(pop){
+  order.forEach((k, i) => {
+    slots[i].appendChild(seals[k]);
+    seals[k].setAttribute('aria-label', `${FULL[k]}，目前在${['第一場甲','第一場乙','第二場'][i]}。按左右鍵換位`);
+    if (pop && !PK.reduced()){ seals[k].classList.remove('pop'); void seals[k].offsetWidth; seals[k].classList.add('pop'); }
+  });
+  store.set('order', order);
+}
+function setOrder(o){ order = o; place(true); clearLedger();
+  PK.announce('議程：第一場 ' + FULL[order[0]] + ' 對 ' + FULL[order[1]] + '，勝者迎戰 ' + FULL[order[2]]); }
+
+/* 拖曳（pointer events） */
+let drag = null;
+function slotAt(x, y){
+  return slots.find(s => { const r = s.getBoundingClientRect(); return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom; });
+}
+ITEMS.forEach(k => {
+  const el = seals[k];
+  el.addEventListener('pointerdown', e => {
+    if (busy) return;
+    drag = { k, x0:e.clientX, y0:e.clientY, id:e.pointerId };
+    el.setPointerCapture(e.pointerId); el.classList.add('drag');
+  });
+  el.addEventListener('pointermove', e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    el.style.transform = `translate(${e.clientX-drag.x0}px,${e.clientY-drag.y0}px) scale(1.08)`;
+    slots.forEach(s => s.classList.toggle('over', s === slotAt(e.clientX, e.clientY)));
+  });
+  const end = e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const target = slotAt(e.clientX, e.clientY);
+    el.classList.remove('drag'); el.style.transform = '';
+    slots.forEach(s => s.classList.remove('over'));
+    const from = order.indexOf(drag.k); drag = null;
+    if (target){ const to = +target.dataset.i; if (to !== from) setOrder(swapAt(order, from, to)); }
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('keydown', e => {
+    if (busy) return;
+    const i = order.indexOf(k);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      e.preventDefault();
+      const j = (i + (e.key === 'ArrowRight' ? 1 : 2)) % 3;
+      setOrder(swapAt(order, i, j)); seals[k].focus();
+    }
+  });
+});
+
+/* 開票 */
+const wait = ms => new Promise(r => setTimeout(r, PK.reduced() ? 0 : ms));
+function clearLedger(){ if (!busy) $('#ledger').innerHTML = ''; }
+function duelHTML(d, title){
+  return `<div class="duel"><div class="duel-h"><span>${title}：<b>${FULL[d.a]}</b> 對 <b>${FULL[d.b]}</b></span>
+    <span class="verdict">${FULL[d.winner]} ${Math.max(d.na,d.nb)}：${Math.min(d.na,d.nb)}</span></div>
+    <div class="votes">${d.votes.map(v=>`<span class="vote">${v.who} → <span>${FULL[v.pick]}</span></span>`).join('')}</div></div>`;
+}
+async function reveal(box){
+  for (const v of box.querySelectorAll('.vote')){ await wait(320); v.classList.add('in'); }
+  await wait(260); box.querySelector('.verdict').classList.add('in');
+}
+$('#run').addEventListener('click', async () => {
+  if (busy) return; busy = true; $('#run').disabled = true;
+  const res = runAgenda(order, FACTIONS);
+  const L = $('#ledger'); L.innerHTML = '';
+  L.insertAdjacentHTML('beforeend', duelHTML(res.r1, '第一場')); await reveal(L.lastElementChild);
+  await wait(400);
+  L.insertAdjacentHTML('beforeend', duelHTML(res.r2, '第二場')); await reveal(L.lastElementChild);
+  await wait(300);
+  const W = res.winner;
+  L.insertAdjacentHTML('beforeend', `<div class="decree"><strong>決議：修${FULL[W]}。</strong>
+    <div class="who">${GRUMBLE[W]}</div></div>`);
+  requestAnimationFrame(() => L.lastElementChild.classList.add('in'));
+  if (!firstWin){ firstWin = W; store.set('first', W); }
+  const isNew = seen.indexOf(W) < 0;
+  if (isNew){ seen.push(W); store.set('seen', seen); }
+  drawTally();
+  PK.announce('決議：修' + FULL[W] + '。' + GRUMBLE[W]);
+  busy = false; $('#run').disabled = false;
+  afterVote(isNew);
+});
+function drawTally(){
+  $('#tallyBox').hidden = false;
+  $('#tally').innerHTML = ITEMS.map(k => `<span class="mini c-${k}${seen.indexOf(k)>=0?' got':''}">${k}</span>`).join('');
+  $('#tallyLab').textContent = `同一批人、同一張選票，已經通過過 ${seen.length} 種決議`;
+}
+function afterVote(isNew){
+  const n = $('#nudge'); n.hidden = false;
+  if (seen.length === 1){
+    n.textContent = '村長咳了一聲：「紀錄要寫得漂亮。換個順序再投一次，確認一下大家想法一樣。」';
+  } else if (seen.length === 2){
+    n.textContent = isNew ? '議事廳安靜了。同樣三派、同樣的心意，換了順序就換了決議。還有一個提案沒贏過——你猜得到要把它放哪嗎？'
+                          : '還是那兩種。試試把還沒贏過的那枚封蠟，放進某個特定的格子。';
+  } else if (seen.length >= 3){
+    n.textContent = '三個提案，都在這張桌上「被多數通過」過。';
+    if (isNew) openAct3();
+  }
+}
+
+/* 幕次推進 */
+function openAct(id){ const s = $(id); s.hidden = false; PK.reveal('#' + s.id + ' .rv'); requestAnimationFrame(() => PK.scrollTo(s)); }
+let ringDone = false;
+function openAct3(){
+  if (!$('#a3').hidden) return;
+  setTimeout(() => {
+    openAct('#a3');
+    if (ringDone) return; ringDone = true;
+    const ring = $('#ring');
+    const ob = new IntersectionObserver(es => {
+      if (!es[0].isIntersecting) return; ob.disconnect();
+      ['#e0','#e1','#e2'].forEach((s, i) => setTimeout(() => PK.replayDash($(s), 700), PK.reduced() ? 0 : i * 650));
+      setTimeout(() => ring.classList.add('on'), PK.reduced() ? 0 : 1900);
+    }, { threshold: .4 });
+    ob.observe(ring);
+  }, PK.reduced() ? 0 : 1400);
+}
+['#e0','#e1','#e2'].forEach(s => { const p = $(s); p.style.strokeDasharray = 170; p.style.strokeDashoffset = 170; });
+
+$('#go1').addEventListener('click', () => openAct('#a1'));
+$('#go2').addEventListener('click', () => { openAct('#a2'); place(false); });
+$('#go4').addEventListener('click', () => {
+  const W = firstWin || '橋';
+  $('#endLine').innerHTML = `村子最後修了<em>${FULL[W]}</em>——你排的第一次。<br>每個人都說，這是多數決定的。`;
+  openAct('#a4');
+});
+$('#again').addEventListener('click', () => { PK.scrollTo($('#a2')); setTimeout(() => seals[order[0]].focus({preventScroll:true}), 600); });
+
+/* 回訪：已經解開過的人直接攤開到第二幕 */
+if (seen.length){ ['#a1','#a2'].forEach(id => $(id).hidden = false); place(false); drawTally(); }
+if (seen.length >= 3){ $('#a3').hidden = false; ringDone = true; ['#e0','#e1','#e2'].forEach(s => { $(s).style.strokeDashoffset = 0; }); $('#ring').classList.add('on'); }
+
+PK.reveal();
+</script>
+</body>
+</html>

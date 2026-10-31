@@ -89,7 +89,7 @@ footer .src{opacity:.8;margin-top:4px}
       <div class="wtag" id="wtag">每個權重：16 位元</div>
     </div>
 
-    <p class="say" id="say"><b>14 GB？</b>登機箱只有 2 GB。深呼吸，開始砍——把滑桿往右拉。</p>
+    <p class="say" id="say" aria-live="polite"><b>14 GB？</b>登機箱只有 2 GB。深呼吸，開始砍——把滑桿往右拉。</p>
 
     <div class="cut">
       <label for="bits">砍多狠</label>
@@ -164,10 +164,13 @@ if(typeof document!=='undefined')(function(){
     draw();
   }
   document.getElementById('bits').addEventListener('input',function(){ idx=+this.value; update(); });
-  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
-  io.observe(document.getElementById('rev'));
+  var revEl=document.getElementById('rev');
+  if(reduced||!('IntersectionObserver' in window)){ revEl.classList.add('in'); }
+  else{ var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{rootMargin:'0px 0px -12% 0px'});
+  io.observe(revEl); }
   window.addEventListener('resize',draw);
-  mR.addEventListener('change',function(e){reduced=e.matches;});
+  var onM=function(e){reduced=e.matches; if(reduced) revEl.classList.add('in');};
+  if(mR.addEventListener) mR.addEventListener('change',onM); else if(mR.addListener) mR.addListener(onM); /* 舊 Safari */
   update();
 })();
 </script>

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一千個博士說她錯了｜每日小專案</title>
+<meta name="description" content="1990 年，一則雜誌專欄說：換門。一萬封信湧進編輯部，近千封印著大學系所抬頭。拉動一根滑桿，把三扇門變成一百扇，看直覺在哪裡翻面。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#f1e9da; --pk-ink:#1d1a16; --pk-dim:#6f675b; --pk-accent:#c2362b;
+  --pk-line:rgba(29,26,22,.16);
+  --paper2:#e8dcc6; --goat:#7b6f5e; --gold:#b98a1e; --sky:#2f5d7c;
+  --pk-maxw:680px;
+}
+body{background:
+  radial-gradient(1200px 700px at 80% -10%, rgba(194,54,43,.07), transparent 60%),
+  var(--pk-bg);}
+::selection{background:rgba(194,54,43,.2)}
+h2{font-family:var(--pk-serif);font-size:clamp(22px,5vw,30px);line-height:1.4;margin:0 0 14px}
+p{margin:0 0 14px}
+.kicker{font-size:12px;letter-spacing:.24em;color:var(--pk-accent);text-transform:uppercase;margin:0 0 10px;font-weight:600}
+.dim{color:var(--pk-dim)}
+section{padding:72px 0 24px}
+section.locked{display:none}
+hr.rule{border:0;border-top:3px double var(--pk-line);margin:0}
+
+/* ── 第一屏 ── */
+.hero-date{font-family:var(--pk-serif);font-size:14px;letter-spacing:.2em;color:var(--pk-dim);margin-bottom:24px}
+.hero-count{font-family:var(--pk-serif);font-variant-numeric:tabular-nums;color:var(--pk-accent)}
+.scroll-hint{margin-top:40px;font-size:13px;color:var(--pk-dim);letter-spacing:.12em}
+.scroll-hint span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+
+/* ── 剪報 ── */
+.clip{position:relative;background:#fbf6ec;border:1px solid var(--pk-line);padding:26px 24px 22px;
+  box-shadow:0 1px 0 rgba(0,0,0,.04),0 18px 40px -24px rgba(60,40,10,.35);transform:rotate(-.6deg)}
+.clip::before{content:"";position:absolute;top:-10px;left:50%;width:90px;height:22px;margin-left:-45px;
+  background:rgba(214,196,150,.7);transform:rotate(2deg)}
+.clip .mast{font-family:var(--pk-serif);font-weight:700;letter-spacing:.08em;border-bottom:1px solid var(--pk-ink);padding-bottom:6px;margin-bottom:12px;display:flex;justify-content:space-between;font-size:14px}
+.clip blockquote{margin:0;font-family:var(--pk-serif);font-size:17px;line-height:1.9}
+.clip .sig{text-align:right;font-size:13px;color:var(--pk-dim);margin-top:8px}
+
+/* ── 門 ── */
+.stage{margin:26px 0 8px}
+.doors{display:grid;gap:12px;grid-template-columns:repeat(3,1fr);max-width:460px;margin:0 auto}
+.door{position:relative;aspect-ratio:3/5;border:0;padding:0;background:#2a2119;border-radius:6px 6px 2px 2px;
+  perspective:700px;cursor:pointer;font:inherit;color:inherit;overflow:visible}
+.door .behind{position:absolute;inset:6px 6px 0;display:grid;place-items:center;font-size:clamp(28px,8vw,46px);
+  background:linear-gradient(#3b2e22,#1e1712);border-radius:3px 3px 0 0}
+.door .leaf{position:absolute;inset:0;border-radius:6px 6px 2px 2px;transform-origin:left center;
+  background:linear-gradient(160deg,#d34b3c,#a62b21);box-shadow:inset 0 0 0 4px rgba(0,0,0,.12),inset 0 0 0 10px rgba(255,255,255,.06);
+  transition:transform .9s cubic-bezier(.3,.7,.2,1);display:grid;place-items:center;
+  font-family:var(--pk-serif);font-size:clamp(26px,7vw,40px);color:#f7e7c9;backface-visibility:hidden}
+.door .leaf::after{content:"";position:absolute;right:14%;top:52%;width:8px;height:8px;border-radius:50%;background:#f0c96a}
+.door.open .leaf{transform:rotateY(-104deg)}
+.door.mine{outline:3px solid var(--gold);outline-offset:4px}
+.door:disabled{cursor:default}
+.door:not(:disabled):hover .leaf{transform:rotateY(-12deg)}
+.tag{position:absolute;left:0;right:0;bottom:-26px;text-align:center;font-size:12px;letter-spacing:.1em;color:var(--pk-dim)}
+.say{min-height:56px;text-align:center;margin:40px 0 10px;font-family:var(--pk-serif);font-size:18px}
+.choices{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.pk-btn{background:var(--pk-ink);color:var(--pk-bg);border:0;border-radius:999px;padding:11px 22px;font-size:15px;
+  transition:transform .15s ease,background .2s,opacity .3s}
+.pk-btn:hover{background:var(--pk-accent)}
+.pk-btn:active{transform:scale(.96)}
+.pk-btn.ghost{background:transparent;color:var(--pk-ink);box-shadow:inset 0 0 0 1.5px var(--pk-ink)}
+.pk-btn.ghost:hover{background:var(--pk-ink);color:var(--pk-bg)}
+.pk-btn[hidden]{display:none}
+.verdict{font-family:var(--pk-serif);font-size:clamp(20px,5vw,26px);text-align:center;margin:18px 0 0;min-height:1.6em}
+.next{text-align:center;margin-top:26px}
+
+/* ── 郵袋 ── */
+.meter{display:flex;gap:28px;justify-content:center;margin:24px 0 8px;flex-wrap:wrap;text-align:center}
+.meter b{display:block;font-family:var(--pk-serif);font-size:clamp(38px,11vw,62px);line-height:1;font-variant-numeric:tabular-nums}
+.meter small{font-size:12px;letter-spacing:.14em;color:var(--pk-dim)}
+.meter .phd b{color:var(--pk-accent)}
+.pile{position:relative;height:280px;margin:18px auto 0;max-width:520px}
+.letter{position:absolute;left:50%;top:0;width:min(78%,360px);padding:16px 18px 14px;background:#fffdf7;
+  border:1px solid var(--pk-line);box-shadow:0 10px 24px -14px rgba(60,40,10,.45);
+  font-family:var(--pk-serif);font-size:15px;line-height:1.75;
+  opacity:0;transition:opacity .6s ease,transform .8s cubic-bezier(.2,.8,.2,1)}
+.letter.in{opacity:1}
+.letter .lh{font-family:var(--pk-sans);font-size:10.5px;letter-spacing:.16em;color:var(--sky);border-bottom:1px solid rgba(47,93,124,.3);padding-bottom:5px;margin-bottom:8px;text-transform:uppercase}
+.letter .stamp{position:absolute;right:10px;bottom:8px;font-size:11px;color:var(--pk-accent);border:1.5px solid var(--pk-accent);padding:0 6px;border-radius:3px;transform:rotate(-6deg);font-family:var(--pk-sans);letter-spacing:.1em}
+.note{font-size:12px;color:var(--pk-dim);text-align:center}
+
+/* ── 滑桿實驗 ── */
+.lab{background:#fbf6ec;border:1px solid var(--pk-line);border-radius:14px;padding:22px 18px 20px;margin:20px 0 6px}
+.lab label{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--pk-dim)}
+.lab label output{font-family:var(--pk-serif);font-size:30px;color:var(--pk-ink);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;margin:10px 0 18px;accent-color:var(--pk-accent);height:30px}
+.field{display:grid;gap:5px;grid-template-columns:repeat(var(--cols,10),1fr);max-width:520px;margin:0 auto;min-height:120px}
+.cell{aspect-ratio:3/5;border-radius:3px 3px 1px 1px;background:linear-gradient(160deg,#d34b3c,#a62b21);position:relative;
+  transition:opacity .45s ease,transform .45s ease}
+.cell.gone{opacity:.13;transform:scale(.86)}
+.cell.mine{background:linear-gradient(160deg,#e3b84a,#b98a1e);box-shadow:0 0 0 2px var(--pk-bg),0 0 0 4px var(--gold)}
+.cell.left{box-shadow:0 0 0 2px var(--pk-bg),0 0 0 4px var(--sky);animation:glow 1.8s ease-in-out infinite}
+@keyframes glow{50%{transform:scale(1.08)}}
+.bars{margin-top:22px;display:grid;gap:10px}
+.bar{display:grid;grid-template-columns:7.2em 1fr 4.2em;align-items:center;gap:10px;font-size:14px}
+.bar .track{height:14px;background:var(--paper2);border-radius:99px;overflow:hidden}
+.bar .fill{height:100%;width:100%;transform-origin:left;transition:transform .45s cubic-bezier(.2,.7,.3,1);border-radius:99px}
+.bar.a .fill{background:var(--gold)} .bar.b .fill{background:var(--sky)}
+.bar .num{font-variant-numeric:tabular-nums;text-align:right;font-family:var(--pk-serif)}
+.lab-say{font-family:var(--pk-serif);font-size:18px;text-align:center;margin:20px 0 0;min-height:3.4em}
+.lab-say em{font-style:normal;color:var(--pk-accent)}
+
+/* ── 電腦模擬 ── */
+.term{background:#1b1915;color:#e9e0cc;border-radius:10px;padding:18px 18px 16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;margin:18px 0}
+.term .row{display:grid;grid-template-columns:5.5em 1fr 4.5em;gap:10px;align-items:center;margin:8px 0}
+.term .track{height:10px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.term .fill{height:100%;width:100%;transform:scaleX(0);transform-origin:left}
+.term .st .fill{background:#e3b84a} .term .sw .fill{background:#7fb6d9}
+.term .num{text-align:right;font-variant-numeric:tabular-nums}
+.term .cap{color:#9d937f;font-size:12px}
+
+/* ── 尾聲 ── */
+.coda{min-height:80svh;display:flex;flex-direction:column;justify-content:center}
+.coda .big{font-family:var(--pk-serif);font-size:clamp(24px,6vw,36px);line-height:1.55;margin:28px 0}
+.coda .big em{font-style:normal;color:var(--pk-accent)}
+
+@media (max-width:560px){
+  .field{gap:3px}
+  .bar{grid-template-columns:6em 1fr 3.6em;font-size:13px}
+  .pile{height:300px}
+}
+@media (prefers-reduced-motion: reduce){
+  .scroll-hint span,.cell.left{animation:none}
+  .door .leaf,.cell,.bar .fill,.letter{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="hero-date rv">1990 年 9 月 9 日・星期天・美國</p>
+    <h1 class="rv">一千個博士說她錯了。</h1>
+    <p class="rv">那天早上，幾百份報紙的週日附刊，夾著同一本小雜誌送到美國人家門口。翻到專欄那一頁，一個讀者問了一題電視遊戲的題目，專欄作者用三行字回答。</p>
+    <p class="rv">接下來幾個月，編輯部收到大約 <span class="hero-count">10,000</span> 封信。其中將近一千封，信紙上方印著大學數學系、物理系、統計系的抬頭。</p>
+    <p class="rv">他們全部在說同一句話：<b>妳算錯了。</b></p>
+    <p class="scroll-hint rv">先別急著站隊，把題目讀一遍 <span aria-hidden="true">↓</span></p>
+  </div>
+</header>
+
+<main>
+<hr class="rule">
+
+<!-- 第一章：題目 + 你玩一局 -->
+<section id="s1" class="pk-wrap" aria-labelledby="h1t">
+  <p class="kicker rv">一・題目</p>
+  <h2 id="h1t" class="rv">讀者 Craig Whitaker 的信</h2>
+  <div class="clip rv">
+    <div class="mast"><span>週日雜誌・讀者問答專欄</span><span>1990.9.9</span></div>
+    <blockquote>假設你上了電視遊戲節目，面前有三扇門：一扇後面是汽車，另外兩扇後面是山羊。你挑了一扇，例如 1 號。主持人<b>知道</b>每扇門後面是什麼，他打開另一扇，例如 3 號——一隻山羊。然後他問你：「要不要改選 2 號？」換門對你有利嗎？</blockquote>
+    <div class="sig">（中文意譯）</div>
+  </div>
+  <p class="rv" style="margin-top:28px">在看她怎麼回之前，你先上台。挑一扇。</p>
+
+  <div class="stage" role="group" aria-label="三扇門">
+    <div class="doors" id="doors3"></div>
+    <p class="say" id="say3" aria-live="polite">挑一扇門。</p>
+    <div class="choices">
+      <button class="pk-btn" id="bStay" hidden>守住我的門</button>
+      <button class="pk-btn ghost" id="bSwitch" hidden>換另一扇</button>
+    </div>
+    <p class="verdict" id="verdict3" aria-live="polite"></p>
+    <div class="next"><button class="pk-btn ghost" id="toS2" hidden>翻到她的回覆 →</button></div>
+  </div>
+</section>
+
+<!-- 第二章：郵袋 -->
+<section id="s2" class="pk-wrap locked" aria-labelledby="h2t">
+  <p class="kicker">二・三行字</p>
+  <h2 id="h2t">她說：換。</h2>
+  <p id="s2open"></p>
+  <p>專欄作者瑪莉蓮・沃斯・莎凡特寫得很乾脆：<b>應該換。</b>守著原來那扇，贏面三分之一；換過去，三分之二。</p>
+  <p>這三行字寄出去以後，郵差開始抱著麻布袋上樓。</p>
+  <div class="meter" aria-live="polite">
+    <div><b id="mAll">0</b><small>封來信</small></div>
+    <div class="phd"><b id="mPhd">0</b><small>封印著博士頭銜</small></div>
+  </div>
+  <div class="pile" id="pile" aria-label="來信大意"></div>
+  <p class="note">信件內容為來信大意的改寫，非原文；人數為莎凡特本人的估計。</p>
+  <p style="margin-top:22px">他們的理由幾乎一模一樣：主持人開掉一扇以後，台上剩兩扇門。兩扇門，一扇有車，各半。換不換都一樣。</p>
+  <p>聽起來無懈可擊。你剛才大概也是這麼想的。</p>
+  <p>莎凡特又寫了第二篇、第三篇、第四篇，雜誌從來沒為一題寫過這麼多回。她甚至請讀者拿三張撲克牌在餐桌上自己試。信還是一直來。</p>
+  <div class="next"><button class="pk-btn" id="toS3">別寫信。先拉一下這根桿子 →</button></div>
+</section>
+
+<!-- 第三章：滑桿（高潮） -->
+<section id="s3" class="pk-wrap locked" aria-labelledby="h3t">
+  <p class="kicker">三・多加幾扇門</p>
+  <h2 id="h3t">規則不變，門變多。</h2>
+  <p>你永遠先挑最左上角那扇（金色）。主持人<b>知道</b>車在哪，他會把其他門開到只剩一扇——而且絕不打開有車的那扇。</p>
+  <div class="lab">
+    <label for="nDoors"><span>台上有幾扇門</span><output id="nOut" for="nDoors">3</output></label>
+    <input type="range" id="nDoors" min="3" max="100" step="1" value="3" aria-describedby="labSay">
+    <div class="field" id="field" aria-hidden="true"></div>
+    <div class="bars" role="img" id="bars" aria-label="勝率">
+      <div class="bar a"><span>你的金色門</span><div class="track"><div class="fill" id="fA"></div></div><span class="num" id="pA">33%</span></div>
+      <div class="bar b"><span>他留下的那扇</span><div class="track"><div class="fill" id="fB"></div></div><span class="num" id="pB">67%</span></div>
+    </div>
+    <p class="lab-say" id="labSay" aria-live="polite">把桿子往右推。</p>
+  </div>
+</section>
+
+<!-- 第四章：電腦 -->
+<section id="s4" class="pk-wrap locked" aria-labelledby="h4t">
+  <p class="kicker">四・最後一個不信的人</p>
+  <h2 id="h4t">連艾狄胥都搖頭。</h2>
+  <p>保羅・艾狄胥，一生和五百多位合作者寫了一千五百篇論文的數學家。同事瓦松伊把這題講給他聽，他說不可能，換不換沒有差別。證明擺在面前，他還是不服。</p>
+  <p>最後讓他點頭的不是證明，是一台電腦——瓦松伊寫了程式，讓它自己一局一局地玩，把勝負攤在螢幕上。</p>
+  <p>現在你當那台電腦。三扇門，一千局，一半的你永遠不換，另一半的你永遠換。</p>
+  <div class="term" aria-live="polite">
+    <div class="cap" id="tCap">&gt; ready. 1000 局，每局車隨機擺放</div>
+    <div class="row st"><span>永遠不換</span><div class="track"><div class="fill" id="tA"></div></div><span class="num" id="tNa">0</span></div>
+    <div class="row sw"><span>永遠換　</span><div class="track"><div class="fill" id="tB"></div></div><span class="num" id="tNb">0</span></div>
+    <div class="cap" id="tEnd">&nbsp;</div>
+  </div>
+  <div class="next"><button class="pk-btn" id="runSim">執行</button></div>
+</section>
+
+<!-- 尾聲 -->
+<section id="s5" class="pk-wrap locked coda" aria-labelledby="h5t">
+  <p class="kicker">五・那位主持人</p>
+  <h2 id="h5t">「我們叫它〈螺絲在擰緊〉。」</h2>
+  <p>隔年夏天，《紐約時報》把這場筆戰登上頭版，記者跑去找節目原本的主持人蒙提・霍爾。他拿車鑰匙在桌上示範了一遍，完全懂。</p>
+  <p>然後他補了一段意料之外的話：真正的節目裡，他<b>不必</b>每次都開門，也<b>不必</b>每次都讓你換。他看人出招——參賽者一看見空門，就覺得自己手上那扇變成一半一半，死都不肯放。打開那扇門，本來就是在施壓。他們內部管這招叫「亨利・詹姆斯療法」——取自那部小說《螺絲在擰緊》（The Turn of the Screw）。</p>
+  <p>三分之二只在一個條件下成立：開門的人知道車在哪，而且<b>被規則綁住</b>，一定得開、一定得問你。</p>
+  <p class="big" id="codaLine"></p>
+  <p class="big">下次有人替你打開一扇空門，先別算機率。<br>先問：<em>他本來就知道嗎？他非開不可嗎？</em></p>
+  <div class="next"><button class="pk-btn ghost" id="again">再上台一次</button></div>
+</section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Parade〈Ask Marilyn〉1990–91；J. Tierney, The New York Times, 1991-07-21；A. Vazsonyi, Decision Line, 1999。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+/* ── 核心邏輯（純函式，node 斷言用）── */
+function makeRng(seed){ var s = seed >>> 0 || 1; return function(){ s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
+/* 主持人留下哪一扇沒開（除你選的那扇外）：
+   你選中車→從其餘門隨機留一扇；沒選中→必定留下有車那扇。 */
+function hostKeeps(n, pick, car, rng){
+  if (pick !== car) return car;
+  var k = Math.floor(rng() * (n - 1));
+  return k >= pick ? k + 1 : k;
+}
+/* 三門版本：主持人打開哪一扇（羊、且不是你選的） */
+function hostOpens3(pick, car, rng){
+  var cand = [];
+  for (var i = 0; i < 3; i++) if (i !== pick && i !== car) cand.push(i);
+  return cand[Math.floor(rng() * cand.length)];
+}
+function playOnce(n, doSwitch, rng){
+  var car = Math.floor(rng() * n), pick = Math.floor(rng() * n);
+  var keep = hostKeeps(n, pick, car, rng);
+  return (doSwitch ? keep : pick) === car;
+}
+function simulate(rounds, n, rng){
+  var st = 0, sw = 0;
+  for (var i = 0; i < rounds; i++){ if (playOnce(n, false, rng)) st++; if (playOnce(n, true, rng)) sw++; }
+  return { stay: st, swap: sw };
+}
+function odds(n){ return { mine: 1 / n, other: (n - 1) / n }; }
+function cols(n){ return n <= 3 ? 3 : n <= 12 ? 4 : n <= 30 ? 6 : 10; }
+</script>
+<script>
+'use strict';
+const LS = 'mh1990.';
+const store = PK.store(LS);
+const $ = (id) => document.getElementById(id);
+const rng = makeRng((Date.now() ^ (Math.random() * 1e9)) >>> 0);
+PK.reveal();
+
+function unlock(id){
+  const s = $(id);
+  if (!s.classList.contains('locked')) return s;
+  s.classList.remove('locked');
+  s.querySelectorAll(':scope > *').forEach((el) => el.classList.add('rv'));
+  PK.reveal('#' + id + ' .rv');
+  return s;
+}
+
+/* ── 第一章：三扇門 ── */
+const doorsEl = $('doors3'), say = $('say3'), verdict = $('verdict3');
+let g = null, lastChoice = null;
+function buildDoors(){
+  doorsEl.innerHTML = '';
+  g = { car: Math.floor(rng() * 3), pick: -1, opened: -1, done: false };
+  for (let i = 0; i < 3; i++){
+    const b = document.createElement('button');
+    b.className = 'door';
+    b.setAttribute('aria-label', (i + 1) + ' 號門');
+    b.innerHTML = '<span class="behind" aria-hidden="true">' + (i === g.car ? '🚗' : '🐐') + '</span><span class="leaf" aria-hidden="true">' + (i + 1) + '</span><span class="tag"></span>';
+    b.addEventListener('click', () => pickDoor(i));
+    doorsEl.appendChild(b);
+  }
+  say.textContent = '挑一扇門。';
+  verdict.textContent = '';
+  $('bStay').hidden = $('bSwitch').hidden = true;
+}
+function door(i){ return doorsEl.children[i]; }
+function pickDoor(i){
+  if (g.pick >= 0) return;
+  g.pick = i;
+  door(i).classList.add('mine');
+  door(i).querySelector('.tag').textContent = '你選的';
+  g.opened = hostOpens3(i, g.car, rng);
+  [...doorsEl.children].forEach((d) => (d.disabled = true));
+  say.textContent = '主持人笑了笑，走向另一扇……';
+  setTimeout(() => {
+    door(g.opened).classList.add('open');
+    door(g.opened).setAttribute('aria-label', (g.opened + 1) + ' 號門，已打開：山羊');
+    const other = [0, 1, 2].find((k) => k !== g.pick && k !== g.opened);
+    say.textContent = (g.opened + 1) + ' 號門後面是山羊。「要不要改選 ' + (other + 1) + ' 號？」';
+    $('bStay').hidden = $('bSwitch').hidden = false;
+    $('bStay').focus({ preventScroll: true });
+  }, PK.reduced() ? 50 : 900);
+}
+function decide(doSwitch){
+  if (g.done || g.pick < 0) return;
+  g.done = true;
+  $('bStay').hidden = $('bSwitch').hidden = true;
+  const other = [0, 1, 2].find((k) => k !== g.pick && k !== g.opened);
+  const final = doSwitch ? other : g.pick;
+  [0, 1, 2].forEach((k) => { door(k).classList.add('open'); door(k).setAttribute('aria-label', (k + 1) + ' 號門：' + (k === g.car ? '汽車' : '山羊')); });
+  const win = final === g.car;
+  verdict.textContent = (doSwitch ? '你換了。' : '你守住了。') + (win ? '車是你的。' : '你牽走一隻山羊。');
+  say.textContent = '';
+  lastChoice = doSwitch ? 'swap' : 'stay';
+  if (store.get('first', null) === null) store.set('first', doSwitch ? 'swap' : 'stay');
+  const tally = store.get('tally', { n: 0, swap: 0 });
+  tally.n++; if (doSwitch) tally.swap++;
+  store.set('tally', tally);
+  PK.announce(verdict.textContent);
+  $('toS2').hidden = false;
+}
+$('bStay').addEventListener('click', () => decide(false));
+$('bSwitch').addEventListener('click', () => decide(true));
+buildDoors();
+
+/* ── 第二章：郵袋 ── */
+const LETTERS = [
+  ['Dept. of Mathematics', '剩兩扇門，機會各半。請在下期更正，以免誤導全國讀者。'],
+  ['Dept. of Statistics', '我教機率二十年。妳的推理有根本上的錯誤。'],
+  ['Dept. of Physics', '全國的數學素養已經夠糟了，請不要再推一把。'],
+  ['Research Institute', '我把妳的專欄拿給三位同事看，我們一致認為妳錯了。'],
+  ['Dept. of Mathematics', '開門以後，原本那扇門的機率就變成二分之一。這不需要辯論。']
+];
+let mailRun = false;
+function rollNum(el, to, ms){
+  if (PK.reduced()){ el.textContent = to.toLocaleString(); return; }
+  let t = 0;
+  const f = (dt) => { t += dt * 1000; const k = Math.min(1, t / ms); const e = 1 - Math.pow(1 - k, 3); el.textContent = Math.round(to * e).toLocaleString(); if (k >= 1) PK.untick(f); };
+  PK.tick(f);
+}
+function openMail(){
+  if (mailRun) return; mailRun = true;
+  const first = lastChoice;
+  $('s2open').textContent = first === 'swap'
+    ? '你剛才換了。先記住這個直覺——接下來幾個月，全美國最會算數的一群人會排隊告訴你不該這樣。'
+    : '你剛才守住了自己的門。很好，你跟接下來那一萬封信站在同一邊。';
+  const pile = $('pile');
+  LETTERS.forEach((L, i) => {
+    const d = document.createElement('div');
+    d.className = 'letter';
+    const rot = (PK.hash('l' + i) - .5) * 9, dx = (PK.hash('x' + i) - .5) * 60;
+    d.style.transform = 'translate(calc(-50% + ' + dx + 'px),' + (i * 34 - 40) + 'px) rotate(' + rot + 'deg)';
+    d.innerHTML = '<div class="lh">' + L[0] + '</div>' + L[1] + '<span class="stamp">Ph.D.</span>';
+    pile.appendChild(d);
+    setTimeout(() => {
+      d.classList.add('in');
+      d.style.transform = 'translate(calc(-50% + ' + dx + 'px),' + (i * 34) + 'px) rotate(' + rot + 'deg)';
+    }, PK.reduced() ? 0 : 500 + i * 650);
+  });
+  rollNum($('mAll'), 10000, 3800);
+  rollNum($('mPhd'), 1000, 3800);
+}
+$('toS2').addEventListener('click', () => { const s = unlock('s2'); PK.scrollTo(s); setTimeout(openMail, PK.reduced() ? 0 : 500); });
+
+/* ── 第三章：滑桿 ── */
+const field = $('field'), slider = $('nDoors');
+let maxSeen = 3, flipped = false, s4shown = false;
+function keptIndex(n){
+  /* 固定抖動：同一個 n 每次留下同一扇（避免拖動時亂跳） */
+  return 1 + Math.floor(PK.hash('keep' + n) * (n - 1));
+}
+function renderField(n){
+  field.style.setProperty('--cols', cols(n));
+  while (field.children.length < n){ const c = document.createElement('div'); c.className = 'cell'; field.appendChild(c); }
+  while (field.children.length > n) field.removeChild(field.lastChild);
+  const keep = keptIndex(n);
+  for (let i = 0; i < n; i++){
+    const c = field.children[i];
+    c.className = 'cell' + (i === 0 ? ' mine' : i === keep ? ' left' : ' gone');
+  }
+  const o = odds(n);
+  $('fA').style.transform = 'scaleX(' + o.mine + ')';
+  $('fB').style.transform = 'scaleX(' + o.other + ')';
+  $('pA').textContent = fmtPct(o.mine);
+  $('pB').textContent = fmtPct(o.other);
+  $('nOut').textContent = n;
+  $('bars').setAttribute('aria-label', '你的門 ' + fmtPct(o.mine) + '，他留下的那扇 ' + fmtPct(o.other));
+  return keep;
+}
+function fmtPct(p){ return p < .1 ? (p * 100).toFixed(1) + '%' : Math.round(p * 100) + '%'; }
+let sayTimer = 0;
+function labSay(html){
+  clearTimeout(sayTimer);
+  sayTimer = setTimeout(() => { $('labSay').innerHTML = html; }, 120);
+}
+function onSlide(){
+  const n = +slider.value;
+  const keep = renderField(n);
+  maxSeen = Math.max(maxSeen, n);
+  if (n >= 60){
+    labSay('他開了 ' + (n - 2) + ' 扇，偏偏跳過第 <em>' + (keep + 1) + '</em> 號。<br>你還要守著自己隨手點的那扇嗎？');
+  } else if (n >= 10){
+    labSay('你隨手挑中車的機會是 ' + n + ' 分之一。他呢？他<em>知道</em>車在哪。');
+  } else if (n === 3 && maxSeen >= 60){
+    if (!flipped){ flipped = true; PK.announce('回到三扇門'); }
+    labSay('回到三扇。<em>同一個遊戲</em>——主持人一樣在「替你」排除，排除得少，你就看不出他手上握著資訊。');
+    if (!s4shown){ s4shown = true; setTimeout(() => unlock('s4'), 600); }
+  } else if (n === 3){
+    labSay('把桿子往右推。');
+  } else if (maxSeen >= 60){
+    labSay('繼續往回拉，拉到 3。');
+  } else {
+    labSay('再推遠一點。');
+  }
+}
+slider.addEventListener('input', onSlide);
+$('toS3').addEventListener('click', () => { const s = unlock('s3'); renderField(3); PK.scrollTo(s); });
+
+/* ── 第四章：模擬 ── */
+let simBusy = false;
+function runSim(){
+  if (simBusy) return; simBusy = true;
+  $('runSim').disabled = true;
+  const total = 1000, res = { stay: 0, swap: 0 };
+  let done = 0, acc = 0;
+  $('tCap').textContent = '> running…';
+  $('tEnd').innerHTML = '&nbsp;';
+  const paint = () => {
+    $('tA').style.transform = 'scaleX(' + res.stay / total + ')';
+    $('tB').style.transform = 'scaleX(' + res.swap / total + ')';
+    $('tNa').textContent = res.stay; $('tNb').textContent = res.swap;
+  };
+  const finish = () => {
+    paint();
+    $('tCap').textContent = '> done. 第 ' + total + ' 局';
+    $('tEnd').textContent = '> 不換贏 ' + (res.stay / 10).toFixed(1) + '%，換贏 ' + (res.swap / 10).toFixed(1) + '%。不是一半一半。';
+    PK.announce('模擬完成：不換贏 ' + res.stay + ' 局，換贏 ' + res.swap + ' 局');
+    simBusy = false; $('runSim').disabled = false; $('runSim').textContent = '再跑一次';
+    setTimeout(() => { const s = unlock('s5'); writeCoda(); if (!s.dataset.seen){ s.dataset.seen = 1; } }, 500);
+  };
+  const step = (k) => { for (let i = 0; i < k && done < total; i++, done++){ if (playOnce(3, false, rng)) res.stay++; if (playOnce(3, true, rng)) res.swap++; } };
+  if (PK.reduced()){ step(total); finish(); return; }
+  const f = (dt) => {
+    acc += dt * 1000;
+    const k = Math.floor(acc / 4); acc -= k * 4; /* 每 4ms 一局，約 4 秒 */
+    step(k); paint();
+    $('tCap').textContent = '> running… 第 ' + done + ' 局';
+    if (done >= total){ PK.untick(f); finish(); }
+  };
+  PK.tick(f);
+}
+$('runSim').addEventListener('click', () => {
+  if (!s4shown){ s4shown = true; unlock('s4'); }
+  runSim();
+});
+
+/* ── 尾聲：回到你的第一個選擇 ── */
+function writeCoda(){
+  const first = store.get('first', null), t = store.get('tally', { n: 0, swap: 0 });
+  let line;
+  if (first === 'swap') line = '你在第一章就換了門。那一千位博士裡，有不少人花了好幾封信才走到你一開始站的位置。';
+  else if (first === 'stay') line = '你在第一章守住了自己的門——跟一萬封信站在一起。<em>不丟人</em>，連艾狄胥都在那一邊待過。';
+  else line = '你還沒上台。往上捲，挑一扇門吧。';
+  if (t.n > 1) line += '<br><span class="dim" style="font-size:.6em">（到目前為止你上台 ' + t.n + ' 次，換了 ' + t.swap + ' 次。）</span>';
+  $('codaLine').innerHTML = line;
+}
+$('again').addEventListener('click', () => { buildDoors(); PK.scrollTo($('s1')); });
+
+/* 回訪：直接把已讀的章節攤開 */
+if (store.get('first', null) !== null){
+  say.textContent = '你來過。再挑一次——這次你會怎麼選？';
+}
+</script>
+</body>
+</html>

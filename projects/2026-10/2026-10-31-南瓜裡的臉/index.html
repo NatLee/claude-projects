@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>它在南瓜裡看著你｜每日小專案</title>
+<meta name="description" content="萬聖節夜，刻三刀、不准刻臉。關燈之後，看看是誰在南瓜裡回望你。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#14100c; --pk-ink:#efe6d6; --pk-dim:#9c8f7c; --pk-accent:#f0a33a;
+  --glow:#ffd77a; --rind:#e07b24; --rind-d:#b35512;
+}
+body{transition:background-color 1.4s ease}
+body.lit{--pk-bg:#060505; background:#060505}
+.pk-hero h1 em{font-style:normal;color:var(--pk-accent)}
+.pk-hero .sub{color:var(--pk-dim);max-width:30em}
+.kicker{font-size:12px;letter-spacing:.3em;color:var(--pk-dim);margin:0 0 18px}
+.cue{margin-top:46px;font-size:13px;color:var(--pk-dim);letter-spacing:.12em}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(5px)}}
+
+section{margin:0 0 104px}
+h2{font-family:var(--pk-serif);font-weight:600;font-size:clamp(21px,4.8vw,28px);line-height:1.5;margin:0 0 14px}
+.chap{font-size:12px;letter-spacing:.28em;color:var(--pk-accent);margin:0 0 8px}
+p{margin:0 0 16px}
+.rule{display:inline-block;border:1px dashed var(--pk-accent);color:var(--pk-accent);padding:2px 12px;border-radius:6px}
+
+/* ── 工作台 ── */
+.bench{position:relative;width:min(100%,420px);margin:26px auto 14px;aspect-ratio:1/1}
+.bench svg,.bench canvas,.bench .layer{position:absolute;inset:0;width:100%;height:100%;display:block}
+.bench svg{overflow:visible}
+#cvDay{cursor:crosshair;touch-action:none;z-index:3}
+.bench.lit #cvDay{cursor:default}
+.day,.night{transition:opacity 1.6s ease}
+.night{opacity:0}
+.bench.lit .day{opacity:0}
+.bench.lit .night{opacity:1}
+#cvNight{will-change:transform,opacity}
+#cvNight{filter:blur(.4px)}
+.halo{position:absolute;left:50%;top:56%;width:70%;height:60%;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,170,60,.28),rgba(255,120,30,0) 70%);opacity:0;transition:opacity 2s ease;pointer-events:none}
+.bench.lit .halo{opacity:1}
+#marks{z-index:4;pointer-events:none}
+#marks .m{opacity:0;transition:opacity .7s ease}
+#marks.on .m{opacity:1}
+#marks text{font-size:13px;fill:var(--glow);letter-spacing:.1em}
+
+.tools{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin:4px 0 0}
+.count{font-variant-numeric:tabular-nums;color:var(--pk-dim);font-size:14px;min-width:6.5em;text-align:center}
+.count b{color:var(--pk-accent);display:inline-block;transition:transform .25s}
+.count b.pop{transform:scale(1.5)}
+.ghost{border-color:var(--pk-line);color:var(--pk-dim)}
+.ghost:hover{background:var(--pk-line);color:var(--pk-ink)}
+#lightBtn:not(:disabled){box-shadow:0 0 0 0 rgba(240,163,58,.5);animation:pulse 2.2s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 14px rgba(240,163,58,0)}100%{box-shadow:0 0 0 0 rgba(240,163,58,0)}}
+.ab{display:none;justify-content:center;gap:0;margin:14px auto 0;border:1px solid var(--pk-line);border-radius:999px;width:max-content}
+.ab.show{display:flex}
+.ab button{appearance:none;background:none;border:0;color:var(--pk-dim);font:inherit;font-size:14px;padding:8px 18px;border-radius:999px;cursor:pointer;transition:background .25s,color .25s}
+.ab button[aria-pressed="true"]{background:var(--pk-accent);color:#1a0f05}
+.verdict{min-height:3.4em;text-align:center;color:var(--glow);font-family:var(--pk-serif);font-size:18px;margin-top:18px;opacity:0;transition:opacity 1s ease}
+.verdict.on{opacity:1}
+
+/* ── 揭曉後的章節 ── */
+.after[hidden]{display:none}
+.big{font-family:var(--pk-serif);font-size:clamp(54px,15vw,92px);line-height:1;color:var(--glow);margin:0 0 6px;font-variant-numeric:tabular-nums;
+  text-shadow:0 0 24px rgba(255,190,80,.35)}
+.big small{font-size:.32em;color:var(--pk-dim);margin-left:.2em}
+.tl{position:relative;height:44px;margin:34px 0 30px;border-left:1px solid var(--pk-line);border-right:1px solid var(--pk-line)}
+.tl::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--pk-line)}
+.tl i{position:absolute;top:8px;bottom:8px;width:2px;background:var(--pk-dim);transform-origin:bottom;transform:scaleY(0);transition:transform .6s ease}
+.tl i.f{background:var(--glow)}
+.after.in .tl i{transform:scaleY(1)}
+.tl span{position:absolute;bottom:-22px;font-size:11px;color:var(--pk-dim);transform:translateX(-50%);white-space:nowrap}
+.choice{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+.choice .pk-btn[aria-pressed="true"]{background:var(--pk-accent);color:#1a0f05}
+#mfOut{min-height:1em}
+.q{border-left:2px solid var(--pk-accent);padding:2px 0 2px 16px;color:var(--pk-dim);margin:22px 0}
+
+/* ── 收尾：拉遠 ── */
+.zoom{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:28px 0}
+.zoom figure{margin:0;aspect-ratio:1/1;border:1px solid var(--pk-line);border-radius:14px;display:grid;place-items:center;position:relative;overflow:hidden;background:#0d0a08}
+.zoom svg,.zoom canvas{width:78%;height:78%}
+.zoom figcaption{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:11px;color:var(--pk-dim)}
+.zoom .ft{fill:none;stroke:#6a5d4c;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;transition:stroke 1s ease}
+.zoom .fh{fill:#6a5d4c;transition:fill 1s ease}
+.zoom.wake .ft{stroke:var(--glow)}
+.zoom.wake .fh{fill:var(--glow)}
+.zoom.wake figure:nth-child(2) .ft,.zoom.wake figure:nth-child(2) .fh{transition-delay:.35s}
+.zoom.wake figure:nth-child(3) .ft,.zoom.wake figure:nth-child(3) .fh{transition-delay:.7s}
+.zoom.wake figure:nth-child(4) .ft,.zoom.wake figure:nth-child(4) .fh{transition-delay:1.05s}
+.last{font-family:var(--pk-serif);font-size:clamp(20px,4.6vw,26px);line-height:1.7}
+.last em{font-style:normal;color:var(--glow)}
+@media (max-width:560px){.zoom{grid-template-columns:repeat(2,1fr)}}
+
+@media (prefers-reduced-motion: reduce){
+  .cue span,#lightBtn:not(:disabled){animation:none}
+  body,.day,.night,.halo,.verdict,#marks .m{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">10 月 31 日・晚上</p>
+    <h1 class="rv">桌上一顆南瓜，一把刀。<br>規矩只有一條：<em>不准刻臉。</em></h1>
+    <p class="sub rv">刻什麼都可以——歪線、圓點、亂七八糟的星星。三刀就好。等一下關燈，我們再看看，它肯不肯守規矩。</p>
+    <p class="cue rv" aria-hidden="true"><span>↓</span> 往下，刀在下面</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section class="rv" aria-labelledby="h-carve">
+    <p class="chap">之前・廚房燈還亮著</p>
+    <h2 id="h-carve">在南瓜上畫三刀。</h2>
+    <p>用滑鼠或手指直接在瓜皮上拖，一筆算一刀；點一下就是一個洞。<span class="rule">別刻臉</span></p>
+
+    <div class="bench" id="bench">
+      <div class="halo"></div>
+      <svg viewBox="0 0 400 400" aria-hidden="true">
+        <defs>
+          <radialGradient id="gDay" cx="42%" cy="40%" r="70%">
+            <stop offset="0" stop-color="#f6a04a"/><stop offset=".65" stop-color="#e07b24"/><stop offset="1" stop-color="#a94c10"/>
+          </radialGradient>
+          <radialGradient id="gNight" cx="50%" cy="58%" r="62%">
+            <stop offset="0" stop-color="#5a2a0c"/><stop offset=".7" stop-color="#2a1306"/><stop offset="1" stop-color="#120804"/>
+          </radialGradient>
+        </defs>
+        <g class="day">
+          <ellipse cx="200" cy="232" rx="168" ry="140" fill="url(#gDay)"/>
+          <path d="M120 112 C100 180 100 290 125 360 M200 92 L200 372 M280 112 C300 180 300 290 275 360" fill="none" stroke="#b35512" stroke-width="3" opacity=".55"/>
+          <path d="M190 100 C186 70 196 52 214 40 L224 52 C210 62 206 78 210 100 Z" fill="#5e6b2c"/>
+        </g>
+        <g class="night">
+          <ellipse cx="200" cy="232" rx="168" ry="140" fill="url(#gNight)"/>
+          <path d="M120 112 C100 180 100 290 125 360 M200 92 L200 372 M280 112 C300 180 300 290 275 360" fill="none" stroke="#000" stroke-width="3" opacity=".5"/>
+          <path d="M190 100 C186 70 196 52 214 40 L224 52 C210 62 206 78 210 100 Z" fill="#1a1c0c"/>
+        </g>
+      </svg>
+      <div class="layer night" id="glowWrap"><canvas id="cvNight"></canvas></div>
+      <canvas id="cvDay" class="day" role="img" aria-label="南瓜雕刻區：在瓜皮上拖曳畫出刀痕，最多三刀"></canvas>
+      <svg id="marks" viewBox="0 0 400 400" aria-hidden="true"></svg>
+    </div>
+
+    <div class="tools">
+      <button class="pk-btn ghost" id="randBtn" type="button">幫我隨手劃一刀</button>
+      <span class="count" aria-live="polite">已刻 <b id="cnt">0</b> / 3</span>
+      <button class="pk-btn ghost" id="resetBtn" type="button">重刻</button>
+    </div>
+    <div class="tools" style="margin-top:14px">
+      <button class="pk-btn" id="lightBtn" type="button" disabled>關燈，點蠟燭</button>
+    </div>
+    <div class="ab" id="ab" role="group" aria-label="前後對照">
+      <button type="button" data-v="day" aria-pressed="false">開燈</button>
+      <button type="button" data-v="lit" aria-pressed="true">點燈</button>
+    </div>
+    <p class="verdict" id="verdict" aria-live="polite"></p>
+  </section>
+
+  <section class="after rv" id="a1" hidden aria-labelledby="h-165">
+    <p class="chap">之後・一</p>
+    <p class="big" id="ms">0<small>毫秒</small></p>
+    <h2 id="h-165">你還沒決定那是不是臉，它就已經算數了。</h2>
+    <p>2009 年，哈佛團隊把一群人塞進腦磁圖儀，給他們看真人的臉、普通物件，還有一些「長得像臉的東西」——插座、水龍頭、一片吐司。</p>
+    <div class="tl" aria-hidden="true">
+      <i class="f" style="left:43%"></i><span style="left:43%">130 真臉</span>
+      <i class="f" style="left:55%;transition-delay:.3s"></i><span style="left:58%;bottom:auto;top:-22px">165 像臉的東西</span>
+      <i style="left:100%;transition-delay:.6s"></i><span style="left:96%">300 ms</span>
+    </div>
+    <p>大腦裡專門認臉的那一塊（梭狀回臉孔區），在第 165 毫秒對「像臉的東西」亮了起來——跟看到真臉的時間點、位置都幾乎一樣。普通物件？毫無反應。</p>
+    <p>也就是說，你剛才看到的那張臉，不是你「想一想，覺得有點像」。那個判斷比眨一次眼還快，早在你有意見之前就蓋好章了。</p>
+  </section>
+
+  <section class="after rv" id="a2" hidden aria-labelledby="h-mf">
+    <p class="chap">之後・二</p>
+    <h2 id="h-mf">先別往下讀——它是男的還是女的？</h2>
+    <p>盯著你的南瓜一秒，憑直覺選。</p>
+    <div class="choice" role="group" aria-label="南瓜的性別直覺">
+      <button class="pk-btn" type="button" data-mf="m" aria-pressed="false">男的</button>
+      <button class="pk-btn" type="button" data-mf="f" aria-pressed="false">女的</button>
+      <button class="pk-btn" type="button" data-mf="n" aria-pressed="false">說不上來</button>
+    </div>
+    <div id="mfOut" aria-live="polite"></div>
+  </section>
+
+  <section class="after rv" id="a3" hidden aria-labelledby="h-why">
+    <p class="chap">之後・三</p>
+    <h2 id="h-why">寧可看錯一千次。</h2>
+    <p>2017 年，美國國家衛生研究院讓恆河猴看照片：一邊是普通物件，一邊是「有臉」的物件。猴子盯著有臉的那張看得比較久——牠們也上當。</p>
+    <p>這種錯覺大概很古老。在草叢裡把一團陰影看成一張臉，代價是嚇自己一跳；把一張真的臉看成陰影，代價可能是被吃掉。演化不在乎你多常虛驚，只在乎你別漏掉那一次。</p>
+    <p class="q">於是你帶著一台很敏感、很愛亂叫的偵測器活到今天。兩個點、一條線，它就響。</p>
+  </section>
+
+  <section class="after rv" id="a4" hidden aria-labelledby="h-end">
+    <p class="chap">之後・四</p>
+    <h2 id="h-end">明天早上，蠟燭會燒完。</h2>
+    <p>南瓜會變回南瓜。可是你的偵測器不會關。</p>
+    <div class="zoom" id="zoom">
+      <figure><canvas id="thumb" width="160" height="160" aria-label="你今晚刻的南瓜"></canvas><figcaption>你的南瓜</figcaption></figure>
+      <figure><svg viewBox="0 0 100 100" role="img" aria-label="插座"><rect class="ft" x="14" y="14" width="72" height="72" rx="14"/><path class="ft" d="M36 34 v14 M64 34 v14"/><path class="ft" d="M43 68 q7 -9 14 0"/></svg><figcaption>插座</figcaption></figure>
+      <figure><svg viewBox="0 0 100 100" role="img" aria-label="車頭"><path class="ft" d="M12 70 V46 q6 -16 22 -18 h32 q16 2 22 18 V70 Z"/><circle class="fh" cx="28" cy="50" r="6"/><circle class="fh" cx="72" cy="50" r="6"/><path class="ft" d="M38 62 h24"/></svg><figcaption>車頭</figcaption></figure>
+      <figure><svg viewBox="0 0 100 100" role="img" aria-label="水龍頭"><path class="ft" d="M20 40 h60 M50 40 V24 M38 24 h24"/><circle class="fh" cx="30" cy="40" r="5"/><circle class="fh" cx="70" cy="40" r="5"/><path class="ft" d="M50 40 v22 q0 8 -6 10"/></svg><figcaption>水龍頭</figcaption></figure>
+    </div>
+    <p>插座、車頭、水龍頭、浴室磁磚上的水漬。從今晚開始，它們會一個一個抬起頭來看你。</p>
+    <p class="last" id="last">對了——開頭說好的，<em>不准刻臉</em>。<br>你沒刻。是它自己長出來的。</p>
+    <p style="margin-top:28px"><button class="pk-btn ghost" id="againBtn" type="button">再刻一顆</button></p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Hadjikhani et al., NeuroReport 2009；Taubert et al., Current Biology 2017；Wardle et al., PNAS 2022、Cognition 2023。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'pump31.';
+const store = PK.store(LS);
+
+/* ───── 純函式（node 可斷言） ───── */
+function centroid(pts){
+  let x = 0, y = 0;
+  for (const p of pts){ x += p[0]; y += p[1]; }
+  return [x / pts.length, y / pts.length];
+}
+function inPumpkin(x, y){            /* 400×400 座標，瓜身橢圓 */
+  const dx = (x - 200) / 160, dy = (y - 232) / 132;
+  return dx * dx + dy * dy <= 1;
+}
+/* 三個重心（0..400）→ 哪兩個當眼睛、哪個當嘴巴，以及「像臉」程度 0..1 */
+function faceFit(cs){
+  if (!cs || cs.length !== 3) return null;
+  const cl = (v) => Math.max(0, Math.min(1, v));
+  let best = null;
+  for (let k = 0; k < 3; k++){
+    let [a, b] = [0, 1, 2].filter(i => i !== k);
+    if (cs[a][0] > cs[b][0]) [a, b] = [b, a];
+    const A = cs[a], B = cs[b], M = cs[k];
+    const level  = cl(1 - Math.abs(A[1] - B[1]) / 90);          /* 兩眼等高 */
+    const below  = cl((M[1] - Math.max(A[1], B[1])) / 50);      /* 嘴在眼下 */
+    const center = cl(1 - Math.abs(M[0] - (A[0] + B[0]) / 2) / 110); /* 嘴置中 */
+    const spread = cl((B[0] - A[0]) / 60);                       /* 兩眼分開 */
+    const score = .3 * level + .3 * below + .2 * center + .2 * spread;
+    if (!best || score > best.score) best = { score, eyes: [a, b], mouth: k };
+  }
+  best.score = Math.round(best.score * 100) / 100;
+  return best;
+}
+function verdictText(s){
+  if (s >= .8) return '兩隻眼睛，一張嘴。你說你沒刻臉的。';
+  if (s >= .5) return '有點歪，但你一眼就找到眼睛在哪了，對吧？';
+  return '排成這樣都不像了——可是你剛剛，還是先找了眼睛。';
+}
+/* 隨手一刀：在瓜身內產生一條短亂線（seed 決定，方便測） */
+function randomStroke(seed){
+  let s = seed >>> 0 || 1;
+  const r = () => ((s = Math.imul(s ^ (s >>> 15), 2246822519) + 1013904223 >>> 0) / 4294967296);
+  let x, y, n = 0;
+  do { x = 90 + r() * 220; y = 140 + r() * 180; n++; } while (!inPumpkin(x, y) && n < 50);
+  const pts = [[x, y]], len = 4 + Math.floor(r() * 6);
+  let ang = r() * Math.PI * 2;
+  for (let i = 0; i < len; i++){
+    ang += (r() - .5) * 1.6;
+    const nx = x + Math.cos(ang) * 9, ny = y + Math.sin(ang) * 9;
+    if (inPumpkin(nx, ny)){ x = nx; y = ny; pts.push([x, y]); }
+  }
+  return pts;
+}
+if (typeof module !== 'undefined') module.exports = { centroid, inPumpkin, faceFit, verdictText, randomStroke };
+if (typeof document === 'undefined') { /* node 測試到此為止 */ } else (function(){
+
+/* ───── 頁面 ───── */
+const $ = (id) => document.getElementById(id);
+const bench = $('bench'), cvDay = $('cvDay'), cvNight = $('cvNight'), glowWrap = $('glowWrap');
+const cnt = $('cnt'), lightBtn = $('lightBtn'), verdict = $('verdict'), marks = $('marks'), ab = $('ab');
+let strokes = [], cur = null, lit = false, revealed = false;
+
+function size(){
+  PK.fitCanvas(cvDay); PK.fitCanvas(cvNight);
+  draw();
+}
+function toPx(cv, p){ const k = cv.width / 400; return [p[0] * k, p[1] * k]; }
+function path(ctx, cv, pts){
+  ctx.beginPath();
+  const a = toPx(cv, pts[0]);
+  if (pts.length === 1){ ctx.arc(a[0], a[1], 9 * cv.width / 400, 0, Math.PI * 2); return true; }
+  ctx.moveTo(a[0], a[1]);
+  for (let i = 1; i < pts.length; i++){ const q = toPx(cv, pts[i]); ctx.lineTo(q[0], q[1]); }
+  return false;
+}
+function draw(){
+  const all = cur ? strokes.concat([cur]) : strokes;
+  for (const [cv, night] of [[cvDay, false], [cvNight, true]]){
+    const ctx = cv.getContext('2d'), k = cv.width / 400;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    for (const s of all){
+      const dot = path(ctx, cv, s);
+      if (night){
+        ctx.shadowColor = 'rgba(255,170,50,.95)'; ctx.shadowBlur = 22 * k;
+        ctx.strokeStyle = '#ffd77a'; ctx.fillStyle = '#ffe9a8'; ctx.lineWidth = 15 * k;
+        dot ? ctx.fill() : ctx.stroke();
+        ctx.shadowBlur = 0; path(ctx, cv, s); ctx.strokeStyle = '#fff6d8'; ctx.lineWidth = 5 * k;
+        dot ? ctx.fill() : ctx.stroke();
+      } else {
+        ctx.strokeStyle = '#f7d79a'; ctx.fillStyle = '#f7d79a'; ctx.lineWidth = 14 * k;
+        dot ? ctx.fill() : ctx.stroke();
+        path(ctx, cv, s); ctx.strokeStyle = '#7a3208'; ctx.fillStyle = '#7a3208'; ctx.lineWidth = 9 * k;
+        dot ? ctx.fill() : ctx.stroke();
+      }
+    }
+  }
+}
+function setCount(){
+  cnt.textContent = strokes.length;
+  cnt.classList.add('pop'); setTimeout(() => cnt.classList.remove('pop'), 220);
+  lightBtn.disabled = strokes.length < 3 || lit;
+  $('randBtn').disabled = strokes.length >= 3 || lit;
+}
+function local(e){
+  const r = cvDay.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * 400, (e.clientY - r.top) / r.height * 400];
+}
+cvDay.addEventListener('pointerdown', (e) => {
+  if (lit || strokes.length >= 3) return;
+  const p = local(e); if (!inPumpkin(p[0], p[1])) return;
+  cur = [p]; cvDay.setPointerCapture(e.pointerId); draw();
+});
+cvDay.addEventListener('pointermove', (e) => {
+  if (!cur) return;
+  const p = local(e), last = cur[cur.length - 1];
+  if (!inPumpkin(p[0], p[1])) return;
+  if (Math.hypot(p[0] - last[0], p[1] - last[1]) > 3){ cur.push(p); draw(); }
+});
+function endStroke(){
+  if (!cur) return;
+  strokes.push(cur); cur = null; draw(); setCount();
+  PK.announce('第 ' + strokes.length + ' 刀');
+}
+cvDay.addEventListener('pointerup', endStroke);
+cvDay.addEventListener('pointercancel', endStroke);
+
+$('randBtn').addEventListener('click', () => {
+  if (strokes.length >= 3) return;
+  strokes.push(randomStroke(Date.now() + strokes.length * 7919)); draw(); setCount();
+  PK.announce('隨手劃了第 ' + strokes.length + ' 刀');
+});
+function reset(){
+  strokes = []; cur = null; lit = false;
+  bench.classList.remove('lit'); document.body.classList.remove('lit');
+  marks.classList.remove('on'); marks.innerHTML = '';
+  verdict.classList.remove('on'); verdict.textContent = '';
+  ab.classList.remove('show'); calm();
+  PK.untick(flicker); draw(); setCount();
+}
+$('resetBtn').addEventListener('click', reset);
+$('againBtn').addEventListener('click', () => { reset(); PK.scrollTo($('h-carve')); });
+
+/* ── 燭火：微閃＋光往游標那邊偏（眼神跟著你） ── */
+let gx = 0, gy = 0, tx = 0, ty = 0;
+function flicker(dt, t){
+  gx = PK.lerp(gx, tx, .08); gy = PK.lerp(gy, ty, .08);
+  const f = .86 + .1 * Math.sin(t / 97) * Math.sin(t / 233) + .04 * Math.sin(t / 41);
+  cvNight.style.opacity = f.toFixed(3);
+  cvNight.style.transform = 'translate(' + gx.toFixed(2) + 'px,' + gy.toFixed(2) + 'px)';
+}
+window.addEventListener('pointermove', (e) => {
+  if (!lit) return;
+  const r = bench.getBoundingClientRect();
+  tx = PK.clamp((e.clientX - (r.left + r.width / 2)) / r.width, -1, 1) * 4;
+  ty = PK.clamp((e.clientY - (r.top + r.height / 2)) / r.height, -1, 1) * 3;
+});
+function startFlicker(){ if (lit && !PK.reduced() && bench.classList.contains('lit')) PK.tick(flicker); }
+function calm(){ PK.untick(flicker); cvNight.style.opacity = ''; cvNight.style.transform = ''; }
+PK.onMotionChange((red) => { if (red) calm(); else startFlicker(); });
+
+/* ── 標出眼睛與嘴 ── */
+function showMarks(fit, cs){
+  const ns = 'http://www.w3.org/2000/svg';
+  marks.innerHTML = '';
+  const lab = (i, name) => {
+    const c = cs[i];
+    const g = document.createElementNS(ns, 'g'); g.setAttribute('class', 'm');
+    const ci = document.createElementNS(ns, 'circle');
+    ci.setAttribute('cx', c[0]); ci.setAttribute('cy', c[1]); ci.setAttribute('r', 30);
+    ci.setAttribute('fill', 'none'); ci.setAttribute('stroke', '#ffd77a'); ci.setAttribute('stroke-dasharray', '3 6'); ci.setAttribute('opacity', '.7');
+    const tx = document.createElementNS(ns, 'text');
+    tx.setAttribute('x', c[0]); tx.setAttribute('y', c[1] - 38); tx.setAttribute('text-anchor', 'middle'); tx.textContent = name;
+    g.appendChild(ci); g.appendChild(tx); marks.appendChild(g);
+  };
+  lab(fit.eyes[0], '左眼'); lab(fit.eyes[1], '右眼'); lab(fit.mouth, '嘴');
+  requestAnimationFrame(() => marks.classList.add('on'));
+}
+function setView(v){
+  for (const b of ab.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.v === v));
+  const on = v === 'lit';
+  bench.classList.toggle('lit', on); document.body.classList.toggle('lit', on);
+  marks.classList.toggle('on', on);
+  if (on) startFlicker(); else calm();
+}
+ab.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
+
+lightBtn.addEventListener('click', () => {
+  if (strokes.length < 3) return;
+  lit = true; setCount();
+  setView('lit'); ab.classList.add('show');
+  const cs = strokes.map(centroid), fit = faceFit(cs);
+  const wait = PK.reduced() ? 0 : 1700;
+  setTimeout(() => {
+    showMarks(fit, cs);
+    verdict.textContent = verdictText(fit.score);
+    verdict.classList.add('on');
+  }, wait);
+  store.set('last', { at: Date.now(), score: fit.score, strokes: strokes.map(s => s.map(p => [Math.round(p[0]), Math.round(p[1])])) });
+  store.set('n', store.get('n', 0) + 1);
+  thumb();
+  if (!revealed){
+    revealed = true;
+    for (const id of ['a1', 'a2', 'a3', 'a4']) $(id).hidden = false;
+    PK.reveal('.after');
+    watchAfter();
+  }
+});
+
+/* ── 揭曉後各章的觸發（IntersectionObserver） ── */
+function countUp(el, to, ms){
+  if (PK.reduced()){ el.firstChild.nodeValue = String(to); return; }
+  let t0 = 0;
+  function f(dt, t){
+    if (!t0) t0 = t;
+    const k = Math.min(1, (t - t0) / ms), v = Math.round(to * (1 - Math.pow(1 - k, 3)));
+    el.firstChild.nodeValue = String(v);
+    if (k >= 1) PK.untick(f);
+  }
+  PK.tick(f);
+}
+function watchAfter(){
+  const once = (el, fn) => {
+    if (!('IntersectionObserver' in window)){ fn(); return; }
+    const io = new IntersectionObserver((es) => { if (es[0].isIntersecting){ io.disconnect(); fn(); } }, { threshold: .4 });
+    io.observe(el);
+  };
+  once($('ms'), () => countUp($('ms'), 165, 1400));
+  once($('zoom'), () => $('zoom').classList.add('wake'));
+}
+function thumb(){
+  const t = $('thumb'), c = t.getContext('2d');
+  c.clearRect(0, 0, 160, 160);
+  c.fillStyle = '#2a1306'; c.beginPath(); c.ellipse(80, 92.8, 67.2, 56, 0, 0, Math.PI * 2); c.fill();
+  c.drawImage(cvNight, 0, 0, 160, 160);
+}
+
+/* ── 男或女 ── */
+const MF = {
+  m: '你和大多數人一樣。',
+  f: '那你是少數派。',
+  n: '很誠實。不過多數人不會猶豫這麼久。'
+};
+document.querySelector('.choice').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  for (const x of document.querySelectorAll('.choice button')) x.setAttribute('aria-pressed', String(x === b));
+  store.set('mf', b.dataset.mf);
+  $('mfOut').innerHTML = '<p><b style="color:var(--glow)">' + MF[b.dataset.mf] + '</b></p>' +
+    '<p>2022 年，美國國家心理衛生研究院找了數千位受試者，看幾百張「物件臉」，問同一個問題。被判成男性的遠遠多過女性——明明那只是一顆甜椒、一個鍋子。隔年換成小孩測，結果一樣。</p>' +
+    '<p>研究者的推測是：一張臉若沒有額外的線索，大腦就先填上一個「預設值」，而那個預設值偏向男性。你的偵測器不只會亂叫，還自帶刻板印象。</p>';
+});
+
+/* ── 初始 ── */
+window.addEventListener('resize', size);
+size(); setCount(); PK.reveal();
+const prev = store.get('last', null);
+if (prev && prev.strokes && prev.strokes.length === 3){
+  verdict.textContent = '上次你刻的那顆，蠟燭早就熄了。再刻一顆吧。';
+  verdict.classList.add('on');
+}
+})();
+</script>
+</body>
+</html>

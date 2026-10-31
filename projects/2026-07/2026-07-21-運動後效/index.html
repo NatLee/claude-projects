@@ -58,7 +58,7 @@ footer{text-align:center;padding:36px 22px 60px;color:var(--faint);font-size:.78
 <div class="stage">
   <div class="curtain">今晚的表演 · 一個兩千年的把戲</div>
   <h1>我要讓靜止的世界<br>在你眼前動起來</h1>
-  <p class="showman" id="showman">各位——不用魔術，只用<b>你自己的眼睛</b>。盯著中央，給我半分鐘，然後我讓靜止的畫面流動給你看。準備好了嗎？</p>
+  <p class="showman" id="showman" aria-live="polite">各位——不用魔術，只用<b>你自己的眼睛</b>。盯著中央，給我半分鐘，然後我讓靜止的畫面流動給你看。準備好了嗎？</p>
 
   <div class="ring-wrap">
     <canvas id="spiral" role="img" aria-label="一個會旋轉的漩渦，用來誘發運動後效錯覺。"></canvas>
@@ -110,7 +110,7 @@ if(typeof document!=='undefined')(function(){
   function draw(){
     size(); ctx.clearRect(0,0,W,H); var cx=W/2,cy=H/2,R=Math.min(W,H)*0.48,arms=10,a=R/(Math.PI*2*3.2);
     ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot*dir); ctx.lineCap='round';
-    for(var k=0;k<arms;k++){ var base=k/arms*Math.PI*2; ctx.strokeStyle=(k%2===0)?'rgba(232,236,245,.92)':'rgba(20,24,32,.95)'; ctx.lineWidth=Math.max(2,R*0.055)*dpr;
+    for(var k=0;k<arms;k++){ var base=k/arms*Math.PI*2; ctx.strokeStyle=(k%2===0)?'rgba(232,236,245,.92)':'rgba(20,24,32,.95)'; ctx.lineWidth=Math.max(2*dpr,R*0.055);
       ctx.beginPath(); for(var th=0.15;th<=Math.PI*2*3.2;th+=0.12){ var p=spiralPoint(th,a,base); if(th<0.16)ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); } ctx.stroke(); }
     ctx.restore(); ctx.fillStyle='#06070a'; ctx.beginPath(); ctx.arc(cx,cy,R*0.07,0,7); ctx.fill();
   }
@@ -128,8 +128,9 @@ if(typeof document!=='undefined')(function(){
   }
   document.getElementById('go').addEventListener('click',start);
   document.querySelectorAll('.seg button').forEach(function(b){ b.addEventListener('click',function(){ dir=+b.dataset.dir; document.querySelectorAll('.seg button').forEach(function(o){o.setAttribute('aria-pressed',o===b?'true':'false');}); draw(); }); });
-  document.addEventListener('visibilitychange',function(){ if(document.hidden&&raf){ cancelAnimationFrame(raf); raf=0; if(phase==='adapt'){ phase='idle'; say('你切走了，表演暫停。按下面的按鈕重來。'); document.getElementById('go').disabled=false; } } });
-  mR.addEventListener('change',function(e){ reduced=e.matches; });
+  document.addEventListener('visibilitychange',function(){ if(document.hidden&&raf){ cancelAnimationFrame(raf); raf=0; if(phase==='adapt'){ phase='idle'; fix.classList.remove('show'); cd.classList.remove('show'); say('你切走了，表演暫停。按下面的按鈕重來。'); document.getElementById('go').disabled=false; } } });
+  function onRM(e){ reduced=e.matches; if(reduced&&phase==='adapt'){ if(raf){cancelAnimationFrame(raf);raf=0;} phase='idle'; fix.classList.remove('show'); cd.classList.remove('show'); draw(); say('偵測到「減少動態」，漩渦先停下。'); document.getElementById('go').disabled=false; } }
+  if(mR.addEventListener) mR.addEventListener('change',onRM); else if(mR.addListener) mR.addListener(onRM);
   window.addEventListener('resize',draw);
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add('in');});},{rootMargin:'0px 0px -12% 0px'});
   io.observe(document.getElementById('rev'));

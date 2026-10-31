@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>沒人敢掐熄第一百根燈芯｜每日小專案</title>
+<meta name="description" content="江戶的百物語：一百個怪談、一百根燈芯、一面鏡子。掐掉最後一根之後，來的東西住在你眼睛裡。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#060709; --pk-ink:#e6e1d4; --pk-accent:#9fc3d8;
+  --paper:#2f5f7a; --wood:#1c140e; --ember:#e7a35a; --red:#e2443a;
+}
+html,body{background:var(--pk-bg)}
+body{overflow-x:hidden}
+.stage{min-height:100vh;min-height:100svh;display:grid;grid-template-rows:minmax(300px,56vh) auto}
+
+/* ── 房間 ── */
+.room{position:relative;overflow:hidden;isolation:isolate}
+.room .glow{position:absolute;inset:-20%;background:radial-gradient(closest-side at 50% 52%,rgba(231,163,90,.55),rgba(231,163,90,.08) 60%,transparent 75%);transition:opacity 1.4s ease}
+.room .tint{position:absolute;inset:0;background:radial-gradient(closest-side at 50% 50%,rgba(70,140,180,.55),rgba(20,50,70,.25) 70%,transparent);opacity:.15;transition:opacity 1.4s ease}
+.room .floor{position:absolute;left:0;right:0;bottom:0;height:22%;background:linear-gradient(transparent,rgba(0,0,0,.6));}
+.andon{position:absolute;left:50%;top:50%;width:min(170px,38vw);transform:translate(-50%,-56%);margin:0;transition:opacity .8s}
+.andon svg{width:100%;height:auto;display:block}
+.andon .lit{transition:opacity 1.2s ease}
+.wicks{position:absolute;left:50%;bottom:9%;transform:translateX(-50%);display:grid;grid-template-columns:repeat(50,1fr);gap:3px 3px;width:min(330px,82vw)}
+.wicks i{display:block;height:9px;border-radius:1px;background:var(--ember);opacity:.9;transition:opacity .35s}
+.wicks i.out{opacity:.1}
+.count{position:absolute;left:50%;bottom:calc(9% + 32px);transform:translateX(-50%);font-size:12px;letter-spacing:.3em;color:#a99f8b;white-space:nowrap}
+.count b{font-variant-numeric:tabular-nums;color:var(--pk-ink);font-weight:500;font-size:15px;letter-spacing:.05em;margin-left:.4em}
+.veil{position:absolute;inset:0;background:#000;opacity:.1;transition:opacity 1.4s ease;pointer-events:none;z-index:3}
+.tag{position:absolute;top:18px;right:18px;font-size:11px;letter-spacing:.35em;color:#6f6a5f;z-index:6;writing-mode:vertical-rl}
+
+/* 鬼手（蜘蛛腳） */
+.hand{position:absolute;left:50%;top:0;width:min(220px,46vw);margin-left:calc(min(220px,46vw) / -2);transform:translateY(-105%);transition:transform 2.6s cubic-bezier(.3,.7,.2,1);z-index:4;pointer-events:none}
+.hand.down{transform:translateY(0)}
+.hand.gone{transform:translateY(-105%);transition-duration:1.6s}
+.hand svg{width:100%;height:auto;display:block;overflow:visible}
+.hand g{filter:blur(1.2px)}
+
+/* 鏡子 */
+.mirror{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:5;opacity:0;visibility:hidden;transition:opacity 1.6s ease,visibility 0s 1.6s}
+.mirror.on{opacity:1;visibility:visible;transition:opacity 1.6s ease,visibility 0s}
+.mirror svg{height:min(44vh,330px);width:auto;display:block}
+.mirror .clear{opacity:0;transition:opacity 1.2s ease}
+.mirror.lit .clear{opacity:1}
+.timer{display:flex;align-items:center;gap:10px;font-size:13px;color:#8c8678;min-height:20px;opacity:0;transition:opacity .4s}
+.timer.on{opacity:1}
+.timer b{font-variant-numeric:tabular-nums;color:#c9c1ae;font-weight:500;width:2ch;text-align:right}
+.bar{width:120px;height:2px;background:#2a2a2e;overflow:hidden}
+.bar span{display:block;height:100%;background:#8a8478;transform-origin:left;transform:scaleX(1)}
+
+/* ── 敘事 ── */
+.tale{position:relative;z-index:2;padding:26px 0 8px;background:linear-gradient(#060709 0,#0a0b0e 100%)}
+.tale h1{font-size:clamp(26px,5.4vw,40px);font-weight:600;letter-spacing:.08em;line-height:1.3;margin:0 0 18px;transition:font-size .6s,opacity .6s}
+.tale.small h1{font-size:14px;letter-spacing:.3em;color:#7d776a;font-weight:500}
+.lines{min-height:9em}
+.ln{margin:0 0 .9em;font-size:17px;line-height:1.95;opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease}
+.ln.on{opacity:1;transform:none}
+.ln.q{color:#cfd9de;border-left:2px solid #2f4a5a;padding-left:14px}
+.ln.fact{color:#b7c7cf}
+.ln em{font-style:normal;color:var(--pk-accent)}
+.choices{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0 6px;opacity:0;transition:opacity .6s}
+.choices.on{opacity:1}
+.choices .pk-btn{font-size:15px}
+.choices .pk-btn.alt{color:#a99f8b;border-color:#4a463e}
+.choices .pk-btn.alt:hover{background:#a99f8b;color:var(--pk-bg)}
+.skip{font-size:12px;color:#5d5850;margin:4px 0 0;letter-spacing:.1em}
+.tale .pk-foot{margin-top:40px}
+
+@media (max-width:560px){
+  .stage{grid-template-rows:minmax(280px,48vh) auto}
+  .ln{font-size:16px}
+  .tag{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .ln,.choices,.veil,.glow,.tint,.andon,.andon .lit,.wicks i,.hand,.mirror,.mirror .clear,.timer,.tale h1{transition:none!important}
+  .ln{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<div class="stage">
+  <div class="room" id="room" aria-hidden="true">
+    <div class="glow" id="glow"></div>
+    <div class="tint" id="tint"></div>
+    <div class="floor"></div>
+    <span class="tag">百物語・江戶</span>
+    <figure class="andon" id="andon">
+      <svg viewBox="0 0 160 230">
+        <defs>
+          <radialGradient id="core" cx="80" cy="120" r="70" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#ffe2a8" stop-opacity=".95"/>
+            <stop offset=".45" stop-color="#e7a35a" stop-opacity=".55"/>
+            <stop offset="1" stop-color="#2f5f7a" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <!-- 腳 -->
+        <rect x="26" y="196" width="8" height="30" fill="#1c140e"/>
+        <rect x="126" y="196" width="8" height="30" fill="#1c140e"/>
+        <!-- 青紙 -->
+        <rect x="30" y="40" width="100" height="160" fill="#1d3f52"/>
+        <g class="lit" id="lit"><rect x="30" y="40" width="100" height="160" fill="url(#core)"/></g>
+        <!-- 框 -->
+        <g fill="none" stroke="#1c140e" stroke-width="6">
+          <rect x="30" y="40" width="100" height="160"/>
+          <line x1="80" y1="40" x2="80" y2="200"/>
+        </g>
+        <g fill="none" stroke="#1c140e" stroke-width="2.5" opacity=".75">
+          <line x1="30" y1="80" x2="130" y2="80"/><line x1="30" y1="120" x2="130" y2="120"/><line x1="30" y1="160" x2="130" y2="160"/>
+        </g>
+        <rect x="22" y="30" width="116" height="12" fill="#1c140e"/>
+        <rect x="70" y="8" width="20" height="24" fill="#1c140e"/>
+      </svg>
+    </figure>
+    <div class="count">燈芯<b id="cnt">100</b></div>
+    <div class="wicks" id="wicks"></div>
+
+    <div class="hand" id="hand">
+      <svg viewBox="0 0 200 360">
+        <g fill="none" stroke="#020203" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M104 -20 L112 118 L70 228 L96 318 L88 352" stroke-width="15"/>
+          <path d="M112 118 l14 -4 M106 60 l14 -2 M98 70 l-14 0 M92 170 l-15 -6 M84 200 l14 4 M78 260 l-15 4 M90 290 l14 -2 M94 330 l-12 4" stroke-width="3"/>
+          <circle cx="112" cy="118" r="10" fill="#020203" stroke="none"/>
+          <circle cx="70" cy="228" r="9" fill="#020203" stroke="none"/>
+        </g>
+      </svg>
+    </div>
+
+    <div class="mirror" id="mirror">
+      <svg viewBox="0 0 200 270">
+        <defs>
+          <radialGradient id="rim" cx="100" cy="100" r="96" gradientUnits="userSpaceOnUse">
+            <stop offset=".82" stop-color="#3a2c1c"/><stop offset=".92" stop-color="#6b5434"/><stop offset="1" stop-color="#2a1f14"/>
+          </radialGradient>
+          <clipPath id="glass"><circle cx="100" cy="100" r="80"/></clipPath>
+          <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>
+        </defs>
+        <rect x="90" y="186" width="20" height="80" rx="6" fill="#2b2016"/>
+        <circle cx="100" cy="100" r="96" fill="url(#rim)"/>
+        <circle cx="100" cy="100" r="80" fill="#3a3c43"/>
+        <g clip-path="url(#glass)">
+          <!-- 模糊、低對比的臉：Troxler 漸隱最愛的條件 -->
+          <g filter="url(#soft)">
+            <ellipse cx="100" cy="106" rx="44" ry="58" fill="#474951"/>
+            <ellipse cx="82" cy="94" rx="10" ry="6" fill="#2d2e34"/>
+            <ellipse cx="118" cy="94" rx="10" ry="6" fill="#2d2e34"/>
+            <ellipse cx="82" cy="80" rx="13" ry="3.5" fill="#32333a"/>
+            <ellipse cx="118" cy="80" rx="13" ry="3.5" fill="#32333a"/>
+            <ellipse cx="100" cy="116" rx="6" ry="11" fill="#3b3d44"/>
+            <ellipse cx="100" cy="138" rx="15" ry="4.5" fill="#2e2f35"/>
+          </g>
+          <!-- 開燈後：同一張臉，沒有模糊 -->
+          <g class="clear">
+            <ellipse cx="100" cy="106" rx="44" ry="58" fill="#8c8f98"/>
+            <ellipse cx="82" cy="94" rx="9" ry="5" fill="#2d2e34"/>
+            <ellipse cx="118" cy="94" rx="9" ry="5" fill="#2d2e34"/>
+            <ellipse cx="82" cy="80" rx="12" ry="3" fill="#3e3f46"/>
+            <ellipse cx="118" cy="80" rx="12" ry="3" fill="#3e3f46"/>
+            <ellipse cx="100" cy="116" rx="5" ry="10" fill="#6c6f78"/>
+            <ellipse cx="100" cy="138" rx="14" ry="4" fill="#5a3f3c"/>
+          </g>
+        </g>
+        <circle id="fix" cx="100" cy="102" r="2.4" fill="#e2443a"/>
+      </svg>
+      <div class="timer" id="timer"><b id="sec">20</b><div class="bar"><span id="barIn"></span></div></div>
+    </div>
+
+    <div class="veil" id="veil"></div>
+  </div>
+
+  <main class="tale" id="tale">
+    <div class="pk-wrap">
+      <h1 id="ttl">沒人敢掐熄第一百根燈芯</h1>
+      <div class="lines" id="lines" aria-live="polite"></div>
+      <div class="choices" id="choices" role="group" aria-label="你的選擇"></div>
+      <p class="skip" id="skip">（點文字或按空白鍵可略過逐行）</p>
+      <footer class="pk-foot">
+        出處：淺井了意《伽婢子》、荻田安靜《宿直草》、鳥山石燕《今昔百鬼拾遺》、Troxler (1804)、Caputo, <i>Perception</i> (2010)。<br>
+        鏡子段落是 20 秒的凝視實驗，畫面不閃爍。
+      </footer>
+    </div>
+  </main>
+</div>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'hyaku77.';
+const store = PK.store(LS);
+
+/*CORE*/
+/* 房間的暗度：燈芯越少越黑，0 根時近乎全黑 */
+function darkness(w){
+  const k = 1 - Math.max(0, Math.min(100, w)) / 100;
+  return +(0.1 + 0.82 * Math.pow(k, 1.4)).toFixed(3);
+}
+/* 青紙的存在感：暖光退去，青色浮上來 */
+function blueness(w){
+  const k = 1 - Math.max(0, Math.min(100, w)) / 100;
+  return +(0.15 + 0.6 * Math.sin(k * Math.PI * 0.5) * (w > 0 ? 1 : 0.3)).toFixed(3);
+}
+function secondsLeft(elapsedMs, durMs){ return Math.max(0, Math.ceil((durMs - elapsedMs) / 1000)); }
+function tally(rec, saw){
+  rec = rec || { runs:0, saw:0 };
+  return { runs:(rec.runs|0) + 1, saw:(rec.saw|0) + (saw ? 1 : 0) };
+}
+/* 檢查劇本：每個選項都指到存在的場景，且從 start 一定走得到 coda */
+function validate(S){
+  const errs = [];
+  for (const id in S) for (const c of (S[id].choices || [])) if (c.to && !S[c.to]) errs.push(id + '→' + c.to);
+  const seen = new Set(['start']), q = ['start'];
+  while (q.length){ const id = q.shift(); for (const c of (S[id].choices || [])){ const n = c.to || c.then; if (n && S[n] && !seen.has(n)){ seen.add(n); q.push(n); } } }
+  if (!seen.has('coda')) errs.push('coda 走不到');
+  for (const id in S) if (!seen.has(id)) errs.push(id + ' 是孤兒');
+  return errs;
+}
+
+const TROX = '1804 年，瑞士醫生 Troxler 記下一個怪現象：盯著一點不動，周圍<em>模糊、低對比</em>的東西會從視野裡被擦掉——神經對一成不變的刺激會適應，乾脆不回報。';
+const CAPU = '2010 年，義大利烏爾比諾大學的 Caputo 讓人在昏暗房間裡對鏡凝視自己幾分鐘。受試者看見自己的臉巨幅扭曲，看見陌生人、過世的親人、動物，還有怪物。他把它命名為<em>「鏡中怪臉錯覺」</em>。';
+
+const SCENES = {
+  start:{ w:100, lines:[
+    '延寶五年，江戶，一個熱得睡不著的夏夜。',
+    '隔壁第三間房，一盞糊著<em>青紙</em>的行燈裡，泡著一百根燈芯。',
+    '規矩早寫在 1666 年的《伽婢子》裡：每說完一個怪談，就提燈穿過中間那間沒點燈的空房，掐掉一根燈芯，照一眼矮桌上的鏡子，再回來。',
+    '一百話說完，燈全滅。據說那時候，會有東西來。'],
+    choices:[{t:'入座', to:'s1'}] },
+  s1:{ w:100, lines:[
+    '坐你左手邊的年輕武士清了清嗓子。',
+    {q:'「我家後巷有口井。每到下雨夜，井繩會自己往上收，一尺，一尺。收到頂，桶裡空的——可桶底是濕的，還印著一隻小腳。」'},
+    '他講完，屋裡沒人出聲。所有人轉頭看你。',
+    '第一根，輪到你去掐。'],
+    choices:[{t:'提燈，穿過空房', to:'walk1'}] },
+  walk1:{ w:99, lines:[
+    '空房比想像中長。你的燈只照得到自己的腳尖。',
+    '青光從前面那扇紙門滲出來。一百根燈芯泡在油碟裡，鏡子立在矮桌上。',
+    '你掐掉一根。指尖一陣燙。',
+    '鏡子裡的你，臉色有點青，但還認得出來。'],
+    choices:[{t:'回座', to:'s2'}] },
+  s2:{ w:58, lines:[
+    '怪談一個接一個。',
+    '第十二話，渡口那個永遠渡不完河的船夫。',
+    '第二十七話，每天早上被擺回門口、鞋尖朝內的木屐。',
+    '第四十一話，只在雨天應答名字的井。',
+    '燈芯越少，青紙的顏色越重。暖黃褪掉，剩下冷的。大家越坐越近，膝蓋碰著膝蓋。'],
+    choices:[{t:'繼續聽', to:'s3'}, {t:'「我明天還得早起……」', to:'leave', alt:1}] },
+  leave:{ w:58, lines:[
+    '你在第四十二話時起身告辭。',
+    '夜路上回頭，那扇紙窗還透著青光，像一塊浮在黑裡的薄冰。',
+    '多數的百物語都這樣收場：有人先走，有人打盹，散在半路。',
+    '可你會一直想——最後到底來了什麼。'],
+    choices:[{t:'折回去', to:'s3'}] },
+  s3:{ w:1, lines:[
+    '第六十話。第七十三話。第八十八話。',
+    '到後來，誰也看不清誰的臉，只剩聲音。',
+    '第九十九話說完，油碟裡剩一根燈芯。',
+    {q:'最年長的那位壓低嗓子：「老規矩，停在這裡。百物語，從來沒人說完過。」'},
+    '傳說第一百話會招來<em>青行燈</em>。也正因為大家都停在九十九，它幾乎沒留下現身的紀錄。'],
+    choices:[{t:'提燈，去掐第一百根', to:'s100'}, {t:'守規矩，停在九十九', to:'stop99', alt:1}] },
+  stop99:{ w:1, lines:[
+    '你們留著最後一根，聊到天亮。',
+    '平安無事。百物語最常見的收場，就是這樣。',
+    {f:'青行燈後來還是有了長相：1781 年，鳥山石燕把它畫進《今昔百鬼拾遺》——黑長髮、頭上生角、塗黑的牙、一身白衣，守在行燈旁。'},
+    '但那是畫。今晚，你錯過了。'],
+    choices:[{t:'回去，掐掉它', to:'s100'}] },
+  s100:{ w:0, fx:'hand', lines:[
+    '你穿過空房，伸手，掐滅最後一根。',
+    '黑。徹底的黑。',
+    '頭頂的天花板，傳來一聲輕響。',
+    '一隻巨大的、一節一節的手，從樑上垂下來，停在你臉前。'],
+    choices:[{t:'拔刀砍下去', to:'cut'}, {t:'一動也不動', to:'freeze', alt:1}] },
+  cut:{ w:0, fx:'drop', lines:[
+    '刀風一過，有東西啪地落在榻榻米上。',
+    '火摺子吹亮——一截腳。三寸長，毛茸茸，還在抽動。',
+    '蜘蛛的腳。',
+    {f:'1677 年刊行的怪談集《宿直草》真有這一篇：〈百物語して蜘の足を切る事〉。燈越暗，牆上的影子越大；一隻蜘蛛，就演得了一隻鬼手。'}],
+    choices:[{t:'還剩最後一條規矩', to:'mirror'}] },
+  freeze:{ w:0, fx:'lift', lines:[
+    '那隻手停在半空，抖了兩下，慢慢縮回樑上。',
+    '你吹亮火摺子。樑上，一隻蜘蛛正往暗處爬。',
+    {f:'1677 年刊行的怪談集《宿直草》記過同一幕。那位武士比你衝動：他拔了刀，砍下來的是三寸長的蜘蛛腳。'},
+    '燈越暗，影子越大。一隻蜘蛛，就演得了一隻鬼手。'],
+    choices:[{t:'還剩最後一條規矩', to:'mirror'}] },
+  mirror:{ w:0, fx:'mirror', lines:[
+    '最後一條規矩：照鏡子。',
+    '火摺子的光，大概就這麼暗。鏡子在上面。',
+    '盯住鏡中那顆<em>紅點</em>，二十秒，視線別離開。眨眼沒關係。',
+    '把螢幕亮度調低一點，會更明顯。'],
+    choices:[{t:'開始盯', act:'stare', then:'ask'}] },
+  ask:{ w:0, lines:['好。現在，鏡子裡那張臉怎麼了？'],
+    choices:[{t:'五官糊掉了，或變得不太像人', to:'seen'}, {t:'好像沒什麼變', to:'unseen', alt:1}] },
+  seen:{ w:0, fx:'reveal', saw:true, lines:[
+    '開燈，再看一次。',
+    '鏡子裡那張圖，從頭到尾<em>一個像素都沒動</em>。動的是你的視覺系統。',
+    {f:TROX}, {f:CAPU}],
+    choices:[{t:'那青行燈呢？', to:'coda'}] },
+  unseen:{ w:0, fx:'reveal', saw:false, lines:[
+    '也很合理：螢幕自己會發光，房間不夠暗，二十秒也短。',
+    '不過開燈看——鏡子裡那張圖本來就<em>一個像素都沒動</em>。若剛才有任何變化，都出自你的視覺系統。',
+    {f:TROX}, {f:CAPU}],
+    choices:[{t:'那青行燈呢？', to:'coda'}] },
+  coda:{ w:100, fx:'relight', lines:[
+    '現在拉遠，看看江戶人搭起來的那間屋子。',
+    '青紙濾掉暖光。燈芯一根根減，眼睛被迫在暗裡找輪廓。九十九個怪談，把腦子調成專找臉、專找手的模式。最後，一面鏡子，一個人，夜很深。',
+    '沒人讀過 Troxler，也沒人聽過 Caputo。他們卻造出一台召喚怪物的機器——燃料是你自己的眼睛。',
+    '所以青行燈幾乎沒有目擊紀錄。不是因為大家都停在九十九。',
+    {q:'而是因為，它從來不在隔壁房間。'}],
+    choices:[{t:'重新點燈', to:'start'}] }
+};
+/*END*/
+
+/* ── DOM ── */
+const $ = (id) => document.getElementById(id);
+const el = { glow:$('glow'), tint:$('tint'), veil:$('veil'), lit:$('lit'), cnt:$('cnt'), wicks:$('wicks'),
+  hand:$('hand'), mirror:$('mirror'), andon:$('andon'), timer:$('timer'), sec:$('sec'), barIn:$('barIn'),
+  lines:$('lines'), choices:$('choices'), tale:$('tale'), ttl:$('ttl'), skip:$('skip') };
+
+for (let i = 0; i < 100; i++) el.wicks.appendChild(document.createElement('i'));
+const wickEls = el.wicks.children;
+
+let w = 100, shown = 100, cur = null, timers = [], wickAnim = null, ended = false;
+let override = null;   /* 鏡子場景另設光線 */
+
+function paint(){
+  const n = Math.round(shown);
+  el.cnt.textContent = n;
+  for (let i = 0; i < 100; i++) wickEls[i].classList.toggle('out', i >= n);
+  const dk = override != null ? override : darkness(shown);
+  el.veil.style.opacity = dk;
+  el.glow.style.opacity = (shown / 100).toFixed(3);
+  el.lit.style.opacity = shown > 0 ? (0.25 + 0.75 * shown / 100).toFixed(3) : '0';
+  el.tint.style.opacity = blueness(shown);
+}
+
+function animateWicks(target, ms){
+  if (wickAnim) { PK.untick(wickAnim); wickAnim = null; }
+  if (PK.reduced() || ms <= 0 || target === shown) { shown = target; paint(); return; }
+  const from = shown; let t = 0;
+  wickAnim = (dt) => {
+    t += dt * 1000;
+    const k = Math.min(1, t / ms);
+    shown = from + (target - from) * (1 - Math.pow(1 - k, 2));
+    paint();
+    if (k >= 1) { PK.untick(wickAnim); wickAnim = null; }
+  };
+  PK.tick(wickAnim);
+}
+
+function clearTimers(){ timers.forEach(clearTimeout); timers = []; }
+
+function html(line){
+  const p = document.createElement('p');
+  p.className = 'ln';
+  if (typeof line === 'string') p.innerHTML = line;
+  else if (line.q) { p.innerHTML = line.q; p.classList.add('q'); }
+  else if (line.f) { p.innerHTML = line.f; p.classList.add('fact'); }
+  return p;
+}
+
+function showAll(){
+  clearTimers();
+  el.lines.querySelectorAll('.ln').forEach(p => p.classList.add('on'));
+  if (cur && !el.choices.classList.contains('on') && !staring) showChoices();
+  if (wickAnim) { PK.untick(wickAnim); wickAnim = null; shown = w; paint(); }
+}
+
+function showChoices(){
+  const sc = SCENES[cur];
+  el.choices.innerHTML = '';
+  for (const c of sc.choices) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'pk-btn' + (c.alt ? ' alt' : '');
+    b.textContent = c.t;
+    b.addEventListener('click', (e) => { e.stopPropagation(); choose(c); });
+    el.choices.appendChild(b);
+  }
+  el.choices.classList.add('on');
+  el.skip.hidden = true;
+  const first = el.choices.querySelector('button');
+  if (first) {
+    first.focus({ preventScroll:true });
+    const r = el.choices.getBoundingClientRect();
+    if (r.bottom > window.innerHeight && cur !== 'mirror' && SCENES[cur].fx !== 'hand') el.choices.scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'nearest' });
+  }
+}
+
+function fx(name){
+  const R = PK.reduced();
+  if (name === 'hand') { el.hand.classList.remove('gone'); timers.push(setTimeout(() => el.hand.classList.add('down'), R ? 0 : 1600)); }
+  if (name === 'drop' || name === 'lift') { el.hand.classList.add('gone'); el.hand.classList.remove('down'); override = 0.78; paint(); }
+  if (name === 'mirror') {
+    el.hand.classList.remove('down'); el.hand.classList.add('gone');
+    el.andon.style.opacity = '0';
+    el.mirror.classList.add('on'); el.mirror.classList.remove('lit');
+    override = 0.0; paint();
+    el.veil.style.opacity = '0';
+    el.glow.style.opacity = '0'; el.tint.style.opacity = '0.06';
+  }
+  if (name === 'reveal') { el.mirror.classList.add('lit'); el.timer.classList.remove('on'); }
+  if (name === 'relight') {
+    el.mirror.classList.remove('on', 'lit');
+    el.andon.style.opacity = '1';
+    override = null;
+  }
+}
+
+function go(id){
+  clearTimers();
+  cur = id;
+  const sc = SCENES[id];
+  if (id === 'start') { ended = false; override = null; el.andon.style.opacity = '1'; el.mirror.classList.remove('on','lit'); el.hand.className = 'hand'; }
+  el.tale.classList.toggle('small', id !== 'start');
+  el.lines.innerHTML = ''; el.choices.innerHTML = ''; el.choices.classList.remove('on'); el.skip.hidden = false;
+
+  if (sc.fx) fx(sc.fx);
+  if (sc.fx === 'reveal' && !ended) {
+    ended = true;
+    const rec = tally(store.get('rec', null), sc.saw);
+    store.set('rec', rec);
+    sc._extra = '你已經在這面鏡子前站過 ' + rec.runs + ' 回' + (rec.saw ? '，其中 ' + rec.saw + ' 回看見它變了。' : '。');
+  }
+
+  const lines = sc.lines.slice();
+  if (sc._extra && (id === 'seen' || id === 'unseen')) lines.push({ f: sc._extra });
+  const R = PK.reduced();
+  const step = R ? 0 : 900;
+  const ps = lines.map(html);
+  ps.forEach(p => el.lines.appendChild(p));
+
+  w = sc.w;
+  if (sc.fx !== 'mirror') {
+    const dur = id === 'coda' ? 2600 : Math.max(600, ps.length * step * 0.8);
+    animateWicks(w, R ? 0 : dur);
+  }
+
+  if (R) { ps.forEach(p => p.classList.add('on')); showChoices(); }
+  else {
+    ps.forEach((p, i) => timers.push(setTimeout(() => p.classList.add('on'), 250 + i * step)));
+    timers.push(setTimeout(showChoices, 250 + ps.length * step));
+  }
+  if (sc.fx === 'hand' || sc.fx === 'mirror') document.querySelector('.stage').scrollIntoView({ behavior: R ? 'auto' : 'smooth', block: 'start' });
+}
+
+/* ── 凝視 20 秒 ── */
+let staring = false;
+const STARE_MS = 20000;
+function stare(then){
+  staring = true;
+  el.choices.classList.remove('on'); el.choices.innerHTML = '';
+  el.lines.innerHTML = '';
+  const p = html('……'); p.classList.add('on'); el.lines.appendChild(p);
+  el.timer.classList.add('on');
+  document.querySelector('.stage').scrollIntoView({ behavior:'auto', block:'start' });
+  PK.announce('開始計時二十秒，請盯住鏡中的紅點。');
+  let t = 0, last = 21;
+  const f = (dt) => {
+    t += dt * 1000;
+    const s = secondsLeft(t, STARE_MS);
+    if (s !== last) { last = s; el.sec.textContent = s; }
+    el.barIn.style.transform = 'scaleX(' + Math.max(0, 1 - t / STARE_MS).toFixed(4) + ')';
+    if (t >= STARE_MS) {
+      PK.untick(f); staring = false;
+      PK.announce('時間到。');
+      go(then);
+    }
+  };
+  el.sec.textContent = '20'; el.barIn.style.transform = 'scaleX(1)';
+  PK.tick(f);
+}
+
+function choose(c){
+  if (c.act === 'stare') return stare(c.then);
+  go(c.to);
+}
+
+/* 略過逐行 */
+el.lines.addEventListener('click', showAll);
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' && document.activeElement && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); showAll(); }
+});
+PK.onMotionChange(() => { if (cur && !staring) showAll(); });
+
+paint();
+go('start');
+</script>
+</body>
+</html>

@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>「煮六分鐘」｜每日小專案</title>
+<meta name="description" content="外婆的食譜卡寫著：水滾，放蛋，煮六分鐘。填上你那顆蛋的身分證，看六分鐘被紅筆劃掉，換成只屬於你廚房的秒數。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#efe6d2; --pk-ink:#3a2c22; --pk-dim:#8a7764; --pk-accent:#b8432a;
+  --pk-line:rgba(58,44,34,.16);
+  --paper:#fbf6ea; --rule:#cfe0ea; --margin:#e7a7a0; --pencil:#7d7468; --red:#c2361f;
+  --hand:"Kaiti TC","BiauKai","STKaiti","DFKai-SB","KaiTi",var(--pk-serif);
+  --plate:#2c2520;
+}
+body{background:
+  radial-gradient(1200px 700px at 80% -10%, #f7efdd 0%, transparent 60%),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.012) 0 2px, transparent 2px 5px),
+  var(--pk-bg);}
+.pk-home{background:color-mix(in srgb,var(--pk-bg) 70%,transparent)}
+
+/* ── 食譜卡 ── */
+.card{
+  position:relative; background:var(--paper); border-radius:3px;
+  padding:34px 28px 30px 58px; margin:0 auto; max-width:460px;
+  box-shadow:0 1px 0 rgba(0,0,0,.05), 0 18px 40px -18px rgba(60,40,20,.45);
+  background-image:
+    linear-gradient(90deg, transparent 40px, var(--margin) 40px, var(--margin) 41.5px, transparent 41.5px),
+    repeating-linear-gradient(180deg, transparent 0 33px, var(--rule) 33px 34px);
+  background-position:0 0, 0 22px;
+  transform:rotate(-1.4deg);
+}
+.card::before{ /* 膠帶 */
+  content:""; position:absolute; top:-12px; left:50%; width:96px; height:26px; margin-left:-48px;
+  background:rgba(230,215,170,.72); transform:rotate(2.5deg);
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
+}
+.card .ttl{font-family:var(--hand); font-size:15px; color:var(--pencil); letter-spacing:.2em; margin:0 0 6px}
+.card .ln{font-family:var(--hand); font-size:clamp(21px,5.4vw,27px); line-height:34px; margin:0; color:#2d2118}
+.card .note{
+  position:absolute; right:14px; bottom:-6px; transform:rotate(-6deg);
+  font-family:var(--hand); font-size:15px; color:var(--pencil); opacity:.42; letter-spacing:.1em;
+}
+.six{position:relative; display:inline-block; white-space:nowrap}
+.six::after{
+  content:""; position:absolute; left:-4px; right:-4px; top:52%; height:3px; border-radius:2px;
+  background:var(--red); transform:scaleX(0); transform-origin:left center;
+  transition:transform .55s cubic-bezier(.6,0,.3,1);
+}
+.six.struck::after{transform:scaleX(1)}
+.mine{
+  display:inline-block; font-family:var(--hand); color:var(--red); font-size:.92em;
+  opacity:0; transform:translateY(6px) rotate(-3deg); transition:opacity .5s .45s, transform .5s .45s;
+}
+.mine.on{opacity:1; transform:rotate(-3deg)}
+
+.hero-sub{margin-top:46px; text-align:center}
+.hero-sub p{margin:0 0 10px; font-family:var(--pk-serif); font-size:17px}
+.hero-sub .q{font-size:clamp(22px,5.6vw,30px); font-weight:600; margin-top:22px}
+.scroll-hint{display:block; margin:30px auto 0; color:var(--pk-dim); font-size:13px; letter-spacing:.2em; text-align:center}
+
+main p{font-family:var(--pk-serif); font-size:16.5px}
+h2{font-family:var(--pk-serif); font-size:clamp(21px,5vw,26px); margin:84px 0 14px; line-height:1.45}
+h2 small{display:block; font-size:12px; letter-spacing:.32em; color:var(--pk-dim); font-family:var(--pk-sans); margin-bottom:6px}
+.formula{font-family:Georgia,serif; font-style:italic; text-align:center; font-size:15px; color:var(--pk-dim); margin:20px 0}
+
+/* ── 蛋的身分證（表格公文） ── */
+.form{
+  background:var(--paper); border:1.5px solid #6d5948; margin-top:26px; position:relative;
+  box-shadow:0 14px 30px -20px rgba(60,40,20,.5);
+}
+.form-hd{display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:12px 16px; border-bottom:1.5px solid #6d5948; background:#f3ead6}
+.form-hd b{font-family:var(--pk-serif); letter-spacing:.3em; font-size:17px}
+.form-hd span{font-size:11.5px; color:var(--pk-dim); letter-spacing:.12em}
+fieldset{border:0; margin:0; padding:14px 16px 16px; border-bottom:1px dashed #b9a893}
+legend{float:left; width:100%; padding:0; margin-bottom:8px; font-size:13.5px; letter-spacing:.12em; color:#5a4636}
+legend em{font-style:normal; color:var(--pk-dim); font-size:12px; margin-left:6px; letter-spacing:.04em}
+.chips{display:flex; flex-wrap:wrap; gap:8px; clear:both}
+.chip{position:relative}
+.chip input{position:absolute; opacity:0; inset:0; margin:0; cursor:pointer}
+.chip span{
+  display:inline-block; padding:7px 13px; border:1px solid #b9a893; border-radius:2px; font-size:14px;
+  background:#fffdf7; transition:background .2s, color .2s, border-color .2s, transform .12s; user-select:none;
+}
+.chip span small{color:var(--pk-dim); margin-left:4px; font-size:11.5px}
+.chip:hover span{border-color:#6d5948}
+.chip input:checked + span{background:#3a2c22; color:#fbf6ea; border-color:#3a2c22}
+.chip input:checked + span small{color:#d9ccb6}
+.chip input:focus-visible + span{outline:2px solid var(--pk-accent); outline-offset:2px}
+.chip:active span{transform:translateY(1px)}
+.custom{display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--pk-dim)}
+.custom input{width:78px; font:inherit; font-size:14px; padding:6px 8px; border:1px solid #b9a893; background:#fffdf7; color:var(--pk-ink); border-radius:2px}
+.custom input:focus-visible{outline:2px solid var(--pk-accent); outline-offset:1px}
+.bp{font-size:12.5px; color:var(--pk-dim); margin-top:8px; min-height:1.4em}
+.form-ft{display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px; flex-wrap:wrap}
+.draft{font-family:var(--hand); color:var(--pencil); font-size:20px}
+.draft b{font-weight:400; color:#2d2118}
+.stamp-btn{border-color:var(--red); color:var(--red); letter-spacing:.3em}
+.stamp-btn:hover{background:var(--red); color:#fff}
+.stamp{
+  position:absolute; right:18px; top:62px; width:118px; height:118px; border-radius:50%;
+  border:3px double var(--red); color:var(--red); display:grid; place-items:center; text-align:center;
+  font-family:var(--pk-serif); line-height:1.3; pointer-events:none;
+  opacity:0; transform:scale(1.7) rotate(-14deg); mix-blend-mode:multiply;
+}
+.stamp b{display:block; font-size:22px; letter-spacing:.2em}
+.stamp i{display:block; font-style:normal; font-size:15px; font-family:var(--hand)}
+.stamp.on{opacity:.88; transform:scale(1) rotate(-14deg); transition:opacity .18s, transform .28s cubic-bezier(.3,1.6,.5,1)}
+
+/* ── 高潮：兩顆蛋 ── */
+.hidden{display:none}
+.duo{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:26px 0 8px}
+.eggbox{text-align:center}
+.eggbox h3{margin:0 0 4px; font-size:13px; letter-spacing:.2em; color:var(--pk-dim); font-weight:500}
+.eggbox .t{font-family:var(--hand); font-size:26px; margin:0}
+.eggbox .t.red{color:var(--red)}
+.eggbox p{font-size:14px; line-height:1.7; margin:6px 0 0; font-family:var(--pk-sans)}
+.egg{display:block; width:100%; max-width:200px; margin:0 auto; overflow:visible}
+.verdict{font-family:var(--pk-serif); font-size:18px; border-left:3px solid var(--red); padding:4px 0 4px 14px; margin:26px 0}
+
+/* ── 計時器 ── */
+.timer{background:var(--plate); color:#f3ead8; border-radius:6px; padding:26px 20px 22px; margin-top:22px; text-align:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05), 0 20px 40px -24px rgba(0,0,0,.6)}
+.timer .egg{max-width:230px}
+.clock{font-family:Georgia,"Noto Serif TC",serif; font-variant-numeric:tabular-nums; font-size:clamp(50px,15vw,76px); letter-spacing:.04em; line-height:1; margin:14px 0 4px}
+.clock.done{color:#ffcf6b}
+.tstate{font-size:14px; color:#c9bca6; min-height:1.6em; margin:0 0 14px}
+.tbtns{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+.timer .pk-btn{color:#ffcf6b; border-color:#ffcf6b}
+.timer .pk-btn:hover{background:#ffcf6b; color:var(--plate)}
+.timer .pk-btn.ghost{color:#c9bca6; border-color:rgba(255,255,255,.25)}
+.timer .pk-btn.ghost:hover{background:rgba(255,255,255,.1); color:#fff}
+.timer .pk-btn[aria-pressed="true"]{background:rgba(255,207,107,.16)}
+.legend{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; font-size:11.5px; color:#b3a690; margin-top:14px}
+.legend i{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px}
+
+/* ── 山的表 ── */
+table.mt{width:100%; border-collapse:collapse; margin:20px 0; font-size:14.5px; background:var(--paper)}
+.mt th,.mt td{padding:9px 10px; border-bottom:1px solid #d9ccb6; text-align:left}
+.mt th{font-weight:500; font-size:12px; letter-spacing:.14em; color:var(--pk-dim); background:#f3ead6}
+.mt td.n{font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+.mt tr.you td{background:#fff3e6}
+.mt td.big{font-family:var(--hand); font-size:18px; color:var(--red)}
+.margin-q{font-family:var(--hand); font-size:18px; color:var(--pencil); border-left:2px solid var(--margin); padding-left:14px; margin:22px 0}
+
+.end{margin-top:80px}
+.end .card .note{opacity:1; color:#5d5448}
+.end .card .sig{font-family:var(--hand); color:var(--red); font-size:17px; line-height:34px; margin:0; transform:rotate(-1.5deg)}
+.coda{text-align:center; font-family:var(--pk-serif); font-size:20px; margin:52px 0 0; line-height:1.8}
+
+@media (max-width:560px){
+  .card{padding:30px 18px 26px 52px}
+  .duo{gap:10px}
+  .eggbox p{font-size:13px}
+  .stamp{width:96px; height:96px; top:auto; bottom:64px; right:10px}
+  .stamp b{font-size:18px}
+  .mt th,.mt td{padding:8px 6px; font-size:13px}
+}
+@media (prefers-reduced-motion: reduce){
+  .card{transform:none}
+  .six::after,.mine,.stamp.on{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <div class="card rv" id="card" aria-label="一張手寫食譜卡">
+      <p class="ttl">溏心蛋 ／ 外婆</p>
+      <p class="ln">水滾，放蛋，</p>
+      <p class="ln">煮 <span class="six" id="six">六分鐘</span> <span class="mine" id="mine" aria-live="polite"></span>。</p>
+      <p class="ln">撈起，泡冰水。</p>
+      <span class="note" aria-hidden="true">上山要多煮</span>
+    </div>
+    <div class="hero-sub">
+      <p class="rv">這張卡片被抄過很多手，從老家抄到宿舍，再拍照傳進群組。</p>
+      <p class="rv">每一手都照抄同一個數字。</p>
+      <p class="rv">角落那行鉛筆字，從來沒被抄過。</p>
+      <p class="rv q">六分鐘，是誰的蛋？</p>
+      <span class="scroll-hint rv" aria-hidden="true">往下 ↓</span>
+    </div>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section class="rv">
+    <h2><small>第一頁</small>六分鐘裡藏著四個沒寫出來的數字</h2>
+    <p>蛋多重。蛋從哪裡拿出來。鍋子裡的水到底多燙。還有，你想咬開時看見什麼。</p>
+    <p>外婆不用寫，因為那四個數字在她的廚房裡從來不變：同一個市場的蛋、同一台冰箱、同一個海拔、同一個口味。卡片一離開她的廚房，四個數字就全換了，只有「六」留下來。</p>
+    <p>1998 年，英國艾希特大學的物理學家 Charles Williams 在《New Scientist》回覆一封讀者來信，把蛋當成一顆會導熱的小球，解出熱從殼外走到蛋黃邊緣要花多久：</p>
+    <p class="formula">t = 0.451 · M<sup>2/3</sup> · ln[ 0.76 · (T<sub>蛋</sub> − T<sub>水</sub>) ⁄ (T<sub>蛋黃</sub> − T<sub>水</sub>) ]</p>
+    <p>M 是蛋的克數，三個 T 是溫度。（這頁跑的是同一個模型的完整級數解，數字會比這條簡化式多出幾秒到半分鐘。）卡片把它們全部壓扁成一個「六」。現在，把它們還回去。</p>
+  </section>
+
+  <section class="rv">
+    <h2><small>卡片背面</small>填你那顆蛋的身分證</h2>
+    <form class="form" id="form" onsubmit="return false" aria-describedby="draft">
+      <div class="form-hd"><b>蛋　籍　表</b><span>No. <span id="serial">0001</span></span></div>
+
+      <fieldset>
+        <legend>一、它多重？<em>秤一下，或看蛋盒</em></legend>
+        <div class="chips" role="radiogroup" aria-label="蛋的重量">
+          <label class="chip"><input type="radio" name="m" value="50"><span>50<small>g</small></span></label>
+          <label class="chip"><input type="radio" name="m" value="55"><span>55<small>g</small></span></label>
+          <label class="chip"><input type="radio" name="m" value="60"><span>60<small>g</small></span></label>
+          <label class="chip"><input type="radio" name="m" value="65"><span>65<small>g</small></span></label>
+          <label class="chip"><input type="radio" name="m" value="70"><span>70<small>g</small></span></label>
+          <span class="custom"><label for="mC">自填</label><input id="mC" type="number" min="30" max="90" step="1" inputmode="numeric" placeholder="克"></span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>二、它剛從哪裡出來？</legend>
+        <div class="chips" role="radiogroup" aria-label="蛋的起始溫度">
+          <label class="chip"><input type="radio" name="te" value="4"><span>冰箱<small>4°C</small></span></label>
+          <label class="chip"><input type="radio" name="te" value="25"><span>桌上<small>25°C</small></span></label>
+          <span class="custom"><label for="teC">自填</label><input id="teC" type="number" min="0" max="40" step="1" inputmode="numeric" placeholder="°C"></span>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>三、你的爐子在多高？<em>水在山上不到 100 度就滾</em></legend>
+        <div class="chips" role="radiogroup" aria-label="爐子的海拔">
+          <label class="chip"><input type="radio" name="h" value="0"><span>平地<small>0 m</small></span></label>
+          <label class="chip"><input type="radio" name="h" value="2216"><span>阿里山<small>2216 m</small></span></label>
+          <label class="chip"><input type="radio" name="h" value="3275"><span>武嶺<small>3275 m</small></span></label>
+          <label class="chip"><input type="radio" name="h" value="3952"><span>玉山主峰<small>3952 m</small></span></label>
+          <span class="custom"><label for="hC">自填</label><input id="hC" type="number" min="0" max="8849" step="10" inputmode="numeric" placeholder="公尺"></span>
+        </div>
+        <div class="bp" id="bp"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>四、咬開時你想看見什麼？</legend>
+        <div class="chips" role="radiogroup" aria-label="想要的熟度">
+          <label class="chip"><input type="radio" name="goal" value="runny"><span>流心<small>蛋黃整顆會流</small></span></label>
+          <label class="chip"><input type="radio" name="goal" value="jammy"><span>溏心<small>外圈凝、中心稠</small></span></label>
+          <label class="chip"><input type="radio" name="goal" value="hard"><span>全熟<small>一路黃到底</small></span></label>
+        </div>
+      </fieldset>
+
+      <div class="form-ft">
+        <div class="draft" id="draft">鉛筆試算：<b id="draftN">還缺 4 欄</b></div>
+        <button type="button" class="pk-btn stamp-btn" id="stampBtn" disabled>核　定</button>
+      </div>
+      <div class="stamp" id="stamp" aria-hidden="true"><div><b>核定</b><i id="stampT"></i></div></div>
+    </form>
+  </section>
+
+  <section id="reveal" class="hidden" aria-labelledby="revH">
+    <h2 id="revH"><small>卡片正面</small>紅筆來了</h2>
+    <p id="revLead"></p>
+    <div class="duo">
+      <div class="eggbox">
+        <h3>照卡片撈起</h3>
+        <p class="t">6:00</p>
+        <svg class="egg" id="eggA" viewBox="0 0 120 140" role="img" aria-label="照卡片煮六分鐘的蛋剖面"></svg>
+        <p id="descA"></p>
+      </div>
+      <div class="eggbox">
+        <h3>照你的蛋撈起</h3>
+        <p class="t red" id="tB"></p>
+        <svg class="egg" id="eggB" viewBox="0 0 120 140" role="img" aria-label="照你的時間煮的蛋剖面"></svg>
+        <p id="descB"></p>
+      </div>
+    </div>
+    <p class="verdict" id="verdict"></p>
+    <p id="whose"></p>
+  </section>
+
+  <section id="cook" class="hidden" aria-labelledby="cookH">
+    <h2 id="cookH"><small>第二頁</small>那就真的去煮</h2>
+    <p>水滾了再放蛋，然後按下去。分頁切走也會照算，時間到它會叫你。不想開火的話，按「快轉」看熱怎麼一圈一圈往裡走。</p>
+    <div class="timer">
+      <svg class="egg" id="eggT" viewBox="0 0 120 140" role="img" aria-label="鍋裡這顆蛋此刻的剖面"></svg>
+      <div class="clock" id="clock" role="timer" aria-live="off">0:00</div>
+      <p class="tstate" id="tstate" aria-live="polite">蛋在冰箱裡，還沒下鍋。</p>
+      <div class="tbtns">
+        <button type="button" class="pk-btn" id="goBtn">放蛋，開始</button>
+        <button type="button" class="pk-btn ghost" id="ffBtn" aria-pressed="false">快轉 ×40</button>
+        <button type="button" class="pk-btn ghost" id="rsBtn">重來</button>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i style="background:#e8900f"></i>液態蛋黃</span>
+        <span><i style="background:#f4cd6c"></i>凝固蛋黃</span>
+        <span><i style="background:rgba(220,214,198,.35)"></i>生蛋白</span>
+        <span><i style="background:#fffdf6"></i>熟蛋白</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="mount" class="hidden" aria-labelledby="mtH">
+    <h2 id="mtH"><small>第三頁</small>角落那行鉛筆字</h2>
+    <p>水只要滾了，火再大也不會更燙；可是「滾」的溫度跟著氣壓走。同一顆蛋、同一個熟度，搬到山上：</p>
+    <table class="mt" id="mt">
+      <thead><tr><th scope="col">爐子在</th><th scope="col">水滾在</th><th scope="col">你的蛋要</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="margin-q">「三分鐘的蛋，我煮了五分鐘。」──一位叫 Edward Brooks 的博士，在海拔 1917 公尺的美國華盛頓山天文台。</p>
+    <p>Williams 拿這句話對照自己的公式，發現公式還低估了山上要多出來的時間：凝固不是一到 63 度就「啪」一聲完成，而是一串化學反應，溫度越低跑得越慢。山上的水不只滾得比較涼，涼的水還讓蛋白慢慢來。</p>
+    <p id="everest"></p>
+  </section>
+
+  <section id="end" class="hidden end">
+    <div class="card" aria-label="改過的食譜卡">
+      <p class="ttl">溏心蛋 ／ 外婆</p>
+      <p class="ln">水滾，放蛋，</p>
+      <p class="ln">煮 <span class="six struck">六分鐘</span> <span class="mine on" id="mine2"></span>。</p>
+      <p class="ln">撈起，泡冰水。</p>
+      <p class="sig" id="sig"></p>
+      <span class="note">上山要多煮</span>
+    </div>
+    <p class="coda">外婆的六分鐘沒有寫錯。<br>它寫的是她那顆蛋、她那口鍋、她那座山。<br><br>下次有人跟你說「煮六分鐘」，<br>記得回問一句：誰的蛋？</p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：C. D. H. Williams〈The Science of Boiling an Egg〉（University of Exeter）；Antoine 水蒸氣壓式；ICAO 標準大氣。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'egg6m.';
+const store = PK.store(LS);
+PK.reveal();
+
+/* ===== CORE（純函式，node 斷言用；別放 DOM） ===== */
+const EGG = (function(){
+  const C0 = 0.451;          /* 分鐘／g^(2/3)：Williams 以 ρ=1.038, c=3.7, K=5.4e-3 算出 */
+  const XY = 0.69;           /* 蛋黃邊緣的相對半徑：2·sin(πx)/(πx)=0.76 的解 */
+  const TARGET = {           /* k：級數首項在該半徑的係數（邊緣 0.76、中心 2） */
+    runny: { k: 0.76, T: 63, at: 'edge' },   /* Williams：蛋黃邊緣 63°C */
+    jammy: { k: 0.76, T: 70, at: 'edge' },   /* 蛋黃邊緣到 70°C（蛋黃凝固點），中心未到 */
+    hard:  { k: 2,    T: 70, at: 'center' }  /* 蛋黃中心到 70°C */
+  };
+  function pressure(h){ return 101.325 * Math.pow(1 - 2.25577e-5 * h, 5.25588); }   /* kPa */
+  function boilingPoint(h){
+    const mmHg = pressure(h) * 7.50062;
+    return 1730.63 / (8.07131 - Math.log10(mmHg)) - 233.426;   /* Antoine（水，1–100°C） */
+  }
+  function scale(M){ return C0 * Math.pow(M, 2/3); }          /* 分鐘；τ = t / scale */
+  /* 目標溫度換成無因次 θ，再用完整級數反解 τ（Williams 公式是級數首項的近似） */
+  function goalTau(Te, Tw, goal){
+    const g = TARGET[goal];
+    if (g.T >= Tw - 0.05) return Infinity;
+    const th = (g.T - Tw) / (Te - Tw);
+    if (th >= 1) return 0;
+    return tauStar(g.at === 'center' ? 0 : XY, th);
+  }
+  function tauStar(x, th){
+    let lo = 0, hi = 60;
+    for (let i = 0; i < 60; i++){ const mid = (lo + hi) / 2; if (theta(x, mid) > th) lo = mid; else hi = mid; }
+    return (lo + hi) / 2;
+  }
+  function cookTime(M, Te, Tw, goal){ return scale(M) * goalTau(Te, Tw, goal); }
+  function williams(M, Te, Tw, goal){       /* 原始首項近似，供對照 */
+    const g = TARGET[goal];
+    if (g.T >= Tw - 0.05) return Infinity;
+    const a = g.k * (Te - Tw) / (g.T - Tw);
+    return a <= 1 ? 0 : scale(M) * Math.log(a);
+  }
+  function massFor(tMin, Te, Tw, goal){
+    const tau = goalTau(Te, Tw, goal);
+    if (!isFinite(tau) || tau <= 0) return NaN;
+    return Math.pow(tMin / (C0 * tau), 1.5);
+  }
+  /* 均質球、表面恆溫的熱傳導級數解：θ=(T−Tw)/(Te−Tw) */
+  function theta(x, tau){
+    if (tau <= 0) return 1;
+    const N = Math.min(400, Math.ceil(Math.sqrt(30 / tau)) + 2);
+    let s = 0;
+    for (let n = 1; n <= N; n++){
+      const z = n * Math.PI * x;
+      const f = z < 1e-9 ? 1 : Math.sin(z) / z;
+      s += 2 * (n % 2 ? 1 : -1) * f * Math.exp(-n * n * tau);
+    }
+    return Math.max(0, Math.min(1, s));
+  }
+  function tempAt(x, tMin, M, Te, Tw){
+    if (tMin <= 0) return Te;
+    return Tw + (Te - Tw) * theta(x, tMin / scale(M));
+  }
+  /* 從溫度講出切開會看到什麼 */
+  function describe(M, Te, Tw, tMin){
+    const Tc = tempAt(0, tMin, M, Te, Tw), Tb = tempAt(XY, tMin, M, Te, Tw), Tw8 = tempAt(0.8, tMin, M, Te, Tw);
+    let white, yolk, code;
+    if (Tw8 < 62) white = '靠近蛋黃的蛋白還透明、會流';
+    else if (Tw8 < 70) white = '蛋白剛凝，嫩得發抖';
+    else white = '蛋白全凝';
+    if (Tb < 63){ yolk = '蛋黃整顆是液態'; code = 'raw'; }
+    else if (Tb < 70 && Tc < 62){ yolk = '蛋黃外圈開始變稠、中心會流'; code = 'runny'; }
+    else if (Tc < 62){ yolk = '蛋黃外圈凝了、中心還是稠的'; code = 'jammy'; }
+    else if (Tc < 70){ yolk = '蛋黃幾乎凝固，中心像軟糖'; code = 'almost'; }
+    else { yolk = '蛋黃全熟到中心'; code = 'hard'; }
+    return { Tc, Tb, white, yolk, code };
+  }
+  function fmt(tMin){
+    if (!isFinite(tMin)) return '∞';
+    const s = Math.round(tMin * 60), m = Math.floor(s / 60), r = s % 60;
+    return m + ':' + String(r).padStart(2, '0');
+  }
+  function fmtZh(tMin){
+    if (!isFinite(tMin)) return '永遠';
+    const s = Math.round(tMin * 60), m = Math.floor(s / 60), r = s % 60;
+    return m + ' 分 ' + String(r).padStart(2, '0') + ' 秒';
+  }
+  return { C0, XY, TARGET, pressure, boilingPoint, scale, cookTime, williams, massFor, tauStar, theta, tempAt, describe, fmt, fmtZh };
+})();
+/* ===== /CORE ===== */
+
+const $ = s => document.querySelector(s);
+const GOAL_ZH = { runny: '流心', jammy: '溏心', hard: '全熟' };
+const PLACES = [['平地', 0], ['阿里山', 2216], ['武嶺', 3275], ['玉山主峰', 3952], ['聖母峰頂', 8849]];
+
+/* ---- 蛋的剖面繪製 ---- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+const RINGS = (function(){
+  const r = [];
+  for (let i = 0; i < 8; i++) r.push(1 - i * (1 - EGG.XY) / 8);        /* 蛋白 */
+  for (let i = 0; i < 13; i++) r.push(EGG.XY - i * EGG.XY / 13);       /* 蛋黃 */
+  return r;
+})();
+function mix(a, b, t){ return a.map((v, i) => v + (b[i] - v) * t); }
+function ramp(stops, T){
+  if (T <= stops[0][0]) return stops[0][1];
+  for (let i = 1; i < stops.length; i++){
+    if (T <= stops[i][0]){ const [t0, c0] = stops[i-1], [t1, c1] = stops[i]; return mix(c0, c1, (T - t0) / (t1 - t0)); }
+  }
+  return stops[stops.length - 1][1];
+}
+const YOLK = [[40, [232,144,15]], [62, [236,150,20]], [66, [240,178,58]], [71, [244,205,108]], [82, [242,222,160]]];
+const WHITE = [[30, [220,214,198,.32]], [58, [226,222,210,.42]], [63, [246,242,232,.86]], [72, [255,253,246,1]]];
+function setupEgg(svg){
+  svg.innerHTML = '';
+  const plate = document.createElementNS(SVGNS, 'ellipse');
+  plate.setAttribute('cx', 60); plate.setAttribute('cy', 72); plate.setAttribute('rx', 56); plate.setAttribute('ry', 64);
+  plate.setAttribute('fill', '#2c2520');
+  svg.appendChild(plate);
+  const g = document.createElementNS(SVGNS, 'g');
+  g.setAttribute('transform', 'translate(60 72) scale(1 1.2)');
+  const shell = document.createElementNS(SVGNS, 'circle');
+  shell.setAttribute('r', 47.5); shell.setAttribute('fill', 'none'); shell.setAttribute('stroke', '#efe2cc'); shell.setAttribute('stroke-width', 2.2);
+  g.appendChild(shell);
+  const cs = RINGS.map(x => {
+    const c = document.createElementNS(SVGNS, 'circle');
+    c.setAttribute('r', (46 * x).toFixed(2));
+    g.appendChild(c); return c;
+  });
+  svg.appendChild(g);
+  svg._rings = cs;
+}
+/* 蛋白環是半透明疊上去，裡圈會透出外圈：改成每圈只畫自己的環帶（stroke 環） */
+function setupEggBands(svg){
+  setupEgg(svg);
+  svg._rings.forEach((c, i) => {
+    const outer = RINGS[i], inner = RINGS[i + 1] !== undefined ? RINGS[i + 1] : 0;
+    const w = 46 * (outer - inner), r = 46 * (outer + inner) / 2;
+    if (inner > 0){ c.setAttribute('r', r.toFixed(2)); c.setAttribute('stroke-width', (w + 0.4).toFixed(2)); c._band = true; }
+  });
+}
+function paintBands(svg, M, Te, Tw, tMin){
+  svg._rings.forEach((c, i) => {
+    const outer = RINGS[i], inner = RINGS[i + 1] !== undefined ? RINGS[i + 1] : 0;
+    const T = EGG.tempAt((outer + inner) / 2, tMin, M, Te, Tw);
+    let rgb, a = 1;
+    if (inner >= EGG.XY - 1e-6){ const v = ramp(WHITE, T); rgb = v.slice(0, 3); a = v[3]; }
+    else rgb = ramp(YOLK, T);
+    const col = 'rgba(' + rgb.map(n => n.toFixed(0)).join(',') + ',' + a.toFixed(2) + ')';
+    if (c._band){ c.setAttribute('fill', 'none'); c.setAttribute('stroke', col); }
+    else { c.setAttribute('fill', col); c.setAttribute('stroke', 'none'); }
+  });
+}
+
+/* ---- 表單 ---- */
+const form = $('#form');
+const state = Object.assign({ m: null, te: null, h: null, goal: null }, store.get('last', {}));
+function custom(id, key, lo, hi){
+  const el = $(id);
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    if (!isFinite(v)) return;
+    state[key] = Math.max(lo, Math.min(hi, v));
+    form.querySelectorAll('input[name="' + key + '"]').forEach(r => r.checked = false);
+    update();
+  });
+  return el;
+}
+const cM = custom('#mC', 'm', 30, 90), cT = custom('#teC', 'te', 0, 40), cH = custom('#hC', 'h', 0, 8849);
+form.addEventListener('change', e => {
+  const t = e.target;
+  if (t.type !== 'radio') return;
+  state[t.name] = t.name === 'goal' ? t.value : parseFloat(t.value);
+  const c = { m: cM, te: cT, h: cH }[t.name]; if (c) c.value = '';
+  update();
+});
+function restore(){
+  ['m', 'te', 'h', 'goal'].forEach(k => {
+    if (state[k] === null || state[k] === undefined) return;
+    const r = form.querySelector('input[name="' + k + '"][value="' + state[k] + '"]');
+    if (r) r.checked = true;
+    else { const c = { m: cM, te: cT, h: cH }[k]; if (c) c.value = state[k]; }
+  });
+}
+function filled(){ return ['m', 'te', 'h', 'goal'].filter(k => state[k] !== null && state[k] !== undefined).length; }
+function calc(){
+  const Tw = EGG.boilingPoint(state.h);
+  return { Tw, t: EGG.cookTime(state.m, state.te, Tw, state.goal) };
+}
+function update(){
+  if (state.h !== null && state.h !== undefined){
+    $('#bp').textContent = '這裡的水在 ' + EGG.boilingPoint(state.h).toFixed(1) + '°C 就滾了。';
+  }
+  const n = filled();
+  $('#stampBtn').disabled = n < 4;
+  if (n < 4){ $('#draftN').textContent = '還缺 ' + (4 - n) + ' 欄'; return; }
+  const { t } = calc();
+  $('#draftN').textContent = isFinite(t) ? '大約 ' + EGG.fmtZh(t) : '這裡煮不到';
+}
+restore(); update();
+$('#serial').textContent = String(1 + (store.get('n', 0) % 9999)).padStart(4, '0');
+
+/* ---- 核定：高潮 ---- */
+let R = null;   /* 本次核定的數值 */
+$('#stampBtn').addEventListener('click', () => {
+  if (filled() < 4) return;
+  const { Tw, t } = calc();
+  R = { M: state.m, Te: state.te, h: state.h, goal: state.goal, Tw, t };
+  store.set('last', { m: state.m, te: state.te, h: state.h, goal: state.goal });
+  store.set('n', store.get('n', 0) + 1);
+
+  const st = $('#stamp');
+  st.classList.remove('on'); void st.getBoundingClientRect();
+  $('#stampT').textContent = EGG.fmt(t);
+  requestAnimationFrame(() => st.classList.add('on'));
+
+  /* 正面卡片：紅筆劃掉、寫上你的數字 */
+  $('#six').classList.add('struck');
+  $('#mine').textContent = isFinite(t) ? EGG.fmtZh(t) : '煮不到';
+  $('#mine').classList.add('on');
+  $('#mine2').textContent = isFinite(t) ? EGG.fmtZh(t) : '煮不到';
+
+  fillReveal();
+  ['#reveal', '#cook', '#mount', '#end'].forEach(s => $(s).classList.remove('hidden'));
+  resetTimer();
+  fillMountains();
+  PK.announce('核定：' + GOAL_ZH[R.goal] + '，' + (isFinite(t) ? EGG.fmtZh(t) : '在這個海拔煮不到'));
+  setTimeout(() => PK.scrollTo ? PK.scrollTo($('#reveal')) : $('#reveal').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth' }), PK.reduced() ? 0 : 700);
+});
+
+function fillReveal(){
+  const { M, Te, Tw, t, goal, h } = R;
+  const place = h === 0 ? '平地' : h + ' 公尺';
+  $('#revLead').textContent = '一顆 ' + M + ' 克、' + Te + '°C 出發的蛋，丟進 ' + place + '、' + Tw.toFixed(1) + '°C 的滾水，你要' + GOAL_ZH[goal] + '。我們把它切開看看。';
+  [$('#eggA'), $('#eggB')].forEach(s => { if (!s._rings) setupEggBands(s); });
+  paintBands($('#eggA'), M, Te, Tw, 6);
+  const dA = EGG.describe(M, Te, Tw, 6);
+  $('#descA').textContent = dA.yolk + '；' + dA.white + '。中心 ' + dA.Tc.toFixed(0) + '°C。';
+  const tB = isFinite(t) ? t : 60;
+  paintBands($('#eggB'), M, Te, Tw, tB);
+  const dB = EGG.describe(M, Te, Tw, tB);
+  $('#tB').textContent = isFinite(t) ? EGG.fmt(t) : '∞';
+  $('#descB').textContent = isFinite(t) ? dB.yolk + '；' + dB.white + '。中心 ' + dB.Tc.toFixed(0) + '°C。'
+                                        : '水滾得比目標溫度還涼，煮一小時也到不了。';
+  const diff = isFinite(t) ? Math.round((t - 6) * 60) : Infinity;
+  let v;
+  if (!isFinite(diff)) v = '這個海拔的滾水比你要的熟度還涼。卡片上的六分鐘、六十分鐘、六小時都一樣：到不了。';
+  else if (Math.abs(diff) <= 15) v = '差不到 15 秒。外婆的卡片，剛好在講你這顆蛋。';
+  else if (diff > 0) v = '照卡片撈，會比你的蛋該起鍋的時間早 ' + EGG.fmtZh(diff / 60).replace(/^0 分 /, '') + '——' + (dA.code === 'raw' ? '蛋黃連邊都還沒開始凝。' : '中心比你要的還生。');
+  else v = '照卡片撈，你的蛋已經多煮了 ' + EGG.fmtZh(-diff / 60).replace(/^0 分 /, '') + '——' + (goal === 'hard' ? '全熟不怕多，只怕蛋黃外圈發綠。' : '你要的' + GOAL_ZH[goal] + '已經過站。');
+  $('#verdict').textContent = v;
+  const m6 = EGG.massFor(6, Te, Tw, goal);
+  $('#whose').textContent = (isFinite(m6) && m6 >= 35 && m6 <= 85)
+    ? '倒過來算：在你這口鍋、你這台冰箱、你要的' + GOAL_ZH[goal] + '底下，六分鐘剛好的蛋重 ' + m6.toFixed(0) + ' 克。那大概就是外婆的蛋。'
+    : '倒過來算：在你這口鍋、你要的' + GOAL_ZH[goal] + '底下，六分鐘剛好的蛋要 ' + (isFinite(m6) ? m6.toFixed(0) + ' 克' : '無限重') + '——雞生不出來。外婆的六分鐘，本來就不是為這個情況寫的。';
+}
+
+/* ---- 計時器（以時間戳計算，不靠 rAF 累加；分頁隱藏也準） ---- */
+let tStart = 0, elapsedBefore = 0, running = false, ff = false, endTimer = 0, uiTimer = 0, actx = null, rang = false;
+function elapsedMin(){
+  const live = running ? (performance.now() - tStart) / 1000 * (ff ? 40 : 1) : 0;
+  return (elapsedBefore + live) / 60;
+}
+function resetTimer(){
+  stopRun();
+  elapsedBefore = 0; rang = false;
+  if (!$('#eggT')._rings) setupEggBands($('#eggT'));
+  drawTimer();
+  $('#goBtn').textContent = '放蛋，開始';
+  $('#tstate').textContent = R ? '蛋還在' + (R.Te <= 10 ? '冰箱' : '桌上') + '，水在等。' : '';
+  $('#clock').classList.remove('done');
+}
+function stopRun(){
+  if (running){ elapsedBefore += (performance.now() - tStart) / 1000 * (ff ? 40 : 1); }
+  running = false; clearTimeout(endTimer); clearInterval(uiTimer);
+}
+function startRun(){
+  running = true; tStart = performance.now();
+  clearInterval(uiTimer); uiTimer = setInterval(drawTimer, ff ? 100 : 250);
+  scheduleEnd();
+}
+function scheduleEnd(){
+  clearTimeout(endTimer);
+  if (!R || !isFinite(R.t) || rang) return;
+  const leftMs = (R.t * 60 - elapsedBefore - (performance.now() - tStart) / 1000 * (ff ? 40 : 1)) / (ff ? 40 : 1) * 1000;
+  endTimer = setTimeout(ring, Math.max(0, leftMs));
+}
+function drawTimer(){
+  if (!R) return;
+  const e = elapsedMin();
+  const left = isFinite(R.t) ? R.t - e : Infinity;
+  $('#clock').textContent = isFinite(left) ? (left >= 0 ? EGG.fmt(left) : '+' + EGG.fmt(-left)) : EGG.fmt(e);
+  if (document.hidden) return;
+  paintBands($('#eggT'), R.M, R.Te, R.Tw, e);
+  if (running && !rang){
+    const d = EGG.describe(R.M, R.Te, R.Tw, e);
+    $('#tstate').textContent = '中心 ' + d.Tc.toFixed(0) + '°C，蛋黃邊緣 ' + d.Tb.toFixed(0) + '°C。';
+  }
+  if (running && !rang && isFinite(left) && left <= 0) ring();
+  if (running) document.title = (isFinite(left) && left > 0 ? EGG.fmt(left) + '｜' : '') + '「煮六分鐘」｜每日小專案';
+}
+function ring(){
+  if (rang) return;
+  rang = true;
+  $('#clock').classList.add('done');
+  $('#tstate').textContent = '撈起來！直接泡冰水。';
+  PK.announce('時間到，撈起來泡冰水。');
+  document.title = '⏰ 撈起來！｜「煮六分鐘」';
+  beep();
+}
+function beep(){
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const now = actx.currentTime;
+    [0, .32, .64].forEach(d => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.value = 880;
+      g.gain.setValueAtTime(0.0001, now + d);
+      g.gain.exponentialRampToValueAtTime(0.18, now + d + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + d + 0.25);
+      o.connect(g).connect(actx.destination); o.start(now + d); o.stop(now + d + 0.3);
+    });
+  }catch(e){}
+}
+$('#goBtn').addEventListener('click', () => {
+  if (!R) return;
+  try{ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === 'suspended') actx.resume(); }catch(e){}
+  if (running){ stopRun(); $('#goBtn').textContent = '繼續'; $('#tstate').textContent = '暫停中（蛋可不會暫停）。'; drawTimer(); }
+  else { startRun(); $('#goBtn').textContent = '暫停'; drawTimer(); }
+});
+$('#ffBtn').addEventListener('click', () => {
+  const was = running; stopRun();
+  ff = !ff; $('#ffBtn').setAttribute('aria-pressed', String(ff));
+  if (was) startRun();
+  PK.announce(ff ? '快轉四十倍' : '回到正常速度');
+});
+$('#rsBtn').addEventListener('click', () => { resetTimer(); document.title = '「煮六分鐘」｜每日小專案'; });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) drawTimer(); });
+
+/* ---- 山的表 ---- */
+function fillMountains(){
+  const tb = $('#mt tbody'); tb.innerHTML = '';
+  let rows = PLACES.slice();
+  if (!rows.some(p => p[1] === R.h)) rows.push(['你的爐子', R.h]);
+  rows.sort((a, b) => a[1] - b[1]);
+  rows.forEach(([name, h]) => {
+    const Tw = EGG.boilingPoint(h), t = EGG.cookTime(R.M, R.Te, Tw, R.goal);
+    const tr = document.createElement('tr');
+    if (h === R.h) tr.className = 'you';
+    tr.innerHTML = '<td>' + name + (h ? ' <small>' + h + ' m</small>' : '') + (h === R.h ? ' ←' : '') + '</td>' +
+      '<td class="n">' + Tw.toFixed(1) + '°C</td><td class="n big">' + (isFinite(t) ? EGG.fmtZh(t) : '煮不到') + '</td>';
+    tb.appendChild(tr);
+  });
+  const TwE = EGG.boilingPoint(8849), tE = EGG.cookTime(R.M, R.Te, TwE, R.goal);
+  $('#everest').textContent = '聖母峰頂的水大約 ' + TwE.toFixed(0) + '°C 就滾，跟蛋黃凝固的 70 度只差一口氣。' +
+    (isFinite(tE) ? '公式說你的' + GOAL_ZH[R.goal] + '要 ' + EGG.fmtZh(tE) + '——而且照 Brooks 博士的經驗，實際只會更久。'
+                  : '你的' + GOAL_ZH[R.goal] + '在那裡怎麼煮都煮不到。');
+  $('#sig').textContent = '我的蛋：' + R.M + ' 克・' + (R.h ? R.h + ' 公尺' : '平地') + '・' + GOAL_ZH[R.goal];
+}
+
+/* reduced-motion 切換：無持續動畫，僅需確保卡片狀態一致 */
+PK.onMotionChange(() => {});
+</script>
+</body>
+</html>

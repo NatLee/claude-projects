@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>蛙腿替神經按下碼錶｜每日小專案</title>
+<meta name="description" content="1849 年，教科書說神經的速度永遠量不出來。一位二十八歲的醫生拿一條青蛙腿、一根電流計和一面小鏡子，把它量出來了——先換你當受試者。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#14100c; --pk-ink:#eee4cf; --pk-dim:#9a8d76; --pk-accent:#c9a35a;
+  --pk-line:rgba(238,228,207,.13);
+  --brass:#c9a35a; --brass-d:#7d6431; --paper:#e8dcc0; --paper-ink:#2a2118;
+  --muscle:#a6493c; --nerve:#e9d9a8; --glow:#ffd27a; --cold:#7fb3c9;
+  --pk-maxw:700px;
+}
+body{
+  background:
+    radial-gradient(120% 60% at 50% 0%, #1d1711 0%, transparent 70%),
+    repeating-linear-gradient(92deg, rgba(255,255,255,.012) 0 2px, transparent 2px 9px),
+    var(--pk-bg);
+}
+h2,h3{font-family:var(--pk-serif);font-weight:600;letter-spacing:.02em}
+p{margin:0 0 1.1em}
+em{font-style:normal;color:var(--glow)}
+.kicker{font-size:13px;letter-spacing:.3em;color:var(--pk-dim);margin:0 0 26px}
+.hero-q{font-family:var(--pk-serif);font-size:clamp(25px,6vw,38px);line-height:1.55;margin:0 0 26px}
+.hero-q .q{color:var(--glow)}
+.hero-sub{color:#cfc3aa;max-width:32em}
+.cue{margin-top:44px;font-size:13px;color:var(--pk-dim);letter-spacing:.2em}
+.cue span{display:inline-block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(6px)}}
+
+/* ── 實驗台：每一區是一張檯面＋黃銅銘牌 ── */
+.bench{
+  position:relative;margin:0 0 96px;padding:30px 26px 28px;border-radius:14px;
+  background:linear-gradient(180deg,#221a12,#1a140e);
+  border:1px solid rgba(201,163,90,.22);
+  box-shadow:0 30px 60px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.04);
+}
+.bench[hidden]{display:none}
+.plate{
+  display:inline-flex;gap:10px;align-items:baseline;margin:0 0 18px;padding:5px 14px;
+  border-radius:4px;color:#2a1f10;font-size:12.5px;letter-spacing:.18em;font-weight:600;
+  background:linear-gradient(180deg,#e2c27a,#b48d43);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 2px 6px rgba(0,0,0,.4);
+}
+.plate b{font-family:var(--pk-serif);font-size:15px;letter-spacing:.06em}
+.bench h2{font-size:clamp(21px,4.6vw,27px);margin:0 0 14px;line-height:1.45}
+.note{color:var(--pk-dim);font-size:14px}
+
+/* ── 台面 I：燈與電鍵 ── */
+.rig{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;margin:26px 0 14px}
+.lamp{
+  justify-self:center;width:118px;height:118px;border-radius:50%;
+  background:radial-gradient(circle at 38% 32%,#3a3226,#1b1610 70%);
+  border:6px solid #3c2f1d;box-shadow:inset 0 0 0 2px rgba(201,163,90,.35),0 0 0 rgba(255,210,122,0);
+  position:relative;
+}
+.lamp::after{
+  content:"";position:absolute;inset:-6px;border-radius:50%;opacity:0;
+  background:radial-gradient(circle at 45% 40%,#fff6d6,var(--glow) 38%,rgba(255,170,60,.0) 72%);
+  box-shadow:0 0 70px 24px rgba(255,200,100,.55);
+}
+.lamp.on::after{opacity:1}
+.lamp.foul{border-color:#6b2a22}
+.key{
+  justify-self:center;width:150px;height:150px;border-radius:50%;cursor:pointer;
+  border:none;font:600 15px/1.4 var(--pk-sans);letter-spacing:.12em;color:#2a1f10;
+  background:radial-gradient(circle at 40% 30%,#f0d797,#c9a35a 45%,#8a6c32 100%);
+  box-shadow:0 10px 0 #5a4520,0 16px 26px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.4);
+  transition:transform .06s, box-shadow .06s; touch-action:manipulation; -webkit-user-select:none; user-select:none;
+}
+.key:active,.key.down{transform:translateY(8px);box-shadow:0 2px 0 #5a4520,0 6px 12px rgba(0,0,0,.6),inset 0 2px 0 rgba(255,255,255,.4)}
+.key:disabled{filter:grayscale(.6) brightness(.7);cursor:default}
+.status{min-height:1.9em;text-align:center;font-family:var(--pk-serif);font-size:17px;margin:6px 0 4px}
+.count{text-align:center;color:var(--pk-dim);font-size:13px;letter-spacing:.12em}
+
+.strip{position:relative;height:58px;margin:22px 0 6px;border-top:1px solid var(--pk-line);border-bottom:1px solid var(--pk-line);
+  background:repeating-linear-gradient(90deg,transparent 0 calc(16.666% - 1px),rgba(238,228,207,.08) calc(16.666% - 1px) 16.666%)}
+.strip .dot{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:var(--glow);
+  box-shadow:0 0 10px rgba(255,210,122,.7);animation:pop .4s cubic-bezier(.2,.9,.3,1.4)}
+@keyframes pop{from{transform:scale(0);opacity:0}}
+.axis{display:flex;justify-content:space-between;font-size:11px;color:var(--pk-dim);font-variant-numeric:tabular-nums}
+
+.verdict{margin-top:26px;padding-top:20px;border-top:1px dashed rgba(201,163,90,.3)}
+.verdict[hidden]{display:none}
+.big{font-family:var(--pk-serif);font-size:clamp(30px,8vw,46px);color:var(--glow);font-variant-numeric:tabular-nums;line-height:1.2}
+.cmp{margin:18px 0 20px}
+.cmp-row{display:grid;grid-template-columns:7.5em 1fr;gap:10px;align-items:center;margin:10px 0;font-size:13.5px}
+.cmp-bar{height:14px;border-radius:7px;background:rgba(238,228,207,.07);overflow:hidden}
+.cmp-bar i{display:block;height:100%;transform-origin:0 50%;transform:scaleX(0);transition:transform 1.1s cubic-bezier(.2,.7,.2,1)}
+.cmp-bar i.n{background:var(--cold)} .cmp-bar i.y{background:var(--glow)}
+.skip{background:none;border:none;color:var(--pk-dim);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;padding:6px 0}
+.row-btns{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:8px}
+
+/* ── 台面 II：蛙腿與鏡式電流計 ── */
+.frog{display:block;width:100%;height:auto;margin:16px 0 0;overflow:visible}
+.frog .nerve{fill:none;stroke:var(--nerve);stroke-width:3;stroke-linecap:round;opacity:.85}
+.frog .muscle-g{transform-box:view-box;transform-origin:352px 150px;transition:transform .09s ease-out}
+.frog .muscle-g.tw{transform:scaleX(.9) scaleY(1.08)}
+.frog .lever{transform-box:view-box;transform-origin:560px 170px;transition:transform .09s ease-out}
+.frog .lever.up{transform:rotate(-14deg)}
+.frog .el{fill:var(--brass)} .frog .el-lbl{fill:var(--pk-dim);font-size:13px;letter-spacing:.1em}
+.frog .spark{fill:#fff;opacity:0}
+.frog .pulse{fill:var(--glow);opacity:0}
+.frog .caption{fill:var(--pk-dim);font-size:12px}
+
+.galv{margin:16px 0 8px;padding:16px 16px 10px;border-radius:8px;background:#0b0907;border:1px solid rgba(201,163,90,.2)}
+.galv-lbl{font-size:12px;color:var(--pk-dim);letter-spacing:.14em;margin-bottom:8px}
+.scale{position:relative;height:46px}
+.ticks{position:absolute;left:0;right:0;bottom:0;height:22px;
+  background:repeating-linear-gradient(90deg,rgba(238,228,207,.5) 0 1px,transparent 1px calc(100%/30));
+  border-left:1px solid rgba(238,228,207,.5)}
+.ticks.maj{height:30px;background:repeating-linear-gradient(90deg,rgba(238,228,207,.8) 0 1px,transparent 1px calc(100%/6))}
+.spot{position:absolute;left:0;top:2px;width:22px;height:40px;margin-left:-11px;border-radius:50%;
+  background:radial-gradient(ellipse,#fff 0,var(--glow) 30%,rgba(255,200,100,0) 70%);filter:blur(.3px);will-change:transform}
+.scale-num{display:flex;justify-content:space-between;font-size:11px;color:var(--pk-dim);font-variant-numeric:tabular-nums;margin-top:4px}
+.stim{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 6px}
+.stim .pk-btn{flex:1 1 200px}
+.log{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:4px 18px;font-size:13.5px;font-variant-numeric:tabular-nums}
+.log li{color:#cfc3aa;animation:pop .4s}
+.log li b{color:var(--pk-ink);font-weight:500}
+
+.reveal{margin-top:28px;padding:26px 22px;border-radius:10px;background:var(--paper);color:var(--paper-ink);
+  box-shadow:0 18px 40px -20px rgba(0,0,0,.8);transform-origin:50% 0}
+.reveal[hidden]{display:none}
+.reveal .big{color:#7a1f14}
+.reveal .unit{font-size:16px;margin-left:6px;color:#5a4a36}
+.reveal ul{margin:14px 0 14px;padding-left:1.2em}
+.reveal li{margin:4px 0}
+.reveal .pk-btn{color:#7a1f14;border-color:#7a1f14}
+.reveal .pk-btn:hover{background:#7a1f14;color:var(--paper)}
+.stamp{display:inline-block;transform:rotate(-4deg);border:2px solid #7a1f14;color:#7a1f14;padding:2px 10px;font-size:12px;letter-spacing:.2em;margin-bottom:10px}
+
+/* ── 台面 III：拆開你的反應時間 ── */
+.split{margin:26px 0 10px}
+.split-bar{position:relative;display:flex;height:46px;border-radius:8px;overflow:hidden;background:rgba(238,228,207,.06)}
+.split-bar .w{background:var(--cold)}
+.split-bar .r{background:linear-gradient(90deg,#e8b75f,var(--glow));transform-origin:0 50%;transform:scaleX(0);transition:transform 1.6s cubic-bezier(.2,.7,.2,1) .25s}
+.split.open .r{transform:scaleX(1)}
+.split-lbl{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:13.5px}
+.split-lbl .who{opacity:0;transition:opacity .8s 1.6s;font-family:var(--pk-serif);font-size:20px;color:var(--glow)}
+.split.open .who{opacity:1}
+.after{opacity:0;transform:translateY(10px);transition:opacity .9s 1.9s,transform .9s 1.9s}
+.after.show{opacity:1;transform:none}
+.coda{font-family:var(--pk-serif);font-size:clamp(19px,4.4vw,24px);line-height:1.7;margin:30px 0 24px}
+
+@media (max-width:560px){
+  .bench{padding:24px 16px 22px}
+  .rig{grid-template-columns:1fr;gap:26px}
+  .log{grid-template-columns:1fr}
+  .cmp-row{grid-template-columns:6em 1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue span,.strip .dot,.log li{animation:none}
+  .split-bar .r,.after,.split-lbl .who,.cmp-bar i{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">柯尼斯堡・1849 年冬</p>
+    <p class="hero-q rv">當時最權威的生理學教科書寫著：<br><span class="q">神經傳話有多快——我們大概永遠量不出來。</span></p>
+    <p class="hero-sub rv">寫下這個判斷的是約翰尼斯・繆勒。他的學生赫爾曼・赫姆霍茲，二十八歲，剛到東普魯士當副教授，桌上擺著一隻青蛙。</p>
+    <p class="hero-sub rv">不過在青蛙上台之前——先換你當受試者。</p>
+    <p class="cue rv" aria-hidden="true"><span>↓</span>　往下走到實驗台</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <!-- ═════ 台面 I ═════ -->
+  <section class="bench rv" id="b1" aria-labelledby="b1h">
+    <div class="plate">台面 I <b>你的手</b></div>
+    <h2 id="b1h">赫姆霍茲最先想量的，是人。</h2>
+    <p>做法很直白：輕輕電一下受試者的腳趾，再電一下大腿，請他一有感覺就按鍵。腳趾離腦袋比較遠，回報應該晚一點——晚多少，就是訊號多跑那段路花的時間。</p>
+    <p>你來當那位受試者。按下電鍵開始，<em>燈一亮就再按一次</em>。搶跑不算。</p>
+
+    <div class="rig">
+      <div class="lamp" id="lamp" role="img" aria-label="訊號燈，目前熄滅"></div>
+      <button class="key" id="key" type="button" aria-describedby="status">按這裡<br>開始</button>
+    </div>
+    <p class="status" id="status" aria-live="polite">準備好了就按電鍵。</p>
+    <p class="count" id="count">0 / 6 次</p>
+
+    <div class="strip" id="strip" aria-hidden="true"></div>
+    <div class="axis" aria-hidden="true"><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span><span>600 毫秒</span></div>
+
+    <div class="verdict" id="v1" hidden>
+      <p>你的平均反應：</p>
+      <p class="big"><span id="mean1">—</span> <small style="font-size:.45em">毫秒</small></p>
+      <p>最快和最慢那兩次，差了 <em id="spread1">—</em> 毫秒。</p>
+      <div class="cmp" aria-hidden="true">
+        <div class="cmp-row"><span>腳趾多出的路</span><div class="cmp-bar"><i class="n" id="barN"></i></div></div>
+        <div class="cmp-row"><span>你自己的晃動</span><div class="cmp-bar"><i class="y" id="barY"></i></div></div>
+      </div>
+      <p id="v1text"></p>
+      <p>要在這種晃動裡撈出十幾毫秒，得重複上百次，還得祈禱受試者別恍神。赫姆霍茲的人體數字果然一天一個樣。他需要一位<em>不會分心</em>的受試者。</p>
+      <div class="row-btns"><button class="pk-btn" id="toFrog" type="button">請青蛙上台 ↓</button></div>
+    </div>
+    <div class="row-btns"><button class="skip" id="skip1" type="button">不想按？用一般人的典型數字直接往下</button></div>
+  </section>
+
+  <!-- ═════ 台面 II ═════ -->
+  <section class="bench" id="b2" aria-labelledby="b2h" hidden>
+    <div class="plate">台面 II <b>青蛙的小腿</b></div>
+    <h2 id="b2h">一條神經、一塊肌肉、一面鏡子。</h2>
+    <p>剛剖下的坐骨神經，還連著小腿肌。青蛙沒有「注意力」可以飄走：神經一到，肌肉就抽。</p>
+    <p>難的是時間太短，沒有任何鐘錶追得上。赫姆霍茲借了法國物理學家普耶的點子——<em>把時間換成角度</em>：電擊的同一瞬間讓電流開始流過電流計，肌肉一抽、把接點拉開，電流才斷。流得越久，指針甩得越遠。他再在指針上黏一片小鏡子，把一道光反射到遠處的刻度上，千分之一秒也看得出來。</p>
+
+    <svg class="frog" id="frog" viewBox="0 0 640 250" role="img" aria-label="示意圖：左側神經有遠端與近端兩個電極，神經連到右側小腿肌，肌腱拉著一支槓桿接點">
+      <path class="nerve" id="nerve" d="M40 70 C 150 52, 260 112, 352 150"/>
+      <g class="muscle-g" id="muscle">
+        <path d="M352 150 C 380 104, 478 112, 528 166 C 478 206, 390 200, 352 150 Z" fill="var(--muscle)"/>
+        <path d="M372 148 C 410 128, 470 134, 510 164" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="2"/>
+        <path d="M376 160 C 420 176, 470 178, 506 170" fill="none" stroke="rgba(0,0,0,.18)" stroke-width="2"/>
+      </g>
+      <line x1="528" y1="166" x2="560" y2="170" stroke="var(--nerve)" stroke-width="2"/>
+      <g class="lever" id="lever">
+        <line x1="560" y1="170" x2="616" y2="170" stroke="var(--brass)" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="616" cy="170" r="5" fill="var(--brass)"/>
+      </g>
+      <circle cx="616" cy="180" r="4" fill="#6d5a3a"/>
+      <text class="caption" x="578" y="206">接點</text>
+      <g id="elFar"><rect class="el" x="96" y="44" width="6" height="26" rx="2"/><rect class="el" x="110" y="42" width="6" height="26" rx="2"/><text class="el-lbl" x="88" y="34">遠端</text></g>
+      <g id="elNear"><rect class="el" x="290" y="96" width="6" height="26" rx="2"/><rect class="el" x="304" y="102" width="6" height="26" rx="2"/><text class="el-lbl" x="282" y="88">近端</text></g>
+      <text class="caption" x="150" y="118">兩個電極相距 50 毫米神經</text>
+      <circle class="spark" id="spark" r="9"/>
+      <circle class="pulse" id="pulse" r="6"/>
+    </svg>
+
+    <div class="galv" aria-hidden="true">
+      <div class="galv-lbl">鏡式電流計・光點刻度（1 格＝0.5 毫秒）</div>
+      <div class="scale" id="scale"><div class="ticks"></div><div class="ticks maj"></div><div class="spot" id="spot"></div></div>
+      <div class="scale-num"><span>0</span><span>5</span><span>10</span><span>15</span><span>20</span><span>25</span><span>30 格</span></div>
+    </div>
+
+    <div class="stim">
+      <button class="pk-btn" id="stNear" type="button">在近端電擊</button>
+      <button class="pk-btn" id="stFar" type="button">在遠端電擊</button>
+    </div>
+    <p class="note" id="need2">兩個位置各電至少兩次。肌肉每次抽動要花的時間都一樣，唯一的差別是那 50 毫米神經。</p>
+    <ul class="log" id="log" aria-live="polite"></ul>
+
+    <div class="reveal" id="rev" hidden>
+      <div class="stamp">柯尼斯堡　測得</div>
+      <p style="margin:0">遠端比近端，平均晚了 <b id="dt">—</b> 毫秒。50 毫米 ÷ 這段時間 ＝</p>
+      <p class="big" style="margin:4px 0 0"><span id="vNum">0.0</span><span class="unit">公尺／秒</span></p>
+      <ul>
+        <li>換成時速，大約 <b id="kmh">—</b> 公里——一輛高速公路上的汽車。</li>
+        <li>是百米世界紀錄平均速度的 <b id="bolt">—</b> 倍。</li>
+        <li>比光慢了大約 <b id="light">—</b> 倍。</li>
+      </ul>
+      <p>赫姆霍茲在 1850 年報告的範圍是每秒 24.6 到 38.4 公尺。老師說快得量不出來的東西，跑不贏一列今天的高鐵。</p>
+      <button class="pk-btn" id="toYou" type="button">那麼，你剛才那幾百毫秒呢？ ↓</button>
+    </div>
+  </section>
+
+  <!-- ═════ 台面 III ═════ -->
+  <section class="bench" id="b3" aria-labelledby="b3h" hidden>
+    <div class="plate">台面 III <b>回到你身上</b></div>
+    <h2 id="b3h">現在回頭看你的 <span id="mean3">—</span> 毫秒。</h2>
+    <p>燈的訊號從眼睛進到後腦，再從腦經脊髓下到手指，沿途加起來大約一公尺多的神經。人的粗神經比青蛙快，約每秒六十公尺。</p>
+    <p>所以在導線上跑掉的時間，算一算就有了。剩下的呢？</p>
+    <button class="pk-btn" id="splitBtn" type="button">拆開這段時間</button>
+
+    <div class="split" id="split" aria-live="polite">
+      <div class="split-bar" aria-hidden="true"><div class="w" id="segW"></div><div class="r" id="segR"></div></div>
+      <div class="split-lbl">
+        <span>導線上：約 <b id="wireMs">20</b> 毫秒</span>
+        <span class="who" id="who">其餘 <b id="restMs">—</b> 毫秒：是你</span>
+      </div>
+    </div>
+
+    <div class="after" id="after">
+      <p>看見、認出「燈亮了」、決定要按、對手指下令——這些都發生在導線兩端之間，那個正在「想」的地方。繆勒擔心神經快得量不出來；結果導線慢得量得到，而更慢的，是坐在導線盡頭的你。</p>
+      <p>十八年後，荷蘭的唐德斯拿起碼錶，開始把這一大段再切開：認出一盞燈要多久、在兩盞燈之間做選擇又要多久。念頭從此有了單位。</p>
+      <p class="coda">燈還在。再按一次——<br>這回你知道，自己在等的是誰。</p>
+      <div class="row-btns"><button class="pk-btn" id="again" type="button">回到台面 I 再測一輪</button><span class="note" id="best"></span></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Helmholtz（1850）《Archiv für Anatomie, Physiologie und wissenschaftliche Medicin》；Glynn《Elegance in Science》；Donders（1868）。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'helm1850.';
+const store = PK.store(LS);
+
+/*CORE*/
+const Core = {
+  TRIALS: 6,
+  MIN_RT: 100,               /* 低於 100 ms 視為預判，不採計 */
+  MS_PER_DIV: 0.5,
+  GAP_MM: 50,
+  stats(a){
+    const n = a.length; if (!n) return {n:0, mean:NaN, sd:NaN, min:NaN, max:NaN, spread:NaN};
+    const mean = a.reduce((s,x)=>s+x,0)/n;
+    const sd = n>1 ? Math.sqrt(a.reduce((s,x)=>s+(x-mean)*(x-mean),0)/(n-1)) : 0;
+    const min = Math.min.apply(null,a), max = Math.max.apply(null,a);
+    return {n, mean, sd, min, max, spread:max-min};
+  },
+  /* 一段神經多跑的毫秒數 */
+  nerveDelayMs(distM, v){ return distM / v * 1000; },
+  /* mm ÷ ms ＝ m/s */
+  speed(distMm, dtMs){ return dtMs > 0 ? distMm / dtMs : NaN; },
+  msToDiv(ms){ return ms / Core.MS_PER_DIV; },
+  divToMs(d){ return d * Core.MS_PER_DIV; },
+  gauss(u1, u2){ return Math.sqrt(-2*Math.log(Math.max(u1,1e-12))) * Math.cos(2*Math.PI*u2); },
+  /* 一次蛙腿試驗：近端＝肌肉潛伏期＋短段神經；遠端多 50 mm */
+  frogTrial(which, trueV, rand){
+    const base = 9.0 + 0.12 * Core.gauss(rand(), rand());
+    return which === 'far' ? base + Core.nerveDelayMs(Core.GAP_MM/1000, trueV) : base;
+  },
+  split(meanMs, wireMs){
+    const w = Math.min(wireMs, meanMs);
+    return {wire:w, rest:Math.max(0, meanMs - w), wireFrac: meanMs > 0 ? w/meanMs : 0};
+  },
+  /* 把很大的倍數寫成中文「萬／億」 */
+  bigCN(x){
+    if (!isFinite(x)) return '—';
+    if (x >= 1e8) return (Math.round(x/1e7)/10) + ' 億';
+    if (x >= 1e4) return Math.round(x/1e4).toLocaleString('zh-TW') + ' 萬';
+    return Math.round(x).toLocaleString('zh-TW');
+  }
+};
+/*END CORE*/
+
+const $ = s => document.querySelector(s);
+const TYPICAL = [262, 231, 318, 247, 289, 224];   /* 典型成人簡單反應時間樣本 */
+const WIRE_MS = Math.round(Core.nerveDelayMs(1.2, 60));   /* ≈20 ms */
+let rts = [];
+let usedTypical = false;
+
+PK.reveal();
+
+/* ══════════ 台面 I：反應時間 ══════════ */
+const lamp = $('#lamp'), key = $('#key'), statusEl = $('#status'), countEl = $('#count'), strip = $('#strip');
+let state = 'idle', timer = 0, t0 = 0;
+
+function setStatus(t){ statusEl.textContent = t; }
+function lampOn(on){
+  lamp.classList.toggle('on', on);
+  lamp.setAttribute('aria-label', on ? '訊號燈亮了' : '訊號燈，目前熄滅');
+}
+function plotDot(ms){
+  const d = document.createElement('i');
+  d.className = 'dot';
+  d.style.left = Math.min(100, ms/600*100) + '%';
+  strip.appendChild(d);
+}
+function press(){
+  if (state === 'done') return;
+  if (state === 'idle'){
+    state = 'wait'; lamp.classList.remove('foul');
+    setStatus('盯著燈……');
+    key.innerHTML = '燈亮<br>就按';
+    timer = setTimeout(() => {
+      lampOn(true);
+      requestAnimationFrame(() => { t0 = performance.now(); state = 'lit'; });
+    }, 1200 + Math.random()*2200);
+    return;
+  }
+  if (state === 'wait'){
+    clearTimeout(timer); state = 'idle'; lamp.classList.add('foul');
+    setStatus('搶跑了，這次不算。再按一次重來。');
+    key.innerHTML = '再來<br>一次';
+    PK.announce('搶跑，不採計');
+    return;
+  }
+  if (state === 'lit'){
+    const rt = performance.now() - t0;
+    lampOn(false); state = 'idle';
+    if (rt < Core.MIN_RT){
+      setStatus('快得不像人——這次算預判，不採計。');
+      key.innerHTML = '下一次';
+      return;
+    }
+    rts.push(rt); plotDot(rt);
+    countEl.textContent = rts.length + ' / ' + Core.TRIALS + ' 次';
+    setStatus(Math.round(rt) + ' 毫秒。');
+    PK.announce('第 ' + rts.length + ' 次：' + Math.round(rt) + ' 毫秒');
+    key.innerHTML = '下一次';
+    if (rts.length >= Core.TRIALS) finishB1(false);
+  }
+}
+key.addEventListener('pointerdown', e => { if (e.button === 0 || e.pointerType !== 'mouse'){ e.preventDefault(); press(); } });
+key.addEventListener('keydown', e => {
+  if ((e.key === ' ' || e.key === 'Enter') && !e.repeat){ e.preventDefault(); key.classList.add('down'); press(); }
+});
+key.addEventListener('keyup', () => key.classList.remove('down'));
+key.addEventListener('click', e => e.preventDefault());
+
+function finishB1(typical){
+  usedTypical = typical;
+  if (typical){ rts = TYPICAL.slice(); strip.innerHTML = ''; rts.forEach(plotDot); }
+  state = 'done'; clearTimeout(timer); lampOn(false);
+  key.disabled = true; key.innerHTML = '量完了';
+  countEl.textContent = typical ? '（典型數字）' : (Core.TRIALS + ' / ' + Core.TRIALS + ' 次');
+  setStatus(typical ? '先用一般人的典型數字。' : '量完了。');
+  $('#skip1').hidden = true;
+
+  const s = Core.stats(rts);
+  const toe = Core.nerveDelayMs(0.8, 60);   /* 腳趾比大腿多約 0.8 m，以 60 m/s 計 */
+  $('#mean1').textContent = Math.round(s.mean);
+  $('#spread1').textContent = Math.round(s.spread);
+  const maxv = Math.max(toe, s.spread);
+  $('#v1text').innerHTML = s.spread > toe
+    ? '腳趾比大腿多出大約 0.8 公尺神經。就算訊號每秒跑 60 公尺，也才多 <em>' + Math.round(toe) + ' 毫秒</em>——比你自己兩次按鍵的落差還小。'
+    : '你穩得驚人：落差比 ' + Math.round(toe) + ' 毫秒還小。可惜 1850 年的受試者沒有你這麼穩，而且一累就散。';
+  const v1 = $('#v1'); v1.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    $('#barN').style.transform = 'scaleX(' + (toe/maxv) + ')';
+    $('#barY').style.transform = 'scaleX(' + (s.spread/maxv) + ')';
+  }));
+  PK.announce('平均 ' + Math.round(s.mean) + ' 毫秒，最快最慢差 ' + Math.round(s.spread) + ' 毫秒');
+  if (!typical){
+    const best = store.get('best', null);
+    if (best === null || s.mean < best) store.set('best', Math.round(s.mean));
+  }
+  v1.scrollIntoView({behavior: PK.reduced() ? 'auto' : 'smooth', block:'start'});
+}
+$('#skip1').addEventListener('click', () => finishB1(true));
+
+function openBench(id){
+  const el = $(id); el.hidden = false; el.classList.add('rv');
+  requestAnimationFrame(() => { el.classList.add('in'); el.scrollIntoView({behavior: PK.reduced() ? 'auto' : 'smooth', block:'start'}); });
+  const h = el.querySelector('h2'); if (h){ h.tabIndex = -1; setTimeout(() => h.focus({preventScroll:true}), 400); }
+}
+$('#toFrog').addEventListener('click', () => openBench('#b2'));
+
+/* ══════════ 台面 II：蛙腿與電流計 ══════════ */
+const trueV = 25 + Math.random()*7;     /* 本次這隻青蛙的神經速度 */
+const nerve = $('#nerve'), pulse = $('#pulse'), spark = $('#spark'), muscle = $('#muscle'), lever = $('#lever');
+const spot = $('#spot'), scaleEl = $('#scale');
+const LEN = nerve.getTotalLength();
+const AT = { far: LEN * 0.20, near: LEN * 0.84 };   /* 電極在路徑上的位置（約略） */
+const trials = { near: [], far: [] };
+let busy = false;
+
+function spotTo(div){
+  const W = scaleEl.getBoundingClientRect().width;
+  spot.style.transform = 'translateX(' + (Math.min(30, div)/30*W) + 'px)';
+}
+function ptAt(l){ return nerve.getPointAtLength(Math.max(0, Math.min(LEN, l))); }
+
+function stimulate(which){
+  if (busy) return;
+  busy = true; setStimDisabled(true);
+  const ms = Core.frogTrial(which, trueV, Math.random);
+  const div = Core.msToDiv(ms);
+  const done = () => { record(which, ms, div); busy = false; setStimDisabled(false); };
+  if (PK.reduced()){ spotTo(div); done(); return; }
+
+  const p0 = ptAt(AT[which]);
+  spark.setAttribute('cx', p0.x); spark.setAttribute('cy', p0.y);
+  const total = ms * 100;                          /* 慢放一百倍 */
+  const travel = which === 'far' ? total*0.55 : total*0.18;
+  let el = 0;
+  spotTo(0);
+  function step(dt){
+    el += dt;
+    spark.style.opacity = Math.max(0, 1 - el/160);
+    const k = Math.min(1, el/travel);
+    const p = ptAt(AT[which] + (LEN - AT[which]) * k);
+    pulse.setAttribute('cx', p.x); pulse.setAttribute('cy', p.y);
+    pulse.style.opacity = k < 1 ? 1 : Math.max(0, 1 - (el-travel)/200);
+    spotTo(div * Math.min(1, el/total));            /* 電流流著，光點一直甩 */
+    if (el >= total){
+      PK.untick(step);
+      muscle.classList.add('tw'); lever.classList.add('up');
+      setTimeout(() => { muscle.classList.remove('tw'); lever.classList.remove('up'); }, 180);
+      spotTo(div); pulse.style.opacity = 0; done();
+    }
+  }
+  PK.tick(step);
+}
+function setStimDisabled(d){ $('#stNear').disabled = d; $('#stFar').disabled = d; }
+function record(which, ms, div){
+  trials[which].push(ms);
+  const li = document.createElement('li');
+  li.innerHTML = (which === 'far' ? '遠端' : '近端') + ' #' + trials[which].length + '：<b>' + div.toFixed(1) + ' 格</b> ＝ ' + ms.toFixed(2) + ' 毫秒';
+  $('#log').appendChild(li);
+  if (trials.near.length >= 2 && trials.far.length >= 2 && $('#rev').hidden) revealSpeed();
+}
+$('#stNear').addEventListener('click', () => stimulate('near'));
+$('#stFar').addEventListener('click', () => stimulate('far'));
+window.addEventListener('resize', () => { /* 光點位置隨刻度寬度更新 */
+  const all = trials.near.concat(trials.far);
+  if (all.length && !busy) spotTo(Core.msToDiv(all[all.length-1]));
+});
+
+function rollNumber(el, to, dur, digits){
+  if (PK.reduced()){ el.textContent = to.toFixed(digits); return; }
+  let t = 0;
+  function f(dt){
+    t += dt; const k = Math.min(1, t/dur); const e = 1 - Math.pow(1-k, 3);
+    el.textContent = (to*e).toFixed(digits);
+    if (k >= 1) PK.untick(f);
+  }
+  PK.tick(f);
+}
+function revealSpeed(){
+  const dt = Core.stats(trials.far).mean - Core.stats(trials.near).mean;
+  const v = Core.speed(Core.GAP_MM, dt);
+  $('#dt').textContent = dt.toFixed(2);
+  $('#kmh').textContent = Math.round(v*3.6);
+  $('#bolt').textContent = (v/10.44).toFixed(1);
+  $('#light').textContent = Core.bigCN(299792458 / v);
+  const rev = $('#rev'); rev.hidden = false;
+  $('#need2').textContent = '可以繼續電，多幾次平均更穩。';
+  rollNumber($('#vNum'), v, 1400, 1);
+  PK.announce('測得神經傳導速度每秒約 ' + v.toFixed(1) + ' 公尺');
+  setTimeout(() => rev.scrollIntoView({behavior: PK.reduced() ? 'auto' : 'smooth', block:'nearest'}), 300);
+}
+$('#toYou').addEventListener('click', () => {
+  if (!rts.length) finishB1(true);
+  const s = Core.stats(rts);
+  $('#mean3').textContent = Math.round(s.mean) + (usedTypical ? '（典型值）' : '');
+  openBench('#b3');
+});
+
+/* ══════════ 台面 III：拆開反應時間 ══════════ */
+$('#splitBtn').addEventListener('click', () => {
+  const s = Core.stats(rts);
+  const sp = Core.split(s.mean, WIRE_MS);
+  $('#wireMs').textContent = Math.round(sp.wire);
+  $('#restMs').textContent = Math.round(sp.rest);
+  $('#segW').style.flex = '0 0 ' + (sp.wireFrac*100) + '%';
+  $('#segR').style.flex = '1 1 auto';
+  $('#split').classList.add('open');
+  $('#after').classList.add('show');
+  $('#splitBtn').disabled = true;
+  const best = store.get('best', null);
+  $('#best').textContent = best ? '你目前最快的一輪平均：' + best + ' 毫秒' : '';
+  PK.announce('導線上約 ' + Math.round(sp.wire) + ' 毫秒，其餘 ' + Math.round(sp.rest) + ' 毫秒是你');
+});
+
+$('#again').addEventListener('click', () => {
+  rts = []; usedTypical = false; state = 'idle';
+  strip.innerHTML = ''; countEl.textContent = '0 / ' + Core.TRIALS + ' 次';
+  key.disabled = false; key.innerHTML = '按這裡<br>開始'; setStatus('準備好了就按電鍵。');
+  $('#v1').hidden = true;
+  $('#barN').style.transform = $('#barY').style.transform = '';
+  $('#split').classList.remove('open'); $('#after').classList.remove('show'); $('#splitBtn').disabled = false;
+  $('#b1').scrollIntoView({behavior: PK.reduced() ? 'auto' : 'smooth', block:'start'});
+  setTimeout(() => key.focus({preventScroll:true}), 500);
+});
+</script>
+</body>
+</html>

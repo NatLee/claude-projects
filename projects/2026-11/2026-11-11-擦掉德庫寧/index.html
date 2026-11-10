@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>請把它擦掉｜每日小專案</title>
+<meta name="description" content="1953 年，一個年輕畫家向當紅的大師要一張畫，理由是：他想把它擦掉。輪到你拿起橡皮擦。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#14120e; --pk-ink:#ece5d4; --pk-dim:#9a917f; --pk-accent:#d9b36a;
+  --paper:#efe8d8; --gold1:#b98a36; --gold2:#f1d793;
+}
+body{ background:
+  radial-gradient(120% 70% at 50% 0%, #201c15 0%, var(--pk-bg) 60%) fixed; }
+.pk-hero{ text-align:left }
+.kicker{ font-size:12px; letter-spacing:.32em; color:var(--pk-dim); text-transform:uppercase; margin:0 0 26px }
+.pk-hero h1 em{ font-style:normal; color:var(--pk-accent) }
+.hint{ color:var(--pk-dim); font-size:13px; letter-spacing:.12em; margin-top:56px }
+.hint span{ display:inline-block; animation:bob 2.4s ease-in-out infinite }
+@keyframes bob{ 50%{ transform:translateY(5px) } }
+
+main section{ margin:0 0 22vh }
+main p{ font-size:17px; margin:0 0 1.1em }
+.big{ font-family:var(--pk-serif); font-size:clamp(21px,5vw,28px); line-height:1.6 }
+.quiet{ color:var(--pk-dim) }
+.q{ font-family:var(--pk-serif); border-left:2px solid var(--pk-accent); padding:4px 0 4px 16px; margin:28px 0; color:#f4ead2 }
+.q small{ display:block; color:var(--pk-dim); font-family:var(--pk-sans); font-size:12.5px; margin-top:6px }
+.mat{ display:inline-block; font-size:12px; letter-spacing:.1em; border:1px solid var(--pk-line); border-radius:999px; padding:2px 10px; margin:2px 4px 2px 0; color:var(--pk-dim) }
+.mat b{ color:var(--pk-ink); font-weight:500 }
+
+/* ── 畫紙舞台 ── */
+.stage{ margin:0 auto 22vh; max-width:460px }
+.frame{ position:relative; padding:0; transition:padding .9s cubic-bezier(.2,.7,.3,1) }
+.frame::before{ content:""; position:absolute; inset:0; border-radius:2px; opacity:0;
+  background:linear-gradient(135deg,var(--gold1),var(--gold2) 30%,#8c6324 52%,var(--gold2) 74%,var(--gold1));
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.8), inset 0 0 0 2px rgba(255,240,200,.35);
+  transform:scale(1.06); transition:opacity .9s ease, transform .9s cubic-bezier(.2,.7,.3,1) }
+.frame.on{ padding:22px }
+.frame.on::before{ opacity:1; transform:none }
+.matbox{ position:relative; background:transparent; transition:padding .9s, background .9s }
+.frame.on .matbox{ background:#f6f1e4; padding:26px 26px 84px; box-shadow:inset 0 2px 6px rgba(0,0,0,.25) }
+.sheet{ position:relative; touch-action:none; cursor:none; outline:none; border-radius:1px;
+  box-shadow:0 20px 50px -18px rgba(0,0,0,.85) }
+.sheet.done{ cursor:default } .sheet.done .eraser{ display:none }
+.sheet:focus-visible{ outline:2px solid var(--pk-accent); outline-offset:6px }
+#cv{ display:block; width:100%; aspect-ratio:5/6; height:auto; background:var(--paper) }
+.eraser{ position:absolute; left:0; top:0; width:44px; height:44px; margin:-22px 0 0 -22px; border-radius:50%;
+  border:1.5px solid rgba(60,40,20,.55); background:rgba(255,255,255,.18); pointer-events:none; opacity:0;
+  transition:opacity .2s; will-change:transform }
+.sheet.hover .eraser, .sheet:focus-visible .eraser{ opacity:1 }
+.label{ position:absolute; left:0; right:0; bottom:14px; text-align:center; font-family:Georgia,serif;
+  font-size:11px; letter-spacing:.06em; color:#5b4a2c; line-height:1.5; min-height:1.5em; opacity:0; transition:opacity .6s }
+.frame.on .label{ opacity:1 }
+.scan{ position:absolute; left:0; right:0; top:0; height:6px; pointer-events:none; opacity:0;
+  background:linear-gradient(transparent,rgba(120,255,240,.9),transparent); box-shadow:0 0 18px rgba(120,255,240,.8) }
+.scan.go{ animation:scan 1.6s cubic-bezier(.5,0,.5,1) forwards }
+@keyframes scan{ 0%{opacity:1; transform:translateY(0)} 92%{opacity:1} 100%{opacity:0; transform:translateY(var(--sh,500px))} }
+
+.meter{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:18px 2px 8px; font-size:13px; color:var(--pk-dim) }
+.day{ font-family:var(--pk-serif); font-size:30px; color:var(--pk-ink); font-variant-numeric:tabular-nums }
+.bar{ height:3px; background:var(--pk-line); border-radius:2px; overflow:hidden }
+.bar i{ display:block; height:100%; width:100%; background:var(--pk-accent); transform-origin:left; transform:scaleX(0); transition:transform .3s }
+.log{ min-height:5.6em; margin:14px 2px 0; font-family:var(--pk-serif); font-size:16px; color:#e9dfc6 }
+.log p{ margin:0 0 .3em; animation:fadein .7s ease both }
+@keyframes fadein{ from{opacity:0; transform:translateY(6px)} }
+.ctrl{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px }
+.pk-btn.solid{ background:var(--pk-accent); color:var(--pk-bg) }
+.pk-btn.solid:hover{ filter:brightness(1.08) }
+.after[hidden]{ display:none }
+.note{ font-family:"Courier New",monospace; background:#e9e1cc; color:#3b2f1c; padding:18px 20px; transform:rotate(-1.2deg);
+  box-shadow:0 14px 30px -14px rgba(0,0,0,.8); font-size:14px; line-height:1.7; margin:30px 0 }
+.end{ font-family:var(--pk-serif); font-size:clamp(26px,6vw,38px); line-height:1.5; text-align:center; margin:18vh 0 8vh }
+.end s{ text-decoration-thickness:2px; text-decoration-color:var(--pk-accent); color:var(--pk-dim) }
+.center{ text-align:center }
+
+@media (max-width:560px){ .frame.on{ padding:14px } .frame.on .matbox{ padding:16px 16px 78px } main p{ font-size:16px } }
+@media (prefers-reduced-motion: reduce){
+  .hint span{ animation:none } .log p{ animation:none } .scan.go{ animation:none; opacity:0 }
+  .frame, .frame::before, .matbox, .bar i{ transition:none }
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kicker rv">New York · 1953</p>
+    <h1 class="rv">一個沒什麼名氣的年輕人，敲開了當時最紅的畫家的門，<br>向他要一張畫。<br><em>為了把它擦掉。</em></h1>
+    <p class="rv quiet">敲門的是羅伯特·勞森伯格。開門的是威廉·德庫寧。</p>
+    <p class="hint rv" aria-hidden="true"><span>↓</span>　往下</p>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section class="rv">
+    <p class="big">先說清楚：他不是來搞破壞的。</p>
+    <p>他已經試過擦自己的素描。紙擦白了，可是什麼也沒發生——擦掉一張沒人在乎的畫，就是一張比較乾淨的紙。</p>
+    <p>他需要一張<em>已經是藝術</em>的東西。一張被擦掉的時候，會有人心痛的東西。</p>
+  </section>
+
+  <section class="rv">
+    <p class="big">德庫寧沒有馬上答應。</p>
+    <p>據說兩人談了很久，「破壞」這個詞一直在對話裡打轉。勞森伯格一再解釋：它不會被毀掉，它會變成別的作品。</p>
+    <p>最後德庫寧走去翻他的畫夾。他說，要給就給一張<em>他會想念的</em>。而且，要給一張很難擦的。</p>
+    <p>
+      <span class="mat"><b>炭筆</b> 一擦就灰</span>
+      <span class="mat"><b>鉛筆</b> 陷進紙纖維</span>
+      <span class="mat"><b>蠟筆</b> 抹不走、只會散開</span>
+      <span class="mat"><b>油彩？</b> 各家說法不一</span>
+    </p>
+    <p class="quiet">那張畫原本長什麼樣，沒有留下任何照片。下面這張是我們替它做的替身——畫得很密，跟傳說中一樣。</p>
+  </section>
+
+  <section class="rv">
+    <p class="big">現在，橡皮擦在你手上。</p>
+    <p class="quiet">在紙上來回抹。鍵盤：方向鍵移動、按住空白鍵擦。</p>
+  </section>
+
+  <div class="stage" id="stage">
+    <div class="frame" id="frame">
+      <div class="matbox">
+        <div class="sheet" id="sheet" tabindex="0" role="img" aria-label="一張畫滿炭筆與蠟筆線條的素描，可以用橡皮擦擦拭" aria-describedby="day">
+          <canvas id="cv"></canvas>
+          <div class="eraser" id="eraser"></div>
+          <div class="scan" id="scan"></div>
+        </div>
+        <div class="label" id="label" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="meter"><span>第 <span class="day" id="day">0</span> 天</span><span id="pct">擦掉 0%</span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <div class="log" id="log" aria-live="polite"></div>
+    <div class="ctrl">
+      <button class="pk-btn" id="afternoon" type="button">擦一個下午</button>
+      <button class="pk-btn solid" id="stop" type="button" hidden>夠了，停手</button>
+    </div>
+  </div>
+
+  <section class="after rv" id="a1" hidden>
+    <p class="big">他停手的時候，紙上還有東西。</p>
+    <p>不是線條了，是一層幾乎看不見的灰、紙面起毛的痕跡、蠟筆滲進去的油光。一個多月（他後來說，是兩個月），一塊接一塊橡皮擦被磨禿。</p>
+    <p>然後他的朋友賈斯培·瓊斯拿來一個鍍金畫框，在下方的襯紙用模板壓上一行字——就是你剛才看到的那行。框，是這件作品的一部分。</p>
+    <blockquote class="q">「那不是破壞……我是在把自己學過的東西清掉。」<small>勞森伯格，1976 年訪談（意譯）</small></blockquote>
+    <p>藝術圈吵了幾十年：這算創作，還是褻瀆？一張空白的紙，憑什麼掛進美術館？</p>
+    <p>1998 年，舊金山現代美術館（SFMOMA）把它買下。故事本來應該停在這裡。</p>
+  </section>
+
+  <section class="after rv" id="a2" hidden>
+    <p class="big">2010 年，美術館的保存團隊拿紅外線對準了這張「空白」。</p>
+    <p>紅外線看得見肉眼看不見的碳。</p>
+    <div class="ctrl"><button class="pk-btn solid" id="ir" type="button" aria-pressed="false">打開紅外線，照你擦過的那張</button></div>
+    <p class="quiet" id="irnote" hidden>經過數位強化的掃描裡，浮出好幾個朝不同方向的人形，至少有一個是女人。有些筆觸，甚至可能是德庫寧自己當年就擦過的。</p>
+  </section>
+
+  <section class="after rv" id="a3" hidden>
+    <p class="big">擦掉，從來不是歸零。</p>
+    <p>你剛才用了 <b id="yourDays">0</b> 天、擦掉 <b id="yourPct">0%</b>，紅外線底下，它還是全都在。勞森伯格擦掉的那張也是——七十多年後，它還在牆上，用缺席的方式被看見。</p>
+    <p>1988 年一次修復之後，作品背面被貼上一張紙條：</p>
+    <div class="note">DO NOT REMOVE DRAWING FROM FRAME,<br>FRAME IS PART OF THE DRAWING.</div>
+    <p class="end"><s>請把它擦掉。</s><br>請別把它拿出框。</p>
+    <p class="center"><button class="pk-btn" id="again" type="button">再跟德庫寧要一張</button></p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：SFMOMA Rauschenberg Research Project、Smarthistory、Wikipedia。素描為示意替身，非原作。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'erdk53.';
+const store = PK.store(LS);
+PK.reveal();
+
+/*CORE-START*/
+const GW = 200, GH = 240, GHOST = 0.1;
+function rng(seed){ let a = seed >>> 0; return function(){ a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+/* 擦一下：半徑 r 內墨量依材料硬度減少，但永遠留下 GHOST 比例的殘跡。回傳本次擦掉的量。 */
+function eraseAt(ink, ink0, hard, w, h, cx, cy, r, k){
+  let removed = 0;
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(w - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(h - 1, Math.ceil(cy + r));
+  const r2 = r * r;
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++){
+    const dx = x - cx, dy = y - cy, d2 = dx*dx + dy*dy;
+    if (d2 > r2) continue;
+    const i = y * w + x, floor = ink0[i] * GHOST;
+    if (ink[i] <= floor) continue;
+    const f = 1 - d2 / r2;
+    const nv = Math.max(floor, ink[i] - k * f * (1 - 0.82 * hard[i]));
+    removed += ink[i] - nv; ink[i] = nv;
+  }
+  return removed;
+}
+/* 擦掉的比例：0＝原封不動，1＝擦到只剩殘跡 */
+function erasedFraction(ink, ink0){
+  let gone = 0, max = 0;
+  for (let i = 0; i < ink.length; i++){ max += ink0[i] * (1 - GHOST); gone += ink0[i] - ink[i]; }
+  return max > 0 ? Math.min(1, gone / max) : 0;
+}
+function dayFor(frac){ return frac <= 0 ? 0 : Math.max(1, Math.round(Math.pow(frac, 1.15) * 38)); }
+const MILESTONES = [
+  [0.03, '第一下。炭筆最先投降，一擦就成了灰霧。'],
+  [0.18, '鉛筆的線陷進紙的纖維裡，擦過還留著一道道溝。'],
+  [0.36, '蠟筆不肯走。它不會被擦掉，只會被抹開。'],
+  [0.55, '紙面開始起毛。橡皮擦一塊接一塊磨禿。'],
+  [0.75, '看起來快空白了。看起來而已。'],
+  [0.9, '他後來說：「他讓我吃足了苦頭。」到最後，也沒有完全擦乾淨。']
+];
+function milestonesUpTo(frac){ return MILESTONES.filter(m => frac >= m[0]).length; }
+/* 紅外線色階：殘跡被放大 */
+function irColor(v){
+  const a = Math.min(1, v * 7);
+  return [Math.round(10 + a * 200), Math.round(16 + a * 235), Math.round(38 + a * 200)];
+}
+/*CORE-END*/
+
+/* ── 替身素描：以固定種子生成，畫在 GW×GH 的離屏畫布 ── */
+const ink = new Float32Array(GW * GH), ink0 = new Float32Array(GW * GH), hard = new Float32Array(GW * GH), tint = new Float32Array(GW * GH), grain = new Float32Array(GW * GH);
+function makeDrawing(seed){
+  const R = rng(seed);
+  const layers = [ // [硬度, 色調, 繪製函式]
+    [0.1, 0, (g) => { // 炭筆：大塊揉擦與粗輪廓
+      g.filter = 'blur(1.2px)';
+      for (let n = 0; n < 9; n++){ g.globalAlpha = .18 + R()*.25; g.beginPath(); g.ellipse(GW*(.15+R()*.7), GH*(.15+R()*.7), 10+R()*30, 14+R()*40, R()*3, 0, 7); g.fill(); }
+      g.filter = 'none';
+      figures(g, R, 3.2, .7);
+    }],
+    [0.35, 0, (g) => { // 鉛筆：細線與排線
+      figures(g, R, 1.1, .85);
+      for (let n = 0; n < 7; n++){ const x = GW*R(), y = GH*R(), a = R()*3, L = 14+R()*22;
+        g.globalAlpha = .55; g.lineWidth = .7; g.beginPath();
+        for (let k = 0; k < 9; k++){ const o = k*2.4; g.moveTo(x+Math.cos(a+1.57)*o, y+Math.sin(a+1.57)*o); g.lineTo(x+Math.cos(a+1.57)*o+Math.cos(a)*L, y+Math.sin(a+1.57)*o+Math.sin(a)*L); }
+        g.stroke(); }
+    }],
+    [0.85, 1, (g) => { // 蠟筆：頑固的粗筆塗抹
+      for (let n = 0; n < 5; n++){ g.globalAlpha = .6; g.lineWidth = 2.5 + R()*3; g.beginPath();
+        let x = GW*(.2+R()*.6), y = GH*(.2+R()*.6); g.moveTo(x, y);
+        for (let k = 0; k < 5; k++){ x += (R()-.5)*50; y += (R()-.5)*50; g.quadraticCurveTo(x+(R()-.5)*30, y+(R()-.5)*30, x, y); }
+        g.stroke(); }
+    }]
+  ];
+  ink0.fill(0); hard.fill(0); tint.fill(0);
+  const off = document.createElement('canvas'); off.width = GW; off.height = GH;
+  const g = off.getContext('2d');
+  for (const [h, t, fn] of layers){
+    g.clearRect(0, 0, GW, GH); g.fillStyle = g.strokeStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
+    fn(g);
+    const d = g.getImageData(0, 0, GW, GH).data;
+    for (let i = 0; i < GW*GH; i++){
+      const a = d[i*4+3] / 255; if (a < .02) continue;
+      const tot = Math.min(1, ink0[i] + a);
+      hard[i] = (hard[i]*ink0[i] + h*a) / (ink0[i] + a);
+      tint[i] = Math.max(tint[i], t * a);
+      ink0[i] = tot;
+    }
+  }
+  for (let i = 0; i < GW*GH; i++){ ink[i] = ink0[i]; grain[i] = (R() - .5) * 14; }
+}
+function figures(g, R, lw, alpha){ // 幾個朝不同方向的人形：鬆散、重複描、抖動的手勢線
+  const specs = [[.30,.33,1,1.25],[.70,.40,-1,1.1],[.42,.74,1,1.0],[.80,.80,-1,.85]];
+  const J = (v, a) => v + (R() - .5) * a;
+  function curve(pts, passes){
+    for (let p = 0; p < passes; p++){
+      g.globalAlpha = alpha * (.45 + R() * .5); g.lineWidth = lw * (.6 + R() * .9);
+      g.beginPath(); g.moveTo(J(pts[0], 4), J(pts[1], 4));
+      for (let k = 2; k + 3 < pts.length + 1; k += 4) g.quadraticCurveTo(J(pts[k], 7), J(pts[k+1], 7), J(pts[k+2], 4), J(pts[k+3], 4));
+      g.stroke();
+    }
+  }
+  for (const [fx, fy, dir, sc] of specs){
+    const x = GW*fx, y = GH*fy, s = 34 * sc, d = dir;
+    curve([x-s*.25*d, y-s*1.05, x-s*.35*d, y-s*1.55, x+s*.05*d, y-s*1.6, x+s*.4*d, y-s*1.5, x+s*.25*d, y-s*1.0], 3); // 頭
+    curve([x-s*.3*d, y-s*.75, x-s*1.0*d, y-s*.3, x-s*.55*d, y+s*.2, x-s*.1*d, y+s*.8, x-s*.45*d, y+s*1.5], 4); // 背/臀
+    curve([x+s*.25*d, y-s*.8, x+s*.9*d, y-s*.35, x+s*.45*d, y+s*.15, x+s*.1*d, y+s*.6, x+s*.5*d, y+s*1.4], 4); // 前側
+    curve([x-s*.35*d, y-s*.15, x-s*.05*d, y-s*.45, x+s*.15*d, y-s*.05, x+s*.35*d, y-s*.4, x+s*.6*d, y-s*.05], 3); // 胸
+    curve([x+s*.3*d, y-s*.7, x+s*1.3*d, y-s*.6, x+s*1.1*d, y+s*.1, x+s*.9*d, y+s*.5, x+s*.5*d, y+s*.45], 2); // 手臂
+    for (let k = 0; k < 5; k++){ const ax = J(x, s*1.6), ay = J(y, s*2); curve([ax, ay, J(ax, s), J(ay, s), J(ax, s*1.2), J(ay, s*1.2)], 1); } // 散落手勢
+  }
+}
+
+/* ── 繪製 ── */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const buf = document.createElement('canvas'); buf.width = GW; buf.height = GH;
+const bctx = buf.getContext('2d'), img = bctx.createImageData(GW, GH);
+let mode = 'paper', dirty = true;
+function paint(){
+  const d = img.data;
+  for (let i = 0; i < GW*GH; i++){
+    let r, gg, b;
+    if (mode === 'ir'){ [r, gg, b] = irColor(ink[i]); }
+    else {
+      const a = Math.min(1, ink[i]) * .92, gr = grain[i], fuzz = Math.min(1, (ink0[i] - ink[i]) * 1.4) * 10; // 擦過的紙微微起毛泛白
+      const ir_ = 239 + gr + fuzz*.3, ig = 232 + gr + fuzz*.3, ib = 216 + gr;
+      const cr = 34 + tint[i]*52, cg = 30 + tint[i]*10, cb = 30;
+      r = ir_*(1-a) + cr*a; gg = ig*(1-a) + cg*a; b = ib*(1-a) + cb*a;
+    }
+    d[i*4] = r; d[i*4+1] = gg; d[i*4+2] = b; d[i*4+3] = 255;
+  }
+  bctx.putImageData(img, 0, 0);
+  const s = PK.fitCanvas(cv);
+  if (s.w < 80) return;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(buf, 0, 0, cv.width, cv.height);
+}
+function frame(){ if (dirty){ dirty = false; paint(); } }
+PK.tick(frame);
+if ('ResizeObserver' in window) new ResizeObserver(() => { dirty = true; }).observe(cv);
+
+/* ── 擦 ── */
+const sheet = document.getElementById('sheet'), eraser = document.getElementById('eraser');
+const dayEl = document.getElementById('day'), pctEl = document.getElementById('pct'), barEl = document.getElementById('bar');
+const logEl = document.getElementById('log'), stopBtn = document.getElementById('stop');
+let frac = 0, shown = 0, stopped = false, last = null, cursor = { x: GW/2, y: GH/2 };
+function toGrid(e){ const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * GW, y: (e.clientY - r.top) / r.height * GH, px: e.clientX - r.left, py: e.clientY - r.top }; }
+function moveEraser(px, py){ eraser.style.transform = 'translate(' + px + 'px,' + py + 'px)'; }
+function eraserPx(){ const r = cv.getBoundingClientRect(); return r.width / GW; }
+function scrub(x0, y0, x1, y1){
+  if (stopped) return;
+  const r = 22 / eraserPx(), dist = Math.hypot(x1 - x0, y1 - y0), steps = Math.max(1, Math.ceil(dist / 2));
+  for (let s = 1; s <= steps; s++){ const t = s / steps; eraseAt(ink, ink0, hard, GW, GH, x0 + (x1-x0)*t, y0 + (y1-y0)*t, r, 0.05); }
+  dirty = true; update();
+}
+let lastUpd = 0;
+function update(force){
+  const now = performance.now(); if (!force && now - lastUpd < 120) return; lastUpd = now;
+  frac = erasedFraction(ink, ink0);
+  const d = dayFor(frac);
+  dayEl.textContent = d; pctEl.textContent = '擦掉 ' + Math.round(frac * 100) + '%';
+  barEl.style.transform = 'scaleX(' + frac.toFixed(3) + ')';
+  const n = milestonesUpTo(frac);
+  while (shown < n){ const p = document.createElement('p'); p.textContent = MILESTONES[shown][1]; logEl.appendChild(p); shown++; if (logEl.children.length > 3) logEl.removeChild(logEl.firstChild); }
+  if (frac >= .45 && stopBtn.hidden && !stopped){ stopBtn.hidden = false; PK.announce('第 ' + d + ' 天。你可以停手了，如果你願意。'); }
+}
+sheet.addEventListener('pointerenter', () => sheet.classList.add('hover'));
+sheet.addEventListener('pointerleave', () => { sheet.classList.remove('hover'); last = null; });
+sheet.addEventListener('pointerdown', e => { sheet.setPointerCapture(e.pointerId); sheet.classList.add('hover'); const p = toGrid(e); last = p; moveEraser(p.px, p.py); scrub(p.x, p.y, p.x + .5, p.y + .5); });
+sheet.addEventListener('pointermove', e => { const p = toGrid(e); moveEraser(p.px, p.py); if (last && e.buttons){ scrub(last.x, last.y, p.x, p.y); last = p; } });
+sheet.addEventListener('pointerup', () => { last = null; update(true); });
+sheet.addEventListener('pointercancel', () => { last = null; });
+sheet.addEventListener('keydown', e => {
+  const step = 6, k = e.key; let moved = false;
+  if (k === 'ArrowLeft'){ cursor.x -= step; moved = true; } if (k === 'ArrowRight'){ cursor.x += step; moved = true; }
+  if (k === 'ArrowUp'){ cursor.y -= step; moved = true; } if (k === 'ArrowDown'){ cursor.y += step; moved = true; }
+  cursor.x = PK.clamp(cursor.x, 0, GW); cursor.y = PK.clamp(cursor.y, 0, GH);
+  if (moved || k === ' ' || k === 'Enter'){
+    e.preventDefault();
+    const w = eraserPx(); moveEraser(cursor.x * w, cursor.y * w);
+    if (k === ' ' || k === 'Enter'){ for (let z = 0; z < 4; z++){ const o = z % 2 ? 7 : -7; scrub(cursor.x - o, cursor.y - 3, cursor.x + o, cursor.y + 3); } update(true); }
+  }
+});
+document.getElementById('afternoon').addEventListener('click', () => {
+  const R = rng((performance.now() * 1000) | 0);
+  // 一個下午：沿著還有墨的地方來回擦
+  for (let n = 0; n < 14; n++){
+    let bx = 0, by = 0, best = -1;
+    for (let t = 0; t < 12; t++){ const x = R()*GW, y = R()*GH, v = ink[(y|0)*GW + (x|0)] - ink0[(y|0)*GW + (x|0)]*GHOST; if (v > best){ best = v; bx = x; by = y; } }
+    for (let z = 0; z < 4; z++){ const o = z % 2 ? 9 : -9; scrub(bx - o, by - 4, bx + o, by + 4); }
+  }
+  update(true);
+});
+
+/* ── 停手：裱框、上標籤，故事往下走 ── */
+const frameEl = document.getElementById('frame'), labelEl = document.getElementById('label');
+stopBtn.addEventListener('click', () => {
+  stopped = true; stopBtn.hidden = true; document.getElementById('afternoon').hidden = true; update(true);
+  sheet.setAttribute('aria-label', '一張幾乎被擦成空白的紙，裱在鍍金畫框裡');
+  frameEl.classList.add('on'); sheet.classList.add('done');
+  PK.announce('裱框完成。標籤寫著：Erased de Kooning Drawing，Robert Rauschenberg，1953。');
+  store.set('last', { day: dayFor(frac), pct: Math.round(frac * 100) });
+  document.getElementById('yourDays').textContent = dayFor(frac);
+  document.getElementById('yourPct').textContent = Math.round(frac * 100) + '%';
+  setTimeout(() => PK.type(labelEl, 'Erased de Kooning Drawing\nRobert Rauschenberg\n1953', 38), PK.reduced() ? 0 : 700);
+  labelEl.style.whiteSpace = 'pre-line';
+  ['a1','a2','a3'].forEach(id => { const s = document.getElementById(id); s.hidden = false; });
+  PK.reveal('.after');
+  setTimeout(() => PK.scrollTo ? PK.scrollTo(document.getElementById('a1')) : document.getElementById('a1').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth' }), PK.reduced() ? 0 : 1400);
+});
+
+/* ── 紅外線（高潮後的反轉）── */
+const irBtn = document.getElementById('ir'), scan = document.getElementById('scan');
+irBtn.addEventListener('click', () => {
+  const on = mode !== 'ir';
+  irBtn.setAttribute('aria-pressed', String(on));
+  irBtn.textContent = on ? '關掉紅外線' : '打開紅外線，照你擦過的那張';
+  document.getElementById('stage').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'center' });
+  const apply = () => { mode = on ? 'ir' : 'paper'; dirty = true;
+    sheet.setAttribute('aria-label', on ? '紅外線影像：被擦掉的人形輪廓全部浮現' : '一張幾乎被擦成空白的紙，裱在鍍金畫框裡');
+    if (on){ document.getElementById('irnote').hidden = false; PK.announce('紅外線下，被擦掉的線條全都浮了回來。'); } };
+  if (on && !PK.reduced()){
+    scan.style.setProperty('--sh', sheet.clientHeight + 'px');
+    scan.classList.remove('go'); void scan.getBoundingClientRect(); scan.classList.add('go');
+    setTimeout(apply, 900);
+  } else apply();
+});
+
+document.getElementById('again').addEventListener('click', () => {
+  makeDrawing((Math.random() * 1e9) | 0);
+  stopped = false; mode = 'paper'; shown = 0; frac = 0; logEl.textContent = ''; labelEl.textContent = '';
+  frameEl.classList.remove('on'); sheet.classList.remove('done'); stopBtn.hidden = true; document.getElementById('afternoon').hidden = false;
+  irBtn.setAttribute('aria-pressed', 'false'); irBtn.textContent = '打開紅外線，照你擦過的那張'; document.getElementById('irnote').hidden = true;
+  sheet.setAttribute('aria-label', '一張畫滿炭筆與蠟筆線條的素描，可以用橡皮擦擦拭');
+  dirty = true; update(true);
+  document.getElementById('stage').scrollIntoView({ behavior: PK.reduced() ? 'auto' : 'smooth', block: 'center' });
+});
+
+makeDrawing(1953);
+const prev = store.get('last', null);
+if (prev && prev.day) { const p = document.createElement('p'); p.className = 'quiet'; p.textContent = '上次你撐到第 ' + prev.day + ' 天，擦掉 ' + prev.pct + '%。'; logEl.appendChild(p); }
+update(true);
+</script>
+</body>
+</html>

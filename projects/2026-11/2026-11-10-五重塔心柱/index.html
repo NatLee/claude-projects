@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>誰撐住了這座塔？｜每日小專案</title>
+<meta name="description" content="上千年來，日本的木造五重塔幾乎沒有一座被地震震倒。振動台交給你：搖垮兩座，再看第三座為什麼站得住。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0e1013; --pk-ink:#ebe5d8; --pk-dim:#8d887d; --pk-accent:#d9573b;
+  --gold:#e3b65c; --ok:#7fbf8e; --bad:#e2664a; --panel:#15181d; --edge:rgba(235,229,216,.1);
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Noto Sans Mono CJK TC",monospace;
+}
+body{overflow-x:hidden}
+.hook{min-height:100svh;display:flex;align-items:center;position:relative}
+.hook .tag{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--pk-dim);margin:0 0 28px}
+.hook .pk-wrap{max-width:800px}
+.hook h1{font-size:clamp(26px,4.6vw,42px);line-height:1.38;margin:0 0 26px;letter-spacing:.01em}
+.hook h1 em{font-style:normal;color:var(--pk-accent)}
+.hook p.lead{font-size:clamp(16px,2.2vw,19px);color:#cfc8b9;max-width:30em;margin:0 0 38px}
+.hook .sil{position:absolute;right:max(4vw,16px);bottom:8vh;width:min(26vw,190px);opacity:.16;pointer-events:none}
+@media (max-width:560px){.hook .sil{width:34vw;opacity:.1}}
+
+/* ── 控制台 ── */
+.rig{max-width:1060px;margin:0 auto;padding:0 18px 40px}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--pk-dim);
+  border:1px solid var(--edge);border-bottom:0;border-radius:12px 12px 0 0;padding:10px 14px;background:#121418}
+.bar .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.bar .dot.red{background:var(--bad);box-shadow:0 0 10px var(--bad)}
+.bar .sp{flex:1}
+.desk{display:grid;grid-template-columns:minmax(0,1fr) 300px;border:1px solid var(--edge);border-radius:0 0 12px 12px;background:var(--panel);overflow:hidden}
+@media (max-width:820px){.desk{grid-template-columns:1fr}}
+.stagebox{position:relative;border-right:1px solid var(--edge)}
+@media (max-width:820px){.stagebox{border-right:0;border-bottom:1px solid var(--edge)}}
+#stage{display:block;width:100%;height:440px;cursor:grab;touch-action:pan-y;outline:none}
+#stage:active{cursor:grabbing}
+#stage:focus-visible{box-shadow:inset 0 0 0 2px var(--pk-accent)}
+@media (max-width:560px){#stage{height:380px}}
+.hint{position:absolute;left:0;right:0;bottom:12px;text-align:center;font-size:12.5px;color:var(--pk-dim);pointer-events:none;transition:opacity .5s}
+.hint.off{opacity:0}
+.trials{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--edge);flex-wrap:wrap;align-items:center}
+.trial{font:inherit;font-size:13px;color:var(--pk-ink);background:transparent;border:1px solid var(--edge);border-radius:8px;padding:8px 12px;cursor:pointer;transition:border-color .2s,background .2s,transform .15s}
+.trial:hover:not(:disabled){border-color:var(--pk-dim)}
+.trial:active:not(:disabled){transform:scale(.97)}
+.trial[aria-pressed="true"]{border-color:var(--pk-accent);background:rgba(217,87,59,.12)}
+.trial:disabled{opacity:.35;cursor:not-allowed}
+.trial b{font-family:var(--mono);color:var(--pk-accent);margin-right:6px}
+.trial.new{animation:glow 1.6s ease-in-out 3}
+@keyframes glow{50%{box-shadow:0 0 0 4px rgba(217,87,59,.28)}}
+.trials .sp{flex:1}
+.mini{font:inherit;font-size:12.5px;color:var(--pk-dim);background:none;border:0;padding:8px 6px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.mini:hover{color:var(--pk-ink)}
+.side{display:flex;flex-direction:column;height:0;min-height:100%}
+@media (max-width:820px){.side{height:auto;min-height:0}}
+.meters{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--edge);border-bottom:1px solid var(--edge)}
+.meter{background:var(--panel);padding:12px 14px}
+.meter span{display:block;font-size:11px;letter-spacing:.08em;color:var(--pk-dim)}
+.meter b{font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums}
+.meter.wide{grid-column:1/-1}
+#st{transition:color .3s}
+#st.bad{color:var(--bad)} #st.ok{color:var(--ok)} #st.warn{color:var(--gold)}
+.log{font-family:var(--mono);font-size:12.5px;line-height:1.75;padding:12px 14px;margin:0;list-style:none;overflow-y:auto;flex:1 1 0;min-height:0}
+@media (max-width:820px){.log{height:auto;max-height:260px}}
+.log li{margin:0 0 8px;opacity:0;transform:translateY(4px);transition:opacity .4s,transform .4s;color:#c9c2b3}
+.log li.in{opacity:1;transform:none}
+.log li.x{color:var(--bad)} .log li.v{color:var(--ok)} .log li.g{color:var(--gold)}
+
+/* ── 遠方 ── */
+.far[hidden]{display:none}
+.far{padding-top:12vh;padding-bottom:4vh}
+.far h2{font-family:var(--pk-serif);font-size:clamp(24px,4.4vw,36px);line-height:1.45;font-weight:600;margin:0 0 22px}
+.far p{font-size:17px;color:#d3ccbe;margin:0 0 20px}
+.far .big{font-family:var(--pk-serif);font-size:clamp(30px,6vw,52px);color:var(--pk-ink);margin:40px 0}
+.towerfig{display:grid;grid-template-columns:200px 1fr;gap:28px;align-items:end;margin:48px 0}
+@media (max-width:560px){.towerfig{grid-template-columns:1fr;justify-items:center}}
+.towerfig svg{width:200px;height:auto;overflow:visible}
+.stats{list-style:none;padding:0;margin:0}
+.stats li{border-top:1px solid var(--edge);padding:12px 0;display:flex;gap:14px;align-items:baseline}
+.stats b{font-family:var(--mono);font-size:24px;font-weight:500;color:var(--gold);min-width:4.4em;font-variant-numeric:tabular-nums}
+.stats span{font-size:14.5px;color:#cfc8b9}
+#pg{transform-box:view-box;transform-origin:100px 450px;transition:transform 1.6s cubic-bezier(.2,.8,.2,1),opacity 1.2s}
+#pg.up{transform:scale(9.4);opacity:.42}
+#col{transition:opacity .8s}
+.tf-btn{margin-top:18px}
+.coda{padding-top:10vh;padding-bottom:6vh}
+.coda p{font-family:var(--pk-serif);font-size:clamp(19px,3vw,25px);line-height:1.8;color:var(--pk-ink);margin:0 0 26px}
+.coda p.dim{color:var(--pk-dim);font-size:17px}
+@media (prefers-reduced-motion: reduce){
+  .log li{transition:none;opacity:1;transform:none}
+  .trial.new{animation:none}
+  #pg,#col{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="hook">
+  <div class="pk-wrap">
+    <p class="tag rv">振動台試驗 · 縮尺模型 · 今晚</p>
+    <h1 class="rv">上千年來，日本的木造五重塔<br>幾乎沒有一座被地震<em>震倒</em>。</h1>
+    <p class="lead rv">怪的是，拆開來看，它的五層樓一層層疊著、沒有釘死。這台振動台交給你。先搖垮兩座，再看第三座為什麼不肯倒。</p>
+    <button class="pk-btn rv" id="go" type="button">接通振動台 ↓</button>
+  </div>
+  <svg class="sil" viewBox="0 0 100 200" aria-hidden="true"><g fill="#ebe5d8">
+    <rect x="49" y="0" width="2" height="44"/><rect x="18" y="44" width="64" height="6"/><rect x="30" y="50" width="40" height="22"/>
+    <rect x="12" y="72" width="76" height="6"/><rect x="27" y="78" width="46" height="22"/><rect x="7" y="100" width="86" height="6"/>
+    <rect x="24" y="106" width="52" height="22"/><rect x="3" y="128" width="94" height="6"/><rect x="21" y="134" width="58" height="24"/>
+    <rect x="0" y="158" width="100" height="7"/><rect x="18" y="165" width="64" height="26"/><rect x="10" y="191" width="80" height="9"/></g></svg>
+</header>
+
+<section class="rig" id="rig" aria-labelledby="rigt">
+  <div class="bar"><span class="dot" id="dot"></span><span id="rigt">SHAKE-TABLE 05 ／ 受測物：五重塔縮尺模型</span><span class="sp"></span><span id="clock">t = 0.0 s</span></div>
+  <div class="desk">
+    <div class="stagebox">
+      <canvas id="stage" tabindex="0" role="img" aria-label="振動台與塔的即時畫面。拖曳台面左右搖晃；鍵盤用左右方向鍵，空白鍵播放一場地震。" aria-describedby="hint"></canvas>
+      <p class="hint" id="hint">← 按住台面左右拖，越急越狠 →</p>
+      <div class="trials" role="group" aria-label="選擇試驗">
+        <button class="trial" type="button" data-t="A" aria-pressed="true"><b>A</b>膠死的塔</button>
+        <button class="trial" type="button" data-t="B" aria-pressed="false" disabled><b>B</b>層層鬆開</button>
+        <button class="trial" type="button" data-t="C" aria-pressed="false" disabled><b>C</b>中間一根柱</button>
+        <span class="sp"></span>
+        <button class="mini" type="button" id="quake">播一場地震</button>
+        <button class="mini" type="button" id="reset">重擺</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="meters">
+        <div class="meter"><span>台面加速度</span><b id="acc">0</b></div>
+        <div class="meter"><span>最大層間錯位</span><b id="dr">0.0</b></div>
+        <div class="meter wide"><span>狀態</span><b id="st">待機</b></div>
+      </div>
+      <ol class="log" id="log" role="log" aria-live="polite" aria-label="試驗紀錄"></ol>
+    </div>
+  </div>
+</section>
+
+<section class="far pk-wrap" id="far" hidden aria-labelledby="fart">
+  <h2 id="fart" class="rv">2011 年 3 月 11 日下午，東京墨田區，有一座塔還沒蓋完。</h2>
+  <p class="rv">東北外海的地震傳到東京。這座塔的設計高度是 634 公尺，那天已經長過 600 公尺；工程團隊事後估計，塔頂往旁邊晃了 4 到 6 公尺。</p>
+  <p class="big rv">它沒有受損。</p>
+  <p class="rv">東京晴空塔的正中央，藏著一根鋼筋混凝土圓筒：直徑 8 公尺、高 375 公尺。設計者叫它「心柱」——名字直接借自五重塔。</p>
+  <div class="towerfig rv">
+    <svg viewBox="0 0 200 460" role="img" aria-labelledby="tft">
+      <title id="tft">晴空塔剖面示意：外側鋼骨塔身、中央心柱；可把五重塔放大疊上去比較。</title>
+      <defs><linearGradient id="cg" gradientUnits="userSpaceOnUse" x1="0" y1="190" x2="0" y2="450"><stop offset="0" stop-color="#e3b65c"/><stop offset="1" stop-color="#b8862f"/></linearGradient></defs>
+      <g fill="none" stroke="#8d887d" stroke-width="1.2">
+        <path d="M40 450 L88 130 L94 30 M160 450 L112 130 L106 30"/>
+        <path d="M46 410 L154 410 M52 370 L148 370 M58 330 L142 330 M64 290 L136 290 M70 250 L130 250 M76 213 L124 213 M83 170 L117 170"/>
+        <path d="M46 410 L148 370 M154 410 L52 370 M58 330 L136 290 M142 330 L64 290 M70 250 L124 213 M130 250 L76 213"/>
+        <rect x="76" y="198" width="48" height="14" rx="3" fill="#15181d"/>
+        <rect x="86" y="128" width="28" height="10" rx="3" fill="#15181d"/>
+        <path d="M100 30 L100 4" stroke-width="2"/>
+      </g>
+      <rect id="col" x="96" y="190" width="8" height="260" fill="url(#cg)"/>
+      <g id="pg" aria-hidden="true">
+        <rect x="99.7" y="412" width=".6" height="8" fill="#e3b65c"/>
+        <g fill="#d9573b" opacity=".85">
+          <rect x="93" y="420" width="14" height="1.5"/><rect x="96" y="421.5" width="8" height="4.5"/>
+          <rect x="92" y="426" width="16" height="1.5"/><rect x="95.5" y="427.5" width="9" height="4.5"/>
+          <rect x="91" y="432" width="18" height="1.5"/><rect x="95" y="433.5" width="10" height="4.5"/>
+          <rect x="90" y="438" width="20" height="1.5"/><rect x="94.5" y="439.5" width="11" height="4.5"/>
+          <rect x="89" y="444" width="22" height="1.6"/><rect x="94" y="445.6" width="12" height="4.4"/>
+        </g>
+        <rect x="99.75" y="420" width=".5" height="30" fill="#e3b65c"/>
+      </g>
+      <line x1="20" y1="450" x2="180" y2="450" stroke="#8d887d"/>
+    </svg>
+    <div>
+      <ul class="stats">
+        <li><b data-n="634">0</b><span>公尺：塔的高度（2012 年完工）</span></li>
+        <li><b data-n="375">0</b><span>公尺：心柱的高度，直徑 8 公尺</span></li>
+        <li><b data-n="125">0</b><span>公尺以下，心柱和鋼骨塔身用鋼材固定；再往上，兩者分開，中間靠油壓阻尼器連著</span></li>
+        <li><b data-n="50" data-s="%">0</b><span>強風與地震時的搖晃，最多可以減少約一半</span></li>
+      </ul>
+      <button class="pk-btn tf-btn" type="button" id="stack" aria-pressed="false">把剛才那座五重塔疊上去</button>
+    </div>
+  </div>
+  <p class="rv" id="stackmsg">外面的塔和裡面的柱，被刻意做成搖晃節奏不一樣。一個往左時，另一個還在往右，彼此拖住——和你剛才看到的樓層撞上心柱，是同一件事。</p>
+</section>
+
+<section class="coda pk-wrap" id="coda" hidden>
+  <p class="rv">一千多年前的木匠沒有留下計算書。</p>
+  <p class="rv">他們在塔的正中間，立了一根什麼樓層都不扛、頂端只托著塔尖的柱子，然後讓每一層樓自由地晃。</p>
+  <p class="rv">等地面再動，樓層會去撞它。</p>
+  <p class="rv">然後停下來。</p>
+  <p class="dim rv"><button class="pk-btn" type="button" id="again">回振動台，把三座再搖一次 ↑</button></p>
+</section>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：日本政府廣報〈Pillars of Strength〉、東京都 Tokyo Updates、國土交通省多言語解說（東寺五重塔）、tabi-mag（日光東照宮五重塔）。模擬為示意模型，非結構計算。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="sim.js"></script>
+<script>
+'use strict';
+const LS = 'pgda5.';
+const store = PK.store(LS);
+PK.reveal();
+
+const $ = s => document.querySelector(s);
+const cv = $('#stage'), ctx = cv.getContext('2d');
+const logEl = $('#log'), stEl = $('#st'), accEl = $('#acc'), drEl = $('#dr'), dot = $('#dot'), clock = $('#clock');
+const trialBtns = [...document.querySelectorAll('.trial')];
+const MODE = { A: 'rigid', B: 'loose', C: 'pillar' };
+const STRONG = TowerSim.P.RIGID_T;
+
+let reduced = PK.reduced();
+PK.onMotionChange(v => { reduced = v; });
+
+/* ── 狀態 ── */
+let unlocked = Math.max(1, Math.min(3, store.get('unlocked', 1)));
+let trial = 'A', sim, tb, target = 0, dragging = false, keyDir = 0, quakeT = -1;
+let strongSec = 0, idleSec = 0, phase = 'ready', fallT = 0, debris = [], trace = new Array(160).fill(0);
+let said = {}, hitsShown = 0, flash = 0;
+
+function say(txt, cls) {
+  const li = document.createElement('li');
+  li.textContent = txt; if (cls) li.className = cls;
+  logEl.appendChild(li);
+  requestAnimationFrame(() => li.classList.add('in'));
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function once(key, txt, cls) { if (!said[key]) { said[key] = 1; say(txt, cls); } }
+function setStatus(t, cls) { stEl.textContent = t; stEl.className = cls || ''; dot.classList.toggle('red', cls === 'bad'); }
+
+function syncTrials() {
+  trialBtns.forEach((b, i) => {
+    b.disabled = i >= unlocked;
+    b.setAttribute('aria-pressed', String(b.dataset.t === trial));
+  });
+}
+function reset() {
+  sim = TowerSim.create(MODE[trial]);
+  tb = { x: 0, v: 0 }; target = 0; quakeT = -1; strongSec = 0; idleSec = 0;
+  phase = 'ready'; fallT = 0; debris = []; trace.fill(0); hitsShown = 0;
+  setStatus('待機'); drEl.textContent = '0.0'; accEl.textContent = '0';
+}
+function pick(t) {
+  trial = t; syncTrials(); reset();
+  const intro = {
+    A: '試驗 A：五層樓用膠黏成一整塊。看起來最結實的那種塔。',
+    B: '試驗 B：拆掉膠。每層樓疊在下一層上，榫頭卡著，沒有釘死。',
+    C: '試驗 C：中央立一根心柱，從地面直通塔頂。它不撐任何一層樓，頂端只托著塔尖的相輪。'
+  }[t];
+  say('> ' + intro);
+}
+trialBtns.forEach(b => b.addEventListener('click', () => { if (!b.disabled) pick(b.dataset.t); }));
+
+function unlock(n) {
+  if (n <= unlocked) return;
+  unlocked = n; store.set('unlocked', n); syncTrials();
+  const b = trialBtns[n - 1]; b.classList.remove('new'); void b.offsetWidth; b.classList.add('new');
+}
+
+/* ── 輸入：拖曳台面 ── */
+let geo = { w: 600, h: 440, sc: 1, gy: 380, cx: 300 };
+function layout() {
+  const r = PK.fitCanvas(cv);
+  if (r.w < 80) return;
+  const sc = Math.min(r.w / 440, (r.h - 40) / 420, 1.25);
+  geo = { w: r.w, h: r.h, dpr: r.dpr, sc, gy: r.h - 54 * sc - 8, cx: r.w / 2 };
+}
+const ro = new ResizeObserver(layout); ro.observe(cv); layout();
+
+function px2target(clientX) {
+  const r = cv.getBoundingClientRect();
+  return PK.clamp((clientX - r.left - geo.cx) / geo.sc, -150, 150);
+}
+cv.addEventListener('pointerdown', e => {
+  dragging = true; cv.setPointerCapture(e.pointerId); target = px2target(e.clientX); quakeT = -1; wake();
+});
+cv.addEventListener('pointermove', e => { if (dragging) target = px2target(e.clientX); });
+const endDrag = () => { dragging = false; target = 0; };
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+cv.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { keyDir = e.key === 'ArrowLeft' ? -1 : 1; e.preventDefault(); wake(); }
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); startQuake(); }
+});
+cv.addEventListener('keyup', e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') keyDir = 0; });
+$('#quake').addEventListener('click', startQuake);
+$('#reset').addEventListener('click', () => { reset(); say('> 模型重新擺好。'); });
+
+function startQuake() {
+  if (sim.failed || phase === 'held') reset();
+  quakeT = 0; wake(); once('q' + trial, '> 播放合成地震：約 9 秒，主頻 1 赫茲上下。');
+}
+function wake() { $('#hint').classList.add('off'); if (phase === 'ready') phase = 'run'; }
+
+/* ── 劇情判定 ── */
+function onFail() {
+  phase = 'fallen';
+  setStatus('倒塌', 'bad');
+  if (trial === 'A') {
+    say('× 試驗 A 倒塌。台面一衝過門檻，整座塔繞著牆角翻過去——它太硬了，力氣全往同一個方向推。', 'x');
+    say('> 如果把膠拆掉，讓每層自己晃呢？');
+    unlock(2);
+  } else if (trial === 'B') {
+    say('× 試驗 B：第 ' + (sim.failAt + 1) + ' 層滑落。一搖到和塔自身相同的節奏，每層的錯位越疊越大。', 'x');
+    say('> 光是鬆，比膠死還糟。古代木匠在正中間還放了一樣東西。');
+    unlock(3);
+  } else {
+    say('× 心柱版也倒了？這不該發生，請回報。', 'x');
+  }
+  PK.announce('試驗 ' + trial + ' 倒塌');
+  makeDebris();
+}
+function onHeld() {
+  phase = 'held';
+  setStatus('撐住', 'ok');
+  say('✓ 試驗 C 撐住。最大層間錯位 ' + sim.maxDrift.toFixed(1) + '——試驗 B 一過 ' + TowerSim.P.DMAX + ' 就滑落。', 'v');
+  say('> 每一下「咚」，都是樓層撞上心柱，把一份晃動的力氣吃掉。', 'g');
+  say('> 收到一筆外部紀錄：2011-03-11 14:46，東京都墨田區。往下捲。', 'g');
+  PK.announce('試驗 C 撐住了');
+  openFar();
+}
+
+/* ── 倒塌碎片 ── */
+function floorGeom(i) {
+  const s = geo.sc, fh = 52 * s, w = (128 - i * 13) * s;
+  return { fh, w, y: geo.gy - (i + 1) * fh };
+}
+function makeDebris() {
+  if (trial === 'A') { fallT = 0; return; }
+  const from = sim.failAt, dir = Math.sign(TowerSim.drift(sim, from)) || 1;
+  for (let i = from; i < TowerSim.N; i++) {
+    const g = floorGeom(i);
+    debris.push({ i, x: sim.u[i] * geo.sc, y: 0, vx: dir * (60 + 30 * (i - from)) * geo.sc, vy: -40 * geo.sc, a: 0, va: dir * (1.2 + .4 * (i - from)), rest: false, rest0: 0 });
+  }
+}
+
+/* ── 繪製 ── */
+const C = { wall: '#9b3b29', wallD: '#6e281c', roof: '#2a2f37', roofE: '#3b424c', gold: '#e3b65c', line: 'rgba(235,229,216,.12)', dim: '#8d887d' };
+function drawFloor(x, i, alpha) {
+  const g = floorGeom(i), s = geo.sc, cx = geo.cx + x;
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  const bw = g.w * .62, bh = g.fh - 12 * s;
+  ctx.fillStyle = C.wall; ctx.fillRect(cx - bw / 2, g.y + 12 * s, bw, bh);
+  ctx.fillStyle = C.wallD;
+  for (let k = 1; k < 3; k++) ctx.fillRect(cx - bw / 2 + bw * k / 3 - 1.5 * s, g.y + 12 * s, 3 * s, bh);
+  ctx.fillStyle = C.roof;
+  ctx.beginPath();
+  ctx.moveTo(cx - g.w / 2, g.y + 9 * s); ctx.quadraticCurveTo(cx - g.w / 2 + 10 * s, g.y + 14 * s, cx - g.w * .32, g.y + 13 * s);
+  ctx.lineTo(cx + g.w * .32, g.y + 13 * s); ctx.quadraticCurveTo(cx + g.w / 2 - 10 * s, g.y + 14 * s, cx + g.w / 2, g.y + 9 * s);
+  ctx.lineTo(cx + g.w * .3, g.y); ctx.lineTo(cx - g.w * .3, g.y); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = C.roofE; ctx.fillRect(cx - g.w * .3, g.y, g.w * .6, 2 * s);
+  ctx.globalAlpha = 1;
+}
+function drawFinial(x) {
+  const s = geo.sc, top = floorGeom(4).y;
+  ctx.fillStyle = C.gold;
+  ctx.fillRect(geo.cx + x - 1.5 * s, top - 58 * s, 3 * s, 58 * s);
+  for (let k = 0; k < 6; k++) ctx.fillRect(geo.cx + x - 7 * s, top - 14 * s - k * 7 * s, 14 * s, 2 * s);
+  ctx.beginPath(); ctx.arc(geo.cx + x, top - 60 * s, 4 * s, 0, 7); ctx.fill();
+}
+function drawTrace() {
+  const s = geo.sc, y0 = 36, w = geo.w - 40;
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(20, y0); ctx.lineTo(20 + w, y0); ctx.stroke();
+  ctx.strokeStyle = 'rgba(217,87,59,.18)';
+  ctx.beginPath(); [-1, 1].forEach(k => { ctx.moveTo(20, y0 + k * 24 * STRONG / 6000); ctx.lineTo(20 + w, y0 + k * 24 * STRONG / 6000); }); ctx.stroke();
+  ctx.strokeStyle = '#d9573b'; ctx.lineWidth = 1.4; ctx.beginPath();
+  for (let i = 0; i < trace.length; i++) {
+    const x = 20 + w * i / (trace.length - 1), y = y0 + PK.clamp(trace[i] / 6000, -1, 1) * 24;
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.stroke();
+  ctx.fillStyle = C.dim; ctx.font = '11px ui-monospace,monospace'; ctx.fillText('ACC', 20, 16);
+}
+function draw() {
+  const { w, h, dpr, sc, gy, cx } = geo;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+  drawTrace();
+  /* 地面與台面 */
+  const tx = tb.x * sc;
+  ctx.fillStyle = '#1b1f25'; ctx.fillRect(0, gy + 8 * sc, w, h - gy);
+  ctx.strokeStyle = C.line; ctx.beginPath(); ctx.moveTo(0, gy + 8 * sc); ctx.lineTo(w, gy + 8 * sc); ctx.stroke();
+  ctx.fillStyle = '#2b3038'; ctx.fillRect(cx + tx - 150 * sc, gy, 300 * sc, 8 * sc);
+  ctx.fillStyle = '#3c434d'; ctx.fillRect(cx + tx - 150 * sc, gy, 300 * sc, 2 * sc);
+  for (let k = -2; k <= 2; k++) { ctx.beginPath(); ctx.arc(cx + tx + k * 60 * sc, gy + 11 * sc, 3 * sc, 0, 7); ctx.fillStyle = '#4a525d'; ctx.fill(); }
+
+  ctx.save(); ctx.translate(tx, 0);
+  if (trial === 'A') {
+    let ang = (sim.lean || 0) * .16;
+    if (sim.failed) ang = Math.sign(ang || 1) * Math.min(1.42, .16 + fallT * fallT * 2.6);
+    const pivotX = cx + (ang > 0 ? 1 : -1) * floorGeom(0).w * .31;
+    ctx.translate(pivotX, gy); ctx.rotate(ang); ctx.translate(-pivotX, -gy);
+    for (let i = 0; i < 5; i++) drawFloor(0, i);
+    drawFinial(0);
+  } else {
+    const failed = sim.failed, from = failed ? sim.failAt : 5;
+    for (let i = 0; i < Math.min(5, from); i++) drawFloor(sim.u[i] * sc, i);
+    if (trial === 'C') {
+      /* 心柱（半透明透視） */
+      ctx.strokeStyle = C.gold; ctx.lineWidth = 4 * sc; ctx.globalAlpha = .8; ctx.beginPath();
+      ctx.moveTo(cx, gy);
+      for (let i = 0; i < 5; i++) ctx.lineTo(cx + sim.q * TowerSim.SHAPE[i] * sc, floorGeom(i).y);
+      ctx.stroke(); ctx.globalAlpha = 1;
+      /* 撞擊點 */
+      for (let i = 0; i < 5; i++) {
+        const rel = sim.u[i] - sim.q * TowerSim.SHAPE[i];
+        if (Math.abs(rel) >= TowerSim.P.GAP - .05 && flash > 0) {
+          const g = floorGeom(i), x = cx + sim.q * TowerSim.SHAPE[i] * sc + Math.sign(rel) * 3 * sc;
+          ctx.fillStyle = 'rgba(227,182,92,' + (.35 + .5 * flash) + ')';
+          ctx.beginPath(); ctx.arc(x, g.y + g.fh * .55, 5 * sc, 0, 7); ctx.fill();
+        }
+      }
+      drawFinial(sim.q * sc);
+    } else if (!failed) drawFinial(sim.u[4] * sc);
+    debris.forEach(d => {
+      const g = floorGeom(d.i);
+      ctx.save(); ctx.translate(cx + d.x, g.y + g.fh / 2 + d.y); ctx.rotate(d.a); ctx.translate(-cx, -(g.y + g.fh / 2));
+      drawFloor(0, d.i); if (d.i === 4) drawFinial(0); ctx.restore();
+    });
+  }
+  ctx.restore();
+}
+
+/* ── 主迴圈 ── */
+function frame(dt) {
+  if (!dt) { draw(); return; }
+  let tgt = target;
+  if (keyDir) tgt = keyDir * 120;
+  if (quakeT >= 0) { quakeT += dt; tgt = TowerSim.quake(quakeT); if (quakeT > 9.2) { quakeT = -1; quakeEnded(); } }
+  const ag = TowerSim.table(tb, tgt, dt);
+  trace.push(ag); trace.shift();
+  if (phase === 'run' || phase === 'held') {
+    TowerSim.step(sim, ag, dt);
+    if (Math.abs(ag) > STRONG) strongSec += dt; else idleSec += dt;
+    clock.textContent = 't = ' + sim.t.toFixed(1) + ' s';
+    const shaking = Math.abs(ag) > STRONG * .5;
+    if (!sim.failed && phase === 'run') setStatus(shaking ? '搖晃中' : '穩定', shaking ? 'warn' : '');
+    if (sim.hits > hitsShown) { flash = 1; hitsShown = sim.hits; }
+    storyBeats();
+    if (sim.failed) onFail();
+    else if (trial === 'C' && strongSec > 4.5 && unlocked >= 3 && !said.held) { said.held = 1; onHeld(); }
+  } else if (phase === 'fallen') {
+    fallT += dt;
+    debris.forEach(d => {
+      if (d.rest) return;
+      d.vy += 1400 * geo.sc * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.a += d.va * dt;
+      const fg = floorGeom(d.i), floorY = (geo.gy - fg.fh * .32) - (fg.y + fg.fh / 2);
+      if (d.y > floorY) { d.y = floorY; d.vy = 0; d.vx *= .5; d.va = 0; d.a = Math.sign(d.a) * Math.min(Math.abs(d.a), 1.5); if (Math.abs(d.vx) < 8) d.rest = true; }
+    });
+    if (reduced) { fallT = 2; debris.forEach(d => { d.rest = true; }); }
+  }
+  flash = Math.max(0, flash - dt * 4);
+  accEl.textContent = Math.round(Math.abs(ag) / 10);
+  drEl.textContent = sim.maxDrift.toFixed(1);
+  draw();
+}
+function storyBeats() {
+  const s = strongSec;
+  if (trial === 'A' && sim.t > 7 && s < .3) once('soft', '> 太溫柔了，小地震它撐得住。再急一點、再狠一點。');
+  if (trial === 'B' && sim.maxDrift > 12) once('snake', '> 看它扭：一層往左，上一層往右，像一條蛇。晃得很漂亮——但每層之間越錯越開。', 'g');
+  if (trial === 'C' && sim.hits > 0 && s > .2) once('dong', '> 咚。樓層撞上心柱了。', 'g');
+  if (trial === 'C' && s > 1) once('nikko', '> 日光東照宮那座五重塔更絕：心柱是從第四層吊下來的，像一顆鐘擺。');
+}
+function quakeEnded() {
+  if (phase !== 'run' || sim.failed) return;
+  if (trial === 'C') { if (!said.held) { said.held = 1; onHeld(); } }
+  else say('> 撐過這一場了。用拖的，猛一點、快一點。');
+}
+PK.tick(frame);
+
+/* ── 遠方：晴空塔 ── */
+function openFar() {
+  const far = $('#far'), coda = $('#coda');
+  if (!far.hidden) return;
+  far.hidden = false; coda.hidden = false; store.set('far', 1);
+  PK.reveal('#far .rv, #coda .rv');
+  countUp();
+}
+function countUp() {
+  const io = new IntersectionObserver(es => {
+    es.forEach(e => {
+      if (!e.isIntersecting) return;
+      io.unobserve(e.target);
+      const el = e.target, n = +el.dataset.n, suf = el.dataset.s || '';
+      if (reduced) { el.textContent = n + suf; return; }
+      let t = 0; const f = dt => { t += dt; const k = Math.min(1, t / 1.2); el.textContent = Math.round(n * (1 - Math.pow(1 - k, 3))) + suf; if (k >= 1) PK.untick(f); };
+      PK.tick(f);
+    });
+  }, { threshold: .6 });
+  document.querySelectorAll('.stats b').forEach(b => io.observe(b));
+}
+$('#stack').addEventListener('click', e => {
+  const up = $('#pg').classList.toggle('up');
+  e.currentTarget.setAttribute('aria-pressed', String(up));
+  e.currentTarget.textContent = up ? '縮回原本大小' : '把剛才那座五重塔疊上去';
+  PK.announce(up ? '五重塔放大疊在晴空塔上：兩根心柱對在同一條線。' : '五重塔縮回原尺寸。');
+});
+$('#again').addEventListener('click', () => { PK.scrollTo($('#rig')); setTimeout(() => cv.focus({ preventScroll: true }), 400); });
+$('#go').addEventListener('click', () => { PK.scrollTo($('#rig')); setTimeout(() => cv.focus({ preventScroll: true }), 500); });
+
+/* ── 開機 ── */
+syncTrials(); reset();
+say('> 振動台上線。受測物：五重塔縮尺模型，五層，木造。');
+say('> 試驗 A：五層樓用膠黏成一整塊。看起來最結實的那種塔。');
+say('> 按住台面左右拖。越急，地震越大。（鍵盤：← →；空白鍵播一場地震）');
+if (unlocked > 1) say('> 歡迎回來，上次解鎖的試驗都還在。');
+if (store.get('far', 0)) openFar();
+</script>
+</body>
+</html>

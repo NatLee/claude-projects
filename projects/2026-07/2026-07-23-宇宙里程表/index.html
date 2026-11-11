@@ -267,7 +267,8 @@
   /* ---------- 星空 warp ---------- */
   var cv = $("sky"), ctx = cv.getContext("2d");
   var dpr = Math.min(window.devicePixelRatio||1, 2);
-  var W=0, H=0, stars=[], N=150, warp=0.11, boost=0, lastT=0, running=true;
+  var W=0, H=0, stars=[], N=150, warp=0.11, boost=0, lastT=0, running=true, rafId=0;
+  function startLoop(){ cancelAnimationFrame(rafId); running=true; lastT=0; rafId=requestAnimationFrame(frame); }
   function resize(){
     var w = Math.max(1, Math.round(innerWidth*dpr));
     var h = Math.max(1, Math.round(innerHeight*dpr));
@@ -317,22 +318,24 @@
       }
       s.px=p[0]; s.py=p[1]; s.seen=true;
     }
-    requestAnimationFrame(frame);
+    rafId=requestAnimationFrame(frame);
   }
   function startSky(){
     resize(); seed();
     if(reduce.matches){ drawStatic(); running=false; return; }
-    running=true; lastT=0; requestAnimationFrame(frame);
+    startLoop();
   }
   addEventListener("resize", function(){ resize(); if(reduce.matches) drawStatic(); });
   document.addEventListener("visibilitychange", function(){
     if(document.hidden){ running=false; }
-    else if(!reduce.matches){ running=true; lastT=0; requestAnimationFrame(frame); }
+    else if(!reduce.matches){ startLoop(); }
   });
-  reduce.addEventListener && reduce.addEventListener("change", function(){
-    seed(); if(reduce.matches){ running=false; drawStatic(); }
-    else { running=true; lastT=0; requestAnimationFrame(frame); }
-  });
+  function onReduce(){
+    seed(); if(reduce.matches){ running=false; cancelAnimationFrame(rafId); drawStatic(); }
+    else { startLoop(); }
+  }
+  if(reduce.addEventListener) reduce.addEventListener("change", onReduce);
+  else if(reduce.addListener) reduce.addListener(onReduce);
 
   /* ---------- 里程表：roll-in + live ---------- */
   var birthMs = null, openMs = Date.now();

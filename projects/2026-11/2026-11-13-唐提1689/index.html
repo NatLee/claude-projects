@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>你必須是最後一個活著的人｜每日小專案</title>
+<meta name="description" content="1689 年，路易十四賣給巴黎人一張紙：同一級的人死一個，活著的人就多領一份。你要把它押在誰的命上？">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#100d0a; --pk-ink:#efe6d2; --pk-dim:#9a8e78; --pk-accent:#d9a441;
+  --paper:#e9dcc0; --paper-ink:#2b2117; --paper-dim:#7d6b52; --blood:#8c2f22;
+  --pk-maxw:720px;
+}
+body{background:
+  radial-gradient(120% 70% at 50% -10%, #2a1f14 0%, transparent 60%),
+  var(--pk-bg);}
+.serif{font-family:var(--pk-serif)}
+
+/* ── 第一屏：燭光 ── */
+.hook{min-height:100svh;display:flex;flex-direction:column;justify-content:center;padding-top:80px;padding-bottom:60px}
+.hook .when{letter-spacing:.32em;color:var(--pk-dim);font-size:13px;margin:0 0 26px}
+.hook h1{font-family:var(--pk-serif);font-weight:600;font-size:clamp(28px,6.6vw,46px);line-height:1.45;margin:0 0 18px}
+.hook .lede{font-size:17px;color:#d8ccb4;max-width:30em;margin:0 0 34px}
+.candle{position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:radial-gradient(40vmax 40vmax at 50% 105%, rgba(217,164,65,.14), transparent 70%);
+  animation:flick 5s ease-in-out infinite}
+@keyframes flick{0%,100%{opacity:.85}45%{opacity:1}60%{opacity:.75}}
+
+/* 條款逐行 */
+.terms{list-style:none;padding:0;margin:0 0 30px;font-family:var(--pk-serif);font-size:clamp(18px,4.2vw,23px);line-height:1.7}
+.terms li{opacity:0;transform:translateY(10px);transition:opacity .7s ease,transform .7s ease;margin:0 0 10px}
+.terms li.on{opacity:1;transform:none}
+.terms li.punch{color:var(--pk-accent)}
+.terms[hidden]{display:none}
+
+/* 選人 */
+.pick{display:grid;gap:12px;margin:8px 0 0}
+.pick[hidden]{display:none}
+.pick h2{font-family:var(--pk-serif);font-size:22px;font-weight:600;margin:0 0 6px}
+.who{all:unset;cursor:pointer;display:grid;grid-template-columns:52px 1fr;gap:4px 14px;align-items:center;
+  border:1px solid rgba(239,230,210,.18);border-radius:14px;padding:14px 16px;transition:border-color .25s,background .25s,transform .15s}
+.who:hover,.who:focus-visible{border-color:var(--pk-accent);background:rgba(217,164,65,.07)}
+.who:focus-visible{outline:2px solid var(--pk-accent);outline-offset:3px}
+.who:active{transform:scale(.99)}
+.who .age{grid-row:span 2;font-family:var(--pk-serif);font-size:26px;color:var(--pk-accent);text-align:center}
+.who b{font-weight:600;font-size:16px}
+.who small{color:var(--pk-dim);font-size:13.5px;line-height:1.6}
+
+/* ── 帳簿 ── */
+#game[hidden],#after[hidden],#coda[hidden]{display:none}
+#game{padding-top:40px;padding-bottom:10px}
+.yearbar{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 14px}
+.year{font-family:var(--pk-serif);font-size:clamp(46px,12vw,76px);line-height:1;letter-spacing:.02em}
+.stats{display:flex;gap:20px;font-size:13px;color:var(--pk-dim)}
+.stats div{text-align:right}
+.stats strong{display:block;font-family:var(--pk-serif);font-size:24px;color:var(--pk-ink);font-weight:600;font-variant-numeric:tabular-nums}
+.stats .mine strong{color:var(--pk-accent)}
+
+.ledger{background:var(--paper);color:var(--paper-ink);border-radius:6px;padding:18px 16px 14px;
+  box-shadow:0 30px 60px -30px #000, inset 0 0 60px rgba(120,90,40,.25);position:relative}
+.ledger header{display:flex;justify-content:space-between;font-family:var(--pk-serif);font-size:13px;color:var(--paper-dim);
+  border-bottom:1px solid rgba(43,33,23,.25);padding-bottom:8px;margin-bottom:10px;gap:10px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 10px;font-family:var(--pk-serif);font-size:12.5px;line-height:1.75}
+@media (max-width:559px){.grid{grid-template-columns:repeat(4,1fr);gap:0 8px;font-size:11.5px}.ledger{padding:14px 12px 10px}}
+.n{position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:opacity .6s ease,color .6s}
+.n::after{content:"";position:absolute;left:0;right:0;top:52%;height:1.5px;background:var(--paper-ink);
+  transform:scaleX(0);transform-origin:left center;transition:transform .5s ease}
+.n.dead{opacity:.38}
+.n.dead::after{transform:scaleX(1)}
+.n.me{color:var(--blood);font-weight:700}
+.n.me::before{content:"✦ "}
+.n.me.dead::after{background:var(--blood);height:2px}
+.n.flash{animation:fl .9s ease}
+@keyframes fl{0%{color:var(--blood)}100%{}}
+
+.voice{min-height:5.6em;margin:22px 0 10px;font-family:var(--pk-serif);font-size:17.5px;line-height:1.8}
+.voice em{font-style:normal;color:var(--pk-accent)}
+.acts{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}
+.acts .pk-btn{font-size:14.5px;padding:11px 20px}
+.pk-btn.ghost{color:var(--pk-dim);border-color:rgba(239,230,210,.25)}
+.pk-btn.ghost:hover{background:rgba(239,230,210,.1);color:var(--pk-ink)}
+
+/* 收入曲線（小火花線，canvas） */
+.spark{display:block;width:100%;height:64px;margin:4px 0 0}
+
+/* ── 結局與帳簿最後一頁 ── */
+#after{padding-top:20px;padding-bottom:20px}
+.endcard{border-left:3px solid var(--pk-accent);padding:4px 0 4px 18px;margin:0 0 28px;font-family:var(--pk-serif);font-size:18px;line-height:1.85}
+.endcard h3{margin:0 0 8px;font-size:24px;font-weight:600}
+.memo{font-size:13px;color:var(--pk-dim);margin:-10px 0 28px}
+
+#coda{padding-top:40px}
+.lastpage{background:var(--paper);color:var(--paper-ink);padding:34px 26px;border-radius:4px;font-family:var(--pk-serif);
+  box-shadow:0 40px 80px -40px #000, inset 0 0 70px rgba(120,90,40,.3);margin:0 0 50px}
+.lastpage .k{font-size:12px;letter-spacing:.3em;color:var(--paper-dim);margin:0 0 18px}
+.lastpage .name{font-size:clamp(30px,7vw,44px);margin:0 0 6px}
+.lastpage .meta{color:var(--paper-dim);margin:0 0 24px}
+.ratio{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:0 0 6px}
+.ratio .from{font-size:22px;color:var(--paper-dim)}
+.ratio .arrow{font-size:22px;color:var(--paper-dim)}
+.ratio .to{font-size:clamp(44px,12vw,72px);line-height:1;color:var(--blood);font-variant-numeric:tabular-nums}
+.ratio small{font-size:16px}
+.lastpage p{margin:14px 0 0;line-height:1.85}
+.prose{font-size:16.5px}
+.prose p{margin:0 0 20px}
+.prose .big{font-family:var(--pk-serif);font-size:clamp(22px,5vw,30px);line-height:1.55;margin:44px 0}
+.prose .big em{font-style:normal;color:var(--pk-accent)}
+.stamp{display:inline-block;border:2px solid var(--blood);color:var(--blood);padding:2px 10px;transform:rotate(-4deg);font-size:14px;letter-spacing:.2em;margin-top:18px}
+.mem{font-size:12.5px;color:var(--pk-dim);margin:0 0 6px}
+
+@media (prefers-reduced-motion: reduce){
+  .candle{animation:none}
+  .terms li,.n,.n::after{transition:none}
+  .n.flash{animation:none}
+}
+</style>
+</head>
+<body>
+<div class="candle" aria-hidden="true"></div>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-wrap hook" id="top">
+  <p class="when">巴黎　·　一六八九年冬</p>
+  <h1>國王缺錢打仗。<br>他派人來，賣你一張很奇怪的紙。</h1>
+  <p class="lede">價錢三百里弗爾。賣紙的人說，條款很短，聽完再決定。</p>
+  <div><button class="pk-btn" id="listen">讓他念條款</button></div>
+
+  <ol class="terms" id="terms" hidden aria-live="polite">
+    <li>一、你交三百里弗爾，每年領利息，領到死為止。</li>
+    <li>二、不是你死——是你在紙上寫下的那個人。</li>
+    <li>三、同一年齡級的一百張紙，利息合起來是一筆固定的錢。</li>
+    <li class="punch">四、有人死了，他那份不退，分給還活著的人。</li>
+    <li class="punch">五、最後一個活著的，全拿。</li>
+  </ol>
+
+  <div class="pick" id="pick" hidden>
+    <h2>你要把這張紙，押在誰的命上？</h2>
+    <button class="who" data-who="manon"><span class="age">5</span><b>女兒瑪儂</b><small>街坊都這樣押：挑個過了出痘年紀的小女孩。</small></button>
+    <button class="who" data-who="self"><span class="age">41</span><b>你自己</b><small>至少錢是自己花。這一級全是跟你差不多的商人。</small></button>
+    <button class="who" data-who="pere"><span class="age">67</span><b>你父親</b><small>他身子還硬朗。老人那一級的人少、走得快——剩下的人分得快。</small></button>
+  </div>
+</header>
+
+<main>
+  <section id="game" class="pk-wrap" hidden aria-labelledby="yr">
+    <div class="yearbar">
+      <div class="year" id="yr">1689</div>
+      <div class="stats">
+        <div>還活著<strong id="alive">100</strong></div>
+        <div class="mine">你今年領<strong id="pay">15</strong></div>
+        <div>累計<strong id="tot">0</strong></div>
+      </div>
+    </div>
+    <div class="ledger">
+      <header><span id="cls">第一級 · 0–5 歲</span><span>年息合計 1,500 里弗爾</span></header>
+      <div class="grid" id="grid" role="list" aria-label="同級一百位受益人名冊"></div>
+    </div>
+    <canvas class="spark" id="spark" aria-hidden="true"></canvas>
+    <div class="voice" id="voice" aria-live="polite"></div>
+    <div class="acts" id="acts"></div>
+  </section>
+
+  <section id="after" class="pk-wrap" hidden>
+    <div class="endcard" id="endcard" aria-live="polite"></div>
+    <p class="memo" id="memo"></p>
+    <div class="acts">
+      <button class="pk-btn" id="toLast">翻到帳簿最後一頁</button>
+      <button class="pk-btn ghost" id="again">重新押一次</button>
+    </div>
+  </section>
+
+  <section id="coda" class="pk-wrap" hidden>
+    <div class="lastpage" id="lastpage">
+      <p class="k">一六八九年唐提 · 真實紀錄</p>
+      <p class="name">夏洛特・巴比耶</p>
+      <p class="meta">寡婦。一七二六年過世，九十六歲。</p>
+      <div class="ratio" aria-label="她最初投入三百里弗爾，最後一次領到七萬三千里弗爾">
+        <span class="from">300</span><span class="arrow">→</span><span class="to" id="bigNum">300</span><small>里弗爾</small>
+      </div>
+      <p>左邊是她入場的錢。右邊是她<b>最後一次</b>領到的一筆。</p>
+      <p>算一算：她入場那年大約五十九歲。不是那種被押上的五歲小女孩——她不過是她那一級裡，撐得最久的人。</p>
+      <span class="stamp">最後一人</span>
+    </div>
+
+    <div class="prose">
+      <p>這種紙叫<b>唐提</b>（tontine），名字來自那不勒斯銀行家洛倫佐・德・唐提，據說一六五三年他在法國推銷過這個點子，被巴黎高等法院擋了下來。三十多年後，缺軍費的路易十四真的開賣，而那時唐提已經在失意中過世。</p>
+      <p>國王算的是：人會死，利息會慢慢沒人領。他沒算到買紙的人更會算。</p>
+      <p>四年後的倫敦照抄了一次。一六九三年那期，一千零一十二個被押上的名字，大部分是小孩，最小的才出生一天。五十六年後的一七四九年，還有兩百六十九人活著，每年照領。</p>
+      <p>於是十八世紀末，各國政府漸漸不再發唐提。投資人專挑五歲左右的女孩，國庫一直賠。</p>
+      <p class="big">可是這張紙沒有消失。<br>它換了衣服，<em>蓋房子、造橋、開咖啡館</em>。</p>
+      <p>巴斯的集會廳、格拉斯哥的旅館、倫敦里奇蒙橋——都用唐提集資，橋的最後一位存活者，可以獨得整座橋的過路費。</p>
+      <p>一七九二年，紐約一群商人也用唐提蓋了一棟咖啡館。它就叫「唐提咖啡館」，在一條叫華爾街的路上；紐約證交所最早就在那裡落腳。</p>
+      <p class="big">下次聽見「華爾街」，<br>想想那張只問一個問題的紙：<br><em>你覺得，誰會活得最久？</em></p>
+      <p class="mem" id="mem"></p>
+      <div class="acts"><button class="pk-btn ghost" id="again2">再押一次，換個人</button></div>
+    </div>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia〈Tontine〉、〈Great Frost of 1709〉、〈Mississippi Company〉；Rootsweb〈Nominees of the first British tontine of 1693〉。遊戲中的名冊、死亡率與金額為簡化模擬。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script id="core">
+'use strict';
+/* ===== 核心邏輯（純函式，node 斷言用） ===== */
+var TONT = (function(){
+  var POT = 1500, N = 100, PRICE = 300;
+  function rng(seed){ var a = seed >>> 0; return function(){ a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  /* 年死亡機率：基線＋老化（Gompertz）＋幼兒加成；1709 大寒冬整體加倍 */
+  function qx(age, year, mult){
+    var q = 0.006 + 0.00007 * Math.exp(0.085 * age);
+    if (age < 5) q += 0.04; else if (age < 15) q += 0.006;
+    if (year === 1709) q *= 2;
+    q *= (mult || 1);
+    return Math.min(1, q);
+  }
+  var CLASSES = {
+    manon: { label:'第一級 · 0–5 歲', lo:0, hi:5, me:5, who:'瑪儂' },
+    self:  { label:'第九級 · 40–45 歲', lo:40, hi:45, me:41, who:'你' },
+    pere:  { label:'第十四級 · 65–70 歲', lo:65, hi:70, me:67, who:'你父親' }
+  };
+  function makeClass(key, seed){
+    var c = CLASSES[key], r = rng(seed), ppl = [];
+    for (var i = 0; i < N; i++) ppl.push({ age: c.lo + Math.floor(r() * (c.hi - c.lo + 1)), alive: true, died: 0 });
+    var me = Math.floor(r() * N); ppl[me].age = c.me; ppl[me].me = true;
+    return { key:key, people:ppl, me:me, year:1689, r:r, total:0, mult:1 };
+  }
+  function aliveCount(s){ var n = 0; for (var i = 0; i < s.people.length; i++) if (s.people[i].alive) n++; return n; }
+  function share(alive){ return alive > 0 ? POT / alive : 0; }
+  /* 走一年：先結算死亡，再發利息；回傳本年死者索引 */
+  function step(s, holding){
+    var dead = [];
+    for (var i = 0; i < s.people.length; i++){
+      var p = s.people[i]; if (!p.alive) continue;
+      var m = (p.me && s.year === 1709) ? s.mult : 1;
+      if (s.r() < qx(p.age, s.year, m)) { p.alive = false; p.died = s.year; dead.push(i); }
+      else p.age++;
+    }
+    var pay = 0;
+    if (s.people[s.me].alive){ pay = share(aliveCount(s)); if (holding) s.total += pay; }
+    s.year++;
+    return { dead: dead, pay: pay };
+  }
+  /* 把剩下的人生快轉完：回傳之後這張紙還會領多少 */
+  function runOut(s){ var sum = 0, g = 0; while (s.people[s.me].alive && g++ < 200){ var o = step(s, false); sum += o.pay; } return sum; }
+  return { POT:POT, N:N, PRICE:PRICE, rng:rng, qx:qx, CLASSES:CLASSES, makeClass:makeClass, aliveCount:aliveCount, share:share, step:step, runOut:runOut };
+})();
+if (typeof module !== 'undefined') module.exports = TONT;
+</script>
+<script>
+'use strict';
+const LS = 'tont89.';
+const store = PK.store(LS);
+const $ = s => document.querySelector(s);
+const fmt = n => Math.round(n).toLocaleString('zh-TW');
+
+/* ── 名冊用的法文名字（固定由 hash 抽，不亂跳）── */
+const GIV = ['Marie','Jeanne','Anne','Louise','Marguerite','Catherine','Madeleine','Françoise','Élisabeth','Geneviève','Claude','Antoinette','Suzanne','Nicole','Jean','Pierre','Jacques','Louis','Nicolas','François','Antoine','Étienne','Charles','Michel','Denis','Guillaume','Philippe','Simon','Martin','Gabriel'];
+const SUR = ['Martin','Bernard','Dubois','Leroy','Moreau','Lefèvre','Girard','Mercier','Bonnet','Lambert','Fontaine','Rousseau','Blanc','Garnier','Chevalier','Perrin','Morel','Gauthier','Roux','Fournier','Picard','Lemoine','Renard','Barbier','Colin','Vidal','Faure','Dupont','Boucher','Marchand'];
+const NAME_ME = { manon:'Manon (toi)', self:'(toi)', pere:'(ton père)' };
+
+let S = null, holding = true, exit = null, busy = false, seed = 0, events = {};
+const plays = store.get('plays', 0), best = store.get('best', 0);
+
+/* ── 開場：條款逐行 ── */
+$('#listen').addEventListener('click', () => {
+  $('#listen').parentNode.hidden = true;
+  const ol = $('#terms'); ol.hidden = false;
+  const lis = [...ol.children];
+  const gap = PK.reduced() ? 0 : 1100;
+  lis.forEach((li, i) => setTimeout(() => li.classList.add('on'), 200 + i * gap));
+  setTimeout(() => { $('#pick').hidden = false; $('#pick .who').focus({ preventScroll: true }); }, 400 + lis.length * gap);
+});
+
+document.querySelectorAll('.who').forEach(b => b.addEventListener('click', () => start(b.dataset.who)));
+
+function nameFor(key, i){
+  const h1 = PK.hash(key + i), h2 = PK.hash(i + key + 'x');
+  return GIV[Math.floor(h1 * GIV.length)] + ' ' + SUR[Math.floor(h2 * SUR.length)];
+}
+
+function start(key){
+  seed = (Math.random() * 4294967295) >>> 0;
+  S = TONT.makeClass(key, seed);
+  holding = true; exit = null; events = {}; hist.length = 0;
+  $('#cls').textContent = TONT.CLASSES[key].label;
+  const g = $('#grid'); g.innerHTML = '';
+  S.people.forEach((p, i) => {
+    const d = document.createElement('div');
+    d.className = 'n' + (p.me ? ' me' : ''); d.setAttribute('role', 'listitem');
+    d.textContent = p.me ? (key === 'manon' ? 'Manon' : key === 'self' ? '你' : '你父親') : nameFor(key, i);
+    d.title = d.textContent + '，' + p.age + ' 歲';
+    g.appendChild(d);
+  });
+  $('#game').hidden = false; $('#after').hidden = true; $('#coda').hidden = true;
+  render();
+  say(intro(key));
+  acts([['翻過十年 →', () => advance(1699)]]);
+  PK.scrollTo($('#game'));
+}
+
+function intro(key){
+  if (key === 'manon') return '你在紙上寫下：<em>Manon，五歲</em>。名冊上另外九十九個名字，幾乎全是別人家的小女孩。';
+  if (key === 'self') return '你在紙上寫下自己的名字。這一級的人，你在交易所門口大概都見過。';
+  return '你在紙上寫下父親的名字。他看了一眼名冊，笑說：「這些老傢伙，我一個一個熬。」';
+}
+
+const hist = [];
+function render(){
+  $('#yr').textContent = S.year;
+  const a = TONT.aliveCount(S);
+  $('#alive').textContent = a;
+  const meAlive = S.people[S.me].alive;
+  $('#pay').textContent = holding && meAlive ? fmt(TONT.share(a)) : '—';
+  $('#tot').textContent = fmt(S.total);
+  drawSpark();
+}
+
+function say(html){ $('#voice').innerHTML = html; PK.announce($('#voice').textContent); }
+function acts(list){
+  const box = $('#acts'); box.innerHTML = '';
+  list.forEach(([label, fn, ghost]) => {
+    const b = document.createElement('button');
+    b.className = 'pk-btn' + (ghost ? ' ghost' : ''); b.textContent = label;
+    b.addEventListener('click', () => { if (!busy) fn(); });
+    box.appendChild(b);
+  });
+  const f = box.querySelector('button'); if (f) f.focus({ preventScroll: true });
+}
+
+/* ── 一年一年翻：每年劃掉死者 ── */
+function advance(until){
+  busy = true; acts([]);
+  const per = PK.reduced() ? 0 : 130;
+  const cells = $('#grid').children;
+  function one(){
+    const o = TONT.step(S, holding);
+    hist.push(holding ? o.pay : 0);
+    o.dead.forEach(i => { cells[i].classList.add('dead', 'flash'); });
+    render();
+    const meDead = !S.people[S.me].alive, alive = TONT.aliveCount(S);
+    if (meDead) return finish('dead');
+    if (alive === 1 && !events.last){ events.last = true; return pause(lastStanding); }
+    if (S.year >= until) return pause(checkpoint);
+    if (per) setTimeout(one, per); else one();
+  }
+  one();
+}
+function pause(fn){ busy = false; fn(); }
+
+function checkpoint(){
+  const a = TONT.aliveCount(S), pay = TONT.share(a);
+  if (S.year === 1699 && !events.offer){
+    events.offer = true;
+    const price = Math.round(pay * 10);
+    say(`一六九九年。名冊上已經劃掉 <em>${100 - a}</em> 個名字，你今年領 ${fmt(pay)}。<br>一個穿灰外套的人敲門：「把紙賣我，現付 <em>${fmt(price)}</em>。」他賭的是同一條命。`);
+    return acts([['不賣，繼續押', () => { say('他戴上帽子走了，說十年後再來。'); acts([['翻過十年 →', () => advance(1709)]]); }],
+                 ['賣給他', () => { exit = { kind:'sold', price:price }; S.total += price; holding = false; finish('sold'); }, true]]);
+  }
+  if (S.year === 1709 && !events.frost){
+    events.frost = true;
+    say('一七〇九年一月。塞納河凍住了，麵包店的鐘也凍住了。往後一年，法國會死掉好幾十萬人。<br>這張紙押著的那條命，你要讓它待在哪？');
+    return acts([['留在巴黎，守著爐火', () => { S.mult = 1; say('你劈了家裡一張椅子當柴。'); acts([['熬過這一年 →', () => advance(1719)]]); }],
+                 ['送去南方親戚家', () => { S.mult = 0.8; say('馬車在結冰的路上走了九天。南方也冷，但少一點。'); acts([['熬過這一年 →', () => advance(1719)]]); }]]);
+  }
+  if (S.year === 1719 && !events.law){
+    events.law = true;
+    say('一七一九年。整個巴黎都擠在甘康普瓦街，搶一個蘇格蘭人約翰・羅的「密西西比公司」股票。有人一夜致富——據說「百萬富翁」這個詞，就是這時候在巴黎叫開的。<br>掮客說：「那張老紙換成股票吧，翻十倍。」');
+    return acts([['守著老紙', () => { say('你把紙塞回抽屜。外面的人叫你膽小鬼。'); acts([['翻過十年 →', () => advance(1729)]]); }],
+                 ['換成密西西比股票', () => { exit = { kind:'law' }; holding = false; finish('law'); }, true]]);
+  }
+  say(`${S.year} 年。名冊上還剩 <em>${a}</em> 個名字。你今年領 <em>${fmt(pay)}</em>——當初的 ${(pay / 15).toFixed(1)} 倍。`);
+  acts([['翻過十年 →', () => advance(S.year + 10)]]);
+}
+
+function lastStanding(){
+  const nm = S.key === 'manon' ? '瑪儂' : S.key === 'self' ? '你' : '你父親';
+  say(`${S.year} 年。整本名冊，只剩一個名字沒被劃掉：<em>${nm}</em>。<br>這一級每年一千五百里弗爾，全部歸這張紙。`);
+  PK.announce('最後一人');
+  acts([['讓日子繼續 →', () => advance(S.year + 60)]]);
+}
+
+/* ── 結局 ── */
+function finish(kind){
+  busy = false;
+  const meAge = S.people[S.me].age, nm = TONT.CLASSES[S.key].who;
+  const total = S.total;
+  let h = '', memo = '';
+  if (kind === 'dead'){
+    const a = TONT.aliveCount(S), y = S.people[S.me].died;
+    if (a === 0) h = `<h3>${y} 年，最後一筆劃下去。</h3>${nm === '你' ? '你' : nm}是這一級最後一個走的。這張紙前後領了 <b>${fmt(total)}</b> 里弗爾，本金的 ${(total / 300).toFixed(1)} 倍。`;
+    else h = `<h3>${y} 年，名字被劃掉了。</h3>${nm === '你' ? '你在' : nm + '在'} ${meAge} 歲那年走了。這張紙一共領了 <b>${fmt(total)}</b> 里弗爾，本金的 ${(total / 300).toFixed(1)} 倍。<br>從明年起，那一份分給名冊上剩下的 ${a} 個人。`;
+    if (nm === '你') memo = '（你押的是自己，所以這筆錢最後由你的家人領完。）';
+  } else if (kind === 'sold'){
+    const after = TONT.runOut(S);
+    h = `<h3>你拿了 ${fmt(exit.price)}，關上門。</h3>灰外套的人後來從這張紙上，又領走了 <b>${fmt(after)}</b> 里弗爾——直到 ${S.people[S.me].died} 年${nm === '你' ? '你' : nm}過世為止。`;
+    memo = '他賭的不是紙，是你家人的壽命。';
+  } else {
+    const after = TONT.runOut(S);
+    h = `<h3>一七二〇年，泡沫破了。</h3>密西西比股票從天上摔到地上，你的老紙變成一疊廢紙。<br>如果它還在抽屜裡，${nm === '你' ? '你這條命' : nm + '的命'}會替你再領 <b>${fmt(after)}</b> 里弗爾。`;
+    memo = '同一年，倫敦的南海公司也崩了。整個歐洲，在那一年學會了「泡沫」。';
+  }
+  $('#endcard').innerHTML = h; $('#memo').textContent = memo;
+  acts([]);
+  $('#after').hidden = false;
+  PK.scrollTo($('#after'));
+  store.set('plays', store.get('plays', 0) + 1);
+  if (total > store.get('best', 0)) store.set('best', Math.round(total));
+  $('#toLast').focus({ preventScroll: true });
+}
+
+/* ── 帳簿最後一頁：數字滾動 300 → 73,000 ── */
+$('#toLast').addEventListener('click', () => {
+  $('#coda').hidden = false; PK.reveal('#coda .rv');
+  PK.scrollTo($('#coda'));
+  const el = $('#bigNum'), T = 73000;
+  const p = store.get('plays', 1), b = store.get('best', 0);
+  $('#mem').textContent = `你在這頁押過 ${p} 次，最多一次領到 ${fmt(b)} 里弗爾。`;
+  if (PK.reduced()){ el.textContent = fmt(T); return; }
+  let t0 = 0;
+  function f(dt, t){ if (!t0) t0 = t; const k = Math.min(1, (t - t0) / 2600), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = fmt(300 + (T - 300) * e); if (k >= 1) PK.untick(f); }
+  setTimeout(() => PK.tick(f), 500);
+});
+function again(){ $('#coda').hidden = true; $('#after').hidden = true; $('#game').hidden = true; PK.scrollTo($('#pick')); $('#pick .who').focus({ preventScroll: true }); }
+$('#again').addEventListener('click', again);
+$('#again2').addEventListener('click', again);
+
+/* ── 收入火花線 ── */
+const cv = $('#spark');
+function drawSpark(){
+  const r = cv.getBoundingClientRect(); if (r.width < 80) return;
+  const { w, h, dpr } = PK.fitCanvas(cv, 64), c = cv.getContext('2d');
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+  if (hist.length < 2) return;
+  const max = Math.max(15, ...hist), n = Math.max(hist.length, 40);
+  c.beginPath();
+  hist.forEach((v, i) => { const x = i / (n - 1) * w, y = h - 4 - v / max * (h - 10); i ? c.lineTo(x, y) : c.moveTo(x, y); });
+  c.strokeStyle = '#d9a441'; c.lineWidth = 1.6; c.stroke();
+  c.fillStyle = '#9a8e78'; c.font = '11px system-ui'; c.fillText('每年領到的錢', 0, 11);
+}
+new ResizeObserver(() => { if (S) drawSpark(); }).observe(cv);
+/* reduced-motion 切換：每次動畫前都即時讀 PK.reduced()；切到 reduced 時把數字直接補滿 */
+PK.onMotionChange(r => { if (r && !$('#coda').hidden) $('#bigNum').textContent = fmt(73000); });
+PK.reveal();
+</script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>百分之四十點五的硬幣｜每日小專案</title>
+<meta name="description" content="1985 年一篇論文判定籃球的「手感」是幻覺。三十年後，一枚公平硬幣替球迷翻了案。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#1b1a17; --pk-ink:#ece6d8; --pk-dim:#9a9283; --pk-accent:#d9472b;
+  --paper:#f4efe2; --paper2:#ebe4d2; --type:#24211b; --type-dim:#6d665a;
+  --red:#c2321f; --blue:#2c4f86;
+  --mono:"Courier New", "Noto Sans Mono CJK TC", ui-monospace, monospace;
+}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% -10%, #2a2822 0%, transparent 70%),
+    var(--pk-bg);
+}
+.desk{max-width:720px;margin:0 auto;padding:72px 18px 40px}
+.sheet{
+  position:relative;background:var(--paper);color:var(--type);
+  font-family:var(--pk-serif);line-height:1.9;
+  padding:44px clamp(22px,6vw,58px) 40px;margin:0 0 46px;
+  box-shadow:0 1px 0 #d8d0bb, 0 18px 40px -18px rgba(0,0,0,.7);
+  background-image:linear-gradient(transparent 0 0);
+}
+.sheet::after{ /* 紙張頁碼 */
+  content:attr(data-p);position:absolute;bottom:14px;right:22px;
+  font:12px var(--mono);color:var(--type-dim);
+}
+#cover{padding-bottom:150px;scroll-margin-top:56px}
+.sheet.tilt-l{transform:rotate(-.6deg)} .sheet.tilt-r{transform:rotate(.5deg)}
+.sheet.rv.in.tilt-l{transform:rotate(-.6deg)} .sheet.rv.in.tilt-r{transform:rotate(.5deg)}
+.runhead{font:11px/1.4 var(--mono);letter-spacing:.08em;color:var(--type-dim);
+  display:flex;justify-content:space-between;border-bottom:1px solid #cfc6b0;padding-bottom:8px;margin-bottom:26px;gap:12px}
+.sheet h1{font-size:clamp(24px,5.6vw,34px);line-height:1.45;margin:6px 0 14px;font-weight:700}
+.sheet h2{font-size:19px;margin:0 0 14px;letter-spacing:.02em}
+.sheet p{margin:0 0 14px}
+.auth{font:13px var(--mono);color:var(--type-dim);margin-bottom:26px}
+.abs{border-left:3px solid #cfc6b0;padding:4px 0 4px 16px;font-size:15.5px}
+.abs b{font-family:var(--mono);font-size:12px;letter-spacing:.12em;display:block;color:var(--type-dim)}
+.hook{font-size:clamp(20px,4.8vw,26px);line-height:1.6;font-weight:600;margin:28px 0 10px}
+.dim{color:var(--type-dim)}
+.small{font-size:14px}
+
+/* 印章 */
+.stamp{
+  position:absolute;right:clamp(18px,7vw,60px);bottom:70px;
+  border:3px solid var(--red);color:var(--red);padding:6px 14px;
+  font:700 22px/1.1 var(--pk-serif);letter-spacing:.3em;border-radius:6px;
+  transform:rotate(-12deg);opacity:.82;mix-blend-mode:multiply;
+  transition:opacity .5s;
+}
+.stamp small{display:block;font:11px var(--mono);letter-spacing:.1em;margin-top:3px}
+.stamp.void::after{content:"";position:absolute;left:-6px;right:-6px;top:50%;height:3px;background:var(--red);transform:rotate(-8deg)}
+.stamp2{
+  position:absolute;right:clamp(90px,30vw,200px);bottom:44px;
+  border:3px double var(--blue);color:var(--blue);padding:6px 14px;
+  font:700 22px/1.1 var(--pk-serif);letter-spacing:.3em;border-radius:6px;
+  transform:rotate(7deg) scale(1.6);opacity:0;mix-blend-mode:multiply;
+  transition:opacity .35s, transform .45s cubic-bezier(.2,1.6,.4,1);
+}
+.stamp2.on{opacity:.9;transform:rotate(7deg) scale(1)}
+
+/* 紅筆眉批 */
+.red{color:var(--red);font-family:"Kaiti TC","BiauKai","DFKai-SB","STKaiti",var(--pk-serif);}
+.note{
+  display:block;margin:18px 0 6px;padding:10px 14px;border:1.5px dashed rgba(194,50,31,.5);
+  border-radius:6px;font-size:17px;line-height:1.7;transform:rotate(-.8deg);
+}
+
+/* 表格 */
+table.t{border-collapse:collapse;width:100%;font:14px/1.6 var(--mono);margin:8px 0 16px}
+.t th,.t td{border-bottom:1px solid #d6cdb7;padding:6px 6px;text-align:left}
+.t th{font-weight:700;color:var(--type-dim);font-size:12px;letter-spacing:.06em}
+
+/* 擲硬幣 */
+.coins{display:flex;gap:12px;justify-content:center;margin:18px 0 8px;flex-wrap:wrap}
+.coin{
+  width:58px;height:58px;border-radius:50%;display:grid;place-items:center;
+  font:700 20px var(--pk-serif);border:2px solid var(--type);background:#fbf8ef;
+  position:relative;transition:transform .45s cubic-bezier(.3,1.5,.5,1), background .3s;
+}
+.coin.h{background:#25221c;color:#f4efe2}
+.coin.counted::after{ /* 被計分的那一枚 */
+  content:"";position:absolute;inset:-7px;border:2px solid var(--red);border-radius:50%;
+}
+.coin.flip{transform:rotateY(180deg) scale(.9)}
+.btnrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:10px 0}
+.doc-btn{
+  appearance:none;cursor:pointer;font:600 15px var(--pk-sans);color:var(--paper);
+  background:var(--type);border:0;border-radius:4px;padding:11px 20px;
+  transition:transform .15s, background .2s;
+}
+.doc-btn:hover{background:#3a362d}
+.doc-btn:active{transform:translateY(1px) scale(.98)}
+.doc-btn:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.readout{text-align:center;font:15px var(--mono);min-height:1.6em}
+.ledger{font:13px/1.7 var(--mono);margin-top:14px;max-height:220px;overflow:auto}
+.ledger div{display:flex;justify-content:space-between;border-bottom:1px dotted #cfc6b0;padding:2px 0}
+.mean{font:700 15px var(--mono);text-align:right;margin-top:6px}
+
+/* 機器 */
+.machine{background:var(--paper2);border:1px solid #d2c9b2;border-radius:6px;padding:20px 16px 16px;margin:16px 0}
+.hold{
+  appearance:none;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;
+  display:block;margin:6px auto 16px;width:min(100%,320px);padding:18px 10px;border-radius:999px;
+  border:2px solid var(--red);background:transparent;color:var(--red);
+  font:700 17px var(--pk-sans);letter-spacing:.08em;position:relative;overflow:hidden;
+  transition:color .2s, transform .15s;
+}
+.hold .fill{position:absolute;inset:0;background:var(--red);transform:scaleX(0);transform-origin:left;z-index:0}
+.hold span{position:relative;z-index:1}
+.hold.down{color:#fff;transform:scale(.98)}
+.hold.down .fill{transform:scaleX(1);transition:transform .25s}
+.hold:focus-visible{outline:2px solid var(--blue);outline-offset:4px}
+.counter{text-align:center;font:13px var(--mono);color:var(--type-dim)}
+.counter b{font-size:22px;color:var(--type);display:block;font-variant-numeric:tabular-nums}
+.ruler{position:relative;height:70px;margin:22px 4px 4px}
+.ruler .bar{position:absolute;left:0;right:0;top:30px;height:2px;background:var(--type)}
+.ruler .tk{position:absolute;top:24px;width:1px;height:14px;background:var(--type);}
+.ruler .lb{position:absolute;top:44px;font:11px var(--mono);transform:translateX(-50%);color:var(--type-dim)}
+.ruler .half{position:absolute;top:8px;bottom:6px;width:0;border-left:2px dashed var(--blue)}
+.ruler .half i{position:absolute;top:-6px;left:4px;font:11px var(--mono);color:var(--blue);font-style:normal;white-space:nowrap}
+.needle{position:absolute;top:10px;left:0;width:0;height:40px;will-change:transform}
+.needle::before{content:"";position:absolute;left:-1.5px;top:0;width:3px;height:40px;background:var(--red)}
+.needle::after{content:"";position:absolute;left:-6px;top:-4px;width:12px;height:12px;border-radius:50%;background:var(--red)}
+.big{text-align:center;font:700 clamp(30px,8vw,44px)/1.1 var(--mono);color:var(--red);margin:8px 0 2px;font-variant-numeric:tabular-nums}
+.pool{text-align:center;font:12px var(--mono);color:var(--type-dim)}
+canvas.trace{display:block;width:100%;height:90px;margin-top:10px}
+
+/* 十六種 */
+.grid16{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+.cell{border:1px solid #cdc4ad;border-radius:4px;padding:8px 4px;text-align:center;font:13px/1.5 var(--mono);background:#fbf8ef}
+.cell .s{font-weight:700;letter-spacing:.12em;display:block}
+.cell.x{color:#a79f8e;text-decoration:line-through;background:transparent}
+.cell.lo .v{color:var(--red);font-weight:700}
+
+.locked{display:none}
+.after{margin-top:6px}
+.end{font-size:clamp(19px,4.6vw,24px);line-height:1.7;font-weight:600;margin:24px 0 6px}
+.pk-foot{max-width:720px;margin:0 auto;padding:0 18px 60px;color:var(--pk-dim);font-size:12.5px}
+
+@media (max-width:560px){
+  .coin{width:50px;height:50px;font-size:17px}
+  .grid16{grid-template-columns:repeat(2,1fr)}
+  .stamp,.stamp2{font-size:18px}
+  .runhead span:last-child{display:none}
+}
+@media (prefers-reduced-motion: reduce){
+  .coin,.stamp2,.hold,.hold .fill,.stamp{transition:none!important}
+  .coin.flip{transform:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<main class="desk">
+
+  <!-- 第 1 頁：判決 -->
+  <article class="sheet tilt-l" data-p="p. 295" id="cover">
+    <div class="runhead"><span>COGNITIVE PSYCHOLOGY 17, 295–314 (1985)</span><span>抽印本・館藏</span></div>
+    <div class="stamp" id="stamp" aria-hidden="true">定讞<small>CASE CLOSED</small></div>
+    <div class="stamp2" id="stamp2" aria-hidden="true">再審</div>
+    <h1>The Hot Hand in Basketball:<br><span class="small dim" style="font-weight:600">On the Misperception of Random Sequences</span></h1>
+    <div class="auth">T. Gilovich ・ R. Vallone ・ A. Tversky</div>
+    <p class="hook">1985 年，三位心理學家翻完一疊投籃紀錄，對全世界的球迷下了判決：</p>
+    <p class="hook red">「你們看見的手感，不存在。」</p>
+    <p class="dim small">這份抽印本在你桌上放了很久。頁緣有人用紅筆寫過字。往下翻。</p>
+  </article>
+
+  <!-- 第 2 頁：證據 -->
+  <article class="sheet tilt-r rv" data-p="p. 301">
+    <div class="runhead"><span>§ 研究方法摘要</span><span>GILOVICH ET AL.</span></div>
+    <h2>他們的證據，簡單到一張表就裝得下</h2>
+    <p>如果手感是真的，一個球員<strong>剛進球之後</strong>的命中率，應該比<strong>剛投丟之後</strong>高。</p>
+    <p>他們查了 1980–81 球季費城 76 人隊每位球員的出手紀錄，又查了罰球，最後乾脆把康乃爾大學校隊找進體育館，一人一百球，連投籃位置都控制好。</p>
+    <table class="t" aria-label="論文的比較方式">
+      <tr><th>條件</th><th>他們預期（若有手感）</th><th>實際看到</th></tr>
+      <tr><td>進球之後</td><td>明顯較高</td><td>差不多</td></tr>
+      <tr><td>投丟之後</td><td>明顯較低</td><td>差不多</td></tr>
+    </table>
+    <p>差不多。跟丟硬幣一樣。結論寫得很漂亮：人類太會在隨機裡看見規律了，球員、教練、球評，全都上當。</p>
+    <p>這篇論文後來成為行為科學的經典教材。「熱手謬誤」變成一個專有名詞，被拿去解釋賭徒、股民、選秀。</p>
+    <span class="note red">　邏輯沒問題。可是——他們拿來比的「零差距」，真的是零嗎？<br>　　　　　　　　　　　　　　　　　　— 頁緣眉批</span>
+  </article>
+
+  <!-- 第 3 頁：讀者當審稿人 -->
+  <article class="sheet tilt-l rv" data-p="附錄 A" id="sheetA">
+    <div class="runhead"><span>附錄 A｜審稿人自行驗證</span><span>請用公平硬幣</span></div>
+    <h2>換你來審。拿一枚絕對公平的硬幣。</h2>
+    <p>規則和論文一樣：擲四次，找出每一次「正面之後的那一擲」，算它們有多少比例也是正面。公平硬幣嘛，該是五成。</p>
+    <div class="coins" id="coins" aria-hidden="true"></div>
+    <div class="readout" id="readout" aria-live="polite">還沒擲。</div>
+    <div class="btnrow">
+      <button class="doc-btn" id="toss" type="button">擲四次</button>
+    </div>
+    <p class="dim small">紅圈＝被計分的那一擲（它前面是正面）。如果前三擲沒有正面，這一串無法計分，略過。多擲幾串，看看平均。</p>
+    <div class="ledger" id="ledger" aria-label="審稿紀錄"></div>
+    <div class="mean" id="mean"></div>
+  </article>
+
+  <!-- 第 4 頁：機器（高潮） -->
+  <article class="sheet tilt-r rv" data-p="附錄 B" id="sheetB">
+    <div class="runhead"><span>附錄 B｜大量重複</span><span>MILLER &amp; SANJURJO</span></div>
+    <h2>手擲太慢。讓機器替你擲。</h2>
+    <p>按住下面的鈕不放。每一瞬間都有上百串「擲四次」在跑，每一串都照附錄 A 的規則計分，然後全部取平均。</p>
+    <p>你按得越久，數字就越穩。照常理，紅針會停在藍線上：<strong>50%</strong>。</p>
+    <div class="machine">
+      <button class="hold" id="hold" type="button" aria-describedby="holdHint"><i class="fill"></i><span id="holdTxt">按住擲硬幣</span></button>
+      <div class="pk-sr" id="holdHint">按住滑鼠、手指或空白鍵持續擲硬幣，放開暫停。</div>
+      <div class="counter"><b id="n">0</b>串四連擲</div>
+      <div class="big" id="pct" aria-live="off">—</div>
+      <div class="ruler" id="ruler" aria-hidden="true">
+        <div class="bar"></div>
+        <div class="half" id="half"><i>公平硬幣該有的 50%</i></div>
+        <div class="needle" id="needle"></div>
+      </div>
+      <canvas class="trace" id="trace" aria-hidden="true"></canvas>
+      <div class="pool" id="pool"></div>
+    </div>
+    <div id="verdictB" class="locked after">
+      <span class="note red" style="font-size:19px">　硬幣是公平的。<br>　它還是只給你 <b>40.5%</b>。</span>
+      <p>不是程式寫壞，也不是你運氣差。往下看，十六種可能全部攤開。</p>
+    </div>
+  </article>
+
+  <!-- 第 5 頁：十六種 -->
+  <article class="sheet tilt-l locked" data-p="附錄 C" id="sheetC">
+    <div class="runhead"><span>附錄 C｜窮舉</span><span>2⁴ = 16</span></div>
+    <h2>四擲只有十六種結果，每種機率一樣</h2>
+    <div class="grid16" id="grid16"></div>
+    <p>兩種劃掉（前三擲沒正面，無從計分）。剩下十四種的比例加起來除以十四：<strong class="red">17/42 ≈ 40.5%</strong>。</p>
+    <p>看那些紅字。<span class="red">正正正正</span>是 100%，可它也就占一格；而<span class="red">正反反反、反正反反</span>這類「正面後面接反面」的組合到處都是，每格直接算成 0%。</p>
+    <p>原因藏在「有限」兩個字裡。序列很短，當你挑出一個正面、去看它的下一擲，剩下的格子裡能出現的正面已經少了一個。連勝會吃掉自己的後續，於是在短序列裡逐串計分，<em>完全隨機</em>的硬幣也會顯得「剛中過就容易失手」。</p>
+  </article>
+
+  <!-- 第 6 頁：再審 -->
+  <article class="sheet tilt-r locked" data-p="Econometrica 86(6), 2018" id="sheetD">
+    <div class="runhead"><span>再審意見書</span><span>ECONOMETRICA 86(6), 2019–2047</span></div>
+    <h2>那麼，1985 年的「差不多」，代表什麼？</h2>
+    <p>2015 年前後，兩位經濟學家 Joshua Miller 與 Adam Sanjurjo 把附錄 C 這件小事，拿回去對照當年那份康乃爾的投籃資料。</p>
+    <p>如果連公平硬幣都會在「進球之後」顯得較差，那麼一個<em>完全沒有手感</em>的球員，量出來應該是<strong>負的</strong>。正確的比較基準根本不是零。</p>
+    <p>球員們量出來的卻是「差不多」——比硬幣還好。修正偏誤之後，三連中之後的命中率差距，平均從 <strong>+3</strong> 個百分點變成 <strong class="red">+13</strong> 個百分點。大致相當於一個中位數射手和聯盟頂尖三分射手之間的距離。</p>
+    <p>論文 2018 年刊在《Econometrica》，標題是一個問句：<em>Surprised by the Hot Hand Fallacy?</em></p>
+    <p class="end">回頭看第一頁的副標題。</p>
+    <p class="end red">「論對隨機序列的錯誤知覺」。</p>
+    <p>被隨機序列騙過的，不止看台上的人。</p>
+    <div class="btnrow"><button class="doc-btn" id="toTop" type="button">翻回第一頁</button></div>
+  </article>
+
+</main>
+
+<footer class="pk-foot">資料來源：Gilovich, Vallone &amp; Tversky (1985) <i>Cognitive Psychology</i>；Miller &amp; Sanjurjo (2018) <i>Econometrica</i>。</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'hoth85.';
+const store = PK.store(LS);
+
+/* ── 純函式（node 斷言） ── */
+/* seq: 陣列，1=正、0=反。回傳 {hits, chances, prop}；無可計分時 prop=null */
+function scoreSeq(seq){
+  let c=0,h=0;
+  for(let i=0;i<seq.length-1;i++) if(seq[i]===1){ c++; if(seq[i+1]===1) h++; }
+  return {hits:h, chances:c, prop: c ? h/c : null};
+}
+/* 長度 n 的所有序列中，可計分者的平均比例 */
+function exactMean(n){
+  let s=0,k=0;
+  for(let m=0;m<(1<<n);m++){
+    const seq=[]; for(let i=n-1;i>=0;i--) seq.push((m>>i)&1);
+    const r=scoreSeq(seq); if(r.prop!==null){ s+=r.prop; k++; }
+  }
+  return {mean:s/k, scored:k, total:1<<n};
+}
+function allSeqs(n){
+  const out=[];
+  for(let m=0;m<(1<<n);m++){ const seq=[]; for(let i=n-1;i>=0;i--) seq.push((m>>i)&1); out.push(seq); }
+  return out;
+}
+if (typeof module!=='undefined') module.exports={scoreSeq,exactMean,allSeqs};
+
+const $=s=>document.querySelector(s);
+const fmt=p=>(p*100).toFixed(1)+'%';
+const face=b=>b?'正':'反';
+
+PK.reveal();
+
+/* ── 附錄 A：手擲 ── */
+const coinsEl=$('#coins'), readout=$('#readout'), ledger=$('#ledger'), meanEl=$('#mean');
+const coinEls=[];
+for(let i=0;i<4;i++){ const d=document.createElement('div'); d.className='coin'; d.textContent='?'; coinsEl.appendChild(d); coinEls.push(d); }
+let manual=[]; let rows=0;
+$('#toss').addEventListener('click',()=>{
+  const seq=[0,1,2,3].map(()=>Math.random()<.5?1:0);
+  const r=scoreSeq(seq);
+  coinEls.forEach((c,i)=>{
+    c.classList.remove('counted','h');
+    if(!PK.reduced()){ c.classList.add('flip'); }
+    setTimeout(()=>{
+      c.classList.remove('flip');
+      c.textContent=face(seq[i]); c.classList.toggle('h',!!seq[i]);
+      if(i>0 && seq[i-1]===1) c.classList.add('counted');
+    }, PK.reduced()?0:120+i*90);
+  });
+  rows++;
+  const row=document.createElement('div');
+  const s=seq.map(face).join('');
+  let msg;
+  if(r.prop===null){ msg=s+'：無法計分'; row.innerHTML='<span>#'+rows+' '+s+'</span><span class="dim">略過</span>'; }
+  else { manual.push(r.prop); msg=s+'：'+r.hits+'/'+r.chances+'＝'+fmt(r.prop); row.innerHTML='<span>#'+rows+' '+s+'</span><span>'+r.hits+'/'+r.chances+' = '+fmt(r.prop)+'</span>'; }
+  ledger.prepend(row);
+  readout.textContent=msg;
+  if(manual.length){
+    const m=manual.reduce((a,b)=>a+b,0)/manual.length;
+    meanEl.textContent='你的平均（'+manual.length+' 串）：'+fmt(m);
+  }
+});
+
+/* ── 附錄 B：按住 ── */
+const holdBtn=$('#hold'), nEl=$('#n'), pctEl=$('#pct'), needle=$('#needle'), ruler=$('#ruler'), poolEl=$('#pool');
+const LO=.30, HI=.60;
+(function buildRuler(){
+  for(let v=30; v<=60; v+=5){
+    const x=(v/100-LO)/(HI-LO)*100;
+    const t=document.createElement('div'); t.className='tk'; t.style.left=x+'%'; ruler.appendChild(t);
+    const l=document.createElement('div'); l.className='lb'; l.style.left=x+'%'; l.textContent=v+'%'; ruler.appendChild(l);
+  }
+  $('#half').style.left=((.5-LO)/(HI-LO)*100)+'%';
+})();
+let N=0, sumP=0, poolH=0, poolC=0, shown=.5, holding=false, unlocked=false;
+const trace=[]; const cv=$('#trace'), ctx=cv.getContext('2d');
+const UNLOCK=20000, PER_SEC=7000;
+let acc=0;
+const lifetime=store.get('total',0);
+
+function batch(k){
+  for(let j=0;j<k;j++){
+    const r=Math.random()*16|0;
+    const seq=[(r>>3)&1,(r>>2)&1,(r>>1)&1,r&1];
+    const s=scoreSeq(seq);
+    if(s.prop===null) continue;
+    N++; sumP+=s.prop; poolH+=s.hits; poolC+=s.chances;
+  }
+}
+function needleX(p){
+  const w=ruler.clientWidth;
+  return PK.clamp((p-LO)/(HI-LO),0,1)*w;
+}
+function drawTrace(){
+  const {w,h,dpr}=PK.fitCanvas(cv,90);
+  if(w<80) return;
+  ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,w,h);
+  const y=p=>h-(PK.clamp((p-LO)/(HI-LO),0,1))*h;
+  ctx.strokeStyle='rgba(44,79,134,.7)'; ctx.setLineDash([4,4]); ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(0,y(.5)); ctx.lineTo(w,y(.5)); ctx.stroke(); ctx.setLineDash([]);
+  if(trace.length<2) return;
+  ctx.strokeStyle='#c2321f'; ctx.lineWidth=2; ctx.beginPath();
+  trace.forEach((p,i)=>{ const x=i/(trace.length-1)*w; i?ctx.lineTo(x,y(p)):ctx.moveTo(x,y(p)); });
+  ctx.stroke();
+}
+function render(){
+  const p=N?sumP/N:.5;
+  nEl.textContent=N.toLocaleString('en-US');
+  pctEl.textContent=N?fmt(p):'—';
+  needle.style.transform='translateX('+needleX(shown)+'px)';
+  if(N) poolEl.textContent='（對照：把所有計分的擲全倒進同一桶再算，是 '+fmt(poolH/poolC)+'。差別在「一串一串算」。）';
+  drawTrace();
+}
+function step(dt){
+  if(holding){
+    acc+=dt*PER_SEC; const k=acc|0; acc-=k; batch(k);
+    if(trace.length<400 && N) trace.push(sumP/N);
+    else if(N){ trace.shift(); trace.push(sumP/N); }
+  }
+  const target=N?sumP/N:.5;
+  shown = PK.reduced()? target : PK.lerp(shown,target,Math.min(1,dt*6));
+  render();
+  if(!unlocked && N>=UNLOCK) unlock();
+  if(!holding && Math.abs(shown-target)<.0005){ PK.untick(step); running=false; }
+}
+let running=false;
+function start(){ if(holding) return; holding=true; holdBtn.classList.add('down'); $('#holdTxt').textContent='擲擲擲擲……'; if(!running){ running=true; PK.tick(step); } }
+function stop(){
+  if(!holding) return; holding=false; holdBtn.classList.remove('down'); $('#holdTxt').textContent='按住繼續擲';
+  if(N) PK.announce('已擲 '+N+' 串，平均比例 '+fmt(sumP/N));
+  store.set('total', lifetime+N);
+}
+holdBtn.addEventListener('pointerdown',e=>{ e.preventDefault(); holdBtn.setPointerCapture&&holdBtn.setPointerCapture(e.pointerId); start(); });
+holdBtn.addEventListener('pointerup',stop);
+holdBtn.addEventListener('pointercancel',stop);
+holdBtn.addEventListener('lostpointercapture',stop);
+holdBtn.addEventListener('keydown',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); if(!e.repeat) start(); } });
+holdBtn.addEventListener('keyup',e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); stop(); } });
+holdBtn.addEventListener('blur',stop);
+holdBtn.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('resize',render);
+render();
+
+function unlock(){
+  unlocked=true;
+  $('#verdictB').classList.remove('locked');
+  ['#sheetC','#sheetD'].forEach(s=>{ const el=$(s); el.classList.remove('locked'); el.classList.add('rv'); });
+  PK.reveal('#sheetC,#sheetD');
+  PK.announce('機器停在百分之四十點五。附錄 C 與再審意見書已附上。');
+}
+
+/* ── 附錄 C：十六格 ── */
+(function(){
+  const g=$('#grid16');
+  allSeqs(4).forEach(seq=>{
+    const r=scoreSeq(seq);
+    const d=document.createElement('div');
+    d.className='cell'+(r.prop===null?' x':(r.prop<.5?' lo':''));
+    d.innerHTML='<span class="s">'+seq.map(face).join('')+'</span><span class="v">'+(r.prop===null?'—':r.hits+'/'+r.chances+'　'+Math.round(r.prop*100)+'%')+'</span>';
+    g.appendChild(d);
+  });
+})();
+
+/* ── 回馬槍：翻回第一頁，蓋上再審 ── */
+$('#toTop').addEventListener('click',()=>{
+  PK.scrollTo($('#cover'));
+  setTimeout(()=>{
+    $('#stamp').classList.add('void');
+    $('#stamp2').classList.add('on');
+    PK.announce('第一頁的定讞章被劃掉，蓋上了「再審」。');
+  }, PK.reduced()?0:700);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>時鐘走到二〇三八年，會掉回一九〇一年｜每日小專案</title>
+<meta name="description" content="幾十億台機器裡藏著同一個每秒加一的數字。轉動手把把它轉到盡頭，看最後十秒怎麼把世界送回 1901 年。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#07090c; --pk-ink:#dfe6e3; --pk-accent:#7cf2b4;
+  --dim:#7f8c88; --line:#1c2428; --lamp-off:#141b1e; --lamp-on:#7cf2b4; --warn:#ff6b5a;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,"Noto Sans Mono",monospace;
+}
+body{background:var(--pk-bg);color:var(--pk-ink)}
+.pk-hero{min-height:92vh;display:flex;align-items:center}
+.kick{font:600 .78rem/1 var(--mono);letter-spacing:.22em;color:var(--pk-accent);text-transform:uppercase;margin:0 0 1.6rem}
+.kick::before{content:"";display:inline-block;width:.55em;height:.55em;border-radius:50%;background:var(--warn);margin-right:.7em;vertical-align:.05em;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.15}}
+.pk-hero h1{font-size:clamp(1.9rem,5.4vw,3.4rem);line-height:1.22;max-width:17em;margin:0 0 1.2rem;font-weight:800}
+.lede{font-size:clamp(1.02rem,2.2vw,1.2rem);color:#b9c4c0;max-width:34em;line-height:1.85}
+.live{margin-top:2.6rem;font-family:var(--mono)}
+.live .big{font-size:clamp(2.2rem,9vw,5.2rem);font-weight:700;letter-spacing:.02em;color:#fff;font-variant-numeric:tabular-nums;display:block;line-height:1}
+.live .cap{color:var(--dim);font-size:.86rem;margin-top:.7rem;display:block}
+.live .left{color:var(--pk-accent)}
+main section{padding:4.5rem 0;border-top:1px solid var(--line)}
+.chap{font:600 .76rem/1 var(--mono);letter-spacing:.2em;color:var(--dim);margin:0 0 1rem}
+.chap b{color:var(--pk-accent);font-weight:700}
+h2{font-size:clamp(1.45rem,3.6vw,2.1rem);margin:0 0 1.2rem;line-height:1.35}
+main p{line-height:1.9;max-width:36em;color:#c5cfcb}
+main p strong{color:#fff}
+/* 暫存器燈列 */
+.reg{display:grid;grid-template-columns:repeat(32,1fr);gap:4px;margin:2rem 0 .6rem;max-width:920px}
+.reg.w64{grid-template-columns:repeat(32,1fr)}
+.lamp{aspect-ratio:1/1.5;border-radius:3px;background:var(--lamp-off);position:relative;border:1px solid #1f292d}
+.lamp i{position:absolute;inset:0;border-radius:2px;background:var(--lamp-on);box-shadow:0 0 10px rgba(124,242,180,.55);opacity:0;transition:opacity .12s}
+.lamp.on i{opacity:1}
+.lamp.sign{border-color:#3a2a28}
+.lamp.sign i{background:var(--warn);box-shadow:0 0 16px rgba(255,107,90,.8)}
+.lamp.new{transform:scale(.2);opacity:0;transition:transform .5s cubic-bezier(.2,.8,.2,1.2),opacity .4s}
+.lamp.new.pop{transform:none;opacity:1}
+.reglbl{display:flex;justify-content:space-between;font:500 .72rem/1.4 var(--mono);color:var(--dim);max-width:920px}
+.reglbl .s{color:#c98a80}
+/* 轉盤舞台 */
+.stage{display:grid;grid-template-columns:1fr 240px;gap:2.4rem;align-items:center;margin-top:2rem}
+.readout{font-family:var(--mono)}
+.readout .d{font-size:clamp(1.8rem,5.6vw,3rem);font-weight:700;color:#fff;font-variant-numeric:tabular-nums;display:block;transition:color .3s}
+.readout .t{font-size:clamp(1.2rem,3.4vw,1.8rem);color:var(--pk-accent);font-variant-numeric:tabular-nums}
+.readout .n{display:block;color:var(--dim);font-size:.84rem;margin-top:.5rem;font-variant-numeric:tabular-nums}
+.readout.wrapped .d,.readout.wrapped .t{color:var(--warn)}
+.readout.glitch .d,.readout.glitch .t{animation:jit .08s steps(2) infinite}
+@keyframes jit{50%{transform:translateX(3px)}}
+.crank{width:240px;height:240px;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none;border-radius:50%}
+.crank:active{cursor:grabbing}
+.crank:focus-visible{outline:2px solid var(--pk-accent);outline-offset:6px}
+.crank.locked{cursor:not-allowed}
+.crank.locked .arm{opacity:.35}
+.hint{font:500 .8rem/1.6 var(--mono);color:var(--dim);text-align:center;margin-top:.4rem}
+.log{list-style:none;padding:0;margin:2rem 0 0;max-width:40em}
+.log li{border-left:2px solid var(--pk-accent);padding:.2rem 0 .2rem 1rem;margin:0 0 1.2rem;line-height:1.8;color:#c5cfcb;opacity:0;transform:translateY(10px);transition:opacity .5s,transform .5s}
+.log li.in{opacity:1;transform:none}
+.log li time{display:block;font:600 .76rem/1.4 var(--mono);color:var(--pk-accent);letter-spacing:.06em}
+.log li.here{border-color:#fff}
+.log li.here time{color:#fff}
+.release{margin-top:1.6rem}
+.count10{font:800 clamp(3rem,14vw,7rem)/1 var(--mono);color:var(--warn);text-align:center;margin:1.2rem 0 0;min-height:1em;font-variant-numeric:tabular-nums}
+.hidden{display:none}
+.note{margin:1.2rem 0 0;font-size:.92rem;line-height:1.7;color:#9fb0aa;max-width:28em;min-height:3.4em;transition:opacity .3s}
+.note.flash{opacity:.2}
+/* 1901 的褪色層：只動 opacity */
+#sepia{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,rgba(196,150,86,.16),rgba(120,82,40,.38));opacity:0;transition:opacity 2.4s ease;z-index:5}
+body.y1901 #sepia{opacity:1}
+.quote{font-size:clamp(1.3rem,3.4vw,1.8rem);line-height:1.6;color:#fff;max-width:22em;margin:0 0 1.6rem;font-weight:700}
+.big64{font:800 clamp(1.6rem,5.4vw,3rem)/1.2 var(--mono);color:#fff;margin:1.6rem 0 .4rem;font-variant-numeric:tabular-nums}
+.ledger{display:grid;grid-template-columns:auto 1fr;gap:.5rem 1.4rem;max-width:40em;margin:1.6rem 0;font-size:.95rem;line-height:1.7}
+.ledger dt{font:600 .8rem/1.9 var(--mono);color:var(--pk-accent)}
+.ledger dd{margin:0;color:#c5cfcb}
+.final{font-family:var(--mono);font-size:clamp(1.3rem,4.6vw,2.4rem);color:#fff;font-variant-numeric:tabular-nums;margin:1.2rem 0}
+.final small{display:block;font-size:.8rem;color:var(--dim);margin-top:.4rem;font-family:inherit}
+.coda{font-size:1.15rem;color:#fff}
+@media (max-width:560px){
+  .reg{grid-template-columns:repeat(16,1fr)}
+  .stage{grid-template-columns:1fr;justify-items:center}
+  .readout{justify-self:stretch}
+  .ledger{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  .kick::before{animation:none}
+  .readout.glitch .d,.readout.glitch .t{animation:none}
+  .lamp.new{transform:none;opacity:1;transition:none}
+  .log li{opacity:1;transform:none;transition:none}
+  #sepia{transition:none}
+}
+</style>
+</head>
+<body>
+<div id="sepia" aria-hidden="true"></div>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<header class="pk-hero">
+  <div class="pk-wrap">
+    <p class="kick rv">倒數中</p>
+    <h1 class="rv">有一個數字，正在幾十億台機器裡同時往上爬。</h1>
+    <p class="lede rv">它每秒加一，從不休息。爬到某一秒，它會用光所有的位數——那一刻，有些機器會很有把握地告訴你：<strong>現在是一九〇一年。</strong></p>
+    <div class="live rv" aria-live="off">
+      <span class="big" id="liveN">——</span>
+      <span class="cap">← 這就是它，此刻的值。離天花板還有 <span class="left" id="liveLeft">——</span> 秒。</span>
+    </div>
+  </div>
+</header>
+
+<main class="pk-wrap">
+  <section>
+    <p class="chap rv"><b>第一道鎖</b>　它從哪一秒開始數</p>
+    <h2 class="rv">起點是 1970 年 1 月 1 日，零點整，格林威治。</h2>
+    <p class="rv">那一秒記作 0。往後每過一秒就加一，不管閏年、不管時區，叫做 <strong>Unix 時間</strong>。你的手機、伺服器、ATM、電梯控制板，很多都是先記下這一個整數，要給人看時才翻譯成日期。</p>
+    <p class="rv">老一點的系統替它準備了 <strong>32 格</strong>。下面每一顆燈是一格，亮是 1、暗是 0，正在跟著上面那個數字每秒跳動。</p>
+    <div class="rv" aria-hidden="true">
+      <div class="reg" id="regLive"></div>
+      <div class="reglbl"><span class="s">↑ 正負號</span><span>最右邊：每秒閃一次 ↑</span></div>
+    </div>
+    <p class="rv">看最左邊。那一格不記數字，只記「正」或「負」。從 1970 年到今天，<strong>它一次都沒亮過。</strong></p>
+    <p class="rv">鎖的謎面只有一句：等右邊三十一格全部亮滿，再加一秒，會發生什麼事？</p>
+  </section>
+
+  <section id="s2">
+    <p class="chap rv"><b>第二道鎖</b>　把它轉到盡頭</p>
+    <h2 class="rv">手把交給你。轉一圈，大約過去六年十個月。</h2>
+    <p class="rv">從 1970 年那個 0 開始。順時針拖動手把，時間就往前走；路上會經過幾個有人特別記住的數字。</p>
+    <div class="stage">
+      <div class="readout" id="readout">
+        <span class="d" id="vDate">1970-01-01</span>
+        <span class="t" id="vTime">08:00:00</span> <span class="t" id="vWd">星期四</span>
+        <span class="n">台北時間｜暫存器裡的值：<span id="vNum">0</span></span>
+        <p class="note" id="note" aria-hidden="true">路上的事，會在這裡閃過。</p>
+      </div>
+      <div>
+        <svg class="crank" id="crank" viewBox="0 0 240 240" role="slider" tabindex="0"
+             aria-label="時間手把：順時針拖動或用方向鍵讓時間往前" aria-valuemin="0" aria-valuemax="2147483637" aria-valuenow="0" aria-valuetext="1970 年 1 月 1 日">
+          <circle cx="120" cy="120" r="112" fill="#0c1215" stroke="#1f2a2e" stroke-width="2"/>
+          <g id="ticks" stroke="#2a373c" stroke-width="2"></g>
+          <circle cx="120" cy="120" r="84" fill="none" stroke="#1a2428" stroke-width="10"/>
+          <circle id="prog" cx="120" cy="120" r="84" fill="none" stroke="#7cf2b4" stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="527.8" stroke-dashoffset="527.8" transform="rotate(-90 120 120)"/>
+          <g class="arm" id="arm">
+            <line x1="120" y1="120" x2="120" y2="44" stroke="#dfe6e3" stroke-width="6" stroke-linecap="round"/>
+            <circle cx="120" cy="40" r="15" fill="#7cf2b4"/>
+            <circle cx="120" cy="40" r="6" fill="#07090c"/>
+          </g>
+          <circle cx="120" cy="120" r="10" fill="#dfe6e3"/>
+        </svg>
+        <p class="hint" id="hint">拖著綠色把手繞圈｜鍵盤：→ ↑</p>
+      </div>
+    </div>
+    <div aria-hidden="true">
+      <div class="reg" id="regV"></div>
+      <div class="reglbl"><span class="s">↑ 正負號</span><span id="bitsNote">暫存器</span></div>
+    </div>
+    <div class="release hidden" id="releaseBox">
+      <p><strong>轉不動了。</strong>2038 年 1 月 19 日，台北時間上午 11 點 13 分 57 秒。右邊三十一格只差最後幾顆燈。最後十秒，不歸你轉——你只能放手。</p>
+      <button class="pk-btn" id="releaseBtn">放開手把</button>
+      <p class="count10" id="count10" aria-live="assertive"></p>
+    </div>
+    <ol class="log" id="log" aria-live="polite"></ol>
+  </section>
+
+  <section id="s3" class="hidden">
+    <p class="chap"><b>第三道鎖</b>　1901 年 12 月 13 日，星期五</p>
+    <p class="quote">你剛剛讓這台機器相信：萊特兄弟還要再等兩年，才會飛起來。</p>
+    <p>不是誰轉錯了。暫存器裡根本沒有「2038 年之後」這個房間，它只有 32 格。右邊三十一格全滿，再加一，進位像骨牌一樣往左推，所有的 1 接連倒成 0——最後撞進那格<strong>正負號</strong>。</p>
+    <p>正的 2,147,483,647，下一秒變成負的 2,147,483,648。負的，意思是 1970 年「之前」。往回數二十一億秒，剛好落在 <strong>1901 年 12 月 13 日 20:45:52（世界協調時間）</strong>，一個十三號星期五。</p>
+    <p>電腦不會覺得奇怪。它會很鎮定地拿這個日期去比對憑證有沒有過期、排程該不該執行、貸款利息算到哪天。</p>
+    <p><strong>怎麼開這道鎖？</strong>給它更多格子。</p>
+    <button class="pk-btn" id="widenBtn">再給它 32 顆燈</button>
+  </section>
+
+  <section id="s4" class="hidden">
+    <p class="chap"><b>鎖開了</b>　六十四格</p>
+    <h2>同一秒，重來一次：它走到了 2038 年 1 月 19 日 11:14:08。</h2>
+    <p>多了 32 格，正負號被推到最左邊很遠的地方。新的天花板在哪？</p>
+    <p class="big64">西元 2,922 億年</p>
+    <p>大約是宇宙現在年齡的二十一倍。太陽早就熄了，這個數字還沒爬到一半。</p>
+    <p>所以修好了嗎？大的地方，修了不少：</p>
+    <dl class="ledger">
+      <dt>2020</dt><dd>Linux 核心 5.6 起，32 位元的系統也能用 64 位元記時間。</dd>
+      <dt>2025</dt><dd>Debian 13 把幾乎所有 32 位元架構上的套件，整批改成 64 位元時間重新編譯。</dd>
+      <dt>還在</dt><dd>MySQL 的 <code>TIMESTAMP</code> 欄位，上限依然是 2038-01-19 03:14:07（世界協調時間）。還有那些十年不升級的：工廠控制器、停車場閘門、車上的小晶片、舊檔案格式裡寫死的 32 格。</dd>
+    </dl>
+    <p>2006 年那台伺服器提醒過一次：它不必等到 2038 年。只要有程式去算「三十年後」，那一天就提早來了。</p>
+  </section>
+
+  <section id="s5" class="hidden">
+    <p class="chap"><b>回到開頭</b></p>
+    <h2>那個數字還在爬。</h2>
+    <div class="final" aria-live="off"><span id="finalLeft">——</span><small>距離 2038-01-19 11:14:07（台北）</small></div>
+    <p class="coda">那天是星期二，上午十一點十四分。如果你在排會議，十一點十五分那一場——也許先空著。</p>
+  </section>
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Wikipedia「Year 2038 problem」、Dossy Shiobara（AOLserver, 2006）、MySQL 8.0 Reference Manual、LWN／Debian 64-bit time_t transition。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script src="logic.js"></script>
+<script>
+'use strict';
+const LS = 'ep2038.';
+const store = PK.store(LS);
+PK.reveal();
+
+const $ = id => document.getElementById(id);
+const nowSec = () => Math.floor(Date.now() / 1000);
+const fmtN = n => n.toLocaleString('en-US');
+
+/* ── 燈列 ── */
+function buildReg(el, n) {
+  el.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('span');
+    s.className = 'lamp' + (i === 0 ? ' sign' : '');
+    s.appendChild(document.createElement('i'));
+    el.appendChild(s);
+  }
+  return Array.from(el.children);
+}
+function paint(lamps, bits) {
+  for (let i = 0; i < lamps.length; i++) {
+    const on = bits[i] === 1;
+    if (lamps[i]._on !== on) { lamps[i]._on = on; lamps[i].classList.toggle('on', on); }
+  }
+}
+const liveLamps = buildReg($('regLive'), 32);
+let vLamps = buildReg($('regV'), 32);
+
+/* ── 第一屏與結尾的即時值 ── */
+function fmtLeft(s) {
+  const b = Y38.breakdown(s);
+  return fmtN(b.d) + ' 天 ' + Y38.pad(b.h) + ':' + Y38.pad(b.m) + ':' + Y38.pad(b.s);
+}
+function liveTick() {
+  const n = nowSec();
+  $('liveN').textContent = fmtN(n);
+  $('liveLeft').textContent = fmtN(Y38.MAX - n);
+  $('finalLeft').textContent = fmtLeft(Y38.MAX - n);
+  paint(liveLamps, Y38.bits32(n));
+}
+liveTick();
+setInterval(liveTick, 1000);
+
+/* ── 手把刻度 ── */
+(function () {
+  const g = $('ticks');
+  for (let i = 0; i < 24; i++) {
+    const a = i / 24 * Math.PI * 2, r1 = 100, r2 = i % 6 ? 105 : 109;
+    const l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    l.setAttribute('x1', 120 + Math.sin(a) * r1); l.setAttribute('y1', 120 - Math.cos(a) * r1);
+    l.setAttribute('x2', 120 + Math.sin(a) * r2); l.setAttribute('y2', 120 - Math.cos(a) * r2);
+    g.appendChild(l);
+  }
+})();
+
+/* ── 里程碑文字 ── */
+const NOW0 = nowSec();
+const MS = Y38.MILESTONES.concat([{ at: NOW0, key: 'here' }]).sort((a, b) => a.at - b.at);
+MS.find(m => m.key === 'aol').at += 1;   /* 第一個「現在＋十億秒」溢位的秒 */
+const TEXT = {
+  b: '<strong>1,000,000,000。</strong>數字第一次長成十位數，世界各地有工程師開派對倒數。也有把時間當文字排序的程式，忽然把「1」開頭的十位數排到「9」開頭的九位數前面去。',
+  half: '左邊數來第二顆燈亮了——2<sup>30</sup>。從這一秒起它再也沒熄過。能用的格子，已經走掉一半。',
+  aol: '一台叫 AOLserver 的網頁伺服器，設定檔裡把「等多久算逾時」寫成十億秒，意思是「永遠」。可是從這一秒起，「現在＋十億秒」已經超過天花板。它們開始出錯當機——2038 年的問題，提早三十二年寄來一張明信片。',
+  seq: '<strong>1234567890。</strong>有人守在螢幕前等它跳出來，像在等跨年。',
+  here: '<strong>你在這裡。</strong>此刻真正的值就停在這裡。再往前，就是還沒發生的時間了。'
+};
+const log = $('log');
+function addLog(m) {
+  const f = Y38.fmt(m.at, 8);
+  const li = document.createElement('li');
+  if (m.key === 'here') li.className = 'here';
+  li.innerHTML = '<time>' + f.date + ' ' + f.time + '（台北）</time>' + TEXT[m.key];
+  log.appendChild(li);
+  const note = $('note');
+  note.classList.add('flash');
+  setTimeout(() => { note.innerHTML = '<b style="color:var(--pk-accent)">' + f.date + '</b>　' + TEXT[m.key].replace(/<[^>]+>/g, '').split('。')[0] + '。'; note.classList.remove('flash'); }, 150);
+  requestAnimationFrame(() => requestAnimationFrame(() => li.classList.add('in')));
+}
+
+/* ── 讀數 ── */
+const R = { d: $('vDate'), t: $('vTime'), w: $('vWd'), n: $('vNum') };
+function showSec(regVal, width) {
+  const f = Y38.fmt(regVal, 8);
+  R.d.textContent = f.date; R.t.textContent = f.time; R.w.textContent = '星期' + f.wd;
+  R.n.textContent = fmtN(regVal);
+  if (width !== 64) paint(vLamps, Y38.bits32(regVal));
+}
+
+/* ── 手把 ── */
+const crank = $('crank'), arm = $('arm'), prog = $('prog');
+const CIRC = 2 * Math.PI * 84;
+let acc = 0, sec = 0, lastSec = 0, dirty = true, dragging = false, lastAng = 0, locked = false;
+function ptAngle(e) {
+  const r = crank.getBoundingClientRect();
+  return Math.atan2(e.clientX - (r.left + r.width / 2), -(e.clientY - (r.top + r.height / 2)));
+}
+crank.addEventListener('pointerdown', e => {
+  if (locked) return;
+  dragging = true; lastAng = ptAngle(e);
+  crank.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+crank.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const a = ptAngle(e);
+  advance(Y38.angDiff(a, lastAng));
+  lastAng = a;
+});
+['pointerup', 'pointercancel'].forEach(t => crank.addEventListener(t, () => { dragging = false; }));
+crank.addEventListener('keydown', e => {
+  if (locked) return;
+  const step = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1, PageUp: 8, PageDown: -8 }[e.key];
+  if (step) { e.preventDefault(); advance(step * Math.PI / 4); }
+});
+function advance(d) {
+  acc = PK.clamp(acc + d, 0, Y38.secToAngle(Y38.LOCK));
+  dirty = true;
+}
+function render() {
+  if (!dirty) return;
+  dirty = false;
+  sec = Y38.angleToSec(acc);
+  arm.setAttribute('transform', 'rotate(' + (acc * 180 / Math.PI % 360).toFixed(2) + ' 120 120)');
+  const turnFrac = (acc / (Math.PI * 2)) % 1;
+  prog.setAttribute('stroke-dashoffset', (CIRC * (1 - (sec >= Y38.LOCK ? 1 : turnFrac))).toFixed(1));
+  showSec(sec, 32);
+  const f = Y38.fmt(sec, 8);
+  crank.setAttribute('aria-valuenow', sec);
+  crank.setAttribute('aria-valuetext', f.date.replace(/-/g, '/') + ' ' + f.time);
+  if (sec > lastSec) Y38.crossed(lastSec, sec, MS).forEach(addLog);
+  if (sec > lastSec) lastSec = Math.max(lastSec, sec);
+  if (sec >= Y38.LOCK && !locked) lock();
+}
+PK.tick(render);
+
+function lock() {
+  locked = true;
+  crank.classList.add('locked');
+  crank.setAttribute('aria-disabled', 'true');
+  $('hint').textContent = '鎖住了';
+  $('releaseBox').classList.remove('hidden');
+  PK.announce('轉不動了，只差最後十秒。');
+  $('releaseBtn').focus({ preventScroll: true });
+}
+
+/* ── 最後十秒 ── */
+$('releaseBtn').addEventListener('click', () => {
+  const btn = $('releaseBtn');
+  btn.disabled = true; btn.textContent = '……';
+  let v = Y38.LOCK;
+  const c = $('count10');
+  const step = () => {
+    if (v < Y38.MAX) {
+      v++;
+      showSec(v, 32);
+      c.textContent = Y38.MAX - v;
+      setTimeout(step, 1000);
+    } else {
+      c.textContent = '';
+      btn.textContent = '已放手';
+      wrap();
+    }
+  };
+  c.textContent = '10';
+  setTimeout(step, 1000);
+});
+
+function wrap() {
+  const ro = $('readout');
+  const target = Y38.toInt32(Y38.MAX + 1);
+  const bits = Y38.bits32(target);
+  const fin = () => {
+    ro.classList.remove('glitch'); ro.classList.add('wrapped');
+    showSec(target, 32);
+    document.body.classList.add('y1901');
+    $('bitsNote').textContent = '負 2,147,483,648';
+    store.set('wrapped', true);
+    PK.announce('進位撞進正負號。現在是 1901 年 12 月 14 日，台北時間凌晨 4 點 45 分 52 秒。');
+    const s3 = $('s3'); s3.classList.remove('hidden');
+    setTimeout(() => PK.scrollTo(s3), PK.reduced() ? 0 : 2600);
+    $('note').textContent = '進位撞進了正負號。';
+  };
+  if (PK.reduced()) { paint(vLamps, bits); fin(); return; }
+  /* 進位骨牌：從最右邊往左一顆顆熄滅，最後撞亮正負號 */
+  ro.classList.add('glitch');
+  let i = 31;
+  const ripple = () => {
+    if (i >= 1) { vLamps[i].classList.remove('on'); vLamps[i]._on = false; i--; setTimeout(ripple, 45); }
+    else { paint(vLamps, bits); setTimeout(fin, 380); }
+    if (i % 3 === 0) {
+      const fake = Y38.fmt(Math.floor(Math.random() * 4e9) - 2e9, 8);
+      R.d.textContent = fake.date; R.t.textContent = fake.time;
+    }
+  };
+  ripple();
+}
+
+/* ── 六十四格 ── */
+$('widenBtn').addEventListener('click', () => {
+  const btn = $('widenBtn'); btn.disabled = true;
+  document.body.classList.remove('y1901');
+  const reg = $('regV');
+  /* 在左邊補 32 顆新燈；新的最左邊才是正負號 */
+  vLamps[0].classList.remove('sign');
+  const frag = document.createDocumentFragment(), add = [];
+  for (let i = 0; i < 32; i++) {
+    const s = document.createElement('span');
+    s.className = 'lamp new' + (i === 0 ? ' sign' : '');
+    s.appendChild(document.createElement('i'));
+    frag.appendChild(s); add.push(s);
+  }
+  reg.insertBefore(frag, reg.firstChild);
+  vLamps = add.concat(vLamps);
+  const v = Y38.MAX + 1;   /* 64 格放得下：2^31，只亮一顆 */
+  for (let i = 0; i < 64; i++) {
+    const on = i === 32;
+    vLamps[i]._on = on; vLamps[i].classList.toggle('on', on);
+  }
+  add.forEach((s, k) => setTimeout(() => s.classList.add('pop'), PK.reduced() ? 0 : k * 22));
+  $('bitsNote').textContent = '64 格：2,147,483,648';
+  const ro = $('readout'); ro.classList.remove('wrapped');
+  showSec(v, 64);
+  PK.announce('換成 64 格。時鐘回到 2038 年 1 月 19 日 11 點 14 分 08 秒。');
+  ['s4', 's5'].forEach(id => $(id).classList.remove('hidden'));
+  setTimeout(() => PK.scrollTo($('s4')), PK.reduced() ? 0 : 900);
+});
+
+/* 回訪：上次已經把世界送回 1901，給一句小提示 */
+if (store.get('wrapped', false)) $('hint').textContent = '你上次把它轉回了 1901 年｜再來一次';
+/* 減少動態切換時：之後觸發的進位骨牌／捲動會即時改走靜態版 */
+PK.onMotionChange(r => { if (r) document.querySelectorAll('.lamp.new').forEach(s => s.classList.add('pop')); });
+</script>
+</body>
+</html>

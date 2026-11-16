@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>白米航線｜每日小專案</title>
+<meta name="description" content="明治年間，日本海軍將近四分之一的水兵站不起來。兩艘練習艦走同一條航線，差別只在餐盤上——這一次由你來配菜。">
+<link rel="stylesheet" href="../../../assets/page-kit.css">
+<style>
+:root{
+  --pk-bg:#0b1220; --pk-ink:#ece6d6; --pk-dim:#8d93a3; --pk-accent:#e8c27a;
+  --rice:#f3eedf; --sick:#e39b3c; --dead:#c4422f; --sea:#13203a; --line:rgba(236,230,214,.14);
+  --pk-maxw:680px;
+}
+body{background:
+  radial-gradient(1200px 600px at 80% -10%, #1a2a4a 0%, transparent 60%),
+  radial-gradient(900px 700px at -10% 110%, #10233a 0%, transparent 55%), var(--pk-bg);
+  background-attachment:fixed;}
+.serif{font-family:var(--pk-serif)}
+.hero-kicker{letter-spacing:.32em;font-size:12px;color:var(--pk-dim);margin:0 0 26px}
+.pk-hero h1 em{font-style:normal;color:var(--sick)}
+.hero-sub{color:var(--pk-dim);font-size:17px;max-width:30em}
+.cue{margin-top:46px;font-size:12px;letter-spacing:.2em;color:var(--pk-dim);display:flex;align-items:center;gap:10px}
+.cue i{display:block;width:1px;height:38px;background:linear-gradient(var(--pk-accent),transparent);animation:cue 2.4s ease-in-out infinite;transform-origin:top}
+@keyframes cue{0%{transform:scaleY(0);opacity:1}70%{transform:scaleY(1);opacity:1}100%{transform:scaleY(1);opacity:0}}
+
+/* 章節目錄（右側） */
+.log-nav{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:8;display:flex;flex-direction:column;gap:12px}
+.log-nav button{all:unset;cursor:pointer;width:10px;height:10px;border-radius:50%;border:1px solid var(--pk-dim);transition:transform .3s,background .3s,border-color .3s}
+.log-nav button:hover{transform:scale(1.35)}
+.log-nav button:focus-visible{outline:2px solid var(--pk-accent);outline-offset:3px}
+.log-nav button.on{background:var(--pk-accent);border-color:var(--pk-accent);transform:scale(1.25)}
+
+.ch{padding:16vh 0 8vh;position:relative}
+.ch-no{display:flex;align-items:baseline;gap:14px;margin:0 0 6px;color:var(--pk-accent);font-size:13px;letter-spacing:.24em}
+.ch-no b{font-family:var(--pk-serif);font-size:44px;font-weight:600;letter-spacing:0;line-height:1;color:transparent;-webkit-text-stroke:1px var(--pk-accent)}
+.ch h2{font-family:var(--pk-serif);font-size:clamp(24px,5vw,32px);font-weight:600;margin:0 0 22px;line-height:1.45}
+.ch p{font-size:17px;margin:0 0 1.1em}
+.dim{color:var(--pk-dim)}
+.date{font-family:var(--pk-serif);color:var(--pk-dim);font-size:14px;letter-spacing:.12em;border-left:2px solid var(--pk-accent);padding-left:10px;margin:0 0 18px}
+.big{font-family:var(--pk-serif);font-size:clamp(22px,4.6vw,28px);line-height:1.6;margin:30px 0}
+
+/* 海圖 */
+.chart{margin:26px 0 10px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#0f1a30,#0c1526);padding:10px;overflow:hidden}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .grid line{stroke:rgba(236,230,214,.05)}
+.chart .route-bg{fill:none;stroke:rgba(236,230,214,.22);stroke-width:1.4;stroke-dasharray:3 5}
+.chart .route{fill:none;stroke:var(--pk-accent);stroke-width:2;stroke-linecap:round}
+.chart .port circle{fill:var(--pk-bg);stroke:var(--pk-ink);stroke-width:1.3}
+.chart .port text{fill:var(--pk-dim);font-size:11px;font-family:var(--pk-sans)}
+.chart .ship{transition:opacity .4s}
+.chart .ship circle{fill:var(--rice)}
+.chart .land{fill:rgba(236,230,214,.06)}
+
+/* 名冊 */
+.roster-wrap{margin:18px 0 8px}
+.roster{display:flex;flex-wrap:wrap;gap:3px;padding:14px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.18)}
+.roster span{width:8px;height:8px;border-radius:50%;background:var(--rice);opacity:.85;transition:background .5s,opacity .5s,transform .5s}
+.roster span.s{background:var(--sick);transform:scale(.8)}
+.roster span.d{background:var(--dead);opacity:1;transform:scale(.55);border-radius:1px}
+.roster span.x{background:transparent;box-shadow:inset 0 0 0 1.5px var(--sick);opacity:1}
+.tally{display:flex;gap:26px;flex-wrap:wrap;margin:12px 2px 0;font-size:13px;color:var(--pk-dim)}
+.tally b{display:block;font-family:var(--pk-serif);font-size:30px;font-weight:600;color:var(--pk-ink);font-variant-numeric:tabular-nums;line-height:1.2}
+.tally .k-s b{color:var(--sick)} .tally .k-d b{color:var(--dead)}
+.legend{font-size:12px;color:var(--pk-dim);margin-top:8px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px 0 12px;vertical-align:1px}
+
+.stamp{display:inline-block;font-family:var(--pk-serif);color:var(--dead);border:2px solid var(--dead);padding:4px 14px;border-radius:6px;transform:rotate(-4deg);letter-spacing:.2em;margin:6px 0 20px;opacity:.9}
+
+/* 比例算式 */
+.ratio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:22px 0}
+.ratio div{border:1px solid var(--line);border-radius:12px;padding:14px 12px;text-align:center}
+.ratio small{display:block;color:var(--pk-dim);font-size:12px}
+.ratio strong{font-family:var(--pk-serif);font-size:24px;font-variant-numeric:tabular-nums}
+.ratio .bad strong{color:var(--sick)}
+
+/* 配膳台（高潮） */
+.galley{border:1px solid rgba(232,194,122,.35);border-radius:18px;padding:22px;background:linear-gradient(180deg,rgba(232,194,122,.06),rgba(0,0,0,.1));margin:26px 0}
+.tray{display:flex;height:64px;border-radius:12px;overflow:hidden;margin:8px 0 6px;box-shadow:inset 0 0 0 1px var(--line)}
+.tray div{display:flex;align-items:center;justify-content:center;font-size:13px;color:#1b1b1b;white-space:nowrap;overflow:hidden;transition:flex-grow .35s cubic-bezier(.2,.7,.3,1)}
+.tray .t-rice{background:var(--rice)}
+.tray .t-meat{background:#c8735a;color:#fff6ea}
+.tray .t-bread{background:#d9b27a}
+.tray .t-milk{background:#e6e1f0}
+.tray-cap{display:flex;justify-content:space-between;font-size:12px;color:var(--pk-dim)}
+.slider-row{margin:22px 0 4px}
+.slider-row label{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px;color:var(--pk-dim)}
+.slider-row output{font-family:var(--pk-serif);font-size:30px;color:var(--pk-ink);font-variant-numeric:tabular-nums}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:28px;background:transparent;margin:6px 0 0;}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--pk-accent),var(--sick))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--pk-accent),var(--sick))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--rice);margin-top:-10px;box-shadow:0 0 0 5px rgba(232,194,122,.2);transition:transform .2s}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:var(--rice);box-shadow:0 0 0 5px rgba(232,194,122,.2)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:focus-visible{outline:2px solid var(--pk-accent);outline-offset:4px;border-radius:6px}
+.ticks{position:relative;height:18px;font-size:11px;color:var(--pk-dim)}
+.ticks span{position:absolute;top:0;white-space:nowrap}.ticks span:nth-child(1){left:0}.ticks span:nth-child(2){left:76.5%;transform:translateX(-50%)}.ticks span:nth-child(3){right:0}
+.sail{margin-top:18px;background:var(--pk-accent);color:#1a1405;border:0;font-weight:600;padding:12px 22px;border-radius:999px;letter-spacing:.08em}
+.verdict{min-height:3em;font-family:var(--pk-serif);font-size:19px;line-height:1.7;margin:18px 0 0;opacity:0;transform:translateY(8px);transition:opacity .7s,transform .7s}
+.verdict.in{opacity:1;transform:none}
+.verdict .hl{color:var(--sick)}
+.after{display:none}
+.after.open{display:block}
+
+/* 海軍統計條 */
+.bars{margin:24px 0}
+.bar{display:grid;grid-template-columns:74px 1fr 92px;align-items:center;gap:12px;margin:10px 0;font-size:14px}
+.bar .track{height:16px;border-radius:8px;background:rgba(236,230,214,.06);overflow:hidden}
+.bar .fill{height:100%;width:100%;background:var(--sick);transform-origin:left;transform:scaleX(0);transition:transform 1.4s cubic-bezier(.2,.7,.3,1)}
+.bar .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--pk-dim)}
+.bars.in .fill{transform:scaleX(var(--v))}
+
+/* 米粒 */
+.grain-box{display:flex;gap:22px;align-items:center;margin:28px 0;flex-wrap:wrap}
+.grain-box svg{width:150px;height:auto;flex:none;overflow:visible}
+.grain-box .bran{transition:opacity 1.6s ease, transform 1.6s ease;transform-box:view-box;transform-origin:60px 90px}
+.grain-box.in .bran{opacity:0;transform:scale(1.12)}
+.grain-box p{flex:1;min-width:200px;margin:0;font-size:15px;color:var(--pk-dim)}
+
+.coda{min-height:70vh;display:flex;flex-direction:column;justify-content:center;padding:10vh 0}
+.coda .big{margin:0 0 18px}
+.coord{font-family:var(--pk-serif);letter-spacing:.2em;color:var(--pk-accent);font-size:14px}
+.pk-foot{opacity:.75}
+
+@media (max-width:560px){
+  .log-nav{display:none}
+  .ratio{grid-template-columns:1fr}
+  .bar{grid-template-columns:60px 1fr 78px;font-size:13px}
+  .roster span{width:7px;height:7px}
+  .ch p{font-size:16px}
+}
+@media (prefers-reduced-motion: reduce){
+  .cue i{animation:none}
+  .roster span,.tray div,.verdict,.bar .fill,.grain-box .bran{transition:none}
+}
+</style>
+</head>
+<body>
+<a class="pk-home" href="../../../index.html">← 回首頁</a>
+
+<nav class="log-nav" aria-label="航海日誌章節"></nav>
+
+<header class="pk-hero" id="top">
+  <div class="pk-wrap">
+    <p class="hero-kicker rv">明治十六年・帝國海軍衛生統計</p>
+    <h1 class="rv">那一年，日本海軍差不多<em>每四個人</em>，就有一個雙腿發軟、站不起來。</h1>
+    <p class="hero-sub rv">沒有敵艦開砲，也沒有瘟疫船靠岸。他們每天三餐，吃的是當時全國最體面的東西。</p>
+    <div class="cue rv" aria-hidden="true"><i></i>翻開航海日誌</div>
+  </div>
+</header>
+
+<main class="pk-wrap">
+
+  <section class="ch" data-ch="出航">
+    <p class="ch-no rv"><b>壹</b>龍驤</p>
+    <h2 class="rv">三百七十六個人，和吃不完的白米飯</h2>
+    <p class="date rv">明治十五年十二月十九日・品川</p>
+    <p class="rv">練習艦「龍驤」要繞太平洋一圈：紐西蘭、智利、秘魯、夏威夷，再回家。</p>
+    <p class="rv">船上的水兵多半是農家子弟。在老家，白米是過年的東西；平常吃的是麥和雜糧，摻著一點米。進了海軍，白米一天管飽——當兵的體面，有一半在這碗飯上。</p>
+    <p class="rv">下面每一個小點，是船上的一個人。記住它們現在的顏色。</p>
+    <div class="roster-wrap rv">
+      <div class="roster" id="rosterA" role="img" aria-label="龍驤號乘員 376 人"></div>
+      <div class="tally" aria-live="polite">
+        <div>乘員<b id="aAll">376</b></div>
+        <div class="k-s">腳氣<b id="aSick">0</b></div>
+        <div class="k-d">死亡<b id="aDead">0</b></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ch" data-ch="海上">
+    <p class="ch-no rv"><b>貳</b>南太平洋</p>
+    <h2 class="rv">先是腳麻，然後是小腿腫起來</h2>
+    <p class="rv">接著走路像踩在棉花上，爬不上舷梯。病重的，心臟撐不住，醫官叫它「衝心」——病人喘著喘著，就沒了。</p>
+    <p class="rv">這病有名字，叫<b>腳氣</b>。不是香港腳，是一種會殺人的病。日本人對它不陌生：江戶時代，鄉下人上江戶當差，腿就開始沉；一回鄉、翻過箱根山，又自己好了。大家叫它「江戶煩」，怪罪江戶的水土。</p>
+    <div class="chart rv">
+      <svg id="mapA" viewBox="0 0 600 330" role="img" aria-label="龍驤號航線圖：品川、紐西蘭、智利、秘魯、夏威夷、品川"></svg>
+    </div>
+    <p class="rv dim">船往南走。名冊上的點，開始變色。</p>
+  </section>
+
+  <section class="ch" data-ch="夏威夷">
+    <p class="ch-no rv"><b>參</b>檀香山</p>
+    <h2 class="rv">船開不下去了</h2>
+    <p class="rv">到夏威夷時，能站著值班的人已經不夠開船。龍驤號被迫停靠，在岸上買了肉和蔬菜。</p>
+    <p class="rv">然後發生了一件怪事：病人一個接一個，好起來了。</p>
+    <p class="rv">這一筆被寫進了報告。很久以後，它會變成一條線索。</p>
+    <p class="date rv">明治十六年十月十五日・回到品川</p>
+    <p class="big rv">376 人出海，<span style="color:var(--sick)">169 人</span>得了腳氣，<span style="color:var(--dead)">25 人</span>沒有回來。</p>
+    <span class="stamp rv">航次終了</span>
+  </section>
+
+  <section class="ch" data-ch="高木">
+    <p class="ch-no rv"><b>肆</b>一位讀過倫敦的軍醫</p>
+    <h2 class="rv">英國軍艦上，沒有這種病</h2>
+    <p class="rv">海軍軍醫高木兼寬，在倫敦聖托馬斯醫院學了五年醫。他注意到兩件事。</p>
+    <p class="rv">第一，英國水兵幾乎不得腳氣。第二，同一艘日本船上，軍官比水兵少得多。軍官和水兵睡同一片甲板、喝同一桶水、吹同一陣海風——唯一不一樣的，是盤子裡裝了什麼。</p>
+    <p class="rv">他把伙食拆成兩種成分來算：<b>氮</b>（他當成「長肉的養分」）和<b>碳</b>（米飯這類澱粉）。一份氮配幾份碳？</p>
+    <div class="ratio rv">
+      <div><small>健康成人（高木的標準）</small><strong>1 : 15.5</strong></div>
+      <div><small>龍驤號 軍官</small><strong>1 : 20</strong></div>
+      <div class="bad"><small>龍驤號 水兵</small><strong>1 : 28</strong></div>
+    </div>
+    <p class="rv">他發現，只要比例超過 1:28，腳氣幾乎一定找上門。他向上面提了一個很狂的要求：<b>再派一艘船，走一模一樣的航線，只改菜單。</b></p>
+    <p class="rv dim">練習艦「筑波」。乘員三百三十三人。明治十七年二月三日出航。</p>
+  </section>
+
+  <section class="ch" data-ch="筑波">
+    <p class="ch-no rv"><b>伍</b>筑波</p>
+    <h2 class="rv">這一次，菜單由你來配</h2>
+    <p class="rv">往左拉，白米變少，肉、麵包、牛乳變多。水兵不愛吃麵包，會抱怨——但出海以後，他們吃什麼，就是你決定的。</p>
+
+    <div class="galley rv" id="galley">
+      <div class="tray" aria-hidden="true">
+        <div class="t-rice" id="tRice">白米</div>
+        <div class="t-bread" id="tBread">麵包</div>
+        <div class="t-meat" id="tMeat">肉</div>
+        <div class="t-milk" id="tMilk">牛乳</div>
+      </div>
+      <div class="tray-cap"><span>一名水兵一天的伙食（示意）</span><span id="riceShare">白米 92%</span></div>
+
+      <div class="slider-row">
+        <label for="nc">氮 : 碳<output id="ncOut" for="nc">1 : 28</output></label>
+        <input type="range" id="nc" min="15" max="32" step="1" value="28" aria-describedby="ncHint">
+        <div class="ticks" aria-hidden="true"><span>1:15 高木的提案</span><span>1:28 龍驤舊菜單</span><span>1:32</span></div>
+        <p id="ncHint" class="pk-sr">數值越小，白米越少、肉與麵包越多。</p>
+      </div>
+
+      <button class="pk-btn sail" id="sail" type="button">起錨，讓筑波出航</button>
+
+      <div class="chart" style="margin-top:20px">
+        <svg id="mapB" viewBox="0 0 600 330" role="img" aria-label="筑波號航線圖，與龍驤號相同"></svg>
+      </div>
+      <div class="roster-wrap">
+        <div class="roster" id="rosterB" role="img" aria-label="筑波號乘員 333 人"></div>
+        <div class="tally">
+          <div>乘員<b>333</b></div>
+          <div class="k-s">腳氣<b id="bSick">0</b></div>
+          <div class="k-d">死亡<b id="bDead">0</b></div>
+        </div>
+        <div class="legend"><i style="background:var(--rice)"></i>健康<i style="background:var(--sick)"></i>腳氣<i style="background:var(--dead);border-radius:1px"></i>死亡<i style="box-shadow:inset 0 0 0 1.5px var(--sick)"></i>沒照新菜單吃的人</div>
+      </div>
+      <p class="verdict" id="verdict" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <div class="after" id="after">
+  <section class="ch" data-ch="轉折">
+    <p class="ch-no rv"><b>陸</b>他猜對了碗，猜錯了飯</p>
+    <h2 class="rv">歷史上的筑波：333 人，14 人病倒，0 人死亡</h2>
+    <p class="rv">那十四個人，是不肯照新菜單吃的。</p>
+    <p class="rv">隔年，海軍把麥飯也加進主食——一半白米、一半碾碎的大麥。數字是這樣掉下去的：</p>
+    <div class="bars" id="bars" aria-label="海軍腳氣發生率">
+      <div class="bar"><span>1883</span><div class="track"><div class="fill" style="--v:1"></div></div><span class="num">23.1%・死 49</span></div>
+      <div class="bar"><span>1884</span><div class="track"><div class="fill" style="--v:.55"></div></div><span class="num">12.7%・死 8</span></div>
+      <div class="bar"><span>1885</span><div class="track"><div class="fill" style="--v:.026"></div></div><span class="num">0.6%・死 0</span></div>
+    </div>
+    <p class="rv">可是高木的理由錯了。他以為病因是缺「蛋白質」，麥飯有效，是因為麥比米多一點蛋白質。醫學界抓住這點猛打：拿不出病原、講不清機制，憑什麼要全國軍隊改吃麥？</p>
+    <p class="rv">陸軍堅持白米。日俄戰爭裡，戰地的腳氣患者超過<b>二十五萬</b>人，大約<b style="color:var(--dead)">兩萬七千</b>人因此喪命。</p>
+  </section>
+
+  <section class="ch" data-ch="米糠">
+    <p class="ch-no rv"><b>柒</b>被磨掉的那一層</p>
+    <h2 class="rv">一九一〇年，有人去翻了碾米廠的垃圾</h2>
+    <p class="rv">農學家鈴木梅太郎從<b>米糠</b>裡，萃出一種能擋住腳氣的成分，取名「オリザニン」（Oryzanin，取自稻屬的學名 Oryza）。後來它有了更通用的名字：<b>維生素 B1</b>。</p>
+    <div class="grain-box rv" id="grain">
+      <svg viewBox="0 0 120 180" aria-hidden="true">
+        <ellipse class="bran" cx="60" cy="90" rx="44" ry="80" fill="#c89a5b"/>
+        <ellipse class="bran" cx="60" cy="90" rx="41" ry="76" fill="#b98848" opacity=".6"/>
+        <ellipse cx="60" cy="90" rx="36" ry="70" fill="#f3eedf"/>
+        <ellipse class="bran" cx="60" cy="18" rx="12" ry="9" fill="#e0b979"/>
+      </svg>
+      <p>糙米外面那層褐色的皮和胚芽，正是 B1 住的地方。米磨得越白、越體面，它就被磨得越乾淨。江戶人一回鄉就好，是因為回到了粗糧；龍驤號在夏威夷好轉，是因為吃到了肉和菜。</p>
+    </div>
+    <p class="rv">高木兼寬到一九二〇年過世，都還相信是蛋白質。</p>
+  </section>
+
+  <section class="coda">
+    <p class="big rv">讓水兵站不起來的東西，從來不缺在船上。</p>
+    <p class="big rv">它在出航之前，就在品川的碾米廠裡，一粒一粒被磨掉了。</p>
+    <p class="rv dim" style="margin-top:30px">這張海圖上沒有高木的名字。從檀香山往南一萬多公里，南極半島邊上有一個岬角，叫「高木岬」。</p>
+    <p class="coord rv">65°33′S　64°34′W</p>
+    <p class="rv"><button class="pk-btn" id="again" type="button">換一份菜單，再開一次筑波</button></p>
+  </section>
+  </div>
+
+</main>
+
+<footer class="pk-foot pk-wrap">
+  資料來源：Sugiyama &amp; Seita, J R Soc Med 2013；日本の脚気史；農林水產省「脚気撲滅への挑戦」。航行病例為依高木比例的示意模型。
+</footer>
+
+<script src="../../../assets/page-kit.js"></script>
+<script>
+'use strict';
+const LS = 'kakke84.';
+const store = PK.store(LS);
+
+/*PURE*/
+/* 示意模型：以兩個真實錨點校準——龍驤水兵 1:28 → 169/376；筑波 1:15 → 14/333 */
+const RATE_PTS = [[15, 14/333], [18, 0.09], [22, 0.22], [25, 0.34], [28, 169/376], [32, 0.53]];
+function sickRate(r){
+  const p = RATE_PTS;
+  if (r <= p[0][0]) return p[0][1];
+  if (r >= p[p.length-1][0]) return p[p.length-1][1];
+  for (let i = 1; i < p.length; i++){
+    if (r <= p[i][0]){ const k = (r - p[i-1][0]) / (p[i][0] - p[i-1][0]); return p[i-1][1] + (p[i][1] - p[i-1][1]) * k; }
+  }
+  return p[p.length-1][1];
+}
+/* 病死比：龍驤 25/169；比例 ≤17 視為零死亡（筑波實績） */
+function deathShare(r){ if (r <= 17) return 0; return (25/169) * Math.min(1, (r - 17) / 11); }
+function outcome(r, crew){
+  const sick = Math.round(crew * sickRate(r));
+  const dead = Math.round(sick * deathShare(r));
+  return { sick, dead };
+}
+/* 托盤示意：比例越小白米越少 */
+function trayShares(r){
+  const rice = 0.45 + (r - 15) / 17 * 0.47;   /* 15→45%，32→92% */
+  const rest = 1 - rice;
+  return { rice, bread: rest * 0.38, meat: rest * 0.40, milk: rest * 0.22 };
+}
+/* 決定性亂序：讓誰生病每次一樣（不用 Math.random） */
+function order(n, seed){
+  const a = Array.from({length:n}, (_, i) => i); let s = seed >>> 0;
+  for (let i = n - 1; i > 0; i--){ s = (s * 1664525 + 1013904223) >>> 0; const j = s % (i + 1); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+/*END*/
+
+const $ = s => document.querySelector(s);
+PK.reveal();
+
+/* ── 章節導覽 ── */
+const chs = [...document.querySelectorAll('[data-ch]')];
+const nav = $('.log-nav');
+function buildNav(){
+  nav.innerHTML = '';
+  chs.forEach((c, i) => {
+    if (c.closest('.after') && !c.closest('.after').classList.contains('open')) return;
+    const b = document.createElement('button'); b.type = 'button';
+    b.setAttribute('aria-label', '第 ' + (i+1) + ' 章：' + c.dataset.ch);
+    b.addEventListener('click', () => PK.scrollTo(c));
+    b.dataset.i = i; nav.appendChild(b);
+  });
+}
+buildNav();
+const navIO = new IntersectionObserver(es => {
+  es.forEach(e => { if (e.isIntersecting){ const i = chs.indexOf(e.target);
+    nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.i === i)); } });
+}, { rootMargin: '-45% 0px -50% 0px' });
+chs.forEach(c => navIO.observe(c));
+
+/* ── 名冊 ── */
+function makeRoster(el, n){ const f = document.createDocumentFragment(); for (let i = 0; i < n; i++) f.appendChild(document.createElement('span')); el.appendChild(f); return [...el.children]; }
+const dotsA = makeRoster($('#rosterA'), 376);
+const dotsB = makeRoster($('#rosterB'), 333);
+const ordA = order(376, 1882), ordB = order(333, 1884);
+
+/* ── 海圖 ── */
+const NS = 'http://www.w3.org/2000/svg';
+const PORTS = [['品川',120,92],['威靈頓',232,284],['瓦爾帕萊索',560,262],['卡亞俄',548,190],['檀香山',338,124],['品川',120,92]];
+const ROUTE = 'M120 92 C150 180 190 250 232 284 C340 330 470 300 560 262 C575 240 560 210 548 190 C470 150 400 120 338 124 C260 120 180 100 120 92';
+function el(tag, attrs, parent){ const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function makeMap(svg){
+  const g = el('g', {class:'grid'}, svg);
+  for (let x = 0; x <= 600; x += 50) el('line', {x1:x, y1:0, x2:x, y2:330}, g);
+  for (let y = 0; y <= 330; y += 50) el('line', {x1:0, y1:y, x2:600, y2:y}, g);
+  /* 簡化陸塊示意 */
+  el('path', {class:'land', d:'M70 40 C100 50 118 70 112 100 C104 120 90 130 80 150 L62 140 C70 110 60 70 70 40Z'}, svg);
+  el('path', {class:'land', d:'M222 262 C236 266 246 282 238 300 L226 298 C220 288 216 272 222 262Z'}, svg);
+  el('path', {class:'land', d:'M600 120 C580 150 570 200 572 250 C574 290 590 320 600 330Z'}, svg);
+  el('path', {class:'route-bg', d:ROUTE}, svg);
+  const route = el('path', {class:'route', d:ROUTE}, svg);
+  PORTS.slice(0, 5).forEach(([n, x, y], i) => {
+    const p = el('g', {class:'port'}, svg); el('circle', {cx:x, cy:y, r:4}, p);
+    const t = el('text', {x: x + (i === 2 || i === 3 ? -10 : 9), y: y + (i === 1 ? 18 : -8), 'text-anchor': (i === 2 || i === 3) ? 'end' : 'start'}, p); t.textContent = n;
+  });
+  const ship = el('g', {class:'ship'}, svg); el('circle', {r:5}, ship);
+  const len = route.getTotalLength();
+  route.style.strokeDasharray = len; route.style.strokeDashoffset = len;
+  function set(p){ route.style.strokeDashoffset = len * (1 - p); const pt = route.getPointAtLength(len * p); ship.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')'); }
+  set(0); return { set };
+}
+const mapA = makeMap($('#mapA')), mapB = makeMap($('#mapB'));
+
+/* ── 共用：跑一趟航程 ── */
+function voyage(o){
+  /* o: {map, dots, ord, sick, dead, xs, ms, onSick, onDead, done} */
+  let t = 0; const ms = o.ms;
+  o.dots.forEach(d => d.className = '');
+  function paint(p){
+    o.map.set(p);
+    const ns = Math.round(o.sick * Math.min(1, Math.max(0, (p - 0.08) / 0.62)));
+    const nd = Math.round(o.dead * Math.min(1, Math.max(0, (p - 0.45) / 0.45)));
+    for (let i = 0; i < o.ord.length; i++){
+      const d = o.dots[o.ord[i]];
+      let c = '';
+      if (i < nd) c = 'd'; else if (i < ns) c = (o.xs && i >= o.sick - o.xs && p >= 1) ? 'x' : 's';
+      if (d.className !== c) d.className = c;
+    }
+    o.onSick(ns); o.onDead(nd);
+  }
+  if (PK.reduced()){ paint(1); o.done && o.done(); return; }
+  function f(dt){ t += dt * 1000; const p = Math.min(1, t / ms); paint(p); if (p >= 1){ PK.untick(f); o.done && o.done(); } }
+  PK.tick(f);
+}
+
+/* ── 龍驤：名冊進入視野才開船 ── */
+let aRun = false;
+const aIO = new IntersectionObserver(es => {
+  if (aRun || !es.some(e => e.isIntersecting)) return; aRun = true; aIO.disconnect();
+  voyage({ map: mapA, dots: dotsA, ord: ordA, sick: 169, dead: 25, ms: 9000,
+    onSick: n => $('#aSick').textContent = n, onDead: n => $('#aDead').textContent = n });
+}, { threshold: 0.4 });
+aIO.observe($('#mapA'));
+
+/* ── 筑波：配膳台 ── */
+const nc = $('#nc');
+function renderTray(){
+  const r = +nc.value, s = trayShares(r);
+  $('#ncOut').textContent = '1 : ' + r;
+  $('#tRice').style.flexGrow = s.rice; $('#tBread').style.flexGrow = s.bread;
+  $('#tMeat').style.flexGrow = s.meat; $('#tMilk').style.flexGrow = s.milk;
+  $('#riceShare').textContent = '白米 ' + Math.round(s.rice * 100) + '%';
+  nc.setAttribute('aria-valuetext', '氮比碳 1 比 ' + r + '，白米約 ' + Math.round(s.rice * 100) + '%');
+}
+nc.value = PK.clamp(+store.get('ratio', 28) || 28, 15, 32);
+renderTray();
+nc.addEventListener('input', () => { renderTray(); store.set('ratio', +nc.value); });
+
+let sailing = false;
+$('#sail').addEventListener('click', () => {
+  if (sailing) return; sailing = true;
+  const r = +nc.value, out = outcome(r, 333);
+  const btn = $('#sail'); btn.disabled = true; nc.disabled = true;
+  const v = $('#verdict'); v.classList.remove('in'); v.textContent = '';
+  PK.announce('筑波出航，菜單氮比碳 1 比 ' + r);
+  /* 歷史實績：生病的 14 人是沒照新菜單吃的——只有用到高木的比例才標出來 */
+  const xs = r <= 15 ? out.sick : 0;
+  voyage({ map: mapB, dots: dotsB, ord: ordB, sick: out.sick, dead: out.dead, xs, ms: 7000,
+    onSick: n => $('#bSick').textContent = n, onDead: n => $('#bDead').textContent = n,
+    done: () => {
+      sailing = false; btn.disabled = false; nc.disabled = false; btn.textContent = '換菜單，再開一次';
+      store.set('sailed', (+store.get('sailed', 0) || 0) + 1);
+      let msg;
+      if (r <= 15) msg = '筑波回到品川。三百三十三人，<span class="hl">' + out.sick + ' 人</span>腳氣，沒有一個死。名冊上那幾個空心的點——是沒照新菜單吃的人。';
+      else if (r <= 20) msg = '好多了：' + out.sick + ' 人病倒、' + out.dead + ' 人死亡。但高木要的是 1:15——他把白米壓得更低。再往左一點？';
+      else msg = '筑波回來了，帶著 <span class="hl">' + out.sick + ' 個病人</span>、' + out.dead + ' 口棺材。跟龍驤差不多。同一條海、同一陣風——你沒動餐盤。';
+      v.innerHTML = msg; requestAnimationFrame(() => v.classList.add('in'));
+      PK.announce(v.textContent);
+      if (r <= 15) openAfter();
+    } });
+});
+
+function openAfter(){
+  const a = $('#after'); if (a.classList.contains('open')) return;
+  a.classList.add('open'); buildNav(); PK.reveal('#after .rv');
+  const bIO = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)){ $('#bars').classList.add('in'); bIO.disconnect(); } }, { threshold: .5 });
+  bIO.observe($('#bars'));
+  const gIO = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)){ setTimeout(() => $('#grain').classList.add('in'), PK.reduced() ? 0 : 600); gIO.disconnect(); } }, { threshold: .6 });
+  gIO.observe($('#grain'));
+}
+$('#again').addEventListener('click', () => { PK.scrollTo($('#galley')); setTimeout(() => nc.focus({preventScroll:true}), 500); });
+</script>
+</body>
+</html>
